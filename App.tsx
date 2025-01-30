@@ -1,5 +1,6 @@
 import { SafeAreaView, ScrollView } from "react-native";
 import Signup from "./app/screens/Signup";
+import Login from "./app/screens/Login";
 import FontLoader from "./app/util/components/FontLoader";
 
 export default function App() {
@@ -7,7 +8,7 @@ export default function App() {
     <SafeAreaView>
       <ScrollView>
         <FontLoader />
-        <Signup />
+        <Login />
       </ScrollView>
     </SafeAreaView>
   );

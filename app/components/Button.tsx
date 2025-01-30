@@ -31,7 +31,7 @@ const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.text, textSize[size]]}>{children}</Text>
+      <Text style={[textSize[size], textStyle[variant]]}>{children}</Text>
     </TouchableOpacity>
   );
 };
@@ -43,10 +43,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  text: {
-    color: theme.colors.neutral.white,
   },
 });
 
@@ -61,10 +57,20 @@ const textSize: Record<ButtonSize, TextStyle> = {
   medium: { ...parseTextStyle(theme.typography.actionButton.medium) },
   small: { ...parseTextStyle(theme.typography.actionButton.small) },
 };
+const textStyle: Record<ButtonVariant, TextStyle> = {
+  normal: { color: theme.colors.neutral.white },
+  ghost: { color: theme.colors.actionPrimary.default },
+};
 
-const variantStyles: Record<ButtonVariant, ViewStyle> = {
-  normal: {},
-  ghost: { backgroundColor: "transparent", borderWidth: 1 },
+const variantStyles: Record<ButtonVariant, ViewStyle | TextStyle> = {
+  normal: {
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+  ghost: {
+    backgroundColor: "transparent",
+    borderColor: theme.colors.actionPrimary.default,
+    borderWidth: 1,
+  },
 };
 
 export default Button;
