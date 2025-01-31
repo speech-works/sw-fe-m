@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, ViewStyle, StyleSheet } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface CustomCheckboxProps {
   checked: boolean;
@@ -8,10 +8,17 @@ interface CustomCheckboxProps {
   style?: ViewStyle;
 }
 
-const CustomCheckbox: React.FC<CustomCheckboxProps> = ({ checked, onToggle, style }) => {
+const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
+  checked,
+  onToggle,
+  style,
+}) => {
   return (
-    <Pressable onPress={onToggle} style={[styles.checkbox, checked && styles.checked, style]}>
-      {checked && <Icon name="check" size={12} color="white" />}
+    <Pressable
+      onPress={onToggle}
+      style={[styles.checkbox, checked && styles.checked, style]}
+    >
+      {checked && <MaterialIcons name="check" size={12} color="white" />}
     </Pressable>
   );
 };
