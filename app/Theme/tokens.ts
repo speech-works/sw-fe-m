@@ -131,6 +131,24 @@ const typography = {
     light: "300 9px/12px SourceSansPro_300Light, Roboto, sans-serif",
   },
 
+  paragraphMicro: {
+    heavy: "600 8px/12px SourceSansPro_600SemiBold, Roboto, sans-serif",
+    regular: "400 8px/12px SourceSansPro_400Regular, Roboto, sans-serif",
+    light: "300 8px/12px SourceSansPro_300Light, Roboto, sans-serif",
+  },
+
+  paragraphNano: {
+    heavy: "600 7px/10px SourceSansPro_600SemiBold, Roboto, sans-serif",
+    regular: "400 7px/10px SourceSansPro_400Regular, Roboto, sans-serif",
+    light: "300 7px/10px SourceSansPro_300Light, Roboto, sans-serif",
+  },
+
+  paragraphPico: {
+    heavy: "600 6px/8px SourceSansPro_600SemiBold, Roboto, sans-serif",
+    regular: "400 6px/8px SourceSansPro_400Regular, Roboto, sans-serif",
+    light: "300 6px/8px SourceSansPro_300Light, Roboto, sans-serif",
+  },
+
   smallCaps: {
     heavy: "600 14px/20px SourceSansPro_600SemiBold, Roboto, sans-serif",
     regular: "400 14px/20px SourceSansPro_400Regular, Roboto, sans-serif",

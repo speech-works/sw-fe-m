@@ -1,21 +1,26 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import Form from './components/Form'
+import { Image, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import Form from "./components/Form";
+import { theme } from "../../Theme/tokens";
 
 const Signup = () => {
   return (
-    <View>
-      <Image source={require('../../assets/logo-image.png')} resizeMode='contain'  style={styles.logo} />
+    <View style={{ backgroundColor: theme.colors.neutral.white }}>
+      <Image
+        source={require("../../assets/logo-image.png")}
+        resizeMode="contain"
+        style={styles.logo}
+      />
       <Form />
     </View>
-  )
-}
+  );
+};
 
-export default Signup
+export default Signup;
 
 const styles = StyleSheet.create({
   logo: {
-    width: 390, 
-    height: 250
-  }
-})
+    width: 390,
+    height: 250,
+  },
+});

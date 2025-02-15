@@ -46,7 +46,11 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
-  wrapperView: { paddingHorizontal: 24, gap: 24 },
+  wrapperView: {
+    paddingHorizontal: 24,
+    gap: 24,
+    backgroundColor: theme.colors.neutral.white,
+  },
   userNameWrapper: {
     alignItems: "center",
     paddingTop: 36,

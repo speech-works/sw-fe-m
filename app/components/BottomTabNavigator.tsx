@@ -1,25 +1,45 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View } from "react-native";
+import { View, Text } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
-// Dummy Screens (Replace these with your actual screens)
-const HomeScreen = () => <View style={{ flex: 1, backgroundColor: "#fff" }} />;
-const ReportsScreen = () => (
-  <View style={{ flex: 1, backgroundColor: "#fff" }} />
-);
-const SettingsScreen = () => (
-  <View style={{ flex: 1, backgroundColor: "#fff" }} />
-);
+import Home from "../screens/Home";
+import Signup from "../screens/Signup";
+import useScrollWrapper from "../hooks/useScrollWrapper";
 
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+  const ScrollWrapper = useScrollWrapper();
+
+  const ScrollableHome = () => {
+    return (
+      <ScrollWrapper>
+        <Home />
+      </ScrollWrapper>
+    );
+  };
+  const ScrollableReports = () => {
+    return (
+      <ScrollWrapper>
+        <Signup />
+      </ScrollWrapper>
+    );
+  };
+  const ScrollableSettings = () => {
+    return (
+      <ScrollWrapper>
+        <Home />
+      </ScrollWrapper>
+    );
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
+        headerShown: false, // Hide header for all screens
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           if (route.name === "Home") {
@@ -61,9 +81,9 @@ const BottomTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Home" component={ScrollableHome} />
+      <Tab.Screen name="Reports" component={ScrollableReports} />
+      <Tab.Screen name="Settings" component={ScrollableSettings} />
     </Tab.Navigator>
   );
 };

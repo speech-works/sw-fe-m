@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, TextInputProps } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TextInputProps,
+} from "react-native";
 import { parseTextStyle } from "../util/functions/parseFont";
 import { theme } from "../Theme/tokens";
-
 
 interface InputFieldProps extends TextInputProps {
   label: string;
@@ -68,7 +73,7 @@ const styles = StyleSheet.create({
     color: "red",
   },
   input: {
-    ...parseTextStyle(theme.typography.paragraphBase.heavy)
+    ...parseTextStyle(theme.typography.paragraphBase.heavy),
   },
   errorBorder: {
     borderColor: "red",

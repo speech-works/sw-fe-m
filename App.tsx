@@ -3,10 +3,13 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Signup from "./app/screens/Signup";
 import Login from "./app/screens/Login";
 import Home from "./app/screens/Home";
+import PracticeBreathing from "./app/screens/Home/components/PracticeBreathing";
+import Scripts from "./app/screens/Home/components/SmoothSpeech/Scripts/Scripts";
 import FontLoader from "./app/util/components/FontLoader";
 
 import { NavigationContainer } from "@react-navigation/native";
 import BottomTabNavigator from "./app/components/BottomTabNavigator";
+import PracticeAffirmations from "./app/screens/Home/components/PracticeAffirmations";
 
 export default function App() {
   return (
@@ -15,17 +18,11 @@ export default function App() {
         style={styles.safeAreaView}
         edges={["top", "left", "right"]}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <FontLoader />
-          <Home />
-        </ScrollView>
-      </SafeAreaView>
-
-      <View style={styles.bottomNavContainer}>
+        <FontLoader />
         <NavigationContainer>
           <BottomTabNavigator />
         </NavigationContainer>
-      </View>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }
@@ -33,15 +30,5 @@ export default function App() {
 const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1, // allows ScrollView to take up available space
-    paddingBottom: 75, // makes content visible past bottom navigator
-  },
-  bottomNavContainer: {
-    position: "absolute", // Fixes the position at the bottom
-    bottom: 0, // Ensures it sticks to the bottom of the screen
-    left: 0, // Aligns it to the left of the screen
-    right: 0, // Ensures it's full width
   },
 });
