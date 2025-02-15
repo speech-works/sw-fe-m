@@ -5,7 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
 import Home from "../screens/Home";
-import Signup from "../screens/Signup";
+import Report from "../screens/Report";
 import useScrollWrapper from "../hooks/useScrollWrapper";
 
 // Create Bottom Tab Navigator
@@ -24,7 +24,7 @@ const BottomTabNavigator = () => {
   const ScrollableReports = () => {
     return (
       <ScrollWrapper>
-        <Signup />
+        <Report />
       </ScrollWrapper>
     );
   };
