@@ -7,6 +7,7 @@ import { theme } from "../Theme/tokens";
 import Home from "../screens/Home";
 import Report from "../screens/Report";
 import useScrollWrapper from "../hooks/useScrollWrapper";
+import Settings from "../screens/Settings";
 
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
@@ -31,7 +32,7 @@ const BottomTabNavigator = () => {
   const ScrollableSettings = () => {
     return (
       <ScrollWrapper>
-        <Home />
+        <Settings />
       </ScrollWrapper>
     );
   };
