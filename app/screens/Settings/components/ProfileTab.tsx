@@ -1,7 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
 import SettingsGroup from "./SettingsGroup";
-import { theme } from "../../../Theme/tokens";
 
 const ProfileTab = () => {
   const settings = [

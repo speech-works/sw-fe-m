@@ -36,6 +36,9 @@
           "cameraPermission": "Allow access to your camera to take photos."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "API_BASE_URL": "http://127.0.0.1:3000"
+    }
   }
 }
