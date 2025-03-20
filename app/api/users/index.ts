@@ -1,4 +1,3 @@
-import { Timestamp } from "react-native-reanimated/lib/typescript/commonTypes";
 import { API_BASE_URL } from "..";
 
 export interface User {
@@ -11,9 +10,9 @@ export interface User {
   name: string;
   profilePictureUrl?: string;
   stripeCustomerId?: string;
-  createdAt?: Timestamp;
-  updatedAt: Timestamp;
-  lastLogin?: Timestamp;
+  createdAt?: Date;
+  updatedAt: Date;
+  lastLogin?: Date;
 }
 
 export async function getUserById(id: string): Promise<User> {
@@ -41,7 +40,7 @@ export async function updateUserById(
 ): Promise<User> {
   try {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },

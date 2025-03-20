@@ -122,7 +122,7 @@ export async function updatePracticeActivity(
 ): Promise<PracticeActivity | { error: string }> {
   try {
     const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },

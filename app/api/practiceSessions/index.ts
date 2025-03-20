@@ -112,7 +112,7 @@ export async function completeSession({
 }: CompleteSessionReq): Promise<PracticeSession | { error: string }> {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
