@@ -41,7 +41,7 @@ const Search = ({ ...textInputProps }: SearchProps) => {
             value={searchText}
             onChangeText={(v) => setSearchText(v)}
             onBlur={() => {
-              alert("hh");
+              //alert("hh");
               setTimeout(() => setSearchOn(false), 100);
             }}
           />

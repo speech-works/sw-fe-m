@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import Button from "../../components/Button";
 import { parseTextStyle } from "../../util/functions/parseFont";
 import { theme } from "../../Theme/tokens";
@@ -7,6 +7,9 @@ import CountdownTimer from "../../components/CountdownTimer";
 import Stepper from "../../components/Stepper";
 
 const Home = () => {
+  useEffect(() => {
+    console.log("Home screen mounted");
+  }, []);
   return (
     <View style={styles.wrapperView}>
       <View style={styles.userNameWrapper}>
@@ -15,7 +18,9 @@ const Home = () => {
       <View>
         <CountdownTimer
           totalSeconds={30}
-          onComplete={() => alert("complete")}
+          onComplete={() => {
+            // alert('Timer completed');
+          }}
         />
       </View>
       <View style={styles.titleTextWrapper}>

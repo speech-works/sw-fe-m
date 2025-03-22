@@ -15,7 +15,9 @@ const PracticeAffirmations = () => {
       <View>
         <CountdownTimer
           totalSeconds={30}
-          onComplete={() => alert("complete")}
+          onComplete={() => {
+            // alert('Timer completed');
+          }}
         />
       </View>
       <View style={styles.titleTextWrapper}>

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { theme } from "../../Theme/tokens";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { parseTextStyle } from "../../util/functions/parseFont";
@@ -8,6 +8,9 @@ import TopTabs from "../../components/TopTabs";
 import ProfileTab from "./components/ProfileTab";
 
 const Settings = () => {
+  useEffect(() => {
+    console.log("Settings screen mounted");
+  }, []);
   return (
     <View style={styles.wrapper}>
       <Text style={styles.titleText}>Settings</Text>

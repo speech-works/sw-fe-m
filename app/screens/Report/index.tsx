@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import ProfileProgress from "./components/ProfileProgress";
 import ProfileInfo from "./components/ProfileInfo";
 import Score from "./components/Score";
@@ -8,6 +8,9 @@ import Button from "../../components/Button";
 import WeeklyNotes from "./components/WeeklyNotes";
 
 const Report = () => {
+  useEffect(() => {
+    console.log("P Reports screen mounted");
+  }, []);
   return (
     <View style={{ padding: 16, gap: 20 }}>
       <ProfileInfo />

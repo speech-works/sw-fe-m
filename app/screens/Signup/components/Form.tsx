@@ -7,11 +7,22 @@ import { parseTextStyle } from "../../../util/functions/parseFont";
 import Button from "../../../components/Button";
 import OAuth from "../../../components/OAuth";
 import Separator from "../../../components/Separator";
+import { useNavigation } from "@react-navigation/native";
+import {
+  AuthStackNavigationProp,
+  AuthStackParamList,
+} from "../../../navigators";
 
 const Form = () => {
+  const navigation =
+    useNavigation<AuthStackNavigationProp<keyof AuthStackParamList>>();
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkAgreement, setCheckAgreement] = useState(false);
+  const handleGoToLogin = () => {
+    navigation.navigate("Login");
+  };
+
   return (
     <View style={styles.signupForm}>
       <InputField
@@ -65,6 +76,7 @@ const Form = () => {
               color: theme.colors.actionSecondary.default,
             },
           ]}
+          onPress={handleGoToLogin}
         >
           log in
         </Text>

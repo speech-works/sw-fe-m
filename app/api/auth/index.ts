@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "..";
+import * as SecureStore from "expo-secure-store";
 
 // register user
 interface RegisterProps {
@@ -63,7 +64,16 @@ export async function loginUser({
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    return await response.json();
+    const resJson = await response.json();
+    const { token, refreshToken } = resJson;
+    // Securely store them for later use:
+    if (token) {
+      await SecureStore.setItemAsync("accessToken", token);
+    }
+    if (refreshToken) {
+      await SecureStore.setItemAsync("refreshToken", refreshToken);
+    }
+    return resJson;
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
     throw error;
@@ -124,7 +134,8 @@ export async function logoutUser({
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    return await response.json();
+    const resJson = await response.json();
+    return resJson;
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
     throw error;

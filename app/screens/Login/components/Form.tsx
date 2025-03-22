@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import InputField from "../../../components/InputField";
 import CheckBox from "../../../components/CheckBox";
 import { theme } from "../../../Theme/tokens";
@@ -7,12 +7,42 @@ import { parseTextStyle } from "../../../util/functions/parseFont";
 import Button from "../../../components/Button";
 import OAuth from "../../../components/OAuth";
 import Separator from "../../../components/Separator";
+import { loginUser } from "../../../api";
+import { AuthContext } from "../../../contexts/AuthContext";
+
+import {
+  AuthStackNavigationProp,
+  AuthStackParamList,
+} from "../../../navigators";
+import { useNavigation } from "@react-navigation/native";
 
 const Form = () => {
+  const navigation =
+    useNavigation<AuthStackNavigationProp<keyof AuthStackParamList>>();
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checkAgreement, setCheckAgreement] = useState(false);
+
+  const handleGoToSignup = () => {
+    // Navigate to "Signup"
+    navigation.navigate("Signup");
+  };
+
+  const handleLogin = async () => {
+    if (!email) {
+      setErrors((old) => ({ ...old, email: "Email is required" }));
+    }
+    if (!password) {
+      setErrors((old) => ({ ...old, password: "Password is required" }));
+    }
+    const { token } = await loginUser({ email, password });
+    console.log("after login", token);
+    if (token) {
+      login(token);
+    }
+  };
   return (
     <View style={styles.signupForm}>
       <InputField
@@ -41,7 +71,7 @@ const Form = () => {
           Store my credentials for the future
         </Text>
       </View>
-      <Button size="large" onPress={() => console.log("")}>
+      <Button size="large" onPress={handleLogin}>
         <Text>Login</Text>
       </Button>
       <View style={styles.oAuthView}>
@@ -50,7 +80,7 @@ const Form = () => {
       </View>
       <View style={styles.oAuthView}>
         <Separator text="Not a user yet" />
-        <Button size="large" variant="ghost" onPress={() => console.log("")}>
+        <Button size="large" variant="ghost" onPress={handleGoToSignup}>
           <Text>Signup</Text>
         </Button>
       </View>

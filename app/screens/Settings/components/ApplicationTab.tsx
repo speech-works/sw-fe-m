@@ -1,9 +1,21 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useContext } from "react";
 import SettingsGroup from "./SettingsGroup";
 import { theme } from "../../../Theme/tokens";
+import { logoutUser } from "../../../api";
+import * as SecureStore from "expo-secure-store";
+import { AuthContext } from "../../../contexts/AuthContext";
 
 const ApplicationTab = () => {
+  const { logout } = useContext(AuthContext);
+  const handleLogout = async () => {
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    if (refreshToken && accessToken) {
+      await logoutUser({ refreshToken, accessToken });
+      logout();
+    }
+  };
   const settings = [
     {
       title: "Security",
@@ -19,9 +31,7 @@ const ApplicationTab = () => {
           title: "Logout",
           icon: "power-off",
           color: theme.colors.accent[6],
-          callback: () => {
-            console.log("pressed logout");
-          },
+          callback: handleLogout,
         },
         {
           title: "Help",
