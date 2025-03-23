@@ -1,6 +1,3 @@
-import Constants from "expo-constants";
-export const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-
 export { registerUser, loginUser, logoutUser, refreshToken } from "./auth";
 export {
   createSession,

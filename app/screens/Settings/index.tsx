@@ -6,8 +6,10 @@ import { parseTextStyle } from "../../util/functions/parseFont";
 import ApplicationTab from "./components/ApplicationTab";
 import TopTabs from "../../components/TopTabs";
 import ProfileTab from "./components/ProfileTab";
+import { useUserStore } from "../../stores/user";
 
 const Settings = () => {
+  const user = useUserStore((state) => state.user);
   useEffect(() => {
     console.log("Settings screen mounted");
   }, []);
@@ -27,8 +29,13 @@ const Settings = () => {
           </View>
         </View>
         <View style={styles.profileTextWrapper}>
-          <Text style={styles.nameText}>Mayank Sinha</Text>
-          <Text style={styles.subText}>member since 2025</Text>
+          <Text style={styles.nameText}>{user?.name}</Text>
+          <Text style={styles.subText}>
+            member since{" "}
+            {user && user.createdAt
+              ? new Date(user.createdAt).getFullYear()
+              : ""}
+          </Text>
         </View>
       </View>
       <View>
@@ -62,9 +69,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   nameText: {
+    textAlign: "center",
     ...parseTextStyle(theme.typography.f6.heavy_1200),
   },
   subText: {
+    textAlign: "center",
     ...parseTextStyle(theme.typography.paragraphSmall.heavy),
     color: theme.colors.neutral[3],
   },

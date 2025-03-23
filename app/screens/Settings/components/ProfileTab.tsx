@@ -1,14 +1,16 @@
 import { StyleSheet, View } from "react-native";
 import React from "react";
 import SettingsGroup from "./SettingsGroup";
+import { useUserStore } from "../../../stores/user";
 
 const ProfileTab = () => {
+  const user = useUserStore((state) => state.user);
   const settings = [
     {
       title: "Basic Information",
       items: [
         {
-          title: "Mayankmacav@gmail.com",
+          title: user?.email || "",
           icon: "mail-outline",
           callback: () => {
             console.log("pressed change password");
@@ -41,7 +43,9 @@ const ProfileTab = () => {
           },
         },
         {
-          title: "Joined April 2025",
+          title: `Joined April ${
+            user && user.createdAt ? new Date(user.createdAt).getFullYear() : ""
+          }`,
           icon: "schedule",
           callback: () => {
             console.log("pressed language");

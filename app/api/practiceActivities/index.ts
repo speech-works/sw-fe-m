@@ -1,6 +1,6 @@
 import { PracticeSession } from "../practiceSessions";
 import { Script } from "../scripts";
-import { API_BASE_URL } from "..";
+import { API_BASE_URL } from "../constants";
 
 export enum PracticeStepType {
   BREATHING = "BREATHING",

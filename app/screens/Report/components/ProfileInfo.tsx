@@ -2,8 +2,10 @@ import { StyleSheet, Text, View, Image } from "react-native";
 import React from "react";
 import { parseTextStyle } from "../../../util/functions/parseFont";
 import { theme } from "../../../Theme/tokens";
+import { useUserStore } from "../../../stores/user";
 
 const ProfileInfo = () => {
+  const user = useUserStore((state) => state.user);
   return (
     <View style={styles.wrapper}>
       <Image
@@ -12,8 +14,11 @@ const ProfileInfo = () => {
         style={styles.profileImage}
       />
       <View style={styles.profileDetails}>
-        <Text style={styles.nameText}>Mayank Sinha</Text>
-        <Text style={styles.subText}>member since 2025</Text>
+        <Text style={styles.nameText}>{user?.name}</Text>
+        <Text style={styles.subText}>
+          member since{" "}
+          {user && user.createdAt ? new Date(user.createdAt).getFullYear() : ""}
+        </Text>
         <View style={styles.tags}>
           <Text style={[styles.tag, styles.orangeTag]}>Starter</Text>
           <Text style={[styles.tag, styles.greenTag]}>Hustler</Text>

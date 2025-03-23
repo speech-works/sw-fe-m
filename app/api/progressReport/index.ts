@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "..";
+import { API_BASE_URL } from "../constants";
 import { User } from "../users";
 
 export interface ProgressReport {

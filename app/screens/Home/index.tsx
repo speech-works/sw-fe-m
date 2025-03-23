@@ -5,15 +5,20 @@ import { parseTextStyle } from "../../util/functions/parseFont";
 import { theme } from "../../Theme/tokens";
 import CountdownTimer from "../../components/CountdownTimer";
 import Stepper from "../../components/Stepper";
+import { useUserStore } from "../../stores/user";
 
 const Home = () => {
+  const user = useUserStore((state) => state.user);
+  console.log("user in home", user);
   useEffect(() => {
     console.log("Home screen mounted");
   }, []);
   return (
     <View style={styles.wrapperView}>
       <View style={styles.userNameWrapper}>
-        <Text style={styles.userNameText}>Hi, Mayank!</Text>
+        <Text style={styles.userNameText}>
+          Hi, {`${user?.name.split(" ")[0]}`}
+        </Text>
       </View>
       <View>
         <CountdownTimer

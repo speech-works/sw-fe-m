@@ -17,7 +17,7 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null | undefined>(undefined);
+  const [token, setToken] = useState<string | null | undefined>(null);
 
   useEffect(() => {
     console.log("token changed", token);

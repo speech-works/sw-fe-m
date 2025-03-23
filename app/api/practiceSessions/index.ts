@@ -1,5 +1,5 @@
 import { User } from "../users";
-import { API_BASE_URL } from "..";
+import { API_BASE_URL } from "../constants";
 
 interface PracticeSessionReq {
   id: string;

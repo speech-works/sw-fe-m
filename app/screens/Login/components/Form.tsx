@@ -15,11 +15,14 @@ import {
   AuthStackParamList,
 } from "../../../navigators";
 import { useNavigation } from "@react-navigation/native";
+import { getMyUser } from "../../../api/users";
+import { useUserStore } from "../../../stores/user";
 
 const Form = () => {
   const navigation =
     useNavigation<AuthStackNavigationProp<keyof AuthStackParamList>>();
   const { login } = useContext(AuthContext);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,6 +44,9 @@ const Form = () => {
     console.log("after login", token);
     if (token) {
       login(token);
+      const myUser = await getMyUser();
+      console.log("My user", myUser);
+      useUserStore.setState({ user: myUser });
     }
   };
   return (

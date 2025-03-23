@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "..";
+import { API_BASE_URL } from "../constants";
 import * as SecureStore from "expo-secure-store";
 
 // register user
@@ -66,6 +66,10 @@ export async function loginUser({
 
     const resJson = await response.json();
     const { token, refreshToken } = resJson;
+    console.log("login user called before storing tokens", {
+      token,
+      refreshToken,
+    });
     // Securely store them for later use:
     if (token) {
       await SecureStore.setItemAsync("accessToken", token);

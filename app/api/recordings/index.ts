@@ -1,6 +1,6 @@
 import { PracticeActivity } from "../practiceActivities";
 import { User } from "../users";
-import { API_BASE_URL } from "..";
+import { API_BASE_URL } from "../constants";
 
 export interface Recording {
   id: string;
