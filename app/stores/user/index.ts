@@ -12,7 +12,7 @@ interface UserState {
 
   /** Action to set/update the user */
   setUser: (user: User) => void;
-
+  updateProfilePicture: (uri: string) => void;
   /** Action to clear the user (e.g., on logout) */
   clearUser: () => void;
 }
@@ -29,6 +29,12 @@ export const useUserStore = create<UserState>()(
       setUser: (user) => {
         set({ user });
       },
+
+      updateProfilePicture: (uri) =>
+        set((state) => {
+          if (!state.user) return state;
+          return { user: { ...state.user, profilePicture: uri } };
+        }),
 
       clearUser: () => {
         set({ user: null });
