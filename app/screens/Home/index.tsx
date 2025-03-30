@@ -22,7 +22,7 @@ const Home = () => {
       </View>
       <View>
         <CountdownTimer
-          totalSeconds={30}
+          //totalSeconds={getSecondsUntilMidnight()}
           onComplete={() => {
             // alert('Timer completed');
           }}
