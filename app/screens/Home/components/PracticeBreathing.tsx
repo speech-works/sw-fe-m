@@ -120,35 +120,36 @@ const PracticeBreathing = () => {
           </View>
         ))}
       </ScrollView>
-      {!breathing ? (
-        <Button size="large" onPress={handleStartBreathing}>
-          <View style={styles.buttonContent}>
-            <Text
-              style={{
-                ...parseTextStyle(theme.typography.actionButton.large),
-                color: theme.colors.neutral.white,
-              }}
-            >
-              {breathingCycle > 1 ? "Breathe More" : "Start Breathing"}
-            </Text>
-          </View>
-        </Button>
-      ) : null}
-      {breathingCycle > 1 ? (
-        <Button size="large" onPress={() => console.log("Next pressed")}>
-          <View style={styles.buttonContent}>
-            <Text
-              style={{
-                ...parseTextStyle(theme.typography.actionButton.large),
-                color: theme.colors.neutral.white,
-              }}
-            >
-              Next
-            </Text>
-            <Icon name="east" size={20} color="white" />
-          </View>
-        </Button>
-      ) : null}
+      <Button size="large" onPress={handleStartBreathing} disabled={breathing}>
+        <View style={styles.buttonContent}>
+          <Text
+            style={{
+              ...parseTextStyle(theme.typography.actionButton.large),
+              color: theme.colors.neutral.white,
+            }}
+          >
+            {breathingCycle > 1 ? "Breathe more" : "Start breathing"}
+          </Text>
+        </View>
+      </Button>
+
+      <Button
+        size="large"
+        onPress={() => console.log("Next pressed")}
+        disabled={breathingCycle <= 1}
+      >
+        <View style={styles.buttonContent}>
+          <Text
+            style={{
+              ...parseTextStyle(theme.typography.actionButton.large),
+              color: theme.colors.neutral.white,
+            }}
+          >
+            Next
+          </Text>
+          <Icon name="east" size={20} color="white" />
+        </View>
+      </Button>
     </View>
   );
 };
