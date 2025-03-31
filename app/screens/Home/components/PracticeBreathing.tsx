@@ -6,6 +6,11 @@ import { theme } from "../../../Theme/tokens";
 import CountdownTimer from "../../../components/CountdownTimer";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { ScrollView } from "react-native";
+import {
+  HomeStackNavigationProp,
+  HomeStackParamList,
+} from "../../../navigators";
+import { useNavigation } from "@react-navigation/native";
 
 // Define a constant for the slide width (you could also calculate dynamically if slides have a fixed width)
 const SLIDE_WIDTH = 200;
@@ -13,6 +18,8 @@ const SLIDE_MARGIN_RIGHT = 12;
 const TOTAL_SLIDE_WIDTH = SLIDE_WIDTH + SLIDE_MARGIN_RIGHT;
 
 const PracticeBreathing = () => {
+  const navigation =
+    useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
   const [breathing, setBreathing] = useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -50,6 +57,12 @@ const PracticeBreathing = () => {
 
   const handleStartBreathing = () => {
     setBreathing(true);
+  };
+
+  const handleNextPress = () => {
+    const targetRoute = "PracticeAffirmation";
+    // Navigate to the PracticeAffirmation screen
+    navigation.navigate(targetRoute);
   };
 
   // Auto-scroll effect: scroll to next slide every autoScrollInterval seconds
@@ -135,7 +148,7 @@ const PracticeBreathing = () => {
 
       <Button
         size="large"
-        onPress={() => console.log("Next pressed")}
+        onPress={handleNextPress}
         disabled={breathingCycle <= 1}
       >
         <View style={styles.buttonContent}>

@@ -27,6 +27,21 @@ export default function HomeStackNavigator() {
       </ScrollWrapper>
     );
   };
+  const ScrollablePracticeAffirmation = () => {
+    return (
+      <ScrollWrapper>
+        <PracticeAffirmationScreen />
+      </ScrollWrapper>
+    );
+  };
+  const ScrollableSmoothSpeechScreen = () => {
+    return (
+      <ScrollWrapper>
+        <SmoothSpeechScreen />
+      </ScrollWrapper>
+    );
+  };
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={ScrollableHome} />
@@ -36,11 +51,11 @@ export default function HomeStackNavigator() {
       />
       <Stack.Screen
         name="PracticeAffirmation"
-        component={PracticeAffirmationScreen}
+        component={ScrollablePracticeAffirmation}
       />
       <Stack.Screen
         name="PracticeSmoothSpeech"
-        component={SmoothSpeechScreen}
+        component={ScrollableSmoothSpeechScreen}
       />
       {/* <Stack.Screen name="PracticeExposure" component={ExposureScreen} /> */}
     </Stack.Navigator>
