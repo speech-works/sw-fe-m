@@ -57,7 +57,7 @@ const PracticeAffirmations = () => {
     },
   ];
 
-  const handleNextClick = () => {
+  const moveToNextPage = () => {
     navigation.navigate("PracticeSmoothSpeech");
   };
 
@@ -88,7 +88,7 @@ const PracticeAffirmations = () => {
       <CountdownTimer
         totalSeconds={5 * 60}
         countdownFrom={5 * 60}
-        key={currentSlide}
+        onComplete={moveToNextPage}
       />
       <View style={styles.titleTextWrapper}>
         <Text style={styles.titleText}>Read aloud</Text>
@@ -114,7 +114,7 @@ const PracticeAffirmations = () => {
           </View>
         ))}
       </ScrollView>
-      <Button size="large" onPress={handleNextClick}>
+      <Button size="large" onPress={moveToNextPage}>
         <View style={styles.buttonContent}>
           <Text
             style={{

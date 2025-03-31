@@ -3,14 +3,13 @@ import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { getSecondsUntilMidnight } from "../util/functions/time";
 
-// Full day in seconds (24 * 60 * 60)
 const FULL_DAY_SECONDS = 86400;
 
 type CountdownTimerProps = {
-  totalSeconds?: number; // Optional; if not provided, use full day seconds
+  totalSeconds?: number;
   onComplete?: () => void;
   autoStart?: boolean;
-  countdownFrom?: number; // Optional; if provided, use this as the starting value
+  countdownFrom?: number;
 };
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({
@@ -19,21 +18,24 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   autoStart = true,
   countdownFrom,
 }) => {
-  // Determine the initial value:
   const initialValue =
     countdownFrom !== undefined ? countdownFrom : getSecondsUntilMidnight();
   const [remainingTime, setRemainingTime] = useState<number>(initialValue);
 
   useEffect(() => {
+    if (remainingTime === 0 && onComplete) {
+      onComplete();
+    }
+  }, [remainingTime, onComplete]);
+
+  useEffect(() => {
     if (!autoStart) return;
 
     const interval = setInterval(() => {
-      // When countdownFrom is provided, decrement; otherwise recalc until midnight
       if (countdownFrom !== undefined) {
         setRemainingTime((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            onComplete && onComplete();
             return 0;
           }
           return prev - 1;
@@ -42,7 +44,6 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
         const secondsLeft = getSecondsUntilMidnight();
         if (secondsLeft <= 0) {
           clearInterval(interval);
-          onComplete && onComplete();
           setRemainingTime(0);
         } else {
           setRemainingTime(secondsLeft);
@@ -51,7 +52,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [autoStart, onComplete, countdownFrom]);
+  }, [autoStart, countdownFrom]);
 
   const baseTotalSeconds = totalSeconds ?? FULL_DAY_SECONDS;
   const radius = 50;

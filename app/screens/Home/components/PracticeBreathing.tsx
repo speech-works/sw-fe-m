@@ -59,10 +59,8 @@ const PracticeBreathing = () => {
     setBreathing(true);
   };
 
-  const handleNextPress = () => {
-    const targetRoute = "PracticeAffirmation";
-    // Navigate to the PracticeAffirmation screen
-    navigation.navigate(targetRoute);
+  const moveToNextPage = () => {
+    navigation.navigate("PracticeAffirmation");
   };
 
   // Auto-scroll effect: scroll to next slide every autoScrollInterval seconds
@@ -148,7 +146,7 @@ const PracticeBreathing = () => {
 
       <Button
         size="large"
-        onPress={handleNextPress}
+        onPress={moveToNextPage}
         disabled={breathingCycle <= 1}
       >
         <View style={styles.buttonContent}>
