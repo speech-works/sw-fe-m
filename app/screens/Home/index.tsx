@@ -6,13 +6,74 @@ import { theme } from "../../Theme/tokens";
 import CountdownTimer from "../../components/CountdownTimer";
 import Stepper from "../../components/Stepper";
 import { useUserStore } from "../../stores/user";
+import { createPracticeActivity, createSession } from "../../api";
+import { useSessionStore } from "../../stores/session";
+import {
+  PracticeActivityOrder,
+  PracticeStepType,
+} from "../../api/practiceActivities";
+import { useActivityStore } from "../../stores/activity";
+import { useNavigation } from "@react-navigation/native";
+import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 
 const Home = () => {
   const user = useUserStore((state) => state.user);
-  console.log("user in home", user);
+  const { practiceSession, setSession } = useSessionStore();
+  const { setActivity, activity } = useActivityStore();
+
+  const navigation =
+    useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
+
+  const handleStartPractice = async () => {
+    if (user) {
+      const session = await createSession({ userId: user.id });
+      if ("error" in session) {
+        console.error("Failed to create session:", session.error);
+        return;
+      }
+      setSession(session);
+      const activity = await createPracticeActivity({
+        sessionId: session.id,
+        stepType: PracticeStepType.BREATHING,
+      });
+      if ("error" in activity) {
+        console.error("Failed to create activity:", activity.error);
+        return;
+      }
+      setActivity(activity);
+    }
+  };
+
+  const PracticeTypeToRoute: Record<
+    PracticeStepType,
+    keyof HomeStackParamList
+  > = {
+    [PracticeStepType.BREATHING]: "PracticeBreathing",
+    [PracticeStepType.AFFIRMATION]: "PracticeAffirmation",
+    [PracticeStepType.SMOOTH_SPEECH]: "PracticeSmoothSpeech",
+    [PracticeStepType.EXPOSURE]: "PracticeExposure",
+  };
+
+  const handleResumePractice = () => {
+    if (!activity) return;
+    const targetRoute = PracticeTypeToRoute[activity.stepType];
+    // Navigate to the practice screen corresponding to the current activity
+    navigation.navigate(targetRoute);
+  };
+
+  const steps = [
+    { name: "[B] Breathing", key: PracticeStepType.BREATHING },
+    { name: "[A] Affirmation", key: PracticeStepType.AFFIRMATION },
+    { name: "[S] Smooth Speech", key: PracticeStepType.SMOOTH_SPEECH },
+    { name: "[E] Exposure", key: PracticeStepType.EXPOSURE },
+  ];
+
   useEffect(() => {
-    console.log("Home screen mounted");
+    return () => {
+      console.log("HOME CLEANED");
+    };
   }, []);
+
   return (
     <View style={styles.wrapperView}>
       <View style={styles.userNameWrapper}>
@@ -22,31 +83,37 @@ const Home = () => {
       </View>
       <View>
         <CountdownTimer
-          //totalSeconds={getSecondsUntilMidnight()}
           onComplete={() => {
             // alert('Timer completed');
           }}
         />
       </View>
-      <View style={styles.titleTextWrapper}>
-        <Text style={styles.titleText}>Today's practice</Text>
-      </View>
-      <View>
-        <Stepper
-          steps={[
-            { name: "[B] Breathing", completed: true },
-            { name: "[A] Affirmation", completed: true },
-            { name: "[S] Smooth Speech", completed: false },
-            { name: "[E] Exposure", completed: false },
-          ]}
-        />
-      </View>
+      {practiceSession ? (
+        <>
+          <View style={styles.titleTextWrapper}>
+            <Text style={styles.titleText}>Today's practice</Text>
+          </View>
+          {activity ? (
+            <View>
+              <Stepper
+                steps={steps.map((step) => ({
+                  name: step.name,
+                  completed:
+                    PracticeActivityOrder[activity.stepType] >=
+                      PracticeActivityOrder[step.key] &&
+                    activity.status === "completed",
+                }))}
+              />
+            </View>
+          ) : null}
+        </>
+      ) : null}
       <View style={styles.buttonWrapper}>
-        <Button size="large" variant="ghost" onPress={() => console.log("")}>
+        <Button size="large" variant="ghost" onPress={handleResumePractice}>
           <Text>Resume practice</Text>
         </Button>
-        <Button size="large" onPress={() => console.log("")}>
-          <Text>Restart practice</Text>
+        <Button size="large" onPress={handleStartPractice}>
+          <Text>{practiceSession ? "Restart practice" : "Start practice"}</Text>
         </Button>
       </View>
     </View>

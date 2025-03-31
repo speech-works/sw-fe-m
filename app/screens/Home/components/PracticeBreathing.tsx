@@ -1,12 +1,90 @@
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
-import React from "react";
 import Button from "../../../components/Button";
 import { parseTextStyle } from "../../../util/functions/parseFont";
 import { theme } from "../../../Theme/tokens";
 import CountdownTimer from "../../../components/CountdownTimer";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { ScrollView } from "react-native";
+
+// Define a constant for the slide width (you could also calculate dynamically if slides have a fixed width)
+const SLIDE_WIDTH = 200;
+const SLIDE_MARGIN_RIGHT = 12;
+const TOTAL_SLIDE_WIDTH = SLIDE_WIDTH + SLIDE_MARGIN_RIGHT;
 
 const PracticeBreathing = () => {
+  const [breathing, setBreathing] = useState<boolean>(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [breathingCycle, setBreathingCycle] = useState(0);
+
+  // Hard-coded slides data (could be fetched or generated)
+  const slides = [
+    {
+      id: 1,
+      image: require("../../../assets/reduceStress.png"),
+      title: "REDUCE STRESS",
+      desc: "Breathe in for 7 seconds",
+      detail:
+        "Inhale for 7 seconds – Breathe in slowly and deeply through your nose",
+    },
+    {
+      id: 2,
+      image: require("../../../assets/controlEmotions.png"),
+      title: "CONTROL EMOTIONS",
+      desc: "Hold your breath for 7 seconds",
+      detail: "Hold for 7 seconds – Hold your breath for a count of 7 seconds",
+    },
+    {
+      id: 3,
+      image: require("../../../assets/improveMood.png"),
+      title: "IMPROVE MOOD",
+      desc: "Breathe out slowly for 7 seconds",
+      detail:
+        "Exhale for 7 seconds – Exhale slowly and completely through your mouth.",
+    },
+  ];
+
+  // Auto-scroll interval in seconds; you can pass this as a prop if needed.
+  const autoScrollInterval = 7; // seconds
+
+  const handleStartBreathing = () => {
+    setBreathing(true);
+  };
+
+  // Auto-scroll effect: scroll to next slide every autoScrollInterval seconds
+  useEffect(() => {
+    if (!breathing) return;
+    const interval = setInterval(() => {
+      const nextSlide = (currentSlide + 1) % slides.length;
+      setCurrentSlide(nextSlide);
+      scrollViewRef.current?.scrollTo({
+        x: nextSlide * TOTAL_SLIDE_WIDTH,
+        animated: true,
+      });
+    }, autoScrollInterval * 1000);
+    return () => clearInterval(interval);
+  }, [currentSlide, slides.length, autoScrollInterval, breathing]);
+
+  useEffect(() => {
+    return () => {
+      setBreathing(false);
+      setBreathingCycle(0);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentSlide === 0) {
+      setBreathingCycle((prev) => prev + 1);
+    }
+  }, [currentSlide]);
+
+  useEffect(() => {
+    if (breathingCycle >= 2) {
+      setBreathing(false);
+    }
+  }, [breathingCycle]);
+
   return (
     <View style={styles.wrapperView}>
       <View style={styles.headerWrapper}>
@@ -14,78 +92,63 @@ const PracticeBreathing = () => {
       </View>
       <View>
         <CountdownTimer
-          totalSeconds={30}
-          onComplete={() => {
-            // alert('Timer completed');
-          }}
+          totalSeconds={autoScrollInterval}
+          countdownFrom={autoScrollInterval}
+          autoStart={breathing}
+          key={currentSlide}
         />
       </View>
       <View style={styles.titleTextWrapper}>
         <Text style={styles.titleText}>7x7x7</Text>
       </View>
-      <View style={styles.slideWrapper}>
-        <View style={styles.slide}>
-          <View style={styles.slideImg}>
-            <Image
-              source={require("../../../assets/reduceStress.png")}
-              resizeMode="contain"
-            />
+      {/* Slide container wrapped in horizontal ScrollView */}
+      <ScrollView
+        horizontal
+        ref={scrollViewRef}
+        showsHorizontalScrollIndicator={false}
+        style={styles.slideScrollView}
+        contentContainerStyle={styles.slideContainer}
+      >
+        {slides.map((slide) => (
+          <View key={slide.id} style={styles.slide}>
+            <View style={styles.slideImg}>
+              <Image source={slide.image} resizeMode="contain" />
+            </View>
+            <Text style={styles.slideTitle}>{slide.title}</Text>
+            <Text style={styles.slideDesc}>{slide.desc}</Text>
+            <Text style={styles.slideDetail}>{slide.detail}</Text>
           </View>
-
-          <Text style={styles.slideTitle}>REDUCE STRESS</Text>
-          <Text style={styles.slideDesc}>Breathe in for 7 seconds</Text>
-          <Text style={styles.slideDetail}>
-            Inhale for 7 seconds – Breathe in slowly and deeply through your
-            nose
-          </Text>
-        </View>
-        <View style={styles.slide}>
-          <View style={styles.slideImg}>
-            <Image
-              source={require("../../../assets/controlEmotions.png")}
-              resizeMode="contain"
-            />
+        ))}
+      </ScrollView>
+      {!breathing ? (
+        <Button size="large" onPress={handleStartBreathing}>
+          <View style={styles.buttonContent}>
+            <Text
+              style={{
+                ...parseTextStyle(theme.typography.actionButton.large),
+                color: theme.colors.neutral.white,
+              }}
+            >
+              {breathingCycle > 1 ? "Breathe More" : "Start Breathing"}
+            </Text>
           </View>
-          <Text style={styles.slideTitle}>CONTROL EMOTIONS</Text>
-          <Text style={styles.slideDesc}>Hold your breath for 7 seconds</Text>
-          <Text style={styles.slideDetail}>
-            Hold for 7 seconds – Hold your breath for a count of 7 seconds
-          </Text>
-        </View>
-        <View style={styles.slide}>
-          <View style={styles.slideImg}>
-            <Image
-              source={require("../../../assets/improveMood.png")}
-              resizeMode="contain"
-            />
+        </Button>
+      ) : null}
+      {breathingCycle > 1 ? (
+        <Button size="large" onPress={() => console.log("Next pressed")}>
+          <View style={styles.buttonContent}>
+            <Text
+              style={{
+                ...parseTextStyle(theme.typography.actionButton.large),
+                color: theme.colors.neutral.white,
+              }}
+            >
+              Next
+            </Text>
+            <Icon name="east" size={20} color="white" />
           </View>
-          <Text style={styles.slideTitle}>IMPROVE MOOD</Text>
-          <Text style={styles.slideDesc}>Breathe out slowly for 7 seconds</Text>
-          <Text style={styles.slideDetail}>
-            Exhale for 7 seconds – Exhale slowly and completely through your
-            mouth.
-          </Text>
-        </View>
-      </View>
-      <Button size="large" onPress={() => console.log("")} disabled>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Text
-            style={{
-              ...parseTextStyle(theme.typography.actionButton.large),
-              color: theme.colors.neutral.white,
-            }}
-          >
-            Next
-          </Text>
-          <Icon name="east" size={20} color="white" />
-        </View>
-      </Button>
+        </Button>
+      ) : null}
     </View>
   );
 };
@@ -109,17 +172,26 @@ const styles = StyleSheet.create({
   titleTextWrapper: {
     alignItems: "center",
   },
-  slideWrapper: {
-    gap: 12,
+  slideScrollView: {
+    marginVertical: 12,
+  },
+  slideContainer: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 24, // Ensure there's some spacing at the end
   },
   slide: {
     padding: 12,
     borderRadius: 4,
     alignItems: "center",
-    width: 200,
+    width: SLIDE_WIDTH,
     height: 175,
-    boxShadow: "0 0.96 2.87 0 rgba(0, 0, 0, 0.22)",
+    marginRight: SLIDE_MARGIN_RIGHT,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   slideImg: {
     height: 50,
@@ -145,5 +217,10 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.paragraphTiny.light),
     color: theme.colors.neutral[2],
     textAlign: "center",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 });

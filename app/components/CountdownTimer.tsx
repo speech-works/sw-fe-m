@@ -1,4 +1,3 @@
-// CountdownTimer.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -8,57 +7,68 @@ import { getSecondsUntilMidnight } from "../util/functions/time";
 const FULL_DAY_SECONDS = 86400;
 
 type CountdownTimerProps = {
-  totalSeconds?: number; // Optional; if not provided, we use the full day constant
-  onComplete: () => void;
+  totalSeconds?: number; // Optional; if not provided, use full day seconds
+  onComplete?: () => void;
+  autoStart?: boolean;
+  countdownFrom?: number; // Optional; if provided, use this as the starting value
 };
 
 const CountdownTimer: React.FC<CountdownTimerProps> = ({
   totalSeconds,
   onComplete,
+  autoStart = true,
+  countdownFrom,
 }) => {
-  // Use the provided totalSeconds or default to FULL_DAY_SECONDS
-  const baseTotalSeconds = totalSeconds ?? FULL_DAY_SECONDS;
-  const [remainingTime, setRemainingTime] = useState<number>(
-    getSecondsUntilMidnight()
-  );
+  // Determine the initial value:
+  const initialValue =
+    countdownFrom !== undefined ? countdownFrom : getSecondsUntilMidnight();
+  const [remainingTime, setRemainingTime] = useState<number>(initialValue);
 
   useEffect(() => {
+    if (!autoStart) return;
+
     const interval = setInterval(() => {
-      const secondsLeft = getSecondsUntilMidnight();
-      if (secondsLeft <= 0) {
-        clearInterval(interval);
-        onComplete();
-        setRemainingTime(0);
+      // When countdownFrom is provided, decrement; otherwise recalc until midnight
+      if (countdownFrom !== undefined) {
+        setRemainingTime((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            onComplete && onComplete();
+            return 0;
+          }
+          return prev - 1;
+        });
       } else {
-        setRemainingTime(secondsLeft);
+        const secondsLeft = getSecondsUntilMidnight();
+        if (secondsLeft <= 0) {
+          clearInterval(interval);
+          onComplete && onComplete();
+          setRemainingTime(0);
+        } else {
+          setRemainingTime(secondsLeft);
+        }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onComplete]);
+  }, [autoStart, onComplete, countdownFrom]);
 
+  const baseTotalSeconds = totalSeconds ?? FULL_DAY_SECONDS;
   const radius = 50;
   const strokeWidth = 10;
   const circumference = 2 * Math.PI * radius;
-  // Calculate progress based on the full day constant
   const progress = (remainingTime / baseTotalSeconds) * circumference;
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    // If there are hours, format as HH:MM:SS; otherwise MM:SS
-    if (hours > 0) {
-      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-        2,
-        "0"
-      )}:${String(secs).padStart(2, "0")}`;
-    } else {
-      return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(
-        2,
-        "0"
-      )}`;
-    }
+    return hours > 0
+      ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+          2,
+          "0"
+        )}:${String(secs).padStart(2, "0")}`
+      : `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
   return (

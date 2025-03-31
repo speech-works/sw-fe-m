@@ -4,10 +4,11 @@ import { View, Text } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
-import Home from "../screens/Home";
+//import Home from "../screens/Home";
 import Report from "../screens/Report";
 import useScrollWrapper from "../hooks/useScrollWrapper";
 import Settings from "../screens/Settings";
+import HomeStackNavigator from "./stacks/HomeStackNavigator";
 
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
@@ -15,13 +16,6 @@ const Tab = createBottomTabNavigator();
 const BottomTabNavigator = () => {
   const ScrollWrapper = useScrollWrapper();
 
-  const ScrollableHome = () => {
-    return (
-      <ScrollWrapper>
-        <Home />
-      </ScrollWrapper>
-    );
-  };
   const ScrollableReports = () => {
     return (
       <ScrollWrapper>
@@ -82,7 +76,7 @@ const BottomTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={ScrollableHome} />
+      <Tab.Screen name="Home" component={HomeStackNavigator} />
       <Tab.Screen name="Reports" component={ScrollableReports} />
       <Tab.Screen name="Settings" component={ScrollableSettings} />
     </Tab.Navigator>

@@ -1,12 +1,20 @@
 import { PracticeSession } from "../practiceSessions";
 import { Script } from "../scripts";
 import { API_BASE_URL } from "../constants";
+import * as SecureStore from "expo-secure-store";
 
 export enum PracticeStepType {
   BREATHING = "BREATHING",
   AFFIRMATION = "AFFIRMATION",
   SMOOTH_SPEECH = "SMOOTH_SPEECH",
   EXPOSURE = "EXPOSURE",
+}
+
+export enum PracticeActivityOrder {
+  BREATHING = 0,
+  AFFIRMATION = 1,
+  SMOOTH_SPEECH = 2,
+  EXPOSURE = 3,
 }
 
 export interface PracticeActivity {
@@ -77,17 +85,27 @@ export async function getAllActivitiesOfSession(
   }
 }
 
+interface CreatePracticeActivityParams {
+  sessionId: string;
+  stepType: PracticeStepType;
+  scriptId?: string;
+}
 // create a practice activity
-export async function createPracticeActivity(
-  sessionId: string,
-  stepType: PracticeStepType,
-  scriptId?: string
-): Promise<PracticeActivity | { error: string }> {
+export async function createPracticeActivity({
+  sessionId,
+  stepType,
+  scriptId,
+}: CreatePracticeActivityParams): Promise<
+  PracticeActivity | { error: string }
+> {
+  // Wait for the token
+  const accessToken = await SecureStore.getItemAsync("accessToken");
   try {
     const response = await fetch(`${API_BASE_URL}/activities`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         sessionId,

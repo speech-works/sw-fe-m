@@ -21,3 +21,19 @@ export type AuthStackRouteProp<T extends keyof AuthStackParamList> = RouteProp<
   AuthStackParamList,
   T
 >;
+
+export type HomeStackParamList = {
+  Home: undefined;
+  PracticeBreathing: undefined;
+  PracticeAffirmation: undefined;
+  PracticeSmoothSpeech: undefined;
+  PracticeExposure: undefined;
+};
+
+export type HomeStackNavigationProp<T extends keyof HomeStackParamList> =
+  NativeStackNavigationProp<HomeStackParamList, T>;
+
+export type HomeStackRouteProp<T extends keyof HomeStackParamList> = RouteProp<
+  HomeStackParamList,
+  T
+>;

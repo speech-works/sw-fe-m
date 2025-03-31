@@ -1,5 +1,6 @@
 import { User } from "../users";
 import { API_BASE_URL } from "../constants";
+import * as SecureStore from "expo-secure-store";
 
 interface PracticeSessionReq {
   id: string;
@@ -82,10 +83,13 @@ export async function createSession({
   userId,
 }: CreateSessionReq): Promise<PracticeSession | { error: string }> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/sessions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ userId }),
     });
