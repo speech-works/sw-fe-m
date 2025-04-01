@@ -1,5 +1,6 @@
 import { User } from "../users";
 import { API_BASE_URL } from "../constants";
+import { handleErrorsIfAny } from "../helper";
 
 export interface Script {
   id: string;
@@ -32,13 +33,11 @@ export const getAllScripts = async (
 };
 
 // get a script by id
-export const getScriptById = async (
-  id: string
-): Promise<Script | { error: string }> => {
+export const getScriptById = async (id: string): Promise<Script> => {
   try {
     const response = await fetch(`${API_BASE_URL}/scripts/${id}`);
-    const script = await response.json();
-    return script;
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the get script by id operation:",
@@ -63,7 +62,7 @@ export const createScript = async ({
   source,
   imageUrl,
   createdBy,
-}: CreateScriptReq): Promise<Script | { error: string }> => {
+}: CreateScriptReq): Promise<Script> => {
   try {
     const response = await fetch(`${API_BASE_URL}/scripts`, {
       method: "POST",
@@ -72,8 +71,8 @@ export const createScript = async ({
       },
       body: JSON.stringify({ name, content, source, imageUrl, createdBy }),
     });
-    const script = await response.json();
-    return script;
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the create script operation:",
@@ -93,7 +92,7 @@ interface UpdateScriptReq {
 export const updateScript = async (
   scriptId: string,
   { name, content, source, imageUrl }: UpdateScriptReq
-): Promise<Script | { error: string }> => {
+): Promise<Script> => {
   try {
     const response = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, {
       method: "PATCH",
@@ -102,8 +101,8 @@ export const updateScript = async (
       },
       body: JSON.stringify({ name, content, source, imageUrl }),
     });
-    const script = await response.json();
-    return script;
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the update script operation:",
@@ -114,15 +113,13 @@ export const updateScript = async (
 };
 
 // delete a script
-export const deleteScript = async (
-  scriptId: string
-): Promise<Script | { error: string }> => {
+export const deleteScript = async (scriptId: string): Promise<Script> => {
   try {
     const response = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, {
       method: "DELETE",
     });
-    const script = await response.json();
-    return script;
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the delete script operation:",

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../constants";
+import { handleErrorsIfAny } from "../helper";
 import { User } from "../users";
 
 export interface ProgressReport {
@@ -16,15 +17,13 @@ export interface ProgressReport {
 export async function getLiveProgressReport(
   userId: string,
   applyRecencyBias?: boolean
-): Promise<ProgressReport | { error: string }> {
+): Promise<ProgressReport> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/progress/${userId}?recency=${applyRecencyBias}`
     );
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the getting live progress report operation:",
@@ -38,15 +37,13 @@ export async function getLiveProgressReport(
 export async function getPastProgressReports(
   userId: string,
   limit?: number // if limit is 5, show last 5 reports, default is 10
-): Promise<ProgressReport[] | { error: string }> {
+): Promise<ProgressReport[]> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/progress/${userId}/history?limit=${limit}`
     );
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the getting past progress report operation:",
@@ -60,7 +57,7 @@ export async function getPastProgressReports(
 export async function createProgressReport(
   userId: string,
   applyRecencyBias?: boolean
-): Promise<ProgressReport | { error: string }> {
+): Promise<ProgressReport> {
   try {
     const response = await fetch(`${API_BASE_URL}/progress/${userId}`, {
       method: "POST",
@@ -71,10 +68,8 @@ export async function createProgressReport(
         recency: applyRecencyBias,
       }),
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the create progress report operation:",

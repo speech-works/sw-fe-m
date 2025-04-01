@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../constants";
 import * as SecureStore from "expo-secure-store";
+import { handleErrorsIfAny } from "../helper";
 
 export interface User {
   id: string;
@@ -28,11 +29,8 @@ export async function getUserById(id: string): Promise<User> {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
     throw error;
@@ -54,11 +52,8 @@ export async function updateUserById(
       body: JSON.stringify(user),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
     throw error;
@@ -76,9 +71,7 @@ export async function deleteUserById(id: string): Promise<void> {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+    await handleErrorsIfAny(response);
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
     throw error;
@@ -99,12 +92,7 @@ export async function getMyUser(): Promise<User> {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const resJson = await response.json();
-    console.log("resJson myUser", resJson);
+    const resJson = await handleErrorsIfAny(response);
     return resJson;
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);

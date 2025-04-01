@@ -2,6 +2,7 @@ import { PracticeSession } from "../practiceSessions";
 import { Script } from "../scripts";
 import { API_BASE_URL } from "../constants";
 import * as SecureStore from "expo-secure-store";
+import { handleErrorsIfAny } from "../helper";
 
 export enum PracticeStepType {
   BREATHING = "BREATHING",
@@ -95,9 +96,7 @@ export async function createPracticeActivity({
   sessionId,
   stepType,
   scriptId,
-}: CreatePracticeActivityParams): Promise<
-  PracticeActivity | { error: string }
-> {
+}: CreatePracticeActivityParams): Promise<PracticeActivity> {
   // Wait for the token
   const accessToken = await SecureStore.getItemAsync("accessToken");
   try {
@@ -114,11 +113,8 @@ export async function createPracticeActivity({
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the create activity operation:",
@@ -137,7 +133,7 @@ export async function updatePracticeActivity(
     completedAt?: Date;
     scriptId?: string | null;
   }
-): Promise<PracticeActivity | { error: string }> {
+): Promise<PracticeActivity> {
   try {
     const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
       method: "PATCH",
@@ -147,11 +143,8 @@ export async function updatePracticeActivity(
       body: JSON.stringify(activityData),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the update activity operation:",
@@ -164,7 +157,7 @@ export async function updatePracticeActivity(
 // delete a practice activity
 export async function deletePracticeActivity(
   activityId: string
-): Promise<void | { error: string }> {
+): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
       method: "DELETE",
@@ -172,10 +165,7 @@ export async function deletePracticeActivity(
         "Content-Type": "application/json",
       },
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+    await handleErrorsIfAny(response);
   } catch (error) {
     console.error(
       "There was a problem with the delete activity operation:",

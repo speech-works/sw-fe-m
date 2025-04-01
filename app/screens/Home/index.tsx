@@ -1,12 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { useEffect } from "react";
+import * as SecureStore from "expo-secure-store";
+import React, { useContext, useEffect } from "react";
 import Button from "../../components/Button";
 import { parseTextStyle } from "../../util/functions/parseFont";
 import { theme } from "../../Theme/tokens";
 import CountdownTimer from "../../components/CountdownTimer";
 import Stepper from "../../components/Stepper";
 import { useUserStore } from "../../stores/user";
-import { createPracticeActivity, createSession } from "../../api";
+import { createPracticeActivity, createSession, logoutUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
 import {
   PracticeActivityOrder,
@@ -15,8 +16,11 @@ import {
 import { useActivityStore } from "../../stores/activity";
 import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
+import { AuthContext } from "../../contexts/AuthContext";
+import { handle401Error } from "../../util/functions/errorHandling";
 
 const Home = () => {
+  const { logout } = useContext(AuthContext);
   const user = useUserStore((state) => state.user);
   const { practiceSession, setSession } = useSessionStore();
   const { setActivity, activity } = useActivityStore();
@@ -24,23 +28,32 @@ const Home = () => {
   const navigation =
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
 
+  const handleLogout = async () => {
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    if (refreshToken && accessToken) {
+      await logoutUser({ refreshToken, accessToken });
+      logout();
+    }
+  };
+
   const handleStartPractice = async () => {
     if (user) {
-      const session = await createSession({ userId: user.id });
-      if ("error" in session) {
-        console.error("Failed to create session:", session.error);
-        return;
+      try {
+        const session = await createSession({ userId: user.id });
+        setSession(session);
+        const activity = await createPracticeActivity({
+          sessionId: session.id,
+          stepType: PracticeStepType.BREATHING,
+        });
+        setActivity(activity);
+      } catch (error) {
+        if (error instanceof Error) {
+          handle401Error(error, logout);
+        } else {
+          console.error("An unknown error occurred:", error);
+        }
       }
-      setSession(session);
-      const activity = await createPracticeActivity({
-        sessionId: session.id,
-        stepType: PracticeStepType.BREATHING,
-      });
-      if ("error" in activity) {
-        console.error("Failed to create activity:", activity.error);
-        return;
-      }
-      setActivity(activity);
     }
   };
 

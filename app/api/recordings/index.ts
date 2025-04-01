@@ -1,6 +1,7 @@
 import { PracticeActivity } from "../practiceActivities";
 import { User } from "../users";
 import { API_BASE_URL } from "../constants";
+import { handleErrorsIfAny } from "../helper";
 
 export interface Recording {
   id: string;
@@ -28,11 +29,8 @@ export async function getAllRecordings(
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the get all recordings operation:",
@@ -54,11 +52,8 @@ export async function getRecordingById(
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the get recording by id operation:",
@@ -82,7 +77,7 @@ export async function createRecording({
   audioUrl,
   duration,
   mimeType,
-}: CreateRecordingReq): Promise<Recording | { error: string }> {
+}: CreateRecordingReq): Promise<Recording> {
   try {
     const response = await fetch(`${API_BASE_URL}/recordings`, {
       method: "POST",
@@ -98,11 +93,8 @@ export async function createRecording({
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the create recording operation:",

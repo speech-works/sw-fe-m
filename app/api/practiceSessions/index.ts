@@ -1,6 +1,7 @@
 import { User } from "../users";
 import { API_BASE_URL } from "../constants";
 import * as SecureStore from "expo-secure-store";
+import { handleErrorsIfAny } from "../helper";
 
 interface PracticeSessionReq {
   id: string;
@@ -26,12 +27,8 @@ export async function getSessionById({
         "Content-Type": "application/json",
       },
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the get session by id operation:",
@@ -61,11 +58,8 @@ export async function getAllSessionsOfUser({
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the get all sessions operation:",
@@ -81,7 +75,7 @@ interface CreateSessionReq {
 }
 export async function createSession({
   userId,
-}: CreateSessionReq): Promise<PracticeSession | { error: string }> {
+}: CreateSessionReq): Promise<PracticeSession> {
   try {
     // Wait for the token
     const accessToken = await SecureStore.getItemAsync("accessToken");
@@ -93,11 +87,9 @@ export async function createSession({
       },
       body: JSON.stringify({ userId }),
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
 
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the create session operation:",
@@ -113,7 +105,7 @@ interface CompleteSessionReq {
 }
 export async function completeSession({
   id,
-}: CompleteSessionReq): Promise<PracticeSession | { error: string }> {
+}: CompleteSessionReq): Promise<PracticeSession> {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
       method: "PATCH",
@@ -122,10 +114,8 @@ export async function completeSession({
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the complete session operation:",
@@ -150,9 +140,8 @@ export async function deleteSession({ id }: DeleteSessionReq): Promise<void | {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the delete session operation:",

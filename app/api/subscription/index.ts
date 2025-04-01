@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../constants";
+import { handleErrorsIfAny } from "../helper";
 import { User } from "../users";
 
 export interface Subscription {
@@ -35,7 +36,8 @@ export async function getAllSubscriptionsOfUser(
     const response = await fetch(
       `${API_BASE_URL}/subscriptions?userId=${userId}`
     );
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the getAllSubscriptionsOfUser operation:",
@@ -48,10 +50,11 @@ export async function getAllSubscriptionsOfUser(
 // get subscription by id
 export async function getSubscriptionById(
   subId: string
-): Promise<Subscription | { error: string }> {
+): Promise<Subscription> {
   try {
     const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`);
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the getSubscriptionById operation:",
@@ -68,7 +71,7 @@ export async function createSubscription(subscriptionData: {
   status?: "active" | "canceled" | "paused";
   startDate: Date;
   endDate?: Date | null;
-}): Promise<Subscription | { error: string }> {
+}): Promise<Subscription> {
   try {
     const response = await fetch(`${API_BASE_URL}/subscriptions`, {
       method: "POST",
@@ -78,7 +81,8 @@ export async function createSubscription(subscriptionData: {
       body: JSON.stringify(subscriptionData),
     });
 
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the createSubscription operation:",
@@ -95,7 +99,7 @@ export async function updateSubscriptionById(
     status?: "active" | "canceled" | "paused";
     endDate?: Date | null;
   }
-): Promise<Subscription | { error: string }> {
+): Promise<Subscription> {
   try {
     const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`, {
       method: "PATCH",
@@ -105,7 +109,8 @@ export async function updateSubscriptionById(
       body: JSON.stringify(subscriptionData),
     });
 
-    return await response.json();
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
   } catch (error) {
     console.error(
       "There was a problem with the updateSubscriptionById operation:",
@@ -116,9 +121,7 @@ export async function updateSubscriptionById(
 }
 
 // delete subscription
-export async function deleteSubscriptionById(
-  subId: string
-): Promise<void | { error: string }> {
+export async function deleteSubscriptionById(subId: string): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`, {
       method: "DELETE",
@@ -127,9 +130,7 @@ export async function deleteSubscriptionById(
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+    await handleErrorsIfAny(response);
   } catch (error) {
     console.error(
       "There was a problem with the deleteSubscriptionById operation:",
