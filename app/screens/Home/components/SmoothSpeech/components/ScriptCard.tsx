@@ -7,6 +7,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import CustomModal from "../../../../../components/CustomModal";
 import PracticeScript from "../Scripts/PracticeScript";
 import ContextMenu from "../../../../../components/ContextMenu";
+import { Audio } from "expo-av";
 
 interface ScriptCardProps {
   title: string;
@@ -14,13 +15,65 @@ interface ScriptCardProps {
   imgUrl?: string;
   srcUrl?: string;
 }
+
 const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPracticeModalOpen, setPracticeModalOpen] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+
   const stripFirst169Chars = (str: string) =>
     typeof str === "string"
       ? str.substring(169) || str
       : "Input must be a string.";
+
+  const handleRecordAudio = async () => {
+    if (recording) {
+      // stop recording
+      try {
+        await recording.stopAndUnloadAsync();
+        const { sound: newSound } = await recording.createNewLoadedSoundAsync(); // Create sound object
+        setRecording(null);
+        setSound(newSound); // Set the sound state
+      } catch (error) {
+        console.error("Failed to stop and unload recording", error);
+        setRecording(null);
+        setSound(null);
+      }
+    } else {
+      // start recording
+      try {
+        const { status } = await Audio.requestPermissionsAsync();
+        if (status !== "granted") {
+          console.error("Audio permissions not granted");
+          return;
+        }
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+
+        const newRecording = new Audio.Recording();
+        await newRecording.prepareToRecordAsync();
+        await newRecording.startAsync();
+        setRecording(newRecording);
+      } catch (error) {
+        console.error("Failed to start recording", error);
+      }
+    }
+  };
+  const handlePlayRecording = async () => {
+    if (sound) {
+      try {
+        await sound.replayAsync();
+      } catch (error) {
+        console.error("Failed to play recording", error);
+      }
+    } else {
+      console.log("No sound to play.");
+    }
+  };
+
   return (
     <View style={styles.cardWrapper}>
       <View style={styles.imgView}>
@@ -41,7 +94,6 @@ const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
           <Button
             size="small"
             onPress={() => {
-              console.log("");
               setPracticeModalOpen(true);
             }}
           >
@@ -58,8 +110,8 @@ const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
               name="play-circle-outline"
               size={20}
               color={theme.colors.neutral[5]}
+              onPress={handlePlayRecording}
             />
-            {/* <Icon name="more-vert" size={20} color={theme.colors.neutral[5]} /> */}
             <ContextMenu
               options={[
                 { label: "Edit", onPress: () => console.log("Edit clicked") },
@@ -80,12 +132,12 @@ const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
         title={title}
         icon="auto-stories"
         primaryButton={{
-          label: "Start recording",
-          onPress: () => {},
+          label: recording ? "Stop recording" : "Start recording",
+          onPress: handleRecordAudio,
         }}
         secondaryButton={{
           label: "Play recording",
-          onPress: () => {},
+          onPress: handlePlayRecording,
         }}
       >
         <PracticeScript script={content} />
