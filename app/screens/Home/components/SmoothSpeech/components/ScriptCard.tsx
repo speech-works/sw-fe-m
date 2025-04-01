@@ -132,12 +132,14 @@ const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
         title={title}
         icon="auto-stories"
         primaryButton={{
-          label: recording ? "Stop recording" : "Start recording",
+          label: recording ? "Stop" : "Record",
           onPress: handleRecordAudio,
+          icon: recording ? "stop" : "mic", // Add icons
         }}
         secondaryButton={{
-          label: "Play recording",
+          label: "Play",
           onPress: handlePlayRecording,
+          icon: "play-arrow", // Add icon
         }}
       >
         <PracticeScript script={content} />

@@ -22,10 +22,12 @@ interface ModalProps {
   primaryButton?: {
     label: string;
     onPress: () => void;
+    icon?: string;
   };
   secondaryButton?: {
     label: string;
     onPress: () => void;
+    icon?: string;
   };
 }
 
@@ -80,6 +82,7 @@ const CustomModal: React.FC<ModalProps> = ({
                   size="xSmall"
                   variant="ghost"
                   onPress={secondaryButton.onPress}
+                  leftIcon={secondaryButton.icon}
                 >
                   <Text>{secondaryButton.label}</Text>
                 </Button>
@@ -87,7 +90,11 @@ const CustomModal: React.FC<ModalProps> = ({
 
               {/* Primary Button */}
               {primaryButton && (
-                <Button size="xSmall" onPress={primaryButton.onPress}>
+                <Button
+                  size="xSmall"
+                  onPress={primaryButton.onPress}
+                  leftIcon={primaryButton.icon}
+                >
                   <Text>{primaryButton.label}</Text>
                 </Button>
               )}

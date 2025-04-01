@@ -5,11 +5,13 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  View,
 } from "react-native";
 import { parseTextStyle } from "../util/functions/parseFont";
 import { theme } from "../Theme/tokens";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
-type ButtonSize = "large" | "medium" | "small" | "xSmall"; // Add 'xSmall'
+type ButtonSize = "large" | "medium" | "small" | "xSmall";
 type ButtonVariant = "ghost" | "normal";
 
 interface ButtonProps {
@@ -18,6 +20,8 @@ interface ButtonProps {
   onPress: () => void;
   children: React.ReactNode;
   disabled?: boolean;
+  leftIcon?: string; // Optional left icon
+  rightIcon?: string; // Optional right icon
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -26,6 +30,8 @@ const Button: React.FC<ButtonProps> = ({
   onPress,
   children,
   disabled = false,
+  leftIcon,
+  rightIcon,
 }) => {
   return (
     <TouchableOpacity
@@ -38,7 +44,25 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
       disabled={disabled}
     >
-      <Text style={[textSize[size], textStyle[variant]]}>{children}</Text>
+      <View style={styles.buttonContent}>
+        {leftIcon && (
+          <Icon
+            name={leftIcon}
+            size={20}
+            color={textStyle[variant].color}
+            style={styles.iconStyle}
+          />
+        )}
+        <Text style={[textSize[size], textStyle[variant]]}>{children}</Text>
+        {rightIcon && (
+          <Icon
+            name={rightIcon}
+            size={20}
+            color={textStyle[variant].color}
+            style={styles.iconStyle}
+          />
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
@@ -55,20 +79,29 @@ const styles = StyleSheet.create({
   disabled: {
     backgroundColor: theme.colors.neutral[7],
   },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  iconStyle: {
+    marginHorizontal: 4,
+  },
 });
 
 const sizeStyles: Record<ButtonSize, ViewStyle> = {
   large: { paddingVertical: 14 },
   medium: { paddingVertical: 8 },
   small: { paddingVertical: 4 },
-  xSmall: { paddingVertical: 2 }, // Add 'xSmall' padding
+  xSmall: { paddingVertical: 2 },
 };
 
 const textSize: Record<ButtonSize, TextStyle> = {
   large: { ...parseTextStyle(theme.typography.actionButton.large) },
   medium: { ...parseTextStyle(theme.typography.actionButton.medium) },
   small: { ...parseTextStyle(theme.typography.actionButton.small) },
-  xSmall: { ...parseTextStyle(theme.typography.actionButton.small) }, // Use 'small' or create a new style for 'xSmall'
+  xSmall: { ...parseTextStyle(theme.typography.actionButton.small) },
 };
 
 const textStyle: Record<ButtonVariant, TextStyle> = {
