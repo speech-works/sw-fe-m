@@ -1,56 +1,59 @@
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   StyleSheet,
   Text,
   View,
   TextInput,
   TextInputProps,
+  TouchableOpacity,
 } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseFont";
 
 interface SearchProps extends TextInputProps {}
 
-const Search = ({ ...textInputProps }: SearchProps) => {
-  const textInRef = useRef<TextInput>(null);
-  const [searchOn, setSearchOn] = useState(false);
+const Search: React.FC<SearchProps> = ({ ...textInputProps }) => {
+  const textInputRef = useRef<TextInput>(null);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchText, setSearchText] = useState("");
 
+  const activateSearch = useCallback(() => {
+    setIsSearchActive(true);
+  }, []);
+
   useEffect(() => {
-    if (searchOn) {
-      setTimeout(() => {
-        textInRef.current?.focus();
+    if (isSearchActive) {
+      const timer = setTimeout(() => {
+        textInputRef.current?.focus();
       }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [searchOn]);
+  }, [isSearchActive]);
 
   return (
     <View style={styles.searchWrapperView}>
-      <View
+      <TouchableOpacity
         style={styles.searchView}
-        onTouchEnd={() => {
-          setSearchOn(true);
-        }}
+        activeOpacity={1}
+        onPress={activateSearch}
       >
         <Icon name="search" size={20} color={theme.colors.neutral[5]} />
-        {searchOn ? (
+        {isSearchActive ? (
           <TextInput
-            ref={textInRef}
+            ref={textInputRef}
             style={styles.searchText}
             value={searchText}
-            onChangeText={(v) => setSearchText(v)}
-            onBlur={() => {
-              //alert("hh");
-              setTimeout(() => setSearchOn(false), 100);
-            }}
+            onChangeText={setSearchText}
+            onBlur={() => setTimeout(() => setIsSearchActive(false), 100)}
+            {...textInputProps}
           />
         ) : (
           <Text style={styles.searchText}>
             {searchText.length > 0 ? searchText : "Search"}
           </Text>
         )}
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -59,7 +62,6 @@ export default Search;
 
 const styles = StyleSheet.create({
   searchWrapperView: {
-    // width: "100%",
     flexGrow: 1,
   },
   searchView: {

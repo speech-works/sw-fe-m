@@ -8,28 +8,35 @@ import CustomModal from "../../../../../components/CustomModal";
 import PracticeScript from "../Scripts/PracticeScript";
 import ContextMenu from "../../../../../components/ContextMenu";
 
-const ScriptCard = () => {
+interface ScriptCardProps {
+  title: string;
+  content: string;
+  imgUrl?: string;
+  srcUrl?: string;
+}
+const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPracticeModalOpen, setPracticeModalOpen] = useState(false);
+  const stripFirst169Chars = (str: string) =>
+    typeof str === "string"
+      ? str.substring(169) || str
+      : "Input must be a string.";
   return (
     <View style={styles.cardWrapper}>
       <View style={styles.imgView}>
-        <Image
-          source={require("../../../../../assets/icon.png")}
-          style={styles.cardImg}
-        />
+        {imgUrl ? (
+          <Image source={{ uri: imgUrl }} style={styles.cardImg} />
+        ) : (
+          <Image
+            source={require("../../../../../assets/icon.png")}
+            style={styles.cardImg}
+          />
+        )}
       </View>
       <View style={styles.contentView}>
         <Text style={styles.subtitleText}>MEDIUM</Text>
-        <Text style={styles.titleText}>
-          “I Have a Dream” by Martin Luther King Jr
-        </Text>
-        <Text style={styles.text}>
-          Sagittis, eu pretium massa quisque cursus augue massa cursus. Sed
-          quisque velit, auctor at lobortis hac tincidunt sodales id. Elit
-          interdum vel nisi, in enim sagittis at. Netus sagittis eleifend
-          aliquet urna quis.
-        </Text>
+        <Text style={styles.titleText}>{title}</Text>
+        <Text style={styles.text}>{stripFirst169Chars(content)}</Text>
         <View style={styles.footerView}>
           <Button
             size="small"
@@ -70,7 +77,7 @@ const ScriptCard = () => {
         onClose={() => {
           setPracticeModalOpen(false);
         }}
-        title="“I Have a Dream” by Martin Luther King Jr"
+        title={title}
         icon="auto-stories"
         primaryButton={{
           label: "Start recording",
@@ -81,7 +88,7 @@ const ScriptCard = () => {
           onPress: () => {},
         }}
       >
-        <PracticeScript />
+        <PracticeScript script={content} />
       </CustomModal>
     </View>
   );

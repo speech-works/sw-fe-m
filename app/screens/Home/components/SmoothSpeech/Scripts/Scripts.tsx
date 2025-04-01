@@ -1,21 +1,32 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { parseTextStyle } from "../../../../../util/functions/parseFont";
 import { theme } from "../../../../../Theme/tokens";
 import Button from "../../../../../components/Button";
-import InputField from "../../../../../components/InputField";
 import Search from "../../../../../components/Search";
 import ScriptCard from "../components/ScriptCard";
 import CustomModal from "../../../../../components/CustomModal";
 import AddScript from "./AddScript";
+import { scriptData } from "./dummyData";
 
 const Scripts = () => {
   const [isAddScriptModalVisible, setAddScriptModalVisible] = useState(false);
+  const [searchText, setSearchText] = useState("");
+
+  const filteredScriptData = useMemo(() => {
+    if (!searchText) {
+      return scriptData;
+    }
+    return scriptData.filter((s) =>
+      s.title.toLowerCase().includes(searchText.toLowerCase())
+    );
+  }, [searchText, scriptData]);
+
   return (
     <View style={styles.wrapperView}>
       <Text style={styles.titleText}>Smooth Speech</Text>
       <View style={styles.searchView}>
-        <Search />
+        <Search value={searchText} onChangeText={(txt) => setSearchText(txt)} />
         <Button size="small" onPress={() => setAddScriptModalVisible(true)}>
           <Text>Add script</Text>
         </Button>
@@ -39,8 +50,13 @@ const Scripts = () => {
         </CustomModal>
       </View>
       <View style={styles.scriptCardsWrapper}>
-        {[1, 2, 3, 4, 5, 6].map((x) => (
-          <ScriptCard />
+        {filteredScriptData.map((s) => (
+          <ScriptCard
+            key={s.title}
+            title={s.title}
+            imgUrl={s.img_url}
+            content={s.script}
+          />
         ))}
       </View>
       <View style={styles.buttonWrapper}>

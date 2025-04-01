@@ -147,7 +147,7 @@ const PracticeBreathing = () => {
       <Button
         size="large"
         onPress={moveToNextPage}
-        disabled={breathingCycle <= 1}
+        //disabled={breathingCycle <= 1}
       >
         <View style={styles.buttonContent}>
           <Text
