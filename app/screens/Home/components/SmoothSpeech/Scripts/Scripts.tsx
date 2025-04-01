@@ -22,6 +22,8 @@ const Scripts = () => {
     );
   }, [searchText, scriptData]);
 
+  const markSessionComplete = () => {};
+
   return (
     <View style={styles.wrapperView}>
       <Text style={styles.titleText}>Smooth Speech</Text>
@@ -60,7 +62,7 @@ const Scripts = () => {
         ))}
       </View>
       <View style={styles.buttonWrapper}>
-        <Button size="large" onPress={() => console.log("")}>
+        <Button size="large" onPress={markSessionComplete}>
           <Text>Mark complete</Text>
         </Button>
       </View>
