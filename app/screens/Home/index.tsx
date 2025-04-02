@@ -18,7 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 import { AuthContext } from "../../contexts/AuthContext";
 import { handle401Error } from "../../util/functions/errorHandling";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
+//import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Home = () => {
   const { logout } = useContext(AuthContext);
@@ -46,7 +46,6 @@ const Home = () => {
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
 
   const handleStartPractice = async () => {
-    console.log("in handleStartPractice");
     if (user) {
       try {
         const session = await createSession({ userId: user.id });
@@ -56,6 +55,7 @@ const Home = () => {
           stepType: PracticeStepType.BREATHING,
         });
         setActivity(activity);
+        navigation.navigate("PracticeBreathing");
       } catch (error) {
         if (error instanceof Error) {
           await handle401Error(error, handleLogout);
