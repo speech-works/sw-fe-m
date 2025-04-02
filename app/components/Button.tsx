@@ -53,7 +53,15 @@ const Button: React.FC<ButtonProps> = ({
             style={styles.iconStyle}
           />
         )}
-        <Text style={[textSize[size], textStyle[variant]]}>{children}</Text>
+        <Text
+          style={
+            disabled
+              ? [textSize[size], styles.disabled]
+              : [textSize[size], textStyle[variant]]
+          }
+        >
+          {children}
+        </Text>
         {rightIcon && (
           <Icon
             name={rightIcon}
@@ -78,6 +86,7 @@ const styles = StyleSheet.create({
   },
   disabled: {
     backgroundColor: theme.colors.neutral[7],
+    color: theme.colors.neutral.white,
   },
   buttonContent: {
     flexDirection: "row",

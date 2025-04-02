@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Image } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect } from "react";
 import Button from "../../components/Button";
@@ -18,12 +18,20 @@ import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 import { AuthContext } from "../../contexts/AuthContext";
 import { handle401Error } from "../../util/functions/errorHandling";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Home = () => {
   const { logout } = useContext(AuthContext);
   const user = useUserStore((state) => state.user);
   const { practiceSession, setSession } = useSessionStore();
   const { setActivity, activity } = useActivityStore();
+
+  useEffect(() => {
+    // AsyncStorage.removeItem("sw-zstore-practice-session");
+    // AsyncStorage.removeItem("sw-zstore-practice-activity");
+    // AsyncStorage.removeItem("sw-zstore-user");
+    console.log("activity change in Home", { activity });
+  }, [activity]);
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync("accessToken");
@@ -38,6 +46,7 @@ const Home = () => {
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
 
   const handleStartPractice = async () => {
+    console.log("in handleStartPractice");
     if (user) {
       try {
         const session = await createSession({ userId: user.id });
@@ -120,9 +129,22 @@ const Home = () => {
             </View>
           ) : null}
         </>
-      ) : null}
+      ) : (
+        <View style={styles.imgContainer}>
+          <Text style={styles.titleText}>Let's start</Text>
+          <Image
+            source={require("../../assets/m1yobg.png")}
+            style={styles.placeHolderImg}
+          />
+        </View>
+      )}
       <View style={styles.buttonWrapper}>
-        <Button size="large" variant="ghost" onPress={handleResumePractice}>
+        <Button
+          size="large"
+          variant="ghost"
+          onPress={handleResumePractice}
+          disabled={!activity}
+        >
           <Text>Resume practice</Text>
         </Button>
         <Button size="large" onPress={handleStartPractice}>
@@ -157,6 +179,15 @@ const styles = StyleSheet.create({
     color: theme.colors.neutral.black,
   },
   titleTextWrapper: {
+    alignItems: "center",
+  },
+  placeHolderImg: {
+    height: 150, // Set the desired height
+    resizeMode: "contain", // Ensures the image scales uniformly
+  },
+  imgContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
 });
