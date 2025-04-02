@@ -1,8 +1,11 @@
 import Toast, { ToastType } from "react-native-toast-message";
 
-export const handle401Error = (error: Error, logout: () => void) => {
+export const handle401Error = async (
+  error: Error,
+  logout: () => Promise<void>
+) => {
   if (error.cause === 401) {
-    logout();
+    await logout();
     triggerToast("error", "Session Timeout", "Please login again");
   }
   return;

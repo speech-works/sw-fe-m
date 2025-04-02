@@ -25,9 +25,6 @@ const Home = () => {
   const { practiceSession, setSession } = useSessionStore();
   const { setActivity, activity } = useActivityStore();
 
-  const navigation =
-    useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
-
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync("accessToken");
     const refreshToken = await SecureStore.getItemAsync("refreshToken");
@@ -36,6 +33,9 @@ const Home = () => {
       logout();
     }
   };
+
+  const navigation =
+    useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
 
   const handleStartPractice = async () => {
     if (user) {
@@ -49,7 +49,7 @@ const Home = () => {
         setActivity(activity);
       } catch (error) {
         if (error instanceof Error) {
-          handle401Error(error, logout);
+          await handle401Error(error, handleLogout);
         } else {
           console.error("An unknown error occurred:", error);
         }
