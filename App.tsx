@@ -1,12 +1,14 @@
-import { StyleSheet } from "react-native";
+import React from "react";
+import { StyleSheet, Button } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import FontLoader from "./app/util/components/FontLoader";
-
 import { NavigationContainer } from "@react-navigation/native";
 import MainNavigator from "./app/navigators/MainNavigator";
 import { AuthProvider } from "./app/contexts/AuthContext";
+import Toast from "react-native-toast-message";
+import toastConfig from "./app/util/config/toastConfig";
 
-export default function App() {
+const App: React.FC = () => {
   return (
     <AuthProvider>
       <SafeAreaProvider>
@@ -18,11 +20,14 @@ export default function App() {
           <NavigationContainer>
             <MainNavigator />
           </NavigationContainer>
+          <Toast config={toastConfig} />
         </SafeAreaView>
       </SafeAreaProvider>
     </AuthProvider>
   );
-}
+};
+
+export default App;
 
 const styles = StyleSheet.create({
   safeAreaView: {
