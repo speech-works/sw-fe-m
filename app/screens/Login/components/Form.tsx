@@ -20,6 +20,7 @@ import { useUserStore } from "../../../stores/user";
 import { useActivityStore } from "../../../stores/activity";
 import { useSessionStore } from "../../../stores/session";
 import { triggerToast } from "../../../util/functions/errorHandling";
+import { clearAsyncStorage } from "../../../util/functions/asyncStorage";
 
 const Form = () => {
   const navigation =
@@ -54,6 +55,7 @@ const Form = () => {
         console.log("New user detected! Clearing stores...");
         useActivityStore.getState().clearActivity();
         useSessionStore.getState().clearSession();
+        clearAsyncStorage();
         triggerToast(
           "warning",
           `Welcome ${myUser.name}`,

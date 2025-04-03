@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "../../api/users";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 interface UserState {
   /** The current user object, or null if not loaded/logged in */
@@ -34,7 +35,7 @@ export const useUserStore = create<UserState>()(
       },
     }),
     {
-      name: "sw-zstore-user", // a unique name for the storage
+      name: ASYNC_KEYS_NAME.SW_ZSTORE_USER, // a unique name for the storage
       storage: createJSONStorage(() => AsyncStorage),
       // To blacklist certain fields:
       // partialize: (state) => ({ user: state.user }),

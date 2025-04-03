@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PracticeActivity } from "../../api/practiceActivities"; // Adjust the import path as needed
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 interface PracticeActivityState {
   // The currently active practice activity, or null if none is active.
@@ -28,7 +29,7 @@ export const useActivityStore = create<PracticeActivityState>()(
       clearActivity: () => set({ activity: null }),
     }),
     {
-      name: "sw-zstore-practice-activity",
+      name: ASYNC_KEYS_NAME.SW_ZSTORE_PRACTICE_ACTIVITY,
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

@@ -42,12 +42,12 @@ const PracticeBreathing = () => {
   const { events, clear: clearEvent } = useEventStore();
   const { activity, setActivity } = useActivityStore();
   const [breathing, setBreathing] = useState<boolean>(false);
-  const breathingRef = useRef<boolean>(false);
+
+  const pendingBreathingRef = useRef<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   // breathing activity created when session was created in HOME is compulsary
   const [compulsaryBreathing, setCompulsaryBreathing] = useState(true);
-
   // Hard-coded slides data (could be fetched or generated)
   const slides = [
     {
@@ -98,6 +98,11 @@ const PracticeBreathing = () => {
           });
           setActivity(updatedActivity);
           setBreathing(true);
+          pendingBreathingRef.current = true;
+          await AsyncStorage.setItem(
+            ASYNC_KEYS_NAME.SW_APP_IS_BREATHING_PENDING,
+            "yes"
+          );
         } catch (error) {
           if (error instanceof Error) {
             await handle401Error(error, handleLogout);
@@ -110,6 +115,12 @@ const PracticeBreathing = () => {
   };
 
   const handleBreatheMore = async () => {
+    if (pendingBreathingRef.current) {
+      // do not create a new activity
+      console.log("working on same activity breathing");
+      handleStartBreathing();
+      return;
+    }
     if (activity) {
       const { session } = activity;
       // breathing activity is only created for 1st activity when session gets created
@@ -124,6 +135,11 @@ const PracticeBreathing = () => {
         });
         setActivity(updatedBreathing);
         setBreathing(true);
+        pendingBreathingRef.current = true;
+        await AsyncStorage.setItem(
+          ASYNC_KEYS_NAME.SW_APP_IS_BREATHING_PENDING,
+          "yes"
+        );
       } catch (error) {
         if (error instanceof Error) {
           await handle401Error(error, handleLogout);
@@ -141,15 +157,21 @@ const PracticeBreathing = () => {
   useEffect(() => {
     console.log("mounting breathing screen.......");
     const checkAsyncStorage = async () => {
+      // check compulsary/first breathing pending
       const isFirstBreathingPending = await AsyncStorage.getItem(
-        ASYNC_KEYS_NAME.IS_FIRST_BREATHING_PENDING
+        ASYNC_KEYS_NAME.SW_APP_IS_FIRST_BREATHING_PENDING
       );
       if (isFirstBreathingPending === null) return;
       setCompulsaryBreathing(false);
+      // check any breathing pending
+      const isAnyBreathingPending = await AsyncStorage.getItem(
+        ASYNC_KEYS_NAME.SW_APP_IS_BREATHING_PENDING
+      );
+      pendingBreathingRef.current = isAnyBreathingPending === "yes";
     };
     checkAsyncStorage();
     return () => {
-      if (breathingRef.current) {
+      if (pendingBreathingRef.current) {
         triggerToast(
           "warning",
           "Breathing aborted",
@@ -158,7 +180,6 @@ const PracticeBreathing = () => {
       }
       console.log("unmounting breathing screen........");
       setBreathing(false);
-      //setBreathingCycle(0);
     };
   }, []);
 
@@ -178,12 +199,18 @@ const PracticeBreathing = () => {
                 completedAt: new Date(),
               });
               await AsyncStorage.setItem(
-                ASYNC_KEYS_NAME.IS_FIRST_BREATHING_PENDING,
+                ASYNC_KEYS_NAME.SW_APP_IS_FIRST_BREATHING_PENDING,
                 "no"
               );
               setActivity(activity);
               setCompulsaryBreathing(false);
               setBreathing(false);
+              console.log("setting pending breathing ref to false");
+              pendingBreathingRef.current = false;
+              await AsyncStorage.setItem(
+                ASYNC_KEYS_NAME.SW_APP_IS_BREATHING_PENDING,
+                "no"
+              );
             }
           }
         };
@@ -194,7 +221,6 @@ const PracticeBreathing = () => {
 
   // Auto-scroll effect: scroll to next slide every autoScrollInterval seconds
   useEffect(() => {
-    breathingRef.current = breathing;
     if (!breathing) return;
     const interval = setInterval(() => {
       const nextSlide = (currentSlide + 1) % slides.length;

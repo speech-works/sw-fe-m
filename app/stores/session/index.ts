@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PracticeSession } from "../../api/practiceSessions";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 interface PracticeSessionState {
   practiceSession: PracticeSession | null;
@@ -24,7 +25,7 @@ export const useSessionStore = create<PracticeSessionState>()(
       },
     }),
     {
-      name: "sw-zstore-practice-session", // a unique name for the storage
+      name: ASYNC_KEYS_NAME.SW_ZSTORE_PRACTICE_SESSION, // a unique name for the storage
       storage: createJSONStorage(() => AsyncStorage),
     }
   )
