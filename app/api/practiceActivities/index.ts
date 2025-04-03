@@ -35,10 +35,13 @@ export async function getPracticeActivityById(
   id: string
 ): Promise<PracticeActivity> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/activities/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -62,12 +65,15 @@ export async function getAllActivitiesOfSession(
   stepType: PracticeStepType
 ): Promise<PracticeActivity[]> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(
       `${API_BASE_URL}/activities?sessionId=${sessionId}?stepType=${stepType}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -135,10 +141,13 @@ export async function updatePracticeActivity(
   }
 ): Promise<PracticeActivity> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(activityData),
     });
@@ -159,10 +168,13 @@ export async function deletePracticeActivity(
   activityId: string
 ): Promise<void> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
     await handleErrorsIfAny(response);

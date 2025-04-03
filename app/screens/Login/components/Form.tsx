@@ -17,6 +17,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { getMyUser } from "../../../api/users";
 import { useUserStore } from "../../../stores/user";
+import { useActivityStore } from "../../../stores/activity";
+import { useSessionStore } from "../../../stores/session";
+import { triggerToast } from "../../../util/functions/errorHandling";
 
 const Form = () => {
   const navigation =
@@ -46,9 +49,21 @@ const Form = () => {
       login(token);
       const myUser = await getMyUser();
       console.log("My user", myUser);
+      const lastUserId = useUserStore.getState().user?.id;
+      if (lastUserId && lastUserId !== myUser.id) {
+        console.log("New user detected! Clearing stores...");
+        useActivityStore.getState().clearActivity();
+        useSessionStore.getState().clearSession();
+        triggerToast(
+          "warning",
+          `Welcome ${myUser.name}`,
+          "App data has been reset."
+        );
+      }
       useUserStore.setState({ user: myUser });
     }
   };
+
   return (
     <View style={styles.signupForm}>
       <InputField

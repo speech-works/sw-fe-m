@@ -18,7 +18,8 @@ import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 import { AuthContext } from "../../contexts/AuthContext";
 import { handle401Error } from "../../util/functions/errorHandling";
-//import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 const Home = () => {
   const { logout } = useContext(AuthContext);
@@ -27,6 +28,7 @@ const Home = () => {
   const { setActivity, activity } = useActivityStore();
 
   useEffect(() => {
+    // AsyncStorage.removeItem(ASYNC_KEYS_NAME.IS_FIRST_BREATHING_PENDING);
     // AsyncStorage.removeItem("sw-zstore-practice-session");
     // AsyncStorage.removeItem("sw-zstore-practice-activity");
     // AsyncStorage.removeItem("sw-zstore-user");
@@ -91,8 +93,9 @@ const Home = () => {
   ];
 
   useEffect(() => {
+    console.log("HOME MOUNTED....");
     return () => {
-      console.log("HOME CLEANED");
+      console.log("HOME UNMOUNTED....");
     };
   }, []);
 
