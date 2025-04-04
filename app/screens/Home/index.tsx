@@ -20,12 +20,13 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { handle401Error } from "../../util/functions/errorHandling";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import { clearAsyncStorage } from "../../util/functions/asyncStorage";
 
 const Home = () => {
   const { logout } = useContext(AuthContext);
   const user = useUserStore((state) => state.user);
-  const { practiceSession, setSession } = useSessionStore();
-  const { setActivity, activity } = useActivityStore();
+  const { practiceSession, setSession, clearSession } = useSessionStore();
+  const { setActivity, activity, clearActivity } = useActivityStore();
 
   useEffect(() => {
     // AsyncStorage.removeItem(ASYNC_KEYS_NAME.IS_FIRST_BREATHING_PENDING);
@@ -48,6 +49,9 @@ const Home = () => {
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
 
   const handleStartPractice = async () => {
+    clearActivity();
+    clearSession();
+    clearAsyncStorage();
     if (user) {
       try {
         const session = await createSession({ userId: user.id });

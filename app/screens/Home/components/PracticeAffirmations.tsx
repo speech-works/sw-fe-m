@@ -83,6 +83,27 @@ const PracticeAffirmations = () => {
   };
 
   const moveToNextPage = () => {
+    // mark the affirmation activity completed
+    if (!activity) return;
+    const updateAffirmationAct = async () => {
+      try {
+        const updatedAffirmationAct = await updatePracticeActivity(
+          activity.id,
+          {
+            completedAt: new Date(),
+          }
+        );
+        setActivity(updatedAffirmationAct);
+      } catch (error) {
+        if (error instanceof Error) {
+          await handle401Error(error, handleLogout);
+        } else {
+          console.error("An unknown error occurred:", error);
+        }
+      }
+    };
+    updateAffirmationAct();
+    // navigate to the next page
     navigation.navigate("PracticeSmoothSpeech");
   };
 
