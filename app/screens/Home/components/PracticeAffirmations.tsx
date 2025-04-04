@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import Button from "../../../components/Button";
 import { parseTextStyle } from "../../../util/functions/parseFont";
 import { theme } from "../../../Theme/tokens";
@@ -18,18 +19,33 @@ import {
   HomeStackNavigationProp,
   HomeStackParamList,
 } from "../../../navigators";
+import { useSessionStore } from "../../../stores/session";
+import {
+  createPracticeActivity,
+  PracticeStepType,
+  updatePracticeActivity,
+} from "../../../api/practiceActivities";
+import { useActivityStore } from "../../../stores/activity";
+import { handle401Error } from "../../../util/functions/errorHandling";
+import { logoutUser } from "../../../api/auth";
+import { AuthContext } from "../../../contexts/AuthContext";
 
 const SLIDE_WIDTH = 200;
 const SLIDE_MARGIN_RIGHT = 12;
 const TOTAL_SLIDE_WIDTH = SLIDE_WIDTH + SLIDE_MARGIN_RIGHT;
 
 const PracticeAffirmations = () => {
+  const { logout } = useContext(AuthContext);
+  const { practiceSession } = useSessionStore();
+  const { activity, setActivity } = useActivityStore();
+
   const navigation =
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoScrollActive, setAutoScrollActive] = useState(true);
   const AUTO_SCROLL_INTERVAL_SECS = 10;
+  const TOTAL_MINUTES_FOR_AFFIRMATIONS = 3;
 
   const slides = [
     {
@@ -57,6 +73,15 @@ const PracticeAffirmations = () => {
     },
   ];
 
+  const handleLogout = async () => {
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    if (refreshToken && accessToken) {
+      await logoutUser({ refreshToken, accessToken });
+      logout();
+    }
+  };
+
   const moveToNextPage = () => {
     navigation.navigate("PracticeSmoothSpeech");
   };
@@ -66,6 +91,40 @@ const PracticeAffirmations = () => {
   ) => {
     setAutoScrollActive(false);
   };
+
+  useEffect(() => {
+    console.log("mounting affirmations screen.......");
+    if (!practiceSession || !activity) return;
+    // create an affirmation activity
+    const createAffirmationAct = async () => {
+      try {
+        const newAffirmationAct = await createPracticeActivity({
+          sessionId: practiceSession.id,
+          stepType: PracticeStepType.AFFIRMATION,
+        });
+        const updatedAffirmationAct = await updatePracticeActivity(
+          newAffirmationAct.id,
+          {
+            startedAt: new Date(),
+          }
+        );
+        setActivity(updatedAffirmationAct);
+      } catch (error) {
+        if (error instanceof Error) {
+          await handle401Error(error, handleLogout);
+        } else {
+          console.error("An unknown error occurred:", error);
+        }
+      }
+    };
+    const { stepType } = activity;
+    if (stepType === PracticeStepType.BREATHING) {
+      createAffirmationAct();
+    }
+    return () => {
+      console.log("unmounting affirmations screen........");
+    };
+  }, [practiceSession, activity]);
 
   useEffect(() => {
     if (!autoScrollActive) return;
@@ -86,8 +145,8 @@ const PracticeAffirmations = () => {
         <Text style={styles.userNameText}>Affirmations</Text>
       </View>
       <CountdownTimer
-        totalSeconds={5 * 60}
-        countdownFrom={5 * 60}
+        totalSeconds={TOTAL_MINUTES_FOR_AFFIRMATIONS * 60}
+        countdownFrom={TOTAL_MINUTES_FOR_AFFIRMATIONS * 60}
         onComplete={moveToNextPage}
       />
       <View style={styles.titleTextWrapper}>

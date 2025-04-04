@@ -124,9 +124,12 @@ const Home = () => {
                 steps={steps.map((step) => ({
                   name: step.name,
                   completed:
-                    PracticeActivityOrder[activity.stepType] >=
-                      PracticeActivityOrder[step.key] &&
-                    activity.status === "completed",
+                    activity.stepType === step.key
+                      ? PracticeActivityOrder[activity.stepType] >=
+                          PracticeActivityOrder[step.key] &&
+                        activity.status === "completed"
+                      : PracticeActivityOrder[activity.stepType] >=
+                        PracticeActivityOrder[step.key],
                 }))}
               />
             </View>
