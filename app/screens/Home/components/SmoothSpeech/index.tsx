@@ -141,7 +141,7 @@ const SmoothSpeech = () => {
           onPress={markSmoothSpeechDone}
           disabled={compulsaryPractice}
         >
-          <Text>Mark complete</Text>
+          <Text>Done</Text>
         </Button>
       </View>
     </View>
