@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "../../../../../components/Button";
 import { parseTextStyle } from "../../../../../util/functions/parseFont";
 import { theme } from "../../../../../Theme/tokens";
@@ -14,54 +14,89 @@ interface ScriptCardProps {
   content: string;
   imgUrl?: string;
   srcUrl?: string;
+  recordAudioCallback: () => void;
+  stopRecoringallback: () => void;
 }
 
-const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
+const ScriptCard = ({
+  title,
+  content,
+  imgUrl,
+  srcUrl,
+  recordAudioCallback,
+  stopRecoringallback,
+}: ScriptCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPracticeModalOpen, setPracticeModalOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
+  // Cleanup effect for audio resources
+  useEffect(() => {
+    return () => {
+      if (recording) {
+        recording.stopAndUnloadAsync();
+      }
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [recording, sound]);
+
   const stripFirst169Chars = (str: string) =>
     typeof str === "string"
-      ? str.substring(169) || str
+      ? str.substring(0, 169) || str
       : "Input must be a string.";
 
   const handleRecordAudio = async () => {
-    if (recording) {
-      // stop recording
+    if (isRecording) {
       try {
-        await recording.stopAndUnloadAsync();
-        const { sound: newSound } = await recording.createNewLoadedSoundAsync(); // Create sound object
-        setRecording(null);
-        setSound(newSound); // Set the sound state
-      } catch (error) {
-        console.error("Failed to stop and unload recording", error);
-        setRecording(null);
-        setSound(null);
-      }
-    } else {
-      // start recording
-      try {
-        const { status } = await Audio.requestPermissionsAsync();
-        if (status !== "granted") {
-          console.error("Audio permissions not granted");
-          return;
+        if (recording) {
+          await recording.stopAndUnloadAsync();
+          const { sound: newSound } =
+            await recording.createNewLoadedSoundAsync();
+          setSound(newSound);
+          stopRecoringallback();
         }
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-        });
-
-        const newRecording = new Audio.Recording();
-        await newRecording.prepareToRecordAsync();
-        await newRecording.startAsync();
-        setRecording(newRecording);
       } catch (error) {
-        console.error("Failed to start recording", error);
+        console.error("Failed to stop recording", error);
       }
+      setRecording(null);
+      setIsRecording(false);
+      return;
+    }
+
+    // Unload any previous sound
+    if (sound) {
+      await sound.unloadAsync();
+      setSound(null);
+    }
+
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== "granted") {
+        console.error("Audio permissions not granted");
+        return;
+      }
+
+      // Create new recording instance each time
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      await newRecording.startAsync();
+
+      setRecording(newRecording);
+      recordAudioCallback();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Failed to start recording", error);
+      setRecording(null);
+      setIsRecording(false);
     }
   };
+
   const handlePlayRecording = async () => {
     if (sound) {
       try {
@@ -132,14 +167,14 @@ const ScriptCard = ({ title, content, imgUrl, srcUrl }: ScriptCardProps) => {
         title={title}
         icon="auto-stories"
         primaryButton={{
-          label: recording ? "Stop" : "Record",
+          label: isRecording ? "Stop" : "Record",
           onPress: handleRecordAudio,
-          icon: recording ? "stop" : "mic", // Add icons
+          icon: isRecording ? "stop" : "mic",
         }}
         secondaryButton={{
           label: "Play",
           onPress: handlePlayRecording,
-          icon: "play-arrow", // Add icon
+          icon: "play-arrow",
         }}
       >
         <PracticeScript script={content} />

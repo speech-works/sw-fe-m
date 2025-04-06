@@ -7,9 +7,13 @@ import Search from "../../../../../components/Search";
 import ScriptCard from "../components/ScriptCard";
 import CustomModal from "../../../../../components/CustomModal";
 import AddScript from "./AddScript";
-import { scriptData } from "./dummyData";
+import { scriptData, ContentData } from "./dummyData";
 
-const Scripts = () => {
+interface ScriptPops {
+  markScriptStarted: (scriptId: string) => void;
+  markScriptComplete: () => void;
+}
+const Scripts = ({ markScriptStarted, markScriptComplete }: ScriptPops) => {
   const [isAddScriptModalVisible, setAddScriptModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -17,12 +21,10 @@ const Scripts = () => {
     if (!searchText) {
       return scriptData;
     }
-    return scriptData.filter((s) =>
-      s.title.toLowerCase().includes(searchText.toLowerCase())
+    return scriptData.filter((s: ContentData) =>
+      s.name.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [searchText, scriptData]);
-
-  const markSessionComplete = () => {};
 
   return (
     <View style={styles.wrapperView}>
@@ -54,17 +56,20 @@ const Scripts = () => {
       <View style={styles.scriptCardsWrapper}>
         {filteredScriptData.map((s) => (
           <ScriptCard
-            key={s.title}
-            title={s.title}
+            key={s.id}
+            title={s.name}
             imgUrl={s.img_url}
-            content={s.script}
+            content={s.content}
+            recordAudioCallback={() => {
+              // start another smooth speech activity
+              markScriptStarted(s.id);
+            }}
+            stopRecoringallback={() => {
+              // mark the current smooth speech activity completed
+              markScriptComplete();
+            }}
           />
         ))}
-      </View>
-      <View style={styles.buttonWrapper}>
-        <Button size="large" onPress={markSessionComplete}>
-          <Text>Mark complete</Text>
-        </Button>
       </View>
     </View>
   );
@@ -77,6 +82,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 25,
     paddingVertical: 50,
+    paddingBottom: 25,
     gap: 16,
   },
   titleText: {
@@ -91,9 +97,6 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     gap: 20,
-  },
-  buttonWrapper: {
-    width: "100%",
   },
   scriptCardsWrapper: {
     flexDirection: "row",

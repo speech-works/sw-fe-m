@@ -106,6 +106,11 @@ export async function createPracticeActivity({
   // Wait for the token
   const accessToken = await SecureStore.getItemAsync("accessToken");
   try {
+    console.log("Creating practice activity...", {
+      sessionId,
+      stepType,
+      scriptId,
+    });
     const response = await fetch(`${API_BASE_URL}/activities`, {
       method: "POST",
       headers: {

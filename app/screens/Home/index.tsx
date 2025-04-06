@@ -18,8 +18,6 @@ import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 import { AuthContext } from "../../contexts/AuthContext";
 import { handle401Error } from "../../util/functions/errorHandling";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { clearAsyncStorage } from "../../util/functions/asyncStorage";
 
 const Home = () => {
@@ -85,6 +83,7 @@ const Home = () => {
   const handleResumePractice = () => {
     if (!activity) return;
     const targetRoute = PracticeTypeToRoute[activity.stepType];
+    console.log("target route", targetRoute, activity.stepType);
     // Navigate to the practice screen corresponding to the current activity
     navigation.navigate(targetRoute);
   };

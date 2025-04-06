@@ -205,7 +205,6 @@ const PracticeBreathing = () => {
               setActivity(activity);
               setCompulsaryBreathing(false);
               setBreathing(false);
-              console.log("setting pending breathing ref to false");
               pendingBreathingRef.current = false;
               await AsyncStorage.setItem(
                 ASYNC_KEYS_NAME.SW_APP_IS_BREATHING_PENDING,

@@ -118,6 +118,7 @@ const PracticeAffirmations = () => {
     if (!practiceSession || !activity) return;
     // create an affirmation activity
     const createAffirmationAct = async () => {
+      console.log("createAffirmationAct");
       try {
         const newAffirmationAct = await createPracticeActivity({
           sessionId: practiceSession.id,
