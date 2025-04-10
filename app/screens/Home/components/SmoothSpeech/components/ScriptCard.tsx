@@ -8,6 +8,10 @@ import CustomModal from "../../../../../components/CustomModal";
 import PracticeScript from "../Scripts/PracticeScript";
 import ContextMenu from "../../../../../components/ContextMenu";
 import { Audio } from "expo-av";
+import { saveRecordingToBE } from "../../../../../util/functions/uploadRecording";
+import { useUserStore } from "../../../../../stores/user";
+import { useActivityStore } from "../../../../../stores/activity";
+import { triggerToast } from "../../../../../util/functions/errorHandling";
 
 interface ScriptCardProps {
   title: string;
@@ -26,17 +30,41 @@ const ScriptCard = ({
   recordAudioCallback,
   stopRecoringallback,
 }: ScriptCardProps) => {
+  const { user } = useUserStore();
+  const { activity } = useActivityStore();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPracticeModalOpen, setPracticeModalOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   // Cleanup effect for audio resources
   useEffect(() => {
+    if (!user || !activity) {
+      triggerToast("error", "Session Timeout", "Please login again");
+      return;
+    }
     return () => {
       if (recording) {
-        recording.stopAndUnloadAsync();
+        recording
+          .stopAndUnloadAsync()
+          .then(() => {
+            const uri = recording.getURI();
+            if (!uri) return;
+            // Retrieve the recording status for duration information
+            return recording.getStatusAsync().then((status) => {
+              const durationMillis = status.durationMillis;
+              saveRecordingToBE({
+                uri,
+                audioDuration: durationMillis,
+                userId: user.id,
+                activityId: activity.id,
+              });
+            });
+          })
+          .catch((error) => {
+            console.error("ScriptCard: Error during recording cleanup:", error);
+          });
       }
       if (sound) {
         sound.unloadAsync();
@@ -50,20 +78,36 @@ const ScriptCard = ({
       : "Input must be a string.";
 
   const handleRecordAudio = async () => {
-    if (isRecording) {
+    if (!user || !activity) {
+      triggerToast("error", "Session Timeout", "Please login again");
+      return;
+    }
+    if (recording) {
       try {
-        if (recording) {
-          await recording.stopAndUnloadAsync();
-          const { sound: newSound } =
-            await recording.createNewLoadedSoundAsync();
-          setSound(newSound);
-          stopRecoringallback();
-        }
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        if (!uri) return;
+
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri }); // Load directly from URI
+        setSound(newSound);
+
+        // Retrieve the recording status for duration information
+        recording.getStatusAsync().then((status) => {
+          const durationMillis = status.durationMillis;
+          saveRecordingToBE({
+            uri,
+            audioDuration: durationMillis,
+            userId: user.id,
+            activityId: activity.id,
+          });
+        });
+
+        stopRecoringallback();
       } catch (error) {
         console.error("Failed to stop recording", error);
+      } finally {
+        setRecording(null); // Ensure recording is cleared even on error
       }
-      setRecording(null);
-      setIsRecording(false);
       return;
     }
 
@@ -80,7 +124,6 @@ const ScriptCard = ({
         return;
       }
 
-      // Create new recording instance each time
       const newRecording = new Audio.Recording();
       await newRecording.prepareToRecordAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
@@ -89,11 +132,9 @@ const ScriptCard = ({
 
       setRecording(newRecording);
       recordAudioCallback();
-      setIsRecording(true);
     } catch (error) {
       console.error("Failed to start recording", error);
-      setRecording(null);
-      setIsRecording(false);
+      setRecording(null); // Ensure recording is cleared on error
     }
   };
 
@@ -167,9 +208,9 @@ const ScriptCard = ({
         title={title}
         icon="auto-stories"
         primaryButton={{
-          label: isRecording ? "Stop" : "Record",
+          label: recording ? "Stop" : "Record",
           onPress: handleRecordAudio,
-          icon: isRecording ? "stop" : "mic",
+          icon: recording ? "stop" : "mic",
         }}
         secondaryButton={{
           label: "Play",

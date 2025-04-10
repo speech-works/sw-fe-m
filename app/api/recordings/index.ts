@@ -2,6 +2,7 @@ import { PracticeActivity } from "../practiceActivities";
 import { User } from "../users";
 import { API_BASE_URL } from "../constants";
 import { handleErrorsIfAny } from "../helper";
+import * as SecureStore from "expo-secure-store";
 
 export interface Recording {
   id: string;
@@ -19,12 +20,15 @@ export async function getAllRecordings(
   activityId: string
 ): Promise<Recording[]> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(
       `${API_BASE_URL}/recordings?userId=${userId}&activityId=${activityId}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -45,10 +49,13 @@ export async function getRecordingById(
   recordingId: string
 ): Promise<Recording> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/recordings/${recordingId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -79,10 +86,13 @@ export async function createRecording({
   mimeType,
 }: CreateRecordingReq): Promise<Recording> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(`${API_BASE_URL}/recordings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         userId,
@@ -98,6 +108,60 @@ export async function createRecording({
   } catch (error) {
     console.error(
       "There was a problem with the create recording operation:",
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getUploadUrl(fileName: string, fileType: string) {
+  try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const response = await fetch(
+      `${API_BASE_URL}/recordings/generateUploadUrl?fileName=${encodeURIComponent(
+        fileName
+      )}&fileType=${encodeURIComponent(fileType)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const data = await response.json();
+    return data.uploadURL;
+  } catch (error) {
+    console.error(
+      "There was a problem with the getUploadUrl operation:",
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getDownloadUrl(fileName: string) {
+  try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const response = await fetch(
+      `${API_BASE_URL}/recordings/generateDownloadUrl?fileName=${encodeURIComponent(
+        fileName
+      )}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const data = await response.json();
+    return data.downloadURL;
+  } catch (error) {
+    console.error(
+      "There was a problem with the getDownloadUrl operation:",
       error
     );
     throw error;

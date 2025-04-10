@@ -48,12 +48,15 @@ export async function getAllSessionsOfUser({
   sessionStatus,
 }: PracticeSessionsReq): Promise<PracticeSession[]> {
   try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
     const response = await fetch(
       `${API_BASE_URL}/sessions?userId=${userId}&status=${sessionStatus}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );

@@ -40,36 +40,52 @@ const SmoothSpeech = () => {
     if (!activity || !practiceSession) return;
     const { id } = activity;
     let actId = id;
-    if (!compulsaryPractice) {
-      // new activity to be created
-      const newSmoothSpeechAct = await createPracticeActivity({
-        sessionId: practiceSession.id,
-        stepType: PracticeStepType.SMOOTH_SPEECH,
-        scriptId,
+    try {
+      if (!compulsaryPractice) {
+        // new activity to be created
+        const newSmoothSpeechAct = await createPracticeActivity({
+          sessionId: practiceSession.id,
+          stepType: PracticeStepType.SMOOTH_SPEECH,
+          scriptId,
+        });
+        actId = newSmoothSpeechAct.id;
+        setActivity(newSmoothSpeechAct);
+      }
+      const updatedActivity = await updatePracticeActivity(actId, {
+        startedAt: new Date(),
       });
-      actId = newSmoothSpeechAct.id;
-      setActivity(newSmoothSpeechAct);
+      setActivity(updatedActivity);
+    } catch (error) {
+      if (error instanceof Error) {
+        await handle401Error(error, handleLogout);
+      } else {
+        console.error("An unknown error occurred:", error);
+      }
     }
-    const updatedActivity = await updatePracticeActivity(actId, {
-      startedAt: new Date(),
-    });
-    setActivity(updatedActivity);
   };
 
   const markScriptComplete = async () => {
     console.log("markScriptComplete");
     if (!activity) return;
     const { id } = activity;
-    const updatedActivity = await updatePracticeActivity(id, {
-      status: "completed",
-      completedAt: new Date(),
-    });
-    setActivity(updatedActivity);
-    setCompulsaryPractice(false);
-    await AsyncStorage.setItem(
-      ASYNC_KEYS_NAME.SW_APP_IS_FIRST_SMOOTHSA_PENDING,
-      "no"
-    );
+    try {
+      const updatedActivity = await updatePracticeActivity(id, {
+        status: "completed",
+        completedAt: new Date(),
+      });
+      setActivity(updatedActivity);
+      setCompulsaryPractice(false);
+      await AsyncStorage.setItem(
+        ASYNC_KEYS_NAME.SW_APP_IS_FIRST_SMOOTHSA_PENDING,
+        "no"
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        await handle401Error(error, handleLogout);
+      } else {
+        console.error("An unknown error occurred:", error);
+      }
+    }
   };
 
   const handleLogout = async () => {

@@ -91,6 +91,7 @@ const PracticeAffirmations = () => {
           activity.id,
           {
             completedAt: new Date(),
+            status: "completed",
           }
         );
         setActivity(updatedAffirmationAct);
