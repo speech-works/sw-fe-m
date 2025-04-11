@@ -57,6 +57,7 @@ interface RecordingProps {
   audioDuration?: number;
   userId: string;
   activityId: string;
+  scriptId: string;
 }
 
 export const saveRecordingToBE = async ({
@@ -64,6 +65,7 @@ export const saveRecordingToBE = async ({
   audioDuration,
   userId,
   activityId,
+  scriptId,
 }: RecordingProps) => {
   // Determine a dynamic file name from the URI extension (e.g. ".wav", ".m4a", ".webm")
   const fileExtension = uri.substring(uri.lastIndexOf("."));
@@ -73,6 +75,7 @@ export const saveRecordingToBE = async ({
     audioDuration,
     userId,
     activityId,
+    scriptId,
     fileName,
     fileExtension,
   });
@@ -87,6 +90,7 @@ export const saveRecordingToBE = async ({
       const savedRecording = await createRecording({
         userId,
         activityId,
+        scriptId,
         audioUrl: fileName, // Store S3 key for later download
         duration: audioDuration, // Replace with the actual duration value if available
         mimeType: uploadResult.mimeType,

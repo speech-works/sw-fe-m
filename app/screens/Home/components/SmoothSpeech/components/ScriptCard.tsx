@@ -12,8 +12,13 @@ import { saveRecordingToBE } from "../../../../../util/functions/uploadRecording
 import { useUserStore } from "../../../../../stores/user";
 import { useActivityStore } from "../../../../../stores/activity";
 import { triggerToast } from "../../../../../util/functions/errorHandling";
+import {
+  getDownloadUrl,
+  getLatestRecording,
+} from "../../../../../api/recordings";
 
 interface ScriptCardProps {
+  id: string;
   title: string;
   content: string;
   imgUrl?: string;
@@ -23,6 +28,7 @@ interface ScriptCardProps {
 }
 
 const ScriptCard = ({
+  id,
   title,
   content,
   imgUrl,
@@ -37,6 +43,28 @@ const ScriptCard = ({
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+
+  useEffect(() => {
+    async function fetchRecording() {
+      try {
+        const result = await getLatestRecording(user?.id, undefined, id);
+        if (result) {
+          setRecordingUrl(result.audioUrl);
+          const downloadUrl = await getDownloadUrl(result.audioUrl);
+          console.log("Remote download URL:", downloadUrl);
+          if (downloadUrl) {
+            const { sound: newRemoteSound } = await Audio.Sound.createAsync({
+              uri: downloadUrl,
+            });
+            setSound(newRemoteSound);
+          }
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    fetchRecording();
+  }, []);
 
   // Cleanup effect for audio resources
   useEffect(() => {
@@ -59,11 +87,12 @@ const ScriptCard = ({
                 audioDuration: durationMillis,
                 userId: user.id,
                 activityId: activity.id,
+                scriptId: id,
               });
             });
           })
           .catch((error) => {
-            console.error("ScriptCard: Error during recording cleanup:", error);
+            console.log("ScriptCard: Error during recording cleanup:", error);
           });
       }
       if (sound) {
@@ -99,6 +128,7 @@ const ScriptCard = ({
             audioDuration: durationMillis,
             userId: user.id,
             activityId: activity.id,
+            scriptId: id,
           });
         });
 
@@ -185,7 +215,11 @@ const ScriptCard = ({
             <Icon
               name="play-circle-outline"
               size={20}
-              color={theme.colors.neutral[5]}
+              color={
+                sound
+                  ? theme.colors.actionPrimary.default
+                  : theme.colors.neutral[5]
+              }
               onPress={handlePlayRecording}
             />
             <ContextMenu

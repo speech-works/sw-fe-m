@@ -14,24 +14,89 @@ export interface Recording {
   createdAt: Date;
 }
 
-// get all recordings of user or practice activity
+export async function getLatestRecording(
+  userId?: string,
+  activityId?: string,
+  scriptId?: string
+): Promise<Recording> {
+  try {
+    // Wait for the token
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    let queryParams = "";
+    if (userId !== undefined) {
+      queryParams += `userId=${userId}&`;
+    }
+    if (activityId !== undefined) {
+      queryParams += `activityId=${activityId}&`;
+    }
+    if (scriptId !== undefined) {
+      queryParams += `scriptId=${scriptId}&`;
+    }
+
+    // Remove the trailing '&' if there are any query parameters
+    if (queryParams.endsWith("&")) {
+      queryParams = queryParams.slice(0, -1);
+    }
+
+    const url = `${API_BASE_URL}/recordings/latest${
+      queryParams ? `?${queryParams}` : ""
+    }`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const resJson = await handleErrorsIfAny(response);
+    return resJson;
+  } catch (error) {
+    console.log(
+      "There was a problem with the get recording by id operation:",
+      error
+    );
+    throw error;
+  }
+}
+// get all recordings of user or practice activity / script
 export async function getAllRecordings(
-  userId: string,
-  activityId: string
+  userId?: string,
+  activityId?: string,
+  scriptId?: string
 ): Promise<Recording[]> {
   try {
     // Wait for the token
     const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(
-      `${API_BASE_URL}/recordings?userId=${userId}&activityId=${activityId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+
+    let queryParams = "";
+    if (userId !== undefined) {
+      queryParams += `userId=${userId}&`;
+    }
+    if (activityId !== undefined) {
+      queryParams += `activityId=${activityId}&`;
+    }
+    if (scriptId !== undefined) {
+      queryParams += `scriptId=${scriptId}&`;
+    }
+
+    // Remove the trailing '&' if there are any query parameters
+    if (queryParams.endsWith("&")) {
+      queryParams = queryParams.slice(0, -1);
+    }
+
+    const url = `${API_BASE_URL}/recordings${
+      queryParams ? `?${queryParams}` : ""
+    }`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
     const resJson = await handleErrorsIfAny(response);
     return resJson;
@@ -74,6 +139,7 @@ export async function getRecordingById(
 interface CreateRecordingReq {
   userId: string;
   activityId: string;
+  scriptId: string;
   audioUrl: string;
   duration?: number;
   mimeType?: string;
@@ -81,6 +147,7 @@ interface CreateRecordingReq {
 export async function createRecording({
   userId,
   activityId,
+  scriptId,
   audioUrl,
   duration,
   mimeType,
@@ -97,6 +164,7 @@ export async function createRecording({
       body: JSON.stringify({
         userId,
         activityId,
+        scriptId,
         audioUrl,
         duration,
         mimeType,

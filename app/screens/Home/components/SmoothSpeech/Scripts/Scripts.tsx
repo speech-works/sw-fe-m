@@ -57,6 +57,7 @@ const Scripts = ({ markScriptStarted, markScriptComplete }: ScriptPops) => {
         {filteredScriptData.map((s) => (
           <ScriptCard
             key={s.id}
+            id={s.id}
             title={s.name}
             imgUrl={s.img_url}
             content={s.content}
