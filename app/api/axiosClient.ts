@@ -4,8 +4,11 @@ import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "./constants";
 import { refreshToken as refreshAccessToken } from "./auth";
 import { getUpdateTokenFn } from "../util/functions/authToken";
+import { dispatchCustomEvent } from "../util/functions/events";
+import { EVENT_NAMES } from "../stores/events/constants";
 let isRefreshing = false;
 let failedQueue: any[] = [];
+let logoutEventDispatched = false;
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
@@ -87,6 +90,11 @@ axiosClient.interceptors.response.use(
         return axiosClient(originalRequest);
       } catch (err) {
         processQueue(err, null);
+        if (!logoutEventDispatched) {
+          // so that multiple failed retires don't trigger multiple events
+          logoutEventDispatched = true;
+          dispatchCustomEvent(EVENT_NAMES.USER_LOGGED_OUT);
+        }
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
