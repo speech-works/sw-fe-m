@@ -1,8 +1,7 @@
+// api/practiceActivities.ts
+import axiosClient from "../axiosClient"; // using the centralized axios client
 import { PracticeSession } from "../practiceSessions";
 import { Script } from "../scripts";
-import { API_BASE_URL } from "../constants";
-import * as SecureStore from "expo-secure-store";
-import { handleErrorsIfAny } from "../helper";
 
 export enum PracticeStepType {
   BREATHING = "BREATHING",
@@ -35,21 +34,8 @@ export async function getPracticeActivityById(
   id: string
 ): Promise<PracticeActivity> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/activities/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const response = await axiosClient.get(`/activities/${id}`);
+    return response.data;
   } catch (error) {
     console.error(
       "There was a problem with the get practice activity by id operation:",
@@ -65,24 +51,10 @@ export async function getAllActivitiesOfSession(
   stepType: PracticeStepType
 ): Promise<PracticeActivity[]> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(
-      `${API_BASE_URL}/activities?sessionId=${sessionId}?stepType=${stepType}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    const response = await axiosClient.get("/activities", {
+      params: { sessionId, stepType },
+    });
+    return response.data;
   } catch (error) {
     console.error(
       "There was a problem with the get all activities of session operation:",
@@ -103,29 +75,18 @@ export async function createPracticeActivity({
   stepType,
   scriptId,
 }: CreatePracticeActivityParams): Promise<PracticeActivity> {
-  // Wait for the token
-  const accessToken = await SecureStore.getItemAsync("accessToken");
   try {
     console.log("Creating practice activity...", {
       sessionId,
       stepType,
       scriptId,
     });
-    const response = await fetch(`${API_BASE_URL}/activities`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        sessionId,
-        stepType,
-        scriptId,
-      }),
+    const response = await axiosClient.post("/activities", {
+      sessionId,
+      stepType,
+      scriptId,
     });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    return response.data;
   } catch (error) {
     console.error(
       "There was a problem with the create activity operation:",
@@ -146,19 +107,11 @@ export async function updatePracticeActivity(
   }
 ): Promise<PracticeActivity> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(activityData),
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.patch(
+      `/activities/${activityId}`,
+      activityData
+    );
+    return response.data;
   } catch (error) {
     console.error(
       "There was a problem with the update activity operation:",
@@ -173,16 +126,7 @@ export async function deletePracticeActivity(
   activityId: string
 ): Promise<void> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/activities/${activityId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    await handleErrorsIfAny(response);
+    await axiosClient.delete(`/activities/${activityId}`);
   } catch (error) {
     console.error(
       "There was a problem with the delete activity operation:",

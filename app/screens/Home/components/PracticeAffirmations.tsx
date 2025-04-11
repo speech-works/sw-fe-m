@@ -8,7 +8,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import Button from "../../../components/Button";
 import { parseTextStyle } from "../../../util/functions/parseFont";
 import { theme } from "../../../Theme/tokens";
@@ -27,7 +26,6 @@ import {
 } from "../../../api/practiceActivities";
 import { useActivityStore } from "../../../stores/activity";
 import { handle401Error } from "../../../util/functions/errorHandling";
-import { logoutUser } from "../../../api/auth";
 import { AuthContext } from "../../../contexts/AuthContext";
 
 const SLIDE_WIDTH = 200;
@@ -74,12 +72,7 @@ const PracticeAffirmations = () => {
   ];
 
   const handleLogout = async () => {
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
-    if (refreshToken && accessToken) {
-      await logoutUser({ refreshToken, accessToken });
-      logout();
-    }
+    await logout();
   };
 
   const moveToNextPage = () => {

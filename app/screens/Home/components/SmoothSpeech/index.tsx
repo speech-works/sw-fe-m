@@ -1,10 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
-import * as SecureStore from "expo-secure-store";
 import Scripts from "./Scripts/Scripts";
 import Button from "../../../../components/Button";
 import { useSessionStore } from "../../../../stores/session";
-import { createPracticeActivity, logoutUser } from "../../../../api";
+import { createPracticeActivity } from "../../../../api";
 import {
   PracticeStepType,
   updatePracticeActivity,
@@ -89,12 +88,7 @@ const SmoothSpeech = () => {
   };
 
   const handleLogout = async () => {
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
-    if (refreshToken && accessToken) {
-      await logoutUser({ refreshToken, accessToken });
-      logout();
-    }
+    await logout();
   };
 
   useEffect(() => {

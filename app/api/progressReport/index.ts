@@ -1,5 +1,5 @@
-import { API_BASE_URL } from "../constants";
-import { handleErrorsIfAny } from "../helper";
+// api/progressReports.ts
+import axiosClient from "../axiosClient";
 import { User } from "../users";
 
 export interface ProgressReport {
@@ -9,72 +9,54 @@ export interface ProgressReport {
   consistency: number; // number of consecutive days
   repetition: number; // weekly sessions (or weighted sessions)
   time: number; // total minutes in last 7 days
-  assignedTags: string; // store JSON array or comma-separated
+  assignedTags: string; // stored as JSON array or comma-separated
   createdAt: Date;
 }
 
-// get live report
+// Get live progress report
 export async function getLiveProgressReport(
   userId: string,
   applyRecencyBias?: boolean
 ): Promise<ProgressReport> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/progress/${userId}?recency=${applyRecencyBias}`
-    );
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/progress/${userId}`, {
+      params: { recency: applyRecencyBias },
+    });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the getting live progress report operation:",
-      error
-    );
+    console.error("Error getting live progress report:", error);
     throw error;
   }
 }
 
-// get past report
+// Get past progress reports
 export async function getPastProgressReports(
   userId: string,
-  limit?: number // if limit is 5, show last 5 reports, default is 10
+  limit?: number // default limit is defined on the server if not provided
 ): Promise<ProgressReport[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/progress/${userId}/history?limit=${limit}`
-    );
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/progress/${userId}/history`, {
+      params: { limit },
+    });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the getting past progress report operation:",
-      error
-    );
+    console.error("Error getting past progress reports:", error);
     throw error;
   }
 }
 
-// save report
+// Create a new progress report
 export async function createProgressReport(
   userId: string,
   applyRecencyBias?: boolean
 ): Promise<ProgressReport> {
   try {
-    const response = await fetch(`${API_BASE_URL}/progress/${userId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        recency: applyRecencyBias,
-      }),
+    const response = await axiosClient.post(`/progress/${userId}`, {
+      recency: applyRecencyBias,
     });
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the create progress report operation:",
-      error
-    );
+    console.error("Error creating progress report:", error);
     throw error;
   }
 }

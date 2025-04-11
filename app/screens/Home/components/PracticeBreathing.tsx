@@ -18,12 +18,10 @@ import {
   PracticeStepType,
   updatePracticeActivity,
 } from "../../../api/practiceActivities";
-import * as SecureStore from "expo-secure-store";
 import {
   handle401Error,
   triggerToast,
 } from "../../../util/functions/errorHandling";
-import { logoutUser } from "../../../api";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useEventStore } from "../../../stores/events";
 import { EVENT_NAMES } from "../../../stores/events/constants";
@@ -79,12 +77,7 @@ const PracticeBreathing = () => {
   const autoScrollInterval = 7; // seconds
 
   const handleLogout = async () => {
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
-    if (refreshToken && accessToken) {
-      await logoutUser({ refreshToken, accessToken });
-      logout();
-    }
+    await logout();
   };
 
   const handleStartBreathing = async () => {

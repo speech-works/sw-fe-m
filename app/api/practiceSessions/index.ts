@@ -1,11 +1,7 @@
+// api/practiceSessions.ts
+import axiosClient from "../axiosClient";
 import { User } from "../users";
-import { API_BASE_URL } from "../constants";
-import * as SecureStore from "expo-secure-store";
-import { handleErrorsIfAny } from "../helper";
 
-interface PracticeSessionReq {
-  id: string;
-}
 export interface PracticeSession {
   id: string;
   user: User;
@@ -16,140 +12,91 @@ export interface PracticeSession {
   updatedAt: Date;
 }
 
-// get a session by id
+interface PracticeSessionReq {
+  id: string;
+}
+
+// Get a session by ID
 export async function getSessionById({
   id,
 }: PracticeSessionReq): Promise<PracticeSession> {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/sessions/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get session by id operation:",
-      error
-    );
+    console.error("Error getting session by ID:", error);
     throw error;
   }
 }
 
-// get all sessions of a user
 interface PracticeSessionsReq {
   userId: string;
   sessionStatus: "ongoing" | "completed";
 }
+
+// Get all sessions of a user with a given status
 export async function getAllSessionsOfUser({
   userId,
   sessionStatus,
 }: PracticeSessionsReq): Promise<PracticeSession[]> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(
-      `${API_BASE_URL}/sessions?userId=${userId}&status=${sessionStatus}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get("/sessions", {
+      params: { userId, status: sessionStatus },
+    });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get all sessions operation:",
-      error
-    );
+    console.error("Error getting sessions for user:", error);
     throw error;
   }
 }
 
-// create a new session
 interface CreateSessionReq {
   userId: string;
 }
+
+// Create a new session
 export async function createSession({
   userId,
 }: CreateSessionReq): Promise<PracticeSession> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/sessions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ userId }),
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.post("/sessions", { userId });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the create session operation:",
-      error
-    );
+    console.error("Error creating session:", error);
     throw error;
   }
 }
 
-// complete a session
 interface CompleteSessionReq {
   id: string;
 }
+
+// Complete a session (update its status)
 export async function completeSession({
   id,
 }: CompleteSessionReq): Promise<PracticeSession> {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.patch(`/sessions/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the complete session operation:",
-      error
-    );
+    console.error("Error completing session:", error);
     throw error;
   }
 }
 
-// delete a session
 interface DeleteSessionReq {
   id: string;
 }
-export async function deleteSession({ id }: DeleteSessionReq): Promise<void | {
-  error: string;
-}> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/sessions/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
 
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+// Delete a session
+export async function deleteSession({
+  id,
+}: DeleteSessionReq): Promise<void | { error: string }> {
+  try {
+    const response = await axiosClient.delete(`/sessions/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the delete session operation:",
-      error
-    );
+    console.error("Error deleting session:", error);
     throw error;
   }
 }

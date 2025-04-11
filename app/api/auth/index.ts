@@ -1,4 +1,5 @@
-import { API_BASE_URL } from "../constants";
+// api/auth.ts (or similar file)
+import axiosClient from "../axiosClient";
 import * as SecureStore from "expo-secure-store";
 
 // register user
@@ -18,21 +19,14 @@ export async function registerUser({
   email,
 }: RegisterProps): Promise<RegisterResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, password, email }),
+    const response = await axiosClient.post("/auth/register", {
+      name,
+      password,
+      email,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("There was a problem during user registration:", error);
     throw error;
   }
 }
@@ -52,39 +46,31 @@ export async function loginUser({
   password,
 }: LoginProps): Promise<LoginResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
+    const response = await axiosClient.post("/auth/login", {
+      email,
+      password,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const resJson = await response.json();
-    const { token, refreshToken } = resJson;
+    const { token, refreshToken } = response.data;
     console.log("login user called before storing tokens", {
       token,
       refreshToken,
     });
-    // Securely store them for later use:
+
+    // Securely store tokens for later use:
     if (token) {
       await SecureStore.setItemAsync("accessToken", token);
     }
     if (refreshToken) {
       await SecureStore.setItemAsync("refreshToken", refreshToken);
     }
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("There was a problem during login:", error);
     throw error;
   }
 }
 
-//refresh token
+// refresh token
 interface RefreshTokenProps {
   refreshToken: string;
 }
@@ -96,25 +82,17 @@ export async function refreshToken({
   refreshToken,
 }: RefreshTokenProps): Promise<RefreshTokenResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
+    const response = await axiosClient.post("/auth/refresh-token", {
+      refreshToken,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return await response.json();
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("There was a problem during token refresh:", error);
     throw error;
   }
 }
 
-//logout user
+// logout user
 interface LogoutProps {
   refreshToken: string;
   accessToken: string;
@@ -127,21 +105,13 @@ export async function logoutUser({
   accessToken,
 }: LogoutProps): Promise<LogoutResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ accessToken, refreshToken }),
+    const response = await axiosClient.post("/auth/logout", {
+      accessToken,
+      refreshToken,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    const resJson = await response.json();
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("There was a problem during logout:", error);
     throw error;
   }
 }

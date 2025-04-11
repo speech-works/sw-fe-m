@@ -7,7 +7,7 @@ import { theme } from "../../Theme/tokens";
 import CountdownTimer from "../../components/CountdownTimer";
 import Stepper from "../../components/Stepper";
 import { useUserStore } from "../../stores/user";
-import { createPracticeActivity, createSession, logoutUser } from "../../api";
+import { createPracticeActivity, createSession } from "../../api";
 import { useSessionStore } from "../../stores/session";
 import {
   PracticeActivityOrder,
@@ -35,12 +35,7 @@ const Home = () => {
   }, [activity]);
 
   const handleLogout = async () => {
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const refreshToken = await SecureStore.getItemAsync("refreshToken");
-    if (refreshToken && accessToken) {
-      await logoutUser({ refreshToken, accessToken });
-      logout();
-    }
+    await logout();
   };
 
   const navigation =

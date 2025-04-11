@@ -1,6 +1,5 @@
-import { API_BASE_URL } from "../constants";
-import * as SecureStore from "expo-secure-store";
-import { handleErrorsIfAny } from "../helper";
+// api/users.ts
+import axiosClient from "../axiosClient";
 
 export interface User {
   id: string;
@@ -17,85 +16,48 @@ export interface User {
   lastLogin?: Date;
 }
 
+// Get user by ID
 export async function getUserById(id: string): Promise<User> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/users/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("Error getting user by ID:", error);
     throw error;
   }
 }
+
+// Update user by ID
 export async function updateUserById(
   id: string,
   user: Partial<Omit<User, "id" | "password" | "createdAt">>
 ): Promise<User> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(user),
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.patch(`/users/${id}`, user);
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("Error updating user:", error);
     throw error;
   }
 }
+
+// Delete user by ID
 export async function deleteUserById(id: string): Promise<void> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    await handleErrorsIfAny(response);
+    await axiosClient.delete(`/users/${id}`);
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("Error deleting user:", error);
     throw error;
   }
 }
-export async function getMyUser(): Promise<User> {
-  console.log("getMyUser called", {
-    accessToken: SecureStore.getItemAsync("accessToken"),
-  });
-  try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
 
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+// Get my user (current authenticated user)
+export async function getMyUser(): Promise<User> {
+  try {
+    const response = await axiosClient.get("/users/me");
+    return response.data;
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    console.error("Error getting current user:", error);
     throw error;
   }
 }

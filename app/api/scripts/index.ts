@@ -1,6 +1,6 @@
+// api/scripts.ts
+import axiosClient from "../axiosClient";
 import { User } from "../users";
-import { API_BASE_URL } from "../constants";
-import { handleErrorsIfAny } from "../helper";
 
 export interface Script {
   id: string;
@@ -13,41 +13,31 @@ export interface Script {
   updatedAt: Date;
 }
 
-// get all scripts
+// Get all scripts (optionally filtering by creator)
 export const getAllScripts = async (
   createdByUser?: string
 ): Promise<Script[]> => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/scripts?createdBy=${createdByUser}`
-    );
-    const scripts = await response.json();
-    return scripts;
+    const response = await axiosClient.get("/scripts", {
+      params: { createdBy: createdByUser },
+    });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get all scripts operation:",
-      error
-    );
+    console.error("Error getting all scripts:", error);
     throw error;
   }
 };
 
-// get a script by id
+// Get a script by ID
 export const getScriptById = async (id: string): Promise<Script> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/scripts/${id}`);
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/scripts/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get script by id operation:",
-      error
-    );
+    console.error("Error getting script by ID:", error);
     throw error;
   }
 };
-
-// create a script
 
 interface CreateScriptReq {
   name: string;
@@ -56,6 +46,8 @@ interface CreateScriptReq {
   imageUrl?: string;
   createdBy?: string;
 }
+
+// Create a script
 export const createScript = async ({
   name,
   content,
@@ -64,67 +56,53 @@ export const createScript = async ({
   createdBy,
 }: CreateScriptReq): Promise<Script> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/scripts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, content, source, imageUrl, createdBy }),
+    const response = await axiosClient.post("/scripts", {
+      name,
+      content,
+      source,
+      imageUrl,
+      createdBy,
     });
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the create script operation:",
-      error
-    );
+    console.error("Error creating script:", error);
     throw error;
   }
 };
 
-// update a script
 interface UpdateScriptReq {
   name?: string;
   content?: string;
   source?: string;
   imageUrl?: string;
 }
+
+// Update a script
 export const updateScript = async (
   scriptId: string,
   { name, content, source, imageUrl }: UpdateScriptReq
 ): Promise<Script> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, content, source, imageUrl }),
+    const response = await axiosClient.patch(`/scripts/${scriptId}`, {
+      name,
+      content,
+      source,
+      imageUrl,
     });
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the update script operation:",
-      error
-    );
+    console.error("Error updating script:", error);
     throw error;
   }
 };
 
-// delete a script
+// Delete a script
 export const deleteScript = async (scriptId: string): Promise<Script> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/scripts/${scriptId}`, {
-      method: "DELETE",
-    });
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.delete(`/scripts/${scriptId}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the delete script operation:",
-      error
-    );
+    console.error("Error deleting script:", error);
     throw error;
   }
 };

@@ -1,70 +1,47 @@
-import { API_BASE_URL } from "../constants";
-import { handleErrorsIfAny } from "../helper";
+// api/subscriptions.ts
+import axiosClient from "../axiosClient";
 import { User } from "../users";
 
 export interface Subscription {
   id: string;
   user: User;
-  /**
-   * The Stripe subscription identifier.
-   * Typically something like "sub_abc123" from Stripe.
-   */
   stripeSubscriptionId: string;
-  /**
-   * The subscription status, e.g. 'active', 'canceled', 'paused'.
-   * Adjust these as needed for your business logic.
-   */
   status: "active" | "canceled" | "paused";
-  /**
-   * When the subscription starts (or started).
-   */
   startDate: Date;
-  /**
-   * When the subscription ends (or ended).
-   * Can be null if it's ongoing or indefinite.
-   */
   endDate?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// get all subscriptions
+// Get all subscriptions of a user
 export async function getAllSubscriptionsOfUser(
   userId: string
 ): Promise<Subscription[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/subscriptions?userId=${userId}`
-    );
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get("/subscriptions", {
+      params: { userId },
+    });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the getAllSubscriptionsOfUser operation:",
-      error
-    );
+    console.error("Error getting subscriptions for user:", error);
     throw error;
   }
 }
 
-// get subscription by id
+// Get subscription by ID
 export async function getSubscriptionById(
   subId: string
 ): Promise<Subscription> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`);
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/subscriptions/${subId}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the getSubscriptionById operation:",
-      error
-    );
+    console.error("Error getting subscription by ID:", error);
     throw error;
   }
 }
 
-// create a new subscription
+// Create a new subscription
 export async function createSubscription(subscriptionData: {
   userId: string;
   stripeSubscriptionId: string;
@@ -73,26 +50,15 @@ export async function createSubscription(subscriptionData: {
   endDate?: Date | null;
 }): Promise<Subscription> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subscriptions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(subscriptionData),
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.post("/subscriptions", subscriptionData);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the createSubscription operation:",
-      error
-    );
+    console.error("Error creating subscription:", error);
     throw error;
   }
 }
 
-// update subscription status (e.g. canceled) or endDate
+// Update subscription (status or endDate)
 export async function updateSubscriptionById(
   subId: string,
   subscriptionData: {
@@ -101,41 +67,23 @@ export async function updateSubscriptionById(
   }
 ): Promise<Subscription> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(subscriptionData),
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
-  } catch (error) {
-    console.error(
-      "There was a problem with the updateSubscriptionById operation:",
-      error
+    const response = await axiosClient.patch(
+      `/subscriptions/${subId}`,
+      subscriptionData
     );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating subscription:", error);
     throw error;
   }
 }
 
-// delete subscription
+// Delete a subscription
 export async function deleteSubscriptionById(subId: string): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subscriptions/${subId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    await handleErrorsIfAny(response);
+    await axiosClient.delete(`/subscriptions/${subId}`);
   } catch (error) {
-    console.error(
-      "There was a problem with the deleteSubscriptionById operation:",
-      error
-    );
+    console.error("Error deleting subscription:", error);
     throw error;
   }
 }

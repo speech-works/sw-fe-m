@@ -1,141 +1,70 @@
-import { PracticeActivity } from "../practiceActivities";
-import { User } from "../users";
-import { API_BASE_URL } from "../constants";
-import { handleErrorsIfAny } from "../helper";
-import * as SecureStore from "expo-secure-store";
+// api/recordings.ts
+import axiosClient from "../axiosClient";
 
 export interface Recording {
   id: string;
-  user: User;
-  activity: PracticeActivity;
+  user: any; // or import a User interface
+  activity: any; // or use PracticeActivity if available
   audioUrl: string;
   duration: number | null;
   mimeType: string;
   createdAt: Date;
 }
 
+// Get latest recording using query parameters
 export async function getLatestRecording(
   userId?: string,
   activityId?: string,
   scriptId?: string
 ): Promise<Recording> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    let queryParams = "";
-    if (userId !== undefined) {
-      queryParams += `userId=${userId}&`;
-    }
-    if (activityId !== undefined) {
-      queryParams += `activityId=${activityId}&`;
-    }
-    if (scriptId !== undefined) {
-      queryParams += `scriptId=${scriptId}&`;
-    }
+    // Build query parameters using axios params feature
+    const params: Record<string, string> = {};
+    if (userId) params.userId = userId;
+    if (activityId) params.activityId = activityId;
+    if (scriptId) params.scriptId = scriptId;
 
-    // Remove the trailing '&' if there are any query parameters
-    if (queryParams.endsWith("&")) {
-      queryParams = queryParams.slice(0, -1);
-    }
-
-    const url = `${API_BASE_URL}/recordings/latest${
-      queryParams ? `?${queryParams}` : ""
-    }`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get("/recordings/latest", { params });
+    return response.data;
   } catch (error) {
-    console.log(
-      "There was a problem with the get recording by id operation:",
-      error
-    );
+    console.error("Error getting latest recording:", error);
     throw error;
   }
 }
-// get all recordings of user or practice activity / script
+
+// Get all recordings using query parameters
 export async function getAllRecordings(
   userId?: string,
   activityId?: string,
   scriptId?: string
 ): Promise<Recording[]> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const params: Record<string, string> = {};
+    if (userId) params.userId = userId;
+    if (activityId) params.activityId = activityId;
+    if (scriptId) params.scriptId = scriptId;
 
-    let queryParams = "";
-    if (userId !== undefined) {
-      queryParams += `userId=${userId}&`;
-    }
-    if (activityId !== undefined) {
-      queryParams += `activityId=${activityId}&`;
-    }
-    if (scriptId !== undefined) {
-      queryParams += `scriptId=${scriptId}&`;
-    }
-
-    // Remove the trailing '&' if there are any query parameters
-    if (queryParams.endsWith("&")) {
-      queryParams = queryParams.slice(0, -1);
-    }
-
-    const url = `${API_BASE_URL}/recordings${
-      queryParams ? `?${queryParams}` : ""
-    }`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get("/recordings", { params });
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get all recordings operation:",
-      error
-    );
+    console.error("Error getting all recordings:", error);
     throw error;
   }
 }
 
-// get recording by id
+// Get a recording by its ID
 export async function getRecordingById(
   recordingId: string
 ): Promise<Recording> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/recordings/${recordingId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    const response = await axiosClient.get(`/recordings/${recordingId}`);
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the get recording by id operation:",
-      error
-    );
+    console.error("Error getting recording by ID:", error);
     throw error;
   }
 }
 
-// create a recording
 interface CreateRecordingReq {
   userId: string;
   activityId: string;
@@ -144,6 +73,8 @@ interface CreateRecordingReq {
   duration?: number;
   mimeType?: string;
 }
+
+// Create a recording
 export async function createRecording({
   userId,
   activityId,
@@ -153,85 +84,46 @@ export async function createRecording({
   mimeType,
 }: CreateRecordingReq): Promise<Recording> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(`${API_BASE_URL}/recordings`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        userId,
-        activityId,
-        scriptId,
-        audioUrl,
-        duration,
-        mimeType,
-      }),
+    const response = await axiosClient.post("/recordings", {
+      userId,
+      activityId,
+      scriptId,
+      audioUrl,
+      duration,
+      mimeType,
     });
-
-    const resJson = await handleErrorsIfAny(response);
-    return resJson;
+    return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the create recording operation:",
-      error
-    );
+    console.error("Error creating recording:", error);
     throw error;
   }
 }
 
-export async function getUploadUrl(fileName: string, fileType: string) {
+// Get presigned upload URL (Note: if not needing SecureStore token manually, use axiosClient)
+export async function getUploadUrl(
+  fileName: string,
+  fileType: string
+): Promise<string> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(
-      `${API_BASE_URL}/recordings/generateUploadUrl?fileName=${encodeURIComponent(
-        fileName
-      )}&fileType=${encodeURIComponent(fileType)}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    const data = await response.json();
-    return data.uploadURL;
+    const response = await axiosClient.get("/recordings/generateUploadUrl", {
+      params: { fileName, fileType },
+    });
+    return response.data.uploadURL;
   } catch (error) {
-    console.error(
-      "There was a problem with the getUploadUrl operation:",
-      error
-    );
+    console.error("Error getting upload URL:", error);
     throw error;
   }
 }
 
-export async function getDownloadUrl(fileName: string) {
+// Get presigned download URL
+export async function getDownloadUrl(fileName: string): Promise<string> {
   try {
-    // Wait for the token
-    const accessToken = await SecureStore.getItemAsync("accessToken");
-    const response = await fetch(
-      `${API_BASE_URL}/recordings/generateDownloadUrl?fileName=${encodeURIComponent(
-        fileName
-      )}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    const data = await response.json();
-    return data.downloadURL;
+    const response = await axiosClient.get("/recordings/generateDownloadUrl", {
+      params: { fileName },
+    });
+    return response.data.downloadURL;
   } catch (error) {
-    console.error(
-      "There was a problem with the getDownloadUrl operation:",
-      error
-    );
+    console.error("Error getting download URL:", error);
     throw error;
   }
 }
