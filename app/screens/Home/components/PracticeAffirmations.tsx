@@ -115,7 +115,9 @@ const PracticeAffirmations = () => {
   };
 
   useEffect(() => {
-    console.log("mounting affirmations screen.......");
+    console.log("mounting affirmations screen.......", {
+      activity,
+    });
     if (!practiceSession || !activity) return;
     // create an affirmation activity
     const createAffirmationAct = async () => {
@@ -145,7 +147,9 @@ const PracticeAffirmations = () => {
       createAffirmationAct();
     }
     return () => {
-      console.log("unmounting affirmations screen........");
+      console.log("unmounting affirmations screen........", {
+        activity,
+      });
     };
   }, [practiceSession, activity]);
 
