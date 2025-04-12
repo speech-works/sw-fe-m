@@ -33,6 +33,11 @@ const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
 }) => {
+  // Calculate icon color based on the disabled prop.
+  const iconColor = disabled
+    ? theme.colors.neutral.white
+    : textStyle[variant].color;
+
   return (
     <TouchableOpacity
       style={
@@ -49,7 +54,7 @@ const Button: React.FC<ButtonProps> = ({
           <Icon
             name={leftIcon}
             size={20}
-            color={textStyle[variant].color}
+            color={iconColor}
             style={styles.iconStyle}
           />
         )}
@@ -66,7 +71,7 @@ const Button: React.FC<ButtonProps> = ({
           <Icon
             name={rightIcon}
             size={20}
-            color={textStyle[variant].color}
+            color={iconColor}
             style={styles.iconStyle}
           />
         )}

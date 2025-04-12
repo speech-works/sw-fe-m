@@ -13,22 +13,21 @@ import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseFont";
 import Button from "./Button";
 
+interface ButtonProps {
+  label: string;
+  onPress: () => void;
+  icon?: string;
+  disabled?: boolean;
+}
+
 interface ModalProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
   icon?: string;
   children: React.ReactNode;
-  primaryButton?: {
-    label: string;
-    onPress: () => void;
-    icon?: string;
-  };
-  secondaryButton?: {
-    label: string;
-    onPress: () => void;
-    icon?: string;
-  };
+  primaryButton?: ButtonProps;
+  secondaryButton?: ButtonProps;
 }
 
 const CustomModal: React.FC<ModalProps> = ({
@@ -83,6 +82,7 @@ const CustomModal: React.FC<ModalProps> = ({
                   variant="ghost"
                   onPress={secondaryButton.onPress}
                   leftIcon={secondaryButton.icon}
+                  disabled={secondaryButton.disabled}
                 >
                   <Text>{secondaryButton.label}</Text>
                 </Button>
@@ -94,6 +94,7 @@ const CustomModal: React.FC<ModalProps> = ({
                   size="xSmall"
                   onPress={primaryButton.onPress}
                   leftIcon={primaryButton.icon}
+                  disabled={primaryButton.disabled}
                 >
                   <Text>{primaryButton.label}</Text>
                 </Button>
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
   },
   modalContainer: {
-    width: Dimensions.get("window").width * 0.95, // 80% of screen width
+    width: Dimensions.get("window").width * 0.95, // 95% of screen width
     maxHeight: Dimensions.get("window").height * 0.85,
     backgroundColor: "white",
     borderRadius: 10,

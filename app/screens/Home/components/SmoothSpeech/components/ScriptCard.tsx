@@ -41,21 +41,35 @@ const ScriptCard = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPracticeModalOpen, setPracticeModalOpen] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Helper to attach playback status update callback
+  const attachPlaybackStatusUpdate = (newSound: Audio.Sound) => {
+    newSound.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded) {
+        // When the playback finishes, update the isPlaying flag.
+        if (status.didJustFinish && !status.isLooping) {
+          setIsPlaying(false);
+        } else {
+          setIsPlaying(status.isPlaying);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     async function fetchRecording() {
       try {
         const result = await getLatestRecording(user?.id, undefined, id);
         if (result) {
-          setRecordingUrl(result.audioUrl);
           const downloadUrl = await getDownloadUrl(result.audioUrl);
           console.log("Remote download URL:", downloadUrl);
           if (downloadUrl) {
             const { sound: newRemoteSound } = await Audio.Sound.createAsync({
               uri: downloadUrl,
             });
+            attachPlaybackStatusUpdate(newRemoteSound);
             setSound(newRemoteSound);
           }
         }
@@ -106,6 +120,40 @@ const ScriptCard = ({
       ? str.substring(0, 169) || str
       : "Input must be a string.";
 
+  // Updated play handler: if playback is at the end, reset to 0 before playing.
+  const handlePlayRecording = async () => {
+    if (sound) {
+      try {
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) {
+          // Only reset the position if durationMillis is defined and the current position is at or beyond it.
+          if (
+            status.durationMillis !== undefined &&
+            status.positionMillis >= status.durationMillis
+          ) {
+            await sound.setPositionAsync(0);
+          }
+          await sound.playAsync();
+        }
+      } catch (error) {
+        console.error("Failed to play recording", error);
+      }
+    } else {
+      console.log("No sound to play.");
+    }
+  };
+
+  // Pause function remains unchanged.
+  const handlePauseRecording = async () => {
+    if (sound) {
+      try {
+        await sound.pauseAsync();
+      } catch (error) {
+        console.error("Failed to pause recording", error);
+      }
+    }
+  };
+
   const handleRecordAudio = async () => {
     if (!user || !activity) {
       triggerToast("error", "Session Timeout", "Please login again");
@@ -117,7 +165,9 @@ const ScriptCard = ({
         const uri = recording.getURI();
         if (!uri) return;
 
-        const { sound: newSound } = await Audio.Sound.createAsync({ uri }); // Load directly from URI
+        // Load directly from URI and attach status update
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri });
+        attachPlaybackStatusUpdate(newSound);
         setSound(newSound);
 
         // Retrieve the recording status for duration information
@@ -168,18 +218,6 @@ const ScriptCard = ({
     }
   };
 
-  const handlePlayRecording = async () => {
-    if (sound) {
-      try {
-        await sound.replayAsync();
-      } catch (error) {
-        console.error("Failed to play recording", error);
-      }
-    } else {
-      console.log("No sound to play.");
-    }
-  };
-
   return (
     <View style={styles.cardWrapper}>
       <View style={styles.imgView}>
@@ -212,15 +250,22 @@ const ScriptCard = ({
               color={theme.colors.actionPrimary.default}
               onPress={() => setIsFavorite((old) => !old)}
             />
+            {/* Toggle play/pause icon in the card */}
             <Icon
-              name="play-circle-outline"
+              name={isPlaying ? "pause-circle-outline" : "play-circle-outline"}
               size={20}
               color={
                 sound
                   ? theme.colors.actionPrimary.default
                   : theme.colors.neutral[5]
               }
-              onPress={handlePlayRecording}
+              onPress={() => {
+                if (isPlaying) {
+                  handlePauseRecording();
+                } else {
+                  handlePlayRecording();
+                }
+              }}
             />
             <ContextMenu
               options={[
@@ -245,14 +290,14 @@ const ScriptCard = ({
           label: recording ? "Stop" : "Record",
           onPress: handleRecordAudio,
           icon: recording ? "stop" : "mic",
+          disabled: isPlaying, // Primary button is disabled when playback is active
         }}
-        {...(!!sound && {
-          secondaryButton: {
-            label: "Play",
-            onPress: handlePlayRecording,
-            icon: "play-arrow",
-          },
-        })}
+        secondaryButton={{
+          label: isPlaying ? "Pause" : "Play",
+          onPress: isPlaying ? handlePauseRecording : handlePlayRecording,
+          icon: isPlaying ? "pause" : "play-arrow",
+          disabled: !sound, // Secondary button is disabled when there's no sound available
+        }}
       >
         <PracticeScript script={content} />
       </CustomModal>
