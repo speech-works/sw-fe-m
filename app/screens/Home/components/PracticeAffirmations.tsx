@@ -25,7 +25,6 @@ import {
   updatePracticeActivity,
 } from "../../../api/practiceActivities";
 import { useActivityStore } from "../../../stores/activity";
-import { handle401Error } from "../../../util/functions/errorHandling";
 import { AuthContext } from "../../../contexts/AuthContext";
 
 const SLIDE_WIDTH = 200;
@@ -89,11 +88,7 @@ const PracticeAffirmations = () => {
         );
         setActivity(updatedAffirmationAct);
       } catch (error) {
-        if (error instanceof Error) {
-          await handle401Error(error, handleLogout);
-        } else {
-          console.error("An unknown error occurred:", error);
-        }
+        console.error("An unknown error occurred:", error);
       }
     };
     updateAffirmationAct();
@@ -128,11 +123,7 @@ const PracticeAffirmations = () => {
         );
         setActivity(updatedAffirmationAct);
       } catch (error) {
-        if (error instanceof Error) {
-          await handle401Error(error, handleLogout);
-        } else {
-          console.error("An unknown error occurred:", error);
-        }
+        console.error("An unknown error occurred:", error);
       }
     };
     const { stepType } = activity;

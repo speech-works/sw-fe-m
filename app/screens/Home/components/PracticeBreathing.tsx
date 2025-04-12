@@ -18,15 +18,13 @@ import {
   PracticeStepType,
   updatePracticeActivity,
 } from "../../../api/practiceActivities";
-import {
-  handle401Error,
-  triggerToast,
-} from "../../../util/functions/errorHandling";
+
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useEventStore } from "../../../stores/events";
 import { EVENT_NAMES } from "../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../util/functions/events";
 import { ASYNC_KEYS_NAME } from "../../../constants/asyncStorageKeys";
+import { triggerToast } from "../../../util/functions/toast";
 
 // Define a constant for the slide width (you could also calculate dynamically if slides have a fixed width)
 const SLIDE_WIDTH = 200;
@@ -97,11 +95,7 @@ const PracticeBreathing = () => {
             "yes"
           );
         } catch (error) {
-          if (error instanceof Error) {
-            await handle401Error(error, handleLogout);
-          } else {
-            console.error("An unknown error occurred:", error);
-          }
+          console.error("An unknown error occurred:", error);
         }
       }
     }
@@ -134,11 +128,7 @@ const PracticeBreathing = () => {
           "yes"
         );
       } catch (error) {
-        if (error instanceof Error) {
-          await handle401Error(error, handleLogout);
-        } else {
-          console.error("An unknown error occurred:", error);
-        }
+        console.error("An unknown error occurred:", error);
       }
     }
   };

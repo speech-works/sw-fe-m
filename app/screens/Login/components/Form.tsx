@@ -19,7 +19,7 @@ import { getMyUser } from "../../../api/users";
 import { useUserStore } from "../../../stores/user";
 import { useActivityStore } from "../../../stores/activity";
 import { useSessionStore } from "../../../stores/session";
-import { triggerToast } from "../../../util/functions/errorHandling";
+import { triggerToast } from "../../../util/functions/toast";
 import { clearAsyncStorage } from "../../../util/functions/asyncStorage";
 
 const Form = () => {

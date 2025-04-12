@@ -1,5 +1,4 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect } from "react";
 import Button from "../../components/Button";
 import { parseTextStyle } from "../../util/functions/parseFont";
@@ -17,7 +16,6 @@ import { useActivityStore } from "../../stores/activity";
 import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
 import { AuthContext } from "../../contexts/AuthContext";
-import { handle401Error } from "../../util/functions/errorHandling";
 import { clearAsyncStorage } from "../../util/functions/asyncStorage";
 
 const Home = () => {
@@ -56,11 +54,7 @@ const Home = () => {
         setActivity(activity);
         navigation.navigate("PracticeBreathing");
       } catch (error) {
-        if (error instanceof Error) {
-          await handle401Error(error, handleLogout);
-        } else {
-          console.error("An unknown error occurred:", error);
-        }
+        console.error("An unknown error occurred:", error);
       }
     }
   };

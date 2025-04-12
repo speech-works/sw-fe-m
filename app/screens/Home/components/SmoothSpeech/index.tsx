@@ -15,7 +15,6 @@ import {
 } from "../../../../navigators";
 import { useActivityStore } from "../../../../stores/activity";
 import { AuthContext } from "../../../../contexts/AuthContext";
-import { handle401Error } from "../../../../util/functions/errorHandling";
 import { ASYNC_KEYS_NAME } from "../../../../constants/asyncStorageKeys";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -55,11 +54,7 @@ const SmoothSpeech = () => {
       });
       setActivity(updatedActivity);
     } catch (error) {
-      if (error instanceof Error) {
-        await handle401Error(error, handleLogout);
-      } else {
-        console.error("An unknown error occurred:", error);
-      }
+      console.error("An unknown error occurred:", error);
     }
   };
 
@@ -79,11 +74,7 @@ const SmoothSpeech = () => {
         "no"
       );
     } catch (error) {
-      if (error instanceof Error) {
-        await handle401Error(error, handleLogout);
-      } else {
-        console.error("An unknown error occurred:", error);
-      }
+      console.error("An unknown error occurred:", error);
     }
   };
 
@@ -120,14 +111,10 @@ const SmoothSpeech = () => {
         });
         setActivity(newSmoothSpeechAct);
       } catch (error) {
-        if (error instanceof Error) {
-          await handle401Error(error, handleLogout);
-        } else {
-          console.error(
-            "An unknown error occurred while created smooth speech activity:",
-            error
-          );
-        }
+        console.error(
+          "An unknown error occurred while creating smooth speech activity:",
+          error
+        );
       }
     };
     const { stepType } = activity;
@@ -137,7 +124,7 @@ const SmoothSpeech = () => {
     return () => {
       console.log("SmoothSpeech component unmounted");
     };
-  }, []);
+  }, [practiceSession, activity]);
 
   return (
     <View style={styles.wrapperView}>

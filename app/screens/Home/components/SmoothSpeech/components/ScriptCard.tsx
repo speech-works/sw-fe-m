@@ -11,7 +11,7 @@ import { Audio } from "expo-av";
 import { saveRecordingToBE } from "../../../../../util/functions/uploadRecording";
 import { useUserStore } from "../../../../../stores/user";
 import { useActivityStore } from "../../../../../stores/activity";
-import { triggerToast } from "../../../../../util/functions/errorHandling";
+import { triggerToast } from "../../../../../util/functions/toast";
 import {
   getDownloadUrl,
   getLatestRecording,
@@ -246,11 +246,13 @@ const ScriptCard = ({
           onPress: handleRecordAudio,
           icon: recording ? "stop" : "mic",
         }}
-        secondaryButton={{
-          label: "Play",
-          onPress: handlePlayRecording,
-          icon: "play-arrow",
-        }}
+        {...(!!sound && {
+          secondaryButton: {
+            label: "Play",
+            onPress: handlePlayRecording,
+            icon: "play-arrow",
+          },
+        })}
       >
         <PracticeScript script={content} />
       </CustomModal>
