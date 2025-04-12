@@ -27,7 +27,6 @@ export async function getLatestRecording(
     const response = await axiosClient.get("/recordings/latest", { params });
     return response.data;
   } catch (error) {
-    console.error("Error getting latest recording:", error);
     throw error;
   }
 }
@@ -47,7 +46,6 @@ export async function getAllRecordings(
     const response = await axiosClient.get("/recordings", { params });
     return response.data;
   } catch (error) {
-    console.error("Error getting all recordings:", error);
     throw error;
   }
 }
