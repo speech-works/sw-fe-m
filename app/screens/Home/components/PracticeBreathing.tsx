@@ -18,8 +18,6 @@ import {
   PracticeStepType,
   updatePracticeActivity,
 } from "../../../api/practiceActivities";
-
-import { AuthContext } from "../../../contexts/AuthContext";
 import { useEventStore } from "../../../stores/events";
 import { EVENT_NAMES } from "../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../util/functions/events";
@@ -32,7 +30,6 @@ const SLIDE_MARGIN_RIGHT = 12;
 const TOTAL_SLIDE_WIDTH = SLIDE_WIDTH + SLIDE_MARGIN_RIGHT;
 
 const PracticeBreathing = () => {
-  const { logout } = useContext(AuthContext);
   const navigation =
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
   const { events, clear: clearEvent } = useEventStore();
@@ -73,10 +70,6 @@ const PracticeBreathing = () => {
 
   // Auto-scroll interval in seconds; you can pass this as a prop if needed.
   const autoScrollInterval = 7; // seconds
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const handleStartBreathing = async () => {
     console.log("activity in handleStartBreathing", { activity });

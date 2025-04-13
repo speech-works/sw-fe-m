@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Scripts from "./Scripts/Scripts";
 import Button from "../../../../components/Button";
 import { useSessionStore } from "../../../../stores/session";
@@ -14,12 +14,10 @@ import {
   HomeStackParamList,
 } from "../../../../navigators";
 import { useActivityStore } from "../../../../stores/activity";
-import { AuthContext } from "../../../../contexts/AuthContext";
 import { ASYNC_KEYS_NAME } from "../../../../constants/asyncStorageKeys";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SmoothSpeech = () => {
-  const { logout } = useContext(AuthContext);
   const { practiceSession } = useSessionStore();
   const { activity, setActivity } = useActivityStore();
   // practice activity created when smooth speech screen was mounted is compulsary
@@ -76,10 +74,6 @@ const SmoothSpeech = () => {
     } catch (error) {
       console.error("An unknown error occurred:", error);
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
   };
 
   useEffect(() => {

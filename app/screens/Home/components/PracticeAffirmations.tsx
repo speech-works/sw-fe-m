@@ -25,14 +25,12 @@ import {
   updatePracticeActivity,
 } from "../../../api/practiceActivities";
 import { useActivityStore } from "../../../stores/activity";
-import { AuthContext } from "../../../contexts/AuthContext";
 
 const SLIDE_WIDTH = 200;
 const SLIDE_MARGIN_RIGHT = 12;
 const TOTAL_SLIDE_WIDTH = SLIDE_WIDTH + SLIDE_MARGIN_RIGHT;
 
 const PracticeAffirmations = () => {
-  const { logout } = useContext(AuthContext);
   const { practiceSession } = useSessionStore();
   const { activity, setActivity } = useActivityStore();
 
@@ -69,10 +67,6 @@ const PracticeAffirmations = () => {
       detail: "Acknowledge the power of communication, no matter the delivery.",
     },
   ];
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const moveToNextPage = () => {
     // mark the affirmation activity completed

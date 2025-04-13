@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import React, { useContext, useEffect } from "react";
+import React, { useEffect } from "react";
 import Button from "../../components/Button";
 import { parseTextStyle } from "../../util/functions/parseFont";
 import { theme } from "../../Theme/tokens";
@@ -15,11 +15,10 @@ import {
 import { useActivityStore } from "../../stores/activity";
 import { useNavigation } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackParamList } from "../../navigators";
-import { AuthContext } from "../../contexts/AuthContext";
+
 import { clearAsyncStorage } from "../../util/functions/asyncStorage";
 
 const Home = () => {
-  const { logout } = useContext(AuthContext);
   const user = useUserStore((state) => state.user);
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setActivity, activity, clearActivity } = useActivityStore();
@@ -31,10 +30,6 @@ const Home = () => {
     // AsyncStorage.removeItem("sw-zstore-user");
     console.log("activity change in Home", { activity });
   }, [activity]);
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const navigation =
     useNavigation<HomeStackNavigationProp<keyof HomeStackParamList>>();
