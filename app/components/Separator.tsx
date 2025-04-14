@@ -8,11 +8,13 @@ interface SeparatorProps {
 }
 
 const Separator = ({ text }: SeparatorProps) => {
+  const lineStyle = text ? styles.hrWithMargin : styles.hrFull;
+
   return (
     <View style={styles.flexBox}>
-      <View style={styles.hr} />
+      <View style={lineStyle} />
       {text && <Text style={styles.text}>{text}</Text>}
-      <View style={styles.hr} />
+      <View style={lineStyle} />
     </View>
   );
 };
@@ -26,11 +28,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  hr: {
-    flex: 1, // Allows the line to take up equal space
+  hrWithMargin: {
+    flex: 1,
     height: 1,
     backgroundColor: theme.colors.neutral[7],
     marginHorizontal: 10,
+  },
+  hrFull: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.neutral[7],
   },
   text: {
     color: theme.colors.neutral[5],

@@ -7,7 +7,7 @@ import PracticeAffirmationScreen from "../../screens/Home/components/PracticeAff
 import SmoothSpeechScreen from "../../screens/Home/components/SmoothSpeech";
 import useScrollWrapper from "../../hooks/useScrollWrapper";
 import { HomeStackParamList } from "..";
-//import ExposureScreen from "../screens/Home/ExposureScreen";
+import Exposure from "../../screens/Home/components/Exposure";
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -42,6 +42,14 @@ export default function HomeStackNavigator() {
     );
   };
 
+  const ScrollableExposureScreen = () => {
+    return (
+      <ScrollWrapper>
+        <Exposure />
+      </ScrollWrapper>
+    );
+  };
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={ScrollableHome} />
@@ -57,7 +65,10 @@ export default function HomeStackNavigator() {
         name="PracticeSmoothSpeech"
         component={ScrollableSmoothSpeechScreen}
       />
-      {/* <Stack.Screen name="PracticeExposure" component={ExposureScreen} /> */}
+      <Stack.Screen
+        name="PracticeExposure"
+        component={ScrollableExposureScreen}
+      />
     </Stack.Navigator>
   );
 }

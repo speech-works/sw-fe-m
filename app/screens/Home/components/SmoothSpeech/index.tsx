@@ -28,7 +28,7 @@ const SmoothSpeech = () => {
   const pendingPracticeRef = React.useRef(false);
 
   const markSmoothSpeechDone = async () => {
-    navigation.navigate("Home");
+    navigation.navigate("PracticeExposure");
   };
 
   const markScriptStarted = async (scriptId: string) => {
