@@ -44,7 +44,21 @@ const Exposure = () => {
         <View style={styles.pageTitleWrapper}>
           <Text style={styles.pageTitle}>Exposure</Text>
         </View>
-        <FlipCard backCardContent={<Text>Back card</Text>}>
+
+        <FlipCard
+          backCardContent={
+            <CardContent
+              series="Family Flow Series"
+              task="Tell a funny story at the dinner table"
+              meta={[
+                "🎯 Challenge 2 of 6 – Family Flow Series",
+                "🗣 Skill – Storytelling with emotion",
+                "🟢 Growth zone – Low",
+                "🍽️ Your words light up the room",
+              ]}
+            />
+          }
+        >
           <CardContent
             series="Street talk series"
             task="Ask a stranger for directions to a place"
