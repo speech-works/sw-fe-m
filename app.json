@@ -7,18 +7,23 @@
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "speechworks",
+    "deeplinks": ["auth/callback"],
+    "platforms": ["ios", "android", "web"],
     "splash": {
       "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.speechworks.swfem",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow access to your photo library to upload images."
       }
     },
     "android": {
+      "package": "com.speechworks.swfem",
       "permissions": ["READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "foregroundImage": "./app/assets/adaptive-icon.png",

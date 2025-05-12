@@ -1,5 +1,6 @@
 // api/axiosClient.ts
 import axios from "axios";
+import * as Localization from "expo-localization";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "./constants";
 import { refreshToken as refreshAccessToken } from "./auth";
@@ -34,6 +35,14 @@ axiosClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (Localization.timezone) {
+      config.headers["X-Client-Timezone"] = Localization.timezone;
+    } else {
+      config.headers["X-Client-Timezone"] =
+        Localization.getCalendars()[0].timeZone;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

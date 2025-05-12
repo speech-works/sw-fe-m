@@ -1,4 +1,3 @@
-// api/auth.ts (or similar file)
 import axiosClient from "../axiosClient";
 import * as SecureStore from "expo-secure-store";
 
@@ -33,39 +32,46 @@ export async function registerUser({
 
 // login user
 interface LoginProps {
-  password: string;
-  email: string;
+  provider: string;
+  redirectTo?: string;
 }
 
 interface LoginResponse {
-  token: string;
-  refreshToken: string;
+  redirectUrl: string;
 }
 export async function loginUser({
-  email,
-  password,
+  provider,
+  redirectTo,
 }: LoginProps): Promise<LoginResponse> {
   try {
-    const response = await axiosClient.post("/auth/login", {
-      email,
-      password,
-    });
-    const { token, refreshToken } = response.data;
-    console.log("login user called before storing tokens", {
-      token,
-      refreshToken,
-    });
+    const response = await axiosClient.get(
+      `/auth/signin?provider=${provider}&redirectTo=${redirectTo}`
+    );
+    console.log("Login response:", response.data);
 
-    // Securely store tokens for later use:
-    if (token) {
-      await SecureStore.setItemAsync("accessToken", token);
-    }
-    if (refreshToken) {
-      await SecureStore.setItemAsync("refreshToken", refreshToken);
-    }
-    return response.data;
+    const { url } = response.data;
+    return { redirectUrl: url };
   } catch (error) {
     console.error("There was a problem during login:", error);
+    throw error;
+  }
+}
+
+/**
+ * Exchange the OAuth code for your app’s JWT & user record
+ */
+export async function handleOAuthCallback(code: string) {
+  console.log("handleOAuthCallback called with code:", code);
+  try {
+    const res = await axiosClient.get(`/auth/callback?code=${code}`);
+    console.log("handleOAuthCallback response:", res.data);
+    return (await res.data) as {
+      user: { id: string; email: string; name: string /* … */ };
+      appJwt: string;
+      refreshToken: string;
+    };
+  } catch (error) {
+    console.error("There was a problem during handleOAuthCallback:", error);
     throw error;
   }
 }

@@ -44,26 +44,26 @@ const Form = () => {
     if (!password) {
       setErrors((old) => ({ ...old, password: "Password is required" }));
     }
-    const { token } = await loginUser({ email, password });
-    console.log("after login", token);
-    if (token) {
-      login(token);
-      const myUser = await getMyUser();
-      console.log("My user", myUser);
-      const lastUserId = useUserStore.getState().user?.id;
-      if (lastUserId && lastUserId !== myUser.id) {
-        console.log("New user detected! Clearing stores...");
-        useActivityStore.getState().clearActivity();
-        useSessionStore.getState().clearSession();
-        clearAsyncStorage();
-        triggerToast(
-          "warning",
-          `Welcome ${myUser.name}`,
-          "App data has been reset."
-        );
-      }
-      useUserStore.setState({ user: myUser });
-    }
+    // const { token } = await loginUser({ email, password });
+    // console.log("after login", token);
+    // if (token) {
+    //   login(token);
+    //   const myUser = await getMyUser();
+    //   console.log("My user", myUser);
+    //   const lastUserId = useUserStore.getState().user?.id;
+    //   if (lastUserId && lastUserId !== myUser.id) {
+    //     console.log("New user detected! Clearing stores...");
+    //     useActivityStore.getState().clearActivity();
+    //     useSessionStore.getState().clearSession();
+    //     clearAsyncStorage();
+    //     triggerToast(
+    //       "warning",
+    //       `Welcome ${myUser.name}`,
+    //       "App data has been reset."
+    //     );
+    //   }
+    //   useUserStore.setState({ user: myUser });
+    // }
   };
 
   return (

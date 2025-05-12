@@ -1,4 +1,10 @@
-export { registerUser, loginUser, logoutUser, refreshToken } from "./auth";
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshToken,
+  handleOAuthCallback,
+} from "./auth";
 export {
   createSession,
   getAllSessionsOfUser,
