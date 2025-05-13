@@ -8,8 +8,14 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "speechworks",
-    "deeplinks": ["auth/callback"],
-    "platforms": ["ios", "android", "web"],
+    "deeplinks": [
+      "auth/callback"
+    ],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "splash": {
       "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
@@ -19,12 +25,17 @@
       "bundleIdentifier": "com.speechworks.swfem",
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Allow access to your photo library to upload images."
+        "NSPhotoLibraryUsageDescription": "Allow access to your photo library to upload images.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.speechworks.swfem",
-      "permissions": ["READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./app/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -43,7 +54,11 @@
       ]
     ],
     "extra": {
-      "API_BASE_URL": "http://127.0.0.1:3000"
-    }
+      "API_BASE_URL": "http://127.0.0.1:3000",
+      "eas": {
+        "projectId": "da01d434-2a75-41bb-b7cc-19fd2f720aa5"
+      }
+    },
+    "owner": "mayankav"
   }
 }
