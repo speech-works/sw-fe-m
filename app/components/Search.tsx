@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseFont";
+import { parseTextStyle } from "../util/functions/parseStyles";
 
 interface SearchProps extends TextInputProps {}
 

@@ -1,97 +1,96 @@
-import React, { useState } from "react";
+import React, {
+  forwardRef, // <--- Import forwardRef
+} from "react";
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
   TextInputProps,
+  ViewStyle,
+  TextStyle,
 } from "react-native";
-import { parseTextStyle } from "../util/functions/parseFont";
 import { theme } from "../Theme/tokens";
 
 interface InputFieldProps extends TextInputProps {
-  label: string;
-  required?: boolean;
-  error?: string;
+  /**
+   * Optional style overrides for the outer container
+   */
+  containerStyle?: ViewStyle;
+  /**
+   * Optional style overrides for the TextInput itself
+   */
+  inputStyle?: TextStyle;
+  /**
+   * Optional React element to display on the right side of the input field.
+   * Useful for icons (e.g., clear button, search icon).
+   */
+  rightIcon?: React.ReactElement | null;
+  /**
+   * Optional React element to display on the left side of the input field.
+   * Useful for icons (e.g., search icon, prefix).
+   */
+  leftIcon?: React.ReactElement | null;
 }
 
-const InputField: React.FC<InputFieldProps> = ({
-  label,
-  required = false,
-  error = "",
-  ...textInputProps
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  return (
-    <View
-      style={[
-        styles.container,
-        error ? styles.errorBorder : isFocused ? styles.focusedBorder : null,
-      ]}
-    >
-      <Text
-        style={[
-          styles.label,
-          error ? styles.errorLabel : isFocused ? styles.focusedLabel : null,
-        ]}
-      >
-        {label} {required && <Text style={styles.asterisk}>*</Text>}
-      </Text>
-      <TextInput
-        style={styles.input}
-        placeholderTextColor="#999"
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        {...textInputProps}
-      />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    borderWidth: 2,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    position: "relative",
-    backgroundColor: "#fff",
-  },
-  label: {
-    position: "absolute",
-    top: -12,
-    left: 15,
-    backgroundColor: "#fff",
-    paddingHorizontal: 5,
-    color: theme.colors.neutral.black,
-    ...parseTextStyle(theme.typography.paragraphSmall.heavy),
-  },
-  asterisk: {
-    color: "red",
-  },
-  input: {
-    ...parseTextStyle(theme.typography.paragraphBase.heavy),
-  },
-  errorBorder: {
-    borderColor: "red",
-  },
-  errorLabel: {
-    color: "red",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 12,
-    marginTop: 5,
-  },
-  focusedBorder: {
-    borderColor: "#B25300",
-  },
-  focusedLabel: {
-    color: "#B25300",
-  },
-});
+/**
+ * A simple, reusable TextInput with consistent styling.
+ */
+// Use forwardRef to allow ref prop to be passed
+const InputField = forwardRef<TextInput, InputFieldProps>(
+  (
+    {
+      value,
+      onChangeText,
+      placeholder,
+      containerStyle,
+      inputStyle,
+      leftIcon,
+      rightIcon,
+      ...rest
+    },
+    ref
+  ) => {
+    return (
+      <View style={[styles.wrapper, containerStyle]}>
+        {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
+        <TextInput
+          ref={ref}
+          style={[styles.input, inputStyle]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={theme.colors.text.default + "99"}
+          underlineColorAndroid="transparent"
+          {...rest}
+        />
+        {rightIcon && <View style={styles.iconContainer}>{rightIcon}</View>}
+      </View>
+    );
+  }
+);
 
 export default InputField;
+
+const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface.elevated, // Moved from comment to active
+    //borderRadius: 12,
+    //paddingHorizontal: 12, // Ensure padding is applied
+    //height: 48,
+    flex: 1,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.colors.text.title,
+    paddingVertical: 0, // centers text vertically inside the 48‐height container
+    // No background color here, let the wrapper handle it
+  },
+  iconContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4, // Add some padding for icons
+  },
+});

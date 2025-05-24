@@ -1,37 +1,39 @@
-import React, { useContext, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Audio } from "expo-av";
-import { Linking, StyleSheet } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import FontLoader from "./app/util/components/FontLoader";
 import { NavigationContainer } from "@react-navigation/native";
 import MainNavigator from "./app/navigators/MainNavigator";
 import { AuthContext, AuthProvider } from "./app/contexts/AuthContext";
-import Toast from "react-native-toast-message";
-import toastConfig from "./app/util/config/toastConfig";
-import { handleOAuthCallback } from "./app/api";
+// import Toast from "react-native-toast-message";
+// import toastConfig from "./app/util/config/toastConfig";
+import * as WebBrowser from "expo-web-browser";
+import * as SecureStore from "expo-secure-store";
+import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
+
+// 👇 This is critical for trapping the OAuth redirect back into your JS:
+WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
-  const { login } = useContext(AuthContext);
   useEffect(() => {
-    const listener = Linking.addEventListener("url", async ({ url }) => {
-      console.log("url in app", url);
-      // url === "speechworks://auth/callback?code=xxxxxxxx"
-      const [, queryString] = url.split("?");
-      const params = new URLSearchParams(queryString);
-      const code = params.get("code");
-      console.log("code in app", code);
-      if (code) {
-        // exchange the code on your backend
-        const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
-        // store your appJwt locally
-        await SecureStore.setItemAsync("jwt", appJwt);
-        // navigate into your authenticated app…
-        login(appJwt);
-      }
-    });
+    const checkToken = async () => {
+      const accessToken = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY
+      );
+      const refreshToken = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      );
+      // await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
+      // await SecureStore.deleteItemAsync(
+      //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      // );
+      console.log(".................checkToken................");
+      console.log("accessToken", accessToken);
+      console.log("refreshToken", refreshToken);
+    };
 
-    return () => listener.remove();
+    checkToken();
   }, []);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ const App: React.FC = () => {
 
     checkForUpdates();
   }, []);
+
   return (
     <AuthProvider>
       <SafeAreaProvider>
@@ -55,7 +58,7 @@ const App: React.FC = () => {
           <NavigationContainer>
             <MainNavigator />
           </NavigationContainer>
-          <Toast config={toastConfig} />
+          {/* <Toast config={toastConfig} /> */}
         </SafeAreaView>
       </SafeAreaProvider>
     </AuthProvider>

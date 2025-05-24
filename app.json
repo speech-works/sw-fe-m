@@ -3,19 +3,14 @@
     "name": "sw-fe-m",
     "slug": "sw-fe-m",
     "version": "1.0.0",
+    "sdkVersion": "53.0.0",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "speechworks",
-    "deeplinks": [
-      "auth/callback"
-    ],
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "deeplinks": ["auth/callback"],
+    "platforms": ["ios", "android", "web"],
     "splash": {
       "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
@@ -51,7 +46,8 @@
           "photosPermission": "Allow access to your photo library to upload images.",
           "cameraPermission": "Allow access to your camera to take photos."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "API_BASE_URL": "http://127.0.0.1:3000",

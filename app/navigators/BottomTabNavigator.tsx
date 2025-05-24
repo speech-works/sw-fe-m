@@ -1,33 +1,75 @@
-import React from "react";
+import React, { useContext } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { View, Text } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { View, Text, TouchableOpacity } from "react-native";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
 //import Home from "../screens/Home";
-import Report from "../screens/Report";
+//import Report from "../screens/Report";
 import useScrollWrapper from "../hooks/useScrollWrapper";
-import Settings from "../screens/Settings";
-import HomeStackNavigator from "./stacks/HomeStackNavigator";
+import { logoutUser } from "../api";
+import { AuthContext } from "../contexts/AuthContext";
+//import Settings from "../screens/Settings";
+// import HomeStackNavigator from "./stacks/HomeStackNavigator";
+import * as SecureStore from "expo-secure-store";
+import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
+import OnboardingQuestions from "../components/OnBoarding/OnboardingQuestions";
+import { questions } from "../data/onboardingQuestions";
+import { ROUTE_NAMES } from "../constants/routes";
+import AcademyStackNavigator from "./stacks/AcademyStack";
 
 // Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
-  const ScrollWrapper = useScrollWrapper();
+  const { logout } = useContext(AuthContext);
+  const handleLogout = async () => {
+    const accessToken = await SecureStore.getItemAsync(
+      SECURE_KEYS_NAME.SW_APP_JWT_KEY
+    );
+    const refreshToken = await SecureStore.getItemAsync(
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+    );
+    console.log("Access Token:", accessToken);
+    console.log("Refresh Token:", refreshToken);
+    if (refreshToken && accessToken) {
+      await logoutUser({ refreshToken, appJwt: accessToken });
+      logout();
+    }
+  };
 
-  const ScrollableReports = () => {
+  const ScrollWrapper = useScrollWrapper();
+  const Logout = () => {
     return (
       <ScrollWrapper>
-        <Report />
+        <Text>Home</Text>
+
+        <TouchableOpacity
+          onPress={() => {
+            console.log("Logout button pressed");
+            handleLogout();
+          }}
+          style={{
+            backgroundColor: theme.colors.actionPrimary.default,
+            padding: 10,
+            borderRadius: 5,
+            marginTop: 20,
+          }}
+        >
+          <Text style={{ color: "white" }}>Logout</Text>
+        </TouchableOpacity>
       </ScrollWrapper>
     );
   };
-  const ScrollableSettings = () => {
+
+  const Onboarding = () => {
     return (
-      <ScrollWrapper>
-        <Settings />
-      </ScrollWrapper>
+      <OnboardingQuestions
+        questions={questions}
+        onAnswer={(q, a) => {
+          console.log(q, a);
+        }}
+      />
     );
   };
 
@@ -37,35 +79,20 @@ const BottomTabNavigator = () => {
         headerShown: false, // Hide header for all screens
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === "Home") {
-            iconName = "home";
-          } else if (route.name === "Reports") {
-            iconName = "assignment";
-          } else if (route.name === "Settings") {
-            iconName = "settings";
+          if (route.name === ROUTE_NAMES.ACADEMY) {
+            iconName = "user-graduate";
+          } else if (route.name === ROUTE_NAMES.COMMUNITY) {
+            iconName = "users";
+          } else if (route.name === ROUTE_NAMES.THERAPY) {
+            iconName = "user-md";
           }
 
           return (
-            <View
-              style={{
-                padding: 6,
-                borderRadius: 6,
-                borderWidth: focused ? 2 : 0, // Highlight active tab
-                borderColor: focused
-                  ? theme.colors.actionPrimary.default
-                  : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-                height: size + 16,
-                width: size + 16,
-              }}
-            >
-              <MaterialIcons name={iconName as any} size={size} color={color} />
-            </View>
+            <FontAwesome5 name={iconName as any} size={size} color={color} />
           );
         },
         tabBarActiveTintColor: theme.colors.actionPrimary.default,
-        tabBarInactiveTintColor: theme.colors.neutral[5],
+        tabBarInactiveTintColor: theme.colors.text.default,
         tabBarShowLabel: false, // Hide text labels
         tabBarStyle: {
           backgroundColor: "white",
@@ -76,9 +103,12 @@ const BottomTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackNavigator} />
-      <Tab.Screen name="Reports" component={ScrollableReports} />
-      <Tab.Screen name="Settings" component={ScrollableSettings} />
+      <Tab.Screen
+        name={ROUTE_NAMES.ACADEMY}
+        component={AcademyStackNavigator}
+      />
+      <Tab.Screen name={ROUTE_NAMES.COMMUNITY} component={Onboarding} />
+      <Tab.Screen name={ROUTE_NAMES.THERAPY} component={Logout} />
     </Tab.Navigator>
   );
 };

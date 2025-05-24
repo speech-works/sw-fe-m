@@ -1,28 +1,96 @@
-import React from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, Animated, StyleSheet } from "react-native";
 import { theme } from "../Theme/tokens";
+import { parse } from "@babel/core";
+import { parseTextStyle } from "../util/functions/parseStyles";
 
-const ProgressBar = ({ percentage = 0 }) => {
+interface ProgressBarProps {
+  currentStep: number;
+  totalSteps: number;
+  showStepIndicator?: boolean;
+  showPercentage?: boolean;
+  style?: object;
+}
+
+const ProgressBar = ({
+  currentStep,
+  totalSteps,
+  showStepIndicator = true,
+  showPercentage = true,
+  style,
+}: ProgressBarProps) => {
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const targetProgress = (currentStep / totalSteps) * 100;
+
+    Animated.timing(progressAnim, {
+      toValue: targetProgress,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentStep, totalSteps]);
+
+  const percentage = Math.round((currentStep / totalSteps) * 100);
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.progress, { width: `${percentage}%` }]} />
+    <View style={[style]}>
+      {(showStepIndicator || showPercentage) && (
+        <View style={styles.stepInfo}>
+          {showStepIndicator && (
+            <Text style={styles.stepText}>
+              Step {currentStep} of {totalSteps}
+            </Text>
+          )}
+          {showPercentage && (
+            <Text style={styles.percentageText}>{percentage}%</Text>
+          )}
+        </View>
+      )}
+      <View style={styles.progressBar}>
+        <Animated.View
+          style={[
+            styles.progressFill,
+            {
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ["0%", "100%"],
+                extrapolate: "clamp",
+              }),
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 };
 
+export default ProgressBar;
+
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
+  stepInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  stepText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+  percentageText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+  progressBar: {
     height: 8,
-    borderRadius: 6,
-    backgroundColor: theme.colors.neutral[8],
+    backgroundColor: theme.colors.progressBar.base,
+    borderRadius: 4,
     overflow: "hidden",
   },
-  progress: {
+  progressFill: {
     height: "100%",
-    borderRadius: 6,
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: theme.colors.progressBar.bar,
+    borderRadius: 4,
   },
 });
-
-export default ProgressBar;

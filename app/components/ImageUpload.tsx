@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { parseTextStyle } from "../util/functions/parseFont";
+import { parseTextStyle } from "../util/functions/parseStyles";
 import { theme } from "../Theme/tokens";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";

@@ -52,7 +52,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ options }) => {
         style={styles.button}
         onPress={openMenu}
       >
-        <Icon name="more-vert" size={20} color={theme.colors.neutral[5]} />
+        <Icon
+          name="more-vert"
+          size={20}
+          color={theme.colors.library.gray[400]}
+        />
       </TouchableOpacity>
 
       {/* Context Menu Modal */}

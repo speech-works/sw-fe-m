@@ -1,0 +1,26 @@
+<svg width="78" height="78" viewBox="0 0 78 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g clip-path="url(#clip0_2123_2634)">
+    <!-- Background with soft pastel lavender -->
+    <rect width="77.3" height="77.3" rx="38.65" fill="#E3E4FF"/>
+
+    <!-- Face with pastel cyan and no stroke -->
+    <path d="M24.1333 14.6162C24.1333 10.1605 77.5974 10.1605 77.5974 14.6162C82.0528 14.6162 82.0528 76.9963 77.5974 76.9963C77.5974 81.452 24.1333 81.452 24.1333 76.9963C19.6779 76.9963 19.6779 14.6162 24.1333 14.6162Z" fill="#B2EBF2"/>
+
+    <!-- Eyebrows -->
+    <path d="M37.5203 20.7947L18.8538 25.7964L20.4544 31.7697L39.1209 26.768L37.5203 20.7947Z" fill="#444"/>
+    <path d="M58.4458 25.7966L39.7792 20.7949L38.1787 26.7682L56.8452 31.7699L58.4458 25.7966Z" fill="#444"/>
+
+    <!-- Eye whites -->
+    <circle cx="27.055" cy="38.65" r="11.6" fill="#FFFFFF"/>
+    <circle cx="50.245" cy="38.65" r="11.6" fill="#FFFFFF"/>
+
+    <!-- Pupils -->
+    <circle cx="27.055" cy="38.65" r="7" fill="#666666"/>
+    <circle cx="50.245" cy="38.65" r="7" fill="#666666"/>
+  </g>
+  <defs>
+    <clipPath id="clip0_2123_2634">
+      <rect width="77.3" height="77.3" rx="38.65" fill="white"/>
+    </clipPath>
+  </defs>
+</svg>

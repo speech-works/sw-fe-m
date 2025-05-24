@@ -1,0 +1,23 @@
+<svg width="78" height="78" viewBox="0 0 78 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g clip-path="url(#clip0_2123_2627)">
+    <!-- Background (soft peach pastel) -->
+    <rect width="77.3" height="77.3" rx="38.65" fill="#FFE8D4"/>
+
+    <!-- Face (pastel yellow, no border) -->
+    <path d="M12.1397 19.8306C12.1397 15.3748 65.6039 15.3748 65.6039 19.8306C70.0592 19.8306 70.0592 82.2106 65.6039 82.2106C65.6039 86.6664 12.1397 86.6664 12.1397 82.2106C7.68438 82.2106 7.68438 19.8306 12.1397 19.8306Z" fill="#FFF9C4"/>
+
+    <!-- Eyes (white with black pupils) -->
+    <circle cx="27.0551" cy="38.6502" r="11.6" fill="#FFFFFF"/>
+    <circle cx="50.245" cy="38.6502" r="11.6" fill="#FFFFFF"/>
+    <circle cx="27.055" cy="38.65" r="6.95" fill="#444444"/>
+    <circle cx="50.2451" cy="38.65" r="6.95" fill="#444444"/>
+
+    <!-- Smile (pastel gray stroke) -->
+    <path d="M27.0551 57.9751C34.7851 63.1284 42.5151 63.1284 50.2451 57.9751" stroke="#666666" stroke-width="3.55789" stroke-linecap="round"/>
+  </g>
+  <defs>
+    <clipPath id="clip0_2123_2627">
+      <rect width="77.3" height="77.3" rx="38.65" fill="white"/>
+    </clipPath>
+  </defs>
+</svg>

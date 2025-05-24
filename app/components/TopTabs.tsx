@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { parseTextStyle } from "../util/functions/parseFont";
+import { parseTextStyle } from "../util/functions/parseStyles";
 import { theme } from "../Theme/tokens";
 
 interface TopTabsProps {

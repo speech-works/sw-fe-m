@@ -16,7 +16,7 @@ const useScrollWrapper = () => {
         //bounces={false} // Disable bounce effect on iOS
         //overScrollMode="never" // Disable overscroll effect on Android
         contentContainerStyle={scrollContent}
-        style={{ backgroundColor: theme.colors.neutral.white }}
+        style={{ backgroundColor: theme.colors.background.light }}
         showsVerticalScrollIndicator={false}
       >
         {children}

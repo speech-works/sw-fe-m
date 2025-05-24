@@ -1,0 +1,1 @@
+export type LIBRARY_STAGE = "TUTORIAL" | "EXERCISE" | "QUIZ" | "SUMMARY";

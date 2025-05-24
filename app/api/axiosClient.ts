@@ -7,6 +7,7 @@ import { refreshToken as refreshAccessToken } from "./auth";
 import { getUpdateTokenFn } from "../util/functions/authToken";
 import { dispatchCustomEvent } from "../util/functions/events";
 import { EVENT_NAMES } from "../stores/events/constants";
+import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 let isRefreshing = false;
 let failedQueue: any[] = [];
 let logoutEventDispatched = false;
@@ -31,7 +32,9 @@ const axiosClient = axios.create({
 // Request Interceptor
 axiosClient.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync("accessToken");
+    const token = await SecureStore.getItemAsync(
+      SECURE_KEYS_NAME.SW_APP_JWT_KEY
+    );
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -80,14 +83,19 @@ axiosClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync("refreshToken");
+        const refreshToken = await SecureStore.getItemAsync(
+          SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+        );
         if (!refreshToken) throw new Error("No refresh token found");
 
         const { token: newAccessToken } = await refreshAccessToken({
           refreshToken,
         });
 
-        await SecureStore.setItemAsync("accessToken", newAccessToken);
+        await SecureStore.setItemAsync(
+          SECURE_KEYS_NAME.SW_APP_JWT_KEY,
+          newAccessToken
+        );
         // ✅ Update React state too (AuthContext)
         const updateTokenFn = getUpdateTokenFn();
         if (updateTokenFn) updateTokenFn(newAccessToken);

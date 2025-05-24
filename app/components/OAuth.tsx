@@ -1,37 +1,78 @@
+// src/components/OAuth.tsx
+import React, { useContext } from "react";
 import { StyleSheet, View, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
+import * as WebBrowser from "expo-web-browser";
+import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
+import { loginUser, handleOAuthCallback } from "../api";
+import { AuthContext } from "../contexts/AuthContext";
 import { theme } from "../Theme/tokens";
-import { loginUser } from "../api";
 import * as AuthSession from "expo-auth-session";
-import * as Linking from "expo-linking";
+import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 
-const OAuth = () => {
+// no need to call maybeCompleteAuthSession() here — we already did it globally
+
+export default function OAuth() {
+  const { login } = useContext(AuthContext);
+
   const onPressOAuth = async (provider: string) => {
     try {
-      // call your backend
+      // 1️⃣ Build the Expo-Go proxy redirect URI
+      const owner = Constants.expoConfig?.owner;
+      const slug = Constants.expoConfig?.slug;
+      if (!owner || !slug)
+        throw new Error("Expo owner/slug missing in app.json!");
 
-      const redirectTo = AuthSession.makeRedirectUri({
-        native: "speechworks://auth/callback",
-        scheme: "speechworks",
+      // const redirectUri = `https://auth.expo.io/@${owner}/${slug}`;
+      const redirectUri = AuthSession.makeRedirectUri({
+        preferLocalhost: true,
       });
+      console.log("→ Using redirectUri:", redirectUri);
 
-      const { redirectUrl } = await loginUser({
+      // 2️⃣ Ask your backend for the Supabase / Google consent URL
+      const { redirectUrl: authUrl } = await loginUser({
         provider,
-        redirectTo,
+        redirectTo: redirectUri,
       });
+      console.log("→ Supabase consent URL:", authUrl);
 
-      if (redirectUrl) {
-        // open the system browser to that URL
-        await Linking.openURL(redirectUrl);
+      // 3️⃣ Open the system browser to that URL and *await* the redirect
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri
+      );
+      console.log("→ WebBrowser openAuthSessionAsync result:", result);
+
+      // 4️⃣ If successful, extract the `code` and finish the flow
+      if (result.type === "success" && result.url) {
+        const params = new URLSearchParams(result.url.split("?")[1]);
+        const code = params.get("code");
+        if (!code) throw new Error("No code returned from OAuth");
+
+        // 5️⃣ Exchange on your backend
+        const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
+
+        // 6️⃣ Store & update your app’s auth state
+        await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
+        await SecureStore.setItemAsync(
+          SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
+          refreshToken
+        );
+        login(appJwt);
+      } else if (result.type === "cancel") {
+        console.log("🔸 User cancelled OAuth");
+      } else {
+        console.warn("⚠️ Unexpected OAuth result:", result);
       }
-    } catch (err) {
-      console.error("OAuth failed:", err);
+    } catch (err: any) {
+      console.error("🚨 OAuth failed:", err.message || err);
     }
   };
 
   return (
     <View style={styles.wrapper}>
-      {["google", "facebook", "apple", "instagram"].map((provider) => (
+      {["google", "facebook", "apple"].map((provider) => (
         <TouchableOpacity
           key={provider}
           style={styles.iconContainer}
@@ -43,17 +84,14 @@ const OAuth = () => {
       ))}
     </View>
   );
-};
-
-export default OAuth;
+}
 
 const styles = StyleSheet.create({
   wrapper: {
-    display: "flex",
     flexDirection: "row",
-    gap: 20,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    gap: 20,
   },
   iconContainer: {
     height: 36,

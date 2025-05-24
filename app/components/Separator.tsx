@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseFont";
+import { parseTextStyle } from "../util/functions/parseStyles";
 
 interface SeparatorProps {
   text?: string;

@@ -88,7 +88,7 @@ export async function refreshToken({
   refreshToken,
 }: RefreshTokenProps): Promise<RefreshTokenResponse> {
   try {
-    const response = await axiosClient.post("/auth/refresh-token", {
+    const response = await axiosClient.post("/auth/refresh", {
       refreshToken,
     });
     return response.data;
@@ -99,22 +99,23 @@ export async function refreshToken({
 }
 
 // logout user
-interface LogoutProps {
+interface LogoutPayload {
   refreshToken: string;
-  accessToken: string;
+  appJwt: string;
 }
 interface LogoutResponse {
   message: string;
 }
 export async function logoutUser({
   refreshToken,
-  accessToken,
-}: LogoutProps): Promise<LogoutResponse> {
+  appJwt,
+}: LogoutPayload): Promise<LogoutResponse> {
   try {
     const response = await axiosClient.post("/auth/logout", {
-      accessToken,
+      appJwt,
       refreshToken,
     });
+    console.log("Logout response:", response.data);
     return response.data;
   } catch (error) {
     console.error("There was a problem during logout:", error);

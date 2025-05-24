@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import * as Google from "expo-google-sign-in";
 import { Platform } from "react-native";
-import { triggerToast } from "../functions/toast";
+//import { triggerToast } from "../functions/toast";
 
 const OauthLoader = () => {
   useEffect(() => {
@@ -25,11 +25,11 @@ const OauthLoader = () => {
           errorMessage += JSON.stringify(error);
         }
         console.error(errorMessage);
-        triggerToast(
-          "error",
-          "Google Sign-in Initialization Error",
-          errorMessage
-        );
+        // triggerToast(
+        //   "error",
+        //   "Google Sign-in Initialization Error",
+        //   errorMessage
+        // );
       }
     };
 

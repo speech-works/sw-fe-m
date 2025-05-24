@@ -1,0 +1,23 @@
+<svg width="78" height="78" viewBox="0 0 78 78" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g clip-path="url(#clip0_2123_2620)">
+    <!-- Background: soft pastel green -->
+    <rect width="77.3" height="77.3" rx="38.65" fill="#DFF4DB"/>
+
+    <!-- Face fill: pastel beige, no stroke -->
+    <path d="M2.75356 17.2236C2.75356 12.7679 56.2177 12.7679 56.2177 17.2236C60.6731 17.2236 60.6731 79.6037 56.2177 79.6037C56.2177 84.0594 2.75356 84.0594 2.75356 79.6037C-1.70179 79.6037 -1.70179 17.2236 2.75356 17.2236Z" fill="#F9F5E7"/>
+
+    <!-- Eyes: white sclera, black pupils -->
+    <circle cx="27.0548" cy="38.6502" r="11.6" fill="#FFFFFF"/>
+    <circle cx="50.2449" cy="38.6502" r="11.6" fill="#FFFFFF"/>
+    <circle cx="27.0551" cy="38.6499" r="6.95" fill="#4B4B4B"/>
+    <circle cx="50.245" cy="38.6499" r="6.95" fill="#4B4B4B"/>
+
+    <!-- Mouth: pill shape, soft charcoal fill -->
+    <path d="M47.926 58.7485H30.92C29.6392 58.7485 28.601 59.7868 28.601 61.0675V63.3865C28.601 64.6673 29.6392 65.7055 30.92 65.7055H47.926C49.2067 65.7055 50.245 64.6673 50.245 63.3865V61.0675C50.245 59.7868 49.2067 58.7485 47.926 58.7485Z" fill="#5A5A5A"/>
+  </g>
+  <defs>
+    <clipPath id="clip0_2123_2620">
+      <rect width="77.3" height="77.3" rx="38.65" fill="white"/>
+    </clipPath>
+  </defs>
+</svg>
