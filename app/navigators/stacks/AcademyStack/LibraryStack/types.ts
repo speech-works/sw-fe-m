@@ -9,8 +9,10 @@ export type LibStackParamList = {
     techniqueName: string;
     stage: LIBRARY_STAGE;
   };
-  QuizPage: undefined;
-  SummaryPage: undefined;
+  SummaryPage: {
+    techniqueId: string;
+    techniqueName: string;
+  };
 };
 export type LibStackNavigationProp<T extends keyof LibStackParamList> =
   NativeStackNavigationProp<LibStackParamList, T>;
