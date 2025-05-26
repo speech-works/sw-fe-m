@@ -14,9 +14,10 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
 import {
-  DPStackNavigationProp,
-  DPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+  RDPStackNavigationProp,
+  RDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+import DonePractice from "../../components/DonePractice";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -26,70 +27,77 @@ const iconContiainerStyle: ViewStyle = {
   width: 48,
   borderRadius: 24,
 };
-const readingPracticeData: Array<ListCardProps> = [
-  {
-    title: "Stories",
-    description: "Short stories & tales",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.blue[100] },
-        ]}
-      >
-        <Icon
-          solid
-          name="bookmark"
-          size={20}
-          color={theme.colors.library.blue[400]}
-        />
-      </View>
-    ),
-  },
-  {
-    title: "Poems",
-    description: "Verses & rhymes",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.green[100] },
-        ]}
-      >
-        <Icon
-          name="feather"
-          size={20}
-          color={theme.colors.library.green[500]}
-        />
-      </View>
-    ),
-  },
-  {
-    title: "Quotes",
-    description: "Inspirational quotes",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.purple[100] },
-        ]}
-      >
-        <Icon
-          name="quote-right"
-          size={20}
-          color={theme.colors.library.purple[500]}
-        />
-      </View>
-    ),
-  },
-];
 
 const ReadingPractice = () => {
   const navigation =
-    useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
+    useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+
+  const readingPracticeData: Array<ListCardProps> = [
+    {
+      title: "Stories",
+      description: "Short stories & tales",
+      onPress: () => {
+        navigation.navigate("StoryPractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.blue[100] },
+          ]}
+        >
+          <Icon
+            solid
+            name="bookmark"
+            size={20}
+            color={theme.colors.library.blue[400]}
+          />
+        </View>
+      ),
+    },
+    {
+      title: "Poems",
+      description: "Verses & rhymes",
+      onPress: () => {
+        navigation.navigate("PoemPractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.green[100] },
+          ]}
+        >
+          <Icon
+            name="feather"
+            size={20}
+            color={theme.colors.library.green[500]}
+          />
+        </View>
+      ),
+    },
+    {
+      title: "Quotes",
+      description: "Inspirational quotes",
+      onPress: () => {
+        navigation.navigate("QuotePractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.purple[100] },
+          ]}
+        >
+          <Icon
+            name="quote-right"
+            size={20}
+            color={theme.colors.library.purple[500]}
+          />
+        </View>
+      ),
+    },
+  ];
 
   return (
     <ScreenView style={styles.screenView}>

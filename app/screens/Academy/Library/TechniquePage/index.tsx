@@ -18,13 +18,15 @@ import Button from "../../../../components/Button";
 import RecordingWidget from "./components/RecordingWidget";
 import Metronome from "./components/Metronome";
 import CompletedList from "./components/CompletedList";
+import SpeechTools from "../../DailyPractice/components/SpeechTools";
+import RecorderWidget from "./components/RecorderWidget";
 
 const TechniquePage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
   const { techniqueId, techniqueName, stage } = route.params;
-  const [activeStageIndex, setActiveStageIndex] = useState(2);
+  const [activeStageIndex, setActiveStageIndex] = useState(1);
 
   const TutorialPage = (
     <View style={styles.innerContainer}>
@@ -62,28 +64,7 @@ const TechniquePage = () => {
 
   const PracticePage = (
     <View style={styles.innerContainer}>
-      <TouchableOpacity style={styles.toolsContainer} onPress={() => {}}>
-        <View style={styles.content}>
-          <View style={styles.toolIconContainer}>
-            <Icon
-              name="toolbox"
-              size={16}
-              color={theme.colors.actionPrimary.default}
-            />
-          </View>
-          <View style={styles.toolTextContainer}>
-            <Text style={styles.toolTitleText}>Speech Tools</Text>
-            <Text style={styles.toolDescText}>
-              Add tools to aid your practice
-            </Text>
-          </View>
-        </View>
-        <Icon
-          name="chevron-right"
-          size={16}
-          color={theme.colors.text.default}
-        />
-      </TouchableOpacity>
+      <SpeechTools />
       <View style={styles.wordContainer}>
         <View style={styles.wordAndSyllable}>
           <View style={styles.wordText}>
@@ -101,24 +82,7 @@ const TechniquePage = () => {
         </View>
         <Metronome />
         <RecordingWidget />
-        <View style={styles.micContainer}>
-          <TouchableOpacity style={[styles.circle]} onPress={() => {}}>
-            <Icon name="dice" size={16} color={theme.colors.text.default} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.circle, styles.micCircle]}
-            onPress={() => {}}
-          >
-            <Icon
-              name="microphone"
-              size={24}
-              color={theme.colors.text.onDark}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.circle]} onPress={() => {}}>
-            <Icon name="play" size={16} color={theme.colors.text.default} />
-          </TouchableOpacity>
-        </View>
+        <RecorderWidget />
         <CompletedList />
       </View>
     </View>
@@ -137,8 +101,8 @@ const TechniquePage = () => {
               "To prevent stuttering completely",
               "To modify the moment of stuttering",
               "To speak faster",
-            ].map((ans) => (
-              <TouchableOpacity style={styles.ansRow}>
+            ].map((ans, i) => (
+              <TouchableOpacity key={i} style={styles.ansRow}>
                 <Text style={styles.ansText}>{ans}</Text>
               </TouchableOpacity>
             ))}
@@ -146,7 +110,12 @@ const TechniquePage = () => {
         </View>
         <View style={styles.quizFooter}>
           <Text style={styles.quizQCountText}>1 of 3 Questions</Text>
-          <TouchableOpacity style={styles.nextQButton}>
+          <TouchableOpacity
+            style={styles.nextQButton}
+            onPress={() =>
+              navigation.navigate("SummaryPage", { techniqueId, techniqueName })
+            }
+          >
             <Text style={styles.nextQText}>Next</Text>
           </TouchableOpacity>
         </View>
@@ -200,6 +169,7 @@ const TechniquePage = () => {
             { label: "Quiz", icon: "check" },
           ]}
           currentStepIndex={activeStageIndex}
+          onStepChange={(index) => setActiveStageIndex(index)}
         />
         <CustomScrollView>{RenderPage}</CustomScrollView>
       </View>
@@ -289,44 +259,6 @@ const styles = StyleSheet.create({
 
   //////////// practice page ///////////////
 
-  toolsContainer: {
-    padding: 16,
-    borderRadius: 16,
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  content: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  toolTextContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  toolTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  toolDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  toolIconContainer: {
-    height: 40,
-    width: 40,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface.default,
-  },
   wordContainer: {
     padding: 24,
     borderRadius: 16,
@@ -360,30 +292,6 @@ const styles = StyleSheet.create({
   wordText: {
     alignItems: "center",
     gap: 4,
-  },
-
-  ////////////// mic //////////////////
-  micContainer: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    gap: 16,
-    paddingHorizontal: 24,
-  },
-  circle: {
-    justifyContent: "center",
-    alignItems: "center",
-    height: 64,
-    width: 64,
-    borderRadius: "50%",
-    backgroundColor: theme.colors.library.gray[100],
-  },
-  micCircle: {
-    height: 80,
-    width: 80,
-    backgroundColor: theme.colors.library.orange[400],
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
 
   ////////////// Quiz page ///////////////////////

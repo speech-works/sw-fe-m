@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
@@ -9,9 +9,14 @@ interface PageStepperProps {
     label: string;
     icon: string;
   }>;
+  onStepChange?: (stepIndex: number) => void;
   currentStepIndex: number;
 }
-const PageStepper = ({ steps, currentStepIndex }: PageStepperProps) => {
+const PageStepper = ({
+  steps,
+  currentStepIndex,
+  onStepChange,
+}: PageStepperProps) => {
   // Define colors based on the provided image
   const activeColor = theme.colors.actionPrimary.default;
   const inactiveColor = theme.colors.library.orange[100]; // Light orange for inactive elements and lines
@@ -31,9 +36,13 @@ const PageStepper = ({ steps, currentStepIndex }: PageStepperProps) => {
           <React.Fragment key={index}>
             <View style={styles.stepItem}>
               {/* Step Circle */}
-              <View style={[styles.circle, { backgroundColor: circleBgColor }]}>
+              <TouchableOpacity
+                disabled={currentStepIndex === index}
+                style={[styles.circle, { backgroundColor: circleBgColor }]}
+                onPress={() => onStepChange && onStepChange(index)}
+              >
                 <Icon size={14} name={step.icon} color={iconColor} />
-              </View>
+              </TouchableOpacity>
               {/* Step Label */}
               <Text style={styles.label}>{step.label}</Text>
             </View>
