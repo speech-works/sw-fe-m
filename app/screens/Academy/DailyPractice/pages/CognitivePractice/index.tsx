@@ -14,9 +14,9 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
 import {
-  DPStackNavigationProp,
-  DPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+  CDPStackNavigationProp,
+  CDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -26,67 +26,72 @@ const iconContiainerStyle: ViewStyle = {
   width: 48,
   borderRadius: 24,
 };
-const cognitivePracticeData: Array<ListCardProps> = [
-  {
-    title: "Guided Breathing",
-    description: "Breathing exercise",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.blue[100] },
-        ]}
-      >
-        <Icon
-          solid
-          name="lungs"
-          size={20}
-          color={theme.colors.library.blue[400]}
-        />
-      </View>
-    ),
-  },
-  {
-    title: "Guided Meditation",
-    description: "Mindfulness",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.green[100] },
-        ]}
-      >
-        <Icon name="om" size={20} color={theme.colors.library.green[500]} />
-      </View>
-    ),
-  },
-  {
-    title: "Reframe Thoughts",
-    description: "Transform negative to positive",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.purple[100] },
-        ]}
-      >
-        <Icon
-          name="sync-alt"
-          size={20}
-          color={theme.colors.library.purple[500]}
-        />
-      </View>
-    ),
-  },
-];
 
 const CognitivePractice = () => {
   const navigation =
-    useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
-
+    useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
+  const cognitivePracticeData: Array<ListCardProps> = [
+    {
+      title: "Guided Breathing",
+      description: "Breathing exercise",
+      onPress: () => {
+        navigation.navigate("BreathingPractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.blue[100] },
+          ]}
+        >
+          <Icon
+            solid
+            name="lungs"
+            size={20}
+            color={theme.colors.library.blue[400]}
+          />
+        </View>
+      ),
+    },
+    {
+      title: "Guided Meditation",
+      description: "Mindfulness",
+      onPress: () => {
+        navigation.navigate("MeditationPractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.green[100] },
+          ]}
+        >
+          <Icon name="om" size={20} color={theme.colors.library.green[500]} />
+        </View>
+      ),
+    },
+    {
+      title: "Reframe Thoughts",
+      description: "Transform negative to positive",
+      onPress: () => {
+        navigation.navigate("ReframePractice");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.purple[100] },
+          ]}
+        >
+          <Icon
+            name="sync-alt"
+            size={20}
+            color={theme.colors.library.purple[500]}
+          />
+        </View>
+      ),
+    },
+  ];
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>

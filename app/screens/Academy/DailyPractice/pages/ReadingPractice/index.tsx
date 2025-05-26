@@ -17,7 +17,6 @@ import {
   RDPStackNavigationProp,
   RDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
-import DonePractice from "../../components/DonePractice";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
