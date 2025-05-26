@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ReadingPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice";
 import { RDPStackParamList } from "./types";
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
+import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
 
 const Stack = createNativeStackNavigator<RDPStackParamList>();
 
@@ -12,6 +13,7 @@ export default function RDPStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ReadingPractice" component={ReadingPractice} />
       <Stack.Screen name="StoryPractice" component={StoryPractice} />
+      <Stack.Screen name="QuotePractice" component={QuotePractice} />
     </Stack.Navigator>
   );
 }

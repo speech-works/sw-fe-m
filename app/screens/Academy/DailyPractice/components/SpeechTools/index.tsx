@@ -16,6 +16,10 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
+  const closeModal = () => {
+    setIsVisible(false);
+  };
+
   const toolData: Array<{ name: string; desc: string; icon: string }> = [
     { name: "Metronome", desc: "Pace your speech with a beat", icon: "clock" },
     {
@@ -56,7 +60,7 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
         />
       </TouchableOpacity>
 
-      <BottomSheetModal visible={isVisible} onClose={() => setIsVisible(false)}>
+      <BottomSheetModal visible={isVisible} onClose={closeModal}>
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>
             <Text style={styles.modalTiteText}>Speech Tools</Text>
@@ -75,6 +79,7 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
                 onPress={() => {
                   onToolSelect && onToolSelect(tool.name);
                   setSelectedTool(tool.name);
+                  closeModal();
                 }}
               >
                 <View
