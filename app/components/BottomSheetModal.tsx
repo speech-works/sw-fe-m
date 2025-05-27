@@ -1,4 +1,3 @@
-// components/BottomSheetModal.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -15,15 +14,38 @@ interface BottomSheetModalProps {
   visible: boolean;
   onClose: () => void;
   children: React.ReactNode;
+
+  /**
+   * How tall the sheet is allowed to become.
+   * Accepts:
+   *   • A number (pixels), e.g. 300
+   *   • A literal percentage string, e.g. "70%"
+   * If omitted, the sheet will size itself to its content (minHeight: 200).
+   */
+  maxHeight?: number | `${number}%`;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   visible,
   onClose,
   children,
+  maxHeight,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isMounted, setIsMounted] = useState(visible);
+
+  // Compute a _fixed pixel height_ from maxHeight (whether it's a number or "xx%")
+  const resolvedSheetHeight = React.useMemo(() => {
+    if (maxHeight == null) {
+      return undefined; // let content + minHeight:200 drive it
+    }
+    if (typeof maxHeight === "string" && maxHeight.endsWith("%")) {
+      const pct = parseFloat(maxHeight) / 100;
+      return SCREEN_HEIGHT * pct;
+    }
+    // otherwise it's a number in px
+    return maxHeight;
+  }, [maxHeight]);
 
   useEffect(() => {
     if (visible) {
@@ -42,7 +64,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         setIsMounted(false);
       });
     }
-  }, [visible]);
+  }, [visible, slideAnim]);
 
   if (!isMounted) return null;
 
@@ -53,22 +75,26 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       visible={isMounted}
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modal,
-                {
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              {children}
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+      <View style={styles.overlay}>
+        {/* Tapping the dim background closes */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backgroundTouchableArea} />
+        </TouchableWithoutFeedback>
+
+        {/* 
+          Now we explicitly set height: resolvedSheetHeight (if defined).
+          That way, any child using flex:1 can fill that exact pixel height.
+        */}
+        <Animated.View
+          style={[
+            styles.modal,
+            resolvedSheetHeight != null ? { height: resolvedSheetHeight } : {},
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -81,6 +107,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
+  backgroundTouchableArea: {
+    flex: 1,
+  },
   modal: {
     backgroundColor: "white",
     borderTopLeftRadius: 24,
@@ -88,5 +117,6 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 36,
     minHeight: 200,
+    // NOTE: no "maxHeight" here. We are now assigning "height" explicitly if maxHeight was provided.
   },
 });
