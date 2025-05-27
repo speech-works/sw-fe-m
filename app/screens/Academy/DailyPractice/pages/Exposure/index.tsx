@@ -13,10 +13,11 @@ import ListCard, { ListCardProps } from "../../components/ListCard";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+
 import {
-  DPStackNavigationProp,
-  DPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+  EDPStackNavigationProp,
+  EDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -26,73 +27,76 @@ const iconContiainerStyle: ViewStyle = {
   width: 48,
   borderRadius: 24,
 };
-const exposureData: Array<ListCardProps> = [
-  {
-    title: "Interview Simulation",
-    description: "AI-powered practice",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.blue[100] },
-        ]}
-      >
-        <Icon
-          solid
-          name="user-tie"
-          size={20}
-          color={theme.colors.library.blue[400]}
-        />
-      </View>
-    ),
-    disabled: false,
-  },
-  {
-    title: "Random Questions",
-    description: "coming soon",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.gray[200] },
-        ]}
-      >
-        <Icon
-          name="question"
-          size={20}
-          color={theme.colors.library.gray[100]}
-        />
-      </View>
-    ),
-    disabled: true,
-  },
-  {
-    title: "AI Phone Calls",
-    description: "coming soon",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.gray[200] },
-        ]}
-      >
-        <Icon
-          name="phone-alt"
-          size={20}
-          color={theme.colors.library.gray[100]}
-        />
-      </View>
-    ),
-    disabled: true,
-  },
-];
 
 const Exposure = () => {
   const navigation =
-    useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
+    useNavigation<EDPStackNavigationProp<keyof EDPStackParamList>>();
+
+  const exposureData: Array<ListCardProps> = [
+    {
+      title: "Interview Simulation",
+      description: "AI-powered practice",
+      onPress: () => {
+        navigation.navigate("InterviewSimulationStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.blue[100] },
+          ]}
+        >
+          <Icon
+            solid
+            name="user-tie"
+            size={20}
+            color={theme.colors.library.blue[400]}
+          />
+        </View>
+      ),
+      disabled: false,
+    },
+    {
+      title: "Random Questions",
+      description: "coming soon",
+      onPress: () => {},
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.gray[200] },
+          ]}
+        >
+          <Icon
+            name="question"
+            size={20}
+            color={theme.colors.library.gray[100]}
+          />
+        </View>
+      ),
+      disabled: true,
+    },
+    {
+      title: "AI Phone Calls",
+      description: "coming soon",
+      onPress: () => {},
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.gray[200] },
+          ]}
+        >
+          <Icon
+            name="phone-alt"
+            size={20}
+            color={theme.colors.library.gray[100]}
+          />
+        </View>
+      ),
+      disabled: true,
+    },
+  ];
 
   return (
     <ScreenView style={styles.screenView}>

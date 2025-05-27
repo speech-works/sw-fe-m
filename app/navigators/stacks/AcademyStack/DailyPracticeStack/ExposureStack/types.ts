@@ -3,9 +3,9 @@ import { RouteProp } from "@react-navigation/native";
 
 export type EDPStackParamList = {
   Exposure: undefined;
-  InterviewSimulation: undefined;
-  PhoneCalls: undefined;
-  RandomQuestions: undefined;
+  InterviewSimulationStack: undefined;
+  PhoneCallsStack: undefined;
+  RandomQuestionsStack: undefined;
 };
 export type EDPStackNavigationProp<T extends keyof EDPStackParamList> =
   NativeStackNavigationProp<EDPStackParamList, T>;

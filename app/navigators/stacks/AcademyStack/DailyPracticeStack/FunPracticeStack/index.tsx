@@ -6,7 +6,7 @@ import FunPractice from "../../../../../screens/Academy/DailyPractice/pages/FunP
 
 const Stack = createNativeStackNavigator<FDPStackParamList>();
 
-export default function RDPStackNavigator() {
+export default function FDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="FunPractice" component={FunPractice} />

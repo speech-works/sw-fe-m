@@ -3,9 +3,9 @@ import { RouteProp } from "@react-navigation/native";
 
 export type FDPStackParamList = {
   FunPractice: undefined;
-  RoleplayPractice: undefined;
-  TwisterPractice: undefined;
-  CharacterVoicePractice: undefined;
+  RoleplayPracticeStack: undefined;
+  TwisterPracticeStack: undefined;
+  CharacterVoicePracticeStack: undefined;
 };
 export type FDPStackNavigationProp<T extends keyof FDPStackParamList> =
   NativeStackNavigationProp<FDPStackParamList, T>;
