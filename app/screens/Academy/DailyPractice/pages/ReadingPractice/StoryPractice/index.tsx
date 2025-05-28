@@ -15,7 +15,9 @@ import {
 import DonePractice from "../../../components/DonePractice";
 import SpeechTools from "../../../components/SpeechTools";
 import PageCounter from "../components/PageCounter";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../../components/CustomScrollView";
 import Metronome from "../../../../Library/TechniquePage/components/Metronome";
 import RecordingWidget from "../../../../Library/TechniquePage/components/RecordingWidget";
 import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
@@ -32,7 +34,7 @@ const StoryPractice = () => {
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
         <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon name="arrow-left" />
+          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
           <Text style={styles.topNavigationText}>Story</Text>
         </TouchableOpacity>
         {practiceComplete ? (
@@ -94,7 +96,10 @@ const styles = StyleSheet.create({
     gap: 32,
     flex: 1,
   },
-  scrollContainer: { gap: 32 },
+  scrollContainer: {
+    gap: 32,
+    padding: SHADOW_BUFFER,
+  },
   topNavigation: {
     position: "relative",
     top: 0,

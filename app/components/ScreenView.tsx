@@ -15,7 +15,7 @@ export default ScreenView;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 32,
     display: "flex",
   },

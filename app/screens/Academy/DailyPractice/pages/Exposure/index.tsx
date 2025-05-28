@@ -105,7 +105,7 @@ const Exposure = () => {
           style={styles.topNavigation}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" />
+          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
           <Text style={styles.topNavigationText}>Exposure</Text>
         </TouchableOpacity>
         <CustomScrollView>

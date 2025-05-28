@@ -12,7 +12,9 @@ import {
   CDPStackNavigationProp,
   CDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../../components/CustomScrollView";
 import TextArea from "../../../../../../components/TextArea";
 import Button from "../../../../../../components/Button";
 import {
@@ -42,7 +44,7 @@ const Reframe = () => {
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
         <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon name="arrow-left" />
+          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
           <Text style={styles.topNavigationText}>Reframe Thoughts</Text>
         </TouchableOpacity>
         <CustomScrollView contentContainerStyle={styles.scrollView}>
@@ -160,6 +162,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     gap: 32,
+    padding: SHADOW_BUFFER,
   },
   negativeContainer: {
     padding: 24,

@@ -324,7 +324,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
   );
 };
 
-const RING_SIZE = 192;
+const RING_SIZE = 120;
 const styles = StyleSheet.create({
   container: {
     width: RING_SIZE,

@@ -99,7 +99,7 @@ const CognitivePractice = () => {
           style={styles.topNavigation}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" />
+          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
           <Text style={styles.topNavigationText}>Cognitive Therapy</Text>
         </TouchableOpacity>
         <CustomScrollView>

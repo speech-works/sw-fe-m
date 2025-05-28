@@ -9,7 +9,9 @@ import { BreathingHalo } from "./components/BreathingHalo";
 
 import ProgressBar from "../../../../../../components/ProgressBar";
 import Button from "../../../../../../components/Button";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../../components/CustomScrollView";
 
 const Breathing = () => {
   const navigation = useNavigation();
@@ -22,7 +24,11 @@ const Breathing = () => {
             onPress={() => navigation.goBack()}
             style={styles.topNavigation}
           >
-            <Icon name="arrow-left" />
+            <Icon
+              name="arrow-left"
+              size={16}
+              color={theme.colors.text.default}
+            />
             <Text style={styles.topNavigationText}>Breathing</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -125,6 +131,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     gap: 32,
+    padding: SHADOW_BUFFER,
   },
   topNavigationContainer: {
     position: "relative",
@@ -147,7 +154,7 @@ const styles = StyleSheet.create({
   haloContainer: {
     justifyContent: "center",
     alignItems: "center",
-    padding: 48,
+    padding: 36,
   },
   tipsContainer: {
     padding: 16,

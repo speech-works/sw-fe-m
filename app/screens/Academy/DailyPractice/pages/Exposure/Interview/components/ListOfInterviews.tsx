@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
-import CustomScrollView from "../../../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../../../components/CustomScrollView";
 import { theme } from "../../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
@@ -8,7 +10,7 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 
-type Exposure = {
+export type Exposure = {
   title: string;
   desc: string;
   icon: string;
@@ -160,6 +162,7 @@ export default ListOfInterviews;
 
 const styles = StyleSheet.create({
   container: {
+    padding: SHADOW_BUFFER,
     paddingVertical: 16,
     paddingHorizontal: 8,
     gap: 16,

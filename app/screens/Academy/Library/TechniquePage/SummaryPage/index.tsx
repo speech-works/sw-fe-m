@@ -8,7 +8,9 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
-import CustomScrollView from "../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../components/CustomScrollView";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -28,7 +30,11 @@ const SummaryPage = () => {
             onPress={() => navigation.goBack()}
             style={styles.topNavigation}
           >
-            <Icon name="arrow-left" />
+            <Icon
+              name="arrow-left"
+              size={16}
+              color={theme.colors.text.default}
+            />
             <Text style={styles.topNavigationText}>{techniqueName}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {}}>
@@ -169,7 +175,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
   },
   scrollView: {
-    //alignItems: "center",
+    padding: SHADOW_BUFFER,
     paddingVertical: 32,
     gap: 32,
   },

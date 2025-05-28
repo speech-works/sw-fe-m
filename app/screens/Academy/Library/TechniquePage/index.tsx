@@ -151,7 +151,11 @@ const TechniquePage = () => {
             onPress={() => navigation.goBack()}
             style={styles.topNavigation}
           >
-            <Icon name="arrow-left" />
+            <Icon
+              name="arrow-left"
+              size={16}
+              color={theme.colors.text.default}
+            />
             <Text style={styles.topNavigationText}>{techniqueName}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {}}>

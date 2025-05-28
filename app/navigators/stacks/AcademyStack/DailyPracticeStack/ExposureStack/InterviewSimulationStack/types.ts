@@ -3,8 +3,14 @@ import { RouteProp } from "@react-navigation/native";
 
 export type InterviewEDPStackParamList = {
   InterviewList: undefined;
-  InterviewBriefing: undefined;
-  InterviewChat: undefined;
+  InterviewBriefing: {
+    interviewTitle: string;
+    interviewDescription: string;
+    yourCharacter: string[];
+  };
+  InterviewChat: {
+    interviewTitle: string;
+  };
 };
 export type InterviewEDPStackNavigationProp<
   T extends keyof InterviewEDPStackParamList

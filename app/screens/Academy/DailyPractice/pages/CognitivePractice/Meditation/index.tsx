@@ -8,7 +8,9 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
+import CustomScrollView, {
+  SHADOW_BUFFER,
+} from "../../../../../../components/CustomScrollView";
 import ProgressBar from "../../../../../../components/ProgressBar";
 import Button from "../../../../../../components/Button";
 import MeditationCard from "./components/MeditationCard";
@@ -24,7 +26,11 @@ const Meditation = () => {
             onPress={() => navigation.goBack()}
             style={styles.topNavigation}
           >
-            <Icon name="arrow-left" />
+            <Icon
+              name="arrow-left"
+              size={16}
+              color={theme.colors.text.default}
+            />
             <Text style={styles.topNavigationText}>Guided Meditation</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -136,6 +142,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     gap: 32,
+    padding: SHADOW_BUFFER,
   },
 
   tipsContainer: {

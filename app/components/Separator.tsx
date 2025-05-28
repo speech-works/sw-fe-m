@@ -31,16 +31,16 @@ const styles = StyleSheet.create({
   hrWithMargin: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.neutral[7],
+    backgroundColor: theme.colors.border.default,
     marginHorizontal: 10,
   },
   hrFull: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.neutral[7],
+    backgroundColor: theme.colors.border.default,
   },
   text: {
-    color: theme.colors.neutral[5],
-    ...parseTextStyle(theme.typography.paragraphBase.regular),
+    color: theme.colors.border.default,
+    ...parseTextStyle(theme.typography.BodySmall),
   },
 });
