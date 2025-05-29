@@ -3,7 +3,9 @@ import { RouteProp } from "@react-navigation/native";
 
 export type CharacterVoiceFDPStackParamList = {
   CVHome: undefined;
-  CVExercise: undefined;
+  CVExercise: {
+    name: string;
+  };
 };
 export type CharacterVoiceFDPStackNavigationProp<
   T extends keyof CharacterVoiceFDPStackParamList

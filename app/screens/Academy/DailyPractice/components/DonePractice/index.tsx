@@ -9,6 +9,7 @@ import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/types";
+import Reminder from "../Reminder";
 
 const DonePractice = () => {
   const navigation =
@@ -26,7 +27,7 @@ const DonePractice = () => {
         </Text>
       </View>
       <View style={styles.buttonContainer}>
-        <Button text="Set Reminder" onPress={() => {}} />
+        <Reminder />
         <Button
           variant="ghost"
           text="Home"

@@ -13,10 +13,11 @@ import ListCard, { ListCardProps } from "../../components/ListCard";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+
 import {
-  DPStackNavigationProp,
-  DPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+  FDPStackNavigationProp,
+  FDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -26,66 +27,76 @@ const iconContiainerStyle: ViewStyle = {
   width: 48,
   borderRadius: 24,
 };
-const funPracticeData: Array<ListCardProps> = [
-  {
-    title: "Tongue Twisters",
-    description: "Fun speech challenges",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.blue[100] },
-        ]}
-      >
-        <Icon
-          solid
-          name="grin-tongue"
-          size={20}
-          color={theme.colors.library.blue[400]}
-        />
-      </View>
-    ),
-  },
-  {
-    title: "Role Play",
-    description: "Practice situational speech",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.green[100] },
-        ]}
-      >
-        <Icon
-          name="theater-masks"
-          size={20}
-          color={theme.colors.library.green[500]}
-        />
-      </View>
-    ),
-  },
-  {
-    title: "Character Voice",
-    description: "Fun voice effects",
-    onPress: () => {},
-    icon: (
-      <View
-        style={[
-          iconContiainerStyle,
-          { backgroundColor: theme.colors.library.purple[100] },
-        ]}
-      >
-        <Icon name="robot" size={20} color={theme.colors.library.purple[500]} />
-      </View>
-    ),
-  },
-];
 
 const FunPractice = () => {
   const navigation =
-    useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
+    useNavigation<FDPStackNavigationProp<keyof FDPStackParamList>>();
+  const funPracticeData: Array<ListCardProps> = [
+    {
+      title: "Tongue Twisters",
+      description: "Fun speech challenges",
+      onPress: () => {
+        navigation.navigate("TwisterPracticeStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.blue[100] },
+          ]}
+        >
+          <Icon
+            solid
+            name="grin-tongue"
+            size={20}
+            color={theme.colors.library.blue[400]}
+          />
+        </View>
+      ),
+    },
+    {
+      title: "Role Play",
+      description: "Practice situational speech",
+      onPress: () => {
+        navigation.navigate("RoleplayPracticeStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.green[100] },
+          ]}
+        >
+          <Icon
+            name="theater-masks"
+            size={20}
+            color={theme.colors.library.green[500]}
+          />
+        </View>
+      ),
+    },
+    {
+      title: "Character Voice",
+      description: "Fun voice effects",
+      onPress: () => {
+        navigation.navigate("CharacterVoicePracticeStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.purple[100] },
+          ]}
+        >
+          <Icon
+            name="robot"
+            size={20}
+            color={theme.colors.library.purple[500]}
+          />
+        </View>
+      ),
+    },
+  ];
 
   return (
     <ScreenView style={styles.screenView}>

@@ -21,18 +21,19 @@ import CustomScrollView, {
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { InterviewEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import DonePractice from "../../../../components/DonePractice";
 import Separator from "../../../../../../../components/Separator";
 import RecordingWidget from "../../../../../Library/TechniquePage/components/RecordingWidget";
 import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../../components/Button";
+import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+import { yourCharacter } from "./data";
 
 const Chat = () => {
   const navigation = useNavigation();
   const route =
-    useRoute<RouteProp<InterviewEDPStackParamList, "InterviewChat">>();
-  const { interviewTitle } = route.params;
+    useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
+  const { title } = route.params;
 
   const [isDone, setIsDone] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(
@@ -111,7 +112,7 @@ const Chat = () => {
               size={16}
               color={theme.colors.text.default}
             />
-            <Text style={styles.topNavigationText}>{interviewTitle}</Text>
+            <Text style={styles.topNavigationText}>{title}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -140,6 +141,45 @@ const Chat = () => {
             <DonePractice />
           ) : (
             <>
+              <View style={styles.briefContainer}>
+                <View style={styles.roleContainer}>
+                  <View
+                    style={[
+                      styles.roleIconContainer,
+                      {
+                        backgroundColor: theme.colors.library.purple[200],
+                      },
+                    ]}
+                  >
+                    <Icon
+                      size={20}
+                      name="reddit-alien"
+                      color={theme.colors.library.purple[600]}
+                    />
+                  </View>
+                  <View style={styles.roleTextContanier}>
+                    <Text style={styles.roleTitleText}>You are the Alien</Text>
+                    <Text style={styles.roleDescText}>
+                      Order Earth's famous pizza
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.characterContainer}>
+                  <Text style={styles.characterTitleText}>Your Character</Text>
+                  {yourCharacter.map((c, i) => (
+                    <View key={i} style={styles.characterRow}>
+                      <Icon
+                        solid
+                        size={14}
+                        name="check-circle"
+                        color={theme.colors.library.orange[400]}
+                      />
+                      <Text style={styles.characterText}>{c}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
               <View style={styles.messagesContainer}>
                 {/*
                    HIDDEN MEASURING BUBBLE (off-screen, invisible).
@@ -389,5 +429,60 @@ const styles = StyleSheet.create({
     textAlign: "center",
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
+  },
+
+  briefContainer: {
+    padding: 16,
+    gap: 24,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface.elevated,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+  },
+  roleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  roleIconContainer: {
+    height: 48,
+    width: 48,
+    borderRadius: "50%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  roleTextContanier: {
+    gap: 4,
+  },
+  roleTitleText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: 500,
+  },
+  roleDescText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+
+  characterContainer: {
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    backgroundColor: theme.colors.surface.default,
+  },
+  characterTitleText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+  },
+  characterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  characterText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    flexShrink: 1,
   },
 });

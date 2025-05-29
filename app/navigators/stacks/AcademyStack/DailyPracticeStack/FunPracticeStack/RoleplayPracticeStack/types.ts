@@ -3,8 +3,13 @@ import { RouteProp } from "@react-navigation/native";
 
 export type RoleplayFDPStackParamList = {
   RoleplayList: undefined;
-  RoleplayBriefing: undefined;
-  RoleplayChat: undefined;
+  RoleplayBriefing: {
+    title: string;
+    description: string;
+  };
+  RoleplayChat: {
+    title: string;
+  };
 };
 export type RoleplayFDPStackNavigationProp<
   T extends keyof RoleplayFDPStackParamList
