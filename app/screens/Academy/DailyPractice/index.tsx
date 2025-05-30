@@ -130,7 +130,11 @@ const DailyPractice = () => {
           style={styles.topNavigation}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
+          <Icon
+            name="chevron-left"
+            size={16}
+            color={theme.colors.text.default}
+          />
           <Text style={styles.topNavigationText}>Daily Practice</Text>
         </TouchableOpacity>
         <CustomScrollView>

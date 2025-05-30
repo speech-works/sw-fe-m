@@ -32,7 +32,7 @@ const CVExercise = () => {
             style={styles.topNavigation}
           >
             <Icon
-              name="arrow-left"
+              name="chevron-left"
               size={16}
               color={theme.colors.text.default}
             />

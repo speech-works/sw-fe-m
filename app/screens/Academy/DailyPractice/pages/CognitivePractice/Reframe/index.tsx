@@ -44,7 +44,11 @@ const Reframe = () => {
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
         <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon name="arrow-left" size={16} color={theme.colors.text.default} />
+          <Icon
+            name="chevron-left"
+            size={16}
+            color={theme.colors.text.default}
+          />
           <Text style={styles.topNavigationText}>Reframe Thoughts</Text>
         </TouchableOpacity>
         <CustomScrollView contentContainerStyle={styles.scrollView}>

@@ -8,8 +8,13 @@ import { parseShadowStyle, parseTextStyle } from "../functions/parseStyles";
 import { theme } from "../../Theme/tokens";
 import Button from "../../components/Button";
 import TextArea from "../../components/TextArea";
+import { useNavigation } from "@react-navigation/native";
 
-const ComingSoon = () => {
+interface ComingSoonProps {
+  goBackTo: string;
+}
+const ComingSoon = ({ goBackTo }: ComingSoonProps) => {
+  const navigation = useNavigation<any>();
   const [suggestion, setSuggestion] = useState("");
   return (
     <ScreenView style={styles.screenView}>
@@ -44,7 +49,13 @@ const ComingSoon = () => {
               />
             </View>
           </View>
-          <Button text="Notify me" onPress={() => {}} style={styles.button} />
+          <Button
+            text="Notify me"
+            onPress={() => {
+              navigation.navigate(goBackTo);
+            }}
+            style={styles.button}
+          />
         </View>
       </CustomScrollView>
     </ScreenView>

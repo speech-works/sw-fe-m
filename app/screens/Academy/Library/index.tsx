@@ -128,7 +128,7 @@ const Library = () => {
               onPress={() => navigation.goBack()}
               style={styles.titleModeLeft}
             >
-              <Icon name="arrow-left" color={theme.colors.text.default} />
+              <Icon name="chevron-left" color={theme.colors.text.default} />
               <Text style={styles.topNavigationText}>Library</Text>
             </TouchableOpacity>
           )}
