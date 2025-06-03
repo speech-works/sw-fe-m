@@ -12,7 +12,7 @@ export interface User {
   profilePictureUrl?: string;
   stripeCustomerId?: string;
   createdAt?: Date;
-  updatedAt: Date;
+  updatedAt?: Date;
   lastLogin?: Date;
 }
 

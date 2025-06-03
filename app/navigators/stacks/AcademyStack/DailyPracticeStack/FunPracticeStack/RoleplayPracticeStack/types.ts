@@ -1,14 +1,18 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { RolePlayData } from "../../../../../../api/dailyPractice/types";
 
 export type RoleplayFDPStackParamList = {
   RoleplayList: undefined;
   RoleplayBriefing: {
     title: string;
     description: string;
+    roleplay: RolePlayData;
   };
   RoleplayChat: {
     title: string;
+    roleplay: RolePlayData;
+    selectedRoleName: string;
   };
 };
 export type RoleplayFDPStackNavigationProp<

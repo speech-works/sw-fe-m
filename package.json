@@ -4,7 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "start:dev": "expo start --dev-client --port 3003",
-    "start": "npx expo start -c",
+    "start": "npx expo start --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",

@@ -13,12 +13,18 @@ import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
+import { useSessionStore } from "../../../../stores/session";
 
-const DailyPractice = () => {
+interface DailyPracticeProps {
+  onClickStart: () => void;
+}
+const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
+  const { practiceSession } = useSessionStore();
   const navigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
 
   const moveToDailyPractice = () => {
+    onClickStart();
     navigation.navigate("DailyPracticeStack");
   };
 
@@ -61,7 +67,7 @@ const DailyPractice = () => {
       </View>
 
       <Button
-        text="Start Practice"
+        text={`${practiceSession ? "Resume" : "Start"} Session`}
         onPress={() => {
           console.log("Start Practice");
           moveToDailyPractice();

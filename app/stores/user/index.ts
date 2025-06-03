@@ -21,6 +21,7 @@ export const useUserStore = create<UserState>()(
       user: null,
 
       setUser: (user) => {
+        console.log("zustand store setting user", user);
         set({ user });
       },
 

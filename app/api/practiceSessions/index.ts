@@ -1,11 +1,10 @@
-// api/practiceSessions.ts
 import axiosClient from "../axiosClient";
 import { User } from "../users";
 
 export interface PracticeSession {
   id: string;
   user: User;
-  status: "ongoing" | "completed";
+  status: "ONGOING" | "COMPLETED" | "ABORTED";
   startedAt: Date;
   completedAt: Date | null;
   createdAt: Date;
@@ -31,7 +30,7 @@ export async function getSessionById({
 
 interface PracticeSessionsReq {
   userId: string;
-  sessionStatus: "ongoing" | "completed";
+  sessionStatus: "ONGOING" | "COMPLETED" | "ABORTED";
 }
 
 // Get all sessions of a user with a given status
@@ -76,7 +75,7 @@ export async function completeSession({
   id,
 }: CompleteSessionReq): Promise<PracticeSession> {
   try {
-    const response = await axiosClient.patch(`/sessions/${id}`);
+    const response = await axiosClient.patch(`/sessions/${id}/complete`);
     return response.data;
   } catch (error) {
     console.error("Error completing session:", error);

@@ -21,10 +21,11 @@ import * as SecureStore from "expo-secure-store";
 import * as AuthSession from "expo-auth-session";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { loginUser, handleOAuthCallback } from "../../api";
+import { useUserStore } from "../../stores/user";
 
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
-
+  const { setUser } = useUserStore();
   const onPressOAuth = async (provider: string) => {
     try {
       // 1️⃣ Build the Expo-Go proxy redirect URI
@@ -61,7 +62,7 @@ const LoginScreen = () => {
 
         // 5️⃣ Exchange on your backend
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
-
+        setUser(user);
         // 6️⃣ Store & update your app’s auth state
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
         await SecureStore.setItemAsync(

@@ -1,4 +1,3 @@
-// src/components/OAuth.tsx
 import React, { useContext } from "react";
 import { StyleSheet, View, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -10,12 +9,11 @@ import { AuthContext } from "../contexts/AuthContext";
 import { theme } from "../Theme/tokens";
 import * as AuthSession from "expo-auth-session";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-
-// no need to call maybeCompleteAuthSession() here — we already did it globally
+import { useUserStore } from "../stores/user";
 
 export default function OAuth() {
   const { login } = useContext(AuthContext);
-
+  const { setUser } = useUserStore();
   const onPressOAuth = async (provider: string) => {
     try {
       // 1️⃣ Build the Expo-Go proxy redirect URI
@@ -42,16 +40,20 @@ export default function OAuth() {
         authUrl,
         redirectUri
       );
-      console.log("→ WebBrowser openAuthSessionAsync result:", result);
+      console.log("→ WebBrowser openAuthSessionAsync result 2:", result);
 
       // 4️⃣ If successful, extract the `code` and finish the flow
       if (result.type === "success" && result.url) {
+        console.log("login done 2", result);
         const params = new URLSearchParams(result.url.split("?")[1]);
         const code = params.get("code");
+        console.log("login code 2", code);
         if (!code) throw new Error("No code returned from OAuth");
 
         // 5️⃣ Exchange on your backend
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
+        console.log("user details after login 2: ", user);
+        setUser(user);
 
         // 6️⃣ Store & update your app’s auth state
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);

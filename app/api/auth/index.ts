@@ -1,5 +1,4 @@
 import axiosClient from "../axiosClient";
-import * as SecureStore from "expo-secure-store";
 
 // register user
 interface RegisterProps {
@@ -64,7 +63,7 @@ export async function handleOAuthCallback(code: string) {
   console.log("handleOAuthCallback called with code:", code);
   try {
     const res = await axiosClient.get(`/auth/callback?code=${code}`);
-    console.log("handleOAuthCallback response:", res.data);
+    console.log("handleOAuthCallback response 1:", res.data);
     return (await res.data) as {
       user: { id: string; email: string; name: string /* … */ };
       appJwt: string;

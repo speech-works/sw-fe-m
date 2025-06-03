@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -13,8 +13,23 @@ import {
   CharacterVoiceFDPStackNavigationProp,
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
+import {
+  FunPractice,
+  FunPracticeType,
+} from "../../../../../../api/dailyPractice/types";
 
 const CharacterVoice = () => {
+  const [cvList, setcvList] = useState<FunPractice[]>([]);
+
+  useEffect(() => {
+    const fetchVoices = async () => {
+      const cvl = await getFunPracticeByType(FunPracticeType.CHARACTER_VOICE);
+      setcvList(cvl);
+    };
+    fetchVoices();
+  }, []);
+
   const navigation =
     useNavigation<
       CharacterVoiceFDPStackNavigationProp<
@@ -41,7 +56,7 @@ const CharacterVoice = () => {
               <Icon
                 size={24}
                 name="microphone"
-                color={theme.colors.library.blue[400]}
+                color={theme.colors.library.purple[400]}
               />
             </View>
             <View style={styles.textContainer}>
@@ -51,35 +66,29 @@ const CharacterVoice = () => {
               </Text>
             </View>
             <View style={styles.cvList}>
-              {[
-                {
-                  icon: "robot",
-                  character: "Robot Voice",
-                  color: theme.colors.library.orange,
-                },
-                {
-                  icon: "mouse",
-                  character: "Squeaky Mouse",
-                  color: theme.colors.library.purple,
-                },
-                {
-                  icon: "dragon",
-                  character: "Deep Voice",
-                  color: theme.colors.library.green,
-                },
-              ].map((cv, i) => (
+              {cvList.map((cv, i) => (
                 <TouchableOpacity
                   onPress={() => {
                     navigation.navigate("CVExercise", {
-                      name: cv.character,
+                      name: cv.name,
+                      cvData: cv.characterVoiceData!,
                     });
                   }}
                   key={i}
-                  style={[styles.cvCard, { backgroundColor: cv.color[100] }]}
+                  style={[
+                    styles.cvCard,
+                    {
+                      backgroundColor: theme.colors.library.purple[100],
+                    },
+                  ]}
                 >
                   <View style={styles.cvCardLeft}>
-                    <Icon name={cv.icon} size={16} color={cv.color[400]} />
-                    <Text style={styles.cvText}>{cv.character}</Text>
+                    <Icon
+                      name={cv.characterVoiceData?.icon!}
+                      size={16}
+                      color={theme.colors.library.purple[400]}
+                    />
+                    <Text style={styles.cvText}>{cv.name}</Text>
                   </View>
                   <Icon
                     name="chevron-right"
@@ -132,7 +141,7 @@ const styles = StyleSheet.create({
     borderRadius: "50%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.library.blue[100],
+    backgroundColor: theme.colors.library.purple[100],
   },
   textContainer: {
     gap: 12,

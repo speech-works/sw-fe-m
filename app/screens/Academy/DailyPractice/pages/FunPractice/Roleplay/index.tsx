@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
   SHADOW_BUFFER,
@@ -15,9 +15,23 @@ import {
   RoleplayFDPStackNavigationProp,
   RoleplayFDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
-import { rolePlayData } from "./data";
+
+import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
+import {
+  FunPractice,
+  FunPracticeType,
+} from "../../../../../../api/dailyPractice/types";
 
 const Roleplay = () => {
+  const [roleplayList, setRoleplayList] = useState<FunPractice[]>([]);
+  useEffect(() => {
+    const fetchTwisters = async () => {
+      const rp = await getFunPracticeByType(FunPracticeType.ROLE_PLAY);
+      setRoleplayList(rp);
+    };
+    fetchTwisters();
+  }, []);
+
   const navigation =
     useNavigation<
       RoleplayFDPStackNavigationProp<keyof RoleplayFDPStackParamList>
@@ -41,20 +55,21 @@ const Roleplay = () => {
 
         <CustomScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.listContainer}>
-            {rolePlayData.map((rp, i) => (
+            {roleplayList.map((rp) => (
               <TouchableOpacity
-                key={i}
+                key={rp.id}
                 style={styles.card}
                 onPress={() => {
                   navigation.navigate("RoleplayBriefing", {
-                    title: rp.title,
-                    description: rp.desc,
+                    title: rp.name,
+                    description: rp.description,
+                    roleplay: rp.rolePlayData!,
                   });
                 }}
               >
                 <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>{rp.title}</Text>
-                  <Text style={styles.descText}>{rp.desc}</Text>
+                  <Text style={styles.titleText}>{rp.name}</Text>
+                  <Text style={styles.descText}>{rp.description}</Text>
                 </View>
                 <Icon
                   size={16}

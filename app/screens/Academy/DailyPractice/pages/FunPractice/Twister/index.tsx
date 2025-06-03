@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
@@ -15,8 +15,31 @@ import RecordingWidget from "../../../../Library/TechniquePage/components/Record
 import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../components/Button";
 import DonePractice from "../../../components/DonePractice";
+import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
+import {
+  FunPractice,
+  FunPracticeType,
+} from "../../../../../../api/dailyPractice/types";
 
 const Twister = () => {
+  const [twisters, setTwisters] = useState<FunPractice[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(6);
+
+  const toggleIndex = () => {
+    if (twisters && twisters.length > 0) {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % twisters.length);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTwisters = async () => {
+      const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER);
+      console.log("tweeeeees", { ts });
+      setTwisters(ts);
+    };
+    fetchTwisters();
+  }, []);
+
   const navigation = useNavigation();
   const [isDone, setIsDone] = useState(false);
   return (
@@ -53,51 +76,33 @@ const Twister = () => {
                   <Text style={styles.tipTitleText}>Tips</Text>
                 </View>
                 <View style={styles.tipListContainer}>
-                  <View style={styles.tipCard}>
-                    <Icon
-                      solid
-                      name="lungs"
-                      size={16}
-                      color={theme.colors.library.orange[400]}
-                    />
-                    <Text style={styles.tipText}>
-                      Start slowly and gradually increase your speed
-                    </Text>
-                  </View>
-                  <View style={styles.tipCard}>
-                    <Icon
-                      solid
-                      name="clock"
-                      size={16}
-                      color={theme.colors.library.green[400]}
-                    />
-                    <Text style={styles.tipText}>
-                      Practice each word separately first
-                    </Text>
-                  </View>
-                  <View style={styles.tipCard}>
-                    <Icon
-                      solid
-                      name="redo-alt"
-                      size={16}
-                      color={theme.colors.library.blue[400]}
-                    />
-                    <Text style={styles.tipText}>
-                      Repeat 3-5 times in each practice session
-                    </Text>
-                  </View>
+                  {twisters[currentIndex]?.tongueTwisterData?.hints.map(
+                    (hint) => (
+                      <View key={hint} style={styles.tipCard}>
+                        <Icon
+                          solid
+                          name="check-circle"
+                          size={16}
+                          color={theme.colors.library.orange[400]}
+                        />
+                        <Text style={styles.tipText}>{hint}</Text>
+                      </View>
+                    )
+                  )}
                 </View>
               </View>
               <View style={styles.mainContainer}>
                 <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Peter-Piper</Text>
+                  <Text style={styles.titleText}>
+                    {twisters[currentIndex]?.name}
+                  </Text>
                   <Text style={styles.actualText}>
-                    Peter Piper picked a peck of pickled peppers
+                    {twisters[currentIndex]?.tongueTwisterData?.text}
                   </Text>
                 </View>
                 <RecordingWidget />
                 <View style={styles.recorderContainer}>
-                  <RecorderWidget />
+                  <RecorderWidget onToggle={toggleIndex} />
                   <Text style={styles.recordTipText}>
                     Tap microphone to {"start"} speaking
                   </Text>

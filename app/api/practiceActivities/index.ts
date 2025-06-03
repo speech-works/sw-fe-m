@@ -1,5 +1,4 @@
-// api/practiceActivities.ts
-import axiosClient from "../axiosClient"; // using the centralized axios client
+import axiosClient from "../axiosClient";
 import { PracticeSession } from "../practiceSessions";
 import { Script } from "../scripts";
 

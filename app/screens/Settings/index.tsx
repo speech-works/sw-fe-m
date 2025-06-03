@@ -14,9 +14,12 @@ import ScreenView from "../../components/ScreenView";
 import CustomScrollView from "../../components/CustomScrollView";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
+import { useUserStore } from "../../stores/user";
 
 const Settings = (/* Props are removed */) => {
   const { logout } = useContext(AuthContext);
+  const { user } = useUserStore();
+  console.log("settings screen getting user", user);
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
       SECURE_KEYS_NAME.SW_APP_JWT_KEY
@@ -70,12 +73,12 @@ const Settings = (/* Props are removed */) => {
           <View style={styles.profileInfo}>
             <Image
               source={{
-                uri: "https://placehold.co/100x100/E2E8F0/4A5568?text=User",
+                uri: user?.profilePictureUrl,
               }} // Replace with actual user image URL
               style={styles.profileImage}
             />
             <View>
-              <Text style={styles.profileName}>Sarah Johnson</Text>
+              <Text style={styles.profileName}>{user?.name}</Text>
               <Text style={styles.memberSince}>Member since 2024</Text>
             </View>
           </View>

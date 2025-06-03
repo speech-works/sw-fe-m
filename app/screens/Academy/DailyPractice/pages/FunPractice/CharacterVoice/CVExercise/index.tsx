@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
   SHADOW_BUFFER,
@@ -16,13 +16,29 @@ import RecordingWidget from "../../../../../Library/TechniquePage/components/Rec
 import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../../components/Button";
 import DonePractice from "../../../../components/DonePractice";
+import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
 
 const CVExercise = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
-  const { name } = route.params;
+  const { name, cvData } = route.params;
   const [isDone, setIsDone] = useState(false);
+  const [texts, setTexts] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(6);
+
+  const toggleIndex = () => {
+    if (texts && texts.length > 0) {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % texts.length);
+    }
+  };
+
+  useEffect(() => {
+    const t = cvData.texts;
+    console.log("cvData", { cvData });
+    setTexts(t);
+  }, []);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -45,16 +61,48 @@ const CVExercise = () => {
             <DonePractice />
           ) : (
             <>
+              <View style={styles.tipsContainer}>
+                <View style={styles.tipTitleContainer}>
+                  <Icon
+                    solid
+                    name="lightbulb"
+                    size={16}
+                    color={theme.colors.text.title}
+                  />
+                  <Text style={styles.tipTitleText}>Tips</Text>
+                </View>
+                <View style={styles.tipListContainer}>
+                  {cvData.hints.map((hint) => (
+                    <View key={hint} style={styles.tipCard}>
+                      <Icon
+                        solid
+                        name="check-circle"
+                        size={16}
+                        color={theme.colors.library.orange[400]}
+                      />
+                      <Text style={styles.tipText}>{hint}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
               <View style={styles.exerciseCard}>
                 <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>{name}</Text>
-                  <Text style={styles.actualText}>
-                    Peter Piper picked a peck of pickled peppers
-                  </Text>
+                  <View style={styles.titleAndSample}>
+                    <Text style={styles.titleText}>{name}</Text>
+                    <AudioPlaybackButton
+                      audioUrl={cvData.exampleAudioUrl}
+                      iconSize={16}
+                      activeColor={theme.colors.actionPrimary.default}
+                      // You can also pass a custom style:
+                      // style={{ marginTop: 10 }}
+                    />
+                  </View>
+
+                  <Text style={styles.actualText}>{texts[currentIndex]}</Text>
                 </View>
                 <RecordingWidget />
                 <View style={styles.recorderContainer}>
-                  <RecorderWidget />
+                  <RecorderWidget onToggle={toggleIndex} />
                   <Text style={styles.recordTipText}>
                     Tap microphone to {"start"} speaking
                   </Text>
@@ -120,6 +168,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  titleAndSample: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   titleText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
@@ -136,6 +189,38 @@ const styles = StyleSheet.create({
   },
   recordTipText: {
     textAlign: "center",
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+  tipsContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  tipTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tipTitleText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+  },
+  tipListContainer: {
+    gap: 12,
+  },
+  tipCard: {
+    backgroundColor: theme.colors.surface.elevated,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tipText: {
+    flexShrink: 1,
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },

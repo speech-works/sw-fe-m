@@ -23,11 +23,16 @@ const Briefing = () => {
     >();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
-  const { title, description } = route.params;
+  const { title, description, roleplay } = route.params;
+  const scenarioDescription = roleplay.scenario.scenarioDetails;
+  const tips = roleplay.scenario.tips;
+  const roles = roleplay.scenario.availableRoles;
 
-  const moveToChat = () => {
+  const moveToChat = (selectedRoleName: string) => {
     navigation.navigate("RoleplayChat", {
       title,
+      roleplay,
+      selectedRoleName,
     });
   };
 
@@ -60,76 +65,46 @@ const Briefing = () => {
               </View>
               <View style={styles.roleTextContainer}>
                 <Text style={styles.roleplayTitleText}>{title}</Text>
-                <Text style={styles.roleplayDescText}>
-                  A fun conversation between an alien and a restaurant staff
-                </Text>
+                <Text style={styles.roleplayDescText}>{description}</Text>
               </View>
               <View style={styles.roleSelectionContainer}>
                 <Text style={styles.actionText}>Choose Your Role</Text>
                 <View style={styles.actionContainer}>
-                  <TouchableOpacity
-                    onPress={moveToChat}
-                    style={[
-                      styles.actionCard,
-                      {
-                        borderColor: theme.colors.library.purple[200],
-                        backgroundColor: theme.colors.library.purple[100],
-                      },
-                    ]}
-                  >
-                    <View
+                  {roles.map((role) => (
+                    <TouchableOpacity
+                      onPress={() => moveToChat(role.roleName)}
                       style={[
-                        styles.actionIconContainer,
+                        styles.actionCard,
                         {
-                          backgroundColor: theme.colors.library.purple[200],
+                          borderColor: theme.colors.library.purple[200],
+                          backgroundColor: theme.colors.library.purple[100],
                         },
                       ]}
                     >
-                      <Icon
-                        size={20}
-                        name="reddit-alien"
-                        color={theme.colors.library.purple[600]}
-                      />
-                    </View>
-                    <View style={styles.roleTextContanier}>
-                      <Text style={styles.roleTitleText}>Alien Customer</Text>
-                      <Text style={styles.roleDescText}>
-                        Order Earth's famous pizza
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={moveToChat}
-                    style={[
-                      styles.actionCard,
-                      {
-                        borderColor: theme.colors.library.orange[200],
-                        backgroundColor: theme.colors.library.orange[100],
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.actionIconContainer,
-                        {
-                          backgroundColor: theme.colors.library.orange[200],
-                        },
-                      ]}
-                    >
-                      <Icon
-                        size={20}
-                        name="utensils"
-                        color={theme.colors.library.orange[600]}
-                      />
-                    </View>
-                    <View style={styles.roleTextContanier}>
-                      <Text style={styles.roleTitleText}>Restaurant Staff</Text>
-                      <Text style={styles.roleDescText}>
-                        Take the alien's order
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <View></View>
+                      <View
+                        style={[
+                          styles.actionIconContainer,
+                          {
+                            backgroundColor: theme.colors.library.purple[200],
+                          },
+                        ]}
+                      >
+                        <Icon
+                          size={20}
+                          name={role.fontAwesomeIcon}
+                          color={theme.colors.library.purple[600]}
+                        />
+                      </View>
+                      <View style={styles.roleTextContanier}>
+                        <Text style={styles.roleTitleText}>
+                          {role.roleName}
+                        </Text>
+                        <Text style={styles.roleDescText}>
+                          {role.roleDescription}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
             </View>
@@ -137,11 +112,13 @@ const Briefing = () => {
           <View style={styles.scenarioCard}>
             <View style={styles.scTextContainer}>
               <Text style={styles.scTitleText}>Scenario Details</Text>
-              <Text style={styles.scDesctext}>{description}</Text>
+              <Text style={styles.scDesctext}>{scenarioDescription}</Text>
             </View>
             <View style={styles.footerContainer}>
               <Icon size={14} name="clock" color={theme.colors.text.default} />
-              <Text style={styles.footerText}>Duration: ~5 minutes</Text>
+              <Text style={styles.footerText}>
+                Duration: {roleplay.scenario.duration} mins
+              </Text>
             </View>
           </View>
           <View style={styles.tipsContainer}>
@@ -155,37 +132,17 @@ const Briefing = () => {
               <Text style={styles.tipTitleText}>Tips</Text>
             </View>
             <View style={styles.tipListContainer}>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="star"
-                  size={16}
-                  color={theme.colors.library.orange[400]}
-                />
-                <Text style={styles.tipText}>
-                  Stay in character throughout the conversation
-                </Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="clock"
-                  size={16}
-                  color={theme.colors.library.green[400]}
-                />
-                <Text style={styles.tipText}>
-                  Practice each word separately first
-                </Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="list-ol"
-                  size={16}
-                  color={theme.colors.library.purple[400]}
-                />
-                <Text style={styles.tipText}>Pick from options to respond</Text>
-              </View>
+              {tips.map((tip) => (
+                <View key={tip} style={styles.tipCard}>
+                  <Icon
+                    solid
+                    name="check-circle"
+                    size={16}
+                    color={theme.colors.library.orange[400]}
+                  />
+                  <Text style={styles.tipText}>{tip}</Text>
+                </View>
+              ))}
             </View>
           </View>
         </CustomScrollView>
@@ -293,6 +250,7 @@ const styles = StyleSheet.create({
   },
   roleTextContanier: {
     gap: 4,
+    flexShrink: 1,
   },
   roleTitleText: {
     ...parseTextStyle(theme.typography.Body),
