@@ -1,5 +1,7 @@
+// BreathingScreen.tsx
+
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
@@ -12,13 +14,51 @@ import Button from "../../../../../../components/Button";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
+import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 
 const Breathing = () => {
   const navigation = useNavigation();
-  const [mute, setMute] = React.useState(false);
+
+  // single “mute” state that mutes both breath sounds + background
+  const [mute, setMute] = useState(false);
+
+  // background hook (load, toggle, stop)
+  const { loadBackground, toggleBackground, stopBackground } =
+    useBackgroundAudio();
+
+  // ─── On mount: load the music, then immediately play it (because mute === false) ────
+  useEffect(() => {
+    let isCurrent = true;
+    const prepare = async () => {
+      await loadBackground();
+      if (isCurrent) {
+        // once loaded, start playing because mute is false by default
+        toggleBackground(true);
+      }
+    };
+    prepare();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [loadBackground, toggleBackground]);
+
+  // ─── Whenever mute flips, stop/play background in sync ──────────────────────────
+  useEffect(() => {
+    toggleBackground(!mute);
+  }, [mute, toggleBackground]);
+
+  // ─── When unmounting, fully stop & unload the background track ───────────────────
+  useEffect(() => {
+    return () => {
+      stopBackground();
+    };
+  }, [stopBackground]);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
+        {/* ── Top Bar with Back + Mute Button ──────────────────────────────────────── */}
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -31,11 +71,9 @@ const Breathing = () => {
             />
             <Text style={styles.topNavigationText}>Breathing</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              setMute(!mute);
-            }}
-          >
+
+          {/* Single button toggles both music + breath */}
+          <TouchableOpacity onPress={() => setMute((prev) => !prev)}>
             <Icon
               name={mute ? "volume-mute" : "volume-up"}
               size={16}
@@ -43,17 +81,14 @@ const Breathing = () => {
             />
           </TouchableOpacity>
         </View>
+
         <CustomScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* ── Breathing Halo (passes down the same “mute” prop) ───────────────────────── */}
           <View style={styles.haloContainer}>
-            <BreathingHalo
-              mute={mute}
-              inhale={4}
-              hold={4}
-              exhale={4}
-              repeat
-              //onCycleComplete={() => {}}
-            />
+            <BreathingHalo inhale={4} hold={4} exhale={4} repeat mute={mute} />
           </View>
+
+          {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
           <View style={styles.tipsContainer}>
             <View style={styles.tipTitleContainer}>
               <Icon
@@ -100,6 +135,8 @@ const Breathing = () => {
               </View>
             </View>
           </View>
+
+          {/* ── Session Progress ───────────────────────────────────────────────────────── */}
           <View style={styles.progressContainer}>
             <View style={styles.progressTitle}>
               <Text style={styles.progressTitleText}>Session Progress</Text>
@@ -112,6 +149,7 @@ const Breathing = () => {
               showPercentage={false}
             />
           </View>
+
           <Button text="Start Exercise" onPress={() => {}} />
         </CustomScrollView>
       </View>
@@ -136,13 +174,13 @@ const styles = StyleSheet.create({
   topNavigationContainer: {
     position: "relative",
     top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   topNavigation: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -196,7 +234,6 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 16,
   },
-
   progressTitle: {
     flexDirection: "row",
     alignItems: "center",

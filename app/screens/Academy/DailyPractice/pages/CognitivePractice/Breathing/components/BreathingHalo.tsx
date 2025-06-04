@@ -1,94 +1,101 @@
-import React, { useEffect, useRef, useState } from "react";
+// components/BreathingHalo.tsx
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../../Theme/tokens";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
 
 type BreathingHaloProps = {
-  inhale: number;
-  hold?: number;
-  exhale: number;
+  inhale: number; // seconds
+  hold?: number; // seconds
+  exhale: number; // seconds
   repeat?: boolean;
   onCycleComplete?: () => void;
-  mute?: boolean; // ← new prop
+  mute?: boolean; // mute breath sounds only
 };
 
-/**
- * Multi‐ring pulsing BreathingHalo with phase indicator + synchronized breath sounds.
- *
- * - The “outer”, “middle”, and “inner” rings each scale/opacity‐animate in a staggered way.
- * - The center dot does a subtle pulse.
- * - We display “Inhale / Hold / Exhale” text in the middle, switching at the right times.
- * - Inhale and Exhale sounds (via expo-av) play in sync with the animations.
- */
 export const BreathingHalo: React.FC<BreathingHaloProps> = ({
   inhale,
   hold = 0,
   exhale,
   repeat = true,
-  mute = false,
   onCycleComplete,
+  mute = false,
 }) => {
-  console.log("mute breathing sound", mute);
-  const { loadSounds, playBreath, stopAll } = useBreathAudio();
+  const { loadBreathSounds, playBreath, stopBreathSounds } = useBreathAudio();
 
-  // ─── Animated values for the three rings ───────────────────────────────
+  // Animated values:
   const outerScale = useRef(new Animated.Value(1)).current;
   const outerOpacity = useRef(new Animated.Value(0.3)).current;
-
   const middleScale = useRef(new Animated.Value(1)).current;
   const middleOpacity = useRef(new Animated.Value(0.4)).current;
-
   const innerScale = useRef(new Animated.Value(1)).current;
   const innerOpacity = useRef(new Animated.Value(0.5)).current;
-
-  // ─── Subtle inner‐dot pulse ────────────────────────────────────────────
   const centerDotScale = useRef(new Animated.Value(1)).current;
 
-  // ─── Phase state for center text: “Inhale” | “Hold” | “Exhale” ────────
+  // Phase text: “Inhale” | “Hold” | “Exhale”
   const [phaseText, setPhaseText] = useState<"Inhale" | "Hold" | "Exhale">(
     "Inhale"
   );
 
-  // ─── Convert seconds → milliseconds ──────────────────────────────────
+  // Convert seconds → ms
   const inhaleMs = inhale * 1000;
   const holdMs = hold * 1000;
-  // Ensure exhale is not zero—give minimal duration if necessary
-  const effectiveExhale = Math.max(0.1, exhale);
-  const exhaleMs = effectiveExhale * 1000;
+  const exhaleSecs = Math.max(0.1, exhale);
+  const exhaleMs = exhaleSecs * 1000;
 
-  // Ref to track if component is mounted, to prevent state updates after unmount
+  // Track if still mounted
   const isMounted = useRef(true);
 
-  // ─── Orchestrates the entire breathing cycle ───────────────────────────
-  const runBreathingCycle = async () => {
-    // Stop any ongoing animations before starting a new cycle
-    outerScale.stopAnimation();
-    outerOpacity.stopAnimation();
-    middleScale.stopAnimation();
-    middleOpacity.stopAnimation();
-    innerScale.stopAnimation();
-    innerOpacity.stopAnimation();
-    centerDotScale.stopAnimation();
+  // MODIFIED: Use a ref to store the latest mute state for the getter function
+  const muteRef = useRef(mute);
 
-    // Reset all animated values to “rest” state
-    outerScale.setValue(1);
-    outerOpacity.setValue(0.3);
-    middleScale.setValue(1);
-    middleOpacity.setValue(0.4);
-    innerScale.setValue(1);
-    innerOpacity.setValue(0.5);
-    centerDotScale.setValue(1);
+  useEffect(() => {
+    muteRef.current = mute;
+  }, [mute]);
 
-    // Loop: if repeat === true, run indefinitely; if false, run once
-    while (isMounted.current && (repeat || true)) {
-      // ─── INHALE Phase (Expanding) ───────────────────
+  // If user toggles `mute`, immediately cut off any in‐flight breath sound
+  useEffect(() => {
+    if (mute) {
+      stopBreathSounds();
+    }
+  }, [mute, stopBreathSounds]);
+
+  // Orchestrate one full inhale→hold→exhale→hold cycle
+  const runBreathingCycle = useCallback(async () => {
+    // Reset all animations to “rest”
+    const resetAnimations = () => {
+      outerScale.stopAnimation();
+      outerOpacity.stopAnimation();
+      middleScale.stopAnimation();
+      middleOpacity.stopAnimation();
+      innerScale.stopAnimation();
+      innerOpacity.stopAnimation();
+      centerDotScale.stopAnimation();
+
+      outerScale.setValue(1);
+      outerOpacity.setValue(0.3);
+      middleScale.setValue(1);
+      middleOpacity.setValue(0.4);
+      innerScale.setValue(1);
+      innerOpacity.setValue(0.5);
+      centerDotScale.setValue(1);
+    };
+    resetAnimations();
+
+    // MODIFIED: Define the getter function for the current mute state
+    const isCurrentlyMuted = () => muteRef.current;
+
+    do {
       if (!isMounted.current) break;
-      if (!mute) playBreath("inhale", inhaleMs); // start inhale sound
+
+      // ─── INHALE ───────────────────────────────────────────
+      if (!mute) {
+        await playBreath("inhale", inhaleMs, isCurrentlyMuted);
+      }
       setPhaseText("Inhale");
       await new Promise<void>((resolve) => {
         Animated.parallel([
-          // Outer ring expands & fades in
           Animated.timing(outerScale, {
             toValue: 1.6,
             duration: inhaleMs,
@@ -100,7 +107,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             duration: inhaleMs,
             useNativeDriver: true,
           }),
-          // Middle ring (staggered)
           Animated.timing(middleScale, {
             toValue: 1.4,
             duration: inhaleMs,
@@ -114,7 +120,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
             delay: inhaleMs / 6,
           }),
-          // Inner ring (more staggered)
           Animated.timing(innerScale, {
             toValue: 1.2,
             duration: inhaleMs,
@@ -128,7 +133,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
             delay: inhaleMs / 3,
           }),
-          // Center dot subtle pulse up
           Animated.timing(centerDotScale, {
             toValue: 1.05,
             duration: inhaleMs,
@@ -136,34 +140,29 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
           }),
         ]).start(({ finished }) => {
-          if (finished && isMounted.current) {
-            resolve();
-          }
+          if (finished && isMounted.current) resolve();
         });
       });
       if (!isMounted.current) break;
 
-      // ─── HOLD Phase (Expanded, at max size) ──────────
+      // ─── HOLD (after inhale) ───────────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
         await new Promise<void>((resolve) => {
-          // No visual changes—just delay
           Animated.delay(holdMs).start(({ finished }) => {
-            if (finished && isMounted.current) {
-              resolve();
-            }
+            if (finished && isMounted.current) resolve();
           });
         });
         if (!isMounted.current) break;
       }
 
-      // ─── EXHALE Phase (Shrinking) ────────────────────
-      if (!isMounted.current) break;
-      if (!mute) playBreath("exhale", exhaleMs); // start exhale sound
+      // ─── EXHALE ───────────────────────────────────────────────
+      if (!mute) {
+        await playBreath("exhale", exhaleMs, isCurrentlyMuted);
+      }
       setPhaseText("Exhale");
       await new Promise<void>((resolve) => {
         Animated.parallel([
-          // Outer ring shrinks & fades out
           Animated.timing(outerScale, {
             toValue: 1,
             duration: exhaleMs,
@@ -175,7 +174,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             duration: exhaleMs,
             useNativeDriver: true,
           }),
-          // Middle ring (staggered)
           Animated.timing(middleScale, {
             toValue: 1,
             duration: exhaleMs,
@@ -189,7 +187,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
             delay: exhaleMs / 6,
           }),
-          // Inner ring (more staggered)
           Animated.timing(innerScale, {
             toValue: 1,
             duration: exhaleMs,
@@ -203,7 +200,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
             delay: exhaleMs / 3,
           }),
-          // Center dot subtle pulse down
           Animated.timing(centerDotScale, {
             toValue: 1,
             duration: exhaleMs,
@@ -211,52 +207,56 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
             useNativeDriver: true,
           }),
         ]).start(({ finished }) => {
-          if (finished && isMounted.current) {
-            resolve();
-          }
+          if (finished && isMounted.current) resolve();
         });
       });
       if (!isMounted.current) break;
 
-      // ─── HOLD Phase (Shrunk, before next cycle) ───────
+      // ─── HOLD (after exhale) ────────────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
         await new Promise<void>((resolve) => {
           Animated.delay(holdMs).start(({ finished }) => {
-            if (finished && isMounted.current) {
-              resolve();
-            }
+            if (finished && isMounted.current) resolve();
           });
         });
         if (!isMounted.current) break;
       }
+    } while (repeat && isMounted.current);
 
-      // Break if we only wanted a single cycle
-      if (!repeat) {
-        break;
-      }
-    }
-
-    // Once finished (either repeat=false or unmount):
+    // Reset and callback
     if (isMounted.current) {
-      setPhaseText("Inhale"); // reset text
+      setPhaseText("Inhale");
       onCycleComplete?.();
     }
-  };
+  }, [
+    inhaleMs,
+    holdMs,
+    exhaleMs,
+    mute,
+    repeat,
+    playBreath,
+    onCycleComplete,
+    outerScale,
+    outerOpacity,
+    middleScale,
+    middleOpacity,
+    innerScale,
+    innerOpacity,
+    centerDotScale,
+  ]);
 
-  // ─── Start cycle on mount; load sounds first ─────────────────────────
+  // On mount: load breath clips, then start cycle. On unmount: stop everything.
   useEffect(() => {
     isMounted.current = true;
-
-    const startLoop = async () => {
-      await loadSounds(); // preload inhale/exhale sounds
-      runBreathingCycle(); // then start animation+audio loop
+    const start = async () => {
+      await loadBreathSounds();
+      if (isMounted.current) runBreathingCycle();
     };
-    startLoop();
+    start();
 
     return () => {
       isMounted.current = false;
-      // Stop all animations
       outerScale.stopAnimation();
       outerOpacity.stopAnimation();
       middleScale.stopAnimation();
@@ -264,14 +264,23 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
       innerScale.stopAnimation();
       innerOpacity.stopAnimation();
       centerDotScale.stopAnimation();
-      // Stop any playing sounds
-      stopAll();
+      stopBreathSounds();
     };
-  }, [inhaleMs, holdMs, exhaleMs, repeat, onCycleComplete, mute]);
+  }, [
+    loadBreathSounds,
+    runBreathingCycle,
+    stopBreathSounds,
+    outerScale,
+    outerOpacity,
+    middleScale,
+    middleOpacity,
+    innerScale,
+    innerOpacity,
+    centerDotScale,
+  ]);
 
   return (
     <View style={styles.container}>
-      {/* Outer ring */}
       <Animated.View
         style={[
           styles.haloBase,
@@ -282,8 +291,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
           },
         ]}
       />
-
-      {/* Middle ring (slightly smaller) */}
       <Animated.View
         style={[
           styles.haloBase,
@@ -295,8 +302,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
           },
         ]}
       />
-
-      {/* Inner ring (even smaller) */}
       <Animated.View
         style={[
           styles.haloBase,
@@ -308,8 +313,6 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
           },
         ]}
       />
-
-      {/* Center dot (with subtle pulse) */}
       <Animated.View
         style={[
           styles.centerDot,
