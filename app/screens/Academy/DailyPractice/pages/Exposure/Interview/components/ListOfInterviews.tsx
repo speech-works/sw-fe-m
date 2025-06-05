@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
@@ -9,143 +9,155 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
+import {
+  ExposurePractice,
+  ExposurePracticeType,
+} from "../../../../../../../api/dailyPractice/types";
+import { getExposurePracticeByType } from "../../../../../../../api/dailyPractice";
 
-export type Exposure = {
-  title: string;
-  desc: string;
-  icon: string;
-  character: Array<string>;
-};
-
-const exposureData: Array<Exposure> = [
-  {
-    title: "Entry Level Interview",
-    desc: "Practice a first job interview. Build confidence answering common questions.",
-    icon: "user_icon_placeholder", // Based on the image, it looks like a generic user icon. You might want to replace this with an actual path/name if you have one.
-    character: [
-      "Eager to learn and contribute",
-      "Focuses on potential and enthusiasm",
-      "Highlights academic projects or volunteer work if applicable",
-    ],
-  },
-  {
-    title: "Creative Problem-Solving",
-    desc: "Showcase your problem-solving in an interview. Practice explaining your approach clearly.",
-    icon: "lightbulb_icon_placeholder", // Placeholder for a lightbulb or idea icon
-    character: [
-      "Thinks outside the box",
-      "Breaks down complex problems",
-      "Proposes innovative solutions",
-    ],
-  },
-  {
-    title: "Teamwork & Collaboration",
-    desc: "Discuss teamwork experiences. Highlight your communication and collaboration skills.",
-    icon: "group_icon_placeholder", // Placeholder for a group or team icon
-    character: [
-      "Works well with others",
-      "Contributes positively to group dynamics",
-      "Resolves conflicts constructively",
-    ],
-  },
-  {
-    title: "Leadership & Initiative",
-    desc: "Practice scenarios where you demonstrate leadership qualities and take initiative.",
-    icon: "star_icon_placeholder", // Placeholder for a star or leader icon
-    character: [
-      "Motivates and guides others",
-      "Takes ownership of tasks",
-      "Identifies opportunities for improvement",
-    ],
-  },
-  {
-    title: "Handling Failure & Learning",
-    desc: "Prepare to discuss setbacks, what you learned, and how you adapted.",
-    icon: "refresh_icon_placeholder", // Placeholder for a refresh or growth icon
-    character: [
-      "Resilient and adaptable",
-      "Learns from mistakes",
-      "Shows continuous self-improvement",
-    ],
-  },
-  {
-    title: "Technical Skills Showcase",
-    desc: "Practice articulating your technical abilities and project contributions effectively.",
-    icon: "code_icon_placeholder", // Placeholder for a code or gear icon
-    character: [
-      "Demonstrates relevant technical proficiency",
-      "Explains complex concepts clearly",
-      "Applies knowledge to practical problems",
-    ],
-  },
-  {
-    title: "Behavioral Questions Mastery",
-    desc: "Refine your answers to common 'tell me about a time when...' questions using the STAR method.",
-    icon: "chat_icon_placeholder", // Placeholder for a chat bubble or speech icon
-    character: [
-      "Provides structured and clear examples",
-      "Connects experiences to required competencies",
-      "Communicates effectively under pressure",
-    ],
-  },
-  {
-    title: "Company Culture Fit",
-    desc: "Learn to align your values and aspirations with potential employers' organizational culture.",
-    icon: "building_icon_placeholder", // Placeholder for a building or puzzle piece icon
-    character: [
-      "Researches company values thoroughly",
-      "Expresses genuine interest in the culture",
-      "Articulates how personal values align",
-    ],
-  },
-  {
-    title: "Negotiation Practice",
-    desc: "Simulate salary and benefits discussions. Develop strategies for effective negotiation.",
-    icon: "handshake_icon_placeholder", // Placeholder for a handshake or scale icon
-    character: [
-      "Assertive and confident communicator",
-      "Researches market rates",
-      "Seeks mutually beneficial outcomes",
-    ],
-  },
-  {
-    title: "Networking & Elevator Pitch",
-    desc: "Craft and deliver a compelling elevator pitch. Practice professional networking scenarios.",
-    icon: "network_icon_placeholder", // Placeholder for a network or person-with-lines icon
-    character: [
-      "Clear and concise communicator",
-      "Engages confidently with new contacts",
-      "Builds meaningful professional relationships",
-    ],
-  },
-  {
-    title: "Mock Presentation Skills",
-    desc: "Practice delivering clear and engaging presentations, handling Q&A sessions effectively.",
-    icon: "presentation_icon_placeholder", // Placeholder for a presentation board icon
-    character: [
-      "Delivers content with confidence",
-      "Structures arguments logically",
-      "Handles questions thoughtfully and professionally",
-    ],
-  },
-];
+// const exposureData: Array<Exposure> = [
+//   {
+//     title: "Entry Level Interview",
+//     desc: "Practice a first job interview. Build confidence answering common questions.",
+//     icon: "user_icon_placeholder", // Based on the image, it looks like a generic user icon. You might want to replace this with an actual path/name if you have one.
+//     character: [
+//       "Eager to learn and contribute",
+//       "Focuses on potential and enthusiasm",
+//       "Highlights academic projects or volunteer work if applicable",
+//     ],
+//   },
+//   {
+//     title: "Creative Problem-Solving",
+//     desc: "Showcase your problem-solving in an interview. Practice explaining your approach clearly.",
+//     icon: "lightbulb_icon_placeholder", // Placeholder for a lightbulb or idea icon
+//     character: [
+//       "Thinks outside the box",
+//       "Breaks down complex problems",
+//       "Proposes innovative solutions",
+//     ],
+//   },
+//   {
+//     title: "Teamwork & Collaboration",
+//     desc: "Discuss teamwork experiences. Highlight your communication and collaboration skills.",
+//     icon: "group_icon_placeholder", // Placeholder for a group or team icon
+//     character: [
+//       "Works well with others",
+//       "Contributes positively to group dynamics",
+//       "Resolves conflicts constructively",
+//     ],
+//   },
+//   {
+//     title: "Leadership & Initiative",
+//     desc: "Practice scenarios where you demonstrate leadership qualities and take initiative.",
+//     icon: "star_icon_placeholder", // Placeholder for a star or leader icon
+//     character: [
+//       "Motivates and guides others",
+//       "Takes ownership of tasks",
+//       "Identifies opportunities for improvement",
+//     ],
+//   },
+//   {
+//     title: "Handling Failure & Learning",
+//     desc: "Prepare to discuss setbacks, what you learned, and how you adapted.",
+//     icon: "refresh_icon_placeholder", // Placeholder for a refresh or growth icon
+//     character: [
+//       "Resilient and adaptable",
+//       "Learns from mistakes",
+//       "Shows continuous self-improvement",
+//     ],
+//   },
+//   {
+//     title: "Technical Skills Showcase",
+//     desc: "Practice articulating your technical abilities and project contributions effectively.",
+//     icon: "code_icon_placeholder", // Placeholder for a code or gear icon
+//     character: [
+//       "Demonstrates relevant technical proficiency",
+//       "Explains complex concepts clearly",
+//       "Applies knowledge to practical problems",
+//     ],
+//   },
+//   {
+//     title: "Behavioral Questions Mastery",
+//     desc: "Refine your answers to common 'tell me about a time when...' questions using the STAR method.",
+//     icon: "chat_icon_placeholder", // Placeholder for a chat bubble or speech icon
+//     character: [
+//       "Provides structured and clear examples",
+//       "Connects experiences to required competencies",
+//       "Communicates effectively under pressure",
+//     ],
+//   },
+//   {
+//     title: "Company Culture Fit",
+//     desc: "Learn to align your values and aspirations with potential employers' organizational culture.",
+//     icon: "building_icon_placeholder", // Placeholder for a building or puzzle piece icon
+//     character: [
+//       "Researches company values thoroughly",
+//       "Expresses genuine interest in the culture",
+//       "Articulates how personal values align",
+//     ],
+//   },
+//   {
+//     title: "Negotiation Practice",
+//     desc: "Simulate salary and benefits discussions. Develop strategies for effective negotiation.",
+//     icon: "handshake_icon_placeholder", // Placeholder for a handshake or scale icon
+//     character: [
+//       "Assertive and confident communicator",
+//       "Researches market rates",
+//       "Seeks mutually beneficial outcomes",
+//     ],
+//   },
+//   {
+//     title: "Networking & Elevator Pitch",
+//     desc: "Craft and deliver a compelling elevator pitch. Practice professional networking scenarios.",
+//     icon: "network_icon_placeholder", // Placeholder for a network or person-with-lines icon
+//     character: [
+//       "Clear and concise communicator",
+//       "Engages confidently with new contacts",
+//       "Builds meaningful professional relationships",
+//     ],
+//   },
+//   {
+//     title: "Mock Presentation Skills",
+//     desc: "Practice delivering clear and engaging presentations, handling Q&A sessions effectively.",
+//     icon: "presentation_icon_placeholder", // Placeholder for a presentation board icon
+//     character: [
+//       "Delivers content with confidence",
+//       "Structures arguments logically",
+//       "Handles questions thoughtfully and professionally",
+//     ],
+//   },
+// ];
 
 interface ListOfInterviewsProps {
-  onSelectInterview: (i: Exposure) => void;
+  onSelectInterview: (i: ExposurePractice) => void;
 }
 
 const ListOfInterviews = ({ onSelectInterview }: ListOfInterviewsProps) => {
+  const [interviewsList, setInterviewsList] = useState<Array<ExposurePractice>>(
+    []
+  );
+
+  useEffect(() => {
+    const fetchInterviewDetails = async () => {
+      const interviews = await getExposurePracticeByType(
+        ExposurePracticeType.INTERVIEW_SIMULATION
+      );
+      setInterviewsList(interviews);
+    };
+    fetchInterviewDetails();
+  }, []);
+
   return (
     <CustomScrollView contentContainerStyle={styles.container}>
-      {exposureData.map((e) => (
+      {interviewsList.map((interview) => (
         <TouchableOpacity
-          key={e.title}
+          key={interview.name}
           style={styles.card}
-          onPress={() => onSelectInterview(e)}
+          onPress={() => onSelectInterview(interview)}
         >
           <View style={styles.content}>
-            <Text style={styles.titleText}>{e.title}</Text>
-            <Text style={styles.descText}>{e.desc}</Text>
+            <Text style={styles.titleText}>{interview.name}</Text>
+            <Text style={styles.descText}>{interview.description}</Text>
           </View>
           <Icon
             name="chevron-right"

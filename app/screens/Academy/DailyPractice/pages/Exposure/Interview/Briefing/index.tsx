@@ -24,7 +24,7 @@ const Briefing = () => {
     >();
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
-  const { interviewTitle, interviewDescription, yourCharacter } = route.params;
+  const { interview } = route.params;
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -47,35 +47,40 @@ const Briefing = () => {
               <View style={styles.iconContainer}>
                 <Icon
                   size={24}
-                  name="user-tie"
+                  name={
+                    interview.interviewPracticeData?.scenario.availableRole
+                      .fontAwesomeIcon || "user-tie"
+                  }
                   color={theme.colors.library.blue[400]}
                 />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.titleText}>{interviewTitle}</Text>
-                <Text style={styles.descText}>{interviewDescription}</Text>
+                <Text style={styles.titleText}>{interview.name}</Text>
+                <Text style={styles.descText}>{interview.description}</Text>
               </View>
             </View>
             <View style={styles.characterContainer}>
               <Text style={styles.characterTitleText}>Your Character</Text>
-              {yourCharacter.map((c, i) => (
-                <View key={i} style={styles.characterRow}>
-                  <Icon
-                    solid
-                    size={14}
-                    name="check-circle"
-                    color={theme.colors.library.orange[400]}
-                  />
-                  <Text style={styles.characterText}>{c}</Text>
-                </View>
-              ))}
+              {interview.interviewPracticeData?.stage.userCharacter.map(
+                (c, i) => (
+                  <View key={i} style={styles.characterRow}>
+                    <Icon
+                      solid
+                      size={14}
+                      name="check-circle"
+                      color={theme.colors.library.orange[400]}
+                    />
+                    <Text style={styles.characterText}>{c}</Text>
+                  </View>
+                )
+              )}
             </View>
           </View>
           <Button
             text="Begin Interview"
             onPress={() => {
               navigation.navigate("InterviewChat", {
-                interviewTitle,
+                interview,
               });
             }}
           />
@@ -146,6 +151,7 @@ const styles = StyleSheet.create({
   titleText: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
+    textAlign: "center",
   },
   descText: {
     textAlign: "center",

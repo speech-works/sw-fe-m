@@ -1,15 +1,14 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { ExposurePractice } from "../../../../../../api/dailyPractice/types";
 
 export type InterviewEDPStackParamList = {
   InterviewList: undefined;
   InterviewBriefing: {
-    interviewTitle: string;
-    interviewDescription: string;
-    yourCharacter: string[];
+    interview: ExposurePractice;
   };
   InterviewChat: {
-    interviewTitle: string;
+    interview: ExposurePractice;
   };
 };
 export type InterviewEDPStackNavigationProp<

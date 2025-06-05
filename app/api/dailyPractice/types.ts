@@ -84,7 +84,7 @@ export interface FunPractice {
   characterVoiceData?: CharacterVoiceData;
 }
 
-/////////// cognitive practice
+/////////// Cognitive practice
 
 export enum CognitivePracticeType {
   GUIDED_BREATHING = "GUIDED_BREATHING",
@@ -129,4 +129,62 @@ export interface CognitivePractice {
   positiveAffirmationsData?: PositiveAffirmationsData;
   guidedMeditationData?: GuidedMeditationData;
   reframingThoughtsData?: ReframingThoughtsData;
+}
+
+//////////// Exposure Practice
+
+export enum ExposurePracticeType {
+  // RANDOM_QUESTIONS = "RANDOM_QUESTIONS", // Uppercase values
+  INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
+  // PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
+  // DATING_CONVERSATION = "DATING_CONVERSATION",
+  // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
+  // Add other exposure types as needed
+}
+
+export interface InterviewPracticeNodeOption {
+  id: string;
+  userLine: string;
+  nextNodeId: string | null;
+}
+
+export interface InterviewPracticeNode {
+  id: string;
+  npcLine: string;
+  options: InterviewPracticeNodeOption[];
+}
+
+export interface InterviewPracticeStageBase {
+  npcRole: string;
+  userRole: string;
+  userCharacter: string[];
+  initialNodeId: string;
+  dialogues: Record<string, InterviewPracticeNode>;
+}
+
+export interface AvailableExposureInterviewRole {
+  roleName: string;
+  roleDescription: string;
+  fontAwesomeIcon: string;
+}
+
+export interface InterviewPracticeScenario {
+  tips: string[];
+  duration: number;
+  availableRole: AvailableExposureInterviewRole;
+  scenarioDetails: string;
+}
+
+export interface InterviewPracticeData {
+  stage: InterviewPracticeStageBase;
+  scenario: InterviewPracticeScenario;
+}
+
+export interface ExposurePractice {
+  id: string;
+  type: ExposurePracticeType;
+  name: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  interviewPracticeData?: InterviewPracticeData;
 }

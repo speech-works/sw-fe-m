@@ -39,9 +39,7 @@ const Interview = () => {
           <ListOfInterviews
             onSelectInterview={(interview) => {
               navigation.navigate("InterviewBriefing", {
-                interviewDescription: interview.desc,
-                interviewTitle: interview.title,
-                yourCharacter: interview.character,
+                interview,
               });
             }}
           />
