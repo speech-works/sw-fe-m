@@ -1,5 +1,10 @@
 import axiosClient from "../axiosClient";
-import { FunPractice, FunPracticeType } from "./types";
+import {
+  CognitivePractice,
+  CognitivePracticeType,
+  FunPractice,
+  FunPracticeType,
+} from "./types";
 
 // get all fun practice by type
 export async function getFunPracticeByType(
@@ -13,6 +18,23 @@ export async function getFunPracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all fun practice by type:",
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getCognitivePracticeByType(
+  type: CognitivePracticeType
+): Promise<CognitivePractice[]> {
+  try {
+    const response = await axiosClient.get("/cognitive-practice", {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "There was a problem with getting all cognitive practice by type:",
       error
     );
     throw error;

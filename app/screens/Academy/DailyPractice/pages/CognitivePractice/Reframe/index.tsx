@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
@@ -21,6 +21,12 @@ import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/types";
+import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
+import {
+  CognitivePracticeType,
+  ReframingThoughtScenarioData,
+  ReframingThoughtsData,
+} from "../../../../../../api/dailyPractice/types";
 
 const reframeData = [
   "I'm working on my public speaking skills and improving every day",
@@ -37,9 +43,34 @@ const Reframe = () => {
     null
   );
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
+  const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
+    []
+  );
+  const [selectedScenarioIndex, setSelectedScenarioIndex] = useState<number>(0);
+
   const onBackPress = () => {
     navigation.goBack();
   };
+
+  const toggleIndex = () => {
+    if (scenarios && scenarios.length > 0) {
+      setSelectedScenarioIndex(
+        (prevIndex) => (prevIndex + 1) % scenarios.length
+      );
+    }
+  };
+
+  // Fetch all reframe scenarios once on mount
+  useEffect(() => {
+    const fetchScenarios = async () => {
+      const rs = await getCognitivePracticeByType(
+        CognitivePracticeType.REFRAMING_THOUGHTS
+      );
+      setScenarios(rs[0].reframingThoughtsData?.scenarios || []);
+    };
+    fetchScenarios();
+  }, []);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -54,12 +85,22 @@ const Reframe = () => {
         <CustomScrollView contentContainerStyle={styles.scrollView}>
           <View style={styles.negativeContainer}>
             <View style={styles.negativeTextContainer}>
-              <Text style={styles.negativeTitleText}>
-                Current Negative Thought
-              </Text>
+              <View style={styles.scenario}>
+                <Text style={styles.negativeTitleText}>
+                  Current Negative Thought
+                </Text>
+                <TouchableOpacity onPress={toggleIndex}>
+                  <Icon
+                    name={"random"}
+                    size={14}
+                    color={theme.colors.actionPrimary.default}
+                  />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.negativeBox}>
                 <Text style={styles.negativeText}>
-                  I'll never be able to speak fluently in public
+                  {scenarios[selectedScenarioIndex]?.negativeThought}
                 </Text>
               </View>
             </View>
@@ -68,7 +109,7 @@ const Reframe = () => {
                 solid
                 size={14}
                 name="lightbulb"
-                color={theme.colors.library.blue[400]}
+                color={theme.colors.library.orange[800]}
               />
               <Text style={styles.ideaText}>
                 Let's transform this thought into something more empowering
@@ -80,32 +121,35 @@ const Reframe = () => {
               Choose a Positive Reframe
             </Text>
             <View style={styles.reframeListContainer}>
-              {reframeData.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.reframeTextBox}
-                  onPress={() => {
-                    setSelectedReframe(item);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.selectIconContainer,
-                      selectedReframe === item && styles.selectedIconContainer,
-                    ]}
+              {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
+                (item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.reframeTextBox}
+                    onPress={() => {
+                      setSelectedReframe(item);
+                    }}
                   >
-                    {selectedReframe === item && (
-                      <Icon
-                        solid
-                        name="check"
-                        size={12}
-                        color={theme.colors.text.onDark}
-                      />
-                    )}
-                  </View>
-                  <Text style={styles.reframeText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
+                    <View
+                      style={[
+                        styles.selectIconContainer,
+                        selectedReframe === item &&
+                          styles.selectedIconContainer,
+                      ]}
+                    >
+                      {selectedReframe === item && (
+                        <Icon
+                          solid
+                          name="check"
+                          size={12}
+                          color={theme.colors.text.onDark}
+                        />
+                      )}
+                    </View>
+                    <Text style={styles.reframeText}>{item}</Text>
+                  </TouchableOpacity>
+                )
+              )}
             </View>
             <View style={styles.writeContainer}>
               <Text style={styles.writeTitleText}>Write Your Own Reframe</Text>
@@ -174,6 +218,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.elevated,
     borderRadius: 16,
     ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  scenario: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   negativeTextContainer: {
     gap: 12,

@@ -83,3 +83,50 @@ export interface FunPractice {
   rolePlayData?: RolePlayData;
   characterVoiceData?: CharacterVoiceData;
 }
+
+/////////// cognitive practice
+
+export enum CognitivePracticeType {
+  GUIDED_BREATHING = "GUIDED_BREATHING",
+  POSITIVE_AFFIRMATIONS = "POSITIVE_AFFIRMATIONS",
+  GUIDED_MEDITATION = "GUIDED_MEDITATION",
+  REFRAMING_THOUGHTS = "REFRAMING_THOUGHTS",
+}
+
+export interface GuidedBreathingData {
+  tips: Array<string>;
+  durationMinutes: number;
+}
+
+export interface PositiveAffirmationsData {
+  affirmations: Array<string>;
+}
+
+export interface GuidedMeditationData {
+  audioUrlKey: string;
+  bgMusicUrl: string;
+  durationMinutes: number;
+  tips: string[];
+  icon: string;
+}
+
+export interface ReframingThoughtScenarioData {
+  negativeThought: string;
+  reframedThoughts: string[];
+}
+
+export interface ReframingThoughtsData {
+  scenarios: ReframingThoughtScenarioData[];
+}
+
+export interface CognitivePractice {
+  id: string;
+  type: CognitivePracticeType;
+  name: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  guidedBreathingData?: GuidedBreathingData;
+  positiveAffirmationsData?: PositiveAffirmationsData;
+  guidedMeditationData?: GuidedMeditationData;
+  reframingThoughtsData?: ReframingThoughtsData;
+}
