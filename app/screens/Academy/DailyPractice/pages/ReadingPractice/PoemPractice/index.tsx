@@ -33,7 +33,7 @@ const StoryPractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
   const [practiceComplete, setPracticeComplete] = useState(false);
-  const [allStories, setAllStories] = useState<ReadingPractice[]>([]);
+  const [allPoems, setAllPoems] = useState<ReadingPractice[]>([]);
   const onBackPress = () => {
     navigation.goBack();
   };
@@ -49,24 +49,24 @@ const StoryPractice = () => {
   };
 
   const toggleIndex = () => {
-    if (allStories && allStories.length > 0) {
-      setSelectedIndex((prevIndex) => (prevIndex + 1) % allStories.length);
+    if (allPoems && allPoems.length > 0) {
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % allPoems.length);
     }
   };
 
   useEffect(() => {
-    const currentText = allStories[selectedIndex]?.textContent || "";
+    const currentText = allPoems[selectedIndex]?.textContent || "";
     const paginated = splitTextIntoPages(currentText);
     setPages(paginated);
     setCurrentPage(0);
-  }, [selectedIndex, allStories]);
+  }, [selectedIndex, allPoems]);
 
   useEffect(() => {
-    const fetchAllStories = async () => {
-      const st = await getReadingPracticeByType(ReadingPracticeType.STORY);
-      setAllStories(st);
+    const fetchAllPoems = async () => {
+      const p = await getReadingPracticeByType(ReadingPracticeType.POEM);
+      setAllPoems(p);
     };
-    fetchAllStories();
+    fetchAllPoems();
   }, []);
 
   return (
@@ -93,15 +93,14 @@ const StoryPractice = () => {
               <View style={styles.readingPieceContainer}>
                 <View>
                   <Text style={styles.readingPieceTitleText}>
-                    {allStories[selectedIndex]?.title} :{" "}
-                    {allStories[selectedIndex]?.author}
+                    {allPoems[selectedIndex]?.title} :{" "}
+                    {allPoems[selectedIndex]?.author}
                   </Text>
                   <View style={styles.readingPieceMeta}>
                     <Text style={styles.readingTime}>10 min read</Text>
                     <Text>•</Text>
                     <Text style={styles.readingLevel}>
-                      Level:{" "}
-                      {toPascalCase(allStories[selectedIndex]?.difficulty)}
+                      Level: {toPascalCase(allPoems[selectedIndex]?.difficulty)}
                     </Text>
                   </View>
                 </View>

@@ -188,3 +188,20 @@ export interface ExposurePractice {
   difficulty: DifficultyLevel;
   interviewPracticeData?: InterviewPracticeData;
 }
+
+// Reading Practice
+
+export enum ReadingPracticeType {
+  POEM = "POEM",
+  STORY = "STORY",
+  QUOTE = "QUOTE",
+}
+
+export interface ReadingPractice {
+  id: string;
+  type: ReadingPracticeType;
+  title: string;
+  author: string;
+  difficulty: DifficultyLevel;
+  textContent?: string;
+}

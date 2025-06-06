@@ -5,6 +5,7 @@ import ReadingPractice from "../../../../../screens/Academy/DailyPractice/pages/
 import { RDPStackParamList } from "./types";
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
+import PoemPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
 
 const Stack = createNativeStackNavigator<RDPStackParamList>();
 
@@ -14,6 +15,7 @@ export default function RDPStackNavigator() {
       <Stack.Screen name="ReadingPractice" component={ReadingPractice} />
       <Stack.Screen name="StoryPractice" component={StoryPractice} />
       <Stack.Screen name="QuotePractice" component={QuotePractice} />
+      <Stack.Screen name="PoemPractice" component={PoemPractice} />
     </Stack.Navigator>
   );
 }

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../../components/ScreenView";
 import { theme } from "../../../../../../Theme/tokens";
@@ -14,7 +14,7 @@ import {
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 import DonePractice from "../../../components/DonePractice";
 import SpeechTools from "../../../components/SpeechTools";
-import PageCounter from "../components/PageCounter";
+
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
@@ -22,14 +22,37 @@ import Metronome from "../../../../Library/TechniquePage/components/Metronome";
 import RecordingWidget from "../../../../Library/TechniquePage/components/RecordingWidget";
 import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../components/Button";
+import {
+  ReadingPractice,
+  ReadingPracticeType,
+} from "../../../../../../api/dailyPractice/types";
+import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 
 const QuotePractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
   const [practiceComplete, setPracticeComplete] = useState(false);
+  const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const toggleIndex = () => {
+    if (allQuotes && allQuotes.length > 0) {
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % allQuotes.length);
+    }
+  };
+
   const onBackPress = () => {
     navigation.goBack();
   };
+
+  useEffect(() => {
+    const fetchAllStories = async () => {
+      const q = await getReadingPracticeByType(ReadingPracticeType.QUOTE);
+      setAllQuotes(q);
+    };
+    fetchAllStories();
+  }, []);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -56,14 +79,15 @@ const QuotePractice = () => {
                   />
                 </View>
                 <Text style={styles.quoteText}>
-                  Success is not final, failure is not fatal: it is the courage
-                  to continue that counts."
+                  {allQuotes[selectedIndex]?.textContent}
                 </Text>
-                <Text style={styles.quoteAuthor}>Winston Churchill</Text>
+                <Text style={styles.quoteAuthor}>
+                  {allQuotes[selectedIndex]?.author}
+                </Text>
               </View>
               <Metronome />
               <RecordingWidget />
-              <RecorderWidget />
+              <RecorderWidget onToggle={toggleIndex} />
             </View>
             <Button
               text="Mark Complete"

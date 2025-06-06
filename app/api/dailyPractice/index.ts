@@ -6,6 +6,8 @@ import {
   ExposurePracticeType,
   FunPractice,
   FunPracticeType,
+  ReadingPractice,
+  ReadingPracticeType,
 } from "./types";
 
 // get all fun practice by type
@@ -54,6 +56,23 @@ export async function getExposurePracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all exposure practice by type:",
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getReadingPracticeByType(
+  type: ReadingPracticeType
+): Promise<ReadingPractice[]> {
+  try {
+    const response = await axiosClient.get("/reading-practice", {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "There was a problem with getting all reading practice by type:",
       error
     );
     throw error;
