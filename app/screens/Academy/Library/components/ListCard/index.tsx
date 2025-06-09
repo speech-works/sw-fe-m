@@ -51,19 +51,12 @@ const ListCard = ({
             onPress={onTutorialSelect}
             style={[
               styles.buttonTouch,
-              { backgroundColor: theme.colors.library.orange[100] },
+              { backgroundColor: theme.colors.library.orange[400] },
             ]}
           >
-            <Icon
-              name="play"
-              size={14}
-              color={theme.colors.library.orange[400]}
-            />
+            <Icon name="play" size={14} color={theme.colors.text.onDark} />
             <Text
-              style={[
-                styles.buttonText,
-                { color: theme.colors.library.orange[400] },
-              ]}
+              style={[styles.buttonText, { color: theme.colors.text.onDark }]}
             >
               Tutorial
             </Text>
@@ -72,18 +65,18 @@ const ListCard = ({
             onPress={onExerciseSelect}
             style={[
               styles.buttonTouch,
-              { backgroundColor: theme.colors.library.blue[100] },
+              { backgroundColor: theme.colors.surface.elevated },
             ]}
           >
             <Icon
               name="dumbbell"
               size={14}
-              color={theme.colors.library.blue[400]}
+              color={theme.colors.actionPrimary.default}
             />
             <Text
               style={[
                 styles.buttonText,
-                { color: theme.colors.library.blue[400] },
+                { color: theme.colors.actionPrimary.default },
               ]}
             >
               Exercise
@@ -159,7 +152,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    //...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: theme.colors.actionPrimary.default,
   },
   buttonText: {
     ...parseTextStyle(theme.typography.BodySmall),
