@@ -20,19 +20,32 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
     setIsVisible(false);
   };
 
-  const toolData: Array<{ name: string; desc: string; icon: string }> = [
+  const toolData: Array<{
+    name: string;
+    desc: string;
+    icon: string;
+    disabled?: boolean;
+  }> = [
     { name: "Metronome", desc: "Pace your speech with a beat", icon: "clock" },
-    {
-      name: "DAF",
-      desc: "Hear your voice with a slight delay",
-      icon: "headphones",
-    },
+
     {
       name: "Voicehover",
       desc: "Read along with a guide voice",
       icon: "volume-down",
     },
-    { name: "Chorus", desc: "Read along with the group", icon: "users" },
+
+    {
+      name: "Chorus",
+      desc: "Read along with the group",
+      icon: "users",
+      disabled: true,
+    },
+    {
+      name: "DAF",
+      desc: "Hear your voice with a slight delay",
+      icon: "headphones",
+      disabled: true,
+    },
   ];
 
   return (
@@ -80,28 +93,42 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
                 style={[
                   styles.toolCard,
                   selectedTool === tool.name && styles.selectedToolCard,
+                  tool.disabled && styles.disabledCard,
                 ]}
+                disabled={tool.disabled}
                 onPress={() => {
-                  onToolSelect && onToolSelect(tool.name);
+                  if (tool.disabled) return;
+                  onToolSelect?.(tool.name);
                   setSelectedTool(tool.name);
                   closeModal();
                 }}
               >
                 <View
-                  style={[styles.toolIconContainer, styles.toolIconContainer2]}
+                  style={[
+                    styles.toolIconContainer,
+                    styles.toolIconContainer2,
+                    tool.disabled ? styles.disabledIconContainer : null,
+                  ]}
                 >
                   <Icon
                     solid
                     name={tool.icon}
                     size={24}
-                    color={theme.colors.actionPrimary.default}
+                    color={
+                      tool.disabled
+                        ? theme.colors.text.disabled
+                        : theme.colors.actionPrimary.default
+                    }
                   />
                 </View>
                 <View style={styles.toolDescContainer}>
                   <Text
                     style={[
                       styles.toolNameText,
-                      selectedTool === tool.name && styles.selectedCardText,
+                      tool.disabled && styles.disabledText,
+                      selectedTool === tool.name &&
+                        !tool.disabled &&
+                        styles.selectedCardText,
                     ]}
                   >
                     {tool.name}
@@ -109,10 +136,13 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
                   <Text
                     style={[
                       styles.toolDetailText,
-                      selectedTool === tool.name && styles.selectedCardText,
+                      tool.disabled && styles.disabledText,
+                      selectedTool === tool.name &&
+                        !tool.disabled &&
+                        styles.selectedCardText,
                     ]}
                   >
-                    {tool.desc}
+                    {tool.disabled ? "coming soon" : tool.desc}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -197,6 +227,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.elevated,
     ...parseShadowStyle(theme.shadow.elevation1),
   },
+  disabledCard: {
+    backgroundColor: theme.colors.surface.disabled,
+    opacity: 1,
+  },
+  disabledText: {
+    color: theme.colors.text.disabled,
+  },
   selectedToolCard: {
     backgroundColor: theme.colors.actionPrimary.default,
   },
@@ -207,6 +244,9 @@ const styles = StyleSheet.create({
   toolIconContainer2: {
     height: 40,
     width: 40,
+  },
+  disabledIconContainer: {
+    backgroundColor: theme.colors.background.light,
   },
   toolDescContainer: {
     gap: 4,
