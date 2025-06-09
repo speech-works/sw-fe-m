@@ -28,6 +28,8 @@ import {
   ReadingPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import { toPascalCase } from "../../../../../../util/functions/strings";
+import { VoiceHover } from "../../../../Tools/VoiceHover";
+import { DAFTool } from "../../../../Tools/DAF";
 
 const StoryPractice = () => {
   const navigation =
@@ -40,6 +42,49 @@ const StoryPractice = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+
+  // highlightRange = [startIndex, length] for current word, or [-1,0] to clear
+  const [highlightRange, setHighlightRange] = useState<[number, number]>([
+    -1, 0,
+  ]);
+
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+  const renderSelectedTool = (toolName: string) => {
+    switch (toolName) {
+      case "DAF":
+        return <DAFTool />;
+      case "Voicehover":
+        return (
+          <VoiceHover
+            text={pages[currentPage] || ""}
+            onHighlightChange={(s, l) => setHighlightRange([s, l])}
+          />
+        );
+      case "Metronome":
+        return <Metronome />;
+      default:
+        return null;
+    }
+  };
+
+  const renderHighlightedText = () => {
+    const practiceText = pages[currentPage] || "";
+    const [start, length] = highlightRange;
+    if (start < 0 || length === 0) {
+      return <Text style={styles.readingText}>{practiceText}</Text>;
+    }
+    const before = practiceText.slice(0, start);
+    const word = practiceText.slice(start, start + length);
+    const after = practiceText.slice(start + length);
+
+    return (
+      <Text style={styles.readingText}>
+        {before}
+        <Text style={styles.highlight}>{word}</Text>
+        {after}
+      </Text>
+    );
+  };
 
   const splitTextIntoPages = (text: string): string[] => {
     return text
@@ -84,7 +129,11 @@ const StoryPractice = () => {
           <DonePractice />
         ) : (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <SpeechTools />
+            <SpeechTools
+              onToolSelect={(toolName) => {
+                setSelectedPracticeTool(toolName);
+              }}
+            />
             <View style={styles.readingPageContainer}>
               <PageCounter
                 currentPage={currentPage + 1}
@@ -150,10 +199,10 @@ const StoryPractice = () => {
                   </TouchableOpacity>
                 </View>
                 <View style={styles.readingTextContainer}>
-                  <Text style={styles.readingText}>{pages[currentPage]}</Text>
+                  {renderHighlightedText()}
                 </View>
               </View>
-              <Metronome />
+              {renderSelectedTool(selectedPracticeTool)}
               <RecordingWidget />
               <RecorderWidget onToggle={toggleIndex} />
             </View>
@@ -229,5 +278,8 @@ const styles = StyleSheet.create({
   readingText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+  },
+  highlight: {
+    color: theme.colors.library.blue[400],
   },
 });

@@ -1,5 +1,12 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
+// StoryPractice.tsx
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import React, { useEffect, useRef, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../../components/ScreenView";
 import { theme } from "../../../../../../Theme/tokens";
@@ -28,22 +35,72 @@ import {
   ReadingPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import { toPascalCase } from "../../../../../../util/functions/strings";
+import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
+import { VoiceHover } from "../../../../Tools/VoiceHover";
+import { DAFTool } from "../../../../Tools/DAF";
 
 const StoryPractice = () => {
+  const chorusManagerRef = useRef(new ChorusManager());
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+  const [isMuted, setIsMuted] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allStories, setAllStories] = useState<ReadingPractice[]>([]);
+
   const onBackPress = () => {
     navigation.goBack();
   };
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
 
+  // highlightRange = [startIndex, length] for current word, or [-1,0] to clear
+  const [highlightRange, setHighlightRange] = useState<[number, number]>([
+    -1, 0,
+  ]);
+
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+  const renderSelectedTool = (toolName: string) => {
+    switch (toolName) {
+      case "DAF":
+        return <DAFTool />;
+      case "Voicehover":
+        return (
+          <VoiceHover
+            text={pages[currentPage] || ""}
+            onHighlightChange={(s, l) => setHighlightRange([s, l])}
+          />
+        );
+      case "Metronome":
+        return <Metronome />;
+      default:
+        return null;
+    }
+  };
+
+  const renderHighlightedText = () => {
+    const practiceText = pages[currentPage] || "";
+    const [start, length] = highlightRange;
+    if (start < 0 || length === 0) {
+      return <Text style={styles.readingText}>{practiceText}</Text>;
+    }
+    const before = practiceText.slice(0, start);
+    const word = practiceText.slice(start, start + length);
+    const after = practiceText.slice(start + length);
+
+    return (
+      <Text style={styles.readingText}>
+        {before}
+        <Text style={styles.highlight}>{word}</Text>
+        {after}
+      </Text>
+    );
+  };
+
   const splitTextIntoPages = (text: string): string[] => {
     return text
-      .split(/\n\s*\n/) // handles \n\n or \n   \n
+      .split(/\n\s*\n/) // split on blank lines
       .map((section) => section.trim())
       .filter((section) => section.length > 0);
   };
@@ -54,11 +111,24 @@ const StoryPractice = () => {
     }
   };
 
+  const onToggleMute = () => {
+    if (!isMuted) {
+      chorusManagerRef.current.stop();
+    }
+    setIsMuted((prev) => !prev);
+  };
+
+  const iosVoices = ["com.apple.ttsbundle.Samantha-compact"];
+  const androidVoices = ["en-US-language", "en-GB-language", "en-IN-language"];
+  const voicePool = Platform.OS === "android" ? androidVoices : iosVoices;
+
   useEffect(() => {
     const currentText = allStories[selectedIndex]?.textContent || "";
     const paginated = splitTextIntoPages(currentText);
     setPages(paginated);
     setCurrentPage(0);
+    // Reset highlight when page or story changes
+    setHighlightRange([-1, 0]);
   }, [selectedIndex, allStories]);
 
   useEffect(() => {
@@ -67,6 +137,9 @@ const StoryPractice = () => {
       setAllStories(st);
     };
     fetchAllStories();
+    return () => {
+      chorusManagerRef.current.stop();
+    };
   }, []);
 
   return (
@@ -80,16 +153,21 @@ const StoryPractice = () => {
           />
           <Text style={styles.topNavigationText}>Story</Text>
         </TouchableOpacity>
+
         {practiceComplete ? (
           <DonePractice />
         ) : (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <SpeechTools />
+            <SpeechTools
+              onToolSelect={(toolName) => setSelectedPracticeTool(toolName)}
+            />
+
             <View style={styles.readingPageContainer}>
               <PageCounter
                 currentPage={currentPage + 1}
                 totalPages={pages.length}
               />
+
               <View style={styles.readingPieceContainer}>
                 <View>
                   <Text style={styles.readingPieceTitleText}>
@@ -101,11 +179,13 @@ const StoryPractice = () => {
                     <Text>•</Text>
                     <Text style={styles.readingLevel}>
                       Level:{" "}
-                      {toPascalCase(allStories[selectedIndex]?.difficulty)}
+                      {toPascalCase(
+                        allStories[selectedIndex]?.difficulty || ""
+                      )}
                     </Text>
                   </View>
                 </View>
-                {/* Add Next/Previous buttons */}
+                {/* Next/Previous page buttons */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -150,14 +230,19 @@ const StoryPractice = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Render the page text with live highlighting */}
                 <View style={styles.readingTextContainer}>
-                  <Text style={styles.readingText}>{pages[currentPage]}</Text>
+                  {renderHighlightedText()}
                 </View>
               </View>
-              <Metronome />
+
+              {/* <Text>{selectedPracticeTool}</Text> */}
+              {renderSelectedTool(selectedPracticeTool)}
               <RecordingWidget />
               <RecorderWidget onToggle={toggleIndex} />
             </View>
+
             <Button
               text="Mark Complete"
               onPress={() => {
@@ -188,7 +273,6 @@ const styles = StyleSheet.create({
   topNavigation: {
     position: "relative",
     top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -230,5 +314,8 @@ const styles = StyleSheet.create({
   readingText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+  },
+  highlight: {
+    color: theme.colors.library.blue[400],
   },
 });

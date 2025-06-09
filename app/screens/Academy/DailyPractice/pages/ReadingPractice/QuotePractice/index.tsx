@@ -27,6 +27,8 @@ import {
   ReadingPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
+import { VoiceHover } from "../../../../Tools/VoiceHover";
+import { DAFTool } from "../../../../Tools/DAF";
 
 const QuotePractice = () => {
   const navigation =
@@ -34,6 +36,20 @@ const QuotePractice = () => {
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+  const renderSelectedTool = (toolName: string) => {
+    switch (toolName) {
+      case "DAF":
+        return <DAFTool />;
+      case "Voicehover":
+        return <VoiceHover text={allQuotes[selectedIndex].textContent || ""} />;
+      case "Metronome":
+        return <Metronome />;
+      default:
+        return null;
+    }
+  };
 
   const toggleIndex = () => {
     if (allQuotes && allQuotes.length > 0) {
@@ -68,7 +84,11 @@ const QuotePractice = () => {
           <DonePractice />
         ) : (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <SpeechTools />
+            <SpeechTools
+              onToolSelect={(toolName) => {
+                setSelectedPracticeTool(toolName);
+              }}
+            />
             <View style={styles.activityContainer}>
               <View style={styles.quoteContainer}>
                 <View style={styles.quoteIconContainer}>
@@ -85,7 +105,7 @@ const QuotePractice = () => {
                   {allQuotes[selectedIndex]?.author}
                 </Text>
               </View>
-              <Metronome />
+              {renderSelectedTool(selectedPracticeTool)}
               <RecordingWidget />
               <RecorderWidget onToggle={toggleIndex} />
             </View>

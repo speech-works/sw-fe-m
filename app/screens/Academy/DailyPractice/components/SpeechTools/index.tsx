@@ -27,7 +27,12 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
       desc: "Hear your voice with a slight delay",
       icon: "headphones",
     },
-    { name: "Chorus", desc: "Read along with guide voice", icon: "users" },
+    {
+      name: "Voicehover",
+      desc: "Read along with a guide voice",
+      icon: "volume-down",
+    },
+    { name: "Chorus", desc: "Read along with the group", icon: "users" },
   ];
 
   return (
