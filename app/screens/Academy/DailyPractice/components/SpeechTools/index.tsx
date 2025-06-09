@@ -116,7 +116,7 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
                     size={24}
                     color={
                       tool.disabled
-                        ? theme.colors.text.disabled
+                        ? theme.colors.library.gray[100]
                         : theme.colors.actionPrimary.default
                     }
                   />
@@ -230,6 +230,11 @@ const styles = StyleSheet.create({
   disabledCard: {
     backgroundColor: theme.colors.surface.disabled,
     opacity: 1,
+    elevation: 0, // Android
+    shadowColor: "transparent", // iOS
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   disabledText: {
     color: theme.colors.text.disabled,
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   disabledIconContainer: {
-    backgroundColor: theme.colors.background.light,
+    backgroundColor: theme.colors.library.gray[200],
   },
   toolDescContainer: {
     gap: 4,

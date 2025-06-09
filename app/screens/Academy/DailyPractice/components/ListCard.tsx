@@ -87,7 +87,12 @@ const styles = StyleSheet.create({
   },
   disabledContainer: {
     backgroundColor: theme.colors.surface.disabled,
-    boxShadow: "none",
+    opacity: 1,
+    elevation: 0, // Android
+    shadowColor: "transparent", // iOS
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   disabledTitleText: {
     color: theme.colors.text.default,
