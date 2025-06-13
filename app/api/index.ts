@@ -24,13 +24,7 @@ export {
   getLiveProgressReport,
   getPastProgressReports,
 } from "./progressReport";
-export {
-  getAllScripts,
-  getScriptById,
-  createScript,
-  updateScript,
-  deleteScript,
-} from "./scripts";
+
 export {
   getAllRecordings,
   getRecordingById,

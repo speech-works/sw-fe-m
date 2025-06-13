@@ -1,17 +1,21 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { LIBRARY_STAGE } from "../../../../screens/Academy/Library/TechniquePage/type";
+import { FinalAnswer, TECHNIQUES_ENUM } from "../../../../api/library/types";
 
 export type LibStackParamList = {
   Library: undefined;
   TechniquePage: {
-    techniqueId: string;
+    techniqueId: TECHNIQUES_ENUM;
+    techniqueDesc: string;
+    techniqueLevel: string;
     techniqueName: string;
     stage: LIBRARY_STAGE;
   };
   SummaryPage: {
-    techniqueId: string;
+    techniqueId: TECHNIQUES_ENUM;
     techniqueName: string;
+    finalAnswers: Array<FinalAnswer>;
   };
 };
 export type LibStackNavigationProp<T extends keyof LibStackParamList> =

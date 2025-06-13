@@ -21,32 +21,15 @@ const SummaryPage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const route = useRoute<RouteProp<LibStackParamList, "SummaryPage">>();
-  const { techniqueId, techniqueName } = route.params;
+  // Destructure route params to get techniqueId, techniqueName, and finalAnswers
+  const { techniqueId, techniqueName, finalAnswers } = route.params;
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>{techniqueName}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}}>
-            <Icon
-              name="question-circle"
-              size={16}
-              color={theme.colors.text.default}
-            />
-          </TouchableOpacity>
-        </View>
-
+        {/* Scrollable Content Area */}
         <CustomScrollView contentContainerStyle={styles.scrollView}>
+          {/* Great Job Section */}
           <View style={styles.okContainer}>
             <Icon
               name="check"
@@ -61,83 +44,114 @@ const SummaryPage = () => {
               forget to check for more in the library.
             </Text>
           </View>
+
+          {/* Questions Summary Container */}
           <View style={styles.questContainer}>
-            <View style={styles.questCard}>
-              <View style={styles.metaRow}>
-                <Text style={styles.labelText}>Question 1</Text>
-                <View style={styles.resultContainer}>
-                  <Icon
-                    solid
-                    name="check-circle"
-                    color={theme.colors.library.green[400]}
-                    size={16}
-                  />
-                  <Text style={styles.resultText}>Correct</Text>
+            {/* Map through finalAnswers to display each question's summary */}
+            {finalAnswers.map((item, index) => {
+              const isCorrect = item.yourAnswer.isCorrect;
+              const yourAnswerText = item.yourAnswer.optionText;
+              const correctAnswerText = item.question.options.find(
+                (opt) => opt.isCorrect
+              )?.optionText;
+              const questionText = item.question.questionText;
+
+              return (
+                <View style={styles.questCard} key={item.question.id}>
+                  {/* Question Meta Row: Question Number and Result (Correct/Incorrect) */}
+                  <View style={styles.metaRow}>
+                    <Text style={styles.labelText}>Question {index + 1}</Text>
+                    <View style={styles.resultContainer}>
+                      {/* Icon for correctness */}
+                      <Icon
+                        solid
+                        name={isCorrect ? "check-circle" : "times-circle"}
+                        color={
+                          isCorrect
+                            ? theme.colors.library.green[400]
+                            : theme.colors.library.red[400]
+                        }
+                        size={16}
+                      />
+                      {/* Text for correctness */}
+                      <Text
+                        style={[
+                          styles.resultText,
+                          !isCorrect && styles.resultTextErr, // Apply error style if incorrect
+                        ]}
+                      >
+                        {isCorrect ? "Correct" : "Incorrect"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Question Text */}
+                  <Text style={styles.questionText}>{questionText}</Text>
+
+                  {/* Your Answer Row */}
+                  <View
+                    style={[
+                      styles.ansRow,
+                      !isCorrect && styles.ansRowErr, // Apply error style if your answer was incorrect
+                    ]}
+                  >
+                    {/* Icon for your answer's correctness */}
+                    <Icon
+                      name={isCorrect ? "check" : "times"}
+                      size={16}
+                      color={
+                        isCorrect
+                          ? theme.colors.library.green[400]
+                          : theme.colors.library.red[400]
+                      }
+                    />
+                    {/* Text for your answer */}
+                    <Text
+                      style={[
+                        styles.ansText,
+                        !isCorrect && styles.ansTextErr, // Apply error style if your answer was incorrect
+                      ]}
+                    >
+                      {yourAnswerText}
+                    </Text>
+                  </View>
+
+                  {/* Correct Answer Row (only shown if your answer was incorrect) */}
+                  {!isCorrect && (
+                    <View style={styles.ansRow}>
+                      <Icon
+                        name="check"
+                        size={16}
+                        color={theme.colors.library.green[400]}
+                      />
+                      <Text style={styles.ansText}>{correctAnswerText}</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-              <Text style={styles.questionText}>
-                What is the main purpose of the {techniqueName} technique?
-              </Text>
-              <View style={styles.ansRow}>
-                <Icon
-                  name="check"
-                  size={16}
-                  color={theme.colors.library.green[400]}
-                />
-                <Text style={styles.ansText}>
-                  To modify the moment of stuttering
-                </Text>
-              </View>
-            </View>
-            <View style={styles.questCard}>
-              <View style={styles.metaRow}>
-                <Text style={styles.labelText}>Question 2</Text>
-                <View style={styles.resultContainer}>
-                  <Icon
-                    solid
-                    name="times-circle"
-                    color={theme.colors.library.red[400]}
-                    size={16}
-                  />
-                  <Text style={styles.resultTextErr}>Incorrect</Text>
-                </View>
-              </View>
-              <Text style={styles.questionText}>
-                When should you begin the {techniqueName} movement?
-              </Text>
-              <View style={[styles.ansRow, styles.ansRowErr]}>
-                <Icon
-                  name="times"
-                  size={16}
-                  color={theme.colors.library.red[400]}
-                />
-                <Text style={[styles.ansText, styles.ansTextErr]}>
-                  After completing the word
-                </Text>
-              </View>
-              <View style={styles.ansRow}>
-                <Icon
-                  name="check"
-                  size={16}
-                  color={theme.colors.library.green[400]}
-                />
-                <Text style={styles.ansText}>
-                  As soon as you feel tension building
-                </Text>
-              </View>
-            </View>
+              );
+            })}
           </View>
+
+          {/* Action Buttons */}
           <View style={styles.btnContainer}>
-            <Button text="Practice Again" onPress={() => {}} elevation={1} />
-            <Button
-              variant="ghost"
-              text="Back to Library"
-              onPress={() => {}}
-              elevation={1}
-              style={{
-                backgroundColor: theme.colors.surface.elevated,
-                borderColor: "transparent",
+            {/* <Button
+              text="Practice Again"
+              onPress={() => {
+                navigation.goBack();
               }}
+              elevation={1}
+            /> */}
+            <Button
+              //variant="ghost"
+              text="Back to Library"
+              onPress={() => {
+                navigation.navigate("Library");
+              }}
+              elevation={1}
+              // style={{
+              //   backgroundColor: theme.colors.surface.elevated,
+              //   borderColor: "transparent",
+              // }}
             />
           </View>
         </CustomScrollView>
@@ -254,6 +268,7 @@ const styles = StyleSheet.create({
   ansText: {
     justifyContent: "flex-start",
     color: theme.colors.library.green[400],
+    flexShrink: 1,
   },
   ansTextErr: {
     color: theme.colors.library.red[400],

@@ -20,7 +20,8 @@ import {
 import InputField from "../../../components/InputField";
 
 import ListItem from "./components/ListItem";
-import { libraryData } from "./data";
+import { getLibraryDetails } from "../../../api/library";
+import { Library as LibraryType } from "../../../api/library/types";
 
 const Library = () => {
   const navigation =
@@ -28,6 +29,7 @@ const Library = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState("");
   const inputFieldRef = useRef<TextInput>(null);
+  const [libraryData, setLibraryData] = useState<Array<LibraryType>>([]);
   const filteredData = isSearching
     ? libraryData
         .map((lib) => ({
@@ -43,6 +45,14 @@ const Library = () => {
   const headerOpacity = useRef(new Animated.Value(1)).current;
 
   const searchAnim = useRef(new Animated.Value(0)).current; // 0 = title mode, 1 = search mode
+
+  useEffect(() => {
+    const fetchLibraryDetails = async () => {
+      const lib = await getLibraryDetails();
+      setLibraryData(lib);
+    };
+    fetchLibraryDetails();
+  }, []);
 
   // Whenever we switch into “search” mode, focus the TextInput.
   useEffect(() => {

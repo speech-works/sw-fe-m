@@ -1,6 +1,5 @@
 import axiosClient from "../axiosClient";
 import { PracticeSession } from "../practiceSessions";
-import { Script } from "../scripts";
 
 export enum PracticeStepType {
   BREATHING = "BREATHING",
@@ -20,7 +19,6 @@ export interface PracticeActivity {
   id: string;
   session: PracticeSession;
   stepType: PracticeStepType;
-  script: Script | null;
   status: "ongoing" | "completed";
   startedAt: Date | null;
   completedAt: Date | null;

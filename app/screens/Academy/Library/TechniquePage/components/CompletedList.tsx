@@ -4,13 +4,17 @@ import { theme } from "../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import StarRating from "../../../../../components/StarRating";
+import { ExerciseItem } from "../../../../../api/library/types";
 
-const CompletedList = () => {
+interface CompletedListProps {
+  items: ExerciseItem[];
+}
+const CompletedList = ({ items }: CompletedListProps) => {
   return (
     <View style={styles.container}>
-      {["Sunshine", "Morning"].map((w) => (
-        <View style={styles.row}>
-          <View style={styles.word}>
+      {items.map((w) => (
+        <View key={w.id} style={styles.row}>
+          <View style={styles.item}>
             <View style={styles.circle}>
               <Icon
                 name="check"
@@ -18,9 +22,9 @@ const CompletedList = () => {
                 size={16}
               />
             </View>
-            <Text style={styles.wordText}>{w}</Text>
+            <Text style={styles.itemText}>{w.itemText}</Text>
           </View>
-          <StarRating sizeOfEachStar={16} howManyStarsFilled={2} interactive />
+          <StarRating sizeOfEachStar={16} howManyStarsFilled={0} interactive />
         </View>
       ))}
     </View>
@@ -43,14 +47,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: theme.colors.background.default,
   },
-  word: {
+  item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    flexShrink: 1,
   },
-  wordText: {
+  itemText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+    flexShrink: 1,
   },
   circle: {
     height: 32,
