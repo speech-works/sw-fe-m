@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../components/ScreenView";
 import CustomScrollView from "../../../../components/CustomScrollView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -24,7 +24,7 @@ const TechniquePage = () => {
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
 
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
-  const { techniqueId, techniqueName, techniqueDesc, techniqueLevel } =
+  const { techniqueId, techniqueName, techniqueDesc, techniqueLevel, stage } =
     route.params;
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -45,6 +45,14 @@ const TechniquePage = () => {
     ) : null;
 
   const closeModal = () => setIsModalVisible(false);
+
+  useEffect(() => {
+    if (stage === "TUTORIAL") {
+      setActiveStageIndex(0);
+    } else if (stage === "EXERCISE") {
+      setActiveStageIndex(1);
+    }
+  }, [stage]);
 
   return (
     <>
