@@ -1,5 +1,14 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Animated,
+} from "react-native";
+import React, { useState, useRef } from "react";
 import ScreenView from "../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -17,19 +26,50 @@ import {
 } from "../../../../../util/functions/parseStyles";
 import Button from "../../../../../components/Button";
 
+// Enable LayoutAnimation on Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const SummaryPage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const route = useRoute<RouteProp<LibStackParamList, "SummaryPage">>();
-  // Destructure route params to get techniqueId, techniqueName, and finalAnswers
   const { techniqueId, techniqueName, finalAnswers } = route.params;
+
+  // Track expanded state per question
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Prepare rotation animations synchronously to avoid undefined
+  const rotationAnim = useRef<Record<string, Animated.Value>>({}).current;
+  finalAnswers.forEach((item) => {
+    if (!rotationAnim[item.question.id]) {
+      rotationAnim[item.question.id] = new Animated.Value(0);
+    }
+  });
+
+  const toggleExplanation = (id: string) => {
+    // Smooth expand/collapse
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    const isExp = !expanded[id];
+    setExpanded((prev) => ({ ...prev, [id]: isExp }));
+
+    // Animate arrow rotation
+    Animated.timing(rotationAnim[id], {
+      toValue: isExp ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        {/* Scrollable Content Area */}
         <CustomScrollView contentContainerStyle={styles.scrollView}>
-          {/* Great Job Section */}
           <View style={styles.okContainer}>
             <Icon
               name="check"
@@ -45,24 +85,28 @@ const SummaryPage = () => {
             </Text>
           </View>
 
-          {/* Questions Summary Container */}
           <View style={styles.questContainer}>
-            {/* Map through finalAnswers to display each question's summary */}
             {finalAnswers.map((item, index) => {
               const isCorrect = item.yourAnswer.isCorrect;
               const yourAnswerText = item.yourAnswer.optionText;
-              const correctAnswerText = item.question.options.find(
+              const correctAnswer = item.question.options.find(
                 (opt) => opt.isCorrect
-              )?.optionText;
+              );
+              const correctAnswerText = correctAnswer?.optionText;
               const questionText = item.question.questionText;
+              const explanation = correctAnswer?.explanation;
+
+              const rotate = rotationAnim[item.question.id].interpolate({
+                inputRange: [0, 1],
+                outputRange: ["0deg", "180deg"],
+              });
 
               return (
                 <View style={styles.questCard} key={item.question.id}>
-                  {/* Question Meta Row: Question Number and Result (Correct/Incorrect) */}
+                  {/* Meta Row */}
                   <View style={styles.metaRow}>
                     <Text style={styles.labelText}>Question {index + 1}</Text>
                     <View style={styles.resultContainer}>
-                      {/* Icon for correctness */}
                       <Icon
                         solid
                         name={isCorrect ? "check-circle" : "times-circle"}
@@ -73,11 +117,10 @@ const SummaryPage = () => {
                         }
                         size={16}
                       />
-                      {/* Text for correctness */}
                       <Text
                         style={[
                           styles.resultText,
-                          !isCorrect && styles.resultTextErr, // Apply error style if incorrect
+                          !isCorrect && styles.resultTextErr,
                         ]}
                       >
                         {isCorrect ? "Correct" : "Incorrect"}
@@ -88,14 +131,8 @@ const SummaryPage = () => {
                   {/* Question Text */}
                   <Text style={styles.questionText}>{questionText}</Text>
 
-                  {/* Your Answer Row */}
-                  <View
-                    style={[
-                      styles.ansRow,
-                      !isCorrect && styles.ansRowErr, // Apply error style if your answer was incorrect
-                    ]}
-                  >
-                    {/* Icon for your answer's correctness */}
+                  {/* Your Answer */}
+                  <View style={[styles.ansRow, !isCorrect && styles.ansRowErr]}>
                     <Icon
                       name={isCorrect ? "check" : "times"}
                       size={16}
@@ -105,18 +142,14 @@ const SummaryPage = () => {
                           : theme.colors.library.red[400]
                       }
                     />
-                    {/* Text for your answer */}
                     <Text
-                      style={[
-                        styles.ansText,
-                        !isCorrect && styles.ansTextErr, // Apply error style if your answer was incorrect
-                      ]}
+                      style={[styles.ansText, !isCorrect && styles.ansTextErr]}
                     >
                       {yourAnswerText}
                     </Text>
                   </View>
 
-                  {/* Correct Answer Row (only shown if your answer was incorrect) */}
+                  {/* Correct Answer if wrong */}
                   {!isCorrect && (
                     <View style={styles.ansRow}>
                       <Icon
@@ -127,31 +160,46 @@ const SummaryPage = () => {
                       <Text style={styles.ansText}>{correctAnswerText}</Text>
                     </View>
                   )}
+
+                  {/* Explanation */}
+                  {explanation && (
+                    <View>
+                      <TouchableOpacity
+                        style={styles.explanationToggle}
+                        onPress={() => toggleExplanation(item.question.id)}
+                      >
+                        <Text style={styles.explanationToggleText}>
+                          {expanded[item.question.id]
+                            ? "Explanation"
+                            : "Explanation"}
+                        </Text>
+                        <Animated.View style={{ transform: [{ rotate }] }}>
+                          <Icon
+                            name="chevron-down"
+                            size={14}
+                            color={theme.colors.text.title}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+
+                      {expanded[item.question.id] && (
+                        <Text style={styles.explanationText}>
+                          {explanation}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               );
             })}
           </View>
 
-          {/* Action Buttons */}
+          {/* Back Button */}
           <View style={styles.btnContainer}>
-            {/* <Button
-              text="Practice Again"
-              onPress={() => {
-                navigation.goBack();
-              }}
-              elevation={1}
-            /> */}
             <Button
-              //variant="ghost"
               text="Back to Library"
-              onPress={() => {
-                navigation.navigate("Library");
-              }}
+              onPress={() => navigation.navigate("Library")}
               elevation={1}
-              // style={{
-              //   backgroundColor: theme.colors.surface.elevated,
-              //   borderColor: "transparent",
-              // }}
             />
           </View>
         </CustomScrollView>
@@ -163,49 +211,19 @@ const SummaryPage = () => {
 export default SummaryPage;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-  },
-  container: {
-    gap: 32,
-    flex: 1,
-  },
-  topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  topNavigationText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  scrollView: {
-    padding: SHADOW_BUFFER,
-    paddingVertical: 32,
-    gap: 32,
-  },
+  screenView: { paddingBottom: 0 },
+  container: { gap: 32, flex: 1 },
+  scrollView: { padding: SHADOW_BUFFER, paddingVertical: 32, gap: 32 },
   okContainer: {
     height: 128,
     width: 128,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
-    borderRadius: "50%",
+    borderRadius: 64,
     backgroundColor: theme.colors.library.green[200],
   },
-  titleTextContainer: {
-    alignItems: "center",
-    gap: 16,
-  },
+  titleTextContainer: { alignItems: "center", gap: 16 },
   titleText: {
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
@@ -215,10 +233,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
   },
-  questContainer: {
-    gap: 24,
-    width: "100%",
-  },
+  questContainer: { gap: 24, width: "100%" },
   questCard: {
     padding: 24,
     gap: 16,
@@ -235,11 +250,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
-  resultContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+  resultContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
   resultText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.library.green[400],
@@ -262,19 +273,28 @@ const styles = StyleSheet.create({
   },
   ansRowErr: {
     backgroundColor: theme.colors.library.red[100],
-    borderWidth: 1,
     borderColor: theme.colors.library.red[400],
   },
   ansText: {
-    justifyContent: "flex-start",
-    color: theme.colors.library.green[400],
     flexShrink: 1,
+    color: theme.colors.library.green[400],
   },
-  ansTextErr: {
-    color: theme.colors.library.red[400],
+  ansTextErr: { color: theme.colors.library.red[400] },
+  btnContainer: { gap: 12, width: "100%" },
+  explanationToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
   },
-  btnContainer: {
-    gap: 12,
-    width: "100%",
+  explanationToggleText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+  },
+  explanationText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    paddingTop: 8,
+    lineHeight: 20,
   },
 });

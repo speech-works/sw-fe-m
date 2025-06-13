@@ -13,19 +13,20 @@ import CustomScrollView from "../../../components/CustomScrollView";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../../Theme/tokens";
-import {
-  LibStackNavigationProp,
-  LibStackParamList,
-} from "../../../navigators/stacks/AcademyStack/LibraryStack/types";
+
 import InputField from "../../../components/InputField";
 
 import ListItem from "./components/ListItem";
 import { getLibraryDetails } from "../../../api/library";
 import { Library as LibraryType } from "../../../api/library/types";
+import {
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
+} from "../../../navigators/stacks/AcademyStack/types";
 
 const Library = () => {
-  const navigation =
-    useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
+  const navigationAcademy =
+    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState("");
   const inputFieldRef = useRef<TextInput>(null);
@@ -135,7 +136,7 @@ const Library = () => {
             // ─── When Not Searching: Show Back Button + Title ───────────────────
 
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => navigationAcademy.navigate("Academy")}
               style={styles.titleModeLeft}
             >
               <Icon name="chevron-left" color={theme.colors.text.default} />

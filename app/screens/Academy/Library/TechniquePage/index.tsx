@@ -22,6 +22,7 @@ import BottomSheetModal from "../../../../components/BottomSheetModal";
 const TechniquePage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
+
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
   const { techniqueId, techniqueName, techniqueDesc, techniqueLevel } =
     route.params;
