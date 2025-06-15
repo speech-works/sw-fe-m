@@ -8,10 +8,7 @@ import {
   LibStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { theme } from "../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import PageStepper from "./components/PageStepper";
 import TutorialPage from "./TutorialPage";

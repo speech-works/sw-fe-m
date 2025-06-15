@@ -13,6 +13,7 @@ export interface ListCardProps {
   icon: React.ReactNode;
   onPress: () => void;
   disabled?: boolean;
+  noChevron?: boolean;
 }
 
 const ListCard = ({
@@ -21,6 +22,7 @@ const ListCard = ({
   icon,
   onPress,
   disabled,
+  noChevron,
 }: ListCardProps) => {
   return (
     <TouchableOpacity
@@ -42,7 +44,7 @@ const ListCard = ({
           <Text style={styles.descriptionText}>{description}</Text>
         </View>
       </View>
-      {!disabled && (
+      {!disabled && !noChevron && (
         <Icon
           name="chevron-right"
           size={16}
@@ -76,6 +78,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     gap: 2,
+    flexShrink: 1,
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),

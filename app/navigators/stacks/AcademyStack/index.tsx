@@ -5,6 +5,7 @@ import { AcademyStackParamList } from "./types";
 import DPStackNavigator from "./DailyPracticeStack";
 import LibStackNavigator from "./LibraryStack";
 import ChalStackNavigator from "./ChallengesStack";
+import MoodCheckStackNavigator from "./MoodCheckStack";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 
@@ -15,6 +16,7 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="DailyPracticeStack" component={DPStackNavigator} />
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
       <Stack.Screen name="ChallengesStack" component={ChalStackNavigator} />
+      <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
     </Stack.Navigator>
   );
 }

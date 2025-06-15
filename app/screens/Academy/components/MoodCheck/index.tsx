@@ -10,31 +10,41 @@ import {
 } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useNavigation } from "@react-navigation/native";
+import {
+  MoodCheckStackNavigationProp,
+  MoodCheckStackParamList,
+} from "../../../../navigators/stacks/AcademyStack/MoodCheckStack/types";
+import {
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
+} from "../../../../navigators/stacks/AcademyStack/types";
+import { MOOD } from "../../../../types/mood";
 
 const emotions = [
   {
-    id: "angry",
+    id: MOOD.ANGRY,
     name: "Angry",
     description: "Something's clearly up! Share it.",
     icon: Angry1,
     bgColor: theme.colors.moodcheck.angry,
   },
   {
-    id: "calm",
+    id: MOOD.CALM,
     name: "Calm",
     description: "What's your go-to for zen?",
     icon: Calm1,
     bgColor: theme.colors.moodcheck.calm,
   },
   {
-    id: "happy",
+    id: MOOD.HAPPY,
     name: "Happy",
     description: "Tell us all about it!",
     icon: Happy1,
     bgColor: theme.colors.moodcheck.happy,
   },
   {
-    id: "sad",
+    id: MOOD.SAD,
     name: "Sad",
     description: "Thinking of you! Share with us.",
     icon: Sad1,
@@ -43,6 +53,12 @@ const emotions = [
 ];
 
 const MoodCheck = () => {
+  const academyNavigation =
+    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const moodCheckNavigation =
+    useNavigation<
+      MoodCheckStackNavigationProp<keyof MoodCheckStackParamList>
+    >();
   return (
     <View style={styles.container}>
       <Text style={styles.titleText}>How do you feel today?</Text>
@@ -51,6 +67,13 @@ const MoodCheck = () => {
           <TouchableOpacity
             key={i}
             style={[styles.emotionBlock, { backgroundColor: emo.bgColor }]}
+            onPress={() => {
+              academyNavigation.navigate("MoodCheckStack", {
+                screen: "FollowUp",
+                params: { mood: emo.id },
+              });
+              // moodCheckNavigation.navigate("FollowUp");
+            }}
           >
             <emo.icon width={48} height={48} />
             <View style={styles.emotionTextContainer}>
