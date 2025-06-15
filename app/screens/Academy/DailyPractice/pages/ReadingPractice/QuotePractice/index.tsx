@@ -29,6 +29,7 @@ import {
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const QuotePractice = () => {
   const navigation =
@@ -106,8 +107,7 @@ const QuotePractice = () => {
                 </Text>
               </View>
               {renderSelectedTool(selectedPracticeTool)}
-              <RecordingWidget />
-              <RecorderWidget onToggle={toggleIndex} />
+              <VoiceRecorder onToggle={toggleIndex} />
             </View>
             <Button
               text="Mark Complete"

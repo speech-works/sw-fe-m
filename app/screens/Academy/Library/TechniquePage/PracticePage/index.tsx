@@ -20,6 +20,7 @@ import { getAllExerciseItems } from "../../../../../api/library";
 import { DAFTool } from "../../../Tools/DAF";
 import { VoiceHover } from "../../../Tools/VoiceHover";
 import { speakText } from "../../../../../util/functions/speak";
+import VoiceRecorder from "../components/VoiceRecorder";
 
 interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -97,8 +98,7 @@ const PracticePage = ({
           </TouchableOpacity>
         </View>
         {renderSelectedTool(selectedPracticeTool)}
-        <RecordingWidget />
-        <RecorderWidget onToggle={toggleIndex} />
+        <VoiceRecorder onToggle={toggleIndex} />
         <CompletedList items={completedItems} />
       </View>
       <Button

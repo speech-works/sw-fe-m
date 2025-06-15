@@ -31,6 +31,7 @@ import {
   RolePlayNode,
   RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
+import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
 
 // Define the message structure
 interface ChatMessage {
@@ -340,15 +341,7 @@ const Chat = () => {
                 </View>
               )}
 
-              <View style={styles.recordingContainer}>
-                <RecordingWidget />
-                <View style={styles.recorderContainer}>
-                  <RecorderWidget />
-                  <Text style={styles.recordTipText}>
-                    Tap microphone to {"start"} speaking
-                  </Text>
-                </View>
-              </View>
+              <VoiceRecorder />
 
               <Button text="Mark Complete" onPress={() => setIsDone(true)} />
             </>

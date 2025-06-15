@@ -20,6 +20,7 @@ import {
   FunPractice,
   FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const Twister = () => {
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
@@ -100,13 +101,7 @@ const Twister = () => {
                     {twisters[currentIndex]?.tongueTwisterData?.text}
                   </Text>
                 </View>
-                <RecordingWidget />
-                <View style={styles.recorderContainer}>
-                  <RecorderWidget onToggle={toggleIndex} />
-                  <Text style={styles.recordTipText}>
-                    Tap microphone to {"start"} speaking
-                  </Text>
-                </View>
+                <VoiceRecorder onToggle={toggleIndex} />
               </View>
               <Button
                 text="Mark Complete"

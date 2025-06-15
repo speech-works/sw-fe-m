@@ -17,6 +17,7 @@ import RecorderWidget from "../../../../../Library/TechniquePage/components/Reco
 import Button from "../../../../../../../components/Button";
 import DonePractice from "../../../../components/DonePractice";
 import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
+import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const CVExercise = () => {
   const navigation = useNavigation();
@@ -100,13 +101,7 @@ const CVExercise = () => {
 
                   <Text style={styles.actualText}>{texts[currentIndex]}</Text>
                 </View>
-                <RecordingWidget />
-                <View style={styles.recorderContainer}>
-                  <RecorderWidget onToggle={toggleIndex} />
-                  <Text style={styles.recordTipText}>
-                    Tap microphone to {"start"} speaking
-                  </Text>
-                </View>
+                <VoiceRecorder onToggle={toggleIndex} />
               </View>
               <Button
                 text="Mark Complete"
@@ -184,14 +179,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: 400,
   },
-  recorderContainer: {
-    gap: 16,
-  },
-  recordTipText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
+
   tipsContainer: {
     padding: 16,
     gap: 16,

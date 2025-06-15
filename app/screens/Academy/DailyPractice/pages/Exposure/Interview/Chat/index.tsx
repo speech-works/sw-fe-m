@@ -27,6 +27,7 @@ import Separator from "../../../../../../../components/Separator";
 import RecordingWidget from "../../../../../Library/TechniquePage/components/RecordingWidget";
 import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../../components/Button";
+import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -339,16 +340,7 @@ const Chat = () => {
                 )}
               </View>
 
-              {/* Recording and Recorder Widgets */}
-              <View style={styles.recordingContainer}>
-                <RecordingWidget />
-                <View style={styles.recorderContainer}>
-                  <RecorderWidget />
-                  <Text style={styles.recordTipText}>
-                    Tap microphone to {"start"} speaking
-                  </Text>
-                </View>
-              </View>
+              <VoiceRecorder />
 
               {/* Mark Complete Button */}
               <Button text="Mark Complete" onPress={() => setIsDone(true)} />
@@ -480,22 +472,6 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
-  },
-  recordingContainer: {
-    padding: 16,
-    gap: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  recorderContainer: {
-    gap: 16,
-    alignItems: "center",
-  },
-  recordTipText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
   },
 });
 

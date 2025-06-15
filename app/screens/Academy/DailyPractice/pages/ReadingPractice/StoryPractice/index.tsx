@@ -38,6 +38,7 @@ import { toPascalCase } from "../../../../../../util/functions/strings";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const StoryPractice = () => {
   const chorusManagerRef = useRef(new ChorusManager());
@@ -239,8 +240,7 @@ const StoryPractice = () => {
 
               {/* <Text>{selectedPracticeTool}</Text> */}
               {renderSelectedTool(selectedPracticeTool)}
-              <RecordingWidget />
-              <RecorderWidget onToggle={toggleIndex} />
+              <VoiceRecorder onToggle={toggleIndex} />
             </View>
 
             <Button

@@ -30,6 +30,7 @@ import {
 import { toPascalCase } from "../../../../../../util/functions/strings";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const StoryPractice = () => {
   const navigation =
@@ -203,8 +204,7 @@ const StoryPractice = () => {
                 </View>
               </View>
               {renderSelectedTool(selectedPracticeTool)}
-              <RecordingWidget />
-              <RecorderWidget onToggle={toggleIndex} />
+              <VoiceRecorder onToggle={toggleIndex} />
             </View>
             <Button
               text="Mark Complete"
