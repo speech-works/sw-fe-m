@@ -5,42 +5,52 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
 import { parseShadowStyle } from "../../../../../util/functions/parseStyles";
 
-interface RecorderWidgetProps {
+const RecorderWidget: React.FC<{
   onToggle?: () => void;
   onRecord?: () => void;
   onStopRecording?: () => void;
   onPlay?: () => void;
   onPlaybackStop?: () => void;
-}
-
-const RecorderWidget: React.FC<RecorderWidgetProps> = ({
+  onMetering?: (db: number) => void;
+}> = ({
   onToggle,
   onPlay,
   onRecord,
   onStopRecording,
   onPlaybackStop,
+  onMetering,
 }) => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const recordedUri = useRef<string | null>(null);
+  const isMounted = useRef(true);
+  const meteringInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    isMounted.current = true;
+
     (async () => {
+      console.log("🔧 Requesting audio permissions");
       const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) console.warn("Audio permission not granted");
+      if (!granted) console.warn("⚠️ Audio permission not granted");
+
+      console.log("🔧 Setting audio mode");
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
         shouldDuckAndroid: true,
-        interruptionModeAndroid: 1,
-        interruptionModeIOS: 1,
       });
     })();
 
     return () => {
+      console.log("🧹 Cleaning up audio resources");
+      isMounted.current = false;
+      if (meteringInterval.current) {
+        clearInterval(meteringInterval.current);
+      }
       sound?.unloadAsync();
       recording?.stopAndUnloadAsync();
     };
@@ -48,57 +58,120 @@ const RecorderWidget: React.FC<RecorderWidgetProps> = ({
 
   const startRecording = async () => {
     try {
+      console.log("🎤 Starting recording");
+
+      // Stop any active playback
       if (isPlaying && sound) {
+        console.log("⏹️ Stopping existing playback");
         await sound.stopAsync();
         await sound.unloadAsync();
         setIsPlaying(false);
         onPlaybackStop?.();
       }
+
+      // Create and prepare recording
       const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      await rec.prepareToRecordAsync({
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true, // Ensure metering is enabled
+      });
+
+      // Set up metering updates with higher frequency
+      rec.setOnRecordingStatusUpdate((status) => {
+        if (
+          status.isRecording &&
+          typeof status.metering === "number" &&
+          isMounted.current
+        ) {
+          // Send metering data at consistent intervals
+          onMetering?.(status.metering);
+        }
+      });
+
+      // Start recording
       await rec.startAsync();
       setRecording(rec);
       setIsRecording(true);
       onRecord?.();
+
+      console.log("✅ Recording started successfully");
     } catch (e) {
-      console.error(e);
+      console.error("❌ Recording error:", e);
     }
   };
 
   const stopRecording = async () => {
     if (!recording) return;
-    await recording.stopAndUnloadAsync();
-    recordedUri.current = recording.getURI();
-    setIsRecording(false);
-    setRecording(null);
-    onStopRecording?.();
+    try {
+      console.log("🛑 Stopping recording");
+
+      // Clear any metering intervals
+      if (meteringInterval.current) {
+        clearInterval(meteringInterval.current);
+        meteringInterval.current = null;
+      }
+
+      await recording.stopAndUnloadAsync();
+      recordedUri.current = recording.getURI();
+      console.log(`💾 Recording saved: ${recordedUri.current}`);
+
+      setRecording(null);
+      setIsRecording(false);
+      onStopRecording?.();
+    } catch (e) {
+      console.error("❌ Stop recording error:", e);
+    }
   };
 
   const togglePlayback = async () => {
-    if (isRecording) await stopRecording();
-    const uri = recordedUri.current;
-    if (!uri) return;
+    if (isRecording) {
+      console.log("🛑 Stopping recording before playback");
+      await stopRecording();
+    }
 
-    if (isPlaying && sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
+    if (!recordedUri.current) {
+      console.log("⚠️ No recorded URI for playback");
+      return;
+    }
+
+    if (isPlaying) {
+      // Stop playback
+      console.log("⏹️ Stopping playback");
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
       setIsPlaying(false);
       onPlaybackStop?.();
     } else {
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri });
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsPlaying(false);
-          onPlaybackStop?.();
-          newSound.unloadAsync();
-        }
-      });
-      setSound(newSound);
-      await newSound.playAsync();
-      setIsPlaying(true);
-      onPlay?.();
+      // Start playback
+      try {
+        console.log("▶️ Starting playback");
+        const { sound: newSound } = await Audio.Sound.createAsync({
+          uri: recordedUri.current,
+        });
+
+        // Set up playback status monitoring
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && isMounted.current) {
+            if (status.didJustFinish) {
+              console.log("✅ Playback finished");
+              setIsPlaying(false);
+              onPlaybackStop?.();
+              newSound.unloadAsync();
+            }
+          }
+        });
+
+        setSound(newSound);
+        await newSound.playAsync();
+        setIsPlaying(true);
+        onPlay?.();
+
+        console.log("✅ Playback started successfully");
+      } catch (e) {
+        console.error("❌ Playback error:", e);
+      }
     }
   };
 
@@ -157,8 +230,6 @@ const RecorderWidget: React.FC<RecorderWidgetProps> = ({
   );
 };
 
-export default RecorderWidget;
-
 const styles = StyleSheet.create({
   micContainer: {
     flexDirection: "row",
@@ -186,3 +257,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.disabled,
   },
 });
+
+export default RecorderWidget;

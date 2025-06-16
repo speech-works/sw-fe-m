@@ -19,8 +19,6 @@ import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import Metronome from "../../../../Library/TechniquePage/components/Metronome";
-import RecordingWidget from "../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../components/Button";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -30,7 +28,7 @@ import {
 import { toPascalCase } from "../../../../../../util/functions/strings";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
-import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
+import VoiceRecorder from "../../../../components/VoiceRecorder";
 
 const StoryPractice = () => {
   const navigation =
