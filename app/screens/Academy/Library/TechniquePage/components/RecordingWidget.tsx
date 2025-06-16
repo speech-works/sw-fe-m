@@ -1,26 +1,21 @@
-// RecordingWidget.tsx
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../Theme/tokens"; // Adjust path if needed
-import { parseTextStyle } from "../../../../../util/functions/parseStyles"; // Adjust path if needed
+import { theme } from "../../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 interface RecordingWidgetProps {
   isRecording?: boolean;
   isPlaying?: boolean;
-  // Renamed `level` to `spectrogramData`
-  spectrogramData?: number[][]; // A 2D array: [time_slice_idx][frequency_bin_idx]
 }
 
-const BAR_COUNT = 30; // Number of bars in your visualization
+const BAR_COUNT = 30;
 const MAX_BAR_HEIGHT = 80;
 
-const RecordingWidget = ({
-  isRecording,
-  isPlaying,
-  spectrogramData = [], // Default to empty array
-}: RecordingWidgetProps) => {
-  // Create a sliding window of animated values for the bars
+const RecordingWidget: React.FC<RecordingWidgetProps> = ({
+  isRecording = false,
+  isPlaying = false,
+}) => {
   const animValues = useRef(
     Array.from({ length: BAR_COUNT }, () => new Animated.Value(0))
   ).current;
@@ -28,49 +23,28 @@ const RecordingWidget = ({
   useEffect(() => {
     let frameId: number;
 
-    const updateWave = () => {
-      let currentDisplayLevel = 0;
+    const updateBars = () => {
+      const level = isRecording || isPlaying ? MAX_BAR_HEIGHT / 2 : 0;
 
-      if (isRecording || isPlaying) {
-        if (spectrogramData.length > 0) {
-          // Take the latest "time slice" from the spectrogram data
-          const latestTimeSlice = spectrogramData[spectrogramData.length - 1];
-          if (latestTimeSlice && latestTimeSlice.length > 0) {
-            // Average the magnitudes across all frequency bins in the latest slice
-            // This converts the spectrogram slice into a single "level" for your bar graph.
-            const sumOfMagnitudes = latestTimeSlice.reduce(
-              (sum, val) => sum + val,
-              0
-            );
-            currentDisplayLevel = sumOfMagnitudes / latestTimeSlice.length;
-          }
-        }
-      }
-
-      // Shift all bars left by copying the next bar’s value
+      // shift left
       for (let i = 0; i < BAR_COUNT - 1; i++) {
-        const nextVal = (animValues[i + 1] as any)._value; // Access the current value of the next Animated.Value
+        const nextVal = (animValues[i + 1] as any)._value;
         animValues[i].setValue(nextVal);
       }
+      // add new
+      animValues[BAR_COUNT - 1].setValue(level);
 
-      // Insert the new calculated level at the end of the bars
-      animValues[BAR_COUNT - 1].setValue(currentDisplayLevel * MAX_BAR_HEIGHT);
-
-      // Schedule the next frame
-      frameId = requestAnimationFrame(updateWave);
+      frameId = requestAnimationFrame(updateBars);
     };
 
     if (isRecording || isPlaying) {
-      // Start the animation loop when recording or playing
-      frameId = requestAnimationFrame(updateWave);
+      frameId = requestAnimationFrame(updateBars);
     } else {
-      // Reset all bars to zero when idle
       animValues.forEach((v) => v.setValue(0));
     }
 
-    // Cleanup function to cancel the animation frame
     return () => cancelAnimationFrame(frameId);
-  }, [isRecording, isPlaying, spectrogramData]); // Re-run effect if these props change
+  }, [isRecording, isPlaying]);
 
   return (
     <View style={styles.container}>
@@ -83,7 +57,6 @@ const RecordingWidget = ({
           />
           <Text style={styles.infoBarLeftText}>Speech</Text>
         </View>
-
         {(isRecording || isPlaying) && (
           <View style={styles.infoBarInner}>
             <Text style={styles.infoBarRightText}>
@@ -141,19 +114,19 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.default,
     borderRadius: 12,
     justifyContent: "center",
-    overflow: "hidden", // Important for clipping bars that exceed bounds
+    overflow: "hidden",
   },
   barContainer: {
     flexDirection: "row",
-    alignItems: "flex-end", // Bars grow upwards from the bottom
+    alignItems: "flex-end",
     justifyContent: "space-between",
     paddingHorizontal: 8,
-    width: "100%", // Ensure bars take full width
+    width: "100%",
   },
   bar: {
     backgroundColor: theme.colors.library.green[300],
     borderRadius: 2,
-    flex: 1, // Distributes width equally among bars
-    marginHorizontal: 1, // Small gap between bars
+    flex: 1,
+    marginHorizontal: 1,
   },
 });
