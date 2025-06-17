@@ -21,7 +21,13 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow access to your photo library to upload images.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "This app needs microphone access to record your voice.",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["speechworks"]
+          }
+        ]
       }
     },
     "android": {
@@ -34,7 +40,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./app/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "speechworks",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./app/assets/favicon.png"

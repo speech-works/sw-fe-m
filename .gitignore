@@ -81,3 +81,7 @@ android/
 ios/
 
 # .expo-shared
+# Expo
+.expo
+dist/
+web-build/
