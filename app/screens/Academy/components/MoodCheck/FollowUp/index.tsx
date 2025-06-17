@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -24,6 +24,9 @@ import {
   MoodFUStackNavigationProp,
   MoodFUStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
+import ExpressYourself, {
+  EXPRESSION_TYPE_ENUM,
+} from "./components/ExpressYourself";
 
 const iconContainerStyle: ViewStyle = {
   display: "flex",
@@ -240,13 +243,15 @@ const FollowUp = () => {
   const { mood } = route.params;
 
   const { Icon: MoodIcon, title, desc, helpful } = moodContentMap[mood];
+  const [expressionType, setExpressionType] =
+    useState<EXPRESSION_TYPE_ENUM | null>(null);
 
   const followUpAct: Array<ListCardProps> = [
     {
       title: "Talk it out",
       description: "Record your thoughts with your voice",
       onPress: () => {
-        // navigation.navigate("VoiceJournal")
+        setExpressionType(EXPRESSION_TYPE_ENUM.TALK);
       },
       icon: (
         <View
@@ -268,7 +273,7 @@ const FollowUp = () => {
       title: "Write it down",
       description: "Express your thoughts through writing",
       onPress: () => {
-        // navigation.navigate("VoiceJournal")
+        setExpressionType(EXPRESSION_TYPE_ENUM.WRITE);
       },
       icon: (
         <View
@@ -289,76 +294,83 @@ const FollowUp = () => {
   ];
 
   return (
-    <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>Back</Text>
-          </TouchableOpacity>
-        </View>
-        <CustomScrollView contentContainerStyle={styles.innerContainer}>
-          <View style={styles.titleWrapper}>
-            {/* <MoodIcon width={80} height={80} /> */}
-            <LottieView
-              source={moodLottieMap[mood]}
-              autoPlay
-              loop
-              style={styles.lottie}
-            />
-            <Text style={styles.titleText}>{title}</Text>
-            <Text style={styles.descText}>{desc}</Text>
-          </View>
-
-          <View style={styles.followUpActContainer}>
-            {followUpAct.map((item, idx) => (
-              <ListCard
-                noChevron
-                key={idx}
-                title={item.title}
-                description={item.description}
-                icon={item.icon}
-                onPress={item.onPress}
+    <>
+      <ScreenView style={styles.screenView}>
+        <View style={styles.container}>
+          <View style={styles.topNavigationContainer}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.topNavigation}
+            >
+              <Icon
+                name="chevron-left"
+                size={16}
+                color={theme.colors.text.default}
               />
-            ))}
-          </View>
-
-          <View style={styles.helpfulActContianer}>
-            <Text style={styles.helpfulTitleText}>
-              Or try one of these tailored activities:
-            </Text>
-            {helpful.map((item, idx) => (
-              <ListCard
-                noChevron
-                key={idx}
-                title={item.title}
-                description={item.description}
-                icon={item.icon}
-                onPress={() => {
-                  navigation.navigate({
-                    name: item.action as any,
-                    params: undefined,
-                  });
-                }}
-              />
-            ))}
-          </View>
-
-          <View style={styles.skipContainer}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.skipText}>Skip for now</Text>
+              <Text style={styles.topNavigationText}>Back</Text>
             </TouchableOpacity>
           </View>
-        </CustomScrollView>
-      </View>
-    </ScreenView>
+          <CustomScrollView contentContainerStyle={styles.innerContainer}>
+            <View style={styles.titleWrapper}>
+              {/* <MoodIcon width={80} height={80} /> */}
+              <LottieView
+                source={moodLottieMap[mood]}
+                autoPlay
+                loop
+                style={styles.lottie}
+              />
+              <Text style={styles.titleText}>{title}</Text>
+              <Text style={styles.descText}>{desc}</Text>
+            </View>
+
+            <View style={styles.followUpActContainer}>
+              {followUpAct.map((item, idx) => (
+                <ListCard
+                  noChevron
+                  key={idx}
+                  title={item.title}
+                  description={item.description}
+                  icon={item.icon}
+                  onPress={item.onPress}
+                />
+              ))}
+            </View>
+
+            <View style={styles.helpfulActContianer}>
+              <Text style={styles.helpfulTitleText}>
+                Or try one of these tailored activities:
+              </Text>
+              {helpful.map((item, idx) => (
+                <ListCard
+                  noChevron
+                  key={idx}
+                  title={item.title}
+                  description={item.description}
+                  icon={item.icon}
+                  onPress={() => {
+                    navigation.navigate({
+                      name: item.action as any,
+                      params: undefined,
+                    });
+                  }}
+                />
+              ))}
+            </View>
+
+            <View style={styles.skipContainer}>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.skipText}>Skip for now</Text>
+              </TouchableOpacity>
+            </View>
+          </CustomScrollView>
+        </View>
+      </ScreenView>
+
+      <ExpressYourself
+        expressionType={expressionType}
+        onClose={() => setExpressionType(null)}
+      />
+    </>
   );
 };
 
