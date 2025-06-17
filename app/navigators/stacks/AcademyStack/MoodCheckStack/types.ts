@@ -3,7 +3,7 @@ import { RouteProp } from "@react-navigation/native";
 import { MOOD } from "../../../../types/mood";
 
 export type MoodCheckStackParamList = {
-  FollowUp: { mood: MOOD };
+  FollowUpStack: { mood: MOOD };
 };
 export type MoodCheckStackNavigationProp<
   T extends keyof MoodCheckStackParamList

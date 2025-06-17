@@ -19,7 +19,11 @@ import ListCard, {
 import CustomScrollView from "../../../../../components/CustomScrollView";
 
 import { MOOD } from "../../../../../types/mood";
-import { MoodCheckStackParamList } from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/types";
+
+import {
+  MoodFUStackNavigationProp,
+  MoodFUStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
 
 const iconContainerStyle: ViewStyle = {
   display: "flex",
@@ -38,42 +42,44 @@ const moodContentMap = {
     Icon: "Happy1",
     helpful: [
       {
-        title: "Share a funny story",
-        description: "Record or write a moment that made you laugh",
+        title: "Read a story",
+        description: "Dive into a short, fun story",
         icon: (
           <View
             style={[
               iconContainerStyle,
-              { backgroundColor: theme.colors.library.pink[100] },
+              { backgroundColor: theme.colors.library.blue[100] },
             ]}
           >
             <Icon
-              name="laugh-beam"
+              solid
+              name="book-open"
               size={20}
-              color={theme.colors.library.pink[500]}
+              color={theme.colors.library.blue[500]}
             />
           </View>
         ),
-        action: "FunnyStory", // route name placeholder
+        action: "StoryPractice", // route name placeholder
       },
       {
-        title: "Uplifting affirmations",
-        description: "Listen to or record a positive mantra",
+        title: "Roleplay Session",
+        description: "Enact a fun scenario",
         icon: (
           <View
             style={[
               iconContainerStyle,
-              { backgroundColor: theme.colors.library.yellow[100] },
+              { backgroundColor: theme.colors.library.green[100] },
             ]}
           >
             <Icon
-              name="sun"
+              solid
+              name="theater-masks"
               size={20}
-              color={theme.colors.library.yellow[400]}
+              color={theme.colors.library.green[400]}
             />
           </View>
         ),
-        action: "Affirmations",
+        action: "RoleplayPracticeStack",
       },
     ],
   },
@@ -83,8 +89,8 @@ const moodContentMap = {
     Icon: "Angry1",
     helpful: [
       {
-        title: "Breath pacing technique",
-        description: "Guided exercise to help you calm down",
+        title: "Guided Breath Pacing",
+        description: "Guided breathing to help you calm down",
         icon: (
           <View
             style={[
@@ -100,11 +106,11 @@ const moodContentMap = {
             />
           </View>
         ),
-        action: "BreathPacing",
+        action: "BreathingPractice",
       },
       {
-        title: "Progressive muscle relax",
-        description: "Tense and release muscles step by step",
+        title: "Stress Relief Session",
+        description: "Guided stress release",
         icon: (
           <View
             style={[
@@ -113,13 +119,14 @@ const moodContentMap = {
             ]}
           >
             <Icon
-              name="dumbbell"
+              solid
+              name="heart"
               size={20}
               color={theme.colors.library.green[500]}
             />
           </View>
         ),
-        action: "MuscleRelax",
+        action: "MeditationPractice",
       },
     ],
   },
@@ -129,53 +136,8 @@ const moodContentMap = {
     Icon: "Sad1",
     helpful: [
       {
-        title: "Write a gratitude list",
-        description: "Note three things you appreciate",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.orange[100] },
-            ]}
-          >
-            <Icon
-              name="list"
-              size={20}
-              color={theme.colors.library.orange[400]}
-            />
-          </View>
-        ),
-        action: "GratitudeList",
-      },
-      {
-        title: "Body scan meditation",
-        description: "Release tension and find your center",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.green[100] },
-            ]}
-          >
-            <Icon
-              name="user-alt"
-              size={20}
-              color={theme.colors.library.green[500]}
-            />
-          </View>
-        ),
-        action: "BodyScan",
-      },
-    ],
-  },
-  [MOOD.CALM]: {
-    title: "Feeling peaceful right now?",
-    desc: "Capture this calm—it’ll be your anchor when things get hectic.",
-    Icon: "Calm1",
-    helpful: [
-      {
-        title: "Mindful breathing",
-        description: "Short guided breath awareness",
+        title: "Reframing Session",
+        description: "Discover the way you appreciate things",
         icon: (
           <View
             style={[
@@ -185,32 +147,80 @@ const moodContentMap = {
           >
             <Icon
               solid
-              name="wind"
+              name="sync-alt"
               size={20}
               color={theme.colors.library.blue[400]}
             />
           </View>
         ),
-        action: "MindfulBreathing",
+        action: "ReframePractice",
       },
       {
-        title: "Reflective journaling",
-        description: "Write down what’s going well",
+        title: "Fearlessness Session",
+        description: "Embark on a journey to overcome fear",
         icon: (
           <View
             style={[
               iconContainerStyle,
-              { backgroundColor: theme.colors.library.pink[100] },
+              { backgroundColor: theme.colors.library.green[100] },
             ]}
           >
             <Icon
-              name="edit"
+              solid
+              name="shoe-prints"
               size={20}
-              color={theme.colors.library.pink[500]}
+              color={theme.colors.library.green[500]}
             />
           </View>
         ),
-        action: "ReflectiveJournaling",
+        action: "MeditationPractice",
+      },
+    ],
+  },
+  [MOOD.CALM]: {
+    title: "Feeling peaceful right now?",
+    desc: "Capture this calm—it’ll be your anchor when things get hectic.",
+    Icon: "Calm1",
+    helpful: [
+      {
+        title: "Reframing Session",
+        description: "Test your resilience with a reframing exercise",
+        icon: (
+          <View
+            style={[
+              iconContainerStyle,
+              { backgroundColor: theme.colors.library.blue[100] },
+            ]}
+          >
+            <Icon
+              solid
+              name="sync-alt"
+              size={20}
+              color={theme.colors.library.blue[400]}
+            />
+          </View>
+        ),
+        action: "ReframePractice",
+      },
+      {
+        title: "Body scan meditation",
+        description: "Find your center with a body scan",
+        icon: (
+          <View
+            style={[
+              iconContainerStyle,
+              { backgroundColor: theme.colors.library.green[100] },
+            ]}
+          >
+            <Icon
+              solid
+              name="user-alt"
+              size={20}
+              color={theme.colors.library.green[400]}
+            />
+          </View>
+        ),
+        action: "MeditationPractice",
       },
     ],
   },
@@ -224,8 +234,9 @@ const moodLottieMap = {
 };
 
 const FollowUp = () => {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<MoodCheckStackParamList, "FollowUp">>();
+  const navigation =
+    useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
+  const route = useRoute<RouteProp<MoodFUStackParamList, "FollowUp">>();
   const { mood } = route.params;
 
   const { Icon: MoodIcon, title, desc, helpful } = moodContentMap[mood];
@@ -266,7 +277,12 @@ const FollowUp = () => {
             { backgroundColor: theme.colors.library.pink[100] },
           ]}
         >
-          <Icon name="edit" size={20} color={theme.colors.library.pink[500]} />
+          <Icon
+            solid
+            name="edit"
+            size={20}
+            color={theme.colors.library.pink[500]}
+          />
         </View>
       ),
     },
@@ -314,7 +330,7 @@ const FollowUp = () => {
             ))}
           </View>
 
-          <View style={styles.helpfulActContaner}>
+          <View style={styles.helpfulActContianer}>
             <Text style={styles.helpfulTitleText}>
               Or try one of these tailored activities:
             </Text>
@@ -326,7 +342,10 @@ const FollowUp = () => {
                 description={item.description}
                 icon={item.icon}
                 onPress={() => {
-                  // navigation.navigate(item.action)
+                  navigation.navigate({
+                    name: item.action as any,
+                    params: undefined,
+                  });
                 }}
               />
             ))}
@@ -394,7 +413,7 @@ const styles = StyleSheet.create({
   followUpActContainer: {
     gap: 16,
   },
-  helpfulActContaner: {
+  helpfulActContianer: {
     gap: 20,
   },
   helpfulTitleText: {

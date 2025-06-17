@@ -2,7 +2,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
-import { useNavigation } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
 import {
@@ -23,9 +23,13 @@ import {
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
+import { MoodFUStackParamList } from "../../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
+import { MOOD } from "../../../../../../types/mood";
 
 const Meditation = () => {
   const navigation = useNavigation();
+  const route =
+    useRoute<RouteProp<MoodFUStackParamList, "MeditationPractice">>();
 
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
@@ -36,7 +40,7 @@ const Meditation = () => {
   >([]);
 
   // Which scenario is currently selected
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // URLs for background music and voice‐hover audio
   const [bgMusicUrl, setBgMusicUrl] = useState<string>();
@@ -65,37 +69,78 @@ const Meditation = () => {
     fetchScenarios();
   }, []);
 
-  // Whenever scenarios or selectedIndex changes, update both URLs
   useEffect(() => {
     if (!meditationScenarios.length) return;
 
-    // Background music URL for the selected scenario
+    // If no route param, default to first scenario
+    if (!route?.params?.mood) {
+      setSelectedIndex(0);
+      return;
+    }
+
+    const mood = route.params.mood;
+
+    const findScenarioIndex = (name: string) =>
+      meditationScenarios.findIndex((s) => s.name === name);
+
+    let index = 0;
+    switch (mood) {
+      case MOOD.ANGRY:
+        index = findScenarioIndex("Stress Relief");
+        break;
+      case MOOD.SAD:
+        index = findScenarioIndex("Fear Removal");
+        break;
+      case MOOD.CALM:
+        index = findScenarioIndex("Body Scan");
+        break;
+      case MOOD.HAPPY:
+        index = findScenarioIndex("Guided Visualization");
+        break;
+    }
+
+    // If mood mapping failed, default to 0
+    if (index === -1) index = 0;
+
+    setSelectedIndex(index);
+  }, [route?.params?.mood, meditationScenarios]);
+
+  // Whenever scenarios or selectedIndex changes, update both URLs
+  useEffect(() => {
+    if (!meditationScenarios.length) return;
+    if (selectedIndex === null) return;
+
     const bgMusic =
-      meditationScenarios[selectedIndex].guidedMeditationData?.bgMusicUrl;
+      meditationScenarios[selectedIndex]?.guidedMeditationData?.bgMusicUrl;
     setBgMusicUrl(bgMusic);
 
-    // Hover/voice audio URL for the selected scenario
     const vhUrl =
-      meditationScenarios[selectedIndex].guidedMeditationData?.audioUrlKey;
+      meditationScenarios[selectedIndex]?.guidedMeditationData?.audioUrlKey;
     setVoiceHoverUrl(vhUrl);
   }, [meditationScenarios, selectedIndex]);
 
   // When bgMusicUrl changes: stop old, load new, and play if not muted
   useEffect(() => {
+    let cancelled = false;
     if (!bgMusicUrl) return;
 
     (async () => {
-      // 1) Stop & unload any previously playing background sound
       await stopBackground();
 
-      // 2) Load the new background track
+      if (cancelled) return;
+
       await loadBackground();
 
-      // 3) If not muted, start playback immediately
+      if (cancelled) return;
+
       if (!mute) {
         await toggleBackground(true);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [bgMusicUrl]);
 
   // When "mute" toggles: stop or play background audio (hover is handled by VoiceHoverPlayer)
@@ -139,12 +184,14 @@ const Meditation = () => {
             </TouchableOpacity>
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <MeditationCard
-              selectedMed={meditationScenarios[selectedIndex]}
-              onMedToggle={() => {
-                setIsVisible((old) => !old);
-              }}
-            />
+            {selectedIndex !== null && meditationScenarios[selectedIndex] && (
+              <MeditationCard
+                selectedMed={meditationScenarios[selectedIndex]}
+                onMedToggle={() => {
+                  setIsVisible((old) => !old);
+                }}
+              />
+            )}
             <View style={styles.tipsContainer}>
               <View style={styles.tipTitleContainer}>
                 <Icon
@@ -156,19 +203,20 @@ const Meditation = () => {
                 <Text style={styles.tipTitleText}>Practice Tips</Text>
               </View>
               <View style={styles.tipListContainer}>
-                {meditationScenarios[
-                  selectedIndex
-                ]?.guidedMeditationData?.tips.map((tip) => (
-                  <View style={styles.tipCard} key={tip}>
-                    <Icon
-                      solid
-                      name="check-circle"
-                      size={16}
-                      color={theme.colors.library.orange[400]}
-                    />
-                    <Text style={styles.tipText}>{tip}</Text>
-                  </View>
-                ))}
+                {selectedIndex !== null &&
+                  meditationScenarios[
+                    selectedIndex
+                  ]?.guidedMeditationData?.tips.map((tip) => (
+                    <View style={styles.tipCard} key={tip}>
+                      <Icon
+                        solid
+                        name="check-circle"
+                        size={16}
+                        color={theme.colors.library.orange[400]}
+                      />
+                      <Text style={styles.tipText}>{tip}</Text>
+                    </View>
+                  ))}
               </View>
             </View>
             <View style={styles.progressContainer}>
@@ -206,51 +254,52 @@ const Meditation = () => {
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollContainer2}
           >
-            {meditationScenarios.map((med, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.medCard,
-                  meditationScenarios[selectedIndex]?.name === med.name &&
-                    styles.selectedMedCard,
-                ]}
-                onPress={() => {
-                  setSelectedIndex(index);
-                  closeModal();
-                }}
-              >
-                <View
-                  style={[styles.medIconContainer, styles.medIconContainer2]}
+            {selectedIndex !== null &&
+              meditationScenarios.map((med, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.medCard,
+                    meditationScenarios[selectedIndex]?.name === med.name &&
+                      styles.selectedMedCard,
+                  ]}
+                  onPress={() => {
+                    setSelectedIndex(index);
+                    closeModal();
+                  }}
                 >
-                  <Icon
-                    solid
-                    name={med.guidedMeditationData?.icon!}
-                    size={24}
-                    color={theme.colors.actionPrimary.default}
-                  />
-                </View>
-                <View style={styles.medDescContainer}>
-                  <Text
-                    style={[
-                      styles.medNameText,
-                      meditationScenarios[selectedIndex]?.name === med.name &&
-                        styles.selectedCardText,
-                    ]}
+                  <View
+                    style={[styles.medIconContainer, styles.medIconContainer2]}
                   >
-                    {med.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.medDetailText,
-                      meditationScenarios[selectedIndex]?.name === med.name &&
-                        styles.selectedCardText,
-                    ]}
-                  >
-                    {med.description}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    <Icon
+                      solid
+                      name={med.guidedMeditationData?.icon!}
+                      size={24}
+                      color={theme.colors.actionPrimary.default}
+                    />
+                  </View>
+                  <View style={styles.medDescContainer}>
+                    <Text
+                      style={[
+                        styles.medNameText,
+                        meditationScenarios[selectedIndex]?.name === med.name &&
+                          styles.selectedCardText,
+                      ]}
+                    >
+                      {med.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.medDetailText,
+                        meditationScenarios[selectedIndex]?.name === med.name &&
+                          styles.selectedCardText,
+                      ]}
+                    >
+                      {med.description}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
           </CustomScrollView>
         </View>
       </BottomSheetModal>

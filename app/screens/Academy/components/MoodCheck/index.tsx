@@ -12,10 +12,6 @@ import { theme } from "../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
 import {
-  MoodCheckStackNavigationProp,
-  MoodCheckStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/MoodCheckStack/types";
-import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
@@ -55,10 +51,10 @@ const emotions = [
 const MoodCheck = () => {
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
-  const moodCheckNavigation =
-    useNavigation<
-      MoodCheckStackNavigationProp<keyof MoodCheckStackParamList>
-    >();
+  // const moodCheckNavigation =
+  //   useNavigation<
+  //     MoodCheckStackNavigationProp<keyof MoodCheckStackParamList>
+  //   >();
   return (
     <View style={styles.container}>
       <Text style={styles.titleText}>How do you feel today?</Text>
@@ -69,7 +65,7 @@ const MoodCheck = () => {
             style={[styles.emotionBlock, { backgroundColor: emo.bgColor }]}
             onPress={() => {
               academyNavigation.navigate("MoodCheckStack", {
-                screen: "FollowUp",
+                screen: "FollowUpStack",
                 params: { mood: emo.id },
               });
               // moodCheckNavigation.navigate("FollowUp");
