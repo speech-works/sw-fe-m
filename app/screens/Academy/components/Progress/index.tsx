@@ -22,7 +22,8 @@ const Progress = () => {
           <Text style={styles.badgeText}>5 days</Text>
         </View>
       </View>
-      <View style={styles.progressGraphContainer}>
+      <PracticeChart />
+      {/* <View style={styles.progressGraphContainer}>
         <View style={styles.graphMeta}>
           <View style={styles.practiceMinutes}>
             <Text style={styles.practiceMinutesText}>Practice Minutes</Text>
@@ -40,7 +41,7 @@ const Progress = () => {
           </View>
         </View>
         <PracticeChart />
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -79,10 +80,10 @@ const styles = StyleSheet.create({
     color: theme.colors.library.green[500],
   },
   progressGraphContainer: {
-    padding: 24,
+    padding: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.surface.default,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    //backgroundColor: theme.colors.surface.default,
+    // ...parseShadowStyle(theme.shadow.elevation1),
     display: "flex",
     flexDirection: "column",
     gap: 32,
