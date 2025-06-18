@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { ImageBackground, StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
@@ -28,12 +28,16 @@ const TutorialPage = ({
 
   return (
     <View style={styles.innerContainer}>
-      <View style={styles.videoContainer}>
+      <ImageBackground
+        source={require("../../../../../assets/demo-tut-img.png")}
+        style={styles.videoContainer}
+        imageStyle={styles.imgStyle}
+      >
         <View style={styles.videoMeta}>
           <Text style={styles.videoMetaTitleText}>{tutorial?.title}</Text>
           <Text style={styles.videoMetaDescText}>Duration: 3:45</Text>
         </View>
-      </View>
+      </ImageBackground>
       <View style={styles.learningPathContainer}>
         <Text style={styles.learningPathTitleText}>Your Learning Path</Text>
         <View style={styles.learningPathObjectives}>
@@ -88,8 +92,11 @@ const styles = StyleSheet.create({
     height: 420,
     width: "100%",
     borderRadius: 16,
-    backgroundColor: theme.colors.background.default,
+    //backgroundColor: theme.colors.background.default,
     position: "relative",
+  },
+  imgStyle: {
+    borderRadius: 16,
   },
   videoMeta: {
     position: "absolute",
@@ -97,7 +104,7 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: 16,
     backgroundColor: "black",
-    opacity: 0.6,
+    opacity: 0.8,
     borderBottomEndRadius: 16,
     borderBottomStartRadius: 16,
   },
