@@ -39,9 +39,11 @@ export async function getAllSessionsOfUser({
   sessionStatus,
 }: PracticeSessionsReq): Promise<PracticeSession[]> {
   try {
+    console.log("getAllSessionsOfUser called with:", { userId, sessionStatus });
     const response = await axiosClient.get("/sessions", {
       params: { userId, status: sessionStatus },
     });
+    console.log("getAllSessionsOfUser returned with:", { response });
     return response.data;
   } catch (error) {
     console.error("Error getting sessions for user:", error);

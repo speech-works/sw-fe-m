@@ -20,11 +20,18 @@ interface DailyPracticeProps {
 }
 const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
+  console.log("DailyPractice - practiceSession:", practiceSession);
+
+  const isSessionFresh = practiceSession?.startedAt
+    ? new Date(practiceSession.startedAt).toDateString() ===
+      new Date().toDateString()
+    : false;
+
   const navigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
 
   const moveToDailyPractice = () => {
-    onClickStart();
+    !isSessionFresh && onClickStart();
     navigation.navigate("DailyPracticeStack");
   };
 
@@ -67,7 +74,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
       </View>
 
       <Button
-        text={`${practiceSession ? "Resume" : "Start"} Session`}
+        text={`${isSessionFresh ? "Resume" : "Start"} Session`}
         onPress={() => {
           console.log("Start Practice");
           moveToDailyPractice();

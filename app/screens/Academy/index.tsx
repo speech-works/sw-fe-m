@@ -92,26 +92,23 @@ const Academy = () => {
       console.log("Cannot start session: User not available.");
       return;
     }
-    // Check local state first. The sync logic should keep 'practiceSession' up-to-date.
-    if (practiceSession && practiceSession.status === "ONGOING") {
-      console.log(
-        "Cannot start new session: A session is already ongoing locally."
-      );
-      // Optionally, you could force a sync here if you suspect local state might be stale despite useFocusEffect
-      // await syncSessionWithBackend();
-      // if (useSessionStore.getState().practiceSession?.status === "ONGOING") return;
-      return;
-    }
+    // // Check local state first. The sync logic should keep 'practiceSession' up-to-date.
+    // if (practiceSession && practiceSession.status === "ONGOING") {
+    //   console.log(
+    //     "Cannot start new session: A session is already ongoing locally."
+    //   );
+    //   // Optionally, you could force a sync here if you suspect local state might be stale despite useFocusEffect
+    //   // await syncSessionWithBackend();
+    //   // if (useSessionStore.getState().practiceSession?.status === "ONGOING") return;
+    //   return;
+    // }
 
     try {
       console.log("Attempting to create new session...");
       const newSessionData = await createSession({ userId: user.id });
       if (newSessionData) {
         console.log("New session created and set:", newSessionData);
-        setSession(newSessionData); // This will change `practiceSession`
-        // which changes `syncSessionWithBackend`'s identity
-        // which re-runs `useFocusEffect`'s callback, triggering a sync.
-        // This sync call will verify the newly created session.
+        setSession(newSessionData);
       } else {
         console.error(
           "Failed to create session: No session data returned from API."

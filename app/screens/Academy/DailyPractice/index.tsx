@@ -123,6 +123,7 @@ const DailyPractice = () => {
       ),
     },
   ];
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>

@@ -40,8 +40,16 @@ axiosClient.interceptors.request.use(
     }
 
     if (Localization.timezone) {
+      console.log(
+        "setting x-client-timezone header:if:",
+        Localization.timezone
+      );
       config.headers["X-Client-Timezone"] = Localization.timezone;
     } else {
+      console.log(
+        "setting x-client-timezone header:else:",
+        Localization.timezone
+      );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;
     }
