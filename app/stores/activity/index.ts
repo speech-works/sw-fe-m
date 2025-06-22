@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PracticeActivity } from "../../api/practiceActivities"; // Adjust the import path as needed
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import { reviveDatesInObject } from "../../util/functions/date";
 
 interface PracticeActivityState {
   // The currently active practice activity, or null if none is active.
@@ -31,6 +32,22 @@ export const useActivityStore = create<PracticeActivityState>()(
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_PRACTICE_ACTIVITY,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state && state.activity) {
+          console.log(
+            "Zustand ActivityStore: Rehydrating activity from storage. Raw:",
+            JSON.stringify(state.activity, null, 2)
+          );
+          // Apply recursive date parsing to the activity object loaded from storage
+          state.activity = reviveDatesInObject(
+            state.activity
+          ) as PracticeActivity | null;
+          console.log(
+            "Zustand ActivityStore: Activity AFTER rehydration parsing:",
+            JSON.stringify(state.activity, null, 2)
+          );
+        }
+      },
     }
   )
 );

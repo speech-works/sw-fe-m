@@ -14,19 +14,47 @@ import {
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { useSessionStore } from "../../../../stores/session";
+import { isSameDay, isValid } from "date-fns";
 
 interface DailyPracticeProps {
   onClickStart: () => void;
 }
 const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
-  console.log("DailyPractice - practiceSession:", practiceSession);
+  let isSessionFresh = false;
 
-  const isSessionFresh = practiceSession?.startedAt
-    ? new Date(practiceSession.startedAt).toDateString() ===
-      new Date().toDateString()
-    : false;
+  if (practiceSession?.startedAt) {
+    const sessionDate = practiceSession.startedAt; // <-- No manual parsing needed here!
 
+    console.log(
+      "DailyPractice - sessionDate (SHOULD BE A DATE OBJECT NOW):",
+      sessionDate
+    );
+    const currentDate = new Date(); // Current date in client's local timezone
+    console.log("DailyPractice - currentDate:", currentDate);
+
+    // Check if sessionDate is a valid Date object before comparison
+    if (isValid(sessionDate)) {
+      isSessionFresh = isSameDay(sessionDate, currentDate);
+    } else {
+      // This else block will catch if, for some reason, sessionDate is still not a Date object
+      // or if it's an "Invalid Date" object.
+      console.warn(
+        "DailyPractice: practiceSession.startedAt is NOT a valid Date object. It might still be a string or invalid after rehydration/fetch."
+      );
+      // You might want to force a re-fetch or clear the session here if this happens frequently.
+    }
+  }
+
+  console.log("DailyPractice - isSessionFresh final result:", {
+    isSessionFresh,
+    practiceSession, // This object should now contain Date objects for practiceSession's dates as well
+    // For debugging the isSameDay check directly in the log (ensure it's safe to call isSameDay):
+    isSameDayCheckInLog:
+      practiceSession?.startedAt && isValid(practiceSession.startedAt)
+        ? isSameDay(practiceSession.startedAt, new Date())
+        : "N/A (sessionDate not valid for comparison)",
+  });
   const navigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
 

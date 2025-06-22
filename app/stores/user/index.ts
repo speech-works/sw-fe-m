@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "../../api/users";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import { reviveDatesInObject } from "../../util/functions/date";
 
 interface UserState {
   /** The current user object, or null if not loaded/logged in */
@@ -40,6 +41,19 @@ export const useUserStore = create<UserState>()(
       storage: createJSONStorage(() => AsyncStorage),
       // To blacklist certain fields:
       // partialize: (state) => ({ user: state.user }),
+      onRehydrateStorage: () => (state) => {
+        if (state && state.user) {
+          console.log(
+            "Zustand UserStore: Rehydrating user from storage. Raw:",
+            JSON.stringify(state.user, null, 2)
+          );
+          state.user = reviveDatesInObject(state.user) as User | null;
+          console.log(
+            "Zustand UserStore: User AFTER rehydration parsing:",
+            JSON.stringify(state.user, null, 2)
+          );
+        }
+      },
     }
   )
 );
