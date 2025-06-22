@@ -72,6 +72,7 @@ const Briefing = () => {
                 <View style={styles.actionContainer}>
                   {roles.map((role) => (
                     <TouchableOpacity
+                      key={role.roleName}
                       onPress={() => moveToChat(role.roleName)}
                       style={[
                         styles.actionCard,
