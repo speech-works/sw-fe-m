@@ -19,8 +19,6 @@ import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import Metronome from "../../../../Library/TechniquePage/components/Metronome";
-import RecordingWidget from "../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../components/Button";
 import {
   ReadingPractice,
@@ -30,10 +28,28 @@ import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
 import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import {
+  completePracticeActivity,
+  createPracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
 const QuotePractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -60,6 +76,35 @@ const QuotePractice = () => {
 
   const onBackPress = () => {
     navigation.goBack();
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      contentId: allQuotes[selectedIndex]?.id,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   useEffect(() => {
@@ -107,14 +152,20 @@ const QuotePractice = () => {
                 </Text>
               </View>
               {renderSelectedTool(selectedPracticeTool)}
-              <VoiceRecorder onToggle={toggleIndex} />
+              <VoiceRecorder
+                onToggle={toggleIndex}
+                onRecording={markActivityStart}
+                onRecorded={markActivityComplete}
+              />
             </View>
-            <Button
-              text="Mark Complete"
-              onPress={() => {
-                setPracticeComplete(true);
-              }}
-            />
+            {currentActivityId && isActivityCompleted(currentActivityId) && (
+              <Button
+                text="Done"
+                onPress={() => {
+                  setPracticeComplete(true);
+                }}
+              />
+            )}
           </CustomScrollView>
         )}
       </View>

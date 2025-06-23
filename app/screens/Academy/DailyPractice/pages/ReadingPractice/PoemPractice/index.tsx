@@ -28,11 +28,29 @@ import {
 import { toPascalCase } from "../../../../../../util/functions/strings";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { DAFTool } from "../../../../Tools/DAF";
-import VoiceRecorder from "../../../../components/VoiceRecorder";
+import { useSessionStore } from "../../../../../../stores/session";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { createPracticeActivity } from "../../../../../../api";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 
 const StoryPractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allPoems, setAllPoems] = useState<ReadingPractice[]>([]);
   const onBackPress = () => {
@@ -96,6 +114,35 @@ const StoryPractice = () => {
     if (allPoems && allPoems.length > 0) {
       setSelectedIndex((prevIndex) => (prevIndex + 1) % allPoems.length);
     }
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      contentId: allPoems[selectedIndex]?.id,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   useEffect(() => {
@@ -202,14 +249,20 @@ const StoryPractice = () => {
                 </View>
               </View>
               {renderSelectedTool(selectedPracticeTool)}
-              <VoiceRecorder onToggle={toggleIndex} />
+              <VoiceRecorder
+                onToggle={toggleIndex}
+                onRecording={markActivityStart}
+                onRecorded={markActivityComplete}
+              />
             </View>
-            <Button
-              text="Mark Complete"
-              onPress={() => {
-                setPracticeComplete(true);
-              }}
-            />
+            {currentActivityId && isActivityCompleted(currentActivityId) && (
+              <Button
+                text="Done"
+                onPress={() => {
+                  setPracticeComplete(true);
+                }}
+              />
+            )}
           </CustomScrollView>
         )}
       </View>
