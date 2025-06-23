@@ -122,17 +122,7 @@ axiosClient.interceptors.response.use(
     }
     // --- DATE PARSING HERE ---
     // ... existing error handling
-    console.log("--- AXIOS INTERCEPTOR HIT ---"); // Add this
-    console.log("Interceptor: URL:", response.config.url); // And this
-    console.log(
-      "Interceptor: Data BEFORE parsing:",
-      JSON.stringify(response.data, null, 2)
-    );
     response.data = parseDatesInObject(response.data);
-    console.log(
-      "Interceptor: Data AFTER parsing:",
-      JSON.stringify(response.data, null, 2)
-    );
     return response;
   },
   async (error) => {

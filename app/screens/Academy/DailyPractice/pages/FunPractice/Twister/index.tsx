@@ -11,8 +11,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import RecordingWidget from "../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../Library/TechniquePage/components/RecorderWidget";
+
 import Button from "../../../../../../components/Button";
 import DonePractice from "../../../components/DonePractice";
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
@@ -21,21 +20,58 @@ import {
   FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
+import { useActivityStore } from "../../../../../../stores/activity";
+import {
+  completePracticeActivity,
+  createPracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { useSessionStore } from "../../../../../../stores/session";
 
 const Twister = () => {
+  const { activity, setActivity, updateActivity } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
 
   const toggleIndex = () => {
     if (twisters && twisters.length > 0) {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % twisters.length);
+      updateActivity({
+        funPractice: twisters[currentIndex],
+      });
     }
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    if (!twisters || twisters.length === 0 || currentIndex >= twisters.length) {
+      console.warn(
+        "Cannot start activity: Tongue twisters not yet loaded or invalid index."
+      );
+      return;
+    }
+    console.log("markActivityStart called 2", { twisters });
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.FUN_PRACTICE,
+      contentId: twisters[currentIndex].id,
+    });
+    console.log("markActivityStart 3", { newActivity });
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    setActivity(startedActivity);
+  };
+
+  const markActivityComplete = async () => {
+    if (!practiceSession || !activity) return;
+    const currentActivity = await completePracticeActivity({ id: activity.id });
+    setActivity(currentActivity);
   };
 
   useEffect(() => {
     const fetchTwisters = async () => {
       const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER);
-      console.log("tweeeeees", { ts });
       setTwisters(ts);
     };
     fetchTwisters();
@@ -101,14 +137,20 @@ const Twister = () => {
                     {twisters[currentIndex]?.tongueTwisterData?.text}
                   </Text>
                 </View>
-                <VoiceRecorder onToggle={toggleIndex} />
+                <VoiceRecorder
+                  onToggle={toggleIndex}
+                  onRecording={markActivityStart}
+                  onRecorded={markActivityComplete}
+                />
               </View>
-              <Button
-                text="Mark Complete"
-                onPress={() => {
-                  setIsDone(true);
-                }}
-              />
+              {activity?.funPractice?.tongueTwisterData && (
+                <Button
+                  text={"Mark Complete"}
+                  onPress={() => {
+                    setIsDone(true);
+                  }}
+                />
+              )}
             </>
           )}
         </CustomScrollView>

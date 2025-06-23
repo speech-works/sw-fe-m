@@ -15,7 +15,11 @@ type Frame = {
   timestamp: number; // Relative timestamp from recording start
 };
 
-const VoiceRecorder: React.FC<{ onToggle?: () => void }> = ({ onToggle }) => {
+const VoiceRecorder: React.FC<{
+  onToggle?: () => void;
+  onRecorded?: () => void;
+  onRecording?: () => void;
+}> = ({ onToggle, onRecorded, onRecording }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [meteringData, setMeteringData] = useState<number[]>(
@@ -82,7 +86,8 @@ const VoiceRecorder: React.FC<{ onToggle?: () => void }> = ({ onToggle }) => {
     resetVisualization();
     setIsRecording(true);
     setIsPlaying(false);
-  }, [resetVisualization]);
+    onRecording?.();
+  }, [resetVisualization, onRecording]);
 
   // Stop recording
   const handleRecordStop = useCallback(() => {
@@ -90,7 +95,8 @@ const VoiceRecorder: React.FC<{ onToggle?: () => void }> = ({ onToggle }) => {
       `🛑 Recording stopped. Captured ${recordingFrames.current.length} frames`
     );
     setIsRecording(false);
-  }, []);
+    onRecorded?.();
+  }, [onRecorded]);
 
   // Playback animation loop
   const playbackAnimationLoop = useCallback(() => {
