@@ -77,6 +77,10 @@ const Twister = () => {
     fetchTwisters();
   }, []);
 
+  useEffect(() => {
+    console.log("in twisters:", { activity });
+  }, [activity]);
+
   const navigation = useNavigation();
   const [isDone, setIsDone] = useState(false);
   return (
@@ -143,14 +147,16 @@ const Twister = () => {
                   onRecorded={markActivityComplete}
                 />
               </View>
-              {activity?.funPractice?.tongueTwisterData && (
-                <Button
-                  text={"Mark Complete"}
-                  onPress={() => {
-                    setIsDone(true);
-                  }}
-                />
-              )}
+              {activity?.contentType ===
+                PracticeActivityContentType.FUN_PRACTICE &&
+                activity.status === "COMPLETED" && (
+                  <Button
+                    text={"Mark Complete"}
+                    onPress={() => {
+                      setIsDone(true);
+                    }}
+                  />
+                )}
             </>
           )}
         </CustomScrollView>
