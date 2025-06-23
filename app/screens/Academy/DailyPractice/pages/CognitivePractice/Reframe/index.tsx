@@ -25,14 +25,16 @@ import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice"
 import {
   CognitivePracticeType,
   ReframingThoughtScenarioData,
-  ReframingThoughtsData,
 } from "../../../../../../api/dailyPractice/types";
-
-const reframeData = [
-  "I'm working on my public speaking skills and improving every day",
-  "My worth isn't determined by my fluency, and I can communicate effectively",
-  "Many successful people stutter, and I can be successful too",
-];
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import { createPracticeActivity } from "../../../../../../api";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import DonePractice from "../../../components/DonePractice";
 
 const Reframe = () => {
   const navigation =
@@ -42,11 +44,20 @@ const Reframe = () => {
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null
   );
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
   const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
     []
   );
   const [selectedScenarioIndex, setSelectedScenarioIndex] = useState<number>(0);
+  const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
+    null
+  );
+  const [isDone, setIsDone] = useState(false);
 
   const onBackPress = () => {
     navigation.goBack();
@@ -60,6 +71,35 @@ const Reframe = () => {
     }
   };
 
+  const markActivityStart = async () => {
+    if (!practiceSession || !cognitivePracticeId) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+      contentId: cognitivePracticeId,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
+  };
+
   // Fetch all reframe scenarios once on mount
   useEffect(() => {
     const fetchScenarios = async () => {
@@ -67,6 +107,7 @@ const Reframe = () => {
         CognitivePracticeType.REFRAMING_THOUGHTS
       );
       setScenarios(rs[0].reframingThoughtsData?.scenarios || []);
+      setCognitivePracticeId(rs[0]?.id || null);
     };
     fetchScenarios();
   }, []);
@@ -83,102 +124,122 @@ const Reframe = () => {
           <Text style={styles.topNavigationText}>Reframe Thoughts</Text>
         </TouchableOpacity>
         <CustomScrollView contentContainerStyle={styles.scrollView}>
-          <View style={styles.negativeContainer}>
-            <View style={styles.negativeTextContainer}>
-              <View style={styles.scenario}>
-                <Text style={styles.negativeTitleText}>
-                  Current Negative Thought
-                </Text>
-                <TouchableOpacity onPress={toggleIndex}>
-                  <Icon
-                    name={"random"}
-                    size={14}
-                    color={theme.colors.actionPrimary.default}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.negativeBox}>
-                <Text style={styles.negativeText}>
-                  {scenarios[selectedScenarioIndex]?.negativeThought}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.ideaContainer}>
-              <Icon
-                solid
-                size={14}
-                name="lightbulb"
-                color={theme.colors.library.orange[800]}
-              />
-              <Text style={styles.ideaText}>
-                Let's transform this thought into something more empowering
-              </Text>
-            </View>
-          </View>
-          <View style={styles.positiveContainer}>
-            <Text style={styles.positiveTitleText}>
-              Choose a Positive Reframe
-            </Text>
-            <View style={styles.reframeListContainer}>
-              {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
-                (item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.reframeTextBox}
-                    onPress={() => {
-                      setSelectedReframe(item);
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.selectIconContainer,
-                        selectedReframe === item &&
-                          styles.selectedIconContainer,
-                      ]}
-                    >
-                      {selectedReframe === item && (
+          <>
+            {isDone ? (
+              <DonePractice />
+            ) : (
+              <>
+                <View style={styles.negativeContainer}>
+                  <View style={styles.negativeTextContainer}>
+                    <View style={styles.scenario}>
+                      <Text style={styles.negativeTitleText}>
+                        Current Negative Thought
+                      </Text>
+                      <TouchableOpacity onPress={toggleIndex}>
                         <Icon
-                          solid
-                          name="check"
-                          size={12}
-                          color={theme.colors.text.onDark}
+                          name={"random"}
+                          size={14}
+                          color={theme.colors.actionPrimary.default}
                         />
-                      )}
+                      </TouchableOpacity>
                     </View>
-                    <Text style={styles.reframeText}>{item}</Text>
-                  </TouchableOpacity>
-                )
-              )}
-            </View>
-            <View style={styles.writeContainer}>
-              <Text style={styles.writeTitleText}>Write Your Own Reframe</Text>
-              <View style={styles.textFieldContainer}>
-                <TextArea
-                  value={writtenReframe}
-                  onChangeText={setWrittenReframe}
-                  placeholder="Type your positive perspective here..."
-                  numberOfLines={5}
-                  containerStyle={styles.textAreaContainer}
-                  inputStyle={styles.textAreaInput}
-                />
-              </View>
-            </View>
-          </View>
-          <View style={styles.btnContainer}>
-            <Button text="Next Reframe" onPress={() => {}} />
-            <Button
-              variant="ghost"
-              text="Home"
-              onPress={() => {
-                academyNav.navigate("Academy");
-              }}
-              style={{
-                backgroundColor: theme.colors.surface.elevated,
-                borderColor: "transparent",
-              }}
-            />
-          </View>
+
+                    <View style={styles.negativeBox}>
+                      <Text style={styles.negativeText}>
+                        {scenarios[selectedScenarioIndex]?.negativeThought}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.ideaContainer}>
+                    <Icon
+                      solid
+                      size={14}
+                      name="lightbulb"
+                      color={theme.colors.library.orange[800]}
+                    />
+                    <Text style={styles.ideaText}>
+                      Let's transform this thought into something more
+                      empowering
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.positiveContainer}>
+                  <Text style={styles.positiveTitleText}>
+                    Choose a Positive Reframe
+                  </Text>
+                  <View style={styles.reframeListContainer}>
+                    {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
+                      (item, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={styles.reframeTextBox}
+                          onPress={() => {
+                            setSelectedReframe(item);
+                          }}
+                        >
+                          <View
+                            style={[
+                              styles.selectIconContainer,
+                              selectedReframe === item &&
+                                styles.selectedIconContainer,
+                            ]}
+                          >
+                            {selectedReframe === item && (
+                              <Icon
+                                solid
+                                name="check"
+                                size={12}
+                                color={theme.colors.text.onDark}
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.reframeText}>{item}</Text>
+                        </TouchableOpacity>
+                      )
+                    )}
+                  </View>
+                  <View style={styles.writeContainer}>
+                    <Text style={styles.writeTitleText}>
+                      Write Your Own Reframe
+                    </Text>
+                    <View style={styles.textFieldContainer}>
+                      <TextArea
+                        value={writtenReframe}
+                        onChangeText={setWrittenReframe}
+                        placeholder="Type your positive perspective here..."
+                        numberOfLines={5}
+                        containerStyle={styles.textAreaContainer}
+                        inputStyle={styles.textAreaInput}
+                      />
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.btnContainer}>
+                  {(selectedReframe || writtenReframe.length > 0) && (
+                    <Button
+                      text="Submit"
+                      onPress={async () => {
+                        await markActivityStart();
+                        await markActivityComplete();
+                        setIsDone(true);
+                      }}
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    text="Home"
+                    onPress={() => {
+                      academyNav.navigate("Academy");
+                    }}
+                    style={{
+                      backgroundColor: theme.colors.surface.elevated,
+                      borderColor: "transparent",
+                    }}
+                  />
+                </View>
+              </>
+            )}
+          </>
         </CustomScrollView>
       </View>
     </ScreenView>

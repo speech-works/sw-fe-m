@@ -9,7 +9,7 @@ import {
   UIManager,
   Platform,
 } from "react-native";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -24,8 +24,6 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { InterviewEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import DonePractice from "../../../../components/DonePractice";
 import Separator from "../../../../../../../components/Separator";
-import RecordingWidget from "../../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../../components/Button";
 import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
 import { useActivityStore } from "../../../../../../../stores/activity";
