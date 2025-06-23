@@ -12,26 +12,73 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import RecordingWidget from "../../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
+
 import Button from "../../../../../../../components/Button";
 import DonePractice from "../../../../components/DonePractice";
 import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
 import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
+import {
+  completePracticeActivity,
+  createPracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 
 const CVExercise = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
-  const { name, cvData } = route.params;
+  const { id, name, cvData } = route.params;
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+
   const [isDone, setIsDone] = useState(false);
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % texts.length);
     }
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.FUN_PRACTICE,
+      contentId: id,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   useEffect(() => {
@@ -101,14 +148,20 @@ const CVExercise = () => {
 
                   <Text style={styles.actualText}>{texts[currentIndex]}</Text>
                 </View>
-                <VoiceRecorder onToggle={toggleIndex} />
+                <VoiceRecorder
+                  onToggle={toggleIndex}
+                  onRecording={markActivityStart}
+                  onRecorded={markActivityComplete}
+                />
               </View>
-              <Button
-                text="Mark Complete"
-                onPress={() => {
-                  setIsDone(true);
-                }}
-              />
+              {currentActivityId && isActivityCompleted(currentActivityId) && (
+                <Button
+                  text="Done"
+                  onPress={() => {
+                    setIsDone(true);
+                  }}
+                />
+              )}
             </>
           )}
         </CustomScrollView>

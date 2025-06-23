@@ -23,13 +23,14 @@ const Briefing = () => {
     >();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
-  const { title, description, roleplay } = route.params;
+  const { title, description, roleplay, id } = route.params;
   const scenarioDescription = roleplay.scenario.scenarioDetails;
   const tips = roleplay.scenario.tips;
   const roles = roleplay.scenario.availableRoles;
 
   const moveToChat = (selectedRoleName: string) => {
     navigation.navigate("RoleplayChat", {
+      id,
       title,
       roleplay,
       selectedRoleName,

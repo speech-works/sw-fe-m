@@ -180,13 +180,13 @@ const RecorderWidget: React.FC<{
       <TouchableOpacity
         style={styles.circle}
         onPress={onToggle}
-        disabled={isRecording || isPlaying}
+        disabled={!onToggle || isRecording || isPlaying}
       >
         <Icon
           name="random"
           size={16}
           color={
-            isRecording || isPlaying
+            !onToggle || isRecording || isPlaying
               ? theme.colors.text.disabled
               : theme.colors.text.default
           }

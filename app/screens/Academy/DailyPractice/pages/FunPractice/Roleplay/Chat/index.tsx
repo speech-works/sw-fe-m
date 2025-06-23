@@ -23,8 +23,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import DonePractice from "../../../../components/DonePractice";
 import Separator from "../../../../../../../components/Separator";
-import RecordingWidget from "../../../../../Library/TechniquePage/components/RecordingWidget";
-import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
+
 import Button from "../../../../../../../components/Button";
 import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import {
@@ -32,6 +31,14 @@ import {
   RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
 import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
+import { useSessionStore } from "../../../../../../../stores/session";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import {
+  completePracticeActivity,
+  createPracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 
 // Define the message structure
 interface ChatMessage {
@@ -44,7 +51,15 @@ const Chat = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
-  const { title, roleplay, selectedRoleName } = route.params;
+  const { title, roleplay, selectedRoleName, id } = route.params;
+
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
+  const { practiceSession } = useSessionStore();
 
   const selectedRole = useMemo(
     () =>
@@ -75,6 +90,10 @@ const Chat = () => {
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (
@@ -159,6 +178,35 @@ const Chat = () => {
     ]);
     setSelectedOptionId(option.id);
     setCurrentNodeId(option.nextNodeId);
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.FUN_PRACTICE,
+      contentId: id,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   return (
@@ -341,9 +389,19 @@ const Chat = () => {
                 </View>
               )}
 
-              <VoiceRecorder />
+              <VoiceRecorder
+                onRecording={markActivityStart}
+                onRecorded={markActivityComplete}
+              />
 
-              <Button text="Mark Complete" onPress={() => setIsDone(true)} />
+              {currentActivityId && isActivityCompleted(currentActivityId) && (
+                <Button
+                  text="Done"
+                  onPress={() => {
+                    setIsDone(true);
+                  }}
+                />
+              )}
             </>
           )}
         </CustomScrollView>

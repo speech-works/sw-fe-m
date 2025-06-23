@@ -30,17 +30,22 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { useSessionStore } from "../../../../../../stores/session";
 
 const Twister = () => {
-  const { activity, setActivity, updateActivity } = useActivityStore();
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const toggleIndex = () => {
     if (twisters && twisters.length > 0) {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % twisters.length);
-      updateActivity({
-        funPractice: twisters[currentIndex],
-      });
     }
   };
 
@@ -52,21 +57,33 @@ const Twister = () => {
       );
       return;
     }
-    console.log("markActivityStart called 2", { twisters });
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: twisters[currentIndex].id,
     });
-    console.log("markActivityStart 3", { newActivity });
+    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
-    setActivity(startedActivity);
+    addActivity({
+      ...startedActivity,
+      funPractice: twisters[currentIndex],
+    });
   };
 
   const markActivityComplete = async () => {
-    if (!practiceSession || !activity) return;
-    const currentActivity = await completePracticeActivity({ id: activity.id });
-    setActivity(currentActivity);
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+      funPractice: twisters[currentIndex],
+    });
   };
 
   useEffect(() => {
@@ -76,10 +93,6 @@ const Twister = () => {
     };
     fetchTwisters();
   }, []);
-
-  useEffect(() => {
-    console.log("in twisters:", { activity });
-  }, [activity]);
 
   const navigation = useNavigation();
   const [isDone, setIsDone] = useState(false);
@@ -147,16 +160,14 @@ const Twister = () => {
                   onRecorded={markActivityComplete}
                 />
               </View>
-              {activity?.contentType ===
-                PracticeActivityContentType.FUN_PRACTICE &&
-                activity.status === "COMPLETED" && (
-                  <Button
-                    text={"Mark Complete"}
-                    onPress={() => {
-                      setIsDone(true);
-                    }}
-                  />
-                )}
+              {currentActivityId && isActivityCompleted(currentActivityId) && (
+                <Button
+                  text="Done"
+                  onPress={() => {
+                    setIsDone(true);
+                  }}
+                />
+              )}
             </>
           )}
         </CustomScrollView>

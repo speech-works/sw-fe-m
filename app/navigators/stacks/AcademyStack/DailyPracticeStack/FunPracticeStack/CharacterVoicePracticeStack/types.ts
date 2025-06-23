@@ -5,6 +5,7 @@ import { CharacterVoiceData } from "../../../../../../api/dailyPractice/types";
 export type CharacterVoiceFDPStackParamList = {
   CVHome: undefined;
   CVExercise: {
+    id: string;
     name: string;
     cvData: CharacterVoiceData;
   };

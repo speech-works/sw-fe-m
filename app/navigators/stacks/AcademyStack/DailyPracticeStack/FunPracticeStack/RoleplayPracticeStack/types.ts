@@ -5,11 +5,13 @@ import { RolePlayData } from "../../../../../../api/dailyPractice/types";
 export type RoleplayFDPStackParamList = {
   RoleplayList: undefined;
   RoleplayBriefing: {
+    id: string;
     title: string;
     description: string;
     roleplay: RolePlayData;
   };
   RoleplayChat: {
+    id: string;
     title: string;
     roleplay: RolePlayData;
     selectedRoleName: string;

@@ -70,6 +70,7 @@ const CharacterVoice = () => {
                 <TouchableOpacity
                   onPress={() => {
                     navigation.navigate("CVExercise", {
+                      id: cv.id,
                       name: cv.name,
                       cvData: cv.characterVoiceData!,
                     });

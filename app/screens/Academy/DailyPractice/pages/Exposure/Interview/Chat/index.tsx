@@ -28,6 +28,14 @@ import RecordingWidget from "../../../../../Library/TechniquePage/components/Rec
 import RecorderWidget from "../../../../../Library/TechniquePage/components/RecorderWidget";
 import Button from "../../../../../../../components/Button";
 import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
+import { createPracticeActivity } from "../../../../../../../api";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../../api/practiceActivities";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -63,6 +71,14 @@ const Chat = () => {
 
   const { interview } = route.params;
 
+  const {
+    updateActivity,
+    addActivity,
+    doesActivityExist,
+    isActivityCompleted,
+  } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+
   const [isDone, setIsDone] = useState(false);
   const [messageHeight, setMessageHeight] = useState<number | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
@@ -75,6 +91,9 @@ const Chat = () => {
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false); // To track if the initial node has been processed
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   // Enable LayoutAnimation on Android for smooth transitions
   useEffect(() => {
@@ -191,6 +210,35 @@ const Chat = () => {
     ]);
     setSelectedOptionId(option.id); // Highlight selected option
     setCurrentNodeId(option.nextNodeId); // Move to the next dialogue node
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+      contentId: interview.id,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   return (
@@ -340,10 +388,19 @@ const Chat = () => {
                 )}
               </View>
 
-              <VoiceRecorder />
+              <VoiceRecorder
+                onRecording={markActivityStart}
+                onRecorded={markActivityComplete}
+              />
 
-              {/* Mark Complete Button */}
-              <Button text="Mark Complete" onPress={() => setIsDone(true)} />
+              {currentActivityId && isActivityCompleted(currentActivityId) && (
+                <Button
+                  text="Done"
+                  onPress={() => {
+                    setIsDone(true);
+                  }}
+                />
+              )}
             </>
           )}
         </CustomScrollView>

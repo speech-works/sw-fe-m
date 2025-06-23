@@ -61,6 +61,7 @@ const Roleplay = () => {
                 style={styles.card}
                 onPress={() => {
                   navigation.navigate("RoleplayBriefing", {
+                    id: rp.id,
                     title: rp.name,
                     description: rp.description,
                     roleplay: rp.rolePlayData!,
