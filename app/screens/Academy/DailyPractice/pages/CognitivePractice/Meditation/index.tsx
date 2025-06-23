@@ -1,6 +1,5 @@
-// Meditation.tsx
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -25,11 +24,25 @@ import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 import { MoodFUStackParamList } from "../../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
 import { MOOD } from "../../../../../../types/mood";
+import { useSessionStore } from "../../../../../../stores/session";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { createPracticeActivity } from "../../../../../../api";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
 const Meditation = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<MoodFUStackParamList, "MeditationPractice">>();
+
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
@@ -38,6 +51,9 @@ const Meditation = () => {
   const [meditationScenarios, setMeditationScenarios] = useState<
     CognitivePractice[]
   >([]);
+  const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
+    null
+  );
 
   // Which scenario is currently selected
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -48,7 +64,12 @@ const Meditation = () => {
   const [bgVolume, setBgVolume] = useState<number>(0.1);
   const [hoverVolume, setHoverVolume] = useState<number>(0.8);
 
-  const [hoverPlaybackPercent, setHoverPlaybackPercent] = useState<number>(-20);
+  // Exercise playback states
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0); // in seconds
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const TOTAL_SESSION_SECONDS = 5 * 60; // 5 minutes in seconds
 
   // Hook for background audio (looping)
   const { loadBackground, toggleBackground, stopBackground } =
@@ -97,6 +118,9 @@ const Meditation = () => {
       case MOOD.HAPPY:
         index = findScenarioIndex("Guided Visualization");
         break;
+      default: // Added a default case
+        index = 0;
+        break;
     }
 
     // If mood mapping failed, default to 0
@@ -106,6 +130,7 @@ const Meditation = () => {
   }, [route?.params?.mood, meditationScenarios]);
 
   // Whenever scenarios or selectedIndex changes, update both URLs
+  // And reset playback state
   useEffect(() => {
     if (!meditationScenarios.length) return;
     if (selectedIndex === null) return;
@@ -117,9 +142,15 @@ const Meditation = () => {
     const vhUrl =
       meditationScenarios[selectedIndex]?.guidedMeditationData?.audioUrlKey;
     setVoiceHoverUrl(vhUrl);
+
+    setCognitivePracticeId(meditationScenarios[selectedIndex]?.id || null);
+
+    // Reset playback when meditation type changes
+    setIsPlaying(false);
+    setProgress(0);
   }, [meditationScenarios, selectedIndex]);
 
-  // When bgMusicUrl changes: stop old, load new, and play if not muted
+  // When bgMusicUrl changes: stop old, load new
   useEffect(() => {
     let cancelled = false;
     if (!bgMusicUrl) return;
@@ -131,11 +162,7 @@ const Meditation = () => {
 
       await loadBackground();
 
-      if (cancelled) return;
-
-      if (!mute) {
-        await toggleBackground(true);
-      }
+      // No auto-play here, only play when `isPlaying` is true
     })();
 
     return () => {
@@ -143,10 +170,92 @@ const Meditation = () => {
     };
   }, [bgMusicUrl]);
 
-  // When "mute" toggles: stop or play background audio (hover is handled by VoiceHoverPlayer)
+  // Control background audio based on `isPlaying` and `mute`
   useEffect(() => {
-    toggleBackground(!mute);
-  }, [mute]);
+    if (isPlaying && !mute) {
+      toggleBackground(true);
+    } else {
+      toggleBackground(false);
+    }
+  }, [isPlaying, mute, toggleBackground]);
+
+  // Timer logic for progress
+  useEffect(() => {
+    if (isPlaying) {
+      intervalRef.current = setInterval(() => {
+        setProgress((prevProgress) => {
+          if (prevProgress >= TOTAL_SESSION_SECONDS) {
+            clearInterval(intervalRef.current!);
+            setIsPlaying(false); // Stop playing when session is complete
+            // mark activity complete
+            markActivityComplete();
+            return TOTAL_SESSION_SECONDS;
+          }
+          return prevProgress + 1;
+        });
+      }, 1000); // Update every second
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isPlaying, TOTAL_SESSION_SECONDS]);
+
+  const handleStartCompleteExercise = async () => {
+    if (isPlaying) {
+      // If currently playing, "Complete Exercise" button was pressed
+      setIsPlaying(false);
+      setProgress(0); // Reset progress on completion
+      await markActivityComplete();
+    } else {
+      // If not playing, "Start Exercise" button was pressed
+      await markActivityStart();
+      setIsPlaying(true);
+      if (progress === TOTAL_SESSION_SECONDS) {
+        // If session was completed, restart from 0
+        setProgress(0);
+      }
+    }
+  };
+
+  const markActivityStart = async () => {
+    if (!practiceSession || !cognitivePracticeId) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+      contentId: cognitivePracticeId,
+    });
+    setCurrentActivityId(newActivity.id);
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId)
+    )
+      return;
+    const completedActivity = await completePracticeActivity({
+      id: currentActivityId,
+    });
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
+  };
+
+  const minutes = Math.floor(progress / 60);
+  const seconds = progress % 60;
+  const progressText = `${minutes}/${TOTAL_SESSION_SECONDS / 60} minutes`;
 
   return (
     <>
@@ -154,7 +263,8 @@ const Meditation = () => {
         voiceHoverUrl={voiceHoverUrl}
         mute={mute}
         hoverVolume={hoverVolume}
-        playbackRatePercent={hoverPlaybackPercent}
+        isPlaying={isPlaying}
+        playbackRatePercent={-20}
       />
 
       <ScreenView style={styles.screenView}>
@@ -222,16 +332,19 @@ const Meditation = () => {
             <View style={styles.progressContainer}>
               <View style={styles.progressTitle}>
                 <Text style={styles.progressTitleText}>Session Progress</Text>
-                <Text style={styles.progressDescText}>2/5 minutes</Text>
+                <Text style={styles.progressDescText}>{progressText}</Text>
               </View>
               <ProgressBar
-                currentStep={2}
-                totalSteps={5}
+                currentStep={progress}
+                totalSteps={TOTAL_SESSION_SECONDS}
                 showStepIndicator={false}
                 showPercentage={false}
               />
             </View>
-            <Button text="Start Exercise" onPress={() => {}} />
+            <Button
+              text={isPlaying ? "Complete Exercise" : "Start Exercise"}
+              onPress={handleStartCompleteExercise}
+            />
           </CustomScrollView>
         </View>
       </ScreenView>

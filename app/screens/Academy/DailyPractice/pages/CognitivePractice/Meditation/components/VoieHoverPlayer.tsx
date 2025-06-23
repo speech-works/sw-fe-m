@@ -5,6 +5,7 @@ interface HoverSoundProps {
   voiceHoverUrl?: string;
   mute: boolean;
   hoverVolume: number;
+  isPlaying: boolean; // NEW PROP: Controls if the exercise is active and audio should play
 
   // NEW: how much to slow/fast, as a percentage between −50 and +50
   playbackRatePercent: number;
@@ -14,6 +15,7 @@ export default function VoiceHoverPlayer({
   voiceHoverUrl,
   mute,
   hoverVolume,
+  isPlaying, // Destructure the new prop
   playbackRatePercent,
 }: HoverSoundProps) {
   const voiceSound = useRef<Audio.Sound | null>(null);
@@ -52,11 +54,11 @@ export default function VoiceHoverPlayer({
           voiceSound.current = null;
         }
 
-        // 2) Load the new hover Sound with shouldPlay = !mute, at `hoverVolume`
+        // 2) Load the new hover Sound. shouldPlay will now be determined by `isPlaying` as well.
         const { sound } = await Audio.Sound.createAsync(
           { uri: voiceHoverUrl },
           {
-            shouldPlay: !mute,
+            shouldPlay: false, // Initially set to false, control with `isPlaying`
             isLooping: false,
             volume: hoverVolume,
           }
@@ -68,6 +70,10 @@ export default function VoiceHoverPlayer({
 
         if (!isCancelled) {
           voiceSound.current = sound;
+          // After loading, apply the `isPlaying` and `mute` logic
+          if (isPlaying && !mute) {
+            await sound.playAsync().catch(() => {});
+          }
         } else {
           // If unmounted in the meantime, unload right away
           await sound.unloadAsync();
@@ -87,17 +93,18 @@ export default function VoiceHoverPlayer({
         }
       })();
     };
-  }, [voiceHoverUrl]);
+  }, [voiceHoverUrl, isPlaying, mute]); // Add isPlaying and mute to dependencies
 
-  // When `mute` changes, stop or play the hover sound
+  // When `mute` or `isPlaying` changes, stop or play the hover sound
   useEffect(() => {
     if (!voiceSound.current) return;
-    if (mute) {
+    if (mute || !isPlaying) {
+      // If muted OR not playing, stop the sound
       voiceSound.current.stopAsync().catch(() => {});
     } else {
       voiceSound.current.playAsync().catch(() => {});
     }
-  }, [mute]);
+  }, [mute, isPlaying]); // Depend on both mute and isPlaying
 
   // When `hoverVolume` changes, update the playing sound’s volume
   useEffect(() => {

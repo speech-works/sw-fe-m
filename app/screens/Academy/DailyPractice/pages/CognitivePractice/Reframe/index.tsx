@@ -46,9 +46,7 @@ const Reframe = () => {
   );
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
+
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
   const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
     []
@@ -71,33 +69,18 @@ const Reframe = () => {
     }
   };
 
-  const markActivityStart = async () => {
+  const markActivityDone = async () => {
     if (!practiceSession || !cognitivePracticeId) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
       contentId: cognitivePracticeId,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
-    addActivity({
-      ...startedActivity,
-    });
-  };
-
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: newActivity.id,
     });
-    updateActivity(currentActivityId, {
-      ...completedActivity,
-    });
+    addActivity(completedActivity);
   };
 
   // Fetch all reframe scenarios once on mount
@@ -219,8 +202,7 @@ const Reframe = () => {
                     <Button
                       text="Submit"
                       onPress={async () => {
-                        await markActivityStart();
-                        await markActivityComplete();
+                        await markActivityDone();
                         setIsDone(true);
                       }}
                     />
