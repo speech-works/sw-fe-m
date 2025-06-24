@@ -10,6 +10,9 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import VoiceRecorder from "../../../VoiceRecorder";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import { logMood } from "../../../../../../api/moodCheck";
+import { MoodType } from "../../../../../../api/moodCheck/types";
+import { useUserStore } from "../../../../../../stores/user";
 
 export enum EXPRESSION_TYPE_ENUM {
   WRITE = "WRITE",
@@ -17,20 +20,39 @@ export enum EXPRESSION_TYPE_ENUM {
 }
 
 interface ExpressYourselfProps {
+  moodType: MoodType;
   expressionType: EXPRESSION_TYPE_ENUM | null;
   onClose: () => void;
+  onSubmit: () => void;
 }
 
-const ExpressYourself = ({ expressionType, onClose }: ExpressYourselfProps) => {
+const ExpressYourself = ({
+  moodType,
+  expressionType,
+  onClose,
+  onSubmit,
+}: ExpressYourselfProps) => {
+  const { user } = useUserStore();
+
   const [writtenText, setWrittenText] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user) return;
     if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
-      console.log("Submitted written text:", writtenText);
+      await logMood({
+        userId: user.id,
+        mood: moodType,
+        textNote: writtenText,
+      });
     } else if (expressionType === EXPRESSION_TYPE_ENUM.TALK) {
+      await logMood({
+        userId: user.id,
+        mood: moodType,
+        voiceNoteUrl: "",
+      });
       console.log("Submitted voice recording");
     }
-    // handle save logic here if needed
+    onSubmit();
     onClose();
   };
 

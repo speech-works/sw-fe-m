@@ -15,32 +15,32 @@ import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
-import { MOOD } from "../../../../types/mood";
+import { MoodType } from "../../../../api/moodCheck/types";
 
 const emotions = [
   {
-    id: MOOD.ANGRY,
+    id: MoodType.ANGRY,
     name: "Angry",
     description: "Something's clearly up! Share it.",
     icon: Angry1,
     bgColor: theme.colors.moodcheck.angry,
   },
   {
-    id: MOOD.CALM,
+    id: MoodType.CALM,
     name: "Calm",
     description: "What's your go-to for zen?",
     icon: Calm1,
     bgColor: theme.colors.moodcheck.calm,
   },
   {
-    id: MOOD.HAPPY,
+    id: MoodType.HAPPY,
     name: "Happy",
     description: "Tell us all about it!",
     icon: Happy1,
     bgColor: theme.colors.moodcheck.happy,
   },
   {
-    id: MOOD.SAD,
+    id: MoodType.SAD,
     name: "Sad",
     description: "Thinking of you! Share with us.",
     icon: Sad1,

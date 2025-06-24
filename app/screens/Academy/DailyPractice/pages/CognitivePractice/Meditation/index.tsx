@@ -23,7 +23,7 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 import { MoodFUStackParamList } from "../../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
-import { MOOD } from "../../../../../../types/mood";
+
 import { useSessionStore } from "../../../../../../stores/session";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { createPracticeActivity } from "../../../../../../api";
@@ -32,6 +32,7 @@ import {
   startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { MoodType } from "../../../../../../api/moodCheck/types";
 
 const Meditation = () => {
   const navigation = useNavigation();
@@ -106,16 +107,16 @@ const Meditation = () => {
 
     let index = 0;
     switch (mood) {
-      case MOOD.ANGRY:
+      case MoodType.ANGRY:
         index = findScenarioIndex("Stress Relief");
         break;
-      case MOOD.SAD:
+      case MoodType.SAD:
         index = findScenarioIndex("Fear Removal");
         break;
-      case MOOD.CALM:
+      case MoodType.CALM:
         index = findScenarioIndex("Body Scan");
         break;
-      case MOOD.HAPPY:
+      case MoodType.HAPPY:
         index = findScenarioIndex("Guided Visualization");
         break;
       default: // Added a default case

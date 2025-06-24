@@ -18,8 +18,6 @@ import ListCard, {
 } from "../../../DailyPractice/components/ListCard";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 
-import { MOOD } from "../../../../../types/mood";
-
 import {
   MoodFUStackNavigationProp,
   MoodFUStackParamList,
@@ -27,6 +25,7 @@ import {
 import ExpressYourself, {
   EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";
+import { MoodType } from "../../../../../api/moodCheck/types";
 
 const iconContainerStyle: ViewStyle = {
   display: "flex",
@@ -39,7 +38,7 @@ const iconContainerStyle: ViewStyle = {
 
 // Map mood to content and activities
 const moodContentMap = {
-  [MOOD.HAPPY]: {
+  [MoodType.HAPPY]: {
     title: "What’s been making you smile today?",
     desc: "Celebrating wins—big or small—boosts confidence. Share your joy.",
     Icon: "Happy1",
@@ -86,7 +85,7 @@ const moodContentMap = {
       },
     ],
   },
-  [MOOD.ANGRY]: {
+  [MoodType.ANGRY]: {
     title: "Got some steam to let off?",
     desc: "Naming anger and putting it into words helps you release tension.",
     Icon: "Angry1",
@@ -133,7 +132,7 @@ const moodContentMap = {
       },
     ],
   },
-  [MOOD.SAD]: {
+  [MoodType.SAD]: {
     title: "Need to lighten your heart?",
     desc: "Expressing tough feelings eases the load. Let it out in speech or text.",
     Icon: "Sad1",
@@ -180,7 +179,7 @@ const moodContentMap = {
       },
     ],
   },
-  [MOOD.CALM]: {
+  [MoodType.CALM]: {
     title: "Feeling peaceful right now?",
     desc: "Capture this calm—it’ll be your anchor when things get hectic.",
     Icon: "Calm1",
@@ -230,10 +229,10 @@ const moodContentMap = {
 };
 
 const moodLottieMap = {
-  [MOOD.HAPPY]: require("../../../../../assets/mood-check/lottie/Happy1.json"),
-  [MOOD.ANGRY]: require("../../../../../assets/mood-check/lottie/Angry1.json"),
-  [MOOD.SAD]: require("../../../../../assets/mood-check/lottie/Sad1.json"),
-  [MOOD.CALM]: require("../../../../../assets/mood-check/lottie/Calm1.json"),
+  [MoodType.HAPPY]: require("../../../../../assets/mood-check/lottie/Happy1.json"),
+  [MoodType.ANGRY]: require("../../../../../assets/mood-check/lottie/Angry1.json"),
+  [MoodType.SAD]: require("../../../../../assets/mood-check/lottie/Sad1.json"),
+  [MoodType.CALM]: require("../../../../../assets/mood-check/lottie/Calm1.json"),
 };
 
 const FollowUp = () => {
@@ -245,6 +244,7 @@ const FollowUp = () => {
   const { Icon: MoodIcon, title, desc, helpful } = moodContentMap[mood];
   const [expressionType, setExpressionType] =
     useState<EXPRESSION_TYPE_ENUM | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const followUpAct: Array<ListCardProps> = [
     {
@@ -311,64 +311,72 @@ const FollowUp = () => {
             </TouchableOpacity>
           </View>
           <CustomScrollView contentContainerStyle={styles.innerContainer}>
-            <View style={styles.titleWrapper}>
-              {/* <MoodIcon width={80} height={80} /> */}
-              <LottieView
-                source={moodLottieMap[mood]}
-                autoPlay
-                loop
-                style={styles.lottie}
-              />
-              <Text style={styles.titleText}>{title}</Text>
-              <Text style={styles.descText}>{desc}</Text>
-            </View>
-
-            <View style={styles.followUpActContainer}>
-              {followUpAct.map((item, idx) => (
-                <ListCard
-                  noChevron
-                  key={idx}
-                  title={item.title}
-                  description={item.description}
-                  icon={item.icon}
-                  onPress={item.onPress}
+            <>
+              <View style={styles.titleWrapper}>
+                {/* <MoodIcon width={80} height={80} /> */}
+                <LottieView
+                  source={moodLottieMap[mood]}
+                  autoPlay
+                  loop
+                  style={styles.lottie}
                 />
-              ))}
-            </View>
-
-            <View style={styles.helpfulActContianer}>
-              <Text style={styles.helpfulTitleText}>
-                Or try one of these tailored activities:
-              </Text>
-              {helpful.map((item, idx) => (
-                <ListCard
-                  noChevron
-                  key={idx}
-                  title={item.title}
-                  description={item.description}
-                  icon={item.icon}
-                  onPress={() => {
-                    navigation.navigate({
-                      name: item.action as any,
-                      params: undefined,
-                    });
-                  }}
-                />
-              ))}
-            </View>
-
-            <View style={styles.skipContainer}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.skipText}>Skip for now</Text>
-              </TouchableOpacity>
-            </View>
+                {!submitted && <Text style={styles.titleText}>{title}</Text>}
+                {!submitted && <Text style={styles.descText}>{desc}</Text>}
+              </View>
+              {submitted ? (
+                <View style={styles.helpfulActContianer}>
+                  <Text style={styles.helpfulTitleText}>
+                    Try one of these tailored activities:
+                  </Text>
+                  {helpful.map((item, idx) => (
+                    <ListCard
+                      noChevron
+                      key={idx}
+                      title={item.title}
+                      description={item.description}
+                      icon={item.icon}
+                      onPress={() => {
+                        navigation.navigate({
+                          name: item.action as any,
+                          params: undefined,
+                        });
+                      }}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <>
+                  <View style={styles.followUpActContainer}>
+                    {followUpAct.map((item, idx) => (
+                      <ListCard
+                        noChevron
+                        key={idx}
+                        title={item.title}
+                        description={item.description}
+                        icon={item.icon}
+                        onPress={item.onPress}
+                      />
+                    ))}
+                  </View>
+                </>
+              )}
+              <View style={styles.skipContainer}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                  <Text style={styles.skipText}>Skip for now</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           </CustomScrollView>
         </View>
       </ScreenView>
 
       <ExpressYourself
+        moodType={mood}
         expressionType={expressionType}
         onClose={() => setExpressionType(null)}
+        onSubmit={() => {
+          setSubmitted(true);
+        }}
       />
     </>
   );
@@ -431,6 +439,7 @@ const styles = StyleSheet.create({
   helpfulTitleText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    textAlign: "center",
   },
   skipContainer: {
     alignItems: "center",

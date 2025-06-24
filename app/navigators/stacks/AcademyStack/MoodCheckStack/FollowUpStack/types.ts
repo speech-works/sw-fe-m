@@ -1,12 +1,12 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
-import { MOOD } from "../../../../../types/mood";
+import { MoodType } from "../../../../../api/moodCheck/types";
 
 export type MoodFUStackParamList = {
-  FollowUp: { mood: MOOD };
+  FollowUp: { mood: MoodType };
   BreathingPractice: undefined;
   MeditationPractice: {
-    mood: MOOD;
+    mood: MoodType;
   };
   ReframePractice: undefined;
   RoleplayPracticeStack: undefined;
