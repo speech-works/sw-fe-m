@@ -1,5 +1,3 @@
-// BreathingScreen.tsx
-
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import ScreenView from "../../../../../../components/ScreenView";
@@ -15,16 +13,52 @@ import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { createPracticeActivity } from "../../../../../../api";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
+import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
+import DonePractice from "../../../components/DonePractice";
 
 const Breathing = () => {
   const navigation = useNavigation();
 
   // single “mute” state that mutes both breath sounds + background
   const [mute, setMute] = useState(false);
+  // State to track elapsed seconds for the session
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
+    null
+  );
+  const [isDone, setIsDone] = useState(false);
+
+  const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
 
   // background hook (load, toggle, stop)
   const { loadBackground, toggleBackground, stopBackground } =
     useBackgroundAudio();
+
+  const { addActivity } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+
+  const markActivityDone = async () => {
+    if (!practiceSession || !cognitivePracticeId) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+      contentId: cognitivePracticeId,
+    });
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const completedActivity = await completePracticeActivity({
+      id: newActivity.id,
+    });
+    addActivity(completedActivity);
+  };
 
   // ─── On mount: load the music, then immediately play it (because mute === false) ────
   useEffect(() => {
@@ -32,8 +66,10 @@ const Breathing = () => {
     const prepare = async () => {
       await loadBackground();
       if (isCurrent) {
-        // once loaded, start playing because mute is false by default
-        toggleBackground(true);
+        // Only start background music if not done
+        if (!isDone) {
+          toggleBackground(true);
+        }
       }
     };
     prepare();
@@ -41,12 +77,39 @@ const Breathing = () => {
     return () => {
       isCurrent = false;
     };
-  }, [loadBackground, toggleBackground]);
+  }, [loadBackground, toggleBackground, isDone]); // Add isDone to dependency array
 
   // ─── Whenever mute flips, stop/play background in sync ──────────────────────────
   useEffect(() => {
-    toggleBackground(!mute);
-  }, [mute, toggleBackground]);
+    // Only toggle background if not done
+    if (!isDone) {
+      toggleBackground(!mute);
+    } else {
+      // If done, ensure background is stopped
+      stopBackground();
+    }
+  }, [mute, toggleBackground, stopBackground, isDone]); // Add stopBackground and isDone to dependency array
+
+  // ─── Timer for session progress ────────────────────────────────────────────────
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    // Start the timer when the component mounts and if not done
+    if (!isDone) {
+      interval = setInterval(() => {
+        setElapsedSeconds((prevSeconds) => {
+          // Stop the timer if the session is complete
+          if (prevSeconds >= totalSessionDurationInSeconds) {
+            clearInterval(interval);
+            return totalSessionDurationInSeconds; // Cap at total duration
+          }
+          return prevSeconds + 1; // Increment by 1 second
+        });
+      }, 1000); // Update every 1000 milliseconds (1 second)
+    }
+
+    // Clear the interval when the component unmounts or when isDone becomes true
+    return () => clearInterval(interval);
+  }, [isDone]); // Add isDone to dependency array
 
   // ─── When unmounting, fully stop & unload the background track ───────────────────
   useEffect(() => {
@@ -54,6 +117,21 @@ const Breathing = () => {
       stopBackground();
     };
   }, [stopBackground]);
+
+  useEffect(() => {
+    const fetchCP = async () => {
+      const cp = await getCognitivePracticeByType(
+        CognitivePracticeType.GUIDED_BREATHING
+      );
+      setCognitivePracticeId(cp[0]?.id || null);
+    };
+    fetchCP();
+  }, []);
+
+  // Calculate elapsed minutes and remaining seconds for display
+  const displayMinutes = Math.floor(elapsedSeconds / 60);
+  const displaySeconds = elapsedSeconds % 60;
+  const totalDisplayMinutes = totalSessionDurationInSeconds / 60;
 
   return (
     <ScreenView style={styles.screenView}>
@@ -72,85 +150,113 @@ const Breathing = () => {
             <Text style={styles.topNavigationText}>Breathing</Text>
           </TouchableOpacity>
 
-          {/* Single button toggles both music + breath */}
-          <TouchableOpacity onPress={() => setMute((prev) => !prev)}>
-            <Icon
-              name={mute ? "volume-mute" : "volume-up"}
-              size={16}
-              color={theme.colors.actionPrimary.default}
-            />
-          </TouchableOpacity>
+          {/* Single button toggles both music + breath - Only show if not done */}
+          {!isDone && (
+            <TouchableOpacity onPress={() => setMute((prev) => !prev)}>
+              <Icon
+                name={mute ? "volume-mute" : "volume-up"}
+                size={16}
+                color={theme.colors.actionPrimary.default}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* ── Breathing Halo (passes down the same “mute” prop) ───────────────────────── */}
-          <View style={styles.haloContainer}>
-            <BreathingHalo inhale={4} hold={4} exhale={4} repeat mute={mute} />
-          </View>
+          <>
+            {isDone ? (
+              <DonePractice />
+            ) : (
+              <>
+                {/* ── Breathing Halo (passes down the same “mute” prop) ───────────────────────── */}
+                <View style={styles.haloContainer}>
+                  <BreathingHalo
+                    inhale={4}
+                    hold={4}
+                    exhale={4}
+                    repeat
+                    mute={mute}
+                  />
+                </View>
 
-          {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
-          <View style={styles.tipsContainer}>
-            <View style={styles.tipTitleContainer}>
-              <Icon
-                solid
-                name="lightbulb"
-                size={16}
-                color={theme.colors.text.title}
-              />
-              <Text style={styles.tipTitleText}>Practice Tips</Text>
-            </View>
-            <View style={styles.tipListContainer}>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="lungs"
-                  size={16}
-                  color={theme.colors.library.orange[400]}
-                />
-                <Text style={styles.tipText}>
-                  Take deep breaths before starting. Feel your diaphragm expand.
-                </Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="smile"
-                  size={16}
-                  color={theme.colors.library.green[400]}
-                />
-                <Text style={styles.tipText}>
-                  Maintain a relaxed facial posture. Release jaw tension.
-                </Text>
-              </View>
-              <View style={styles.tipCard}>
-                <Icon
-                  solid
-                  name="wind"
-                  size={16}
-                  color={theme.colors.library.blue[400]}
-                />
-                <Text style={styles.tipText}>
-                  It's okay to take your time. Focus on smooth transitions.
-                </Text>
-              </View>
-            </View>
-          </View>
+                {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
+                <View style={styles.tipsContainer}>
+                  <View style={styles.tipTitleContainer}>
+                    <Icon
+                      solid
+                      name="lightbulb"
+                      size={16}
+                      color={theme.colors.text.title}
+                    />
+                    <Text style={styles.tipTitleText}>Practice Tips</Text>
+                  </View>
+                  <View style={styles.tipListContainer}>
+                    <View style={styles.tipCard}>
+                      <Icon
+                        solid
+                        name="lungs"
+                        size={16}
+                        color={theme.colors.library.orange[400]}
+                      />
+                      <Text style={styles.tipText}>
+                        Take deep breaths before starting. Feel your diaphragm
+                        expand.
+                      </Text>
+                    </View>
+                    <View style={styles.tipCard}>
+                      <Icon
+                        solid
+                        name="smile"
+                        size={16}
+                        color={theme.colors.library.green[400]}
+                      />
+                      <Text style={styles.tipText}>
+                        Maintain a relaxed facial posture. Release jaw tension.
+                      </Text>
+                    </View>
+                    <View style={styles.tipCard}>
+                      <Icon
+                        solid
+                        name="wind"
+                        size={16}
+                        color={theme.colors.library.blue[400]}
+                      />
+                      <Text style={styles.tipText}>
+                        It's okay to take your time. Focus on smooth
+                        transitions.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
 
-          {/* ── Session Progress ───────────────────────────────────────────────────────── */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressTitle}>
-              <Text style={styles.progressTitleText}>Session Progress</Text>
-              <Text style={styles.progressDescText}>2/5 minutes</Text>
-            </View>
-            <ProgressBar
-              currentStep={2}
-              totalSteps={5}
-              showStepIndicator={false}
-              showPercentage={false}
-            />
-          </View>
+                {/* ── Session Progress ───────────────────────────────────────────────────────── */}
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressTitle}>
+                    <Text style={styles.progressTitleText}>
+                      Session Progress
+                    </Text>
+                    <Text style={styles.progressDescText}>
+                      {displayMinutes}/{totalDisplayMinutes} minutes
+                    </Text>
+                  </View>
+                  <ProgressBar
+                    currentStep={elapsedSeconds} // Use elapsedSeconds for current progress
+                    totalSteps={totalSessionDurationInSeconds} // Use totalSessionDurationInSeconds for the total steps
+                    showStepIndicator={false}
+                    showPercentage={false}
+                  />
+                </View>
 
-          <Button text="Start Exercise" onPress={() => {}} />
+                <Button
+                  text="Complete Exercise"
+                  onPress={async () => {
+                    await markActivityDone();
+                    setIsDone(true);
+                  }}
+                />
+              </>
+            )}
+          </>
         </CustomScrollView>
       </View>
     </ScreenView>

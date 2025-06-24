@@ -44,7 +44,7 @@ const Reframe = () => {
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null
   );
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
+  const { addActivity } = useActivityStore();
   const { practiceSession } = useSessionStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
