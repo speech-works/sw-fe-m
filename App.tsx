@@ -13,11 +13,15 @@ import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
+import { useMoodCheckStore } from "./app/stores/mood";
 
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
+  // reset mood log on frontend
+  useMoodCheckStore.getState().checkAndResetIfNeeded();
+
   useEffect(() => {
     const checkToken = async () => {
       const accessToken = await SecureStore.getItemAsync(

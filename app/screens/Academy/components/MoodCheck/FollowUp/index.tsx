@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -26,6 +26,7 @@ import ExpressYourself, {
   EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";
 import { MoodType } from "../../../../../api/moodCheck/types";
+import { useMoodCheckStore } from "../../../../../stores/mood";
 
 const iconContainerStyle: ViewStyle = {
   display: "flex",
@@ -240,6 +241,7 @@ const FollowUp = () => {
     useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
   const route = useRoute<RouteProp<MoodFUStackParamList, "FollowUp">>();
   const { mood } = route.params;
+  const { setMood } = useMoodCheckStore();
 
   const { Icon: MoodIcon, title, desc, helpful } = moodContentMap[mood];
   const [expressionType, setExpressionType] =
@@ -293,6 +295,12 @@ const FollowUp = () => {
     },
   ];
 
+  useEffect(() => {
+    if (submitted) {
+      setMood(mood);
+    }
+  }, [submitted]);
+
   return (
     <>
       <ScreenView style={styles.screenView}>
@@ -313,7 +321,6 @@ const FollowUp = () => {
           <CustomScrollView contentContainerStyle={styles.innerContainer}>
             <>
               <View style={styles.titleWrapper}>
-                {/* <MoodIcon width={80} height={80} /> */}
                 <LottieView
                   source={moodLottieMap[mood]}
                   autoPlay
@@ -437,7 +444,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   helpfulTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
+    ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
     textAlign: "center",
   },

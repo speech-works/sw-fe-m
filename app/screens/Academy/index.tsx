@@ -10,11 +10,12 @@ import CustomScrollView from "../../components/CustomScrollView";
 import { useUserStore } from "../../stores/user";
 import { createSession, getAllSessionsOfUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
+import { useMoodCheckStore } from "../../stores/mood";
 
 const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
-
+  const { hasRecordedToday } = useMoodCheckStore();
   // This function contains the core synchronization logic.
   // It's memoized by useCallback. Its dependencies dictate when its *identity* changes.
   const syncSessionWithBackend = useCallback(async () => {
@@ -123,7 +124,7 @@ const Academy = () => {
     <ScreenView style={styles.screenView}>
       <CustomScrollView>
         <View style={styles.innerContainer}>
-          <MoodCheck />
+          {hasRecordedToday && <MoodCheck />}
           <Progress />
           <DailyPractice onClickStart={startNewSession} />
           <Tiles />
