@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
-// MoodType enum
 export enum MoodType {
   ANGRY = "ANGRY",
   CALM = "CALM",
@@ -65,10 +64,8 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       // We use `onRehydrateStorage` to ensure daily reset happens after loading
       onRehydrateStorage: () => (state) => {
         if (state) {
-          console.log("MoodCheckStore rehydrating...");
           const today = new Date().toISOString().split("T")[0];
           if (state.lastRecordedDate !== today) {
-            console.log("MoodCheckStore: Resetting for new day");
             state.hasRecordedToday = false;
             state.moodType = null;
             state.lastRecordedDate = null;

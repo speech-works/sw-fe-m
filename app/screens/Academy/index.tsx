@@ -137,7 +137,7 @@ const Academy = () => {
     <ScreenView style={styles.screenView}>
       <CustomScrollView>
         <View style={styles.innerContainer}>
-          {hasRecordedToday && <MoodCheck />}
+          {!hasRecordedToday && <MoodCheck />}
           <Progress />
           <DailyPractice onClickStart={startNewSession} />
           <Tiles />
