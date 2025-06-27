@@ -18,6 +18,8 @@ import {
   EDPStackNavigationProp,
   EDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
+import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { formatDuration } from "../../../../../util/functions/time";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -31,6 +33,8 @@ const iconContiainerStyle: ViewStyle = {
 const Exposure = () => {
   const navigation =
     useNavigation<EDPStackNavigationProp<keyof EDPStackParamList>>();
+
+  const { practiceStats } = usePracticeStatsStore();
 
   const exposureData: Array<ListCardProps> = [
     {
@@ -137,7 +141,11 @@ const Exposure = () => {
                     { color: theme.colors.library.blue[500] },
                   ]}
                 >
-                  24
+                  {
+                    practiceStats.find(
+                      (stat) => stat.contentType === "EXPOSURE_PRACTICE"
+                    )?.itemsCompleted
+                  }
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Completed</Text>
               </View>
@@ -148,7 +156,11 @@ const Exposure = () => {
                     { color: theme.colors.library.green[500] },
                   ]}
                 >
-                  3.2h
+                  {formatDuration(
+                    practiceStats.find(
+                      (stat) => stat.contentType === "EXPOSURE_PRACTICE"
+                    )?.totalTime
+                  )}
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Total Time</Text>
               </View>

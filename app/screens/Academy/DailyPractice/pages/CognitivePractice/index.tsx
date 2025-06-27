@@ -17,6 +17,8 @@ import {
   CDPStackNavigationProp,
   CDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { formatDuration } from "../../../../../util/functions/time";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -30,6 +32,7 @@ const iconContiainerStyle: ViewStyle = {
 const CognitivePractice = () => {
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
+  const { practiceStats } = usePracticeStatsStore();
   const cognitivePracticeData: Array<ListCardProps> = [
     {
       title: "Guided Breathing",
@@ -130,7 +133,11 @@ const CognitivePractice = () => {
                     { color: theme.colors.library.blue[500] },
                   ]}
                 >
-                  24
+                  {
+                    practiceStats.find(
+                      (stat) => stat.contentType === "COGNITIVE_PRACTICE"
+                    )?.itemsCompleted
+                  }
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Completed</Text>
               </View>
@@ -141,7 +148,11 @@ const CognitivePractice = () => {
                     { color: theme.colors.library.green[500] },
                   ]}
                 >
-                  3.2h
+                  {formatDuration(
+                    practiceStats.find(
+                      (stat) => stat.contentType === "COGNITIVE_PRACTICE"
+                    )?.totalTime
+                  )}
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Total Time</Text>
               </View>

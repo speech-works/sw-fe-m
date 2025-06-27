@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import React, { useCallback } from "react"; // Removed useEffect for now, will use useFocusEffect
+import React, { useCallback, useEffect } from "react"; // Removed useEffect for now, will use useFocusEffect
 import { useFocusEffect } from "@react-navigation/native"; // Ensure this is installed and setup
 import ScreenView from "../../components/ScreenView";
 import MoodCheck from "./components/MoodCheck";
@@ -11,10 +11,13 @@ import { useUserStore } from "../../stores/user";
 import { createSession, getAllSessionsOfUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
 import { useMoodCheckStore } from "../../stores/mood";
+import { getUserStats } from "../../api/stats";
+import { usePracticeStatsStore } from "../../stores/practiceStats";
 
 const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
+  const { setPracticeStats } = usePracticeStatsStore();
   const { hasRecordedToday } = useMoodCheckStore();
   // This function contains the core synchronization logic.
   // It's memoized by useCallback. Its dependencies dictate when its *identity* changes.
@@ -119,6 +122,16 @@ const Academy = () => {
       console.error("Failed to create new session:", error);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchUserStats = async () => {
+      const practiceStats = await getUserStats(user.id);
+      console.log("practice stats-", { practiceStats });
+      setPracticeStats(practiceStats);
+    };
+    fetchUserStats();
+  }, [user]);
 
   return (
     <ScreenView style={styles.screenView}>
