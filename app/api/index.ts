@@ -14,21 +14,23 @@ export {
 } from "./practiceSessions";
 export {
   createPracticeActivity,
-  getAllActivitiesOfSession,
-  getPracticeActivityById,
-  updatePracticeActivity,
-  deletePracticeActivity,
+  startPracticeActivity,
+  completePracticeActivity,
+  getAllPracticeActivitiesBySessionId,
+  getCurrentPracticeActivityForSession,
 } from "./practiceActivities";
 export {
   createProgressReport,
   getLiveProgressReport,
   getPastProgressReports,
 } from "./progressReport";
-
+export { logMood, updateMoodByMoodId } from "./moodCheck";
 export {
-  getAllRecordings,
   getRecordingById,
+  getRecordings,
   createRecording,
+  deleteRecording,
+  deleteRecordingsByUser,
 } from "./recordings";
 export { getUserById, updateUserById, deleteUserById } from "./users";
 export {

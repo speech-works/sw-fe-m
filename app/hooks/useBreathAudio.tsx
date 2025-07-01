@@ -1,4 +1,3 @@
-// hooks/useBreathAudio.ts
 import { useRef, useEffect, useCallback } from "react";
 import { Audio } from "expo-av";
 

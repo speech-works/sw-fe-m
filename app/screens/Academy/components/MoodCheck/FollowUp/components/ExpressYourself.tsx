@@ -14,9 +14,8 @@ import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { useUserStore } from "../../../../../../stores/user";
 import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
-import { createRecording } from "../../../../../../api/recordings";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
-import { getFileFromUri } from "../../../../../../util/functions/fileHandling";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 
 export enum EXPRESSION_TYPE_ENUM {
   WRITE = "WRITE",
@@ -37,11 +36,9 @@ const ExpressYourself = ({
   onSubmit,
 }: ExpressYourselfProps) => {
   const { user } = useUserStore();
-
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
   const [writtenText, setWrittenText] = useState("");
-  const [voiceRecordingUri, setVoiceRecordingUri] = useState<string | null>(
-    null
-  );
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -61,20 +58,12 @@ const ExpressYourself = ({
         expressionType === EXPRESSION_TYPE_ENUM.TALK &&
         voiceRecordingUri
       ) {
-        const file = await getFileFromUri(voiceRecordingUri, "audio/mp4");
-
-        const uploadedRecording = await createRecording(
-          {
-            userId: user.id,
-            sourceType: RecordingSourceType.MOOD_CHECK,
-          },
-          file
+        const uploadedRecording = await submitVoiceRecording(
+          RecordingSourceType.MOOD_CHECK
         );
-
-        if (!uploadedRecording?.audioUrl) {
-          throw new Error("Voice note upload failed");
+        if (!uploadedRecording) {
+          throw new Error("Voice recording upload failed!");
         }
-
         await logMood({
           userId: user.id,
           mood: moodType,
