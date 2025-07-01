@@ -34,6 +34,9 @@ import {
   completePracticeActivity,
   startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
+import { useUserStore } from "../../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -76,7 +79,9 @@ const Chat = () => {
     isActivityCompleted,
   } = useActivityStore();
   const { practiceSession } = useSessionStore();
-
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
   const [isDone, setIsDone] = useState(false);
   const [messageHeight, setMessageHeight] = useState<number | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
@@ -89,9 +94,6 @@ const Chat = () => {
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false); // To track if the initial node has been processed
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
 
   // Enable LayoutAnimation on Android for smooth transitions
   useEffect(() => {
@@ -217,26 +219,38 @@ const Chat = () => {
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
       contentId: interview.id,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
     addActivity({
       ...startedActivity,
     });
+    return newActivity.id;
   };
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: activityId,
     });
-    updateActivity(currentActivityId, {
+    updateActivity(activityId, {
       ...completedActivity,
     });
+  };
+
+  const onDonePress = async () => {
+    try {
+      const activityId = await markActivityStart();
+      if (!activityId) {
+        throw new Error("Activity could not be started");
+      }
+      await markActivityComplete(activityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: activityId,
+      });
+      setIsDone(true);
+    } catch (error) {
+      console.error("❌ Failed to mark the activity complete:", error);
+    }
   };
 
   return (
@@ -387,17 +401,13 @@ const Chat = () => {
               </View>
 
               <VoiceRecorder
-                onRecording={markActivityStart}
-                onRecorded={markActivityComplete}
+                onRecorded={(uri) => {
+                  setVoiceRecordingUri(uri);
+                }}
               />
 
-              {currentActivityId && isActivityCompleted(currentActivityId) && (
-                <Button
-                  text="Done"
-                  onPress={() => {
-                    setIsDone(true);
-                  }}
-                />
+              {!!voiceRecordingUri && (
+                <Button text="Done" onPress={onDonePress} />
               )}
             </>
           )}
