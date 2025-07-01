@@ -39,6 +39,9 @@ import {
   startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import { useUserStore } from "../../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 
 // Define the message structure
 interface ChatMessage {
@@ -60,6 +63,10 @@ const Chat = () => {
     isActivityCompleted,
   } = useActivityStore();
   const { practiceSession } = useSessionStore();
+
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
 
   const selectedRole = useMemo(
     () =>
@@ -90,10 +97,6 @@ const Chat = () => {
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
-
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
 
   useEffect(() => {
     if (
@@ -180,33 +183,45 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId);
   };
 
-  const markActivityStart = async () => {
+  const markActivityStart = async (): Promise<string | undefined> => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: id,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
     addActivity({
       ...startedActivity,
     });
+    return newActivity.id;
   };
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: activityId,
     });
-    updateActivity(currentActivityId, {
+    updateActivity(activityId, {
       ...completedActivity,
     });
+  };
+
+  const onDonePress = async () => {
+    try {
+      const activityId = await markActivityStart();
+      if (!activityId) {
+        throw new Error("Activity could not be started");
+      }
+      await markActivityComplete(activityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: activityId,
+      });
+      setIsDone(true);
+    } catch (error) {
+      console.error("❌ Failed to mark the activity complete:", error);
+    }
   };
 
   return (
@@ -390,17 +405,12 @@ const Chat = () => {
               )}
 
               <VoiceRecorder
-                onRecording={markActivityStart}
-                onRecorded={markActivityComplete}
+                onRecorded={(uri) => {
+                  setVoiceRecordingUri(uri);
+                }}
               />
-
-              {currentActivityId && isActivityCompleted(currentActivityId) && (
-                <Button
-                  text="Done"
-                  onPress={() => {
-                    setIsDone(true);
-                  }}
-                />
+              {!!voiceRecordingUri && (
+                <Button text="Done" onPress={onDonePress} />
               )}
             </>
           )}
