@@ -17,9 +17,10 @@ type Frame = {
 
 const VoiceRecorder: React.FC<{
   onToggle?: () => void;
-  onRecorded?: () => void;
+  onRecorded?: (uri: string) => void;
   onRecording?: () => void;
-}> = ({ onToggle, onRecorded, onRecording }) => {
+  prevRecordingUri?: string;
+}> = ({ onToggle, onRecorded, onRecording, prevRecordingUri }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [meteringData, setMeteringData] = useState<number[]>(
@@ -95,7 +96,7 @@ const VoiceRecorder: React.FC<{
       `🛑 Recording stopped. Captured ${recordingFrames.current.length} frames`
     );
     setIsRecording(false);
-    onRecorded?.();
+    // onRecorded?.();
   }, [onRecorded]);
 
   // Playback animation loop
@@ -212,6 +213,11 @@ const VoiceRecorder: React.FC<{
           onPlaybackStop={handlePlaybackStop}
           onToggle={onToggle}
           onMetering={handleMetering}
+          onRecordingComplete={(uri) => {
+            console.log("🎙️ Voice recording complete at URI:", uri);
+            onRecorded?.(uri); // ✅ Propagate to parent (ExpressYourself)
+          }}
+          prevRecordingUri={prevRecordingUri}
         />
         <Text style={styles.recordTipText}>
           Tap microphone to record your voice

@@ -7,12 +7,16 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import VoiceRecorder from "../../../VoiceRecorder";
+
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { useUserStore } from "../../../../../../stores/user";
+import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
+import { createRecording } from "../../../../../../api/recordings";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { getFileFromUri } from "../../../../../../util/functions/fileHandling";
 
 export enum EXPRESSION_TYPE_ENUM {
   WRITE = "WRITE",
@@ -35,25 +39,57 @@ const ExpressYourself = ({
   const { user } = useUserStore();
 
   const [writtenText, setWrittenText] = useState("");
+  const [voiceRecordingUri, setVoiceRecordingUri] = useState<string | null>(
+    null
+  );
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
-      await logMood({
-        userId: user.id,
-        mood: moodType,
-        textNote: writtenText,
-      });
-    } else if (expressionType === EXPRESSION_TYPE_ENUM.TALK) {
-      await logMood({
-        userId: user.id,
-        mood: moodType,
-        voiceNoteUrl: "",
-      });
-      console.log("Submitted voice recording");
+    if (!user?.id) {
+      console.warn("❌ User ID is missing during mood submission");
+      return;
     }
-    onSubmit();
-    onClose();
+
+    try {
+      if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
+        await logMood({
+          userId: user.id,
+          mood: moodType,
+          textNote: writtenText,
+        });
+      } else if (
+        expressionType === EXPRESSION_TYPE_ENUM.TALK &&
+        voiceRecordingUri
+      ) {
+        const file = await getFileFromUri(voiceRecordingUri, "audio/mp4");
+
+        const uploadedRecording = await createRecording(
+          {
+            userId: user.id,
+            sourceType: RecordingSourceType.MOOD_CHECK,
+          },
+          file
+        );
+
+        if (!uploadedRecording?.audioUrl) {
+          throw new Error("Voice note upload failed");
+        }
+
+        await logMood({
+          userId: user.id,
+          mood: moodType,
+          voiceNoteUrl: uploadedRecording.audioUrl, // ✅ Use actual S3 key
+        });
+
+        console.log("🎤 Voice mood entry logged:", uploadedRecording.audioUrl);
+      }
+
+      onSubmit();
+      onClose();
+    } catch (error) {
+      console.error("❌ Failed to submit mood expression:", error);
+      // Optionally show a toast or alert
+    }
   };
 
   return (
@@ -76,8 +112,12 @@ const ExpressYourself = ({
               onChangeText={setWrittenText}
             />
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[
+                styles.submitButton,
+                writtenText.length < 1 ? styles.disabledButton : null,
+              ]}
               onPress={handleSubmit}
+              disabled={writtenText.length < 1}
             >
               <Text style={styles.submitText}>Let it out</Text>
             </TouchableOpacity>
@@ -89,10 +129,17 @@ const ExpressYourself = ({
               Speak your mind. Recording your thoughts can help process
               emotions.
             </Text>
-            <VoiceRecorder />
+            <VoiceRecorder
+              onRecorded={(uri) => setVoiceRecordingUri(uri)}
+              prevRecordingUri={voiceRecordingUri || undefined}
+            />
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[
+                styles.submitButton,
+                !voiceRecordingUri ? styles.disabledButton : null,
+              ]}
               onPress={handleSubmit}
+              disabled={!voiceRecordingUri}
             >
               <Text style={styles.submitText}>Let it out</Text>
             </TouchableOpacity>
@@ -135,6 +182,9 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: "center",
+  },
+  disabledButton: {
+    backgroundColor: theme.colors.actionPrimary.disabled,
   },
   submitText: {
     color: "#fff",

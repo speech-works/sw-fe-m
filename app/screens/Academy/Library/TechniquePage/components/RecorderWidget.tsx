@@ -12,6 +12,8 @@ const RecorderWidget: React.FC<{
   onPlay?: () => void;
   onPlaybackStop?: () => void;
   onMetering?: (db: number) => void;
+  onRecordingComplete?: (uri: string) => void;
+  prevRecordingUri?: string;
 }> = ({
   onToggle,
   onPlay,
@@ -19,12 +21,14 @@ const RecorderWidget: React.FC<{
   onStopRecording,
   onPlaybackStop,
   onMetering,
+  onRecordingComplete,
+  prevRecordingUri,
 }) => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const recordedUri = useRef<string | null>(null);
+  const recordedUri = useRef<string | null>(prevRecordingUri || null);
   const isMounted = useRef(true);
   const meteringInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -117,6 +121,11 @@ const RecorderWidget: React.FC<{
 
       setRecording(null);
       setIsRecording(false);
+
+      if (recordedUri.current && onRecordingComplete) {
+        onRecordingComplete(recordedUri.current);
+      }
+
       onStopRecording?.();
     } catch (e) {
       console.error("❌ Stop recording error:", e);

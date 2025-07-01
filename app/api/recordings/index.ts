@@ -1,127 +1,135 @@
-// api/recordings.ts
 import axiosClient from "../axiosClient";
+import { generateUploadUrl } from "../file-handling";
+import {
+  Recording,
+  CreateRecordingPayload,
+  RecordingQueryParams,
+} from "./types";
 
-export interface Recording {
-  id: string;
-  user: any; // or import a User interface
-  activity: any; // or use PracticeActivity if available
-  audioUrl: string;
-  duration: number | null;
-  mimeType: string;
-  createdAt: Date;
-}
-
-// Get latest recording using query parameters
-export async function getLatestRecording(
-  userId?: string,
-  activityId?: string,
-  scriptId?: string
-): Promise<Recording> {
-  try {
-    // Build query parameters using axios params feature
-    const params: Record<string, string> = {};
-    if (userId) params.userId = userId;
-    if (activityId) params.activityId = activityId;
-    if (scriptId) params.scriptId = scriptId;
-
-    const response = await axiosClient.get("/recordings/latest", { params });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-// Get all recordings using query parameters
-export async function getAllRecordings(
-  userId?: string,
-  activityId?: string,
-  scriptId?: string
+/**
+ * Fetch recordings by optional userId and/or activityId
+ */
+export async function getRecordings(
+  params?: RecordingQueryParams
 ): Promise<Recording[]> {
   try {
-    const params: Record<string, string> = {};
-    if (userId) params.userId = userId;
-    if (activityId) params.activityId = activityId;
-    if (scriptId) params.scriptId = scriptId;
-
-    const response = await axiosClient.get("/recordings", { params });
+    const response = await axiosClient.get<Recording[]>("/recordings", {
+      params,
+    });
     return response.data;
   } catch (error) {
+    console.error(
+      "There was a problem with the getRecordings API call:",
+      error
+    );
     throw error;
   }
 }
 
-// Get a recording by its ID
-export async function getRecordingById(
-  recordingId: string
+/**
+ * Fetch a single recording by its ID
+ */
+export async function getRecordingById(id: string): Promise<Recording> {
+  try {
+    const response = await axiosClient.get<Recording>(`/recordings/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      `There was a problem with the getRecordingById API call (ID: ${id}):`,
+      error
+    );
+    throw error;
+  }
+}
+
+/**
+ * Create a new recording
+ */
+export async function createRecording(
+  payload: Omit<CreateRecordingPayload, "audioUrl">,
+  file: File
 ): Promise<Recording> {
+  console.log("in createRecording", { payload, file });
   try {
-    const response = await axiosClient.get(`/recordings/${recordingId}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error getting recording by ID:", error);
-    throw error;
-  }
-}
+    const userId = payload?.userId;
+    const activityId = payload?.activityId;
+    const sourceType = payload?.sourceType;
 
-interface CreateRecordingReq {
-  userId: string;
-  activityId: string;
-  scriptId: string;
-  audioUrl: string;
-  duration?: number;
-  mimeType?: string;
-}
+    if (!userId) throw new Error("Missing userId in payload");
 
-// Create a recording
-export async function createRecording({
-  userId,
-  activityId,
-  scriptId,
-  audioUrl,
-  duration,
-  mimeType,
-}: CreateRecordingReq): Promise<Recording> {
-  try {
-    const response = await axiosClient.post("/recordings", {
+    const fileName = `${sourceType}-${userId}-${new Date().toISOString()}`;
+    const mimeType = "audio/mp4";
+    const uploadUrl = await generateUploadUrl(
+      fileName,
+      mimeType,
+      "sw-voice-recording"
+    );
+    if (!uploadUrl) {
+      throw new Error("Voice recording upload url generation failed");
+    }
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": mimeType,
+      },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Voice recording upload failed");
+    }
+
+    const audioUrlKey = fileName;
+
+    const requestBody: CreateRecordingPayload = {
       userId,
       activityId,
-      scriptId,
-      audioUrl,
-      duration,
+      sourceType,
       mimeType,
-    });
+      audioUrl: audioUrlKey,
+    };
+    const response = await axiosClient.post<Recording>(
+      "/recordings",
+      requestBody
+    );
     return response.data;
   } catch (error) {
-    console.error("Error creating recording:", error);
+    console.error(
+      "There was a problem with the createRecording API call:",
+      error
+    );
     throw error;
   }
 }
 
-// Get presigned upload URL (Note: if not needing SecureStore token manually, use axiosClient)
-export async function getUploadUrl(
-  fileName: string,
-  fileType: string
-): Promise<string> {
+/**
+ * Delete a recording by its ID
+ */
+export async function deleteRecording(id: string): Promise<void> {
   try {
-    const response = await axiosClient.get("/recordings/generateUploadUrl", {
-      params: { fileName, fileType },
-    });
-    return response.data.uploadURL;
+    await axiosClient.delete(`/recordings/${id}`);
   } catch (error) {
-    console.error("Error getting upload URL:", error);
+    console.error(
+      `There was a problem with the deleteRecording API call (ID: ${id}):`,
+      error
+    );
     throw error;
   }
 }
 
-// Get presigned download URL
-export async function getDownloadUrl(fileName: string): Promise<string> {
+/**
+ * Delete all recordings for a given user
+ */
+export async function deleteRecordingsByUser(userId: string): Promise<void> {
   try {
-    const response = await axiosClient.get("/recordings/generateDownloadUrl", {
-      params: { fileName },
+    await axiosClient.delete("/recordings", {
+      params: { userId },
     });
-    return response.data.downloadURL;
   } catch (error) {
-    console.error("Error getting download URL:", error);
+    console.error(
+      `There was a problem with the deleteRecordingsByUser API call (userId: ${userId}):`,
+      error
+    );
     throw error;
   }
 }

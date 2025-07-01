@@ -2,13 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
-
-export enum MoodType {
-  ANGRY = "ANGRY",
-  CALM = "CALM",
-  HAPPY = "HAPPY",
-  SAD = "SAD",
-}
+import { MoodType } from "../../api/moodCheck/types";
 
 interface MoodCheckState {
   hasRecordedToday: boolean;
