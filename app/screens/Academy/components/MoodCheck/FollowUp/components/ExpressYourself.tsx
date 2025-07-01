@@ -58,9 +58,9 @@ const ExpressYourself = ({
         expressionType === EXPRESSION_TYPE_ENUM.TALK &&
         voiceRecordingUri
       ) {
-        const uploadedRecording = await submitVoiceRecording(
-          RecordingSourceType.MOOD_CHECK
-        );
+        const uploadedRecording = await submitVoiceRecording({
+          recordingSource: RecordingSourceType.MOOD_CHECK,
+        });
         if (!uploadedRecording) {
           throw new Error("Voice recording upload failed!");
         }

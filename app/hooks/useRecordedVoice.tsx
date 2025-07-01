@@ -8,7 +8,16 @@ export function useRecordedVoice(userId?: string) {
     null
   );
 
-  const submitVoiceRecording = async (recordingSource: RecordingSourceType) => {
+  const submitVoiceRecording = async (
+    params:
+      | {
+          activityId: string;
+          recordingSource: RecordingSourceType.ACTIVITY;
+        }
+      | {
+          recordingSource: RecordingSourceType.MOOD_CHECK;
+        }
+  ) => {
     if (!voiceRecordingUri || !userId) return;
     try {
       const file = await getFileFromUri(voiceRecordingUri, "audio/mp4");
@@ -16,7 +25,9 @@ export function useRecordedVoice(userId?: string) {
       const uploadedRecording = await createRecording(
         {
           userId: userId,
-          sourceType: recordingSource,
+          sourceType: params.recordingSource,
+          // Only add activityId if it exists in params
+          ...("activityId" in params ? { activityId: params.activityId } : {}),
         },
         file
       );

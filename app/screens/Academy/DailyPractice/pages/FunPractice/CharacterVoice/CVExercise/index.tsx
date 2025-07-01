@@ -25,26 +25,24 @@ import {
   startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
+import { useUserStore } from "../../../../../../../stores/user";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 
 const CVExercise = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData } = route.params;
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
 
   const [isDone, setIsDone] = useState(false);
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
@@ -52,33 +50,46 @@ const CVExercise = () => {
     }
   };
 
-  const markActivityStart = async () => {
+  const markActivityStart = async (): Promise<string | undefined> => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: id,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
     addActivity({
       ...startedActivity,
     });
+    return newActivity.id;
   };
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !activityId || !doesActivityExist(activityId))
       return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: activityId,
     });
-    updateActivity(currentActivityId, {
+    updateActivity(activityId, {
       ...completedActivity,
     });
+  };
+
+  const onDonePress = async () => {
+    try {
+      const activityId = await markActivityStart();
+      if (!activityId) {
+        throw new Error("Activity could not be started");
+      }
+      await markActivityComplete(activityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: activityId,
+      });
+      setIsDone(true);
+    } catch (error) {
+      console.error("❌ Failed to mark the activity complete:", error);
+    }
   };
 
   useEffect(() => {
@@ -150,17 +161,13 @@ const CVExercise = () => {
                 </View>
                 <VoiceRecorder
                   onToggle={toggleIndex}
-                  onRecording={markActivityStart}
-                  onRecorded={markActivityComplete}
-                />
-              </View>
-              {currentActivityId && isActivityCompleted(currentActivityId) && (
-                <Button
-                  text="Done"
-                  onPress={() => {
-                    setIsDone(true);
+                  onRecorded={(uri) => {
+                    setVoiceRecordingUri(uri);
                   }}
                 />
+              </View>
+              {!!voiceRecordingUri && (
+                <Button text="Done" onPress={onDonePress} />
               )}
             </>
           )}
