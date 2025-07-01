@@ -36,20 +36,18 @@ import {
   startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { useUserStore } from "../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 
 const QuotePractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -78,33 +76,45 @@ const QuotePractice = () => {
     navigation.goBack();
   };
 
-  const markActivityStart = async () => {
+  const markActivityStart = async (): Promise<string | undefined> => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.READING_PRACTICE,
       contentId: allQuotes[selectedIndex]?.id,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
     addActivity({
       ...startedActivity,
     });
+    return newActivity.id;
   };
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: activityId,
     });
-    updateActivity(currentActivityId, {
+    updateActivity(activityId, {
       ...completedActivity,
     });
+  };
+
+  const onDonePress = async () => {
+    try {
+      const activityId = await markActivityStart();
+      if (!activityId) {
+        throw new Error("Activity could not be started");
+      }
+      await markActivityComplete(activityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: activityId,
+      });
+      setPracticeComplete(true);
+    } catch (error) {
+      console.error("❌ Failed to mark the activity complete:", error);
+    }
   };
 
   useEffect(() => {
@@ -154,17 +164,13 @@ const QuotePractice = () => {
               {renderSelectedTool(selectedPracticeTool)}
               <VoiceRecorder
                 onToggle={toggleIndex}
-                onRecording={markActivityStart}
-                onRecorded={markActivityComplete}
-              />
-            </View>
-            {currentActivityId && isActivityCompleted(currentActivityId) && (
-              <Button
-                text="Done"
-                onPress={() => {
-                  setPracticeComplete(true);
+                onRecorded={(uri) => {
+                  setVoiceRecordingUri(uri);
                 }}
               />
+            </View>
+            {!!voiceRecordingUri && (
+              <Button text="Done" onPress={onDonePress} />
             )}
           </CustomScrollView>
         )}
