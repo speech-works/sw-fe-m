@@ -45,21 +45,20 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
+import { useUserStore } from "../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
 const StoryPractice = () => {
   const chorusManagerRef = useRef(new ChorusManager());
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
-  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
-  );
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
+
   const [isMuted, setIsMuted] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allStories, setAllStories] = useState<ReadingPractice[]>([]);
@@ -128,45 +127,50 @@ const StoryPractice = () => {
     }
   };
 
-  const onToggleMute = () => {
-    if (!isMuted) {
-      chorusManagerRef.current.stop();
-    }
-    setIsMuted((prev) => !prev);
-  };
-
-  const markActivityStart = async () => {
+  const markActivityStart = async (): Promise<string | undefined> => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.READING_PRACTICE,
       contentId: allStories[selectedIndex]?.id,
     });
-    setCurrentActivityId(newActivity.id);
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
     addActivity({
       ...startedActivity,
     });
+    return newActivity.id;
   };
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
+      id: activityId,
     });
-    updateActivity(currentActivityId, {
+    updateActivity(activityId, {
       ...completedActivity,
     });
   };
 
-  const iosVoices = ["com.apple.ttsbundle.Samantha-compact"];
-  const androidVoices = ["en-US-language", "en-GB-language", "en-IN-language"];
-  const voicePool = Platform.OS === "android" ? androidVoices : iosVoices;
+  const onDonePress = async () => {
+    try {
+      const activityId = await markActivityStart();
+      if (!activityId) {
+        throw new Error("Activity could not be started");
+      }
+      await markActivityComplete(activityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: activityId,
+      });
+      setPracticeComplete(true);
+    } catch (error) {
+      console.error("❌ Failed to mark the activity complete:", error);
+    }
+  };
+
+  // const iosVoices = ["com.apple.ttsbundle.Samantha-compact"];
+  // const androidVoices = ["en-US-language", "en-GB-language", "en-IN-language"];
+  // const voicePool = Platform.OS === "android" ? androidVoices : iosVoices;
 
   useEffect(() => {
     const currentText = allStories[selectedIndex]?.textContent || "";
@@ -287,18 +291,14 @@ const StoryPractice = () => {
               {renderSelectedTool(selectedPracticeTool)}
               <VoiceRecorder
                 onToggle={toggleIndex}
-                onRecording={markActivityStart}
-                onRecorded={markActivityComplete}
+                onRecorded={(uri) => {
+                  setVoiceRecordingUri(uri);
+                }}
               />
             </View>
 
-            {currentActivityId && isActivityCompleted(currentActivityId) && (
-              <Button
-                text="Done"
-                onPress={() => {
-                  setPracticeComplete(true);
-                }}
-              />
+            {!!voiceRecordingUri && (
+              <Button text="Done" onPress={onDonePress} />
             )}
           </CustomScrollView>
         )}
@@ -370,6 +370,3 @@ const styles = StyleSheet.create({
     color: theme.colors.library.blue[400],
   },
 });
-function setCurrentActivityId(id: any) {
-  throw new Error("Function not implemented.");
-}
