@@ -65,8 +65,7 @@ const CVExercise = () => {
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !activityId || !doesActivityExist(activityId))
-      return;
+    if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
       id: activityId,
     });
