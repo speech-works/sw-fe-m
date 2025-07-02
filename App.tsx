@@ -11,8 +11,11 @@ import { AuthContext, AuthProvider } from "./app/contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
+import {
+  registerForNotifications,
+  setupNotificationHandlers,
+} from "./app/util/functions/notifications";
+import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
 
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
@@ -21,6 +24,10 @@ WebBrowser.maybeCompleteAuthSession();
 const App: React.FC = () => {
   // reset mood log on frontend
   useMoodCheckStore.getState().checkAndResetIfNeeded();
+
+  const rescheduleAllActiveNotifications = useReminderStore(
+    (state) => state.rescheduleAllActiveNotifications
+  );
 
   useEffect(() => {
     const checkToken = async () => {
@@ -59,6 +66,38 @@ const App: React.FC = () => {
 
     checkForUpdates();
   }, []);
+
+  useEffect(() => {
+    // 1. Register for notifications and set up channels (Android)
+    // This function also requests permissions.
+    registerForNotifications().then((granted) => {
+      if (granted) {
+        console.log("Notification permissions granted.");
+      } else {
+        console.log("Notification permissions denied.");
+        // Consider showing a persistent UI message to the user
+        // explaining why notifications won't work and how to enable them.
+      }
+    });
+
+    // 2. Set up notification listeners for foreground and tap interactions
+    setupNotificationHandlers();
+
+    // 3. Hydration listener for Zustand store to re-schedule notifications
+    // This ensures notifications are restored/updated after the app fully loads
+    // and the persisted state is available.
+    const unsubscribe = useReminderStore.persist.onFinishHydration(() => {
+      console.log(
+        "Zustand store rehydrated. Attempting to reschedule notifications."
+      );
+      rescheduleAllActiveNotifications();
+    });
+
+    // Clean up the subscription when the component unmounts
+    return () => {
+      unsubscribe();
+    };
+  }, [rescheduleAllActiveNotifications]);
 
   return (
     <AuthProvider>
