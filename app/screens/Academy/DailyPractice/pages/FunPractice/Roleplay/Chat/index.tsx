@@ -97,6 +97,9 @@ const Chat = () => {
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (
@@ -183,7 +186,7 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId);
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -194,7 +197,7 @@ const Chat = () => {
     addActivity({
       ...startedActivity,
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -209,14 +212,13 @@ const Chat = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setIsDone(true);
     } catch (error) {
@@ -239,21 +241,23 @@ const Chat = () => {
             />
             <Text style={styles.topNavigationText}>{title}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={toggleExpand}
-            style={[
-              styles.chevronContainer,
-              isDone || messages.length === 0
-                ? { opacity: 0, pointerEvents: "none" }
-                : null,
-            ]}
-          >
-            <Icon
-              name={isExpanded ? "chevron-circle-up" : "chevron-circle-down"}
-              size={16}
-              color={theme.colors.text.default}
-            />
-          </TouchableOpacity>
+          {currentActivityId && (
+            <TouchableOpacity
+              onPress={toggleExpand}
+              style={[
+                styles.chevronContainer,
+                isDone || messages.length === 0
+                  ? { opacity: 0, pointerEvents: "none" }
+                  : null,
+              ]}
+            >
+              <Icon
+                name={isExpanded ? "chevron-circle-up" : "chevron-circle-down"}
+                size={16}
+                color={theme.colors.text.default}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         <CustomScrollView contentContainerStyle={styles.scrollContent}>
@@ -304,113 +308,120 @@ const Chat = () => {
                   </View>
                 )}
               </View>
-
-              {messageHeight === null && (
-                <View
-                  style={[styles.incomingMessage, styles.hiddenMeasureBubble]}
-                  onLayout={onFirstMessageLayout}
-                >
-                  <Text style={styles.incomingMessageText}>
-                    Measuring text: This is a reasonably long message to help
-                    determine bubble height accurately for layout purposes.
-                    Ensure this text results in a height that can accommodate
-                    your tallest typical single message.
-                  </Text>
-                </View>
-              )}
-
-              {(messages.length > 0 || currentOptions.length > 0) && (
-                <View style={styles.messagesContainer}>
-                  <CustomScrollView
-                    ref={chatScrollRef}
-                    contentContainerStyle={
-                      isExpanded
-                        ? styles.chatsScrollViewExpanded
-                        : styles.chatsScrollViewCollapsed
-                    }
-                    style={
-                      isExpanded
-                        ? styles.expandedChatsView
-                        : messageHeight
-                        ? { height: messageHeight, overflow: "hidden" }
-                        : { maxHeight: 0 }
-                    }
-                    pagingEnabled={!isExpanded}
-                    showsVerticalScrollIndicator={isExpanded}
-                    scrollEventThrottle={16}
-                    // consider nestedScrollEnabled={true} if it's inside another ScrollView and causing issues on Android
-                  >
-                    {messages.map((message) => (
-                      <View
-                        key={message.id}
-                        style={
-                          message.type === "incoming"
-                            ? styles.incomingMessage
-                            : styles.outgoingMessage
-                        }
-                      >
-                        <Text
-                          style={
-                            message.type === "incoming"
-                              ? styles.incomingMessageText
-                              : styles.outgoinggMessageText
-                          }
-                        >
-                          {message.text}
-                        </Text>
-                      </View>
-                    ))}
-                    {/* Spacer view only for expanded mode to scroll last message above suggestions */}
-                    {isExpanded && messages.length > 0 && (
-                      <View style={{ height: 60 }} />
-                    )}
-                  </CustomScrollView>
-
-                  {currentOptions.length > 0 && (
-                    <>
-                      <Separator />
-                      <View style={styles.suggestionsContainer}>
-                        <Text style={styles.suggestionsTitleText}>
-                          Suggested Responses:
-                        </Text>
-                        <View style={styles.suggestedTextContainer}>
-                          {currentOptions.map((option) => (
-                            <TouchableOpacity
-                              key={option.id}
-                              style={[
-                                styles.suggestionCard,
-                                option.id === selectedOptionId
-                                  ? styles.selectedSuggestionCard
-                                  : null,
-                              ]}
-                              onPress={() => handleSelectOption(option)}
-                            >
-                              <Text
-                                style={[
-                                  styles.suggestionText,
-                                  option.id === selectedOptionId
-                                    ? styles.selectedSuggestionText
-                                    : null,
-                                ]}
-                              >
-                                {option.userLine}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                    </>
+              {currentActivityId ? (
+                <>
+                  {messageHeight === null && (
+                    <View
+                      style={[
+                        styles.incomingMessage,
+                        styles.hiddenMeasureBubble,
+                      ]}
+                      onLayout={onFirstMessageLayout}
+                    >
+                      <Text style={styles.incomingMessageText}>
+                        Measuring text: This is a reasonably long message to
+                        help determine bubble height accurately for layout
+                        purposes. Ensure this text results in a height that can
+                        accommodate your tallest typical single message.
+                      </Text>
+                    </View>
                   )}
-                </View>
+                  {(messages.length > 0 || currentOptions.length > 0) && (
+                    <View style={styles.messagesContainer}>
+                      <CustomScrollView
+                        ref={chatScrollRef}
+                        contentContainerStyle={
+                          isExpanded
+                            ? styles.chatsScrollViewExpanded
+                            : styles.chatsScrollViewCollapsed
+                        }
+                        style={
+                          isExpanded
+                            ? styles.expandedChatsView
+                            : messageHeight
+                            ? { height: messageHeight, overflow: "hidden" }
+                            : { maxHeight: 0 }
+                        }
+                        pagingEnabled={!isExpanded}
+                        showsVerticalScrollIndicator={isExpanded}
+                        scrollEventThrottle={16}
+                        // consider nestedScrollEnabled={true} if it's inside another ScrollView and causing issues on Android
+                      >
+                        {messages.map((message) => (
+                          <View
+                            key={message.id}
+                            style={
+                              message.type === "incoming"
+                                ? styles.incomingMessage
+                                : styles.outgoingMessage
+                            }
+                          >
+                            <Text
+                              style={
+                                message.type === "incoming"
+                                  ? styles.incomingMessageText
+                                  : styles.outgoinggMessageText
+                              }
+                            >
+                              {message.text}
+                            </Text>
+                          </View>
+                        ))}
+                        {/* Spacer view only for expanded mode to scroll last message above suggestions */}
+                        {isExpanded && messages.length > 0 && (
+                          <View style={{ height: 60 }} />
+                        )}
+                      </CustomScrollView>
+
+                      {currentOptions.length > 0 && (
+                        <>
+                          <Separator />
+                          <View style={styles.suggestionsContainer}>
+                            <Text style={styles.suggestionsTitleText}>
+                              Suggested Responses:
+                            </Text>
+                            <View style={styles.suggestedTextContainer}>
+                              {currentOptions.map((option) => (
+                                <TouchableOpacity
+                                  key={option.id}
+                                  style={[
+                                    styles.suggestionCard,
+                                    option.id === selectedOptionId
+                                      ? styles.selectedSuggestionCard
+                                      : null,
+                                  ]}
+                                  onPress={() => handleSelectOption(option)}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.suggestionText,
+                                      option.id === selectedOptionId
+                                        ? styles.selectedSuggestionText
+                                        : null,
+                                    ]}
+                                  >
+                                    {option.userLine}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  )}
+                  <VoiceRecorder
+                    onRecorded={(uri) => {
+                      setVoiceRecordingUri(uri);
+                    }}
+                  />
+                </>
+              ) : (
+                <Button text="Start Practice" onPress={markActivityStart} />
               )}
 
-              <VoiceRecorder
-                onRecorded={(uri) => {
-                  setVoiceRecordingUri(uri);
-                }}
-              />
               {!!voiceRecordingUri && (
-                <Button text="Done" onPress={onDonePress} />
+                <Button text="Mark Complete" onPress={onDonePress} />
               )}
             </>
           )}

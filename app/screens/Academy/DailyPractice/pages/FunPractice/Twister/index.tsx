@@ -33,12 +33,7 @@ import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
 const Twister = () => {
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
@@ -46,6 +41,9 @@ const Twister = () => {
 
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const toggleIndex = () => {
     if (twisters && twisters.length > 0) {
@@ -53,7 +51,7 @@ const Twister = () => {
     }
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     if (!twisters || twisters.length === 0 || currentIndex >= twisters.length) {
       console.warn(
@@ -71,7 +69,7 @@ const Twister = () => {
       ...startedActivity,
       funPractice: twisters[currentIndex],
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -87,14 +85,13 @@ const Twister = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setIsDone(true);
     } catch (error) {
@@ -161,24 +158,28 @@ const Twister = () => {
                   )}
                 </View>
               </View>
-              <View style={styles.mainContainer}>
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>
-                    {twisters[currentIndex]?.name}
-                  </Text>
-                  <Text style={styles.actualText}>
-                    {twisters[currentIndex]?.tongueTwisterData?.text}
-                  </Text>
+              {currentActivityId ? (
+                <View style={styles.mainContainer}>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.titleText}>
+                      {twisters[currentIndex]?.name}
+                    </Text>
+                    <Text style={styles.actualText}>
+                      {twisters[currentIndex]?.tongueTwisterData?.text}
+                    </Text>
+                  </View>
+                  <VoiceRecorder
+                    onToggle={toggleIndex}
+                    onRecorded={(uri) => {
+                      setVoiceRecordingUri(uri);
+                    }}
+                  />
                 </View>
-                <VoiceRecorder
-                  onToggle={toggleIndex}
-                  onRecorded={(uri) => {
-                    setVoiceRecordingUri(uri);
-                  }}
-                />
-              </View>
+              ) : (
+                <Button text="Start Practice" onPress={markActivityStart} />
+              )}
               {!!voiceRecordingUri && (
-                <Button text="Done" onPress={onDonePress} />
+                <Button text="Mark Complete" onPress={onDonePress} />
               )}
             </>
           )}

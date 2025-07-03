@@ -140,11 +140,9 @@ const ReadingPractice = () => {
                     { color: theme.colors.library.blue[500] },
                   ]}
                 >
-                  {
-                    practiceStats.find(
-                      (stat) => stat.contentType === "READING_PRACTICE"
-                    )?.itemsCompleted
-                  }
+                  {practiceStats.find(
+                    (stat) => stat.contentType === "READING_PRACTICE"
+                  )?.itemsCompleted || 0}
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Completed</Text>
               </View>

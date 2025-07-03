@@ -40,16 +40,12 @@ import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRec
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useUserStore } from "../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { readingTips } from "../data";
 
 const StoryPractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
@@ -63,6 +59,9 @@ const StoryPractice = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   // highlightRange = [startIndex, length] for current word, or [-1,0] to clear
   const [highlightRange, setHighlightRange] = useState<[number, number]>([
@@ -120,7 +119,7 @@ const StoryPractice = () => {
     }
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -131,7 +130,7 @@ const StoryPractice = () => {
     addActivity({
       ...startedActivity,
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -146,14 +145,13 @@ const StoryPractice = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setPracticeComplete(true);
     } catch (error) {
@@ -185,11 +183,11 @@ const StoryPractice = () => {
             size={16}
             color={theme.colors.text.default}
           />
-          <Text style={styles.topNavigationText}>Story</Text>
+          <Text style={styles.topNavigationText}>Poem</Text>
         </TouchableOpacity>
         {practiceComplete ? (
           <DonePractice />
-        ) : (
+        ) : currentActivityId ? (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
             <SpeechTools
               onToolSelect={(toolName) => {
@@ -276,6 +274,38 @@ const StoryPractice = () => {
               <Button text="Done" onPress={onDonePress} />
             )}
           </CustomScrollView>
+        ) : (
+          <>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tipTitleContainer}>
+                <Icon
+                  solid
+                  name="lightbulb"
+                  size={16}
+                  color={theme.colors.text.title}
+                />
+                <Text style={styles.tipTitleText}>Tips</Text>
+              </View>
+              <View style={styles.tipListContainer}>
+                {readingTips.poem.map((hint) => (
+                  <View key={hint} style={styles.tipCard}>
+                    <Icon
+                      solid
+                      name="check-circle"
+                      size={16}
+                      color={theme.colors.library.orange[400]}
+                    />
+                    <Text style={styles.tipText}>{hint}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <Button
+              text="Start Practice"
+              onPress={markActivityStart}
+              style={{ marginVertical: 20 }}
+            />
+          </>
         )}
       </View>
     </ScreenView>
@@ -344,5 +374,37 @@ const styles = StyleSheet.create({
   },
   highlight: {
     color: theme.colors.library.blue[400],
+  },
+  tipsContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  tipTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tipTitleText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+  },
+  tipListContainer: {
+    gap: 12,
+  },
+  tipCard: {
+    backgroundColor: theme.colors.surface.elevated,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tipText: {
+    flexShrink: 1,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
   },
 });

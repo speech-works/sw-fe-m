@@ -43,6 +43,9 @@ const CVExercise = () => {
   const [isDone, setIsDone] = useState(false);
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
@@ -50,7 +53,7 @@ const CVExercise = () => {
     }
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -61,7 +64,7 @@ const CVExercise = () => {
     addActivity({
       ...startedActivity,
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -76,14 +79,13 @@ const CVExercise = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setIsDone(true);
     } catch (error) {
@@ -143,30 +145,35 @@ const CVExercise = () => {
                   ))}
                 </View>
               </View>
-              <View style={styles.exerciseCard}>
-                <View style={styles.textContainer}>
-                  <View style={styles.titleAndSample}>
-                    <Text style={styles.titleText}>{name}</Text>
-                    <AudioPlaybackButton
-                      audioUrl={cvData.exampleAudioUrl}
-                      iconSize={16}
-                      activeColor={theme.colors.actionPrimary.default}
-                      // You can also pass a custom style:
-                      // style={{ marginTop: 10 }}
-                    />
-                  </View>
+              {currentActivityId ? (
+                <View style={styles.exerciseCard}>
+                  <View style={styles.textContainer}>
+                    <View style={styles.titleAndSample}>
+                      <Text style={styles.titleText}>{name}</Text>
+                      <AudioPlaybackButton
+                        audioUrl={cvData.exampleAudioUrl}
+                        iconSize={16}
+                        activeColor={theme.colors.actionPrimary.default}
+                        // You can also pass a custom style:
+                        // style={{ marginTop: 10 }}
+                      />
+                    </View>
 
-                  <Text style={styles.actualText}>{texts[currentIndex]}</Text>
+                    <Text style={styles.actualText}>{texts[currentIndex]}</Text>
+                  </View>
+                  <VoiceRecorder
+                    onToggle={toggleIndex}
+                    onRecorded={(uri) => {
+                      setVoiceRecordingUri(uri);
+                    }}
+                  />
                 </View>
-                <VoiceRecorder
-                  onToggle={toggleIndex}
-                  onRecorded={(uri) => {
-                    setVoiceRecordingUri(uri);
-                  }}
-                />
-              </View>
+              ) : (
+                <Button text="Start Practice" onPress={markActivityStart} />
+              )}
+
               {!!voiceRecordingUri && (
-                <Button text="Done" onPress={onDonePress} />
+                <Button text="Mark Complete" onPress={onDonePress} />
               )}
             </>
           )}

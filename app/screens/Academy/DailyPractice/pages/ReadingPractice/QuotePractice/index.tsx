@@ -39,6 +39,7 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useUserStore } from "../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { readingTips } from "../data";
 
 const QuotePractice = () => {
   const navigation =
@@ -51,6 +52,9 @@ const QuotePractice = () => {
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
   const renderSelectedTool = (toolName: string) => {
@@ -76,7 +80,7 @@ const QuotePractice = () => {
     navigation.goBack();
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -87,7 +91,7 @@ const QuotePractice = () => {
     addActivity({
       ...startedActivity,
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -102,14 +106,13 @@ const QuotePractice = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setPracticeComplete(true);
     } catch (error) {
@@ -138,7 +141,7 @@ const QuotePractice = () => {
         </TouchableOpacity>
         {practiceComplete ? (
           <DonePractice />
-        ) : (
+        ) : currentActivityId ? (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
             <SpeechTools
               onToolSelect={(toolName) => {
@@ -173,6 +176,38 @@ const QuotePractice = () => {
               <Button text="Done" onPress={onDonePress} />
             )}
           </CustomScrollView>
+        ) : (
+          <>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tipTitleContainer}>
+                <Icon
+                  solid
+                  name="lightbulb"
+                  size={16}
+                  color={theme.colors.text.title}
+                />
+                <Text style={styles.tipTitleText}>Tips</Text>
+              </View>
+              <View style={styles.tipListContainer}>
+                {readingTips.quote.map((hint) => (
+                  <View key={hint} style={styles.tipCard}>
+                    <Icon
+                      solid
+                      name="check-circle"
+                      size={16}
+                      color={theme.colors.library.orange[400]}
+                    />
+                    <Text style={styles.tipText}>{hint}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <Button
+              text="Start Practice"
+              onPress={markActivityStart}
+              style={{ marginVertical: 20 }}
+            />
+          </>
         )}
       </View>
     </ScreenView>
@@ -232,6 +267,38 @@ const styles = StyleSheet.create({
   },
   quoteAuthor: {
     ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.default,
+  },
+  tipsContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  tipTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tipTitleText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+  },
+  tipListContainer: {
+    gap: 12,
+  },
+  tipCard: {
+    backgroundColor: theme.colors.surface.elevated,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tipText: {
+    flexShrink: 1,
+    ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
 });

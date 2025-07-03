@@ -48,6 +48,7 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { readingTips } from "../data";
 
 const StoryPractice = () => {
   const chorusManagerRef = useRef(new ChorusManager());
@@ -59,7 +60,6 @@ const StoryPractice = () => {
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
 
-  const [isMuted, setIsMuted] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [allStories, setAllStories] = useState<ReadingPractice[]>([]);
 
@@ -75,6 +75,9 @@ const StoryPractice = () => {
   const [highlightRange, setHighlightRange] = useState<[number, number]>([
     -1, 0,
   ]);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
   const renderSelectedTool = (toolName: string) => {
@@ -127,7 +130,7 @@ const StoryPractice = () => {
     }
   };
 
-  const markActivityStart = async (): Promise<string | undefined> => {
+  const markActivityStart = async () => {
     if (!practiceSession) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -138,7 +141,7 @@ const StoryPractice = () => {
     addActivity({
       ...startedActivity,
     });
-    return newActivity.id;
+    setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -153,14 +156,13 @@ const StoryPractice = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(currentActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: currentActivityId,
       });
       setPracticeComplete(true);
     } catch (error) {
@@ -206,7 +208,7 @@ const StoryPractice = () => {
 
         {practiceComplete ? (
           <DonePractice />
-        ) : (
+        ) : currentActivityId ? (
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
             <SpeechTools
               onToolSelect={(toolName) => setSelectedPracticeTool(toolName)}
@@ -301,6 +303,38 @@ const StoryPractice = () => {
               <Button text="Done" onPress={onDonePress} />
             )}
           </CustomScrollView>
+        ) : (
+          <>
+            <View style={styles.tipsContainer}>
+              <View style={styles.tipTitleContainer}>
+                <Icon
+                  solid
+                  name="lightbulb"
+                  size={16}
+                  color={theme.colors.text.title}
+                />
+                <Text style={styles.tipTitleText}>Tips</Text>
+              </View>
+              <View style={styles.tipListContainer}>
+                {readingTips.story.map((hint) => (
+                  <View key={hint} style={styles.tipCard}>
+                    <Icon
+                      solid
+                      name="check-circle"
+                      size={16}
+                      color={theme.colors.library.orange[400]}
+                    />
+                    <Text style={styles.tipText}>{hint}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <Button
+              text="Start Practice"
+              onPress={markActivityStart}
+              style={{ marginVertical: 20 }}
+            />
+          </>
         )}
       </View>
     </ScreenView>
@@ -368,5 +402,37 @@ const styles = StyleSheet.create({
   },
   highlight: {
     color: theme.colors.library.blue[400],
+  },
+  tipsContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  tipTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tipTitleText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+  },
+  tipListContainer: {
+    gap: 12,
+  },
+  tipCard: {
+    backgroundColor: theme.colors.surface.elevated,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tipText: {
+    flexShrink: 1,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
   },
 });

@@ -140,11 +140,9 @@ const FunPractice = () => {
                     { color: theme.colors.library.blue[500] },
                   ]}
                 >
-                  {
-                    practiceStats.find(
-                      (stat) => stat.contentType === "FUN_PRACTICE"
-                    )?.itemsCompleted
-                  }
+                  {practiceStats.find(
+                    (stat) => stat.contentType === "FUN_PRACTICE"
+                  )?.itemsCompleted || 0}
                 </Text>
                 <Text style={styles.statInfoDescriptionText}>Completed</Text>
               </View>
