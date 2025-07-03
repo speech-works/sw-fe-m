@@ -52,6 +52,7 @@ export async function loginUser({
     return { redirectUrl: url };
   } catch (error) {
     console.error("There was a problem during login:", error);
+    console.log({ error });
     throw error;
   }
 }

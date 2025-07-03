@@ -92,16 +92,17 @@ axiosClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (Localization.timezone) {
+    if (Localization.getCalendars()[0].timeZone) {
       console.log(
         "setting x-client-timezone header:if:",
-        Localization.timezone
+        Localization.getCalendars()[0].timeZone
       );
-      config.headers["X-Client-Timezone"] = Localization.timezone;
+      config.headers["X-Client-Timezone"] =
+        Localization.getCalendars()[0].timeZone;
     } else {
       console.log(
         "setting x-client-timezone header:else:",
-        Localization.timezone
+        Localization.getCalendars()[0].timeZone
       );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;

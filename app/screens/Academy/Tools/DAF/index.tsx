@@ -17,7 +17,7 @@ import Slider from "@react-native-community/slider";
 
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
-import * as Permissions from "expo-permissions"; // Used for mocking permission request
+import { Audio } from "expo-av"; // Use expo-av for microphone permissions
 
 // --- Mocking the Real-time Audio Library Interface ---
 // In a real application, you would replace this with actual imports and API calls
@@ -115,10 +115,8 @@ export function DAFTool({ style }: DAFToolProps) {
   // Request microphone permissions
   useEffect(() => {
     (async () => {
-      // Use expo-permissions or Audio.requestPermissionsAsync for real app
-      const { status } = await Permissions.askAsync(
-        Permissions.AUDIO_RECORDING
-      );
+      // Use Audio.requestPermissionsAsync for microphone permissions
+      const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
       if (status !== "granted") {
         setStatusMessage("Microphone permission denied. DAF cannot function.");

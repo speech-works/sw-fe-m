@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+
 import {
   COMPANY_NAME,
   COMPANY_SLOGAN,
