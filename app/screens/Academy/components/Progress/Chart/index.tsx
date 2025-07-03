@@ -1,11 +1,5 @@
-import React, { useState } from "react"; // Import useState
-import {
-  View,
-  Text,
-  Dimensions,
-  StyleSheet,
-  LayoutChangeEvent,
-} from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, LayoutChangeEvent } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 
 const data = {

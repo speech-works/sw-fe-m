@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -9,6 +9,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import PracticeChart from "./Chart";
 
 const Progress = () => {
+  useEffect(() => {}, []);
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
