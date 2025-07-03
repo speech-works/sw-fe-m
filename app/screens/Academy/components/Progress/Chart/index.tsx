@@ -8,8 +8,6 @@ import {
 } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 
-const screenWidth = Dimensions.get("window").width;
-
 const data = {
   labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   datasets: [
