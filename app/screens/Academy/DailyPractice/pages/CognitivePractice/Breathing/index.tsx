@@ -43,10 +43,14 @@ const Breathing = () => {
   const { loadBackground, toggleBackground, stopBackground } =
     useBackgroundAudio();
 
-  const { addActivity } = useActivityStore();
+  const { addActivity, updateActivity } = useActivityStore();
   const { practiceSession } = useSessionStore();
 
-  const markActivityDone = async () => {
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
+
+  const markActivityStart = async () => {
     if (!practiceSession || !cognitivePracticeId) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -54,10 +58,18 @@ const Breathing = () => {
       contentId: cognitivePracticeId,
     });
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity(startedActivity);
+    setCurrentActivityId(newActivity.id);
+  };
+
+  const markActivityDone = async () => {
+    if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
     const completedActivity = await completePracticeActivity({
-      id: newActivity.id,
+      id: currentActivityId,
     });
-    addActivity(completedActivity);
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   // ─── On mount: load the music, then immediately play it (because mute === false) ────
@@ -151,7 +163,7 @@ const Breathing = () => {
           </TouchableOpacity>
 
           {/* Single button toggles both music + breath - Only show if not done */}
-          {!isDone && (
+          {!isDone && currentActivityId && (
             <TouchableOpacity onPress={() => setMute((prev) => !prev)}>
               <Icon
                 name={mute ? "volume-mute" : "volume-up"}
@@ -166,8 +178,8 @@ const Breathing = () => {
           <>
             {isDone ? (
               <DonePractice />
-            ) : (
-              <>
+            ) : currentActivityId ? (
+              <View style={styles.exerciseContainer}>
                 {/* ── Breathing Halo (passes down the same “mute” prop) ───────────────────────── */}
                 <View style={styles.haloContainer}>
                   <BreathingHalo
@@ -178,7 +190,36 @@ const Breathing = () => {
                     mute={mute}
                   />
                 </View>
+                <View style={styles.actionContainer}>
+                  {/* ── Session Progress ───────────────────────────────────────────────────────── */}
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressTitle}>
+                      <Text style={styles.progressTitleText}>
+                        Session Progress
+                      </Text>
+                      <Text style={styles.progressDescText}>
+                        {displayMinutes}/{totalDisplayMinutes} minutes
+                      </Text>
+                    </View>
+                    <ProgressBar
+                      currentStep={elapsedSeconds} // Use elapsedSeconds for current progress
+                      totalSteps={totalSessionDurationInSeconds} // Use totalSessionDurationInSeconds for the total steps
+                      showStepIndicator={false}
+                      showPercentage={false}
+                    />
+                  </View>
 
+                  <Button
+                    text="Mark Complete"
+                    onPress={async () => {
+                      await markActivityDone();
+                      setIsDone(true);
+                    }}
+                  />
+                </View>
+              </View>
+            ) : (
+              <View>
                 {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
                 <View style={styles.tipsContainer}>
                   <View style={styles.tipTitleContainer}>
@@ -228,33 +269,8 @@ const Breathing = () => {
                     </View>
                   </View>
                 </View>
-
-                {/* ── Session Progress ───────────────────────────────────────────────────────── */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressTitle}>
-                    <Text style={styles.progressTitleText}>
-                      Session Progress
-                    </Text>
-                    <Text style={styles.progressDescText}>
-                      {displayMinutes}/{totalDisplayMinutes} minutes
-                    </Text>
-                  </View>
-                  <ProgressBar
-                    currentStep={elapsedSeconds} // Use elapsedSeconds for current progress
-                    totalSteps={totalSessionDurationInSeconds} // Use totalSessionDurationInSeconds for the total steps
-                    showStepIndicator={false}
-                    showPercentage={false}
-                  />
-                </View>
-
-                <Button
-                  text="Complete Exercise"
-                  onPress={async () => {
-                    await markActivityDone();
-                    setIsDone(true);
-                  }}
-                />
-              </>
+                <Button text="Start Exercise" onPress={markActivityStart} />
+              </View>
             )}
           </>
         </CustomScrollView>
@@ -276,6 +292,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
+    height: "100%",
   },
   topNavigationContainer: {
     position: "relative",
@@ -352,5 +369,14 @@ const styles = StyleSheet.create({
   progressDescText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+  },
+  exerciseContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-around",
+    height: "100%",
+  },
+  actionContainer: {
+    gap: 20,
   },
 });

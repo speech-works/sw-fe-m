@@ -44,7 +44,7 @@ const Reframe = () => {
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null
   );
-  const { addActivity } = useActivityStore();
+  const { addActivity, updateActivity } = useActivityStore();
   const { practiceSession } = useSessionStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
@@ -56,6 +56,9 @@ const Reframe = () => {
     null
   );
   const [isDone, setIsDone] = useState(false);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
 
   const onBackPress = () => {
     navigation.goBack();
@@ -69,7 +72,7 @@ const Reframe = () => {
     }
   };
 
-  const markActivityDone = async () => {
+  const markActivityStart = async () => {
     if (!practiceSession || !cognitivePracticeId) return;
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
@@ -77,10 +80,18 @@ const Reframe = () => {
       contentId: cognitivePracticeId,
     });
     const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity(startedActivity);
+    setCurrentActivityId(newActivity.id);
+  };
+
+  const markActivityDone = async () => {
+    if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
     const completedActivity = await completePracticeActivity({
-      id: newActivity.id,
+      id: currentActivityId,
     });
-    addActivity(completedActivity);
+    updateActivity(currentActivityId, {
+      ...completedActivity,
+    });
   };
 
   // Fetch all reframe scenarios once on mount
@@ -146,79 +157,86 @@ const Reframe = () => {
                     </Text>
                   </View>
                 </View>
-                <View style={styles.positiveContainer}>
-                  <Text style={styles.positiveTitleText}>
-                    Choose a Positive Reframe
-                  </Text>
-                  <View style={styles.reframeListContainer}>
-                    {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
-                      (item, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={styles.reframeTextBox}
-                          onPress={() => {
-                            setSelectedReframe(item);
+
+                {currentActivityId ? (
+                  <>
+                    <View style={styles.positiveContainer}>
+                      <Text style={styles.positiveTitleText}>
+                        Choose a Positive Reframe
+                      </Text>
+                      <View style={styles.reframeListContainer}>
+                        {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
+                          (item, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={styles.reframeTextBox}
+                              onPress={() => {
+                                setSelectedReframe(item);
+                              }}
+                            >
+                              <View
+                                style={[
+                                  styles.selectIconContainer,
+                                  selectedReframe === item &&
+                                    styles.selectedIconContainer,
+                                ]}
+                              >
+                                {selectedReframe === item && (
+                                  <Icon
+                                    solid
+                                    name="check"
+                                    size={12}
+                                    color={theme.colors.text.onDark}
+                                  />
+                                )}
+                              </View>
+                              <Text style={styles.reframeText}>{item}</Text>
+                            </TouchableOpacity>
+                          )
+                        )}
+                      </View>
+                      <View style={styles.writeContainer}>
+                        <Text style={styles.writeTitleText}>
+                          Write Your Own Reframe
+                        </Text>
+                        <View style={styles.textFieldContainer}>
+                          <TextArea
+                            value={writtenReframe}
+                            onChangeText={setWrittenReframe}
+                            placeholder="Type your positive perspective here..."
+                            numberOfLines={5}
+                            containerStyle={styles.textAreaContainer}
+                            inputStyle={styles.textAreaInput}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.btnContainer}>
+                      {(selectedReframe || writtenReframe.length > 0) && (
+                        <Button
+                          text="Submit"
+                          onPress={async () => {
+                            await markActivityDone();
+                            setIsDone(true);
                           }}
-                        >
-                          <View
-                            style={[
-                              styles.selectIconContainer,
-                              selectedReframe === item &&
-                                styles.selectedIconContainer,
-                            ]}
-                          >
-                            {selectedReframe === item && (
-                              <Icon
-                                solid
-                                name="check"
-                                size={12}
-                                color={theme.colors.text.onDark}
-                              />
-                            )}
-                          </View>
-                          <Text style={styles.reframeText}>{item}</Text>
-                        </TouchableOpacity>
-                      )
-                    )}
-                  </View>
-                  <View style={styles.writeContainer}>
-                    <Text style={styles.writeTitleText}>
-                      Write Your Own Reframe
-                    </Text>
-                    <View style={styles.textFieldContainer}>
-                      <TextArea
-                        value={writtenReframe}
-                        onChangeText={setWrittenReframe}
-                        placeholder="Type your positive perspective here..."
-                        numberOfLines={5}
-                        containerStyle={styles.textAreaContainer}
-                        inputStyle={styles.textAreaInput}
+                        />
+                      )}
+                      <Button
+                        variant="ghost"
+                        text="Home"
+                        onPress={() => {
+                          academyNav.navigate("Academy");
+                        }}
+                        style={{
+                          backgroundColor: theme.colors.surface.elevated,
+                          borderColor: "transparent",
+                        }}
                       />
                     </View>
-                  </View>
-                </View>
-                <View style={styles.btnContainer}>
-                  {(selectedReframe || writtenReframe.length > 0) && (
-                    <Button
-                      text="Submit"
-                      onPress={async () => {
-                        await markActivityDone();
-                        setIsDone(true);
-                      }}
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    text="Home"
-                    onPress={() => {
-                      academyNav.navigate("Academy");
-                    }}
-                    style={{
-                      backgroundColor: theme.colors.surface.elevated,
-                      borderColor: "transparent",
-                    }}
-                  />
-                </View>
+                  </>
+                ) : (
+                  <Button text="Start Exercise" onPress={markActivityStart} />
+                )}
               </>
             )}
           </>
