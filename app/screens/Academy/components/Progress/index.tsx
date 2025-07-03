@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -7,9 +7,31 @@ import {
 import { theme } from "../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import PracticeChart from "./Chart";
+import { WeeklyStat } from "../../../../api/stats/types";
+import { useUserStore } from "../../../../stores/user";
+import { getWeeklyStats } from "../../../../api";
 
 const Progress = () => {
-  useEffect(() => {}, []);
+  const { user } = useUserStore();
+  const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    getWeeklyStats(user.id)
+      .then((data) => {
+        setWeeklyData(data);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Weekly stats error:", err);
+        setError("Could not load progress");
+      })
+      .finally(() => setLoading(false));
+  }, [user]);
+
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -20,29 +42,21 @@ const Progress = () => {
             size={12}
             color={theme.colors.library.green[500]}
           />
-          <Text style={styles.badgeText}>5 days</Text>
+          <Text style={styles.badgeText}>
+            {weeklyData.filter((w) => w.totalTime > 0).length}{" "}
+            {weeklyData.filter((w) => w.totalTime > 0).length === 1
+              ? "day"
+              : "days"}
+          </Text>
         </View>
       </View>
-      <PracticeChart />
-      {/* <View style={styles.progressGraphContainer}>
-        <View style={styles.graphMeta}>
-          <View style={styles.practiceMinutes}>
-            <Text style={styles.practiceMinutesText}>Practice Minutes</Text>
-            <Text style={styles.practiceMinutesValue}>82</Text>
-            <Text style={styles.practiceMinutesUnit}>mins</Text>
-          </View>
-          <View style={styles.progressMeta}>
-            <Icon
-              name="arrow-up"
-              size={12}
-              color={theme.colors.library.green[500]}
-            />
-            <Text style={styles.progressValue}>8%</Text>
-            <Text style={styles.vsLastWeek}>vs last week</Text>
-          </View>
-        </View>
-        <PracticeChart />
-      </View> */}
+      {loading ? (
+        <ActivityIndicator size="small" color={theme.colors.text.title} />
+      ) : error ? (
+        <Text style={{ color: theme.colors.library.red[400] }}>{error}</Text>
+      ) : (
+        <PracticeChart data={weeklyData} />
+      )}
     </View>
   );
 };

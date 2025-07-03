@@ -1,88 +1,80 @@
+// src/components/Progress/PracticeBarChartKit.tsx
+
 import React, { useState } from "react";
 import { View, Text, StyleSheet, LayoutChangeEvent } from "react-native";
 import { BarChart } from "react-native-chart-kit";
+import { format } from "date-fns";
+import { WeeklyStat } from "../../../../../api/stats/types";
 
-const data = {
-  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  datasets: [
-    {
-      data: [20, 25, 20, 35, 45, 20, 15], // Your minutes data
-      colors: [
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
-        (opacity = 1) => `rgba(215, 108, 43, ${opacity})`, //  Medium orange
-        (opacity = 1) => `rgba(169, 65, 3, ${opacity})`, //  Darker orange
-      ],
-    },
-  ],
-};
+interface Props {
+  data: WeeklyStat[];
+}
 
-const chartConfig = {
-  backgroundGradientFrom: "#fff3ed",
-  backgroundGradientTo: "#fff3ed",
-  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.7})`,
-  strokeWidth: 0,
-  barPercentage: 0.6,
-  decimalPlaces: 0,
-  fillShadowGradient: "#d76c2b",
-  fillShadowGradientOpacity: 0.3,
-  propsForBackgroundLines: {
-    strokeDasharray: "",
-    stroke: "rgba(0, 0, 0, 0.05)",
-    strokeWidth: 1,
-  },
-  propsForLabels: {
-    fontSize: 12,
-  },
-  barRadius: 8,
-  yAxisLabel: "",
-  yAxisSuffix: "m",
-  // Crucial for accommodating labels and padding within the chart itself:
-  // contentInset helps define inner padding for the chart's data points.
-  // We can add some to ensure labels don't get cut off.
-  contentInset: { left: 10, right: 10, top: 0, bottom: 0 },
-};
+const PracticeBarChartKit: React.FC<Props> = ({ data }) => {
+  const [chartWidth, setChartWidth] = useState(0);
 
-const PracticeBarChartKit = () => {
-  const [chartContainerWidth, setChartContainerWidth] = useState(0);
+  // 1) Map weekday (0=Sun..6=Sat) → minutes
+  const dayMap = new Map<number, number>();
+  data.forEach(({ date, totalTime }) => {
+    const d = new Date(date);
+    dayMap.set(d.getDay(), Math.round(totalTime));
+  });
 
-  const onLayout = (event: LayoutChangeEvent) => {
-    const { width } = event.nativeEvent.layout;
-    // We want the width of the container *excluding* its own padding,
-    // so the chart can precisely fit.
-    // The parent 'container' has paddingHorizontal: 24.
-    // If we wrap the chart in another View, we need to measure that inner View's width.
-    setChartContainerWidth(width);
+  // 2) Display order Mon(1) → Sun(0)
+  const order = [1, 2, 3, 4, 5, 6, 0] as const;
+  const labels = order.map((wd) => format(new Date(2025, 0, wd + 4), "EEE"));
+  const values = order.map((wd) => dayMap.get(wd) ?? 0);
+
+  // 3) Compute today & yesterday
+  const todayIdx = new Date().getDay();
+  const yesterdayIdx = (todayIdx + 6) % 7;
+
+  // 4) Per‐bar colors
+  const colors = order.map((wd) => (opacity = 1) => {
+    if (wd === todayIdx) return `rgba(169,65,3,${opacity})`; // dark
+    if (wd === yesterdayIdx) return `rgba(215,108,43,${opacity})`; // medium
+    return `rgba(253,220,198,${opacity})`; // light
+  });
+
+  // 5) Chart data & config (note barRadius!)
+  const chartData = { labels, datasets: [{ data: values, colors }] };
+  const chartConfig = {
+    backgroundGradientFrom: "#fff3ed",
+    backgroundGradientTo: "#fff3ed",
+    color: (opacity = 1) => `rgba(0,0,0,${opacity * 0.7})`,
+    strokeWidth: 0,
+    barPercentage: 0.6,
+    decimalPlaces: 0,
+    propsForBackgroundLines: { stroke: "rgba(0,0,0,0.05)", strokeWidth: 1 },
+    fillShadowGradientOpacity: 0.3,
+    yAxisLabel: "",
+    yAxisSuffix: "m",
+    barRadius: 8, // ← rounds the top corners of each bar
   };
+
+  // 6) Measure available width
+  const onLayout = (e: LayoutChangeEvent) =>
+    setChartWidth(e.nativeEvent.layout.width);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Weekly Activity</Text>
       <Text style={styles.total}>
-        <Text style={styles.bold}>145</Text>m
+        <Text style={styles.bold}>{values.reduce((sum, v) => sum + v, 0)}</Text>
+        m
       </Text>
-      <Text style={styles.percent}>+10% from last week</Text>
+      <Text style={styles.percent}>{/* e.g. +10% vs last week */}</Text>
 
-      {/* This View will act as the direct parent for the chart
-          and its width will be measured. */}
-      <View
-        onLayout={onLayout}
-        style={styles.chartWrapper} // Add a style for this wrapper if needed
-      >
-        {chartContainerWidth > 0 && ( // Only render chart when width is known
+      <View onLayout={onLayout} style={styles.chartWrapper}>
+        {chartWidth > 0 && (
           <BarChart
-            data={data}
-            width={chartContainerWidth} // Use the dynamically measured width
+            data={chartData}
+            width={chartWidth}
             height={200}
             chartConfig={chartConfig}
-            verticalLabelRotation={0}
-            showValuesOnTopOfBars={false}
-            fromZero={true}
-            flatColor={true}
-            withCustomBarColorFromData={true}
+            fromZero
+            withCustomBarColorFromData
+            flatColor
             yAxisLabel=""
             yAxisSuffix="m"
             style={styles.chartStyle}
@@ -98,12 +90,9 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#fff3ed",
     borderRadius: 16,
-    paddingHorizontal: 24, // Total effective horizontal padding: 48
+    paddingHorizontal: 24,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
@@ -129,13 +118,8 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   chartWrapper: {
-    // This wrapper will take up the available width inside the container.
-    // It should not have horizontal padding or margins itself, as we want to measure
-    // the exact space the chart can fill.
-    // If you need more space around the chart, add it here via marginHorizontal
-    // or by further reducing the width passed to the chart, but `onLayout` is best.
-    flex: 1, // Ensures it takes up available horizontal space
-    alignSelf: "stretch", // Important for width calculation if flex is used
+    flex: 1,
+    alignSelf: "stretch",
   },
   chartStyle: {
     borderRadius: 12,

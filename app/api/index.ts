@@ -40,3 +40,4 @@ export {
   createSubscription,
   deleteSubscriptionById,
 } from "./subscription";
+export { getWeeklyStats, getUserStats } from "./stats";
