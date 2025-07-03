@@ -9,6 +9,7 @@ export type InterviewEDPStackParamList = {
   };
   InterviewChat: {
     interview: ExposurePractice;
+    practiceActivityId: string;
   };
 };
 export type InterviewEDPStackNavigationProp<

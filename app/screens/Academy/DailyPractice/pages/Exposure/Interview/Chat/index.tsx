@@ -70,14 +70,9 @@ const Chat = () => {
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewChat">>();
 
-  const { interview } = route.params;
+  const { interview, practiceActivityId } = route.params;
 
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
@@ -212,20 +207,6 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId); // Move to the next dialogue node
   };
 
-  const markActivityStart = async () => {
-    if (!practiceSession) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
-      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      contentId: interview.id,
-    });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
-    addActivity({
-      ...startedActivity,
-    });
-    return newActivity.id;
-  };
-
   const markActivityComplete = async (activityId: string) => {
     if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
@@ -238,14 +219,13 @@ const Chat = () => {
 
   const onDonePress = async () => {
     try {
-      const activityId = await markActivityStart();
-      if (!activityId) {
+      if (!practiceActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(activityId);
+      await markActivityComplete(practiceActivityId);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
-        activityId: activityId,
+        activityId: practiceActivityId,
       });
       setIsDone(true);
     } catch (error) {

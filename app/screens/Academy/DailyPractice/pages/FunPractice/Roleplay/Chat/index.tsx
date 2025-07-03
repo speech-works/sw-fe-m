@@ -56,12 +56,7 @@ const Chat = () => {
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
   const { title, roleplay, selectedRoleName, id } = route.params;
 
-  const {
-    updateActivity,
-    addActivity,
-    doesActivityExist,
-    isActivityCompleted,
-  } = useActivityStore();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
 
   const { user } = useUserStore();

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
@@ -16,8 +16,17 @@ import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
+import { useSessionStore } from "../../../../../../../stores/session";
+import {
+  createPracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../../api";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import { useActivityStore } from "../../../../../../../stores/activity";
 
 const Briefing = () => {
+  const { practiceSession } = useSessionStore();
+  const { addActivity } = useActivityStore();
   const navigation =
     useNavigation<
       InterviewEDPStackNavigationProp<keyof InterviewEDPStackParamList>
@@ -25,6 +34,33 @@ const Briefing = () => {
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
   const { interview } = route.params;
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+      contentId: interview.id,
+    });
+    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    addActivity({
+      ...startedActivity,
+    });
+    setCurrentActivityId(newActivity.id);
+  };
+
+  useEffect(() => {
+    console.log("Begin Interview", { currentActivityId });
+    currentActivityId &&
+      navigation.navigate("InterviewChat", {
+        interview,
+        practiceActivityId: currentActivityId,
+      });
+  }, [currentActivityId]);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -76,14 +112,7 @@ const Briefing = () => {
               )}
             </View>
           </View>
-          <Button
-            text="Begin Interview"
-            onPress={() => {
-              navigation.navigate("InterviewChat", {
-                interview,
-              });
-            }}
-          />
+          <Button text="Begin Interview" onPress={markActivityStart} />
         </CustomScrollView>
       </View>
     </ScreenView>
