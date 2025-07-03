@@ -8,9 +8,11 @@ import { WeeklyStat } from "../../../../../api/stats/types";
 
 interface Props {
   data: WeeklyStat[];
+  percentChange: number;
 }
 
-const PracticeBarChartKit: React.FC<Props> = ({ data }) => {
+const BAR_RADIUS = 8;
+const PracticeBarChartKit: React.FC<Props> = ({ data, percentChange }) => {
   const [chartWidth, setChartWidth] = useState(0);
 
   // 1) Map weekday (0=Sun..6=Sat) → minutes
@@ -29,14 +31,14 @@ const PracticeBarChartKit: React.FC<Props> = ({ data }) => {
   const todayIdx = new Date().getDay();
   const yesterdayIdx = (todayIdx + 6) % 7;
 
-  // 4) Per‐bar colors
+  // 4) Per-bar colors
   const colors = order.map((wd) => (opacity = 1) => {
     if (wd === todayIdx) return `rgba(169,65,3,${opacity})`; // dark
     if (wd === yesterdayIdx) return `rgba(215,108,43,${opacity})`; // medium
-    return `rgba(253,220,198,${opacity})`; // light
+    return `rgba(253,220,198,${opacity})`; // light peach
   });
 
-  // 5) Chart data & config (note barRadius!)
+  // 5) Chart config
   const chartData = { labels, datasets: [{ data: values, colors }] };
   const chartConfig = {
     backgroundGradientFrom: "#fff3ed",
@@ -49,23 +51,34 @@ const PracticeBarChartKit: React.FC<Props> = ({ data }) => {
     fillShadowGradientOpacity: 0.3,
     yAxisLabel: "",
     yAxisSuffix: "m",
-    barRadius: 8, // ← rounds the top corners of each bar
+    barRadius: BAR_RADIUS, // rounds all corners
+    contentInset: { top: 0, bottom: BAR_RADIUS }, // push bottom corner out of view
   };
 
-  // 6) Measure available width
+  // 6) Measure chart width
   const onLayout = (e: LayoutChangeEvent) =>
     setChartWidth(e.nativeEvent.layout.width);
+
+  const totalMinutes = values.reduce((sum, v) => sum + v, 0);
+  const percentText =
+    percentChange === 0
+      ? "Same as last week"
+      : percentChange > 0
+      ? `+${percentChange}% from last week`
+      : `${percentChange}% from last week`;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Weekly Activity</Text>
       <Text style={styles.total}>
-        <Text style={styles.bold}>{values.reduce((sum, v) => sum + v, 0)}</Text>
-        m
+        <Text style={styles.bold}>{totalMinutes}</Text>m
       </Text>
-      <Text style={styles.percent}>{/* e.g. +10% vs last week */}</Text>
+      <Text style={styles.percent}>{percentText}</Text>
 
-      <View onLayout={onLayout} style={styles.chartWrapper}>
+      <View
+        onLayout={onLayout}
+        style={[styles.chartWrapper, { overflow: "hidden" }]}
+      >
         {chartWidth > 0 && (
           <BarChart
             data={chartData}
@@ -120,9 +133,11 @@ const styles = StyleSheet.create({
   chartWrapper: {
     flex: 1,
     alignSelf: "stretch",
+    borderTopLeftRadius: BAR_RADIUS,
+    borderTopRightRadius: BAR_RADIUS,
   },
   chartStyle: {
-    borderRadius: 12,
+    backgroundColor: "#fff3ed",
   },
 });
 

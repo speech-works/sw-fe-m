@@ -10,3 +10,8 @@ export type WeeklyStat = {
   /** Total minutes for that day */
   totalTime: number;
 };
+
+export type WeeklyStatsResponse = {
+  days: WeeklyStat[];
+  percentChange: number;
+};

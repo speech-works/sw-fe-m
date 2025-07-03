@@ -14,15 +14,23 @@ import { getWeeklyStats } from "../../../../api";
 const Progress = () => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
+
+  const [percentChange, setPercentChange] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log("weeklyData uf..", weeklyData);
+  }, [weeklyData]);
 
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
     getWeeklyStats(user.id)
       .then((data) => {
-        setWeeklyData(data);
+        console.log("getWeeklyStats...", data);
+        setWeeklyData(data.days);
+        setPercentChange(data.percentChange);
         setError(null);
       })
       .catch((err) => {
@@ -31,6 +39,8 @@ const Progress = () => {
       })
       .finally(() => setLoading(false));
   }, [user]);
+
+  const activeDays = weeklyData.filter((w) => w.totalTime > 0).length || 0;
 
   return (
     <View style={styles.container}>
@@ -43,19 +53,17 @@ const Progress = () => {
             color={theme.colors.library.green[500]}
           />
           <Text style={styles.badgeText}>
-            {weeklyData.filter((w) => w.totalTime > 0).length}{" "}
-            {weeklyData.filter((w) => w.totalTime > 0).length === 1
-              ? "day"
-              : "days"}
+            {activeDays} {activeDays === 1 ? "day" : "days"}
           </Text>
         </View>
       </View>
+
       {loading ? (
         <ActivityIndicator size="small" color={theme.colors.text.title} />
       ) : error ? (
         <Text style={{ color: theme.colors.library.red[400] }}>{error}</Text>
       ) : (
-        <PracticeChart data={weeklyData} />
+        <PracticeChart data={weeklyData} percentChange={percentChange} />
       )}
     </View>
   );
@@ -93,49 +101,5 @@ const styles = StyleSheet.create({
   badgeText: {
     ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.library.green[500],
-  },
-  progressGraphContainer: {
-    padding: 12,
-    borderRadius: 12,
-    //backgroundColor: theme.colors.surface.default,
-    // ...parseShadowStyle(theme.shadow.elevation1),
-    display: "flex",
-    flexDirection: "column",
-    gap: 32,
-  },
-  graphMeta: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  practiceMinutes: {},
-  practiceMinutesText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  practiceMinutesValue: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-  },
-  practiceMinutesUnit: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.orange[600],
-    fontWeight: "700",
-  },
-  progressMeta: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  progressValue: {
-    ...parseShadowStyle(theme.shadow.elevation1),
-    color: theme.colors.library.green[500],
-  },
-  vsLastWeek: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
   },
 });

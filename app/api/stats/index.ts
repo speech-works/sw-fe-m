@@ -1,7 +1,7 @@
 // src/services/stats.ts
 
 import axiosClient from "../axiosClient";
-import { PracticeStatSummary, WeeklyStat } from "./types";
+import { PracticeStatSummary, WeeklyStat, WeeklyStatsResponse } from "./types";
 
 /**
  * Lifetime totals per contentType
@@ -27,12 +27,15 @@ export async function getUserStats(
 /**
  * Minutes per day for the current local week
  */
-export async function getWeeklyStats(userId: string): Promise<WeeklyStat[]> {
+export async function getWeeklyStats(
+  userId: string
+): Promise<WeeklyStatsResponse> {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const response = await axiosClient.get<WeeklyStat[]>(
+    const response = await axiosClient.get<WeeklyStatsResponse>(
       `/stats/${userId}/weekly`
     );
+    console.log("getWeeklyStats api response", response);
     return response.data;
   } catch (error) {
     console.error("Error fetching weekly stats:", error);
