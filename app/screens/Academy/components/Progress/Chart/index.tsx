@@ -11,16 +11,18 @@ import { BarChart } from "react-native-chart-kit";
 const screenWidth = Dimensions.get("window").width;
 
 const data = {
-  labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+  labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   datasets: [
     {
-      data: [20, 25, 20, 35, 45], // Your minutes data
+      data: [20, 25, 20, 35, 45, 20, 15], // Your minutes data
       colors: [
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`, // Mon - Lighter orange
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`, // Tue - Lighter orange
-        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`, // Wed - Lighter orange
-        (opacity = 1) => `rgba(215, 108, 43, ${opacity})`, // Thu - Medium orange
-        (opacity = 1) => `rgba(169, 65, 3, ${opacity})`, // Fri - Darker orange
+        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
+        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
+        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
+        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
+        (opacity = 1) => `rgba(253, 220, 198, ${opacity})`,
+        (opacity = 1) => `rgba(215, 108, 43, ${opacity})`, //  Medium orange
+        (opacity = 1) => `rgba(169, 65, 3, ${opacity})`, //  Darker orange
       ],
     },
   ],
