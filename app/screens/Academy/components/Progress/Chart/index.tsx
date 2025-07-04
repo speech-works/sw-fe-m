@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, LayoutChangeEvent } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { format } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 import { WeeklyStat } from "../../../../../api/stats/types";
 
 interface Props {
@@ -24,7 +24,10 @@ const PracticeBarChartKit: React.FC<Props> = ({ data, percentChange }) => {
 
   // 2) Display order Mon(1) → Sun(0)
   const order = [1, 2, 3, 4, 5, 6, 0] as const;
-  const labels = order.map((wd) => format(new Date(2025, 0, wd + 4), "EEE"));
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
+  const labels = order.map((dayOffset) =>
+    format(addDays(weekStart, dayOffset - 1), "EEE")
+  );
   const values = order.map((wd) => dayMap.get(wd) ?? 0);
 
   // 3) Compute today & yesterday

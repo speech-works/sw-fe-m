@@ -19,11 +19,7 @@ export {
   getAllPracticeActivitiesBySessionId,
   getCurrentPracticeActivityForSession,
 } from "./practiceActivities";
-export {
-  createProgressReport,
-  getLiveProgressReport,
-  getPastProgressReports,
-} from "./progressReport";
+export { getWeeklyStats } from "./progressReport";
 export { logMood, updateMoodByMoodId } from "./moodCheck";
 export {
   getRecordingById,
@@ -40,4 +36,4 @@ export {
   createSubscription,
   deleteSubscriptionById,
 } from "./subscription";
-export { getWeeklyStats, getUserStats } from "./stats";
+export { getUserStats } from "./stats";

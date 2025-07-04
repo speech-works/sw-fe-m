@@ -23,22 +23,3 @@ export async function getUserStats(
     throw error;
   }
 }
-
-/**
- * Minutes per day for the current local week
- */
-export async function getWeeklyStats(
-  userId: string
-): Promise<WeeklyStatsResponse> {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const response = await axiosClient.get<WeeklyStatsResponse>(
-      `/stats/${userId}/weekly`
-    );
-    console.log("getWeeklyStats api response", response);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching weekly stats:", error);
-    throw error;
-  }
-}
