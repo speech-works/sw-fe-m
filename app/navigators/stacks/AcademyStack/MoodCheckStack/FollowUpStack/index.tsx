@@ -8,12 +8,12 @@ import Meditation from "../../../../../screens/Academy/DailyPractice/pages/Cogni
 import Reframe from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
 import RoleplayFDPStackNavigator from "../../DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack";
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
-import { MOOD } from "../../../../../types/mood";
+import { MoodType } from "../../../../../api/moodCheck/types";
 
 const Stack = createNativeStackNavigator<MoodFUStackParamList>();
 
 interface MoodFUStackNavigatorProps {
-  initialMood: MOOD;
+  initialMood: MoodType;
 }
 
 export default function MoodFUStackNavigator({

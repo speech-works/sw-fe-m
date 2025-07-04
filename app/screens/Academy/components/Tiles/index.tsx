@@ -21,6 +21,9 @@ const Tiles = () => {
   const moveToChallenges = () => {
     navigation.navigate("ChallengesStack");
   };
+  const moveToProgressDetail = () => {
+    navigation.navigate("ProgressDetailStack");
+  };
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.tile} onPress={moveToChallenges}>
@@ -37,7 +40,7 @@ const Tiles = () => {
         <Text style={styles.tileTitleText}>Library</Text>
         <Text style={styles.descText}>120+</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.tile}>
+      <TouchableOpacity style={styles.tile} onPress={moveToProgressDetail}>
         <Icon
           name="chart-line"
           color={theme.colors.library.green[400]}
