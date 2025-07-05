@@ -9,3 +9,10 @@ export type WeeklyStatsResponse = {
   days: WeeklyStat[];
   percentChange: number;
 };
+
+export type DetailedWeeklySummaryResponse = {
+  totalPracticeMinutes: number;
+  percentagePracticeMinutesChange: number;
+  totalSessions: number;
+  percentageSessionsChange: number;
+};

@@ -22,6 +22,7 @@ export {
 export {
   getDailyActivityStatsForTheWeek,
   getWeeklyMoodReport,
+  getDetailedWeeklySummary,
 } from "./progressReport";
 export { logMood, updateMoodByMoodId } from "./moodCheck";
 export {

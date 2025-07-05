@@ -12,6 +12,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 import MoodSummary from "./components/MoodSummary";
 import DPSummary from "./components/DPSummary";
+import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
 
 const ProgressDetail = () => {
   const navigation =
@@ -32,8 +33,9 @@ const ProgressDetail = () => {
           <Text style={styles.topNavigationText}>Progress Report</Text>
         </TouchableOpacity>
         <CustomScrollView contentContainerStyle={styles.scrollView}>
-          <MoodSummary />
+          <DetailedWeeklySummary />
           <DPSummary />
+          <MoodSummary />
         </CustomScrollView>
       </View>
     </ScreenView>
