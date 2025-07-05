@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { MoodType } from "../../api/moodCheck/types";
+import { getLocalTodayDateString } from "../../util/functions/date";
 
 interface MoodCheckState {
   hasRecordedToday: boolean;
@@ -22,7 +23,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       lastRecordedDate: null,
 
       setMood: (mood: MoodType) => {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalTodayDateString();
         set({
           hasRecordedToday: true,
           moodType: mood,
@@ -39,8 +40,13 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       },
 
       checkAndResetIfNeeded: () => {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalTodayDateString();
         const lastDate = get().lastRecordedDate;
+        console.log("checkAndResetIfNeeded run...", {
+          today,
+          lastDate,
+          hasRecordedToday: get().hasRecordedToday,
+        });
 
         if (lastDate !== today) {
           set({
@@ -58,7 +64,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       // We use `onRehydrateStorage` to ensure daily reset happens after loading
       onRehydrateStorage: () => (state) => {
         if (state) {
-          const today = new Date().toISOString().split("T")[0];
+          const today = getLocalTodayDateString();
           if (state.lastRecordedDate !== today) {
             state.hasRecordedToday = false;
             state.moodType = null;

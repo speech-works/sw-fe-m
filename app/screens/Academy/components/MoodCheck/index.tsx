@@ -51,10 +51,7 @@ const emotions = [
 const MoodCheck = () => {
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
-  // const moodCheckNavigation =
-  //   useNavigation<
-  //     MoodCheckStackNavigationProp<keyof MoodCheckStackParamList>
-  //   >();
+
   return (
     <View style={styles.container}>
       <Text style={styles.titleText}>How do you feel today?</Text>

@@ -18,7 +18,7 @@ const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setPracticeStats } = usePracticeStatsStore();
-  const { hasRecordedToday } = useMoodCheckStore();
+  const { hasRecordedToday, lastRecordedDate } = useMoodCheckStore();
   // This function contains the core synchronization logic.
   // It's memoized by useCallback. Its dependencies dictate when its *identity* changes.
   const syncSessionWithBackend = useCallback(async () => {
@@ -122,6 +122,10 @@ const Academy = () => {
       console.error("Failed to create new session:", error);
     }
   };
+
+  useEffect(() => {
+    console.log("lastRecordedDate", { lastRecordedDate, hasRecordedToday });
+  }, [lastRecordedDate, hasRecordedToday]);
 
   useEffect(() => {
     if (!user) return;
