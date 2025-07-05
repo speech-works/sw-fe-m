@@ -5,12 +5,12 @@ import { WeeklyStatsResponse } from "./types";
  * Minutes per day for the current local week
  * Used on Academy landing page
  */
-export async function getWeeklyStats(
+export async function getDailyActivityStatsForTheWeek(
   userId: string
 ): Promise<WeeklyStatsResponse> {
   try {
     const response = await axiosClient.get<WeeklyStatsResponse>(
-      `/report/${userId}/weekly`
+      `/report/${userId}/weekly-daily-activity-time`
     );
     console.log("getWeeklyStats api response", response);
     return response.data;

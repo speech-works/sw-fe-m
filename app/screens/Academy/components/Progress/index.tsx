@@ -6,7 +6,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import PracticeChart from "./Chart";
 import { WeeklyStat } from "../../../../api/stats/types";
 import { useUserStore } from "../../../../stores/user";
-import { getWeeklyStats } from "../../../../api";
+import { getDailyActivityStatsForTheWeek } from "../../../../api";
 
 const Progress = () => {
   const { user } = useUserStore();
@@ -23,7 +23,7 @@ const Progress = () => {
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
-    getWeeklyStats(user.id)
+    getDailyActivityStatsForTheWeek(user.id)
       .then((data) => {
         console.log("getWeeklyStats...", data);
         setWeeklyData(data.days);
