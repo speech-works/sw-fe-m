@@ -1,9 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import PracticeChart from "./Chart";

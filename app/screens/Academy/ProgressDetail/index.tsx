@@ -10,6 +10,8 @@ import CustomScrollView from "../../../components/CustomScrollView";
 import { theme } from "../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
+import MoodSummary from "./components/MoodSummary";
+import DPSummary from "./components/DPSummary";
 
 const ProgressDetail = () => {
   const navigation =
@@ -29,8 +31,9 @@ const ProgressDetail = () => {
           />
           <Text style={styles.topNavigationText}>Progress Report</Text>
         </TouchableOpacity>
-        <CustomScrollView>
-          <Text>pd</Text>
+        <CustomScrollView contentContainerStyle={styles.scrollView}>
+          <MoodSummary />
+          <DPSummary />
         </CustomScrollView>
       </View>
     </ScreenView>
@@ -58,5 +61,9 @@ const styles = StyleSheet.create({
   topNavigationText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+  },
+  scrollView: {
+    gap: 16,
+    paddingVertical: 16,
   },
 });

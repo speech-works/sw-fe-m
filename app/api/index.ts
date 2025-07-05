@@ -19,7 +19,7 @@ export {
   getAllPracticeActivitiesBySessionId,
   getCurrentPracticeActivityForSession,
 } from "./practiceActivities";
-export { getWeeklyStats } from "./progressReport";
+export { getWeeklyStats, getWeeklyMoodReport } from "./progressReport";
 export { logMood, updateMoodByMoodId } from "./moodCheck";
 export {
   getRecordingById,

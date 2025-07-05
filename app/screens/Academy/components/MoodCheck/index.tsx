@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import React from "react";
 import Angry1 from "../../../../assets/mood-check/Angry1";
 import Calm1 from "../../../../assets/mood-check/Calm1";
