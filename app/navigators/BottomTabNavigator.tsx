@@ -3,39 +3,15 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
-import Settings from "../screens/Settings";
 import OnboardingQuestions from "../components/OnBoarding/OnboardingQuestions";
 import { questions } from "../data/onboardingQuestions";
 import { ROUTE_NAMES } from "../constants/routes";
 import AcademyStackNavigator from "./stacks/AcademyStack";
+import SettingsStackNavigator from "./stacks/SettingsStack";
 
-// Create Bottom Tab Navigator
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
-  // const Logout = () => {
-  //   return (
-  //     <ScrollWrapper>
-  //       <Text>Home</Text>
-
-  //       <TouchableOpacity
-  //         onPress={() => {
-  //           console.log("Logout button pressed");
-  //           handleLogout();
-  //         }}
-  //         style={{
-  //           backgroundColor: theme.colors.actionPrimary.default,
-  //           padding: 10,
-  //           borderRadius: 5,
-  //           marginTop: 20,
-  //         }}
-  //       >
-  //         <Text style={{ color: "white" }}>Logout</Text>
-  //       </TouchableOpacity>
-  //     </ScrollWrapper>
-  //   );
-  // };
-
   const Onboarding = () => {
     return (
       <OnboardingQuestions
@@ -84,7 +60,10 @@ const BottomTabNavigator = () => {
         component={AcademyStackNavigator}
       />
       <Tab.Screen name={ROUTE_NAMES.COMMUNITY} component={Onboarding} />
-      <Tab.Screen name={ROUTE_NAMES.SETTINGS} component={Settings} />
+      <Tab.Screen
+        name={ROUTE_NAMES.SETTINGS}
+        component={SettingsStackNavigator}
+      />
       {/* <Tab.Screen name={ROUTE_NAMES.THERAPY} component={Logout} /> */}
     </Tab.Navigator>
   );

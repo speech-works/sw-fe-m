@@ -15,8 +15,15 @@ import CustomScrollView from "../../components/CustomScrollView";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { useUserStore } from "../../stores/user";
+import {
+  SettingsStackNavigationProp,
+  SettingsStackParamList,
+} from "../../navigators/stacks/SettingsStack/types";
+import { useNavigation } from "@react-navigation/native";
 
 const Settings = (/* Props are removed */) => {
+  const navigation =
+    useNavigation<SettingsStackNavigationProp<keyof SettingsStackParamList>>();
   const { logout } = useContext(AuthContext);
   const { user } = useUserStore();
   console.log("settings screen getting user", user);
@@ -39,26 +46,34 @@ const Settings = (/* Props are removed */) => {
     {
       icon: <Feather name="trending-up" size={24} color="#4A5568" />,
       text: "Progress Report",
+      onClick: () => {
+        navigation.navigate("ProgressDetail");
+      },
     },
     {
       icon: <Ionicons name="notifications-outline" size={24} color="#4A5568" />,
       text: "Notifications",
+      onClick: () => {},
     },
     {
       icon: <MaterialIcons name="history" size={24} color="#4A5568" />,
       text: "Practice History",
+      onClick: () => {},
     },
     {
       icon: <AntDesign name="Trophy" size={24} color="#4A5568" />,
       text: "Goals & Achievements",
+      onClick: () => {},
     },
     {
       icon: <Ionicons name="settings-outline" size={24} color="#4A5568" />,
       text: "Settings", // This item might be redundant if this screen IS settings
+      onClick: () => {},
     },
     {
       icon: <Feather name="help-circle" size={24} color="#4A5568" />,
       text: "Help & Support",
+      onClick: () => {},
     },
   ];
 
@@ -104,7 +119,11 @@ const Settings = (/* Props are removed */) => {
         {/* Menu Items */}
         <View style={styles.menuItems}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuItem}>
+            <TouchableOpacity
+              key={index}
+              style={styles.menuItem}
+              onPress={item.onClick}
+            >
               {item.icon}
               <Text style={styles.menuItemText}>{item.text}</Text>
             </TouchableOpacity>
