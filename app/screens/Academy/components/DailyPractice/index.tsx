@@ -36,6 +36,11 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
     // Check if sessionDate is a valid Date object before comparison
     if (isValid(sessionDate)) {
       isSessionFresh = isSameDay(sessionDate, currentDate);
+      console.log("DailyPractice:", {
+        isSessionFresh,
+        sessionDate,
+        currentDate,
+      });
     } else {
       // This else block will catch if, for some reason, sessionDate is still not a Date object
       // or if it's an "Invalid Date" object.
@@ -152,6 +157,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     display: "flex",
     flexDirection: "column",
+    gap: 8,
   },
   progressText: {
     ...parseTextStyle(theme.typography.BodySmall),

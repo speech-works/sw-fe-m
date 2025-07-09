@@ -59,10 +59,7 @@ const DetailedWeeklySummary = () => {
             </Text>
             <Text style={styles.labelText}>Practice Time</Text>
             <Text style={styles.deltaPositive}>
-              {formatDelta(
-                weeklyData.percentagePracticeMinutesChange / 60,
-                "h"
-              )}
+              {formatDelta(weeklyData.percentagePracticeMinutesChange, "%")}
             </Text>
           </View>
 
@@ -73,7 +70,7 @@ const DetailedWeeklySummary = () => {
             <Text style={styles.valueText}>{weeklyData.totalSessions}</Text>
             <Text style={styles.labelText}>Days in Week</Text>
             <Text style={styles.deltaPositive}>
-              {formatDelta(weeklyData.percentageSessionsChange, "")}
+              {formatDelta(weeklyData.percentageSessionsChange, "%")}
             </Text>
           </View>
 

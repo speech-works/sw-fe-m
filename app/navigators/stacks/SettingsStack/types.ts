@@ -4,6 +4,7 @@ import { RouteProp } from "@react-navigation/native";
 export type SettingsStackParamList = {
   Settings: undefined;
   ProgressDetail: undefined;
+  Preferences: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList

@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: "flex-start",
   },
-
   chartContainer: {
     position: "relative",
     width: screenWidth - 40, // Match the PieChart's width

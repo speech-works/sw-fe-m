@@ -13,6 +13,8 @@ import { parseTextStyle } from "../../../util/functions/parseStyles";
 import MoodSummary from "./components/MoodSummary";
 import DPSummary from "./components/DPSummary";
 import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
+import Achievements from "./components/Achievements";
+import TutStats from "./components/TutStats";
 
 const ProgressDetail = () => {
   const navigation =
@@ -35,6 +37,8 @@ const ProgressDetail = () => {
         <CustomScrollView contentContainerStyle={styles.scrollView}>
           <DetailedWeeklySummary />
           <DPSummary />
+          <Achievements />
+          <TutStats />
           <MoodSummary />
         </CustomScrollView>
       </View>

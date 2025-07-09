@@ -6,6 +6,7 @@ import {
   MaterialIcons,
   AntDesign,
 } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { AuthContext } from "../../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
@@ -44,34 +45,36 @@ const Settings = (/* Props are removed */) => {
 
   const menuItems = [
     {
-      icon: <Feather name="trending-up" size={24} color="#4A5568" />,
+      icon: <Icon name="chart-line" size={16} color="#4A5568" />,
       text: "Progress Report",
       onClick: () => {
         navigation.navigate("ProgressDetail");
       },
     },
     {
-      icon: <Ionicons name="notifications-outline" size={24} color="#4A5568" />,
+      icon: <Icon name="bell" size={16} color="#4A5568" />,
       text: "Notifications",
       onClick: () => {},
     },
     {
-      icon: <MaterialIcons name="history" size={24} color="#4A5568" />,
+      icon: <Icon name="history" size={16} color="#4A5568" />,
       text: "Practice History",
       onClick: () => {},
     },
     {
-      icon: <AntDesign name="Trophy" size={24} color="#4A5568" />,
+      icon: <Icon name="medal" size={16} color="#4A5568" />,
       text: "Goals & Achievements",
       onClick: () => {},
     },
     {
-      icon: <Ionicons name="settings-outline" size={24} color="#4A5568" />,
-      text: "Settings", // This item might be redundant if this screen IS settings
-      onClick: () => {},
+      icon: <Icon name="tasks" size={16} color="#4A5568" />,
+      text: "Preferences", // This item might be redundant if this screen IS settings
+      onClick: () => {
+        navigation.navigate("Preferences");
+      },
     },
     {
-      icon: <Feather name="help-circle" size={24} color="#4A5568" />,
+      icon: <Icon name="question-circle" size={16} color="#4A5568" />,
       text: "Help & Support",
       onClick: () => {},
     },
@@ -99,17 +102,17 @@ const Settings = (/* Props are removed */) => {
           </View>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <MaterialIcons name="event-note" size={18} color="#4A5568" />
+              <Icon name="calendar-alt" size={16} color="#4A5568" />
               <Text style={styles.statText}>32 Practice Sessions</Text>
             </View>
             <View style={styles.statItem}>
-              <AntDesign name="staro" size={18} color="#4A5568" />
+              <Icon name="star" size={16} color="#4A5568" />
               <Text style={styles.statText}>Level 3 Speaker</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.viewProfileButton}>
             <Text style={styles.viewProfileText}>View Full Profile</Text>
-            <Feather name="chevron-right" size={18} color="#3182CE" />
+            <Icon name="chevron-right" size={12} color="#3182CE" />
           </TouchableOpacity>
         </View>
 
@@ -135,7 +138,7 @@ const Settings = (/* Props are removed */) => {
 
         {/* Sign Out Button */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
-          <MaterialIcons name="logout" size={24} color="#E53E3E" />
+          <Icon name="sign-out-alt" size={16} color="#E53E3E" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </CustomScrollView>
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
+    paddingVertical: 16,
   },
   menuItemText: {
     fontSize: 16,
