@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TextStyle, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import { theme } from "../../../../../Theme/tokens";
 import {
@@ -11,6 +11,24 @@ import { DetailedWeeklySummaryResponse } from "../../../../../api/progressReport
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { format, addDays, startOfWeek } from "date-fns";
 import * as Localization from "expo-localization";
+
+export const formatDelta = (delta: number, unit: string) => {
+  const value = delta.toFixed(1);
+  const sign = delta >= 0 ? "+" : "-";
+  const color: TextStyle["color"] = delta >= 0 ? "green" : "red";
+
+  return (
+    <Text
+      style={{
+        color,
+        marginTop: 2,
+        ...parseTextStyle(theme.typography.BodySmall),
+      }}
+    >
+      {`${sign}${Math.abs(parseFloat(value))}${unit}`}
+    </Text>
+  );
+};
 
 const DetailedWeeklySummary = () => {
   const { user } = useUserStore();
@@ -58,9 +76,7 @@ const DetailedWeeklySummary = () => {
                 : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
             </Text>
             <Text style={styles.labelText}>Practice Time</Text>
-            <Text style={styles.deltaPositive}>
-              {formatDelta(weeklyData.percentagePracticeMinutesChange, "%")}
-            </Text>
+            {formatDelta(weeklyData.percentagePracticeMinutesChange, "%")}
           </View>
 
           <View style={styles.divider} />
@@ -69,9 +85,7 @@ const DetailedWeeklySummary = () => {
           <View style={styles.column}>
             <Text style={styles.valueText}>{weeklyData.totalSessions}</Text>
             <Text style={styles.labelText}>Days in Week</Text>
-            <Text style={styles.deltaPositive}>
-              {formatDelta(weeklyData.percentageSessionsChange, "%")}
-            </Text>
+            {formatDelta(weeklyData.percentageSessionsChange, "%")}
           </View>
 
           {/* <View style={styles.divider} /> */}
@@ -88,12 +102,6 @@ const DetailedWeeklySummary = () => {
       )}
     </View>
   );
-};
-
-const formatDelta = (delta: number, unit: string) => {
-  const value = delta.toFixed(1);
-  const sign = delta >= 0 ? "+" : "-";
-  return `${sign}${Math.abs(parseFloat(value))}${unit}`;
 };
 
 export default DetailedWeeklySummary;
@@ -138,11 +146,6 @@ const styles = StyleSheet.create({
   labelText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
-  },
-  deltaPositive: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.green[400],
-    marginTop: 2,
   },
   divider: {
     width: 1,
