@@ -10,11 +10,15 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 import BottomSheetModal from "../../../components/BottomSheetModal";
+import TimeSelector from "../../../components/TimeSelector";
+
+type SettingType = "GOAL" | "TIMER" | null;
 
 const ProgressDetail = () => {
   const navigation = useNavigation();
   const [targetMins, setTargetMins] = useState(15);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
 
   const closeModal = () => setIsModalVisible(false);
@@ -50,79 +54,68 @@ const ProgressDetail = () => {
   ];
 
   const SelectGoalType = () => (
-    <BottomSheetModal
-      visible={isModalVisible}
-      onClose={closeModal}
-      maxHeight="40%"
-    >
-      <View style={styles.modalContent}>
-        <View style={styles.modalTitleContainer}>
-          <Text style={styles.modalTiteText}>Goal</Text>
-        </View>
-        <View style={styles.goalListContanier}>
-          {practiceGoalTypeData.map((goal, index) => (
-            <TouchableOpacity
-              key={index}
+    <View style={styles.goalListContanier}>
+      {practiceGoalTypeData.map((goal, index) => (
+        <TouchableOpacity
+          key={index}
+          style={[
+            styles.goalCard,
+            selectedGoalType === goal.name && styles.selectedGoalCard,
+            goal.disabled && styles.disabledCard,
+          ]}
+          disabled={goal.disabled}
+          onPress={() => {
+            if (goal.disabled) return;
+            handleGoalChange(goal.name);
+            setSelectedGoalType(goal.name);
+            closeModal();
+          }}
+        >
+          <View
+            style={[
+              styles.goalIconContainer,
+              styles.goalIconContainer2,
+              goal.disabled ? styles.disabledIconContainer : null,
+            ]}
+          >
+            <Icon
+              solid
+              name={goal.icon}
+              size={24}
+              color={
+                goal.disabled
+                  ? theme.colors.library.gray[100]
+                  : theme.colors.actionPrimary.default
+              }
+            />
+          </View>
+          <View style={styles.goalDescContainer}>
+            <Text
               style={[
-                styles.goalCard,
-                selectedGoalType === goal.name && styles.selectedGoalCard,
-                goal.disabled && styles.disabledCard,
+                styles.goalNameText,
+                goal.disabled && styles.disabledText,
+                selectedGoalType === goal.name &&
+                  !goal.disabled &&
+                  styles.selectedCardText,
               ]}
-              disabled={goal.disabled}
-              onPress={() => {
-                if (goal.disabled) return;
-                handleGoalChange(goal.name);
-                setSelectedGoalType(goal.name);
-                closeModal();
-              }}
             >
-              <View
-                style={[
-                  styles.goalIconContainer,
-                  styles.goalIconContainer2,
-                  goal.disabled ? styles.disabledIconContainer : null,
-                ]}
-              >
-                <Icon
-                  solid
-                  name={goal.icon}
-                  size={24}
-                  color={
-                    goal.disabled
-                      ? theme.colors.library.gray[100]
-                      : theme.colors.actionPrimary.default
-                  }
-                />
-              </View>
-              <View style={styles.goalDescContainer}>
-                <Text
-                  style={[
-                    styles.goalNameText,
-                    goal.disabled && styles.disabledText,
-                    selectedGoalType === goal.name &&
-                      !goal.disabled &&
-                      styles.selectedCardText,
-                  ]}
-                >
-                  {goal.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.goalDetailText,
-                    goal.disabled && styles.disabledText,
-                    selectedGoalType === goal.name &&
-                      !goal.disabled &&
-                      styles.selectedCardText,
-                  ]}
-                >
-                  {goal.disabled ? "coming soon" : goal.desc}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </BottomSheetModal>
+              {goal.name}
+            </Text>
+            <Text
+              style={[
+                styles.goalDetailText,
+                goal.disabled && styles.disabledText,
+                selectedGoalType === goal.name &&
+                  !goal.disabled &&
+                  styles.selectedCardText,
+              ]}
+            >
+              {goal.disabled ? "coming soon" : goal.desc}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 
   return (
@@ -146,7 +139,13 @@ const ProgressDetail = () => {
                 <Text style={styles.titleText}>Preferred practice time</Text>
                 <Text style={styles.descText}>When should we remind you?</Text>
               </View>
-              <TouchableOpacity style={styles.preferredTimeValue}>
+              <TouchableOpacity
+                style={styles.preferredTimeValue}
+                onPress={() => {
+                  setOpenSettingType("TIMER");
+                  setIsModalVisible(true);
+                }}
+              >
                 <Text style={styles.valueText}>08:00 AM</Text>
                 <Icon
                   name="chevron-right"
@@ -164,7 +163,10 @@ const ProgressDetail = () => {
               </View>
               <TouchableOpacity
                 style={styles.preferredTimeValue}
-                onPress={() => setIsModalVisible(true)}
+                onPress={() => {
+                  setOpenSettingType("GOAL");
+                  setIsModalVisible(true);
+                }}
               >
                 <Text style={styles.valueText}>{selectedGoalType}</Text>
                 <Icon
@@ -183,7 +185,6 @@ const ProgressDetail = () => {
                   </Text>
                 </View>
                 <View style={styles.valueControlContainer}>
-                  {/* Chevron Up */}
                   <TouchableOpacity
                     onPress={handleIncrement}
                     style={styles.chevronButton}
@@ -194,9 +195,7 @@ const ProgressDetail = () => {
                       color={theme.colors.actionPrimary.default}
                     />
                   </TouchableOpacity>
-                  {/* The Value */}
                   <Text style={styles.valueText}>{targetMins}</Text>
-                  {/* Chevron Down */}
                   <TouchableOpacity
                     onPress={handleDecrement}
                     style={styles.chevronButton}
@@ -219,7 +218,6 @@ const ProgressDetail = () => {
                   </Text>
                 </View>
                 <View style={styles.valueControlContainer}>
-                  {/* Chevron Up */}
                   <TouchableOpacity
                     onPress={handleIncrement}
                     style={styles.chevronButton}
@@ -230,9 +228,7 @@ const ProgressDetail = () => {
                       color={theme.colors.actionPrimary.default}
                     />
                   </TouchableOpacity>
-                  {/* The Value */}
                   <Text style={styles.valueText}>{targetMins}</Text>
-                  {/* Chevron Down */}
                   <TouchableOpacity
                     onPress={handleDecrement}
                     style={styles.chevronButton}
@@ -249,7 +245,19 @@ const ProgressDetail = () => {
           </CustomScrollView>
         </View>
       </ScreenView>
-      {SelectGoalType && <SelectGoalType />}
+      <BottomSheetModal
+        visible={isModalVisible}
+        onClose={closeModal}
+        maxHeight="70%"
+      >
+        <View style={styles.modalContent}>
+          <View style={styles.modalTitleContainer}>
+            <Text style={styles.modalTiteText}>{openSettingType}</Text>
+          </View>
+          {openSettingType === "GOAL" && <SelectGoalType />}
+          {openSettingType === "TIMER" && <TimeSelector />}
+        </View>
+      </BottomSheetModal>
     </>
   );
 };
