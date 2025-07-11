@@ -59,7 +59,7 @@ const InputField = forwardRef<TextInput, InputFieldProps>(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.text.default + "99"}
+          placeholderTextColor={theme.colors.text.default}
           underlineColorAndroid="transparent"
           {...rest}
         />

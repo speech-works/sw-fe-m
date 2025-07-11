@@ -11,6 +11,7 @@ import {
 } from "../../../util/functions/parseStyles";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import TimeSelector from "../../../components/TimeSelector";
+import { format } from "date-fns";
 
 type SettingType = "GOAL" | "TIMER" | null;
 
@@ -20,6 +21,7 @@ const ProgressDetail = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
+  const [reminderTime, setReminderTime] = useState<Date | null>();
 
   const closeModal = () => setIsModalVisible(false);
 
@@ -136,7 +138,7 @@ const ProgressDetail = () => {
           <CustomScrollView contentContainerStyle={styles.scrollView}>
             <View style={styles.card}>
               <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Preferred practice time</Text>
+                <Text style={styles.titleText}>Preferred Practice Time</Text>
                 <Text style={styles.descText}>When should we remind you?</Text>
               </View>
               <TouchableOpacity
@@ -146,7 +148,12 @@ const ProgressDetail = () => {
                   setIsModalVisible(true);
                 }}
               >
-                <Text style={styles.valueText}>08:00 AM</Text>
+                {reminderTime && (
+                  <Text style={styles.valueText}>
+                    {format(reminderTime, "hh:mm a")}
+                  </Text>
+                )}
+
                 <Icon
                   name="chevron-right"
                   size={12}
@@ -156,7 +163,7 @@ const ProgressDetail = () => {
             </View>
             <View style={styles.card}>
               <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Practice goal type</Text>
+                <Text style={styles.titleText}>Practice Goal Type</Text>
                 <Text style={styles.descText}>
                   How would you like to train?
                 </Text>
@@ -255,7 +262,15 @@ const ProgressDetail = () => {
             <Text style={styles.modalTiteText}>{openSettingType}</Text>
           </View>
           {openSettingType === "GOAL" && <SelectGoalType />}
-          {openSettingType === "TIMER" && <TimeSelector />}
+          {openSettingType === "TIMER" && (
+            <TimeSelector
+              onTimeChange={(time) => {
+                setReminderTime(time);
+                closeModal();
+              }}
+              initialTime={reminderTime || new Date()}
+            />
+          )}
         </View>
       </BottomSheetModal>
     </>
@@ -347,7 +362,7 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingVertical: 24,
     width: "100%",
-    flex: 1, // ← valid because the parent Animated.View has a fixed height
+    flex: 1,
     flexDirection: "column",
     gap: 32,
   },

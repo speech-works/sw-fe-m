@@ -44,28 +44,21 @@ const Settings = (/* Props are removed */) => {
   };
 
   const menuItems = [
-    {
-      icon: <Icon name="chart-line" size={16} color="#4A5568" />,
-      text: "Progress Report",
-      onClick: () => {
-        navigation.navigate("ProgressDetail");
-      },
-    },
-    {
-      icon: <Icon name="bell" size={16} color="#4A5568" />,
-      text: "Notifications",
-      onClick: () => {},
-    },
-    {
-      icon: <Icon name="history" size={16} color="#4A5568" />,
-      text: "Practice History",
-      onClick: () => {},
-    },
-    {
-      icon: <Icon name="medal" size={16} color="#4A5568" />,
-      text: "Goals & Achievements",
-      onClick: () => {},
-    },
+    // {
+    //   icon: <Icon name="bell" size={16} color="#4A5568" />,
+    //   text: "Notifications",
+    //   onClick: () => {},
+    // },
+    // {
+    //   icon: <Icon name="history" size={16} color="#4A5568" />,
+    //   text: "Practice History",
+    //   onClick: () => {},
+    // },
+    // {
+    //   icon: <Icon name="medal" size={16} color="#4A5568" />,
+    //   text: "Goals & Achievements",
+    //   onClick: () => {},
+    // },
     {
       icon: <Icon name="tasks" size={16} color="#4A5568" />,
       text: "Preferences", // This item might be redundant if this screen IS settings
@@ -74,9 +67,18 @@ const Settings = (/* Props are removed */) => {
       },
     },
     {
+      icon: <Icon name="chart-line" size={16} color="#4A5568" />,
+      text: "Progress Report",
+      onClick: () => {
+        navigation.navigate("ProgressDetail");
+      },
+    },
+    {
       icon: <Icon name="question-circle" size={16} color="#4A5568" />,
       text: "Help & Support",
-      onClick: () => {},
+      onClick: () => {
+        navigation.navigate("HelpSupport");
+      },
     },
   ];
 
