@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import ScreenView from "../../../components/ScreenView";
 import CustomScrollView from "../../../components/CustomScrollView";
@@ -12,12 +12,20 @@ import {
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import TimeSelector from "../../../components/TimeSelector";
 import { format } from "date-fns";
+import {
+  getUserPreferences,
+  updateUserPreferences,
+} from "../../../api/settings/userPreference";
+import { useUserStore } from "../../../stores/user";
+import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 
 type SettingType = "GOAL" | "TIMER" | null;
 
 const ProgressDetail = () => {
   const navigation = useNavigation();
+  const { user } = useUserStore();
   const [targetMins, setTargetMins] = useState(15);
+  const [taskCount, setTaskCount] = useState(3);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
@@ -25,16 +33,51 @@ const ProgressDetail = () => {
 
   const closeModal = () => setIsModalVisible(false);
 
-  const handleGoalChange = (goalText: string) => {
+  const handleGoalChange = async (goalText: string) => {
+    console.log("handle goal change", { goalText });
+    if (!user) return;
+    let practiceGoalType = PracticeGoalType.TASK_BASED;
+    if (goalText === "Time based") {
+      practiceGoalType = PracticeGoalType.TIME_BASED;
+    }
+    await updateUserPreferences(user?.id, { practiceGoalType });
     setSelectedGoalType(goalText);
   };
 
-  const handleIncrement = () => {
-    setTargetMins((prevMins) => prevMins + 5);
+  const handleIncrementTargetMins = async () => {
+    if (!user) return;
+    setTargetMins((prevMins) => {
+      const dailyPracticeLimitMinutes = prevMins + 5;
+      updateUserPreferences(user.id, { dailyPracticeLimitMinutes });
+      return dailyPracticeLimitMinutes;
+    });
   };
 
-  const handleDecrement = () => {
-    setTargetMins((prevMins) => Math.max(5, prevMins - 5));
+  const handleDecrementTargetMins = async () => {
+    if (!user) return;
+    setTargetMins((prevMins) => {
+      const dailyPracticeLimitMinutes = Math.max(5, prevMins - 5);
+      updateUserPreferences(user.id, { dailyPracticeLimitMinutes });
+      return dailyPracticeLimitMinutes;
+    });
+  };
+
+  const handleIncrementTaskCount = async () => {
+    if (!user) return;
+    setTaskCount((prevMins) => {
+      const dailyTaskCount = prevMins + 1;
+      updateUserPreferences(user.id, { dailyTaskCount });
+      return dailyTaskCount;
+    });
+  };
+
+  const handleDecrementTaskCount = async () => {
+    if (!user) return;
+    setTaskCount((prevMins) => {
+      const dailyTaskCount = Math.max(5, prevMins - 1);
+      updateUserPreferences(user.id, { dailyTaskCount });
+      return dailyTaskCount;
+    });
   };
 
   const practiceGoalTypeData: Array<{
@@ -120,6 +163,43 @@ const ProgressDetail = () => {
     </View>
   );
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchPreferences = async () => {
+      const pref = await getUserPreferences(user.id);
+      if (!pref) return;
+      const {
+        practiceReminderTime,
+        practiceGoalType,
+        dailyPracticeLimitMinutes,
+        dailyTaskCount,
+      } = pref;
+      if (practiceReminderTime) setReminderTime(new Date(practiceReminderTime));
+      if (practiceGoalType) {
+        if (practiceGoalType === PracticeGoalType.TASK_BASED) {
+          setSelectedGoalType("Task based");
+        } else if (practiceGoalType === PracticeGoalType.TIME_BASED) {
+          setSelectedGoalType("Time based");
+        }
+      }
+      if (dailyPracticeLimitMinutes) setTargetMins(dailyPracticeLimitMinutes);
+      if (dailyTaskCount) setTaskCount(dailyTaskCount);
+    };
+    fetchPreferences();
+  }, [user]);
+
+  useEffect(() => {
+    if (!reminderTime || !user) return;
+
+    // Fix: Normalize the reminder time to a constant date (e.g., Jan 1, 1970)
+    const normalizedTime = new Date(reminderTime);
+    normalizedTime.setFullYear(1970, 0, 1); // Jan 1, 1970
+
+    updateUserPreferences(user.id, {
+      practiceReminderTime: normalizedTime,
+    });
+  }, [reminderTime]);
+
   return (
     <>
       <ScreenView style={styles.screenView}>
@@ -193,7 +273,7 @@ const ProgressDetail = () => {
                 </View>
                 <View style={styles.valueControlContainer}>
                   <TouchableOpacity
-                    onPress={handleIncrement}
+                    onPress={handleIncrementTargetMins}
                     style={styles.chevronButton}
                   >
                     <Icon
@@ -204,7 +284,7 @@ const ProgressDetail = () => {
                   </TouchableOpacity>
                   <Text style={styles.valueText}>{targetMins}</Text>
                   <TouchableOpacity
-                    onPress={handleDecrement}
+                    onPress={handleDecrementTargetMins}
                     style={styles.chevronButton}
                   >
                     <Icon
@@ -226,7 +306,7 @@ const ProgressDetail = () => {
                 </View>
                 <View style={styles.valueControlContainer}>
                   <TouchableOpacity
-                    onPress={handleIncrement}
+                    onPress={handleIncrementTaskCount}
                     style={styles.chevronButton}
                   >
                     <Icon
@@ -235,9 +315,9 @@ const ProgressDetail = () => {
                       color={theme.colors.actionPrimary.default}
                     />
                   </TouchableOpacity>
-                  <Text style={styles.valueText}>{targetMins}</Text>
+                  <Text style={styles.valueText}>{taskCount}</Text>
                   <TouchableOpacity
-                    onPress={handleDecrement}
+                    onPress={handleDecrementTaskCount}
                     style={styles.chevronButton}
                   >
                     <Icon
