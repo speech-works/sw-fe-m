@@ -1,11 +1,14 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
+import Constants from "expo-constants";
 import Dropdown from "../../../../components/Dropdown";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import TextArea from "../../../../components/TextArea";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ImageUploader from "../../../../components/ImageUploader";
 import Button from "../../../../components/Button";
+import { createReportedIssue } from "../../../../api/settings/helpSupport";
+import { useUserStore } from "../../../../stores/user";
 
 const reportOptions = [
   { id: "bug", label: "Bug" },
@@ -23,14 +26,49 @@ interface ReportProblemProps {
 }
 
 const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
+  const { user } = useUserStore();
   const [issueDesc, setIssueDesc] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<ReportOptionType | null>(
     null
   );
   const [screenshots, setScreenshots] = useState<string[]>([]);
-  const deviceInfo = "";
+  const [deviceInfo, setDeviceInfo] = useState("");
 
-  const handleReportSubmit = () => {
+  useEffect(() => {
+    // Try expoConfig first (applies in prod and custom dev client)
+    const config = Constants.expoConfig;
+    // Fallback to the old manifest in Expo Go (cast to any to bypass typings)
+    const manifest = (Constants.manifest as any) ?? {};
+
+    const appName = config?.name ?? manifest.name ?? Constants.name;
+    const appVer =
+      config?.version ??
+      (manifest.version as string) ??
+      Constants.nativeAppVersion ??
+      "";
+    const sdkVer = config?.sdkVersion ?? manifest.sdkVersion ?? "";
+
+    const info = [
+      `OS: ${Platform.OS} ${Platform.Version}`,
+      `App: ${appName} v${appVer}`,
+      sdkVer ? `SDK: ${sdkVer}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    setDeviceInfo(info);
+  }, []);
+
+  const handleReportSubmit = async () => {
+    if (!user || !selectedIssue) return;
+    await createReportedIssue({
+      userId: user.id,
+      userEmail: user.email,
+      issueType: selectedIssue.id,
+      description: issueDesc,
+      screenshotUrls: screenshots,
+      deviceInfo,
+    });
     onReportSubmit();
   };
 
@@ -65,6 +103,9 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
         <ImageUploader images={screenshots} onChange={setScreenshots} />
       </View>
 
+      {/* (Optional) display collected device info */}
+      <Text style={styles.deviceInfo}>{deviceInfo}</Text>
+
       <Button
         text="Submit Report"
         onPress={handleReportSubmit}
@@ -79,6 +120,7 @@ export default ReportProblem;
 const styles = StyleSheet.create({
   container: {
     gap: 20,
+    padding: 16,
   },
   section: {
     gap: 8,
@@ -97,5 +139,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.default,
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+  },
+  deviceInfo: {
+    marginTop: 12,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default + "99",
   },
 });

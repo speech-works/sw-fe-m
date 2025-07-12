@@ -8,15 +8,29 @@ import { theme } from "../../../../Theme/tokens";
 import TextArea from "../../../../components/TextArea";
 import Button from "../../../../components/Button";
 import { useUserStore } from "../../../../stores/user";
+import { submitAppFeedback } from "../../../../api/settings/helpSupport";
 
-const Feedback = () => {
+interface FeedbackProps {
+  onFeedbackSubmit: () => void;
+}
+
+const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
   const { user } = useUserStore();
   const [features, setFeatures] = useState("");
   const [frustrations, setFrustrations] = useState("");
   const [otherThoughts, setOtherThoughts] = useState("");
   const [submitEmail, setSubmitEmail] = useState(false);
 
-  const handleFeedbackSubmit = () => {};
+  const handleFeedbackSubmit = async () => {
+    if (!user) return;
+    await submitAppFeedback({
+      userEmail: submitEmail ? user.email : undefined,
+      suggestedFeatures: features,
+      reportedFrustration: frustrations,
+      otherThoughts: otherThoughts,
+    });
+    onFeedbackSubmit();
+  };
   const handleAnonymousChange = () => {
     setSubmitEmail((old) => !old);
   };

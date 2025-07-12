@@ -106,7 +106,9 @@ const Support = () => {
           </View>
           <CustomScrollView>
             {openSettingType === "Contact Support" && <ContactSupport />}
-            {openSettingType === "Feedback" && <Feedback />}
+            {openSettingType === "Feedback" && (
+              <Feedback onFeedbackSubmit={closeModal} />
+            )}
             {openSettingType === "Report Problem" && (
               <ReportProblem onReportSubmit={closeModal} />
             )}
