@@ -82,14 +82,19 @@ export async function createPracticeActivity({
 
 interface UpdateActivityReq {
   id: string;
+  userId: string;
 }
 
 // Start a practice activity (update its startedAt timestamp)
 export async function startPracticeActivity({
   id,
+  userId,
 }: UpdateActivityReq): Promise<PracticeActivity> {
   try {
-    const response = await axiosClient.post(`/practice-activities/${id}/start`);
+    const response = await axiosClient.post(
+      `/practice-activities/${id}/start`,
+      { userId }
+    );
     return response.data;
   } catch (error) {
     console.error("Error starting practice activity:", error);
@@ -100,10 +105,12 @@ export async function startPracticeActivity({
 // Complete a practice activity (update its status to COMPLETED)
 export async function completePracticeActivity({
   id,
+  userId,
 }: UpdateActivityReq): Promise<PracticeActivity> {
   try {
     const response = await axiosClient.post(
-      `/practice-activities/${id}/complete`
+      `/practice-activities/${id}/complete`,
+      { userId }
     );
     return response.data;
   } catch (error) {

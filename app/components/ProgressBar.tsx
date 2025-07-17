@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { theme } from "../Theme/tokens";
-import { parse } from "@babel/core";
+
 import { parseTextStyle } from "../util/functions/parseStyles";
 
 interface ProgressBarProps {
@@ -10,6 +10,7 @@ interface ProgressBarProps {
   showStepIndicator?: boolean;
   showPercentage?: boolean;
   style?: object;
+  themeStyle?: "light" | "dark";
 }
 
 const ProgressBar = ({
@@ -18,6 +19,7 @@ const ProgressBar = ({
   showStepIndicator = true,
   showPercentage = true,
   style,
+  themeStyle = "dark",
 }: ProgressBarProps) => {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -57,6 +59,10 @@ const ProgressBar = ({
                 outputRange: ["0%", "100%"],
                 extrapolate: "clamp",
               }),
+              backgroundColor:
+                themeStyle === "dark"
+                  ? theme.colors.progressBar.bar
+                  : theme.colors.progressBar.barLight,
             },
           ]}
         />

@@ -45,7 +45,10 @@ const Briefing = () => {
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
       contentId: interview.id,
     });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity({
       ...startedActivity,
     });

@@ -233,7 +233,10 @@ const Meditation = () => {
       contentId: cognitivePracticeId,
     });
     setCurrentActivityId(newActivity.id);
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity({
       ...startedActivity,
     });
@@ -248,6 +251,7 @@ const Meditation = () => {
       return;
     const completedActivity = await completePracticeActivity({
       id: currentActivityId,
+      userId: practiceSession.user.id,
     });
     updateActivity(currentActivityId, {
       ...completedActivity,

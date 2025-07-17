@@ -13,6 +13,7 @@ import { useSessionStore } from "../../stores/session";
 import { useMoodCheckStore } from "../../stores/mood";
 import { getUserStats } from "../../api/stats";
 import { usePracticeStatsStore } from "../../stores/practiceStats";
+import ResourceStats from "./components/ResourceStats";
 
 const Academy = () => {
   const { user } = useUserStore();
@@ -142,6 +143,7 @@ const Academy = () => {
       <CustomScrollView>
         <View style={styles.innerContainer}>
           {!hasRecordedToday && <MoodCheck />}
+          <ResourceStats />
           <Progress />
           <DailyPractice onClickStart={startNewSession} />
           <Tiles />

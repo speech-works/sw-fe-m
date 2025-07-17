@@ -87,7 +87,10 @@ const QuotePractice = () => {
       contentType: PracticeActivityContentType.READING_PRACTICE,
       contentId: allQuotes[selectedIndex]?.id,
     });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity({
       ...startedActivity,
     });
@@ -98,6 +101,7 @@ const QuotePractice = () => {
     if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
       id: activityId,
+      userId: practiceSession.user.id,
     });
     updateActivity(activityId, {
       ...completedActivity,

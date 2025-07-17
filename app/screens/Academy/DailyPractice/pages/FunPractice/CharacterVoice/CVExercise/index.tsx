@@ -60,7 +60,10 @@ const CVExercise = () => {
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: id,
     });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity({
       ...startedActivity,
     });
@@ -71,6 +74,7 @@ const CVExercise = () => {
     if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
       id: activityId,
+      userId: practiceSession.user.id,
     });
     updateActivity(activityId, {
       ...completedActivity,

@@ -38,7 +38,7 @@ const ProgressDetail = () => {
           <DetailedWeeklySummary />
           <DPSummary />
           <Achievements />
-          <TutStats />
+          {/* <TutStats /> */}
           <MoodSummary />
         </CustomScrollView>
       </View>

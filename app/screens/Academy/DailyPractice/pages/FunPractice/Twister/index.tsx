@@ -64,7 +64,10 @@ const Twister = () => {
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: twisters[currentIndex].id,
     });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity({
       ...startedActivity,
       funPractice: twisters[currentIndex],
@@ -76,6 +79,7 @@ const Twister = () => {
     if (!practiceSession || !doesActivityExist(activityId)) return;
     const completedActivity = await completePracticeActivity({
       id: activityId,
+      userId: practiceSession.user.id,
     });
     updateActivity(activityId, {
       ...completedActivity,

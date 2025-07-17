@@ -58,6 +58,7 @@ export const theme = {
     progressBar: {
       base: colors.orange[200],
       bar: colors.orange[800],
+      barLight: colors.orange[400],
     },
 
     library: { ...colors },

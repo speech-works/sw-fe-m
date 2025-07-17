@@ -57,7 +57,10 @@ const Breathing = () => {
       contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
       contentId: cognitivePracticeId,
     });
-    const startedActivity = await startPracticeActivity({ id: newActivity.id });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
     addActivity(startedActivity);
     setCurrentActivityId(newActivity.id);
   };
@@ -66,6 +69,7 @@ const Breathing = () => {
     if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
     const completedActivity = await completePracticeActivity({
       id: currentActivityId,
+      userId: practiceSession.user.id,
     });
     updateActivity(currentActivityId, {
       ...completedActivity,
