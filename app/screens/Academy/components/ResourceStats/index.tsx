@@ -7,8 +7,10 @@ import {
 } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import ProgressBar from "../../../../components/ProgressBar";
+import { useUserStore } from "../../../../stores/user";
 
 const ResourceStats = () => {
+  const { user } = useUserStore();
   return (
     <View style={styles.wrapper}>
       <Text style={styles.titleText}>Your Stats</Text>
@@ -18,7 +20,7 @@ const ResourceStats = () => {
           <View style={styles.innerCardWrapper}>
             <View style={styles.cardInfo}>
               <Text style={styles.statsTitleText}>Free Tasks</Text>
-              <Text style={styles.valueText}>1</Text>
+              <Text style={styles.valueText}>{user?.freeTasksRemaining}</Text>
             </View>
           </View>
           <Text style={styles.descText}>Resets tomorrow</Text>
@@ -27,7 +29,7 @@ const ResourceStats = () => {
           <View style={styles.innerCardWrapper}>
             <View style={styles.cardInfo}>
               <Text style={styles.statsTitleText}>Stamina</Text>
-              <Text style={styles.valueText}>65</Text>
+              <Text style={styles.valueText}>{user?.currentStamina}</Text>
             </View>
             <Icon
               solid
@@ -50,7 +52,7 @@ const ResourceStats = () => {
         <View style={styles.innerCardWrapper}>
           <View style={styles.cardInfo}>
             <Text style={styles.statsTitleText}>XP Earned</Text>
-            <Text style={styles.valueText}>150</Text>
+            <Text style={styles.valueText}>{user?.totalXp}</Text>
           </View>
           <Icon
             solid
@@ -59,9 +61,9 @@ const ResourceStats = () => {
             color={theme.colors.actionPrimary.default}
           />
         </View>
-        <Text style={styles.descText}>Level 8 - Pro Speaker</Text>
+        <Text style={styles.descText}>Level {user?.level}</Text>
         <ProgressBar
-          currentStep={75}
+          currentStep={(user?.totalXp || 0) * 25}
           totalSteps={100}
           showStepIndicator={false}
           showPercentage={false}

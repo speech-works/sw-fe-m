@@ -5,9 +5,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import FontLoader from "./app/util/components/FontLoader";
 import { NavigationContainer } from "@react-navigation/native";
 import MainNavigator from "./app/navigators/MainNavigator";
-import { AuthContext, AuthProvider } from "./app/contexts/AuthContext";
-// import Toast from "react-native-toast-message";
-// import toastConfig from "./app/util/config/toastConfig";
+import { AuthProvider } from "./app/contexts/AuthContext";
+import Toast from "react-native-toast-message";
+import toastConfig from "./app/util/config/toastConfig";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
@@ -110,7 +110,7 @@ const App: React.FC = () => {
           <NavigationContainer>
             <MainNavigator />
           </NavigationContainer>
-          {/* <Toast config={toastConfig} /> */}
+          <Toast config={toastConfig} />
         </SafeAreaView>
       </SafeAreaProvider>
     </AuthProvider>

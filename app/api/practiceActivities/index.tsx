@@ -1,5 +1,7 @@
+import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
+import { triggerToast } from "../../util/functions/toast";
 
 interface GetActivitiesBySessionIdReq {
   sessionId: string;
@@ -98,6 +100,15 @@ export async function startPracticeActivity({
     return response.data;
   } catch (error) {
     console.error("Error starting practice activity:", error);
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Backend error details:", error.response.data);
+      triggerToast(
+        "error",
+        "Try Later",
+        error.response.data.error ||
+          "An error occurred while starting the activity."
+      );
+    }
     throw error;
   }
 }

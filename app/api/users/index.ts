@@ -1,19 +1,30 @@
-// api/users.ts
 import axiosClient from "../axiosClient";
+import { XPLog } from "../userXP/types";
 
 export interface User {
   id: string;
   email: string;
+  bio?: string;
+  name: string;
+  profilePictureUrl?: string;
+  totalXp?: number;
+  xpLogs?: XPLog[];
+  freeTasksRemaining?: number;
+  lastFreeReset?: Date;
+  isPaid?: boolean;
+  level?: number;
+  currentStamina?: number;
+  lastStaminaUpdate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastLogin?: Date;
+
+  // Extra fields that may not be present in all user objects
   password?: string;
   isVerified?: true;
   oauthId?: string;
   oauthProvider?: string;
-  name: string;
-  profilePictureUrl?: string;
   stripeCustomerId?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  lastLogin?: Date;
 }
 
 // Get user by ID
