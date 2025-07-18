@@ -39,7 +39,7 @@ const ResourceStats = () => {
             />
           </View>
           <ProgressBar
-            currentStep={75}
+            currentStep={user?.currentStamina || 0}
             totalSteps={100}
             showStepIndicator={false}
             showPercentage={false}
