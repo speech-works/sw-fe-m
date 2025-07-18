@@ -1,11 +1,6 @@
 import React, { useContext } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
-import {
-  Ionicons,
-  Feather,
-  MaterialIcons,
-  AntDesign,
-} from "@expo/vector-icons";
+
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { AuthContext } from "../../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";

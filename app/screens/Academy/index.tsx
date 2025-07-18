@@ -1,12 +1,12 @@
 import { StyleSheet, View } from "react-native";
-import React, { useCallback, useEffect } from "react"; // Removed useEffect for now, will use useFocusEffect
-import { useFocusEffect } from "@react-navigation/native"; // Ensure this is installed and setup
+import React, { useCallback, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import ScreenView from "../../components/ScreenView";
 import MoodCheck from "./components/MoodCheck";
 import Progress from "./components/Progress";
 import DailyPractice from "./components/DailyPractice";
 import Tiles from "./components/Tiles";
-import CustomScrollView from "../../components/CustomScrollView";
+import CustomScrollView from "../../components/CustomScrollView"; // Re-introducing CustomScrollView
 import { useUserStore } from "../../stores/user";
 import { createSession, getAllSessionsOfUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
@@ -14,21 +14,19 @@ import { useMoodCheckStore } from "../../stores/mood";
 import { getUserStats } from "../../api/stats";
 import { usePracticeStatsStore } from "../../stores/practiceStats";
 import ResourceStats from "./components/ResourceStats";
+import usePullToRefresh from "../../hooks/usePullToRefresh";
 
 const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setPracticeStats } = usePracticeStatsStore();
   const { hasRecordedToday, lastRecordedDate } = useMoodCheckStore();
+
   // This function contains the core synchronization logic.
   // It's memoized by useCallback. Its dependencies dictate when its *identity* changes.
   const syncSessionWithBackend = useCallback(async () => {
-    // We use 'user' and 'practiceSession' from the outer scope,
-    // which are captured by this useCallback.
-    // If 'user' or 'practiceSession' changes, this useCallback will provide a new function instance.
     if (!user) {
       if (practiceSession) {
-        // If there was a session locally but user is gone
         console.log("Sync: No user, clearing local session.");
         clearSession();
       }
@@ -44,7 +42,6 @@ const Academy = () => {
       const backendOngoingSession = activeSessions?.[0];
 
       if (backendOngoingSession) {
-        // Backend has an ongoing session. Update local if different or not marked ONGOING.
         if (
           practiceSession?.id !== backendOngoingSession.id ||
           practiceSession?.status !== "ONGOING"
@@ -58,7 +55,6 @@ const Academy = () => {
           console.log("Sync: Local ongoing session matches backend.");
         }
       } else {
-        // Backend has NO ongoing session. If local still thinks one is ongoing, clear it.
         if (practiceSession && practiceSession.status === "ONGOING") {
           console.log(
             "Sync: Backend reports no ongoing session. Clearing local ongoing session."
@@ -72,24 +68,31 @@ const Academy = () => {
       }
     } catch (error) {
       console.error("Failed to sync session with backend:", error);
-      // Consider how to handle errors: maybe clear session or set an error state.
     }
-  }, [user, practiceSession, setSession]); // Dependencies of the sync logic itself
+  }, [user, practiceSession, setSession, clearSession]);
+
+  // This function now contains the actual refresh logic for the screen
+  const handleScreenRefresh = useCallback(async () => {
+    console.log("Academy screen refresh triggered.");
+    // Re-call your core synchronization and data fetching functions
+    await syncSessionWithBackend(); // Ensure this runs during pull-to-refresh
+    if (user?.id) {
+      const practiceStats = await getUserStats(user.id);
+      console.log("practice stats after refresh-", { practiceStats });
+      setPracticeStats(practiceStats);
+    }
+  }, [syncSessionWithBackend, user?.id, setPracticeStats]); // Ensure dependencies are correct
+
+  const { refreshControl, refreshing } = usePullToRefresh(handleScreenRefresh);
 
   // useFocusEffect runs when the screen is focused, and also when its dependency array changes.
   useFocusEffect(
     useCallback(() => {
-      // This inner callback is for useFocusEffect.
-      // We call syncSessionWithBackend here.
-      // syncSessionWithBackend's identity changes if user, practiceSession, or setSession changes.
       console.log(
         "Academy screen focused or dependencies changed, triggering sync."
       );
       syncSessionWithBackend();
-
-      // No cleanup needed for this specific sync logic
-      // return () => { console.log("Academy screen blurred or dependencies changed for cleanup"); };
-    }, [syncSessionWithBackend]) // The dependency here is the memoized syncSessionWithBackend function.
+    }, [syncSessionWithBackend])
   );
 
   const startNewSession = async () => {
@@ -97,17 +100,6 @@ const Academy = () => {
       console.log("Cannot start session: User not available.");
       return;
     }
-    // // Check local state first. The sync logic should keep 'practiceSession' up-to-date.
-    // if (practiceSession && practiceSession.status === "ONGOING") {
-    //   console.log(
-    //     "Cannot start new session: A session is already ongoing locally."
-    //   );
-    //   // Optionally, you could force a sync here if you suspect local state might be stale despite useFocusEffect
-    //   // await syncSessionWithBackend();
-    //   // if (useSessionStore.getState().practiceSession?.status === "ONGOING") return;
-    //   return;
-    // }
-
     try {
       console.log("Attempting to create new session...");
       const newSessionData = await createSession({ userId: user.id });
@@ -136,14 +128,20 @@ const Academy = () => {
       setPracticeStats(practiceStats);
     };
     fetchUserStats();
-  }, [user]);
+  }, [user, setPracticeStats]); // Added setPracticeStats to dependencies
+
+  // Original useEffect that was being queried about
+  useEffect(() => {
+    console.log("Refreshing Academy screen useeffect:", { refreshing });
+  }, [refreshing]);
 
   return (
     <ScreenView style={styles.screenView}>
-      <CustomScrollView>
+      <CustomScrollView refreshControl={refreshControl}>
         <View style={styles.innerContainer}>
           {!hasRecordedToday && <MoodCheck />}
-          <ResourceStats />
+          <ResourceStats refreshing={refreshing} />
+          {/* ResourceStats will hide during refresh */}
           <Progress />
           <DailyPractice onClickStart={startNewSession} />
           <Tiles />

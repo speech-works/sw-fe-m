@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Button from "../../../../components/Button";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
@@ -15,12 +15,16 @@ import {
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { useSessionStore } from "../../../../stores/session";
 import { isSameDay, isValid } from "date-fns";
+import { getUserPreferences } from "../../../../api/settings/userPreference";
+import { getAllPracticeActivitiesBySessionId } from "../../../../api";
 
 interface DailyPracticeProps {
   onClickStart: () => void;
 }
 const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
+  const [targetMinutes, setTargetMinutes] = useState(15);
+  const [achievedMinutes, setAchievedMinutes] = useState(0);
   let isSessionFresh = false;
 
   if (practiceSession?.startedAt) {
@@ -68,6 +72,62 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
     navigation.navigate("DailyPracticeStack");
   };
 
+  useEffect(() => {
+    if (!practiceSession?.user) return;
+    getUserPreferences(practiceSession.user.id)
+      .then((preferences) => {
+        console.log("DailyPractice - User preferences fetched:", preferences);
+        setTargetMinutes(preferences?.dailyPracticeLimitMinutes || 15);
+      })
+      .catch((error) => {
+        console.error(
+          "DailyPractice - Error fetching user preferences:",
+          error
+        );
+        setTargetMinutes(15); // Fallback to default if there's an error
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!practiceSession) return;
+    getAllPracticeActivitiesBySessionId({ sessionId: practiceSession.id })
+      .then((activities) => {
+        console.log(
+          "DailyPractice - Activities fetched for session:",
+          activities
+        );
+        let totalAchievedMinutes = 0;
+        // Filter activities to only include those with status "COMPLETED"
+        const completedActivities = activities.filter(
+          (activity) => activity.status === "COMPLETED"
+        );
+
+        completedActivities.forEach((activity) => {
+          console.log("Activity:", {
+            id: activity.id,
+            startedAt: activity.startedAt,
+            completedAt: activity.completedAt,
+            status: activity.status, // Log status for verification
+          });
+          // Calculate duration if both startedAt and completedAt are valid Date objects
+          if (
+            activity.completedAt &&
+            isValid(activity.startedAt) &&
+            isValid(activity.completedAt)
+          ) {
+            const durationMs =
+              activity.completedAt.getTime() - activity.startedAt.getTime();
+            const durationMinutes = durationMs / (1000 * 60); // Convert milliseconds to minutes
+            totalAchievedMinutes += durationMinutes;
+          }
+        });
+        setAchievedMinutes(Math.round(totalAchievedMinutes)); // Round to nearest whole minute
+      })
+      .catch((error) => {
+        console.error("DailyPractice - Error fetching activities:", error);
+      });
+  }, [practiceSession]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.row, styles.gap16]}>
@@ -102,7 +162,9 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
               </View>
             </View>
           </View>
-          <Text style={styles.progressText}>3/12 min</Text>
+          <Text style={styles.progressText}>
+            {achievedMinutes}/{targetMinutes} min
+          </Text>
         </View>
       </View>
 
