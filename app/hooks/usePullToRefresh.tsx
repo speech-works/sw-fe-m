@@ -1,4 +1,3 @@
-// hooks/usePullToRefresh.ts
 import { useState, useCallback } from "react";
 import { RefreshControl } from "react-native";
 import { theme } from "../Theme/tokens"; // Assuming your theme is here

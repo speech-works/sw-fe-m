@@ -73,7 +73,6 @@ const Academy = () => {
 
   // This function now contains the actual refresh logic for the screen
   const handleScreenRefresh = useCallback(async () => {
-    console.log("Academy screen refresh triggered.");
     // Re-call your core synchronization and data fetching functions
     await syncSessionWithBackend(); // Ensure this runs during pull-to-refresh
     if (user?.id) {
@@ -143,7 +142,7 @@ const Academy = () => {
           <ResourceStats refreshing={refreshing} />
           {/* ResourceStats will hide during refresh */}
           <Progress />
-          <DailyPractice onClickStart={startNewSession} />
+          {!refreshing && <DailyPractice onClickStart={startNewSession} />}
           <Tiles />
         </View>
       </CustomScrollView>
