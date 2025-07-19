@@ -8,7 +8,7 @@ import {
   ViewStyle,
   StyleProp,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5"; // Or your preferred icon set
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { Audio, AVPlaybackStatus } from "expo-av";
 
 interface AudioPlaybackButtonProps {

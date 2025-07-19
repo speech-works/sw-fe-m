@@ -9,6 +9,12 @@ import { theme } from "../../../../Theme/tokens";
 import ProgressBar from "../../../../components/ProgressBar";
 import { useUserStore } from "../../../../stores/user";
 import { getMyUser } from "../../../../api/users";
+import {
+  getProgressToNextLevel,
+  getUnlockedLevelsFromXP,
+  LevelData,
+  LevelProgress,
+} from "../../../../util/functions/levels-xp";
 
 const MAX_STAMINA = 80;
 const STAMINA_RECHARGE_RATE_MINUTES = 18; // 1 stamina point every 18 minutes
@@ -63,6 +69,9 @@ const ResourceStats = ({ refreshing }: ResourceStatsProps) => {
     number | null
   >(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [userLevel, setUserLevel] = useState<number>(0);
+  const [userLevelData, setUserLevelData] = useState<LevelData | null>(null);
+  const [userProgress, setUserProgress] = useState<LevelProgress | null>(null);
 
   const fetchAndSetUser = useCallback(() => {
     getMyUser()
@@ -118,6 +127,22 @@ const ResourceStats = ({ refreshing }: ResourceStatsProps) => {
     return () => clearInterval(interval);
   }, [user?.currentStamina]);
 
+  useEffect(() => {
+    if (user && user.totalXp) {
+      const levelData = getUnlockedLevelsFromXP(user.totalXp);
+      const latestLevel = levelData[levelData.length - 1];
+      setUserLevel(latestLevel.level);
+      setUserLevelData(latestLevel.data);
+    }
+  }, [user?.totalXp]);
+
+  useEffect(() => {
+    if (user && user.totalXp) {
+      const progress = getProgressToNextLevel(user.totalXp);
+      setUserProgress(progress);
+    }
+  }, [user?.totalXp]);
+
   // Format the remaining minutes into "Hh Mm" string for display
   const formatRechargeTime = (minutes: number | null) => {
     if (minutes === null) {
@@ -131,9 +156,9 @@ const ResourceStats = ({ refreshing }: ResourceStatsProps) => {
     const remainingMinutes = minutes % 60;
 
     if (hours > 0) {
-      return `Recharges fully in ${hours}h ${remainingMinutes}m`;
+      return `Recharges in ${hours}h ${remainingMinutes}m`;
     } else {
-      return `Recharges fully in ${remainingMinutes}m`;
+      return `Recharges in ${remainingMinutes}m`;
     }
   };
 
@@ -208,17 +233,27 @@ const ResourceStats = ({ refreshing }: ResourceStatsProps) => {
             color={theme.colors.actionPrimary.default}
           />
         </View>
-        <Text style={styles.descText}>Level {user?.level}</Text>
-        <ProgressBar
-          currentStep={(user?.totalXp || 0) * 25}
-          totalSteps={100}
-          showStepIndicator={false}
-          showPercentage={false}
-          themeStyle="light"
-        />
-        <Text style={styles.descText}>
-          You are 75% towards your next level!
-        </Text>
+        <View style={[{ flexDirection: "row", alignItems: "center", gap: 8 }]}>
+          <Text style={styles.descText}>
+            Level {userLevel}: {userLevelData?.levelTitle}
+          </Text>
+          {userLevelData?.icon(16) || null}
+        </View>
+
+        {userProgress && (
+          <>
+            <ProgressBar
+              currentStep={userProgress.xpIntoLevel}
+              totalSteps={userProgress.xpForNextLevel}
+              showStepIndicator={false}
+              showPercentage={false}
+              themeStyle="light"
+            />
+            <Text style={styles.descText}>
+              You are {userProgress.progressPercent}% closer to your next level!
+            </Text>
+          </>
+        )}
       </View>
     </View>
   );

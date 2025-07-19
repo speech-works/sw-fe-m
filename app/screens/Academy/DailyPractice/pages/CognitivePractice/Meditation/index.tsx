@@ -33,6 +33,7 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { MoodType } from "../../../../../../api/moodCheck/types";
+import DonePractice from "../../../components/DonePractice";
 
 const Meditation = () => {
   const navigation = useNavigation();
@@ -47,6 +48,7 @@ const Meditation = () => {
 
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
+  const [isDone, setIsDone] = useState(false);
 
   // All fetched meditation scenarios
   const [meditationScenarios, setMeditationScenarios] = useState<
@@ -214,6 +216,7 @@ const Meditation = () => {
       setIsPlaying(false);
       setProgress(0); // Reset progress on completion
       await markActivityComplete();
+      setIsDone(true);
     } else {
       // If not playing, "Start Exercise" button was pressed
       await markActivityStart();
@@ -286,70 +289,81 @@ const Meditation = () => {
               />
               <Text style={styles.topNavigationText}>Guided Meditation</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                setMute((old) => !old);
-              }}
-            >
-              <Icon
-                name={mute ? "volume-mute" : "volume-up"}
-                size={16}
-                color={theme.colors.actionPrimary.default}
-              />
-            </TouchableOpacity>
+            {!isDone && (
+              <TouchableOpacity
+                onPress={() => {
+                  setMute((old) => !old);
+                }}
+              >
+                <Icon
+                  name={mute ? "volume-mute" : "volume-up"}
+                  size={16}
+                  color={theme.colors.actionPrimary.default}
+                />
+              </TouchableOpacity>
+            )}
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            {selectedIndex !== null && meditationScenarios[selectedIndex] && (
-              <MeditationCard
-                selectedMed={meditationScenarios[selectedIndex]}
-                onMedToggle={() => {
-                  setIsVisible((old) => !old);
-                }}
-              />
-            )}
-            <View style={styles.tipsContainer}>
-              <View style={styles.tipTitleContainer}>
-                <Icon
-                  solid
-                  name="lightbulb"
-                  size={16}
-                  color={theme.colors.text.title}
-                />
-                <Text style={styles.tipTitleText}>Practice Tips</Text>
-              </View>
-              <View style={styles.tipListContainer}>
+            {isDone ? (
+              <DonePractice />
+            ) : (
+              <>
                 {selectedIndex !== null &&
-                  meditationScenarios[
-                    selectedIndex
-                  ]?.guidedMeditationData?.tips.map((tip) => (
-                    <View style={styles.tipCard} key={tip}>
-                      <Icon
-                        solid
-                        name="check-circle"
-                        size={16}
-                        color={theme.colors.library.orange[400]}
-                      />
-                      <Text style={styles.tipText}>{tip}</Text>
-                    </View>
-                  ))}
-              </View>
-            </View>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressTitle}>
-                <Text style={styles.progressTitleText}>Session Progress</Text>
-                <Text style={styles.progressDescText}>{progressText}</Text>
-              </View>
-              <ProgressBar
-                currentStep={progress}
-                totalSteps={TOTAL_SESSION_SECONDS}
-                showStepIndicator={false}
-                showPercentage={false}
-              />
-            </View>
-            <Button
-              text={isPlaying ? "Complete Exercise" : "Start Exercise"}
-              onPress={handleStartCompleteExercise}
-            />
+                  meditationScenarios[selectedIndex] && (
+                    <MeditationCard
+                      selectedMed={meditationScenarios[selectedIndex]}
+                      onMedToggle={() => {
+                        setIsVisible((old) => !old);
+                      }}
+                    />
+                  )}
+                <View style={styles.tipsContainer}>
+                  <View style={styles.tipTitleContainer}>
+                    <Icon
+                      solid
+                      name="lightbulb"
+                      size={16}
+                      color={theme.colors.text.title}
+                    />
+                    <Text style={styles.tipTitleText}>Practice Tips</Text>
+                  </View>
+                  <View style={styles.tipListContainer}>
+                    {selectedIndex !== null &&
+                      meditationScenarios[
+                        selectedIndex
+                      ]?.guidedMeditationData?.tips.map((tip) => (
+                        <View style={styles.tipCard} key={tip}>
+                          <Icon
+                            solid
+                            name="check-circle"
+                            size={16}
+                            color={theme.colors.library.orange[400]}
+                          />
+                          <Text style={styles.tipText}>{tip}</Text>
+                        </View>
+                      ))}
+                  </View>
+                </View>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressTitle}>
+                    <Text style={styles.progressTitleText}>
+                      Session Progress
+                    </Text>
+                    <Text style={styles.progressDescText}>{progressText}</Text>
+                  </View>
+                  <ProgressBar
+                    currentStep={progress}
+                    totalSteps={TOTAL_SESSION_SECONDS}
+                    showStepIndicator={false}
+                    showPercentage={false}
+                  />
+                </View>
+                <Button
+                  text={isPlaying ? "Complete Exercise" : "Start Exercise"}
+                  onPress={handleStartCompleteExercise}
+                />
+              </>
+            )}
           </CustomScrollView>
         </View>
       </ScreenView>
