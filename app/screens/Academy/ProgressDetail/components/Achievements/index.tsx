@@ -1,38 +1,62 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import ProgressBar from "../../../../../components/ProgressBar";
+import { useUserStore } from "../../../../../stores/user";
+import {
+  getProgressToNextLevel,
+  getUnlockedLevelsFromXP,
+  LevelData,
+  LevelProgress,
+} from "../../../../../util/functions/levels-xp";
+import { set } from "date-fns";
 
 const Achievements = () => {
-  // dummy XP numbers
-  const currentXp = 720;
-  const xpToNextLevel = 1000;
+  const { user } = useUserStore();
+  const [unlockedLevels, setUnlockedLevels] = useState<
+    { level: number; data: LevelData }[]
+  >([]);
+
+  const [levelProgress, setLevelProgress] = useState<LevelProgress | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (!user?.totalXp) return;
+    const levelsUnlocked = getUnlockedLevelsFromXP(user.totalXp);
+    const progress = getProgressToNextLevel(user.totalXp);
+    setUnlockedLevels(levelsUnlocked);
+    setLevelProgress(progress);
+  }, [user?.totalXp]);
 
   return (
     <View style={styles.card}>
       <Text style={styles.titleText}>Achievements</Text>
-      {/* Dummy progress bar: 720/1000 XP */}
+
       <ProgressBar
-        currentStep={currentXp}
-        totalSteps={xpToNextLevel}
+        currentStep={levelProgress?.xpIntoLevel || 0}
+        totalSteps={levelProgress?.xpForNextLevel || 100}
         showPercentage={true}
         showStepIndicator={false}
         style={{ marginTop: 8 }}
       />
-      <View style={styles.levelContainer}>
-        <View style={styles.levelBox}>
-          <Text style={styles.levelText}>12</Text>
-        </View>
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Level 12: Confident Speaker</Text>
-          <Text style={styles.infoDesc}>{`${
-            xpToNextLevel - currentXp
-          } XP to Level 13`}</Text>
-        </View>
+
+      <View style={styles.allLevelsContainer}>
+        {unlockedLevels.map(({ level, data }) => (
+          <View key={level} style={styles.levelContainer}>
+            <View style={styles.levelBox}>{data.icon(32)}</View>
+            <View style={styles.infoBox}>
+              <Text style={styles.infoTitle}>
+                Level {level}: {data.levelTitle}
+              </Text>
+              <Text style={styles.infoDesc}>{data.levelDescription}</Text>
+            </View>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -53,6 +77,10 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
     marginBottom: 8,
     alignSelf: "flex-start",
+  },
+  allLevelsContainer: {
+    flexDirection: "column-reverse",
+    gap: 8,
   },
   levelContainer: {
     marginTop: 20,
@@ -81,5 +109,8 @@ const styles = StyleSheet.create({
   infoDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
+    flexShrink: 1,
+    flexWrap: "wrap",
+    maxWidth: "90%",
   },
 });

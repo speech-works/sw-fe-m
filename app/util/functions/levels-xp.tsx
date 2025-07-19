@@ -8,6 +8,14 @@ export type LevelData = {
   icon: (size: number) => ReactElement;
 };
 
+export type LevelProgress = {
+  currentLevel: number;
+  nextLevel: number;
+  progressPercent: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
+};
+
 export const xpLevelTable: Map<number, LevelData> = new Map([
   [
     1,
@@ -176,14 +184,6 @@ export const getUnlockedLevelsFromXP = (
   }
 
   return unlocked;
-};
-
-export type LevelProgress = {
-  currentLevel: number;
-  nextLevel: number;
-  progressPercent: number;
-  xpIntoLevel: number;
-  xpForNextLevel: number;
 };
 
 export const getProgressToNextLevel = (xp: number): LevelProgress => {

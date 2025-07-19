@@ -37,9 +37,10 @@ const ProgressDetail = () => {
         <CustomScrollView contentContainerStyle={styles.scrollView}>
           <DetailedWeeklySummary />
           <DPSummary />
+
+          <MoodSummary />
           <Achievements />
           {/* <TutStats /> */}
-          <MoodSummary />
         </CustomScrollView>
       </View>
     </ScreenView>
