@@ -7,6 +7,23 @@ export interface User {
   bio?: string;
   name: string;
   profilePictureUrl?: string;
+  dob?: Date;
+  phoneNumber?: string;
+  links?: {
+    social: {
+      twitter?: string;
+      github?: string;
+      linkedin?: string;
+      website?: string;
+      facebook?: string;
+      instagram?: string;
+      whatsapp?: string;
+      youtube?: string;
+      tiktok?: string;
+      reddit?: string;
+      other?: string;
+    };
+  };
   totalXp?: number;
   xpLogs?: XPLog[];
   freeTasksRemaining?: number;

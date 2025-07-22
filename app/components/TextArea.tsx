@@ -11,7 +11,7 @@ import { theme } from "../Theme/tokens";
 
 interface TextAreaProps extends TextInputProps {
   containerStyle?: ViewStyle;
-  inputStyle?: TextStyle;
+  inputStyle?: TextStyle | TextStyle[];
   rightIcon?: React.ReactElement | null;
   leftIcon?: React.ReactElement | null;
 }
@@ -34,12 +34,23 @@ const TextArea = forwardRef<TextInput, TextAreaProps>(
     },
     ref
   ) => {
+    // Ensure inputStyle is always treated as an array
+    const normalizedInputStyle = Array.isArray(inputStyle)
+      ? inputStyle
+      : inputStyle
+      ? [inputStyle]
+      : [];
+
     return (
       <View style={[styles.wrapper, containerStyle]}>
         {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
         <TextInput
           ref={ref}
-          style={[styles.input, { height: 24 * numberOfLines }, inputStyle]}
+          style={[
+            styles.input,
+            { height: 24 * numberOfLines },
+            ...normalizedInputStyle,
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

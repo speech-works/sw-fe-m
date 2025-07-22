@@ -13,7 +13,6 @@ import {
   LevelData,
   LevelProgress,
 } from "../../../../../util/functions/levels-xp";
-import { set } from "date-fns";
 
 const Achievements = () => {
   const { user } = useUserStore();
@@ -35,15 +34,19 @@ const Achievements = () => {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.titleText}>Achievements</Text>
-
-      <ProgressBar
-        currentStep={levelProgress?.xpIntoLevel || 0}
-        totalSteps={levelProgress?.xpForNextLevel || 100}
-        showPercentage={true}
-        showStepIndicator={false}
-        style={{ marginTop: 8 }}
-      />
+      <View style={styles.titleContainer}>
+        <Text style={styles.titleText}>Achievements</Text>
+        <View style={styles.flexRow}>
+          <ProgressBar
+            currentStep={levelProgress?.xpIntoLevel || 0}
+            totalSteps={levelProgress?.xpForNextLevel || 100}
+            showPercentage={true}
+            showStepIndicator={false}
+            style={{ marginTop: 8, flexGrow: 1 }}
+          />
+          <Text style={styles.descText}>{user?.totalXp} XP</Text>
+        </View>
+      </View>
 
       <View style={styles.allLevelsContainer}>
         {unlockedLevels.map(({ level, data }) => (
@@ -72,11 +75,23 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.light,
     ...parseShadowStyle(theme.shadow.elevation1),
   },
+  flexRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 12,
+  },
+  titleContainer: {
+    gap: 4,
+  },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    marginBottom: 8,
     alignSelf: "flex-start",
+  },
+  descText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "400",
   },
   allLevelsContainer: {
     flexDirection: "column-reverse",
