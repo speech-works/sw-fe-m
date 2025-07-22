@@ -69,39 +69,46 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
     <CustomScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Edit Profile</Text>
 
-      <Text style={styles.label}>Name</Text>
-      <TextArea
-        value={name}
-        onChangeText={setName}
-        placeholder="Enter your name"
-        numberOfLines={1}
-        multiline
-        inputStyle={styles.input}
-        containerStyle={styles.textAreaContainer}
-      />
-
-      <Text style={styles.label}>Bio</Text>
-      <TextArea
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Tell us something about you"
-        numberOfLines={4}
-        multiline
-        inputStyle={[styles.input, styles.bioInput]}
-        containerStyle={{ ...styles.textAreaContainer, ...styles.bioContainer }}
-      />
-
-      <Text style={styles.label}>Phone Number</Text>
-      <TextArea
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        placeholder="+91-XXXXXX"
-        numberOfLines={1}
-        multiline
-        inputStyle={styles.input}
-        containerStyle={styles.textAreaContainer}
-        keyboardType="phone-pad"
-      />
+      <View style={styles.section}>
+        <Text style={styles.label}>Name</Text>
+        <TextArea
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter your name"
+          numberOfLines={1}
+          multiline
+          inputStyle={styles.input}
+          containerStyle={styles.textAreaContainer}
+        />
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.label}>Bio</Text>
+        <TextArea
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Tell us something about you"
+          numberOfLines={4}
+          multiline
+          inputStyle={[styles.input, styles.bioInput]}
+          containerStyle={{
+            ...styles.textAreaContainer,
+            ...styles.bioContainer,
+          }}
+        />
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.label}>Phone Number</Text>
+        <TextArea
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
+          placeholder="+91-XXXXXX"
+          numberOfLines={1}
+          multiline
+          inputStyle={styles.input}
+          containerStyle={styles.textAreaContainer}
+          keyboardType="phone-pad"
+        />
+      </View>
 
       <Text style={styles.sectionHeader}>Social Links</Text>
 
@@ -146,11 +153,12 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     textAlign: "center",
   },
+  section: {
+    gap: 8,
+  },
   label: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginBottom: 4,
-    marginLeft: 4,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
   },
   sectionHeader: {
     ...parseTextStyle(theme.typography.Heading3),
