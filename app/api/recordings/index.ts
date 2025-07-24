@@ -1,5 +1,6 @@
 import axiosClient from "../axiosClient";
 import { generateUploadUrl } from "../file-handling";
+import { transcribeAudio } from "./processing/stt";
 import {
   Recording,
   CreateRecordingPayload,
@@ -80,6 +81,10 @@ export async function createRecording(
     }
 
     const audioUrlKey = fileName;
+
+    // console.log("Transcription start:", audioUrlKey);
+    // const script = await transcribeAudio(audioUrlKey);
+    // console.log("Transcription result:", script);
 
     const requestBody: CreateRecordingPayload = {
       userId,

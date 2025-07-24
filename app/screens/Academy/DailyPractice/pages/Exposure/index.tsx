@@ -61,6 +61,28 @@ const Exposure = () => {
       disabled: false,
     },
     {
+      title: "AI Phone Calls",
+      description: "Speak freely, without hesitation",
+      onPress: () => {
+        navigation.navigate("PhoneCallsStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.green[100] },
+          ]}
+        >
+          <Icon
+            name="phone-alt"
+            size={20}
+            color={theme.colors.library.green[400]}
+          />
+        </View>
+      ),
+      disabled: false,
+    },
+    {
       title: "Random Questions",
       description: "coming soon",
       onPress: () => {},
@@ -73,26 +95,6 @@ const Exposure = () => {
         >
           <Icon
             name="question"
-            size={20}
-            color={theme.colors.library.gray[100]}
-          />
-        </View>
-      ),
-      disabled: true,
-    },
-    {
-      title: "AI Phone Calls",
-      description: "coming soon",
-      onPress: () => {},
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.gray[200] },
-          ]}
-        >
-          <Icon
-            name="phone-alt"
             size={20}
             color={theme.colors.library.gray[100]}
           />

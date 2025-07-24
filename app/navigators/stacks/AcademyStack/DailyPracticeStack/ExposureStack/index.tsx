@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { EDPStackParamList } from "./types";
 import Exposure from "../../../../../screens/Academy/DailyPractice/pages/Exposure";
 import InterviewEDPStackNavigator from "./InterviewSimulationStack";
+import PhoneCallEDPStackNavigator from "./PhoneCallStack";
 
 const Stack = createNativeStackNavigator<EDPStackParamList>();
 
@@ -14,6 +15,10 @@ export default function EDPStackNavigator() {
       <Stack.Screen
         name="InterviewSimulationStack"
         component={InterviewEDPStackNavigator}
+      />
+      <Stack.Screen
+        name="PhoneCallsStack"
+        component={PhoneCallEDPStackNavigator}
       />
     </Stack.Navigator>
   );

@@ -136,7 +136,7 @@ export interface CognitivePractice {
 export enum ExposurePracticeType {
   // RANDOM_QUESTIONS = "RANDOM_QUESTIONS", // Uppercase values
   INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
-  // PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
+  PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
   // Add other exposure types as needed
