@@ -17,8 +17,8 @@ import {
   DifficultyLevel,
   ExposurePracticeType,
 } from "../../../../../../api/dailyPractice/types";
-import CallingWidget from "../../../../../../components/CallingWidget";
 import { useUserStore } from "../../../../../../stores/user";
+import CallingWidget from "../../../../../../components/CallingWidget";
 
 const PhoneCall = () => {
   const navigation =
@@ -57,7 +57,10 @@ const PhoneCall = () => {
         {/* Move CallingWidget outside CustomScrollView if it should always be visible at the bottom */}
         {user && (
           <View style={styles.footerView}>
-            <CallingWidget userId={user.id} websocketUrl={""} />
+            <CallingWidget
+              userId={user.id}
+              websocketUrl={"ws://localhost:3000"}
+            />
           </View>
         )}
       </View>

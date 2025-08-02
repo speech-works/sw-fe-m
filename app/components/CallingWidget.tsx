@@ -41,7 +41,12 @@ const CallingWidget: React.FC<CallingWidgetProps> = ({
           <Text style={styles.timerText}>{formatTime(callDuration)}</Text>
         </View>
       )}
-
+      {/* <TouchableOpacity
+        onPress={debugSaveAudioChunk}
+        style={{ padding: 10, backgroundColor: "blue", margin: 20 }}
+      >
+        <Text style={{ color: "white" }}>Save Debug Audio</Text>
+      </TouchableOpacity> */}
       <TouchableOpacity
         style={[styles.circle, !isCallActive && styles.disabledCircle]}
         onPress={toggleUserMute}
@@ -55,7 +60,6 @@ const CallingWidget: React.FC<CallingWidgetProps> = ({
           }
         />
       </TouchableOpacity>
-
       <TouchableOpacity
         style={[
           styles.circle,
@@ -72,7 +76,6 @@ const CallingWidget: React.FC<CallingWidgetProps> = ({
           color="#fff"
         />
       </TouchableOpacity>
-
       <TouchableOpacity
         style={[styles.circle, !isCallActive && styles.disabledCircle]}
         onPress={toggleAgentMute}

@@ -72,7 +72,7 @@
       "expo-notifications"
     ],
     "extra": {
-      "API_BASE_URL": "http://192.168.1.49:3000",
+      "API_BASE_URL": "http://192.168.1.35:3000",
       "eas": {
         "projectId": "da01d434-2a75-41bb-b7cc-19fd2f720aa5"
       }
