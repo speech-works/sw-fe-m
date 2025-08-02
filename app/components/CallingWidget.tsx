@@ -2,7 +2,10 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../Theme/tokens";
-import { parseShadowStyle } from "../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../util/functions/parseStyles";
 import { useCallSession } from "../hooks/useCallSession";
 
 interface CallingWidgetProps {
@@ -47,6 +50,13 @@ const CallingWidget: React.FC<CallingWidgetProps> = ({
       >
         <Text style={{ color: "white" }}>Save Debug Audio</Text>
       </TouchableOpacity> */}
+      <Text
+        style={{
+          ...parseTextStyle(theme.typography.Heading3),
+        }}
+      >
+        {currentTurn}
+      </Text>
       <TouchableOpacity
         style={[styles.circle, !isCallActive && styles.disabledCircle]}
         onPress={toggleUserMute}

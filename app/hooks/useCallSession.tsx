@@ -20,7 +20,7 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   const [isUserMuted, setIsUserMuted] = useState(false);
   const [isAgentMuted, setIsAgentMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [currentTurn, setCurrentTurn] = useState<Turn>("agent");
+  const [currentTurn, setCurrentTurn] = useState<Turn>("user");
   const playbackQueue = useRef<string[]>([]);
   const soundRef = useRef<Audio.Sound | null>(null);
 
