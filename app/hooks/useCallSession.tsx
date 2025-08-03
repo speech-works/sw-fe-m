@@ -12,6 +12,8 @@ interface UseCallSessionProps {
  * Hook to manage a live AI calling session: captures audio, streams to server,
  * receives TTS audio back, and handles UI state.
  */
+// ...imports and types remain unchanged
+
 export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   const ws = useRef<WebSocket | null>(null);
   const recording = useRef<Audio.Recording | null>(null);
@@ -22,8 +24,8 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   const [currentTurn, setCurrentTurn] = useState<Turn>("user");
   const playbackQueue = useRef<string[]>([]);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const isPlayingRef = useRef(false);
 
-  // Recording options for raw PCM
   const recordingOptions = {
     android: {
       extension: ".wav",
@@ -127,24 +129,40 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   }, [isCallActive]);
 
   const playNextChunk = async () => {
-    if (soundRef.current) {
-      await soundRef.current.unloadAsync();
-      soundRef.current = null;
-    }
+    if (isPlayingRef.current || isAgentMuted) return;
     const uri = playbackQueue.current.shift();
-    if (!uri) return;
-    const { sound } = await Audio.Sound.createAsync(
-      { uri },
-      { shouldPlay: true }
-    );
-    soundRef.current = sound;
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) playNextChunk();
-    });
+    if (!uri) {
+      console.log("No more audio in queue");
+      return;
+    }
+
+    try {
+      console.log("Playing audio chunk:", uri.slice(0, 60));
+      isPlayingRef.current = true;
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          console.log("Audio chunk finished");
+          isPlayingRef.current = false;
+          playNextChunk(); // recursive call to drain queue
+        }
+      });
+
+      await sound.playAsync();
+    } catch (err) {
+      console.error("Failed to play audio chunk:", err);
+      isPlayingRef.current = false;
+    }
   };
 
   const endCall = useCallback(async () => {
     if (!isCallActive) return;
+    console.log("Ending call");
     stopRecording.current = true;
     if (recording.current)
       await recording.current.stopAndUnloadAsync().catch(() => {});
@@ -155,6 +173,7 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
     playbackQueue.current = [];
     if (soundRef.current) await soundRef.current.unloadAsync().catch(() => {});
     soundRef.current = null;
+    isPlayingRef.current = false;
     setCallDuration(0);
     setCurrentTurn("agent");
   }, [isCallActive]);
@@ -181,8 +200,10 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
             const pcm = getWavAudioData(buf);
             ws.current?.send(pcm);
             recording.current = new Audio.Recording();
+            console.log("Sent recorded chunk");
           }
-        } catch {
+        } catch (err) {
+          console.error("Recording error:", err);
           stopRecording.current = true;
           ws.current?.close();
         }
@@ -194,8 +215,11 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
 
   const startCall = useCallback(async () => {
     if (isCallActive) return;
+    console.log("Starting call...");
     ws.current = new WebSocket(websocketUrl);
+
     ws.current.onopen = async () => {
+      console.log("WebSocket opened");
       ws.current?.send(JSON.stringify({ type: "join", userId }));
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
@@ -211,23 +235,36 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
       try {
         const msg = JSON.parse(typeof data === "string" ? data : "");
         if (msg.type === "turn") {
+          console.log("Turn update:", msg.turn);
           setCurrentTurn(msg.turn);
           return;
         }
+
         if (msg.type === "audio" && msg.data) {
+          console.log("Audio message received");
           const bin = atob(msg.data);
           const arr = new Uint8Array(bin.length);
           for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
           const wavBuf = createWavFile(arr.buffer, 16000, 1, 16);
           const b64 = arrayBufferToBase64(wavBuf);
-          playbackQueue.current.push(`data:audio/wav;base64,${b64}`);
-          if (!isAgentMuted && !soundRef.current) await playNextChunk();
+          const uri = `data:audio/wav;base64,${b64}`;
+          playbackQueue.current.push(uri);
+          console.log(
+            "Audio chunk queued. Queue size:",
+            playbackQueue.current.length
+          );
+          playNextChunk(); // attempt to play immediately
         }
-      } catch {}
+      } catch (err) {
+        console.error("WebSocket message handling error:", err);
+      }
     };
 
-    ws.current.onerror = (e) => console.error("WS Error", e);
-    ws.current.onclose = () => endCall();
+    ws.current.onerror = (e) => console.error("WebSocket error:", e);
+    ws.current.onclose = () => {
+      console.log("WebSocket closed");
+      endCall();
+    };
   }, [isCallActive, isAgentMuted, userId, websocketUrl, endCall]);
 
   const toggleUserMute = () => setIsUserMuted((m) => !m);
