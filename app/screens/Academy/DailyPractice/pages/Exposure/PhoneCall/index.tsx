@@ -59,7 +59,7 @@ const PhoneCall = () => {
           <View style={styles.footerView}>
             <CallingWidget
               userId={user.id}
-              websocketUrl={"ws://localhost:3000"}
+              websocketUrl={"ws://192.168.1.35:3000"}
             />
           </View>
         )}

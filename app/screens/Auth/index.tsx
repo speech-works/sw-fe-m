@@ -36,7 +36,10 @@ const LoginScreen = () => {
 
       // const redirectUri = `https://auth.expo.io/@${owner}/${slug}`;
       const redirectUri = AuthSession.makeRedirectUri({
-        preferLocalhost: true,
+        // preferLocalhost: true,
+        // scheme: "speechworks",
+        scheme: "speechworks",
+        path: "auth-callback",
       });
       console.log("→ Using redirectUri:", redirectUri);
 
