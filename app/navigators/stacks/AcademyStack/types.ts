@@ -9,6 +9,7 @@ export type AcademyStackParamList = {
   ChallengesStack: undefined;
   ProgressDetailStack: undefined;
   Progress: undefined;
+  PaymentStack: undefined;
   MoodCheckStack: { screen: "FollowUpStack"; params: { mood: MoodType } };
 };
 export type AcademyStackNavigationProp<T extends keyof AcademyStackParamList> =

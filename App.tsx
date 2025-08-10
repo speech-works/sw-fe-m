@@ -17,6 +17,7 @@ import {
 } from "./app/util/functions/notifications";
 import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
+import { StripeProvider } from "@stripe/stripe-react-native";
 
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
@@ -108,7 +109,9 @@ const App: React.FC = () => {
         >
           <FontLoader />
           <NavigationContainer>
-            <MainNavigator />
+            <StripeProvider publishableKey={process.env.STRIPE_PUBLISHABLE_KEY}>
+              <MainNavigator />
+            </StripeProvider>
           </NavigationContainer>
           <Toast config={toastConfig} />
         </SafeAreaView>

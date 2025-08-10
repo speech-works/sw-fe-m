@@ -22,6 +22,7 @@ import {
 } from "../../util/functions/levels-xp";
 import BottomSheetModal from "../../components/BottomSheetModal";
 import FullProfile from "./components/FullProfile";
+import BuyPro from "./components/BuyPro";
 
 const Settings = () => {
   const navigation =
@@ -158,9 +159,15 @@ const Settings = () => {
               onPress={onViewProfile}
             >
               <Text style={styles.viewProfileText}>View Full Profile</Text>
-              <Icon name="chevron-right" size={12} color="#3182CE" />
+              <Icon
+                name="chevron-right"
+                size={12}
+                color={theme.colors.text.title}
+              />
             </TouchableOpacity>
           </View>
+
+          <BuyPro />
 
           {/* Divider */}
           <View style={styles.divider} />
@@ -254,13 +261,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 16,
     borderRadius: 8,
-    borderColor: "#3182CE",
+    borderColor: theme.colors.text.title,
     borderWidth: 1,
     gap: 12,
   },
   viewProfileText: {
     fontSize: 14,
-    color: "#3182CE",
+    color: theme.colors.text.title,
     fontWeight: "600",
     marginRight: 4,
     textAlign: "center",

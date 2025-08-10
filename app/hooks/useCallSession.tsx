@@ -12,8 +12,6 @@ interface UseCallSessionProps {
  * Hook to manage a live AI calling session: captures audio, streams to server,
  * receives TTS audio back, and handles UI state.
  */
-// ...imports and types remain unchanged
-
 export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   const ws = useRef<WebSocket | null>(null);
   const recording = useRef<Audio.Recording | null>(null);
@@ -25,12 +23,14 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
   const playbackQueue = useRef<string[]>([]);
   const soundRef = useRef<Audio.Sound | null>(null);
   const isPlayingRef = useRef(false);
+  const stopRecording = useRef(false);
 
+  // Updated recording options for simplicity
   const recordingOptions = {
     android: {
-      extension: ".wav",
-      outputFormat: Audio.AndroidOutputFormat.DEFAULT,
-      audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+      extension: ".m4a", // Record as M4A
+      outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+      audioEncoder: Audio.AndroidAudioEncoder.AAC,
       sampleRate: 16000,
       numberOfChannels: 1,
       bitRate: 256000,
@@ -149,7 +149,7 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
         if (status.isLoaded && status.didJustFinish) {
           console.log("Audio chunk finished");
           isPlayingRef.current = false;
-          playNextChunk(); // recursive call to drain queue
+          playNextChunk();
         }
       });
 
@@ -178,8 +178,6 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
     setCurrentTurn("agent");
   }, [isCallActive]);
 
-  const stopRecording = useRef(false);
-
   const recordingLoop = async () => {
     stopRecording.current = false;
     const chunkMs = 100;
@@ -193,17 +191,21 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
           await recording.current?.startAsync();
           await delay(chunkMs);
           await recording.current?.stopAndUnloadAsync();
+
           const uri = recording.current?.getURI();
           if (uri) {
+            console.log("LOG: Recording URI:", uri);
             const resp = await fetch(uri);
             const buf = await resp.arrayBuffer();
-            const pcm = getWavAudioData(buf);
-            ws.current?.send(pcm);
+
+            // Send raw audio buffer directly to the backend
+            ws.current?.send(buf);
+
             recording.current = new Audio.Recording();
-            console.log("Sent recorded chunk");
+            console.log("LOG: Sent recorded chunk.");
           }
         } catch (err) {
-          console.error("Recording error:", err);
+          console.error("FATAL ERROR: Recording error:", err);
           stopRecording.current = true;
           ws.current?.close();
         }
@@ -253,7 +255,7 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
             "Audio chunk queued. Queue size:",
             playbackQueue.current.length
           );
-          playNextChunk(); // attempt to play immediately
+          playNextChunk();
         }
       } catch (err) {
         console.error("WebSocket message handling error:", err);

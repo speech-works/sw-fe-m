@@ -54,20 +54,38 @@ const CVExercise = () => {
   };
 
   const markActivityStart = async () => {
-    if (!practiceSession) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
-      contentType: PracticeActivityContentType.FUN_PRACTICE,
-      contentId: id,
-    });
-    const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
-      userId: practiceSession.user.id,
-    });
-    addActivity({
-      ...startedActivity,
-    });
-    setCurrentActivityId(newActivity.id);
+    console.log("markActivityStart 1", { practiceSession });
+
+    if (!practiceSession || !practiceSession.user) {
+      console.error("❌ practiceSession or practiceSession.user is undefined.");
+      return;
+    }
+
+    try {
+      const newActivity = await createPracticeActivity({
+        sessionId: practiceSession.id,
+        contentType: PracticeActivityContentType.FUN_PRACTICE,
+        contentId: id,
+      });
+      console.log("markActivityStart 2", { newActivity });
+
+      // Add a log here to confirm code execution
+      console.log("Attempting to start practice activity...");
+      const startedActivity = await startPracticeActivity({
+        id: newActivity.id,
+        userId: practiceSession.user.id,
+      });
+      console.log("markActivityStart 3", { startedActivity });
+
+      addActivity({
+        ...startedActivity,
+      });
+      setCurrentActivityId(newActivity.id);
+    } catch (error) {
+      console.error("❌ Failed to start activity:", error);
+      // You can also trigger a user-facing toast here
+      // triggerToast("error", "Failed to start", "Please try again.");
+    }
   };
 
   const markActivityComplete = async (activityId: string) => {

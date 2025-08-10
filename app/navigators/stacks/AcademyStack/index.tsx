@@ -7,6 +7,7 @@ import LibStackNavigator from "./LibraryStack";
 import ChalStackNavigator from "./ChallengesStack";
 import MoodCheckStackNavigator from "./MoodCheckStack";
 import PDStackNavigator from "./ProgressDetailStack";
+import PaymentStackNavigator from "../PaymentStack";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 
@@ -19,6 +20,7 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="ChallengesStack" component={ChalStackNavigator} />
       <Stack.Screen name="ProgressDetailStack" component={PDStackNavigator} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
+      <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
     </Stack.Navigator>
   );
 }

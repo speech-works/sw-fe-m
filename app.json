@@ -69,7 +69,13 @@
       ],
       "expo-font",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.speechworks"
+        }
+      ]
     ],
     "extra": {
       "API_BASE_URL": "http://192.168.1.35:3000",

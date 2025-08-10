@@ -92,6 +92,7 @@ export async function startPracticeActivity({
   id,
   userId,
 }: UpdateActivityReq): Promise<PracticeActivity> {
+  console.log("in startPracticeActivity", { id, userId });
   try {
     const response = await axiosClient.post(
       `/practice-activities/${id}/start`,

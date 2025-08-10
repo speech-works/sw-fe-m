@@ -16,6 +16,8 @@ import { usePracticeStatsStore } from "../../stores/practiceStats";
 import ResourceStats from "./components/ResourceStats";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
 
+import BuyPro from "../Settings/components/BuyPro";
+
 const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
@@ -143,7 +145,9 @@ const Academy = () => {
           {/* ResourceStats will hide during refresh */}
           <Progress />
           {!refreshing && <DailyPractice onClickStart={startNewSession} />}
+          <BuyPro />
           <Tiles />
+          {/* <SubscribeScreen /> */}
         </View>
       </CustomScrollView>
     </ScreenView>

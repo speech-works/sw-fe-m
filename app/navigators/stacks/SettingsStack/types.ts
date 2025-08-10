@@ -6,6 +6,7 @@ export type SettingsStackParamList = {
   ProgressDetail: undefined;
   Preferences: undefined;
   HelpSupport: undefined;
+  PaymentStack: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList
