@@ -43,6 +43,7 @@ export enum PAYMENT_PLAN_TYPE {
 }
 
 const SubscribeScreen = () => {
+  const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.MONTHLY
   );
@@ -53,6 +54,15 @@ const SubscribeScreen = () => {
       end={{ x: 1, y: 0 }}
       style={styles.screenView}
     >
+      <View style={styles.topNavigationContainer}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.topNavigation}
+        >
+          <Icon name="chevron-left" size={16} color={"#fff"} />
+          <Text style={styles.topNavigationText}>Back</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.innerContainer}>
         <View style={styles.headerWrapper}>
           <Text style={styles.headerText}>Upgrade to PRO</Text>
@@ -94,7 +104,15 @@ const SubscribeScreen = () => {
                   />
                 )}
               </View>
-              <Text style={styles.priceText}>$11.99</Text>
+              <Text
+                style={[
+                  styles.priceText,
+                  paymentPlan !== PAYMENT_PLAN_TYPE.MONTHLY &&
+                    styles.unselectedPriceText,
+                ]}
+              >
+                $11.99
+              </Text>
             </View>
             <Text
               style={[
@@ -135,7 +153,15 @@ const SubscribeScreen = () => {
                   />
                 )}
               </View>
-              <Text style={styles.priceText}>$119.99</Text>
+              <Text
+                style={[
+                  styles.priceText,
+                  paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
+                    styles.unselectedPriceText,
+                ]}
+              >
+                $119.99
+              </Text>
               <View
                 style={[
                   styles.saveTag,
@@ -182,6 +208,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     flex: 1,
   },
+  topNavigationContainer: {
+    position: "relative",
+    top: 0,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 64,
+  },
+  topNavigation: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  topNavigationText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#fff",
+  },
   innerContainer: {
     gap: 32,
     flex: 1,
@@ -227,9 +272,12 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   priceText: {
-    ...parseTextStyle(theme.typography.Heading2),
+    ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
     fontWeight: "800",
+  },
+  unselectedPriceText: {
+    color: theme.colors.library.gray[200],
   },
   tileFooterText: {
     ...parseTextStyle(theme.typography.Body),
