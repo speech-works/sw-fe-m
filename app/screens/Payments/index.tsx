@@ -13,6 +13,10 @@ import {
 import { theme } from "../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { LinearGradient } from "expo-linear-gradient";
+import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
+import { triggerToast } from "../../util/functions/toast";
+import { createRazorpayOrder } from "../../api/payments";
+import { useUserStore } from "../../stores/user";
 
 // export const SubscribeScreen = () => {
 //   const handleSubscribe = async () => {
@@ -43,10 +47,84 @@ export enum PAYMENT_PLAN_TYPE {
 }
 
 const SubscribeScreen = () => {
+  const { user } = useUserStore();
   const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.MONTHLY
   );
+
+  const handlePayment = async () => {
+    try {
+      console.log("⚡ Payment button pressed");
+
+      // 1. Create order on backend
+      console.log("➡️ Calling backend to create order for user:", user?.id);
+      if (!user?.id) {
+        console.error("❌ User ID is not available");
+        return;
+      }
+
+      const response = await createRazorpayOrder({
+        userId: user.id,
+        amount: paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY ? 1199 : 11999, // paise
+        currency: "INR",
+      });
+
+      console.log("✅ Raw backend response:", response);
+
+      const order = response; // no .json()
+      if (!order?.orderId) {
+        console.error("❌ Backend did not return an order ID", order);
+        return;
+      }
+      console.log("✅ Order created successfully:", order);
+
+      // 2. Open Razorpay checkout
+      const options: CheckoutOptions = {
+        description: "SpeechWorks Premium Subscription",
+        image: "https://ibb.co/YFgn6JkY",
+        currency: order.currency,
+        key: "rzp_test_R5etRTxWNFWDih", // ⚠️ replace with process.env for prod
+        name: "Speechworks",
+        order_id: order.id,
+        amount: order.amount, // use backend-confirmed amount
+        prefill: {
+          email: "user@example.com",
+          contact: "9999999999",
+          name: "John Doe",
+        },
+        theme: {
+          color: theme.colors.actionPrimary.default,
+          backdrop_color: "red",
+          //hide_topbar: true,
+        },
+      };
+
+      console.log("🟢 Opening Razorpay with options:", options);
+
+      RazorpayCheckout.open(options)
+        .then((paymentData: any) => {
+          console.log("🎉 Payment Success full response:", paymentData);
+          triggerToast(
+            "success",
+            "Payment successful!",
+            `Payment ID: ${paymentData.razorpay_payment_id}`
+          );
+        })
+        .catch((error: any) => {
+          console.error("❌ Payment Failed:", error);
+          triggerToast("error", "Payment failed", `Please retry payment.`);
+        });
+    } catch (err) {
+      console.error("🔥 Error in handlePayment:", err);
+      triggerToast(
+        "error",
+        "Payment failed. Please try again.",
+        "Something went wrong with payment."
+      );
+    }
+  };
+
   return (
     <LinearGradient
       colors={["#F97316", "#EC4899"]}
@@ -187,12 +265,12 @@ const SubscribeScreen = () => {
                   styles.unSelectedText,
               ]}
             >
-              $9.99/month Billed Annually
+              $9.99/month billed annually
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-      <TouchableOpacity style={styles.subscribeButton}>
+      <TouchableOpacity style={styles.subscribeButton} onPress={handlePayment}>
         <Text style={styles.subscribeButtonText}>Upgrade Now</Text>
       </TouchableOpacity>
     </LinearGradient>

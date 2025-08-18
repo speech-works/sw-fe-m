@@ -21,6 +21,7 @@ export async function getAllPracticeActivitiesBySessionId({
         },
       }
     );
+    console.log("getAllPracticeActivitiesBySessionId", { response });
     return response.data;
   } catch (error) {
     console.error("Error getting practice activities by session ID:", error);
