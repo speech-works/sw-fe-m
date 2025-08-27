@@ -72,5 +72,6 @@ const styles = StyleSheet.create({
   scrollView: {
     gap: 16,
     paddingVertical: 16,
+    paddingHorizontal: 6,
   },
 });
