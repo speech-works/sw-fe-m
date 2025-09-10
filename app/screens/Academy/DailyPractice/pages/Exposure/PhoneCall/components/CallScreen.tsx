@@ -147,10 +147,7 @@ const CallScreenWithTranscript: React.FC = () => {
             </View>
           )}
 
-          <CallingWidget
-            isCallActive={isCallActive}
-            setIsCallActive={setIsCallActive}
-          />
+          {/* <CallingWidget userId={""} websocketUrl={""} /> */}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
