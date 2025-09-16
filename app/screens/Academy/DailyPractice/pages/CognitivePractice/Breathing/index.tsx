@@ -36,6 +36,7 @@ const Breathing = () => {
     null
   );
   const [isDone, setIsDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
 
@@ -216,9 +217,15 @@ const Breathing = () => {
                   <Button
                     text="Mark Complete"
                     onPress={async () => {
-                      await markActivityDone();
-                      setIsDone(true);
+                      setIsLoading(true);
+                      try {
+                        await markActivityDone();
+                        setIsDone(true);
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }}
+                    disabled={isLoading}
                   />
                 </View>
               </View>

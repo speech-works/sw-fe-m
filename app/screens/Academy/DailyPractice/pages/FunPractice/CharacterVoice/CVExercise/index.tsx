@@ -41,6 +41,8 @@ const CVExercise = () => {
     useRecordedVoice(user?.id);
 
   const [isDone, setIsDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
@@ -195,7 +197,19 @@ const CVExercise = () => {
               )}
 
               {!!voiceRecordingUri && (
-                <Button text="Mark Complete" onPress={onDonePress} />
+                <Button
+                  text="Mark Complete"
+                  onPress={async () => {
+                    setIsLoading(true);
+                    try {
+                      await onDonePress();
+                      setIsDone(true);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                />
               )}
             </>
           )}

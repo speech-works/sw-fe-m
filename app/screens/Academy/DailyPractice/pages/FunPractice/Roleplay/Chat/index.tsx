@@ -81,6 +81,7 @@ const Chat = () => {
   const dialogues = useMemo(() => stage?.dialogues, [stage]);
 
   const [isDone, setIsDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [messageHeight, setMessageHeight] = useState<number | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -420,7 +421,19 @@ const Chat = () => {
               )}
 
               {!!voiceRecordingUri && (
-                <Button text="Mark Complete" onPress={onDonePress} />
+                <Button
+                  text="Mark Complete"
+                  onPress={async () => {
+                    setIsLoading(true);
+                    try {
+                      await onDonePress();
+                      setIsDone(true);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                />
               )}
             </>
           )}

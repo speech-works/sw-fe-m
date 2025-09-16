@@ -113,6 +113,8 @@ const Twister = () => {
 
   const navigation = useNavigation();
   const [isDone, setIsDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -183,7 +185,19 @@ const Twister = () => {
                 <Button text="Start Practice" onPress={markActivityStart} />
               )}
               {!!voiceRecordingUri && (
-                <Button text="Mark Complete" onPress={onDonePress} />
+                <Button
+                  text="Mark Complete"
+                  onPress={async () => {
+                    setIsLoading(true);
+                    try {
+                      await onDonePress();
+                      setIsDone(true);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                />
               )}
             </>
           )}
