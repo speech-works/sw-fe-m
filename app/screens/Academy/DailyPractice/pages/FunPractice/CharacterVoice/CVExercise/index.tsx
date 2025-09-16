@@ -42,6 +42,7 @@ const CVExercise = () => {
 
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
@@ -193,7 +194,18 @@ const CVExercise = () => {
                   />
                 </View>
               ) : (
-                <Button text="Start Practice" onPress={markActivityStart} />
+                <Button
+                  text="Start Practice"
+                  onPress={async () => {
+                    setIsStarting(true);
+                    try {
+                      await markActivityStart();
+                    } finally {
+                      setIsStarting(false);
+                    }
+                  }}
+                  disabled={isStarting}
+                />
               )}
 
               {!!voiceRecordingUri && (

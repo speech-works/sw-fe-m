@@ -44,6 +44,7 @@ const Twister = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null
   );
+  const [isStarting, setIsStarting] = useState(false);
 
   const toggleIndex = () => {
     if (twisters && twisters.length > 0) {
@@ -182,7 +183,18 @@ const Twister = () => {
                   />
                 </View>
               ) : (
-                <Button text="Start Practice" onPress={markActivityStart} />
+                <Button
+                  text="Start Practice"
+                  onPress={async () => {
+                    setIsStarting(true);
+                    try {
+                      await markActivityStart();
+                    } finally {
+                      setIsStarting(false);
+                    }
+                  }}
+                  disabled={isStarting}
+                />
               )}
               {!!voiceRecordingUri && (
                 <Button

@@ -82,6 +82,7 @@ const Chat = () => {
 
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [messageHeight, setMessageHeight] = useState<number | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -417,7 +418,18 @@ const Chat = () => {
                   />
                 </>
               ) : (
-                <Button text="Start Practice" onPress={markActivityStart} />
+                <Button
+                  text="Start Practice"
+                  onPress={async () => {
+                    setIsStarting(true);
+                    try {
+                      await markActivityStart();
+                    } finally {
+                      setIsStarting(false);
+                    }
+                  }}
+                  disabled={isStarting}
+                />
               )}
 
               {!!voiceRecordingUri && (

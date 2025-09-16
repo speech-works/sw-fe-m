@@ -56,6 +56,9 @@ const QuotePractice = () => {
     null
   );
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+
   const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
   const renderSelectedTool = (toolName: string) => {
     switch (toolName) {
@@ -177,11 +180,23 @@ const QuotePractice = () => {
               />
             </View>
             {!!voiceRecordingUri && (
-              <Button text="Done" onPress={onDonePress} />
+              <Button
+                text="Mark Complete"
+                onPress={async () => {
+                  setIsLoading(true);
+                  try {
+                    await onDonePress();
+                    // setIsDone(true);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+              />
             )}
           </CustomScrollView>
         ) : (
-          <>
+          <CustomScrollView>
             <View style={styles.tipsContainer}>
               <View style={styles.tipTitleContainer}>
                 <Icon
@@ -206,12 +221,21 @@ const QuotePractice = () => {
                 ))}
               </View>
             </View>
+
             <Button
               text="Start Practice"
-              onPress={markActivityStart}
+              onPress={async () => {
+                setIsStarting(true);
+                try {
+                  await markActivityStart();
+                } finally {
+                  setIsStarting(false);
+                }
+              }}
+              disabled={isStarting}
               style={{ marginVertical: 20 }}
             />
-          </>
+          </CustomScrollView>
         )}
       </View>
     </ScreenView>
