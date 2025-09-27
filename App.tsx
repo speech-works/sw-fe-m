@@ -19,6 +19,9 @@ import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
 import { StripeProvider } from "@stripe/stripe-react-native";
 
+import { NativeModules } from "react-native";
+console.log("NativeModules keys:", Object.keys(NativeModules));
+
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
 

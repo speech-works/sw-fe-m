@@ -4,8 +4,6 @@ import {
   ExerciseItem,
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
-import RecordingWidget from "../components/RecordingWidget";
-import RecorderWidget from "../components/RecorderWidget";
 import CompletedList from "../components/CompletedList";
 import Metronome from "../components/Metronome";
 import { theme } from "../../../../../Theme/tokens";

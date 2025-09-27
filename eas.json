@@ -8,7 +8,11 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "newArchEnabled": true
+      },
+      "ios": {
+        "newArchEnabled": true
       }
     },
     "preview": {
