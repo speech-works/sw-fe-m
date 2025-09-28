@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "speechworks",
     "deeplinks": ["auth/callback"],
     "platforms": ["ios", "android", "web"],
@@ -23,6 +23,7 @@
         "NSPhotoLibraryUsageDescription": "Allow access to your photo library to upload images.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "This app needs microphone access to record your voice.",
+        "NSCameraUsageDescription": "This app needs camera access to record videos.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": ["speechworks"]
@@ -60,6 +61,12 @@
       "favicon": "./app/assets/favicon.png"
     },
     "plugins": [
+      [
+        "react-native-permissions",
+        {
+          "iosPermissionKeys": ["Microphone", "Camera"]
+        }
+      ],
       [
         "expo-image-picker",
         {

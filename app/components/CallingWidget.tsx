@@ -34,6 +34,8 @@ import PCMPlayer from "react-native-pcm-player-lite";
  * This file is correctly structured for a real React Native environment (like Expo or RN CLI).
  */
 
+console.log("InputAudioStream", { InputAudioStream });
+
 type Props = {
   websocketUrl: string;
   userId?: string;
@@ -549,18 +551,28 @@ const CallingWidget: React.FC<Props> = ({
           true // stopInBackground
         );
 
+        console.log("InputAudioStream instance created:", stream);
+
+        stream.addErrorListener((error) => {
+          // Do something with a stream error.
+          console.error("InputAudioStream error:", error);
+        });
+
         // 4. Add a listener to get PCM chunks as Base64
         stream.addChunkListener((chunk) => {
           const pcmBase64 = chunk; // chunk.data is the Base64 string of raw PCM
-
+          console.log("PCM chunk received:", pcmBase64);
           if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             // Send the Base64 encoded PCM chunk directly over the WebSocket
+            console.log("Sending PCM chunk over WebSocket");
             ws.current.send(pcmBase64);
           }
         });
 
+        console.log("Chunk listener added to InputAudioStream");
         // 5. Start the stream
-        await stream.start();
+        const startedStream = await stream.start();
+        console.log("InputAudioStream started", startedStream);
         micStream.current = stream;
         console.log("✅ Native microphone capture stream started.");
       } catch (error) {
