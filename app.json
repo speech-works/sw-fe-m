@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "speechworks",
     "deeplinks": ["auth/callback"],
     "platforms": ["ios", "android", "web"],
