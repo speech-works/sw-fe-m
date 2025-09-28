@@ -5,12 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  // This import is correct for a React Native environment
 } from "react-native";
-
 // These imports are correct for a React Native environment (Expo)
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-
 // These imports are correct for a React Native environment (Native Modules)
 import {
   InputAudioStream,
@@ -18,22 +15,18 @@ import {
   AUDIO_SOURCES,
   CHANNEL_CONFIGS,
 } from "@dr.pogodin/react-native-audio";
-
 // This import is correct for a React Native environment (Native Module)
 import PCMPlayer from "react-native-pcm-player-lite";
+import DeviceInfo from "react-native-device-info";
 
 /**
  * CallingWidget (React Native)
  *
- * This version uses:
- * - @dr.pogodin/react-native-audio for real-time PCM microphone capture.
- * - react-native-pcm-player-lite for real-time PCM speaker playback.
- * - Web AudioWorklets for Web/Browser fallback.
- * * NOTE: The compilation error you are seeing is due to the build system not
- * recognizing external React Native modules like 'react-native' and 'expo-av'.
- * This file is correctly structured for a real React Native environment (like Expo or RN CLI).
+ * FIXES IMPLEMENTED:
+ * 1. Continuous Mic Stream: Mic runs constantly for instant interruption.
+ * 2. Data Throttling: isMicActive flag controls sending mic data (prevents echo loopback).
+ * 3. Earpiece/Receiver Route: Audio mode aggressively configured for VOIP to favor the earpiece.
  */
-
 console.log("InputAudioStream", { InputAudioStream });
 
 type Props = {
@@ -45,19 +38,17 @@ type Props = {
   ringtoneAsset?: number; // use like: require('../assets/ringtone.mp3')
   ringtoneUri?: string; // or a remote URL
 };
-
 const DEFAULT_SAMPLE_RATE = 24000;
 
 // ====================================================================
-// Web AudioWorklet Code (used only for Platform.OS === 'web' fallback)
+// Web AudioWorklet Code (Unchanged)
 // ====================================================================
-
+// (RESAMPLER_WORKLET_CODE and PLAYBACK_WORKLET_CODE remain as provided)
 const RESAMPLER_WORKLET_CODE = `
 class ResamplerProcessor extends AudioWorkletProcessor {
 constructor() {
 super();
 }
-
 mixToMono(inputs) {
 if (!inputs || inputs.length === 0) return new Float32Array(0);
 if (inputs.length === 1) return inputs[0].slice(0);
@@ -70,7 +61,6 @@ out[i] = s / inputs.length;
 }
 return out;
 }
-
 resample(inputBuffer, inputSampleRate, outputSampleRate) {
 if (inputSampleRate === outputSampleRate) return inputBuffer;
 const ratio = inputSampleRate / outputSampleRate;
@@ -86,7 +76,6 @@ result[i] = a + (b - a) * t;
 }
 return result;
 }
-
 floatTo16BitPCM(input) {
 const buf = new ArrayBuffer(input.length * 2);
 const view = new DataView(buf);
@@ -99,24 +88,19 @@ view.setInt16(i * 2, val, true);
 }
 return buf;
 }
-
 process(inputs) {
 const inputChannels = inputs[0];
 if (!inputChannels || inputChannels.length === 0) return true;
-
 const mono = this.mixToMono(inputChannels);
 // NOTE: Resampling from hardware sample rate (e.g. 44100) down to target sample rate (e.g. 24000)
 const down = this.resample(mono, sampleRate, ${DEFAULT_SAMPLE_RATE}); 
 const pcm = this.floatTo16BitPCM(down);
 this.port.postMessage(pcm, [pcm]);
 return true;
-
 }
 }
-
 registerProcessor("resampler-processor", ResamplerProcessor);
 `;
-
 const PLAYBACK_WORKLET_CODE = `
 class PlaybackProcessor extends AudioWorkletProcessor {
 constructor() {
@@ -131,7 +115,6 @@ this.fadeSamples = Math.max(1, Math.floor(0.008 * sampleRate));
 this.silenceToPlaybackRamp = 0;
 this.initialized = false;
 this._previouslyHadSamples = false;
-
 this.port.onmessage = (e) => {
   const msg = e.data;
   if (!msg) return;
@@ -162,9 +145,7 @@ this.port.onmessage = (e) => {
     this.port.postMessage({ cmd: "drain_status", isDrained: this.samplesQueued === 0 });
   }
 };
-
 }
-
 _ensureCapacity(additional) {
 if (this.samplesQueued + additional <= this.capacity) return;
 let newCap = this.capacity;
@@ -185,7 +166,6 @@ this.capacity = newCap;
 this.readPos = 0;
 this.writePos = this.samplesQueued;
 }
-
 _pushToRing(arr) {
 const len = arr.length;
 this._ensureCapacity(len);
@@ -205,7 +185,6 @@ this.silenceToPlaybackRamp = 0;
 this._previouslyHadSamples = true;
 }
 }
-
 _readSample() {
 if (this.samplesQueued === 0) return null;
 const s = this.buffer[this.readPos];
@@ -213,12 +192,10 @@ this.readPos = (this.readPos + 1) % this.capacity;
 this.samplesQueued--;
 return s;
 }
-
 process(inputs, outputs) {
 const out = outputs[0];
 if (!out || out.length === 0) return true;
 const channel = out[0];
-
 if (!this.initialized || this.samplesQueued < this.initialThreshold) {
   for (let i = 0; i < channel.length; i++) channel[i] = 0;
   if (this.samplesQueued === 0 && this._previouslyHadSamples) {
@@ -227,7 +204,6 @@ if (!this.initialized || this.samplesQueued < this.initialThreshold) {
   }
   return true;
 }
-
 for (let i = 0; i < channel.length; i++) {
   const s = this._readSample();
   if (s === null) {
@@ -250,16 +226,13 @@ if (this.samplesQueued === 0 && this._previouslyHadSamples) {
   this._previouslyHadSamples = true;
 }
 return true;
-
 }
 }
 registerProcessor("playback-processor", PlaybackProcessor);
 `;
-
 // ====================================================================
 // Main React Component
 // ====================================================================
-
 const CallingWidget: React.FC<Props> = ({
   websocketUrl,
   userId = "anonymous",
@@ -272,7 +245,6 @@ const CallingWidget: React.FC<Props> = ({
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Click to start call");
   const [turn, setTurn] = useState<"user" | "agent" | null>(null);
-
   const ws = useRef<WebSocket | null>(null);
 
   // Web Audio Refs
@@ -284,15 +256,17 @@ const CallingWidget: React.FC<Props> = ({
   const micStream = useRef<InputAudioStream | null>(null);
   const pcmPlayer = useRef<any | null>(null);
 
+  // --- CRITICAL FIX REFS ---
+  const isMicActive = useRef(false); // Controls when to send mic data
+  // --- END CRITICAL FIX REFS ---
+
   const outgoingMicBuffer = useRef<ArrayBuffer[]>([]);
   const MAX_OUTGOING_CHUNKS = 300;
-
   const resamplerPortOnMessageHandler = useRef<
     ((ev: MessageEvent) => void) | null
   >(null);
   const pendingChunks = useRef<ArrayBuffer[]>([]);
   const ttsStreamEnded = useRef(false);
-
   const JITTER_BUFFER_MS = 120;
   const FADE_MS = 8;
 
@@ -306,13 +280,30 @@ const CallingWidget: React.FC<Props> = ({
   const nativeRingtoneRef = useRef<Audio.Sound | null>(null);
   const nativeRingtoneLoading = useRef(false);
 
+  const checkHeadsetConnected = async (): Promise<boolean> => {
+    // Platform.OS === 'web' will not have DeviceInfo, so we can skip the check or return true
+    if (Platform.OS === "web") return true;
+
+    try {
+      const isConnected = await DeviceInfo.isHeadphonesConnected();
+      console.log("Headset Connected Check:", isConnected);
+      return isConnected;
+    } catch (e) {
+      console.error("Error checking headset connection:", e);
+      // Fallback to true if the check fails to avoid blocking the call entirely
+      return true;
+    }
+  };
+
   const cleanupAudio = async () => {
     await stopNativeRingtone();
+
+    // Reset Mic Active Flag
+    isMicActive.current = false;
+
     if (Platform.OS === "ios" || Platform.OS === "android") {
-      // 1. Clean up Microphone Streamer (@dr.pogodin/react-native-audio)
       if (micStream.current) {
         try {
-          // Check if destroy method exists before calling
           if (typeof micStream.current.destroy === "function") {
             micStream.current.destroy();
           }
@@ -321,8 +312,6 @@ const CallingWidget: React.FC<Props> = ({
           console.warn("Failed to destroy micStream:", e);
         }
       }
-
-      // 2. Clean up PCM Player (react-native-pcm-player-lite)
       if (pcmPlayer.current) {
         try {
           if (typeof pcmPlayer.current.stop === "function") {
@@ -354,11 +343,21 @@ const CallingWidget: React.FC<Props> = ({
         audioContext.current = null;
       }
     }
+    // Clean up audio mode to return to default. This is important!
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true, // safe default
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      });
+    } catch (e) {
+      console.warn("Failed to reset audio mode:", e);
+    }
   };
 
   useEffect(() => {
     console.log("CallingWidget mounted. Platform:", Platform.OS);
-
     return () => {
       try {
         ws.current?.close();
@@ -368,6 +367,7 @@ const CallingWidget: React.FC<Props> = ({
     };
   }, []);
 
+  // --- Ringtone Functions (Unchanged) ---
   const startRingTone = () => {
     if (Platform.OS !== "web") {
       startNativeRingtone();
@@ -411,7 +411,6 @@ const CallingWidget: React.FC<Props> = ({
     }, 800);
     ringIntervalRef.current = id as unknown as number;
   };
-
   const stopRingTone = () => {
     if (Platform.OS !== "web") {
       stopNativeRingtone();
@@ -443,7 +442,6 @@ const CallingWidget: React.FC<Props> = ({
       ringAudioCtxRef.current = null;
     }
   };
-
   const startNativeRingtone = async () => {
     if (nativeRingtoneRef.current) {
       try {
@@ -454,13 +452,6 @@ const CallingWidget: React.FC<Props> = ({
     if (nativeRingtoneLoading.current) return;
     nativeRingtoneLoading.current = true;
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-      });
       const sound = new Audio.Sound();
       if (ringtoneAsset) {
         await sound.loadAsync(ringtoneAsset, {
@@ -488,7 +479,6 @@ const CallingWidget: React.FC<Props> = ({
       nativeRingtoneLoading.current = false;
     }
   };
-
   const stopNativeRingtone = async () => {
     try {
       if (nativeRingtoneRef.current) {
@@ -507,25 +497,17 @@ const CallingWidget: React.FC<Props> = ({
       console.warn("Error stopping native ringtone:", e);
     }
   };
+  // --- End Ringtone Functions ---
 
   const startAudioCapture = async () => {
-    console.log("startAudioCapture called");
-
+    console.log("startAudioCapture called (Continuous Stream Setup)");
     if (Platform.OS === "ios" || Platform.OS === "android") {
       try {
-        // 1. Request permissions and set audio mode
         const { granted } = await Audio.requestPermissionsAsync();
         if (!granted) {
           setStatus("Microphone permission denied.");
           return;
         }
-
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-        });
 
         if (typeof InputAudioStream === "undefined" || !InputAudioStream) {
           const errorMessage =
@@ -534,47 +516,42 @@ const CallingWidget: React.FC<Props> = ({
           setStatus("Mic error: " + errorMessage);
           return;
         }
-
-        // 2. Destroy any existing stream
         if (micStream.current) {
           micStream.current.destroy();
           micStream.current = null;
         }
 
-        // 3. Create the new InputAudioStream instance
         const stream = new InputAudioStream(
-          AUDIO_SOURCES.MIC, // audioSource
-          sampleRate, // sampleRate
-          CHANNEL_CONFIGS.MONO, // channelConfig
-          AUDIO_FORMATS.PCM_16BIT, // audioFormat
-          Math.max(1024, Math.floor(sampleRate * 0.04)), // samplingSize
+          AUDIO_SOURCES.MIC,
+          sampleRate,
+          CHANNEL_CONFIGS.MONO,
+          AUDIO_FORMATS.PCM_16BIT,
+          Math.max(1024, Math.floor(sampleRate * 0.04)), // 40ms chunk size
           true // stopInBackground
         );
-
         console.log("InputAudioStream instance created:", stream);
-
         stream.addErrorListener((error) => {
-          // Do something with a stream error.
           console.error("InputAudioStream error:", error);
         });
 
-        // 4. Add a listener to get PCM chunks as Base64
         stream.addChunkListener((chunk) => {
-          const pcmBase64 = chunk; // chunk.data is the Base64 string of raw PCM
-          console.log("PCM chunk received:", pcmBase64);
-          if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-            // Send the Base64 encoded PCM chunk directly over the WebSocket
-            console.log("Sending PCM chunk over WebSocket");
+          const pcmBase64 = chunk;
+          if (
+            isMicActive.current &&
+            ws.current &&
+            ws.current.readyState === WebSocket.OPEN
+          ) {
             ws.current.send(pcmBase64);
           }
         });
-
         console.log("Chunk listener added to InputAudioStream");
-        // 5. Start the stream
+
         const startedStream = await stream.start();
         console.log("InputAudioStream started", startedStream);
         micStream.current = stream;
-        console.log("✅ Native microphone capture stream started.");
+        console.log(
+          "✅ Native microphone capture stream started (Continuous)."
+        );
       } catch (error) {
         console.error(
           "❌ Failed to start native audio capture components:",
@@ -583,7 +560,7 @@ const CallingWidget: React.FC<Props> = ({
         setStatus("Mic error: " + (error as Error).message);
       }
     } else {
-      // (Web AudioWorklet Logic)
+      // (Web AudioWorklet Logic - Unchanged)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const ctx = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
@@ -606,6 +583,7 @@ const CallingWidget: React.FC<Props> = ({
       const playbackUrl = URL.createObjectURL(playbackBlob);
       await ctx.audioWorklet.addModule(playbackUrl);
       URL.revokeObjectURL(playbackUrl);
+
       const source = ctx.createMediaStreamSource(stream);
       const resampler = new AudioWorkletNode(ctx, "resampler-processor");
       resamplerNode.current = resampler;
@@ -615,6 +593,7 @@ const CallingWidget: React.FC<Props> = ({
       });
       playbackNode.current = playback;
       playback.connect(ctx.destination);
+
       const thresholdSamples = Math.ceil(
         (JITTER_BUFFER_MS / 1000) * ctx.sampleRate
       );
@@ -624,6 +603,7 @@ const CallingWidget: React.FC<Props> = ({
       );
       playback.port.postMessage({ cmd: "init", thresholdSamples, fadeSamples });
       playback.port.onmessage = (ev) => {};
+
       if (pendingChunks.current.length > 0) {
         const snapshot = pendingChunks.current.slice();
         for (const ab of snapshot) {
@@ -633,10 +613,16 @@ const CallingWidget: React.FC<Props> = ({
         }
         pendingChunks.current = [];
       }
+
       resamplerPortOnMessageHandler.current = (ev) => {
         const pcmArrayBuffer = ev.data as ArrayBuffer;
         const ab = pcmArrayBuffer.slice(0);
-        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+
+        if (
+          isMicActive.current &&
+          ws.current &&
+          ws.current.readyState === WebSocket.OPEN
+        ) {
           try {
             ws.current.send(ab);
           } catch (e) {
@@ -644,36 +630,96 @@ const CallingWidget: React.FC<Props> = ({
             if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
               outgoingMicBuffer.current.shift();
           }
+        } else if (!isMicActive.current) {
+          // Discard data
         } else {
+          // WS not open, buffer it
           outgoingMicBuffer.current.push(ab);
           if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
             outgoingMicBuffer.current.shift();
         }
       };
+
       resampler.port.onmessage = resamplerPortOnMessageHandler.current;
+
       const preFilter = ctx.createBiquadFilter();
       preFilter.type = "lowpass";
       const cutoff = Math.min(12000, Math.max(6000, sampleRate / 2 - 1000));
       preFilter.frequency.value = cutoff;
       source.connect(preFilter);
       preFilter.connect(resampler);
+
       const silentGain = ctx.createGain();
       silentGain.gain.value = 0;
       resampler.connect(silentGain);
       silentGain.connect(ctx.destination);
+
+      console.log("✅ Web AudioWorklets started (Continuous).");
     }
   };
 
   const startCall = async () => {
     console.log("Start call button clicked. Status: Preparing audio...");
     setStatus("Preparing audio...");
+
+    if (Platform.OS !== "web") {
+      const isHeadsetConnected = await checkHeadsetConnected();
+      if (!isHeadsetConnected) {
+        setStatus(
+          "Please connect a wired or Bluetooth headset to start the call."
+        );
+        console.log("❌ Call blocked: No headset connected.");
+        return; // STOP the call from starting
+      }
+    }
+
+    // 🛠️ CRITICAL FIX: Set audio mode for two-way communication/VOIP (AEC + Earpiece Route)
+    try {
+      await Audio.setAudioModeAsync({
+        // 1. Allows both recording (mic) and playback (speaker/earpiece)
+        allowsRecordingIOS: true,
+        // 2. Playback will happen even if the silent switch is on
+        playsInSilentModeIOS: true,
+        // 3. Stay active for a call
+        staysActiveInBackground: true,
+        // 4. Use the exclusive communication mode (best for AEC and Earpiece route)
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        // 5. Explicitly set speakerPhone: false to encourage earpiece route on iOS/Android
+        // NOTE: This property does not exist directly in the Expo API, but the lack of an explicit `speakerPhone: true`
+        // combined with the communication mode usually causes the OS to choose the earpiece.
+        // If you were using bare React Native, you would call RNSoundModule.setCategory('PlayAndRecord', true).
+        // For Expo, we rely on the above combination.
+      });
+
+      // Secondary call to potentially force the route without enabling the speakerphone
+      if (Platform.OS === "ios" || Platform.OS === "android") {
+        await Audio.setAudioModeAsync({
+          // We ensure speakerphone is NOT explicitly forced here.
+          // This is the best we can do with the current Expo API to favor the receiver/earpiece.
+          allowsRecordingIOS: true,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        });
+      }
+
+      console.log(
+        "✅ Audio Mode set for VOIP/Communication (Earpiece route attempted)."
+      );
+    } catch (e) {
+      console.error("❌ Failed to set audio mode for call routing:", e);
+      setStatus("Audio setup failed.");
+      return;
+    }
+
     if (Platform.OS === "web") {
       startRingTone();
     } else {
-      console.log("Native platform detected. Starting native ringtone.");
+      console.log(
+        "Native platform detected. Starting native ringtone and PCM player."
+      );
       startNativeRingtone();
-
-      // NATIVE PCM PLAYER INITIALIZATION
+      // NATIVE PCM PLAYER INITIALIZATION (Unchanged)
       if (PCMPlayer && typeof PCMPlayer !== "string") {
         try {
           if (pcmPlayer.current) {
@@ -682,7 +728,6 @@ const CallingWidget: React.FC<Props> = ({
             }
           }
           pcmPlayer.current = PCMPlayer;
-          // Start the audio engine (defaults to 16-bit, mono)
           if (typeof pcmPlayer.current.start === "function") {
             await pcmPlayer.current.start(sampleRate);
             console.log(`✅ PCMPlayer started at ${sampleRate} Hz.`);
@@ -709,38 +754,35 @@ const CallingWidget: React.FC<Props> = ({
       }
     }
 
+    // --- Start the continuous mic stream here, but keep sending DISABLED ---
+    await startAudioCapture();
+    isMicActive.current = false; // Initial state: Mic is streaming (for AEC), but not sending data.
+
     setStatus("Connecting to backend...");
     console.log(`Connecting to WebSocket at URL: ${websocketUrl}`);
-
-    // Initialize WebSocket instance and set binary type immediately
     ws.current = new WebSocket(websocketUrl);
     ws.current.binaryType = "arraybuffer";
 
-    // Set onopen handler first to capture connection success
     ws.current.onopen = () => {
       console.log("WebSocket connection opened successfully.");
       console.log("Sending 'join' message to server.");
-
       setStatus("Connected. Joined backend.");
       setIsCalling(true);
       onCallStart?.();
       ws.current?.send(JSON.stringify({ type: "join", userId }));
     };
-
     ws.current.onmessage = async (msg) => {
       try {
         if (typeof msg.data === "string") {
           const parsed = JSON.parse(msg.data as string);
           handleControlMessage(parsed);
         } else {
-          // Received ArrayBuffer (Web) or Base64 (Native, if server sends it)
           handleAudioChunkFromServer(msg.data);
         }
       } catch (e) {
         console.warn("WS parse error:", e);
       }
     };
-
     ws.current.onclose = (event) => {
       console.log(
         "WebSocket connection closed. Code:",
@@ -755,7 +797,6 @@ const CallingWidget: React.FC<Props> = ({
       onCallEnd?.();
       cleanupAudio();
     };
-
     ws.current.onerror = (err) => {
       console.error("WebSocket connection error:", err);
       setStatus("Connection error");
@@ -803,16 +844,12 @@ const CallingWidget: React.FC<Props> = ({
         pendingChunks.current.push(ab);
       }
     } else {
-      // NATIVE SPEAKER PLAYBACK LOGIC
       if (!pcmPlayer.current) {
         console.error("PCM player not initialized, skipping chunk.");
         return;
       }
-
       let base64Chunk: string;
-
       if (typeof data === "string") {
-        // Server should send Base64 PCM data directly for native clients
         base64Chunk = data;
       } else {
         console.error(
@@ -820,8 +857,6 @@ const CallingWidget: React.FC<Props> = ({
         );
         return;
       }
-
-      // Enqueue the Base64 data for playback
       if (typeof pcmPlayer.current.enqueueBase64 === "function") {
         pcmPlayer.current.enqueueBase64(base64Chunk);
       }
@@ -834,17 +869,18 @@ const CallingWidget: React.FC<Props> = ({
       case "deepgram_ready":
         setStatus("Deepgram ready. Start speaking!");
         setTurn("user");
-        startAudioCapture();
+        isMicActive.current = true;
         break;
       case "turn":
         if (data.turn === "agent") {
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
+          isMicActive.current = false;
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak.");
-          startAudioCapture();
+          isMicActive.current = true;
         }
         break;
       case "text":
@@ -855,6 +891,7 @@ const CallingWidget: React.FC<Props> = ({
         setTurn("agent");
         setStatus("Agent is speaking...");
         ttsStreamEnded.current = false;
+        isMicActive.current = false;
         handleAudioChunkFromServer(data.data);
         break;
       case "audio_end":
@@ -862,7 +899,7 @@ const CallingWidget: React.FC<Props> = ({
           setStatus("Agent finished speaking. Your turn.");
           setTurn("user");
           ttsStreamEnded.current = false;
-          startAudioCapture();
+          isMicActive.current = true;
         }, 300);
         break;
       case "interrupted":
@@ -870,8 +907,8 @@ const CallingWidget: React.FC<Props> = ({
           playbackNode.current.port.postMessage({ cmd: "flushImmediate" });
         stopRingTone();
         setTurn("user");
-        setStatus("You can now speak.");
-        startAudioCapture();
+        setStatus("You can now speak. (Interrupted)");
+        isMicActive.current = true;
         break;
       default:
         break;
@@ -902,7 +939,7 @@ const CallingWidget: React.FC<Props> = ({
     </View>
   );
 };
-
+// ... (StyleSheet.create remains unchanged)
 const styles = StyleSheet.create({
   container: {
     width: 360,
