@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image, Platform } from "react-native"; // <-- Import Platform
 
 import {
   COMPANY_NAME,
@@ -22,6 +22,19 @@ import * as AuthSession from "expo-auth-session";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { loginUser, handleOAuthCallback } from "../../api";
 import { useUserStore } from "../../stores/user";
+
+// Define the providers to display
+const ALL_PROVIDERS = ["google", "facebook", "apple"];
+
+// Filter providers based on the platform
+const getDisplayProviders = () => {
+  if (Platform.OS === "ios") {
+    // Show all providers on iOS
+    return ALL_PROVIDERS;
+  }
+  // On Android/Web/Other, filter out 'apple'
+  return ALL_PROVIDERS.filter((provider) => provider !== "apple");
+};
 
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
@@ -92,7 +105,7 @@ const LoginScreen = () => {
           <Text style={styles.captionText}>{COMPANY_SLOGAN}</Text>
         </View>
         <View style={styles.loginButtons}>
-          {["google", "facebook", "apple"].map((provider) => (
+          {getDisplayProviders().map((provider) => (
             <Button
               key={provider}
               // @ts-ignore
