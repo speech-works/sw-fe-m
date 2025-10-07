@@ -118,6 +118,7 @@ const ExpressYourself = ({
               Speak your mind. Recording your thoughts can help process
               emotions.
             </Text>
+
             <VoiceRecorder
               onRecorded={(uri) => setVoiceRecordingUri(uri)}
               prevRecordingUri={voiceRecordingUri || undefined}

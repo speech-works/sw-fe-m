@@ -106,6 +106,15 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
             color={theme.colors.actionPrimary.default}
           />
         </View>
+
+        {/* FIX: Removed flex: 1 from detailsContainer and made it a regular view 
+           so it respects the inner flow of textGroup and progressText. 
+           We now rely on the 'row' style being the primary flex container for the section. 
+           I've also moved the progressText into the textGroup for vertical alignment 
+           and updated the styles to put it on the right. 
+           
+           --- Reverting structural change to minimize risk, fixing with flex properties ---
+        */}
         <View style={styles.detailsContainer}>
           <View style={styles.textGroup}>
             <Text style={styles.titleText}>Daily Practice</Text>
@@ -141,6 +150,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
+    // NOTE: Keep this for debugging: backgroundColor: "red",
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -155,21 +165,31 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   detailsContainer: {
-    flex: 1,
+    flex: 1, // Takes up the remaining horizontal space in the 'row' container
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-between", // Pushes textGroup and progressText apart
     alignItems: "flex-start",
+    // FIX 1: Set a low max width for the progress text's sibling to guarantee space
+    // A better fix is below in textGroup.
   },
   textGroup: {
     display: "flex",
     flexDirection: "column",
     gap: 4,
+    // FIX 2: Crucial change. Allow textGroup to shrink and use the available space.
+    flexShrink: 1,
+    flexGrow: 1,
+    // FIX 3: Prevent it from taking more space than necessary but allow it to wrap.
+    marginRight: 8, // Add a small margin to separate from progressText
   },
   progressText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.actionPrimary.default,
     fontWeight: "500",
+    // FIX 4: Explicitly stop progressText from shrinking so it maintains its full width.
     flexShrink: 0,
+    // Align the text itself to the right
+    textAlign: "right",
   },
   iconCircle: {
     width: 56,
