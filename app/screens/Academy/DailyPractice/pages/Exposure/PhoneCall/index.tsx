@@ -60,7 +60,7 @@ const PhoneCall = () => {
             <CallingWidget
               userId={user.id}
               //websocketUrl={"wss://api.speechworks.in"}
-              websocketUrl="ws://10.138.123.65:3000"
+              websocketUrl="ws://192.168.1.106:3000"
               //websocketUrl="ws://localhost:3000"
             />
           </View>

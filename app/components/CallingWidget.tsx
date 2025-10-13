@@ -281,6 +281,7 @@ const CallingWidget: React.FC<Props> = ({
   const nativeRingtoneLoading = useRef(false);
 
   const checkHeadsetConnected = async (): Promise<boolean> => {
+    return true;
     // Platform.OS === 'web' will not have DeviceInfo, so we can skip the check or return true
     if (Platform.OS === "web") return true;
 

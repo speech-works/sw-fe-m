@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1, // ← forces ScrollView to fill all vertical space under the title
+    padding: 4,
   },
   scrollContainer2: {
     gap: 16,
