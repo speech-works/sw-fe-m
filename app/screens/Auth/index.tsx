@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
   },
   captionText: {
+    textAlign: "center",
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
