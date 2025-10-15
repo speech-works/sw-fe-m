@@ -61,6 +61,24 @@ const Exposure = () => {
       disabled: false,
     },
     {
+      title: "Secondary Behaviors",
+      description: "Unlearn escape moves",
+      onPress: () => {
+        navigation.navigate("SecondaryBehaviorsStack");
+      },
+      icon: (
+        <View
+          style={[
+            iconContiainerStyle,
+            { backgroundColor: theme.colors.library.pink[100] },
+          ]}
+        >
+          <Icon name="socks" size={20} color={theme.colors.library.pink[400]} />
+        </View>
+      ),
+      disabled: false,
+    },
+    {
       title: "AI Phone Calls",
       description: "Speak freely, without hesitation",
       onPress: () => {

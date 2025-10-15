@@ -6,6 +6,7 @@ export type EDPStackParamList = {
   InterviewSimulationStack: undefined;
   PhoneCallsStack: undefined;
   RandomQuestionsStack: undefined;
+  SecondaryBehaviorsStack: undefined;
 };
 export type EDPStackNavigationProp<T extends keyof EDPStackParamList> =
   NativeStackNavigationProp<EDPStackParamList, T>;
