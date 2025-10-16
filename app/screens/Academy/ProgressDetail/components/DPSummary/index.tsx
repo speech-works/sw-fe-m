@@ -157,9 +157,13 @@ const DPSummary = () => {
           </View>
         </View>
       ) : (
-        <Text style={{ textAlign: "center", color: theme.colors.text.default }}>
-          No practice data available.
-        </Text>
+        <View style={styles.noDataWrapper}>
+          <Text
+            style={{ textAlign: "center", color: theme.colors.text.default }}
+          >
+            No practice data available.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -225,5 +229,13 @@ const styles = StyleSheet.create({
   legendText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
+  },
+  noDataWrapper: {
+    marginTop: -8,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: theme.colors.background.default,
+    width: "100%",
+    alignItems: "flex-start",
   },
 });

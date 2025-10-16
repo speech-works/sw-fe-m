@@ -55,11 +55,13 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                 <Text style={styles.memberSince}>
                   Member since {user?.createdAt?.getFullYear()}
                 </Text>
-                <View style={styles.levelTitle}>
-                  <Text style={styles.levelTitleText}>
-                    {userLevelData?.levelTitle}
-                  </Text>
-                </View>
+                {userLevelData && (
+                  <View style={styles.levelTitle}>
+                    <Text style={styles.levelTitleText}>
+                      {userLevelData?.levelTitle}
+                    </Text>
+                  </View>
+                )}
               </View>
               <TouchableOpacity
                 onPress={onProfileEdit}

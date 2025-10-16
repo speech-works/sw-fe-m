@@ -14,17 +14,24 @@ import {
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { useSessionStore } from "../../../../stores/session";
-import { isSameDay, isValid } from "date-fns";
+import { isSameDay, isValid, set } from "date-fns";
 import { getUserPreferences } from "../../../../api/settings/userPreference";
 import { getAllPracticeActivitiesBySessionId } from "../../../../api";
+import { useUserStore } from "../../../../stores/user";
 
 interface DailyPracticeProps {
   onClickStart: () => void;
 }
 const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
-  const [targetMinutes, setTargetMinutes] = useState(15);
-  const [achievedMinutes, setAchievedMinutes] = useState(0);
+  const { user } = useUserStore();
+  const [practiceType, setPracticeType] = useState<"TIME_BASED" | "TASK_BASED">(
+    "TIME_BASED"
+  );
+  const [targetMinutes, setTargetMinutes] = useState<number>(15);
+  const [achievedMinutes, setAchievedMinutes] = useState<number>(0);
+  const [targetTaskCount, setTargetTaskCount] = useState<number>(3);
+  const [achievedTaskCount, setAchievedTaskCount] = useState<number>(0);
   let isSessionFresh = false;
 
   if (practiceSession?.startedAt) {
@@ -48,12 +55,20 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   };
 
   useEffect(() => {
-    if (!practiceSession?.user) return;
-    getUserPreferences(practiceSession.user.id)
+    console.log("DailyPractice mounted", { practiceSession });
+    if (!user) return;
+    getUserPreferences(user.id)
       .then((preferences) => {
-        setTargetMinutes(preferences?.dailyPracticeLimitMinutes || 15);
+        if (!preferences) return;
+        const { practiceGoalType, dailyPracticeLimitMinutes, dailyTaskCount } =
+          preferences;
+        console.log("User Preferences:", preferences);
+        setPracticeType(practiceGoalType);
+        setTargetTaskCount(dailyTaskCount);
+        setTargetMinutes(dailyPracticeLimitMinutes);
       })
       .catch(() => {
+        setPracticeType("TIME_BASED");
         setTargetMinutes(15);
       });
   }, []);
@@ -62,6 +77,8 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
     if (!practiceSession) return;
     getAllPracticeActivitiesBySessionId({ sessionId: practiceSession.id })
       .then((activities) => {
+        const taskCount = activities.length;
+        setAchievedTaskCount(taskCount);
         let totalAchievedMinutes = 0;
         const completedActivities = activities.filter(
           (activity) => activity.status === "COMPLETED"
@@ -87,7 +104,12 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   }, [practiceSession]);
 
   const getDynamicMessage = () => {
-    const percentage = (achievedMinutes / targetMinutes) * 100;
+    let percentage = 0;
+    if (practiceType === "TIME_BASED")
+      percentage = (achievedMinutes / targetMinutes) * 100;
+    else if (practiceType === "TASK_BASED")
+      percentage = (achievedTaskCount / targetTaskCount) * 100;
+
     if (percentage === 0) return "Let’s begin your speaking journey!";
     if (percentage < 25) return "Just getting started — keep it up!";
     if (percentage < 50) return "You're warming up — stay focused!";
@@ -120,9 +142,15 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
             <Text style={styles.titleText}>Daily Practice</Text>
             <Text style={styles.messageText}>{getDynamicMessage()}</Text>
           </View>
-          <Text style={styles.progressText}>
-            {achievedMinutes}/{targetMinutes} min
-          </Text>
+          {practiceType === "TIME_BASED" ? (
+            <Text style={styles.progressText}>
+              {achievedMinutes}/{targetMinutes} min
+            </Text>
+          ) : (
+            <Text style={styles.progressText}>
+              {achievedTaskCount}/{targetTaskCount} tasks
+            </Text>
+          )}
         </View>
       </View>
 
