@@ -646,7 +646,7 @@ const CallingWidget: React.FC<Props> = ({
         stream.addChunkListener((chunk) => {
           const pcmBase64 = chunk;
           if (
-            isMicActive.current &&
+            // isMicActive.current &&
             ws.current &&
             ws.current.readyState === WebSocket.OPEN
           ) {
@@ -740,7 +740,7 @@ const CallingWidget: React.FC<Props> = ({
         const ab = pcmArrayBuffer.slice(0);
 
         if (
-          isMicActive.current &&
+          // isMicActive.current &&
           ws.current &&
           ws.current.readyState === WebSocket.OPEN
         ) {
@@ -976,7 +976,7 @@ const CallingWidget: React.FC<Props> = ({
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
-          isMicActive.current = false;
+          // isMicActive.current = false;
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak.");
@@ -991,7 +991,7 @@ const CallingWidget: React.FC<Props> = ({
         setTurn("agent");
         setStatus("Agent is speaking...");
         ttsStreamEnded.current = false;
-        isMicActive.current = false;
+        // isMicActive.current = false;
         handleAudioChunkFromServer(data.data);
         break;
       case "audio_end":
@@ -1004,9 +1004,12 @@ const CallingWidget: React.FC<Props> = ({
         break;
       case "interrupted":
         try {
+          // This command tells the playback worklet to discard all buffered audio immediately.
+          // This is what makes the AI voice stop instantly.
           (playbackNode.current?.port as any)?.postMessage({
             cmd: "flushImmediate",
           });
+          console.log("🎤 AI interrupted. Flushing audio buffer.");
         } catch {}
         stopRingTone();
         setTurn("user");
