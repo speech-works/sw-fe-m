@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   PhoneCallEDPStackNavigationProp,
@@ -9,16 +9,17 @@ import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScenarioCard from "./components/ScenarioCard";
-import {
-  DifficultyLevel,
-  ExposurePracticeType,
-} from "../../../../../../api/dailyPractice/types";
 import { useUserStore } from "../../../../../../stores/user";
 import CallingWidget from "../../../../../../components/CallingWidget";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import { scenarioData } from "./dummy";
 
 const PhoneCall = () => {
   const navigation =
@@ -26,47 +27,115 @@ const PhoneCall = () => {
       PhoneCallEDPStackNavigationProp<keyof PhoneCallEDPStackParamList>
     >();
   const { user } = useUserStore();
+
+  // State for bottom sheet visibility
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const closeModal = () => setIsModalVisible(false);
+
+  // State for the currently selected scenario, initialized with the first item
+  const [selectedScenario, setSelectedScenario] = useState(scenarioData[0]);
+
   return (
-    <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>AI Phone Calls</Text>
-          </TouchableOpacity>
-        </View>
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          <ScenarioCard
-            onToggle={() => {}}
-            selectedScenario={{
-              id: "1",
-              type: ExposurePracticeType.PHONE_CALL_SIMULATION,
-              name: "Order a pizza",
-              description: "Call Dominos and order a pizza for yourself",
-              difficulty: DifficultyLevel.MEDIUM,
-            }}
-          />
-        </CustomScrollView>
-        {/* Move CallingWidget outside CustomScrollView if it should always be visible at the bottom */}
-        {user && (
-          <View style={styles.footerView}>
-            <CallingWidget
-              userId={user.id}
-              //websocketUrl={"wss://api.speechworks.in"}
-              websocketUrl="ws://192.168.1.104:3000"
-              //websocketUrl="ws://localhost:3000"
-            />
+    <>
+      <ScreenView style={styles.screenView}>
+        <View style={styles.container}>
+          <View style={styles.topNavigationContainer}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.topNavigation}
+            >
+              <Icon
+                name="chevron-left"
+                size={16}
+                color={theme.colors.text.default}
+              />
+              <Text style={styles.topNavigationText}>AI Phone Calls</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
-    </ScreenView>
+          <CustomScrollView contentContainerStyle={styles.scrollContainer}>
+            <ScenarioCard
+              onToggle={() => setIsModalVisible(true)}
+              selectedScenario={selectedScenario}
+            />
+          </CustomScrollView>
+          {user && (
+            <View style={styles.footerView}>
+              <CallingWidget
+                userId={user.id}
+                //websocketUrl={"wss://api.speechworks.in"}
+                websocketUrl="ws://192.168.1.104:3000"
+                //websocketUrl="ws://localhost:3000"
+              />
+            </View>
+          )}
+        </View>
+      </ScreenView>
+
+      <BottomSheetModal
+        visible={isModalVisible}
+        onClose={closeModal}
+        maxHeight="80%"
+      >
+        <View style={styles.modalContent}>
+          <View style={styles.modalTitleContainer}>
+            <Text style={styles.modalTitleText}>Practice Scenarios</Text>
+            <Text style={styles.modalDescText}>
+              Select a scenario to practice
+            </Text>
+          </View>
+
+          <CustomScrollView
+            style={styles.modalScrollView}
+            nestedScrollEnabled={true}
+            contentContainerStyle={styles.modalScrollContainer}
+          >
+            {scenarioData.map((scenario, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.scenarioCard,
+                  selectedScenario?.id === scenario.id &&
+                    styles.selectedScenarioCard,
+                ]}
+                onPress={() => {
+                  setSelectedScenario(scenario);
+                  closeModal();
+                }}
+              >
+                <View style={styles.scenarioIconContainer}>
+                  <Icon
+                    solid
+                    name={scenario.icon}
+                    size={24}
+                    color={theme.colors.actionPrimary.default}
+                  />
+                </View>
+                <View style={styles.scenarioDescContainer}>
+                  <Text
+                    style={[
+                      styles.scenarioNameText,
+                      selectedScenario?.id === scenario.id &&
+                        styles.selectedCardText,
+                    ]}
+                  >
+                    {scenario.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.scenarioDetailText,
+                      selectedScenario?.id === scenario.id &&
+                        styles.selectedCardText,
+                    ]}
+                  >
+                    {scenario.description}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </CustomScrollView>
+        </View>
+      </BottomSheetModal>
+    </>
   );
 };
 
@@ -77,13 +146,13 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   container: {
-    flex: 1, // This is crucial for the footer to position itself at the bottom
+    flex: 1,
     gap: 32,
   },
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
-    flexGrow: 1, // Allows CustomScrollView to take available space
+    flexGrow: 1,
   },
   topNavigationContainer: {
     position: "relative",
@@ -108,7 +177,72 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: SHADOW_BUFFER, // Add some padding similar to your scrollContainer
-    backgroundColor: theme.colors.background.default, // Or whatever background color your screen has
+    padding: SHADOW_BUFFER,
+    backgroundColor: theme.colors.background.default,
+  },
+  modalContent: {
+    paddingVertical: 24,
+    width: "100%",
+    flex: 1,
+    flexDirection: "column",
+    gap: 32,
+  },
+  modalTitleContainer: {
+    gap: 12,
+    alignItems: "center",
+  },
+  modalTitleText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+  },
+  modalDescText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+  modalScrollView: {
+    flex: 1,
+    padding: 4,
+  },
+  modalScrollContainer: {
+    gap: 16,
+    alignItems: "center",
+  },
+  scenarioCard: {
+    width: "100%",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    backgroundColor: theme.colors.surface.elevated,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  selectedScenarioCard: {
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+  selectedCardText: {
+    color: theme.colors.text.onDark,
+  },
+  scenarioIconContainer: {
+    height: 40,
+    width: 40,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface.default,
+  },
+  scenarioDescContainer: {
+    gap: 4,
+    flexShrink: 1,
+  },
+  scenarioNameText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+  scenarioDetailText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.default,
   },
 });
