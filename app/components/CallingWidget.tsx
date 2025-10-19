@@ -36,11 +36,10 @@ type Props = {
 const DEFAULT_SAMPLE_RATE = 24000;
 
 // Buffer / pacing constants (kept as previously)
-const JITTER_BUFFER_MS = 200;
-const MAX_BUFFER_MS = 400;
+const JITTER_BUFFER_MS = 350;
+const MAX_BUFFER_MS = 700;
 const FADE_MS = 8;
 
-// RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
 class ResamplerProcessor extends AudioWorkletProcessor {
 constructor() { super(); }
@@ -96,8 +95,6 @@ process(inputs) {
 registerProcessor("resampler-processor", ResamplerProcessor);
 `;
 
-// PLAYBACK WORKLET — (kept as before; expects Float32Array buffers)
-// FULLY CORRECTED AND ROBUST PLAYBACK WORKLET
 const PLAYBACK_WORKLET_CODE = `
 class PlaybackProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -113,8 +110,15 @@ class PlaybackProcessor extends AudioWorkletProcessor {
     this.targetSamples = Math.floor(${JITTER_BUFFER_MS} / 1000 * sampleRate);
     this.lowWaterMark = Math.floor(this.targetSamples * 0.5);
     this.highWaterMark = Math.floor(this.targetSamples * 1.5);
-    
-    this.initialThreshold = this.targetSamples;
+
+    // --- FIX 1: NEW - Define the cross-fade duration in samples ---
+    this.FADE_SAMPLES = 128; // A small value (e.g., ~5ms at 24kHz) is enough to remove clicks.
+
+    // --- FIX 2: MODIFIED - Increase the initial buffer threshold ---
+    // We'll now wait until we have a larger buffer before starting playback.
+    // This provides a better safety margin against network jitter.
+    this.initialThreshold = this.highWaterMark;
+
     this.maxBufferLength = Math.floor(${MAX_BUFFER_MS} / 1000 * sampleRate);
 
     this.fadeSamples = Math.max(1, Math.floor(${FADE_MS} / 1000 * sampleRate));
@@ -151,14 +155,10 @@ class PlaybackProcessor extends AudioWorkletProcessor {
     const newBuf = new Float32Array(newCap);
 
     if (this.samplesQueued > 0) {
-        // --- BUG FIX 1: Use the integer part of the read position for slicing ---
         const readPosInt = Math.floor(this._readPosFloat);
-
         if (readPosInt < this.writePos) {
-            // Data is in a single block
             newBuf.set(this.buffer.subarray(readPosInt, this.writePos), 0);
         } else {
-            // Data is wrapped around
             const first = this.buffer.subarray(readPosInt, this.capacity);
             const second = this.buffer.subarray(0, this.writePos);
             newBuf.set(first, 0);
@@ -167,13 +167,36 @@ class PlaybackProcessor extends AudioWorkletProcessor {
     }
     this.buffer = newBuf;
     this.capacity = newCap;
-    // After compacting, the read head is at the start, retaining only its fractional part
     this._readPosFloat -= Math.floor(this._readPosFloat); 
-    // The write head is now at the end of the valid data
     this.writePos = this.samplesQueued;
   }
 
   _pushToRing(arr) {
+    // --- FIX 3: NEW - Cross-fading logic ---
+    // If we have enough audio buffered and the new chunk is large enough,
+    // we can perform a cross-fade to smoothly bridge the chunks.
+    if (this.samplesQueued > this.FADE_SAMPLES && arr.length > this.FADE_SAMPLES) {
+      for (let i = 0; i < this.FADE_SAMPLES; i++) {
+        // Get the sample from the tail of the existing buffer
+        const tailIndex = (this.writePos - this.FADE_SAMPLES + i + this.capacity) % this.capacity;
+        const tailSample = this.buffer[tailIndex];
+
+        // Get the sample from the head of the new incoming chunk
+        const headSample = arr[i];
+
+        // Calculate the fade-out gain (decreases) and fade-in gain (increases)
+        const fadeOutGain = 1.0 - (i / this.FADE_SAMPLES);
+        const fadeInGain = i / this.FADE_SAMPLES;
+
+        // The blended sample is the sum of the fading tail and the fading-in head.
+        const blendedSample = (tailSample * fadeOutGain) + (headSample * fadeInGain);
+
+        // Overwrite the tail of the existing buffer with the blended sample.
+        // This creates a seamless transition into the new chunk.
+        this.buffer[tailIndex] = blendedSample;
+      }
+    }
+
     const len = arr.length;
     if (this.samplesQueued + len > this.maxBufferLength) {
       return;
@@ -189,7 +212,6 @@ class PlaybackProcessor extends AudioWorkletProcessor {
       this.buffer.set(arr.subarray(firstLen), 0);
       this.writePos = remaining;
     }
-    // This is a simple circular buffer write; wrap if we reach the end.
     if (this.writePos >= this.capacity) {
         this.writePos -= this.capacity;
     }
@@ -202,61 +224,38 @@ class PlaybackProcessor extends AudioWorkletProcessor {
 
   _readInterpolatedSample() {
     if (this.samplesQueued < 2) return null;
-
     const i0 = Math.floor(this._readPosFloat);
     const t = this._readPosFloat - i0;
-
     const a = this.buffer[i0];
     const b = this.buffer[(i0 + 1) % this.capacity];
-
     const sample = a + (b - a) * t;
-
     const oldReadPosInt = Math.floor(this._readPosFloat);
     this._readPosFloat += this.playbackRate;
-
-    // --- BUG FIX 2: Wrap the read pointer to stay within the buffer's bounds ---
     if (this._readPosFloat >= this.capacity) {
         this._readPosFloat -= this.capacity;
     }
-
     const consumed = (Math.floor(this._readPosFloat) - oldReadPosInt + this.capacity) % this.capacity;
     this.samplesQueued -= consumed;
-
     return sample;
   }
   
-_adjustPlaybackRate() {
-    // --- NEW: Proportional and Smoothed Rate Adjustment ---
-
-    const minRate = 0.98; // Play up to 2% slower
-    const maxRate = 1.02; // Play up to 2% faster
-    const smoothingFactor = 0.99; // How smoothly the rate changes. 0.99 is very smooth.
-
-    let targetRate;
-
-    if (this.samplesQueued > this.highWaterMark) {
-      // If we are above the high water mark, aim for the max speed to drain the buffer.
-      targetRate = maxRate;
-    } else if (this.samplesQueued < this.lowWaterMark) {
-      // If we are below the low water mark, aim for the min speed to allow the buffer to fill.
-      targetRate = minRate;
-    } else {
-      // We are within the ideal buffer range. Calculate a rate proportional to our position.
-      // The further we are from the target, the more we adjust the speed.
-      const deviation = this.samplesQueued - this.targetSamples;
-      const adjustmentRange = this.highWaterMark - this.targetSamples;
-      
-      // Calculate how much to adjust from the normal rate of 1.0
-      const adjustment = (deviation / adjustmentRange) * (maxRate - 1.0);
-      targetRate = 1.0 + adjustment;
-    }
-
-    // Clamp the target rate to ensure it's within our min/max bounds.
-    const clampedTargetRate = Math.max(minRate, Math.min(maxRate, targetRate));
-    
-    // Smooth the transition to the new rate to avoid abrupt changes in pitch/speed.
-    // This acts like a low-pass filter on the playbackRate itself.
-    this.playbackRate = (this.playbackRate * smoothingFactor) + (clampedTargetRate * (1.0 - smoothingFactor));
+  _adjustPlaybackRate() {
+      const minRate = 0.98;
+      const maxRate = 1.02;
+      const smoothingFactor = 0.99;
+      let targetRate;
+      if (this.samplesQueued > this.highWaterMark) {
+          targetRate = maxRate;
+      } else if (this.samplesQueued < this.lowWaterMark) {
+          targetRate = minRate;
+      } else {
+          const deviation = this.samplesQueued - this.targetSamples;
+          const adjustmentRange = this.highWaterMark - this.targetSamples;
+          const adjustment = (deviation / adjustmentRange) * (maxRate - 1.0);
+          targetRate = 1.0 + adjustment;
+      }
+      const clampedTargetRate = Math.max(minRate, Math.min(maxRate, targetRate));
+      this.playbackRate = (this.playbackRate * smoothingFactor) + (clampedTargetRate * (1.0 - smoothingFactor));
   }
 
   process(inputs, outputs) {
@@ -264,6 +263,7 @@ _adjustPlaybackRate() {
     if (!out || out.length === 0) return true;
     const channel = out[0];
 
+    // The condition for starting playback is now stricter due to the higher initialThreshold
     if (!this.initialized || this.samplesQueued < this.initialThreshold) {
       for (let i = 0; i < channel.length; i++) channel[i] = 0;
       if (this.samplesQueued === 0 && this._previouslyHadSamples) {
