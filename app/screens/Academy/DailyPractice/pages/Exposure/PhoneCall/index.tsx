@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
   modalScrollContainer: {
     gap: 16,
     alignItems: "center",
+    paddingBottom: 32,
   },
   scenarioCard: {
     width: "100%",

@@ -552,6 +552,7 @@ const styles = StyleSheet.create({
   scrollContainer2: {
     gap: 16,
     alignItems: "center",
+    paddingBottom: 32,
     // NO flex:1 here—let content size itself
   },
 
