@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   PhoneCallEDPStackNavigationProp,
@@ -19,7 +19,13 @@ import ScenarioCard from "./components/ScenarioCard";
 import { useUserStore } from "../../../../../../stores/user";
 import CallingWidget from "../../../../../../components/CallingWidget";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import { scenarioData } from "./dummy";
+import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
+import {
+  ExposurePracticeType,
+  PhoneCallScenario,
+} from "../../../../../../api/dailyPractice/types";
+import { triggerToast } from "../../../../../../util/functions/toast";
+import axios from "axios";
 
 const PhoneCall = () => {
   const navigation =
@@ -28,12 +34,36 @@ const PhoneCall = () => {
     >();
   const { user } = useUserStore();
 
+  const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
+  // State for the currently selected scenario, initialized with the first item
+  const [selectedScenario, setSelectedScenario] = useState<PhoneCallScenario>();
+
   // State for bottom sheet visibility
   const [isModalVisible, setIsModalVisible] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
-  // State for the currently selected scenario, initialized with the first item
-  const [selectedScenario, setSelectedScenario] = useState(scenarioData[0]);
+  useEffect(() => {
+    const fetchScenarios = async () => {
+      try {
+        const data = await getPhoneCallScenarios();
+
+        setScenarioData(data);
+        if (data.length > 0) {
+          setSelectedScenario(data[0]);
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          triggerToast(
+            "error",
+            "Try Later",
+            error.response.data.error ||
+              "An error occurred while fetching call scenarios."
+          );
+        }
+      }
+    };
+    fetchScenarios();
+  }, []);
 
   return (
     <>
@@ -53,18 +83,21 @@ const PhoneCall = () => {
             </TouchableOpacity>
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <ScenarioCard
-              onToggle={() => setIsModalVisible(true)}
-              selectedScenario={selectedScenario}
-            />
+            {selectedScenario && (
+              <ScenarioCard
+                onToggle={() => setIsModalVisible(true)}
+                selectedScenario={selectedScenario}
+              />
+            )}
           </CustomScrollView>
           {user && (
             <View style={styles.footerView}>
               <CallingWidget
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.1.104:3000"
+                websocketUrl="ws://192.168.1.2:3000"
                 //websocketUrl="ws://localhost:3000"
+                scenarioId={selectedScenario?.id}
               />
             </View>
           )}

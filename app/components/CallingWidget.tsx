@@ -19,11 +19,6 @@ import {
 import PCMPlayer from "react-native-pcm-player-lite";
 import DeviceInfo from "react-native-device-info";
 
-/**
- * CallingWidget — Fix: convert incoming Int16 PCM -> Float32 before posting to playback worklet.
- * Only audio-format / chunk-delivery code changed; everything else preserved.
- */
-
 type Props = {
   websocketUrl: string;
   userId?: string;
@@ -32,14 +27,16 @@ type Props = {
   onCallEnd?: () => void;
   ringtoneAsset?: number;
   ringtoneUri?: string;
+  scenarioId?: string;
 };
 const DEFAULT_SAMPLE_RATE = 24000;
 
-// Buffer / pacing constants (kept as previously)
-const JITTER_BUFFER_MS = 350;
-const MAX_BUFFER_MS = 700;
-const FADE_MS = 8;
+// Buffer / pacing constants
+const JITTER_BUFFER_MS = 300;
+const MAX_BUFFER_MS = 400;
+const FADE_MS = 12;
 
+// RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
 class ResamplerProcessor extends AudioWorkletProcessor {
 constructor() { super(); }
@@ -95,210 +92,231 @@ process(inputs) {
 registerProcessor("resampler-processor", ResamplerProcessor);
 `;
 
+// PLAYBACK WORKLET — with simplified and robust final_done logic
 const PLAYBACK_WORKLET_CODE = `
 class PlaybackProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this.capacity = Math.max(16384, Math.floor(0.5 * sampleRate));
-    this.buffer = new Float32Array(this.capacity);
-    this.writePos = 0;
-    this.samplesQueued = 0;
+constructor() {
+  super();
+  this.capacity = Math.max(16384, Math.floor(0.5 * sampleRate));
+  this.buffer = new Float32Array(this.capacity);
+  this.readPos = 0;
+  this.samplesQueued = 0;
+  this.sourceOffset = 0.0;
+  this._previouslyHadSamples = false;
+  this.baseRate = 0.92;
+  this.targetPlaybackRate = this.baseRate;
+  this.currentPlaybackRate = this.baseRate;
+  this.maxRateStepPerFrame = 0.0002;
+  this.initialThreshold = Math.floor(${JITTER_BUFFER_MS} / 1000 * sampleRate);
+  this.fadeSamples = Math.max(1, Math.floor(${FADE_MS} / 1000 * sampleRate));
+  this.silenceToPlaybackRamp = 0;
+  this.initialized = false;
+  this.maxBufferLength = Math.floor(${MAX_BUFFER_MS} / 1000 * sampleRate);
+  this.justWarmed = false;
+  this.finalExpected = false;
 
-    this._readPosFloat = 0.0;
-    this.playbackRate = 1.0;
-
-    this.targetSamples = Math.floor(${JITTER_BUFFER_MS} / 1000 * sampleRate);
-    this.lowWaterMark = Math.floor(this.targetSamples * 0.5);
-    this.highWaterMark = Math.floor(this.targetSamples * 1.5);
-
-    // --- FIX 1: NEW - Define the cross-fade duration in samples ---
-    this.FADE_SAMPLES = 128; // A small value (e.g., ~5ms at 24kHz) is enough to remove clicks.
-
-    // --- FIX 2: MODIFIED - Increase the initial buffer threshold ---
-    // We'll now wait until we have a larger buffer before starting playback.
-    // This provides a better safety margin against network jitter.
-    this.initialThreshold = this.highWaterMark;
-
-    this.maxBufferLength = Math.floor(${MAX_BUFFER_MS} / 1000 * sampleRate);
-
-    this.fadeSamples = Math.max(1, Math.floor(${FADE_MS} / 1000 * sampleRate));
-    this.silenceToPlaybackRamp = 0;
-    this.initialized = false;
-    this._previouslyHadSamples = false;
-
-    this.port.onmessage = (e) => {
-      const msg = e.data;
-      if (!msg) return;
-      if (msg.cmd === "init") {
-        this.initialized = true;
-        return;
+  this.port.onmessage = (e) => {
+    const msg = e.data;
+    if (!msg) return;
+    if (msg.cmd === "init") {
+      if (msg.thresholdSamples) this.initialThreshold = msg.thresholdSamples;
+      if (msg.fadeSamples) this.fadeSamples = msg.fadeSamples;
+      if (typeof msg.playbackRate === "number") {
+        this.baseRate = Math.max(0.75, Math.min(1.0, msg.playbackRate));
+        this.targetPlaybackRate = Math.min(this.targetPlaybackRate, this.baseRate);
       }
-      if (msg.cmd === "chunk" && msg.buffer) {
-        const arr = new Float32Array(msg.buffer);
-        this._pushToRing(arr);
-      }
-      if (msg.cmd === "flushImmediate") {
-        this.writePos = 0;
-        this.samplesQueued = 0;
-        this._readPosFloat = 0.0;
-        this.silenceToPlaybackRamp = 0;
-        this.port.postMessage({ cmd: "drain" });
-      }
-    };
-  }
-
-  _ensureCapacity(additional) {
-    if (this.samplesQueued + additional <= this.capacity) return;
-    
-    let newCap = this.capacity;
-    while (newCap < this.samplesQueued + additional) newCap *= 2;
-    const newBuf = new Float32Array(newCap);
-
-    if (this.samplesQueued > 0) {
-        const readPosInt = Math.floor(this._readPosFloat);
-        if (readPosInt < this.writePos) {
-            newBuf.set(this.buffer.subarray(readPosInt, this.writePos), 0);
-        } else {
-            const first = this.buffer.subarray(readPosInt, this.capacity);
-            const second = this.buffer.subarray(0, this.writePos);
-            newBuf.set(first, 0);
-            newBuf.set(second, first.length);
-        }
-    }
-    this.buffer = newBuf;
-    this.capacity = newCap;
-    this._readPosFloat -= Math.floor(this._readPosFloat); 
-    this.writePos = this.samplesQueued;
-  }
-
-  _pushToRing(arr) {
-    // --- FIX 3: NEW - Cross-fading logic ---
-    // If we have enough audio buffered and the new chunk is large enough,
-    // we can perform a cross-fade to smoothly bridge the chunks.
-    if (this.samplesQueued > this.FADE_SAMPLES && arr.length > this.FADE_SAMPLES) {
-      for (let i = 0; i < this.FADE_SAMPLES; i++) {
-        // Get the sample from the tail of the existing buffer
-        const tailIndex = (this.writePos - this.FADE_SAMPLES + i + this.capacity) % this.capacity;
-        const tailSample = this.buffer[tailIndex];
-
-        // Get the sample from the head of the new incoming chunk
-        const headSample = arr[i];
-
-        // Calculate the fade-out gain (decreases) and fade-in gain (increases)
-        const fadeOutGain = 1.0 - (i / this.FADE_SAMPLES);
-        const fadeInGain = i / this.FADE_SAMPLES;
-
-        // The blended sample is the sum of the fading tail and the fading-in head.
-        const blendedSample = (tailSample * fadeOutGain) + (headSample * fadeInGain);
-
-        // Overwrite the tail of the existing buffer with the blended sample.
-        // This creates a seamless transition into the new chunk.
-        this.buffer[tailIndex] = blendedSample;
-      }
-    }
-
-    const len = arr.length;
-    if (this.samplesQueued + len > this.maxBufferLength) {
+      this.initialized = true;
       return;
     }
-    this._ensureCapacity(len);
-    if (this.writePos + len <= this.capacity) {
-      this.buffer.set(arr, this.writePos);
-      this.writePos += len;
-    } else {
-      const firstLen = this.capacity - this.writePos;
-      this.buffer.set(arr.subarray(0, firstLen), this.writePos);
-      const remaining = len - firstLen;
-      this.buffer.set(arr.subarray(firstLen), 0);
-      this.writePos = remaining;
+    if (msg.cmd === "set_rate" && typeof msg.rate === "number") {
+      const requested = msg.rate;
+      if (msg.allowAboveBase) {
+        this.targetPlaybackRate = Math.max(0.75, Math.min(1.25, requested));
+      } else {
+        this.targetPlaybackRate = Math.max(0.75, Math.min(this.baseRate, requested));
+      }
+      return;
     }
-    if (this.writePos >= this.capacity) {
-        this.writePos -= this.capacity;
+    // Simplified handler: just set the flag. The process() loop will handle sending the message reliably.
+    if (msg.cmd === "final_expected") {
+        this.finalExpected = true;
+        return;
     }
-    this.samplesQueued += len;
-    if (!this._previouslyHadSamples && this.samplesQueued > 0) {
+    if (msg.cmd === "chunk" && msg.buffer) {
+      const arr = new Float32Array(msg.buffer);
+      this._pushToRing(arr);
+      if (this.samplesQueued >= this.initialThreshold) {
+        this.justWarmed = true;
+      } else {
+        this.justWarmed = false;
+      }
+    }
+    if (msg.cmd === "flushImmediate") {
+      this.readPos = 0;
+      this.samplesQueued = 0;
+      this.sourceOffset = 0.0;
       this.silenceToPlaybackRamp = 0;
-      this._previouslyHadSamples = true;
-    }
-  }
-
-  _readInterpolatedSample() {
-    if (this.samplesQueued < 2) return null;
-    const i0 = Math.floor(this._readPosFloat);
-    const t = this._readPosFloat - i0;
-    const a = this.buffer[i0];
-    const b = this.buffer[(i0 + 1) % this.capacity];
-    const sample = a + (b - a) * t;
-    const oldReadPosInt = Math.floor(this._readPosFloat);
-    this._readPosFloat += this.playbackRate;
-    if (this._readPosFloat >= this.capacity) {
-        this._readPosFloat -= this.capacity;
-    }
-    const consumed = (Math.floor(this._readPosFloat) - oldReadPosInt + this.capacity) % this.capacity;
-    this.samplesQueued -= consumed;
-    return sample;
-  }
-  
-  _adjustPlaybackRate() {
-      const minRate = 0.98;
-      const maxRate = 1.02;
-      const smoothingFactor = 0.99;
-      let targetRate;
-      if (this.samplesQueued > this.highWaterMark) {
-          targetRate = maxRate;
-      } else if (this.samplesQueued < this.lowWaterMark) {
-          targetRate = minRate;
-      } else {
-          const deviation = this.samplesQueued - this.targetSamples;
-          const adjustmentRange = this.highWaterMark - this.targetSamples;
-          const adjustment = (deviation / adjustmentRange) * (maxRate - 1.0);
-          targetRate = 1.0 + adjustment;
-      }
-      const clampedTargetRate = Math.max(minRate, Math.min(maxRate, targetRate));
-      this.playbackRate = (this.playbackRate * smoothingFactor) + (clampedTargetRate * (1.0 - smoothingFactor));
-  }
-
-  process(inputs, outputs) {
-    const out = outputs[0];
-    if (!out || out.length === 0) return true;
-    const channel = out[0];
-
-    // The condition for starting playback is now stricter due to the higher initialThreshold
-    if (!this.initialized || this.samplesQueued < this.initialThreshold) {
-      for (let i = 0; i < channel.length; i++) channel[i] = 0;
-      if (this.samplesQueued === 0 && this._previouslyHadSamples) {
-        this._previouslyHadSamples = false;
-        this.port.postMessage({ cmd: "drain" });
-      }
-      return true;
-    }
-
-    this._adjustPlaybackRate();
-
-    for (let i = 0; i < channel.length; i++) {
-      const s = this._readInterpolatedSample();
-      if (s === null) {
-        channel[i] = 0;
-        this.silenceToPlaybackRamp = 0;
-        continue;
-      }
-      if (this.silenceToPlaybackRamp < this.fadeSamples) {
-        const g = (this.silenceToPlaybackRamp + 1) / this.fadeSamples;
-        channel[i] = s * g;
-        this.silenceToPlaybackRamp++;
-      } else {
-        channel[i] = s;
-      }
-    }
-    
-    if (this.samplesQueued <= 1 && this._previouslyHadSamples) {
       this._previouslyHadSamples = false;
+      this.currentPlaybackRate = this.targetPlaybackRate = this.baseRate;
       this.port.postMessage({ cmd: "drain" });
-    } else if (this.samplesQueued > 1) {
-      this._previouslyHadSamples = true;
     }
+    if (msg.cmd === "flush") {
+      this.readPos = 0;
+      this.samplesQueued = 0;
+      this.sourceOffset = 0.0;
+      this.silenceToPlaybackRamp = 0;
+      this._previouslyHadSamples = false;
+      this.currentPlaybackRate = this.targetPlaybackRate = this.baseRate;
+    }
+  };
+}
+
+_ensureCapacity(additional) {
+  if (this.samplesQueued + additional <= this.capacity) return;
+  let newCap = this.capacity;
+  while (newCap < this.samplesQueued + additional) newCap *= 2;
+  const newBuf = new Float32Array(newCap);
+  if (this.samplesQueued > 0) {
+    if (this.readPos + this.samplesQueued <= this.capacity) {
+      newBuf.set(this.buffer.subarray(this.readPos, this.readPos + this.samplesQueued), 0);
+    } else {
+      const first = this.buffer.subarray(this.readPos, this.capacity);
+      const second = this.buffer.subarray(0, (this.readPos + this.samplesQueued) % this.capacity);
+      newBuf.set(first, 0);
+      newBuf.set(second, first.length);
+    }
+  }
+  this.buffer = newBuf;
+  this.capacity = newCap;
+  this.readPos = 0;
+}
+
+_pushToRing(arr) {
+  const len = arr.length;
+  if (this.samplesQueued + len > this.maxBufferLength) return;
+  this._ensureCapacity(len);
+  let writePos = (this.readPos + this.samplesQueued) % this.capacity;
+  if (writePos + len <= this.capacity) {
+    this.buffer.set(arr, writePos);
+  } else {
+    const firstLen = this.capacity - writePos;
+    this.buffer.set(arr.subarray(0, firstLen), writePos);
+    this.buffer.set(arr.subarray(firstLen), 0);
+  }
+  this.samplesQueued += len;
+  if (!this._previouslyHadSamples && this.samplesQueued > 0) {
+    this.silenceToPlaybackRamp = 0;
+    this._previouslyHadSamples = true;
+  }
+}
+
+_readInterpolatedSample() {
+  if (this.samplesQueued <= 0) return null;
+  const integerOffset = Math.floor(this.sourceOffset);
+  const frac = this.sourceOffset - integerOffset;
+  const idx0 = (this.readPos + integerOffset) % this.capacity;
+  const idx1 = (this.readPos + integerOffset + 1) % this.capacity;
+  const v0 = this.buffer[idx0] || 0;
+  const v1 = this.buffer[idx1] || 0;
+  const sample = v0 * (1 - frac) + v1 * frac;
+  this.sourceOffset += this.currentPlaybackRate;
+  let consumed = Math.floor(this.sourceOffset);
+  if (consumed > 0) {
+    this.readPos = (this.readPos + consumed) % this.capacity;
+    this.samplesQueued = Math.max(0, this.samplesQueued - consumed);
+    this.sourceOffset = this.sourceOffset - consumed;
+  }
+  return sample;
+}
+
+process(inputs, outputs) {
+  const out = outputs[0];
+  if (!out || out.length === 0) return true;
+  const channel = out[0];
+
+  if (!this.initialized) {
+    for (let i = 0; i < channel.length; i++) channel[i] = 0;
     return true;
   }
+
+  const allowedTarget = this.justWarmed ? Math.min(this.targetPlaybackRate, this.baseRate) : Math.min(this.targetPlaybackRate, this.baseRate);
+  const rateDiff = allowedTarget - this.currentPlaybackRate;
+  const step = this.maxRateStepPerFrame;
+  if (Math.abs(rateDiff) > step) {
+    this.currentPlaybackRate += Math.sign(rateDiff) * step;
+  } else {
+    this.currentPlaybackRate = allowedTarget;
+  }
+
+  if (this.samplesQueued < this.initialThreshold) {
+    for (let i = 0; i < channel.length; i++) channel[i] = 0;
+    // --- START: MODIFICATION ---
+    // Simplified drain check during warmup
+    if (this.samplesQueued === 0 && this._previouslyHadSamples) {
+        this._previouslyHadSamples = false;
+        this.port.postMessage({ cmd: "drain" });
+    }
+    // --- END: MODIFICATION ---
+    return true;
+  }
+
+  const lowWaterMark = Math.floor(this.initialThreshold * 0.5);
+  if (this.samplesQueued < lowWaterMark) {
+    const diff = this.baseRate - this.currentPlaybackRate;
+    const smallStep = Math.min(Math.abs(diff), this.maxRateStepPerFrame);
+    if (diff > 0) this.currentPlaybackRate += smallStep;
+    else this.currentPlaybackRate -= Math.min(Math.abs(diff), this.maxRateStepPerFrame);
+  }
+
+  for (let i = 0; i < channel.length; i++) {
+    const s = this._readInterpolatedSample();
+    if (s === null) {
+      channel[i] = 0;
+      this.silenceToPlaybackRamp = 0;
+      continue;
+    }
+    if (this.silenceToPlaybackRamp < this.fadeSamples) {
+      const g = (this.silenceToPlaybackRamp + 1) / this.fadeSamples;
+      channel[i] = s * g;
+      this.silenceToPlaybackRamp++;
+    } else {
+      channel[i] = s;
+    }
+  }
+
+  // --- START: MODIFICATION - Robust Drain and Final Logic ---
+  if (this.samplesQueued > 0) {
+      this._previouslyHadSamples = true;
+  } else { // samplesQueued is 0
+      if (this._previouslyHadSamples) {
+          // We just drained
+          this.port.postMessage({ cmd: 'drain' });
+          // console.log("Worklet drained."); // Optional: uncomment for debugging
+      }
+      this._previouslyHadSamples = false;
+  }
+
+
+if (this.finalExpected) {
+  // Accept truly empty OR "nearly empty" buffers as drained.
+  const nearlyEmptyThreshold = Math.max(1, this.fadeSamples); // small grace area
+  if (this.samplesQueued === 0) {
+    this.port.postMessage({ cmd: "final_done" });
+    this.finalExpected = false;
+  } else if (this.samplesQueued <= nearlyEmptyThreshold) {
+    // Force-clean the tiny remainder — avoids sticking on residual samples.
+    this.readPos = 0;
+    this.samplesQueued = 0;
+    this.sourceOffset = 0.0;
+    this.port.postMessage({ cmd: "final_done" });
+    this.finalExpected = false;
+  }
+}
+
+
+  return true;
+  // --- END: MODIFICATION ---
+}
 }
 registerProcessor("playback-processor", PlaybackProcessor);
 `;
@@ -316,6 +334,7 @@ const CallingWidget: React.FC<Props> = ({
   onCallEnd,
   ringtoneAsset,
   ringtoneUri,
+  scenarioId,
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState(INITIAL_STATUS_MESSAGE);
@@ -342,13 +361,7 @@ const CallingWidget: React.FC<Props> = ({
   const resamplerPortOnMessageHandler = useRef<
     ((ev: MessageEvent) => void) | null
   >(null);
-  // pendingChunks now holds Float32 ArrayBuffer frames (ready for worklet)
   const pendingChunks = useRef<ArrayBuffer[]>([]);
-  const ttsStreamEnded = useRef(false);
-
-  // final-drain coordination (unchanged behavior)
-  const finalAudioPending = useRef(false);
-  const finalAudioTimer = useRef<number | null>(null);
 
   // Ringtone refs
   const ringIntervalRef = useRef<number | null>(null);
@@ -382,30 +395,7 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  const clearFinalAudioTimer = () => {
-    try {
-      if (finalAudioTimer.current !== null) {
-        clearTimeout(finalAudioTimer.current);
-        finalAudioTimer.current = null;
-      }
-    } catch {}
-  };
-
-  const scheduleFinalAudioFallback = (ms = 1200) => {
-    clearFinalAudioTimer();
-    finalAudioTimer.current = setTimeout(() => {
-      if (finalAudioPending.current) {
-        finalAudioPending.current = false;
-        setStatus("Agent finished speaking. Your turn.");
-        setTurn("user");
-        isMicActive.current = true;
-      }
-      finalAudioTimer.current = null;
-    }, ms) as unknown as number;
-  };
-
   const cleanupAudio = async () => {
-    clearFinalAudioTimer();
     await stopNativeRingtone();
     isMicActive.current = false;
 
@@ -602,17 +592,6 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // Convert PCM16 (little-endian) ArrayBuffer -> Float32 ArrayBuffer (normalized [-1,1])
-  const convertInt16ToFloat32Buffer = (ab: ArrayBuffer): ArrayBuffer => {
-    // create Int16 view
-    const int16 = new Int16Array(ab);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) {
-      float32[i] = int16[i] / 32768; // normalize
-    }
-    return float32.buffer;
-  };
-
   const startAudioCapture = async () => {
     console.log("startAudioCapture called");
     if (Platform.OS === "ios" || Platform.OS === "android") {
@@ -623,7 +602,7 @@ const CallingWidget: React.FC<Props> = ({
           return;
         }
         if (typeof InputAudioStream === "undefined" || !InputAudioStream) {
-          const errorMessage = "Mic streaming module failed to load.";
+          const errorMessage = "Microphone streaming module failed to load.";
           console.error(errorMessage);
           setStatus("Mic error: " + errorMessage);
           return;
@@ -646,7 +625,7 @@ const CallingWidget: React.FC<Props> = ({
         stream.addChunkListener((chunk) => {
           const pcmBase64 = chunk;
           if (
-            // isMicActive.current &&
+            isMicActive.current &&
             ws.current &&
             ws.current.readyState === WebSocket.OPEN
           ) {
@@ -697,9 +676,8 @@ const CallingWidget: React.FC<Props> = ({
       playbackNode.current = playback;
       playback.connect(ctx.destination);
 
-      // initialize worklet
       try {
-        (playback.port as any).postMessage({
+        playback.port.postMessage({
           cmd: "init",
           playbackRate: 0.92,
           thresholdSamples: Math.floor((JITTER_BUFFER_MS / 1000) * sampleRate),
@@ -711,26 +689,21 @@ const CallingWidget: React.FC<Props> = ({
         const d = ev.data;
         if (!d || !d.cmd) return;
         if (d.cmd === "drain") {
-          // optional logging
+          console.log("playback worklet drained");
         } else if (d.cmd === "final_done") {
-          // optional logging + fallback handling maybe in other patch
+          console.log("playback worklet final_done received by main thread.");
+          setStatus("Agent finished speaking. Your turn.");
+          setTurn("user");
+          isMicActive.current = true;
         }
       };
 
-      // If we have pending chunks (Float32 buffers), deliver them now
       if (pendingChunks.current.length > 0) {
         const snapshot = pendingChunks.current.slice();
-        for (const floatAb of snapshot) {
+        for (const ab of snapshot) {
           try {
-            (playback.port as any).postMessage(
-              { cmd: "chunk", buffer: floatAb },
-              [floatAb]
-            );
-          } catch (e) {
-            try {
-              playback.port.postMessage({ cmd: "chunk", buffer: floatAb });
-            } catch {}
-          }
+            playback.port.postMessage({ cmd: "chunk", buffer: ab }, [ab]);
+          } catch (e) {}
         }
         pendingChunks.current = [];
       }
@@ -740,12 +713,11 @@ const CallingWidget: React.FC<Props> = ({
         const ab = pcmArrayBuffer.slice(0);
 
         if (
-          // isMicActive.current &&
+          isMicActive.current &&
           ws.current &&
           ws.current.readyState === WebSocket.OPEN
         ) {
           try {
-            // send raw 16-bit to server (server likely expects 16-bit)
             ws.current.send(ab);
           } catch (e) {
             outgoingMicBuffer.current.push(ab);
@@ -753,7 +725,7 @@ const CallingWidget: React.FC<Props> = ({
               outgoingMicBuffer.current.shift();
           }
         } else if (!isMicActive.current) {
-          // discard while AEC runs
+          // discard
         } else {
           outgoingMicBuffer.current.push(ab);
           if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
@@ -775,7 +747,7 @@ const CallingWidget: React.FC<Props> = ({
       resampler.connect(silentGain);
       silentGain.connect(ctx.destination);
 
-      console.log("Web worklets started");
+      console.log("Web worklets started (pacing hardened)");
     }
   };
 
@@ -797,14 +769,6 @@ const CallingWidget: React.FC<Props> = ({
         interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
       });
-
-      if (Platform.OS === "ios" || Platform.OS === "android") {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-        });
-      }
     } catch (e) {
       console.error("Failed to set audio mode:", e);
       setStatus("Audio setup failed.");
@@ -823,6 +787,14 @@ const CallingWidget: React.FC<Props> = ({
           pcmPlayer.current = PCMPlayer;
           if (typeof pcmPlayer.current.start === "function") {
             await pcmPlayer.current.start(sampleRate);
+            try {
+              if (typeof pcmPlayer.current.setPlaybackRate === "function")
+                pcmPlayer.current.setPlaybackRate(0.92);
+              else if (typeof pcmPlayer.current.setSpeed === "function")
+                pcmPlayer.current.setSpeed(0.92);
+            } catch (e) {
+              console.warn("native set rate failed", e);
+            }
           } else {
             setStatus("Player init failed.");
             return;
@@ -849,7 +821,9 @@ const CallingWidget: React.FC<Props> = ({
       setStatus("Connected. Joined backend.");
       setIsCalling(true);
       onCallStart?.();
-      ws.current?.send(JSON.stringify({ type: "join", userId }));
+      ws.current?.send(
+        JSON.stringify({ type: "join", userId, scenarioId: scenarioId })
+      );
     };
     ws.current.onmessage = async (msg) => {
       try {
@@ -888,11 +862,8 @@ const CallingWidget: React.FC<Props> = ({
     ws.current = null;
     stopRingTone();
     try {
-      (playbackNode.current?.port as any)?.postMessage({
-        cmd: "flushImmediate",
-      });
+      playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
     } catch {}
-    clearFinalAudioTimer();
     await cleanupAudio();
     setIsCalling(false);
     setStatus("Call ended.");
@@ -909,48 +880,32 @@ const CallingWidget: React.FC<Props> = ({
     return bytes.buffer;
   }
 
-  // IMPORTANT: convert incoming server audio (likely Int16 PCM) -> Float32 ArrayBuffer
   const handleAudioChunkFromServer = async (data: any) => {
     if (Platform.OS === "web") {
       const pcmBuffer =
         typeof data === "string" ? base64ToArrayBuffer(data) : data;
-      // convert Int16 -> Float32 normalized
-      let float32Buffer: ArrayBuffer;
-      try {
-        float32Buffer = convertInt16ToFloat32Buffer(pcmBuffer);
-      } catch (e) {
-        // if conversion fails, fall back to sending raw buffer (less likely to work)
-        console.warn(
-          "PCM16->Float32 conversion failed, sending raw buffer as fallback:",
-          e
-        );
-        float32Buffer = pcmBuffer.slice(0);
-      }
-
+      const ab = pcmBuffer.slice(0);
       if (playbackNode.current) {
         try {
-          (playbackNode.current.port as any).postMessage(
-            { cmd: "chunk", buffer: float32Buffer },
-            [float32Buffer]
-          );
+          playbackNode.current.port.postMessage({ cmd: "chunk", buffer: ab }, [
+            ab,
+          ]);
         } catch (e) {
           try {
             playbackNode.current.port.postMessage({
               cmd: "chunk",
-              buffer: float32Buffer,
+              buffer: ab.slice(0),
             });
           } catch (err) {
             console.warn("deliver chunk failed", err);
           }
         }
       } else {
-        // store ready-to-post Float32 buffers in pendingChunks
-        pendingChunks.current.push(float32Buffer);
+        pendingChunks.current.push(ab);
       }
     } else {
-      // Native playback: PCMPlayer likely expects Base64 of Int16 — keep previous behavior
       if (!pcmPlayer.current) {
-        console.error("PCM player not initialized, skipping chunk.");
+        console.error("PCM player not initialized");
         return;
       }
       let base64Chunk: string;
@@ -967,16 +922,17 @@ const CallingWidget: React.FC<Props> = ({
   const handleControlMessage = (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
-        setStatus("Deepgram ready. Start speaking!");
-        setTurn("user");
-        isMicActive.current = true;
+        // --- START: MODIFICATION ---
+        // Just update status. Turn switches via worklet 'final_done' after greeting.
+        setStatus("AI is ready.");
+        // --- END: MODIFICATION ---
         break;
       case "turn":
         if (data.turn === "agent") {
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
-          // isMicActive.current = false;
+          isMicActive.current = false;
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak.");
@@ -990,27 +946,96 @@ const CallingWidget: React.FC<Props> = ({
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
-        ttsStreamEnded.current = false;
-        // isMicActive.current = false;
+        isMicActive.current = false;
         handleAudioChunkFromServer(data.data);
         break;
-      case "audio_end":
-        setTimeout(() => {
+      case "audio_end": {
+        // Tell the worklet we expect final audio; if playbackNode missing,
+        // immediately move to user's turn so UI doesn't block.
+        let sent = false;
+        try {
+          if (playbackNode.current) {
+            playbackNode.current.port.postMessage({ cmd: "final_expected" });
+            sent = true;
+          }
+        } catch (e) {
+          console.warn("Failed to post final_expected to worklet:", e);
+        }
+
+        setStatus("Finishing playback...");
+
+        // Short fallback: force user-turn if final_done not received in time
+        const FALLBACK_MS = 1000;
+        const fallbackId = setTimeout(() => {
+          console.warn(
+            "final_done not received within fallback window — forcing user turn."
+          );
+          setStatus("Your turn to speak.");
+          setTurn("user");
+          isMicActive.current = true;
+        }, FALLBACK_MS);
+
+        // Typed handler: use a normal function so TypeScript knows `this` is MessagePort
+        function onFinalDone(this: MessagePort, ev: MessageEvent) {
+          try {
+            const d = (ev && (ev as any).data) || {};
+            // Some worklets post an object; others post a string - be defensive
+            const cmd =
+              d && d.cmd ? d.cmd : typeof d === "string" ? d : undefined;
+            if (cmd !== "final_done") return;
+
+            // Cancel fallback and switch turn
+            clearTimeout(fallbackId);
+            setStatus("Agent finished speaking. Your turn.");
+            setTurn("user");
+            isMicActive.current = true;
+
+            // Remove listener (safe even if `once` was used)
+            try {
+              this.removeEventListener?.(
+                "message",
+                onFinalDone as EventListener
+              );
+            } catch (e) {}
+          } catch (e) {
+            console.warn("onFinalDone handler error", e);
+          }
+        }
+
+        try {
+          // Prefer addEventListener with once:true if available
+          if (playbackNode.current?.port?.addEventListener) {
+            playbackNode.current.port.addEventListener(
+              "message",
+              onFinalDone as EventListener,
+              { once: true }
+            );
+          } else if (playbackNode.current?.port) {
+            // Fallback: patch onmessage while preserving any existing handler
+            const old = playbackNode.current.port.onmessage;
+            playbackNode.current.port.onmessage = (ev: any) => {
+              onFinalDone.call(playbackNode.current!.port, ev);
+              if (old) old.call(playbackNode.current!.port, ev);
+            };
+          }
+        } catch (e) {
+          // Let the fallback timer handle it
+        }
+
+        // If playback node missing entirely, immediately unstick and let user speak
+        if (!sent) {
+          clearTimeout(fallbackId);
           setStatus("Agent finished speaking. Your turn.");
           setTurn("user");
-          ttsStreamEnded.current = false;
           isMicActive.current = true;
-        }, 300);
+        }
         break;
+      }
+
       case "interrupted":
         try {
-          // This command tells the playback worklet to discard all buffered audio immediately.
-          // This is what makes the AI voice stop instantly.
-          (playbackNode.current?.port as any)?.postMessage({
-            cmd: "flushImmediate",
-          });
-          console.log("🎤 AI interrupted. Flushing audio buffer.");
-        } catch {}
+          playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
+        } catch (e) {}
         stopRingTone();
         setTurn("user");
         setStatus("You can now speak. (Interrupted)");
@@ -1026,7 +1051,7 @@ const CallingWidget: React.FC<Props> = ({
     if (Platform.OS === "web") return null;
     const icon = headsetConnected ? "🎧" : "🔇";
     const text = headsetConnected ? "Headset Connected" : "No Headset";
-    const color = headsetConnected ? "#10b981" : "#f87171";
+    const color = headsetConnected ? "#10b1" : "#f87171";
     return (
       <View style={styles.headsetIndicator}>
         <Text style={[styles.headsetIcon, { color }]}>{icon}</Text>
@@ -1078,8 +1103,6 @@ const CallingWidget: React.FC<Props> = ({
     </View>
   );
 };
-
-export default CallingWidget;
 
 const styles = StyleSheet.create({
   container: {
@@ -1169,3 +1192,5 @@ const styles = StyleSheet.create({
     color: "#16a34a",
   },
 });
+
+export default CallingWidget;

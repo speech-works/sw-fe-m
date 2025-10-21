@@ -6,6 +6,7 @@ import {
   ExposurePracticeType,
   FunPractice,
   FunPracticeType,
+  PhoneCallScenario,
   ReadingPractice,
   ReadingPracticeType,
 } from "./types";
@@ -73,6 +74,26 @@ export async function getReadingPracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all reading practice by type:",
+      error
+    );
+    throw error;
+  }
+}
+
+export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
+  try {
+    const response = await axiosClient.get(
+      "/exposure-practice/phone-call-scenarios"
+    );
+    const data = response.data;
+    const mappedData = data.map((scenario: PhoneCallScenario) => ({
+      ...scenario,
+      type: ExposurePracticeType.PHONE_CALL_SIMULATION,
+    }));
+    return mappedData;
+  } catch (error) {
+    console.error(
+      "There was a problem with getting phone call scenarios:",
       error
     );
     throw error;

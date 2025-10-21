@@ -205,3 +205,14 @@ export interface ReadingPractice {
   difficulty: DifficultyLevel;
   textContent?: string;
 }
+
+// Phone Call Scenario
+
+export interface PhoneCallScenario {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  type: ExposurePracticeType.PHONE_CALL_SIMULATION;
+}
