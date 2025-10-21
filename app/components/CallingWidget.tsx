@@ -372,6 +372,8 @@ const CallingWidget: React.FC<Props> = ({
   const nativeRingtoneRef = useRef<Audio.Sound | null>(null);
   const nativeRingtoneLoading = useRef(false);
 
+  const finalFallbackId = useRef<number | null>(null);
+
   const checkHeadsetConnected = async (): Promise<boolean> => {
     if (Platform.OS === "web") return true;
     try {
@@ -625,7 +627,7 @@ const CallingWidget: React.FC<Props> = ({
         stream.addChunkListener((chunk) => {
           const pcmBase64 = chunk;
           if (
-            isMicActive.current &&
+            //isMicActive.current &&
             ws.current &&
             ws.current.readyState === WebSocket.OPEN
           ) {
@@ -691,7 +693,15 @@ const CallingWidget: React.FC<Props> = ({
         if (d.cmd === "drain") {
           console.log("playback worklet drained");
         } else if (d.cmd === "final_done") {
-          console.log("playback worklet final_done received by main thread.");
+          console.log("playback worklet final_done", d);
+
+          // Clear any fallback timer waiting to force user turn
+          if (finalFallbackId.current) {
+            clearTimeout(finalFallbackId.current);
+            finalFallbackId.current = null;
+          }
+
+          // Normal successful flow: hand control back to user
           setStatus("Agent finished speaking. Your turn.");
           setTurn("user");
           isMicActive.current = true;
@@ -713,7 +723,7 @@ const CallingWidget: React.FC<Props> = ({
         const ab = pcmArrayBuffer.slice(0);
 
         if (
-          isMicActive.current &&
+          //isMicActive.current &&
           ws.current &&
           ws.current.readyState === WebSocket.OPEN
         ) {
@@ -932,7 +942,7 @@ const CallingWidget: React.FC<Props> = ({
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
-          isMicActive.current = false;
+          //isMicActive.current = false;
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak.");
@@ -946,101 +956,65 @@ const CallingWidget: React.FC<Props> = ({
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
-        isMicActive.current = false;
+        //isMicActive.current = false;
         handleAudioChunkFromServer(data.data);
         break;
+
       case "audio_end": {
-        // Tell the worklet we expect final audio; if playbackNode missing,
-        // immediately move to user's turn so UI doesn't block.
-        let sent = false;
+        // Tell the worklet we expect final audio frames
         try {
-          if (playbackNode.current) {
-            playbackNode.current.port.postMessage({ cmd: "final_expected" });
-            sent = true;
-          }
+          playbackNode.current?.port.postMessage({ cmd: "final_expected" });
         } catch (e) {
           console.warn("Failed to post final_expected to worklet:", e);
         }
 
         setStatus("Finishing playback...");
 
-        // Short fallback: force user-turn if final_done not received in time
-        const FALLBACK_MS = 1000;
-        const fallbackId = setTimeout(() => {
+        // Reset any existing fallback, then start a new one.
+        if (finalFallbackId.current) {
+          clearTimeout(finalFallbackId.current);
+          finalFallbackId.current = null;
+        }
+
+        // Fallback: if we don't receive final_done within this window, unstick UI.
+        const FALLBACK_MS = 1000; // 1 second — conservative
+        finalFallbackId.current = window.setTimeout(() => {
           console.warn(
             "final_done not received within fallback window — forcing user turn."
           );
+          finalFallbackId.current = null;
           setStatus("Your turn to speak.");
           setTurn("user");
           isMicActive.current = true;
         }, FALLBACK_MS);
 
-        // Typed handler: use a normal function so TypeScript knows `this` is MessagePort
-        function onFinalDone(this: MessagePort, ev: MessageEvent) {
-          try {
-            const d = (ev && (ev as any).data) || {};
-            // Some worklets post an object; others post a string - be defensive
-            const cmd =
-              d && d.cmd ? d.cmd : typeof d === "string" ? d : undefined;
-            if (cmd !== "final_done") return;
-
-            // Cancel fallback and switch turn
-            clearTimeout(fallbackId);
-            setStatus("Agent finished speaking. Your turn.");
-            setTurn("user");
-            isMicActive.current = true;
-
-            // Remove listener (safe even if `once` was used)
-            try {
-              this.removeEventListener?.(
-                "message",
-                onFinalDone as EventListener
-              );
-            } catch (e) {}
-          } catch (e) {
-            console.warn("onFinalDone handler error", e);
-          }
-        }
-
-        try {
-          // Prefer addEventListener with once:true if available
-          if (playbackNode.current?.port?.addEventListener) {
-            playbackNode.current.port.addEventListener(
-              "message",
-              onFinalDone as EventListener,
-              { once: true }
-            );
-          } else if (playbackNode.current?.port) {
-            // Fallback: patch onmessage while preserving any existing handler
-            const old = playbackNode.current.port.onmessage;
-            playbackNode.current.port.onmessage = (ev: any) => {
-              onFinalDone.call(playbackNode.current!.port, ev);
-              if (old) old.call(playbackNode.current!.port, ev);
-            };
-          }
-        } catch (e) {
-          // Let the fallback timer handle it
-        }
-
-        // If playback node missing entirely, immediately unstick and let user speak
-        if (!sent) {
-          clearTimeout(fallbackId);
-          setStatus("Agent finished speaking. Your turn.");
-          setTurn("user");
-          isMicActive.current = true;
-        }
         break;
       }
 
-      case "interrupted":
+      case "interrupted": {
+        // Immediate stop & flush of playback so user can speak right away.
         try {
           playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
-        } catch (e) {}
+        } catch (e) {
+          console.warn("Failed to post flushImmediate to worklet:", e);
+        }
+
+        // Stop any ringtones
         stopRingTone();
+
+        // Clear fallback if present (we're already switching to user)
+        if (finalFallbackId.current) {
+          clearTimeout(finalFallbackId.current);
+          finalFallbackId.current = null;
+        }
+
+        // Switch to user turn and enable mic
         setTurn("user");
         setStatus("You can now speak. (Interrupted)");
         isMicActive.current = true;
         break;
+      }
+
       default:
         break;
     }
