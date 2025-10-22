@@ -378,8 +378,10 @@ const CallingWidget: React.FC<Props> = ({
   const isAudioReady = useRef(false);
   // Holds audio that arrives before the player is warm
   const pendingAudioChunks = useRef<string[]>([]);
-  // Prevents multiple startCall() taps
-  const isPlayerStarting = useRef(false);
+
+  const audioState = useRef<"IDLE" | "STARTING" | "STARTED" | "STOPPING">(
+    "IDLE"
+  );
 
   const isPlayerInitialized = useRef(false);
 
@@ -423,7 +425,6 @@ const CallingWidget: React.FC<Props> = ({
     // 1. Immediately cut off all NEW audio from JavaScript.
     isAudioReady.current = false;
     pendingAudioChunks.current = []; // Clear queue
-    isPlayerStarting.current = false;
 
     // 2. Get a local ref to the player.
     const playerToStop = pcmPlayer.current;
@@ -800,6 +801,16 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   const startCall = async () => {
+    // --- 1. STATE LOCK ---
+    if (audioState.current !== "IDLE") {
+      console.warn(
+        `[State] Ignoring startCall, state is ${audioState.current}`
+      );
+      return;
+    }
+    console.log("[State] Setting state to STARTING");
+    audioState.current = "STARTING";
+    // --- END LOCK ---
     setStatus("Preparing audio...");
     if (Platform.OS !== "web") {
       await updateHeadsetStatus();
@@ -823,22 +834,15 @@ const CallingWidget: React.FC<Props> = ({
       return;
     }
 
-    if (Platform.OS === "web") startRingTone();
-    else {
+    if (Platform.OS === "web") {
+      startRingTone();
+      audioState.current = "STARTED";
+    } else {
       startNativeRingtone();
       if (PCMPlayer && typeof PCMPlayer !== "string") {
-        // 1. Prevent double-taps
-        if (isPlayerStarting.current) {
-          console.warn(
-            "[PCMPlayer] Start call ignored, player is already starting."
-          );
-          return;
-        }
-        isPlayerStarting.current = true; // Set lock
-
         try {
           if (isPlayerInitialized.current) {
-            // 2. ALWAYS STOP FIRST (Cooldown)
+            // ALWAYS STOP FIRST (Cooldown)
             // This cleans up the singleton, even on the 1st call.
             if (typeof PCMPlayer.stop === "function") {
               console.log(
@@ -847,12 +851,12 @@ const CallingWidget: React.FC<Props> = ({
               await PCMPlayer.stop();
             }
 
-            // 3. ALWAYS DELAY (Cooldown)
+            // ALWAYS DELAY (Cooldown)
             // Gives the native thread time to release the hardware.
             await new Promise((resolve) => setTimeout(resolve, 250));
           }
 
-          // 4. ASSIGN AND START
+          // ASSIGN AND START
           pcmPlayer.current = PCMPlayer;
           if (typeof pcmPlayer.current.start === "function") {
             console.log("[PCMPlayer] Starting new audio track...");
@@ -860,7 +864,7 @@ const CallingWidget: React.FC<Props> = ({
             // Set this to true *after* start() succeeds.
             // It will now be true for all subsequent calls.
             isPlayerInitialized.current = true;
-            // 5. START WARM-UP (DON'T AWAIT)
+            // START WARM-UP (DON'T AWAIT)
             // We start a timer. When it fires, we'll flush the audio queue.
             // We use 300ms as a safe "warm-up" time.
             setTimeout(() => {
@@ -868,7 +872,6 @@ const CallingWidget: React.FC<Props> = ({
                 "[PCMPlayer] AudioTrack is now considered warm. Flushing queue."
               );
               isAudioReady.current = true;
-              isPlayerStarting.current = false; // Release lock
 
               // Now, flush any audio that arrived during warm-up
               if (
@@ -887,18 +890,22 @@ const CallingWidget: React.FC<Props> = ({
             }, 300);
           } else {
             setStatus("Player init failed.");
-            isPlayerStarting.current = false; // Release lock
+            console.log("[State] Setting state to IDLE (init fail)");
+            audioState.current = "IDLE"; // --- Release lock on fail
             return;
           }
         } catch (e) {
           console.error("Failed to start PCMPlayer:", e);
           pcmPlayer.current = null;
           setStatus("Player init failed: " + (e as Error).message);
-          isPlayerStarting.current = false; // Release lock
+          console.log("[State] Setting state to IDLE (start error)");
+          audioState.current = "IDLE"; // --- Release lock on fail
           return;
         }
       } else {
         setStatus("Player module missing.");
+        console.log("[State] Setting state to IDLE (no module)");
+        audioState.current = "IDLE"; // --- Release lock on fail
         return;
       }
     }
@@ -930,13 +937,14 @@ const CallingWidget: React.FC<Props> = ({
       }
     };
     ws.current.onclose = (event) => {
-      setStatus("Disconnected");
-      stopRingTone();
-      setIsCalling(false);
-      setTurn(null);
-      onCallEnd?.();
-      cleanupAudio();
-      updateHeadsetStatus();
+      // setStatus("Disconnected");
+      // stopRingTone();
+      // setIsCalling(false);
+      // setTurn(null);
+      // onCallEnd?.();
+      // cleanupAudio();
+      // updateHeadsetStatus();
+      endCall();
     };
     ws.current.onerror = (err) => {
       console.error("WebSocket error:", err);
@@ -945,23 +953,48 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   const endCall = async () => {
-    try {
-      ws.current?.send(JSON.stringify({ type: "end_call" }));
-    } catch {}
-    try {
-      ws.current?.close();
-    } catch {}
-    ws.current = null;
+    // --- 1. STATE LOCK ---
+    // Prevent this from running multiple times
+    if (audioState.current === "STOPPING" || audioState.current === "IDLE") {
+      console.log(`[State] Ignoring endCall, state is ${audioState.current}`);
+      return;
+    }
+    console.log("[State] Setting state to STOPPING");
+    audioState.current = "STOPPING";
+    // --- END LOCK ---
+
+    // 2. Stop UI
     stopRingTone();
-    try {
-      playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
-    } catch {}
-    await cleanupAudio();
     setIsCalling(false);
     setStatus("Call ended.");
     setTurn(null);
     onCallEnd?.();
+
+    // 3. Stop WebSocket
+    try {
+      ws.current?.send(JSON.stringify({ type: "end_call" }));
+    } catch {}
+    try {
+      if (ws.current) {
+        ws.current.onclose = null; // Prevent onclose from re-firing endCall
+        ws.current.onerror = null;
+      }
+      ws.current?.close();
+    } catch {}
+    ws.current = null;
+
+    // 4. Stop Hardware
+    try {
+      playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
+    } catch {}
+
+    // This calls our safe cleanup function
+    await cleanupAudio();
+
+    // 5. Reset UI and Unlock State
     updateHeadsetStatus();
+    console.log("[State] Setting state to IDLE");
+    audioState.current = "IDLE";
   };
 
   function base64ToArrayBuffer(base64: string) {
