@@ -383,6 +383,11 @@ const CallingWidget: React.FC<Props> = ({
     "IDLE"
   );
 
+  // STOPPING guard (fast, low-level)
+  const isStopping = useRef(false);
+  // Unique identifier per call to ignore stale async events from prior calls
+  const callId = useRef(0);
+
   const isPlayerInitialized = useRef(false);
 
   const checkHeadsetConnected = async (): Promise<boolean> => {
@@ -409,6 +414,10 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   const cleanupAudio = async () => {
+    // Invalidate any handlers from this call so delayed events are ignored
+    callId.current += 1;
+    // Ensure low-level handlers drop further chunks as we tear down.
+    isStopping.current = true;
     await stopNativeRingtone();
     isMicActive.current = false;
 
@@ -444,17 +453,17 @@ const CallingWidget: React.FC<Props> = ({
       }
       if (playerToStop) {
         try {
-          // 4. Give a *very* brief "grace period" (e.g., 50ms).
-          // This allows any in-flight native 'write' commands that have
-          // *already* been called from handleAudioChunkFromServer
-          // to hopefully complete before 'stop' destroys the AudioTrack.
-          await new Promise((resolve) => setTimeout(resolve, 50));
-
-          // 5. NOW, call stop.
+          // 4. Stop the player IMMEDIATELY.
+          // This flushes the buffer and silences audio.
+          // The 'isStopping.current' flag (set in endCall) and the fix
+          // in handleAudioChunkFromServer already prevent new chunks from being enqueued.
           if (typeof playerToStop.stop === "function") {
-            console.log("[PCMPlayer] Stopping player instance...");
+            console.log("[PCMPlayer] Stopping player instance immediately...");
             await playerToStop.stop();
           }
+
+          // 5. DO NOT call destroy() or release() here.
+          // The singleton is reset in startCall() using the built-in cooldown logic.
         } catch (e) {
           console.warn("Failed to stop pcmPlayer:", e);
         }
@@ -462,12 +471,18 @@ const CallingWidget: React.FC<Props> = ({
     } else {
       if (resamplerNode.current) {
         try {
+          try {
+            (resamplerNode.current.port as any).onmessage = null;
+          } catch {}
           resamplerNode.current.disconnect();
         } catch {}
         resamplerNode.current = null;
       }
       if (playbackNode.current) {
         try {
+          try {
+            (playbackNode.current.port as any).onmessage = null;
+          } catch {}
           playbackNode.current.disconnect();
         } catch {}
         playbackNode.current = null;
@@ -479,6 +494,9 @@ const CallingWidget: React.FC<Props> = ({
         audioContext.current = null;
       }
     }
+
+    // Ensure we don't hold stale function refs
+    resamplerPortOnMessageHandler.current = null;
 
     try {
       await Audio.setAudioModeAsync({
@@ -717,6 +735,9 @@ const CallingWidget: React.FC<Props> = ({
       playbackNode.current = playback;
       playback.connect(ctx.destination);
 
+      // capture the call id for this set of nodes — used to ignore stale events
+      const myCallId = callId.current;
+
       try {
         playback.port.postMessage({
           cmd: "init",
@@ -727,6 +748,8 @@ const CallingWidget: React.FC<Props> = ({
       } catch (e) {}
 
       playback.port.onmessage = (ev) => {
+        // ignore if this handler belongs to an earlier call
+        if (myCallId !== callId.current) return;
         const d = ev.data;
         if (!d || !d.cmd) return;
         if (d.cmd === "drain") {
@@ -751,6 +774,8 @@ const CallingWidget: React.FC<Props> = ({
         const snapshot = pendingChunks.current.slice();
         for (const ab of snapshot) {
           try {
+            // ensure we still belong to the same call
+            if (myCallId !== callId.current) break;
             playback.port.postMessage({ cmd: "chunk", buffer: ab }, [ab]);
           } catch (e) {}
         }
@@ -758,6 +783,9 @@ const CallingWidget: React.FC<Props> = ({
       }
 
       resamplerPortOnMessageHandler.current = (ev) => {
+        // ignore if this message belongs to a prior call
+        if (myCallId !== callId.current) return;
+
         const pcmArrayBuffer = ev.data as ArrayBuffer;
         const ab = pcmArrayBuffer.slice(0);
 
@@ -811,6 +839,18 @@ const CallingWidget: React.FC<Props> = ({
     console.log("[State] Setting state to STARTING");
     audioState.current = "STARTING";
     // --- END LOCK ---
+
+    // NEW: assign a fresh call id to invalidate any late handlers from prior calls
+    callId.current += 1;
+
+    // Reset low-level stopping guard and clear leftover queues to avoid
+    // stale chunks bleeding into the next call.
+    isStopping.current = false;
+    pendingChunks.current = [];
+    pendingAudioChunks.current = [];
+    outgoingMicBuffer.current = [];
+    isAudioReady.current = false;
+
     setStatus("Preparing audio...");
     if (Platform.OS !== "web") {
       await updateHeadsetStatus();
@@ -962,6 +1002,8 @@ const CallingWidget: React.FC<Props> = ({
     console.log("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
     // --- END LOCK ---
+    // IMMEDIATELY mark stopping so any low-level handlers drop in-flight chunks.
+    isStopping.current = true;
 
     // 2. Stop UI
     stopRingTone();
@@ -970,17 +1012,28 @@ const CallingWidget: React.FC<Props> = ({
     setTurn(null);
     onCallEnd?.();
 
-    // 3. Stop WebSocket
-    try {
-      ws.current?.send(JSON.stringify({ type: "end_call" }));
-    } catch {}
+    // 3. Stop WebSocket - clear handlers BEFORE closing to avoid a final burst of messages
     try {
       if (ws.current) {
-        ws.current.onclose = null; // Prevent onclose from re-firing endCall
-        ws.current.onerror = null;
+        try {
+          ws.current.onmessage = null;
+        } catch {}
+        try {
+          ws.current.onclose = null;
+        } catch {}
+        try {
+          ws.current.onerror = null;
+        } catch {}
+        try {
+          ws.current.send(JSON.stringify({ type: "end_call" }));
+        } catch {}
+        try {
+          ws.current.close();
+        } catch {}
       }
-      ws.current?.close();
-    } catch {}
+    } catch (e) {
+      console.warn("Error closing ws:", e);
+    }
     ws.current = null;
 
     // 4. Stop Hardware
@@ -1006,6 +1059,11 @@ const CallingWidget: React.FC<Props> = ({
   }
 
   const handleAudioChunkFromServer = async (data: any) => {
+    // If we're stopping/cleaning up, ignore incoming audio immediately.
+    if (isStopping.current) {
+      // optional debug: console.log("Dropping audio chunk because call is stopping.");
+      return;
+    }
     if (Platform.OS === "web") {
       const pcmBuffer =
         typeof data === "string" ? base64ToArrayBuffer(data) : data;
@@ -1039,17 +1097,31 @@ const CallingWidget: React.FC<Props> = ({
         console.error("Unknown native audio format");
         return;
       }
+
+      // Drop / queue depending on stopping and readiness
+
+      // 1. Hard gate: If we are stopping, drop all chunks immediately.
+      if (isStopping.current) {
+        // optional debug: console.log("Dropping native chunk because stopping");
+        return;
+      }
+
+      // 2. Queue: If player is not warm, queue chunks for later.
       if (!isAudioReady.current) {
-        // Player is not warm yet. Queue this chunk.
         pendingAudioChunks.current.push(base64Chunk);
-      } else {
-        // Player is warm. Send it.
+      }
+      // 3. Play: We are not stopping and player is warm.
+      else {
         try {
-          pcmPlayer.current.enqueueBase64(base64Chunk);
+          if (
+            pcmPlayer.current &&
+            typeof pcmPlayer.current.enqueueBase64 === "function"
+          ) {
+            pcmPlayer.current.enqueueBase64(base64Chunk);
+          }
         } catch (e) {
           console.error("PCMPlayer.enqueueBase64 error:", e);
-          // This could happen if the player crashes mid-call
-          // In this case, we just log the error and drop the chunk
+          // swallow the error (do not rethrow) to avoid native crash
         }
       }
     }
