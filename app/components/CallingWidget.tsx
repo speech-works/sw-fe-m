@@ -374,6 +374,15 @@ const CallingWidget: React.FC<Props> = ({
 
   const finalFallbackId = useRef<number | null>(null);
 
+  // Tracks if the player is "warm" and ready for audio
+  const isAudioReady = useRef(false);
+  // Holds audio that arrives before the player is warm
+  const pendingAudioChunks = useRef<string[]>([]);
+  // Prevents multiple startCall() taps
+  const isPlayerStarting = useRef(false);
+
+  const isPlayerInitialized = useRef(false);
+
   const checkHeadsetConnected = async (): Promise<boolean> => {
     if (Platform.OS === "web") return true;
     try {
@@ -401,6 +410,27 @@ const CallingWidget: React.FC<Props> = ({
     await stopNativeRingtone();
     isMicActive.current = false;
 
+    // Clear all persistent refs to prevent state pollution between calls
+    console.log("Cleaning up audio state for new call...");
+    pendingChunks.current = [];
+    outgoingMicBuffer.current = [];
+
+    if (finalFallbackId.current) {
+      clearTimeout(finalFallbackId.current);
+      finalFallbackId.current = null;
+    }
+
+    // 1. Immediately cut off all NEW audio from JavaScript.
+    isAudioReady.current = false;
+    pendingAudioChunks.current = []; // Clear queue
+    isPlayerStarting.current = false;
+
+    // 2. Get a local ref to the player.
+    const playerToStop = pcmPlayer.current;
+
+    // 3. Set the global ref to null. This stops any new JS calls.
+    pcmPlayer.current = null;
+
     if (Platform.OS === "ios" || Platform.OS === "android") {
       if (micStream.current) {
         try {
@@ -411,11 +441,19 @@ const CallingWidget: React.FC<Props> = ({
           console.warn("Failed to destroy micStream:", e);
         }
       }
-      if (pcmPlayer.current) {
+      if (playerToStop) {
         try {
-          if (typeof pcmPlayer.current.stop === "function")
-            await pcmPlayer.current.stop();
-          pcmPlayer.current = null;
+          // 4. Give a *very* brief "grace period" (e.g., 50ms).
+          // This allows any in-flight native 'write' commands that have
+          // *already* been called from handleAudioChunkFromServer
+          // to hopefully complete before 'stop' destroys the AudioTrack.
+          await new Promise((resolve) => setTimeout(resolve, 50));
+
+          // 5. NOW, call stop.
+          if (typeof playerToStop.stop === "function") {
+            console.log("[PCMPlayer] Stopping player instance...");
+            await playerToStop.stop();
+          }
         } catch (e) {
           console.warn("Failed to stop pcmPlayer:", e);
         }
@@ -789,30 +827,74 @@ const CallingWidget: React.FC<Props> = ({
     else {
       startNativeRingtone();
       if (PCMPlayer && typeof PCMPlayer !== "string") {
+        // 1. Prevent double-taps
+        if (isPlayerStarting.current) {
+          console.warn(
+            "[PCMPlayer] Start call ignored, player is already starting."
+          );
+          return;
+        }
+        isPlayerStarting.current = true; // Set lock
+
         try {
-          if (pcmPlayer.current) {
-            if (typeof pcmPlayer.current.stop === "function")
-              await pcmPlayer.current.stop();
+          if (isPlayerInitialized.current) {
+            // 2. ALWAYS STOP FIRST (Cooldown)
+            // This cleans up the singleton, even on the 1st call.
+            if (typeof PCMPlayer.stop === "function") {
+              console.log(
+                "[PCMPlayer] Cooldown: Stopping any previous instance..."
+              );
+              await PCMPlayer.stop();
+            }
+
+            // 3. ALWAYS DELAY (Cooldown)
+            // Gives the native thread time to release the hardware.
+            await new Promise((resolve) => setTimeout(resolve, 250));
           }
+
+          // 4. ASSIGN AND START
           pcmPlayer.current = PCMPlayer;
           if (typeof pcmPlayer.current.start === "function") {
+            console.log("[PCMPlayer] Starting new audio track...");
             await pcmPlayer.current.start(sampleRate);
-            try {
-              if (typeof pcmPlayer.current.setPlaybackRate === "function")
-                pcmPlayer.current.setPlaybackRate(0.92);
-              else if (typeof pcmPlayer.current.setSpeed === "function")
-                pcmPlayer.current.setSpeed(0.92);
-            } catch (e) {
-              console.warn("native set rate failed", e);
-            }
+            // Set this to true *after* start() succeeds.
+            // It will now be true for all subsequent calls.
+            isPlayerInitialized.current = true;
+            // 5. START WARM-UP (DON'T AWAIT)
+            // We start a timer. When it fires, we'll flush the audio queue.
+            // We use 300ms as a safe "warm-up" time.
+            setTimeout(() => {
+              console.log(
+                "[PCMPlayer] AudioTrack is now considered warm. Flushing queue."
+              );
+              isAudioReady.current = true;
+              isPlayerStarting.current = false; // Release lock
+
+              // Now, flush any audio that arrived during warm-up
+              if (
+                pcmPlayer.current &&
+                typeof pcmPlayer.current.enqueueBase64 === "function"
+              ) {
+                for (const chunk of pendingAudioChunks.current) {
+                  try {
+                    pcmPlayer.current.enqueueBase64(chunk);
+                  } catch (e) {
+                    console.warn("Error flushing chunk from queue:", e);
+                  }
+                }
+              }
+              pendingAudioChunks.current = []; // Clear queue
+            }, 300);
           } else {
             setStatus("Player init failed.");
+            isPlayerStarting.current = false; // Release lock
             return;
           }
         } catch (e) {
           console.error("Failed to start PCMPlayer:", e);
           pcmPlayer.current = null;
-          setStatus("Player init failed.");
+          setStatus("Player init failed: " + (e as Error).message);
+          isPlayerStarting.current = false; // Release lock
           return;
         }
       } else {
@@ -924,8 +1006,19 @@ const CallingWidget: React.FC<Props> = ({
         console.error("Unknown native audio format");
         return;
       }
-      if (typeof pcmPlayer.current.enqueueBase64 === "function")
-        pcmPlayer.current.enqueueBase64(base64Chunk);
+      if (!isAudioReady.current) {
+        // Player is not warm yet. Queue this chunk.
+        pendingAudioChunks.current.push(base64Chunk);
+      } else {
+        // Player is warm. Send it.
+        try {
+          pcmPlayer.current.enqueueBase64(base64Chunk);
+        } catch (e) {
+          console.error("PCMPlayer.enqueueBase64 error:", e);
+          // This could happen if the player crashes mid-call
+          // In this case, we just log the error and drop the chunk
+        }
+      }
     }
   };
 
