@@ -352,6 +352,12 @@ const CallingWidget: React.FC<Props> = ({
 
   const ws = useRef<WebSocket | null>(null);
 
+  const playSeq = useRef(0);
+  // Replace whatever you have now with this:
+  const forcedStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
   // Web Audio Refs
   const audioContext = useRef<AudioContext | null>(null);
   const resamplerNode = useRef<AudioWorkletNode | null>(null);
@@ -1261,146 +1267,156 @@ const CallingWidget: React.FC<Props> = ({
           break;
         }
 
-        // quick dedupe for rapid identical URLs
-        const now = Date.now();
-        if (
-          lastPlayedUrl.current === urlToPlay &&
-          now - (lastPlayTimestamp.current || 0) < 800
-        ) {
-          console.log(
-            "[Audio] Ignoring duplicate play_stream (recent same URL)"
-          );
-          break;
-        }
-        lastPlayedUrl.current = urlToPlay;
-        lastPlayTimestamp.current = now;
+        // bump sequence token - cancels previous play attempts
+        const mySeq = ++playSeq.current;
 
-        if (playLock.current) {
-          console.warn(
-            "[Audio] Playback operation already in progress. Ignoring new request for:",
-            urlToPlay
-          );
-          break;
-        }
-        playLock.current = true;
-        hasStartedPlaying.current = false;
-
+        // If a playback is already in progress, we'll cancel/unload it first.
+        // This prevents multiple voices playing at once.
         (async () => {
-          let createdSound: Audio.Sound | null = null;
-          const thisCallId = callId.current;
+          playLock.current = true;
+          hasStartedPlaying.current = false;
+
+          // Cancel any pending forced-start timer for previous playback
+          if (forcedStartTimeoutRef.current) {
+            clearTimeout(forcedStartTimeoutRef.current);
+            forcedStartTimeoutRef.current = null;
+          }
+
+          // Get and unload previous sound safely
+          const prev = soundRef.current;
+          soundRef.current = null;
+          setSound(null);
+          if (prev) {
+            try {
+              prev.setOnPlaybackStatusUpdate(null);
+            } catch {}
+            try {
+              await prev.stopAsync().catch(() => {});
+            } catch {}
+            try {
+              await prev.unloadAsync().catch(() => {});
+            } catch {}
+          }
+
+          // If call ended or a newer play arrived, abort
+          if (
+            isStopping.current ||
+            mySeq !== playSeq.current ||
+            audioState.current !== "STARTED"
+          ) {
+            playLock.current = false;
+            return;
+          }
+
+          // Create and load new sound manually to avoid callback race
+          const newSound = new Audio.Sound();
+          let destroyed = false;
 
           try {
-            // If web worklet exists, wait for it to drain/finalize (prevents overlap)
-            try {
-              await awaitPlaybackWorkletDrain(700); // 700ms timeout fallback (tune if needed)
-              console.log(
-                "[Audio] playback worklet drained (or flushed) before URL playback."
-              );
-            } catch (e) {
-              console.warn("[Audio] awaitPlaybackWorkletDrain error:", e);
-            }
-
-            // Safely unload previous expo-av sound
-            const previousSound = soundRef.current;
-            soundRef.current = null;
-            setSound(null);
-
-            if (previousSound) {
-              try {
-                previousSound.setOnPlaybackStatusUpdate(null);
-                await previousSound.stopAsync();
-                await previousSound.unloadAsync();
-              } catch (e) {
-                console.warn("[Audio] Error unloading previous sound:", e);
-              }
-            }
-
-            // abort if call changed
-            if (
-              isStopping.current ||
-              audioState.current !== "STARTED" ||
-              thisCallId !== callId.current
-            ) {
-              playLock.current = false;
-              return;
-            }
-
-            console.log("[Audio] Creating sound for url:", urlToPlay);
-            const res = await Audio.Sound.createAsync(
+            // Attach status update AFTER load to ensure it references the real instance
+            await newSound.loadAsync(
               { uri: urlToPlay },
               { shouldPlay: false, progressUpdateIntervalMillis: 200 }
             );
-
-            createdSound = res.sound;
-
-            // safety guard in case call changed mid-op
-            if (isStopping.current || thisCallId !== callId.current) {
+            // abort if newer play started while loading
+            if (
+              mySeq !== playSeq.current ||
+              isStopping.current ||
+              audioState.current !== "STARTED"
+            ) {
               try {
-                await createdSound?.unloadAsync();
+                await newSound.unloadAsync();
               } catch {}
               playLock.current = false;
               return;
             }
 
-            // store ref & state
-            soundRef.current = createdSound;
-            setSound(createdSound);
-
-            // Single start: ensure audible and then play
-            try {
-              await createdSound.setVolumeAsync(1.0);
-              if ((createdSound as any).setIsMutedAsync) {
-                try {
-                  await (createdSound as any).setIsMutedAsync(false);
-                } catch {}
-              }
-              await createdSound.playAsync();
-              hasStartedPlaying.current = true;
-              console.log("[Audio] playAsync started for url:", urlToPlay);
-            } catch (e) {
-              console.error("[Audio] Error during playAsync:", e);
+            // set status callback
+            newSound.setOnPlaybackStatusUpdate(async (status) => {
               try {
-                await createdSound?.unloadAsync();
-              } catch {}
-              soundRef.current = null;
-              setSound(null);
-              playLock.current = false;
-              hasStartedPlaying.current = false;
-              setTurn("user");
-              setStatus("Error playing audio");
-              return;
-            }
+                // ignore callbacks from older sequences
+                if (mySeq !== playSeq.current) return;
 
-            // OPTIONAL: set a safety listener to cleanup when finished (if not already handled elsewhere)
-            const pollFinish = async () => {
-              try {
-                while (createdSound) {
-                  const st = await createdSound.getStatusAsync();
-                  if ((st as any).isLoaded && (st as any).didJustFinish) break;
-                  if (!(st as any).isLoaded) break;
-                  // small sleep
-                  await new Promise((r) => setTimeout(r, 120));
+                // Note: status here is the success shape
+                if (!status.isLoaded) {
+                  if ((status as any).error) {
+                    console.error("[Audio] load error:", (status as any).error);
+                  }
+                  return;
                 }
-              } catch {}
-              // cleanup after finish
-              if (soundRef.current === createdSound) {
-                try {
-                  await createdSound?.unloadAsync();
-                } catch {}
-                soundRef.current = null;
-                setSound(null);
+
+                // start playback when loaded if not already started
+                if (!status.isPlaying && !hasStartedPlaying.current) {
+                  try {
+                    hasStartedPlaying.current = true;
+                    await newSound.setVolumeAsync(1.0);
+                    // some expo versions may not expose setIsMutedAsync — guard it
+                    if ((newSound as any).setIsMutedAsync) {
+                      try {
+                        await (newSound as any).setIsMutedAsync(false);
+                      } catch {}
+                    }
+                    await newSound.playAsync();
+                  } catch (e) {
+                    console.error("[Audio] Error during playAsync:", e);
+                    hasStartedPlaying.current = false;
+                    // release lock on error
+                    playLock.current = false;
+                  }
+                }
+
+                // finish handling
+                if ((status as any).didJustFinish) {
+                  // only clear state if this is the active sequence
+                  if (mySeq === playSeq.current) {
+                    try {
+                      await newSound.unloadAsync();
+                    } catch {}
+                    soundRef.current = null;
+                    setSound(null);
+                    playLock.current = false;
+                    hasStartedPlaying.current = false;
+                  }
+                }
+              } catch (e) {
+                console.warn("[Audio status cb] error:", e);
               }
-              playLock.current = false;
-              hasStartedPlaying.current = false;
-            };
-            pollFinish();
+            });
+
+            // store ref/state
+            soundRef.current = newSound;
+            setSound(newSound);
+
+            // Forced-start fallback after short delay (platform quirks)
+            forcedStartTimeoutRef.current = setTimeout(async () => {
+              try {
+                forcedStartTimeoutRef.current = null;
+                if (mySeq !== playSeq.current || isStopping.current) return;
+                const st = await newSound.getStatusAsync();
+                if (
+                  st.isLoaded &&
+                  !st.isPlaying &&
+                  !hasStartedPlaying.current
+                ) {
+                  hasStartedPlaying.current = true;
+                  await newSound.setVolumeAsync(1.0);
+                  await newSound.playAsync();
+                }
+              } catch (e) {
+                console.warn("[Audio] forced-start error:", e);
+                hasStartedPlaying.current = false;
+                playLock.current = false;
+              }
+            }, 250);
           } catch (e) {
-            console.error("[Audio] Failed to play:", e);
-            setStatus("Error playing audio");
-            setTurn("user");
+            console.error("[Audio] Failed to create/play sound:", e);
             try {
-              await createdSound?.unloadAsync();
+              await newSound.unloadAsync();
             } catch {}
+            if (mySeq === playSeq.current) {
+              setStatus("Error playing audio");
+              setTurn("user");
+            }
             soundRef.current = null;
             setSound(null);
             playLock.current = false;
