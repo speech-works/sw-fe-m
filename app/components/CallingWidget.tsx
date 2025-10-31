@@ -7,7 +7,12 @@ import {
   Platform,
 } from "react-native";
 // These imports are correct for a React Native environment (Expo)
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import {
+  Audio,
+  InterruptionModeAndroid,
+  InterruptionModeIOS,
+  AVPlaybackStatus,
+} from "expo-av";
 // These imports are correct for a React Native environment (Native Modules)
 import {
   InputAudioStream,
@@ -15,9 +20,10 @@ import {
   AUDIO_SOURCES,
   CHANNEL_CONFIGS,
 } from "@dr.pogodin/react-native-audio";
-// This import is correct for a React Native environment (Native Module)
-import PCMPlayer from "react-native-pcm-player-lite";
+
 import DeviceInfo from "react-native-device-info";
+
+import * as FileSystem from "expo-file-system";
 
 type Props = {
   websocketUrl: string;
@@ -339,6 +345,7 @@ const CallingWidget: React.FC<Props> = ({
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState(INITIAL_STATUS_MESSAGE);
   const [turn, setTurn] = useState<"user" | "agent" | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false
   );
@@ -352,7 +359,8 @@ const CallingWidget: React.FC<Props> = ({
 
   // Native refs
   const micStream = useRef<InputAudioStream | null>(null);
-  const pcmPlayer = useRef<any | null>(null);
+
+  const isLoadingSound = useRef(false);
 
   // pacing refs
   const isMicActive = useRef(false);
@@ -373,11 +381,7 @@ const CallingWidget: React.FC<Props> = ({
   const nativeRingtoneLoading = useRef(false);
 
   const finalFallbackId = useRef<number | null>(null);
-
-  // Tracks if the player is "warm" and ready for audio
-  const isAudioReady = useRef(false);
-  // Holds audio that arrives before the player is warm
-  const pendingAudioChunks = useRef<string[]>([]);
+  const recording = useRef<Audio.Recording | null>(null);
 
   const audioState = useRef<"IDLE" | "STARTING" | "STARTED" | "STOPPING">(
     "IDLE"
@@ -388,7 +392,88 @@ const CallingWidget: React.FC<Props> = ({
   // Unique identifier per call to ignore stale async events from prior calls
   const callId = useRef(0);
 
-  const isPlayerInitialized = useRef(false);
+  const soundRef = useRef<Audio.Sound | null>(null); // authoritative native sound object
+  const playLock = useRef<boolean>(false); // prevents overlapping play operations
+  const hasStartedPlaying = useRef<boolean>(false);
+  const lastPlayedUrl = useRef<string | null>(null); // dedupe quick repeats
+  const lastPlayTimestamp = useRef<number>(0);
+
+  // Wait for worklet drain/final_done or timeout. Resolves when safe to start URL playback.
+  const awaitPlaybackWorkletDrain = (timeoutMs = 700): Promise<void> => {
+    return new Promise((resolve) => {
+      try {
+        if (Platform.OS !== "web" || !playbackNode.current) {
+          return resolve();
+        }
+        const port = playbackNode.current.port as any;
+        if (!port) return resolve();
+
+        let finished = false;
+        const oldHandler = port.onmessage;
+
+        const cleanupAndResolve = () => {
+          if (finished) return;
+          finished = true;
+          try {
+            port.onmessage = oldHandler ?? null;
+          } catch {}
+          resolve();
+        };
+
+        // Wrap old handler so existing logic still runs
+        port.onmessage = (ev: any) => {
+          try {
+            const d = ev?.data;
+            // If the worklet explicitly signals final_done or drain -> resolve
+            if (d && (d.cmd === "final_done" || d.cmd === "drain")) {
+              cleanupAndResolve();
+            }
+          } catch (e) {
+            // ignore
+          }
+          // call original handler too (so other parts of the app still get messages)
+          try {
+            if (typeof oldHandler === "function") oldHandler(ev);
+          } catch {}
+        };
+
+        // Ask for a graceful finalization
+        try {
+          port.postMessage({ cmd: "final_expected" });
+        } catch (e) {
+          // best-effort
+        }
+
+        // Timeout fallback: if no response in time, force immediate flush and continue
+        const to = setTimeout(() => {
+          try {
+            // send flushImmediate to clear tiny remnants
+            port.postMessage({ cmd: "flushImmediate" });
+          } catch {}
+          cleanupAndResolve();
+        }, timeoutMs);
+
+        // Ensure cleanup when resolved
+        const origResolve = resolve;
+        resolve = () => {
+          clearTimeout(to);
+          origResolve();
+        };
+      } catch (e) {
+        // if anything fails, resolve immediately to avoid hanging
+        resolve();
+      }
+    });
+  };
+
+  function isPlaybackSuccess(s: AVPlaybackStatus): s is AVPlaybackStatus & {
+    isPlaying: boolean;
+    didJustFinish: boolean;
+    isBuffering: boolean;
+    playableDurationMillis?: number;
+  } {
+    return (s as any).isLoaded === true;
+  }
 
   const checkHeadsetConnected = async (): Promise<boolean> => {
     if (Platform.OS === "web") return true;
@@ -414,97 +499,110 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   const cleanupAudio = async () => {
-    // Invalidate any handlers from this call so delayed events are ignored
-    callId.current += 1;
-    // Ensure low-level handlers drop further chunks as we tear down.
-    isStopping.current = true;
-    await stopNativeRingtone();
-    isMicActive.current = false;
+    callId.current += 1; // Increment call ID to invalidate handlers
+    isStopping.current = true; // Set stopping flag
+    await stopNativeRingtone(); // Stop ringtone if playing
 
-    // Clear all persistent refs to prevent state pollution between calls
     console.log("Cleaning up audio state for new call...");
-    pendingChunks.current = [];
-    outgoingMicBuffer.current = [];
-
+    pendingChunks.current = []; // Clear web pending chunks
+    outgoingMicBuffer.current = []; // Clear web outgoing buffer
     if (finalFallbackId.current) {
+      // Clear web final_done fallback timer
       clearTimeout(finalFallbackId.current);
       finalFallbackId.current = null;
     }
 
-    // 1. Immediately cut off all NEW audio from JavaScript.
-    isAudioReady.current = false;
-    pendingAudioChunks.current = []; // Clear queue
+    // --- START: Combined Cleanup ---
 
-    // 2. Get a local ref to the player.
-    const playerToStop = pcmPlayer.current;
-
-    // 3. Set the global ref to null. This stops any new JS calls.
-    pcmPlayer.current = null;
-
+    // 1. Clean up Mic Stream/Worklets
     if (Platform.OS === "ios" || Platform.OS === "android") {
+      // Native: Destroy InputAudioStream
       if (micStream.current) {
+        console.log("Destroying micStream on cleanup...");
         try {
-          if (typeof micStream.current.destroy === "function")
+          // Check if destroy exists before calling
+          if (typeof micStream.current.destroy === "function") {
             micStream.current.destroy();
-          micStream.current = null;
+          } else {
+            console.warn("micStream.destroy() method not found.");
+          }
         } catch (e) {
           console.warn("Failed to destroy micStream:", e);
         }
-      }
-      if (playerToStop) {
-        try {
-          // 4. Stop the player IMMEDIATELY.
-          // This flushes the buffer and silences audio.
-          // The 'isStopping.current' flag (set in endCall) and the fix
-          // in handleAudioChunkFromServer already prevent new chunks from being enqueued.
-          if (typeof playerToStop.stop === "function") {
-            console.log("[PCMPlayer] Stopping player instance immediately...");
-            await playerToStop.stop();
-          }
-
-          // 5. DO NOT call destroy() or release() here.
-          // The singleton is reset in startCall() using the built-in cooldown logic.
-        } catch (e) {
-          console.warn("Failed to stop pcmPlayer:", e);
-        }
+        micStream.current = null; // Clear the ref
       }
     } else {
+      // Web: Disconnect and nullify worklets and context
       if (resamplerNode.current) {
         try {
-          try {
-            (resamplerNode.current.port as any).onmessage = null;
-          } catch {}
+          (resamplerNode.current.port as any).onmessage = null; // Remove listener
           resamplerNode.current.disconnect();
         } catch {}
         resamplerNode.current = null;
       }
       if (playbackNode.current) {
         try {
-          try {
-            (playbackNode.current.port as any).onmessage = null;
-          } catch {}
+          (playbackNode.current.port as any).onmessage = null; // Remove listener
           playbackNode.current.disconnect();
         } catch {}
         playbackNode.current = null;
       }
       if (audioContext.current) {
         try {
-          audioContext.current.close();
-        } catch {}
+          await audioContext.current.close();
+        } catch {} // Close context
         audioContext.current = null;
+      }
+      resamplerPortOnMessageHandler.current = null; // Clear web handler ref
+    }
+
+    // 2. Clean up expo-av PLAYBACK Sound Object (using soundRef)
+    const soundToUnload = soundRef.current; // Get from ref
+    soundRef.current = null; // Clear ref
+    setSound(null); // Clear state
+
+    if (soundToUnload) {
+      console.log("[Audio] Cleaning up sound object via soundRef.");
+      try {
+        soundToUnload.setOnPlaybackStatusUpdate(null); // Detach listener
+        await soundToUnload.stopAsync(); // Attempt to stop first
+      } catch (e) {
+        console.warn(
+          "[Audio] Error stopping sound during cleanup (might be unloaded):",
+          e
+        );
+      }
+      try {
+        await soundToUnload.unloadAsync(); // Use unloadAsync
+        console.log(
+          "[Audio] Sound object unloaded successfully during cleanup."
+        );
+      } catch (e) {
+        console.warn("[Audio] Error unloading sound during cleanup:", e);
       }
     }
 
-    // Ensure we don't hold stale function refs
-    resamplerPortOnMessageHandler.current = null;
+    // 3. Reset Locks and Refs
+    playLock.current = false; // Reset lock on cleanup
+    hasStartedPlaying.current = false;
+    lastPlayedUrl.current = null;
+    lastPlayTimestamp.current = 0;
+    // isLoadingSound.current = false; // (If you were still using this)
 
+    // --- End Combined Cleanup ---
+
+    // Reset Audio Mode to allow other apps' audio
     try {
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
+        allowsRecordingIOS: false, // Recording disallowed after call
         playsInSilentModeIOS: true,
-        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
-        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers, // Allow others
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers, // Allow others
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: false, // Don't keep audio active when app backgrounds after call
       });
+      console.log("[Audio Mode] Reset after call cleanup.");
     } catch (e) {
       console.warn("Failed to reset audio mode:", e);
     }
@@ -651,182 +749,234 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  const startAudioCapture = async () => {
-    console.log("startAudioCapture called");
-    if (Platform.OS === "ios" || Platform.OS === "android") {
+  const sendChunk = async () => {
+    // This function is not used in this architecture
+    console.warn("sendChunk called, but should be disabled.");
+  };
+
+  const startAudioCapture = async (): Promise<boolean> => {
+    // Added Promise<boolean> return type
+    console.log("Starting audio capture...");
+
+    // --- Web Platform Logic (unchanged) ---
+    if (Platform.OS === "web") {
+      console.log("Setting up Web Audio capture...");
       try {
-        const { granted } = await Audio.requestPermissionsAsync();
-        if (!granted) {
-          setStatus("Microphone permission denied.");
-          return;
-        }
-        if (typeof InputAudioStream === "undefined" || !InputAudioStream) {
-          const errorMessage = "Microphone streaming module failed to load.";
-          console.error(errorMessage);
-          setStatus("Mic error: " + errorMessage);
-          return;
-        }
-        if (micStream.current) {
-          micStream.current.destroy();
-          micStream.current = null;
-        }
-        const stream = new InputAudioStream(
-          AUDIO_SOURCES.MIC,
-          sampleRate,
-          CHANNEL_CONFIGS.MONO,
-          AUDIO_FORMATS.PCM_16BIT,
-          Math.max(1024, Math.floor(sampleRate * 0.04)),
-          true
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        const ctx = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+        audioContext.current = ctx;
+
+        // Add Resampler Worklet
+        const resamplerBlob = new Blob(
+          [
+            RESAMPLER_WORKLET_CODE.replace(
+              /\$\{DEFAULT_SAMPLE_RATE\}/g,
+              String(DEFAULT_SAMPLE_RATE)
+            ),
+          ],
+          { type: "application/javascript" }
         );
-        stream.addErrorListener((error) => {
-          console.error("InputAudioStream error:", error);
+        const resamplerUrl = URL.createObjectURL(resamplerBlob);
+        await ctx.audioWorklet.addModule(resamplerUrl);
+        URL.revokeObjectURL(resamplerUrl);
+
+        // Add Playback Worklet
+        const playbackBlob = new Blob([PLAYBACK_WORKLET_CODE], {
+          type: "application/javascript",
         });
-        stream.addChunkListener((chunk) => {
-          const pcmBase64 = chunk;
-          if (
-            //isMicActive.current &&
-            ws.current &&
-            ws.current.readyState === WebSocket.OPEN
-          ) {
-            ws.current.send(pcmBase64);
-          }
+        const playbackUrl = URL.createObjectURL(playbackBlob);
+        await ctx.audioWorklet.addModule(playbackUrl);
+        URL.revokeObjectURL(playbackUrl);
+
+        const source = ctx.createMediaStreamSource(stream);
+        const resampler = new AudioWorkletNode(ctx, "resampler-processor");
+        resamplerNode.current = resampler;
+        const playback = new AudioWorkletNode(ctx, "playback-processor", {
+          numberOfOutputs: 1,
+          outputChannelCount: [1],
         });
-        const startedStream = await stream.start();
-        micStream.current = stream;
-        console.log("Native mic stream started");
-      } catch (error) {
-        console.error("Failed to start native audio capture:", error);
-        setStatus("Mic error: " + (error as Error).message);
-      }
-    } else {
-      // Web path
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const ctx = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      audioContext.current = ctx;
+        playbackNode.current = playback;
+        playback.connect(ctx.destination);
 
-      const resamplerBlob = new Blob(
-        [
-          RESAMPLER_WORKLET_CODE.replace(
-            /\${SAMPLE_RATE}/g,
-            String(sampleRate)
-          ),
-        ],
-        { type: "application/javascript" }
-      );
-      const resamplerUrl = URL.createObjectURL(resamplerBlob);
-      await ctx.audioWorklet.addModule(resamplerUrl);
-      URL.revokeObjectURL(resamplerUrl);
+        const myCallId = callId.current; // Capture call ID for async safety
 
-      const playbackBlob = new Blob([PLAYBACK_WORKLET_CODE], {
-        type: "application/javascript",
-      });
-      const playbackUrl = URL.createObjectURL(playbackBlob);
-      await ctx.audioWorklet.addModule(playbackUrl);
-      URL.revokeObjectURL(playbackUrl);
-
-      const source = ctx.createMediaStreamSource(stream);
-      const resampler = new AudioWorkletNode(ctx, "resampler-processor");
-      resamplerNode.current = resampler;
-      const playback = new AudioWorkletNode(ctx, "playback-processor", {
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-      });
-      playbackNode.current = playback;
-      playback.connect(ctx.destination);
-
-      // capture the call id for this set of nodes — used to ignore stale events
-      const myCallId = callId.current;
-
-      try {
-        playback.port.postMessage({
-          cmd: "init",
-          playbackRate: 0.92,
-          thresholdSamples: Math.floor((JITTER_BUFFER_MS / 1000) * sampleRate),
-          fadeSamples: Math.max(1, Math.floor((FADE_MS / 1000) * sampleRate)),
-        });
-      } catch (e) {}
-
-      playback.port.onmessage = (ev) => {
-        // ignore if this handler belongs to an earlier call
-        if (myCallId !== callId.current) return;
-        const d = ev.data;
-        if (!d || !d.cmd) return;
-        if (d.cmd === "drain") {
-          console.log("playback worklet drained");
-        } else if (d.cmd === "final_done") {
-          console.log("playback worklet final_done", d);
-
-          // Clear any fallback timer waiting to force user turn
-          if (finalFallbackId.current) {
-            clearTimeout(finalFallbackId.current);
-            finalFallbackId.current = null;
-          }
-
-          // Normal successful flow: hand control back to user
-          setStatus("Agent finished speaking. Your turn.");
-          setTurn("user");
-          isMicActive.current = true;
+        // Initialize Playback Worklet
+        try {
+          playback.port.postMessage({
+            cmd: "init",
+            playbackRate: 0.92,
+            thresholdSamples: Math.floor(
+              (JITTER_BUFFER_MS / 1000) * ctx.sampleRate
+            ),
+            fadeSamples: Math.max(
+              1,
+              Math.floor((FADE_MS / 1000) * ctx.sampleRate)
+            ),
+          });
+        } catch (e) {
+          console.warn("Error initializing playback worklet:", e);
         }
-      };
 
-      if (pendingChunks.current.length > 0) {
-        const snapshot = pendingChunks.current.slice();
-        for (const ab of snapshot) {
-          try {
-            // ensure we still belong to the same call
-            if (myCallId !== callId.current) break;
-            playback.port.postMessage({ cmd: "chunk", buffer: ab }, [ab]);
-          } catch (e) {}
+        // Playback Worklet Message Handler
+        playback.port.onmessage = (ev) => {
+          if (myCallId !== callId.current) return;
+          const d = ev.data;
+          if (!d || !d.cmd) return;
+          if (d.cmd === "drain") {
+            console.log("playback worklet drained");
+          } else if (d.cmd === "final_done") {
+            console.log("playback worklet final_done", d);
+            if (finalFallbackId.current) {
+              clearTimeout(finalFallbackId.current);
+              finalFallbackId.current = null;
+            }
+            setStatus("Agent finished speaking. Your turn.");
+            setTurn("user");
+          }
+        };
+
+        // Flush pending web chunks
+        if (pendingChunks.current.length > 0) {
+          pendingChunks.current.forEach((ab) => {
+            if (myCallId === callId.current) {
+              try {
+                playback.port.postMessage({ cmd: "chunk", buffer: ab }, [ab]);
+              } catch (e) {
+                /* handle */
+              }
+            }
+          });
+          pendingChunks.current = [];
         }
-        pendingChunks.current = [];
-      }
 
-      resamplerPortOnMessageHandler.current = (ev) => {
-        // ignore if this message belongs to a prior call
-        if (myCallId !== callId.current) return;
+        // Resampler Worklet Message Handler
+        resamplerPortOnMessageHandler.current = (ev) => {
+          if (myCallId !== callId.current) return;
+          const pcmArrayBuffer = ev.data as ArrayBuffer;
+          const ab = pcmArrayBuffer.slice(0);
 
-        const pcmArrayBuffer = ev.data as ArrayBuffer;
-        const ab = pcmArrayBuffer.slice(0);
-
-        if (
-          //isMicActive.current &&
-          ws.current &&
-          ws.current.readyState === WebSocket.OPEN
-        ) {
-          try {
-            ws.current.send(ab);
-          } catch (e) {
+          if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            try {
+              ws.current.send(ab);
+            } catch (e) {
+              console.warn("WS send error (web), buffering:", e);
+              outgoingMicBuffer.current.push(ab);
+              if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
+                outgoingMicBuffer.current.shift();
+            }
+          } else {
             outgoingMicBuffer.current.push(ab);
             if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
               outgoingMicBuffer.current.shift();
           }
-        } else if (!isMicActive.current) {
-          // discard
-        } else {
-          outgoingMicBuffer.current.push(ab);
-          if (outgoingMicBuffer.current.length > MAX_OUTGOING_CHUNKS)
-            outgoingMicBuffer.current.shift();
+        };
+        resampler.port.onmessage = resamplerPortOnMessageHandler.current;
+
+        // Connect audio graph
+        const preFilter = ctx.createBiquadFilter();
+        preFilter.type = "lowpass";
+        preFilter.frequency.value = Math.min(
+          12000,
+          Math.max(6000, ctx.sampleRate / 2 - 1000)
+        );
+        source.connect(preFilter);
+        preFilter.connect(resampler);
+        const silentGain = ctx.createGain();
+        silentGain.gain.value = 0;
+        resampler.connect(silentGain);
+        silentGain.connect(ctx.destination);
+
+        console.log("Web Audio Worklets started successfully.");
+        return true; // Indicate success for web
+      } catch (error) {
+        console.error("Failed to start web audio capture:", error);
+        setStatus("Mic error: " + (error as Error).message);
+        return false; // Indicate failure for web
+      }
+
+      // --- Native Platform Logic (FIXED) ---
+    } else {
+      // iOS or Android
+      console.log(
+        "Starting audio capture with @dr.pogodin/react-native-audio..."
+      );
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) {
+          setStatus("Microphone permission denied.");
+          console.error("Mic permission denied");
+          return false; // Indicate failure
         }
-      };
+        console.log("Mic permissions granted.");
 
-      resampler.port.onmessage = resamplerPortOnMessageHandler.current;
+        // --- ‼️ We have correctly removed the duplicate setAudioModeAsync call. ---
 
-      const preFilter = ctx.createBiquadFilter();
-      preFilter.type = "lowpass";
-      const cutoff = Math.min(12000, Math.max(6000, sampleRate / 2 - 1000));
-      preFilter.frequency.value = cutoff;
-      source.connect(preFilter);
-      preFilter.connect(resampler);
+        // Clean up previous stream if exists
+        if (micStream.current) {
+          console.log("Destroying previous micStream instance...");
+          try {
+            micStream.current.destroy();
+          } catch (e) {
+            console.warn("Error destroying previous micStream:", e);
+          }
+          micStream.current = null;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
 
-      const silentGain = ctx.createGain();
-      silentGain.gain.value = 0;
-      resampler.connect(silentGain);
-      silentGain.connect(ctx.destination);
+        console.log(
+          "Creating new InputAudioStream with potentially smaller buffer..."
+        );
+        const stream = new InputAudioStream(
+          // --- ‼️ THIS IS THE FIX (Part 2) ‼️ ---
+          //
+          // Use VOICE_RECOGNITION, which is designed for STT and
+          // should ignore the playback stream.
+          //
+          AUDIO_SOURCES.VOICE_RECOGNITION || AUDIO_SOURCES.MIC,
+          // --- ‼️ END OF FIX ‼️ ---
+          sampleRate,
+          CHANNEL_CONFIGS.MONO,
+          AUDIO_FORMATS.PCM_16BIT,
+          Math.max(2048, Math.floor(sampleRate * 0.1)),
+          true // Use base64 encoding
+        );
 
-      console.log("Web worklets started (pacing hardened)");
+        stream.addErrorListener((error) => {
+          console.error("InputAudioStream error:", error);
+          setStatus("Mic stream error.");
+        });
+
+        stream.addChunkListener((chunkBase64) => {
+          if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            try {
+              ws.current.send(chunkBase64); // Send base64 string directly
+            } catch (sendError) {
+              console.error("WebSocket send error:", sendError);
+            }
+          }
+        });
+
+        console.log("Starting InputAudioStream...");
+        await stream.start();
+        micStream.current = stream; // Assign ref AFTER successful start
+        console.log("Native mic stream (@dr.pogodin) started successfully.");
+        return true; // Indicate success
+      } catch (error) {
+        console.error("Failed to start native audio capture:", error);
+        setStatus("Mic error: " + (error as Error).message);
+        return false; // Indicate failure
+      }
     }
   };
+
+  // Add a ref for the interval timer
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Make sure to import FileSystem
+  // import * as FileSystem from 'expo-file-system';
 
   const startCall = async () => {
     // --- 1. STATE LOCK ---
@@ -840,155 +990,140 @@ const CallingWidget: React.FC<Props> = ({
     audioState.current = "STARTING";
     // --- END LOCK ---
 
-    // NEW: assign a fresh call id to invalidate any late handlers from prior calls
+    // Assign a fresh call id
     callId.current += 1;
 
-    // Reset low-level stopping guard and clear leftover queues to avoid
-    // stale chunks bleeding into the next call.
+    // Reset stopping guard and web-specific buffers
     isStopping.current = false;
     pendingChunks.current = [];
-    pendingAudioChunks.current = [];
     outgoingMicBuffer.current = [];
-    isAudioReady.current = false;
 
     setStatus("Preparing audio...");
+    // Check headset connection for native platforms
     if (Platform.OS !== "web") {
       await updateHeadsetStatus();
       if (!headsetConnected) {
         console.log("Call blocked: No headset connected.");
+        setStatus(HEADSET_REQUIRED_STATUS); // Ensure status reflects block
+        audioState.current = "IDLE"; // Release lock before returning
         return;
       }
     }
 
+    // Set Audio Mode for the call
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+
+        // --- ‼️ THIS IS THE FIX (Part 1) ‼️ ---
+        // We MUST use DuckOthers to allow both streams to run.
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+        // We set this to false to stop the OS from linking the streams.
+        shouldDuckAndroid: false,
+        // --- ‼️ END OF FIX ‼️ ---
+
+        playThroughEarpieceAndroid: false,
       });
+      console.log("[Audio Mode] Set for active call.");
     } catch (e) {
-      console.error("Failed to set audio mode:", e);
+      console.error("Failed to set audio mode for call:", e);
       setStatus("Audio setup failed.");
+      audioState.current = "IDLE"; // Release lock
       return;
     }
 
+    // Start Ringtone (platform specific)
     if (Platform.OS === "web") {
       startRingTone();
-      audioState.current = "STARTED";
     } else {
       startNativeRingtone();
-      if (PCMPlayer && typeof PCMPlayer !== "string") {
-        try {
-          if (isPlayerInitialized.current) {
-            // ALWAYS STOP FIRST (Cooldown)
-            // This cleans up the singleton, even on the 1st call.
-            if (typeof PCMPlayer.stop === "function") {
-              console.log(
-                "[PCMPlayer] Cooldown: Stopping any previous instance..."
-              );
-              await PCMPlayer.stop();
-            }
-
-            // ALWAYS DELAY (Cooldown)
-            // Gives the native thread time to release the hardware.
-            await new Promise((resolve) => setTimeout(resolve, 250));
-          }
-
-          // ASSIGN AND START
-          pcmPlayer.current = PCMPlayer;
-          if (typeof pcmPlayer.current.start === "function") {
-            console.log("[PCMPlayer] Starting new audio track...");
-            await pcmPlayer.current.start(sampleRate);
-            // Set this to true *after* start() succeeds.
-            // It will now be true for all subsequent calls.
-            isPlayerInitialized.current = true;
-            // START WARM-UP (DON'T AWAIT)
-            // We start a timer. When it fires, we'll flush the audio queue.
-            // We use 300ms as a safe "warm-up" time.
-            setTimeout(() => {
-              console.log(
-                "[PCMPlayer] AudioTrack is now considered warm. Flushing queue."
-              );
-              isAudioReady.current = true;
-
-              // Now, flush any audio that arrived during warm-up
-              if (
-                pcmPlayer.current &&
-                typeof pcmPlayer.current.enqueueBase64 === "function"
-              ) {
-                for (const chunk of pendingAudioChunks.current) {
-                  try {
-                    pcmPlayer.current.enqueueBase64(chunk);
-                  } catch (e) {
-                    console.warn("Error flushing chunk from queue:", e);
-                  }
-                }
-              }
-              pendingAudioChunks.current = []; // Clear queue
-            }, 300);
-          } else {
-            setStatus("Player init failed.");
-            console.log("[State] Setting state to IDLE (init fail)");
-            audioState.current = "IDLE"; // --- Release lock on fail
-            return;
-          }
-        } catch (e) {
-          console.error("Failed to start PCMPlayer:", e);
-          pcmPlayer.current = null;
-          setStatus("Player init failed: " + (e as Error).message);
-          console.log("[State] Setting state to IDLE (start error)");
-          audioState.current = "IDLE"; // --- Release lock on fail
-          return;
-        }
-      } else {
-        setStatus("Player module missing.");
-        console.log("[State] Setting state to IDLE (no module)");
-        audioState.current = "IDLE"; // --- Release lock on fail
-        return;
-      }
     }
 
-    await startAudioCapture();
-    isMicActive.current = false;
+    // --- Start and Check Audio Capture ---
+    const captureStarted = await startAudioCapture();
 
+    if (!captureStarted) {
+      console.error(
+        "[startCall] startAudioCapture FAILED. Aborting call start."
+      );
+      audioState.current = "IDLE";
+      await cleanupAudio();
+      return;
+    }
+
+    console.log("[startCall] Audio capture started successfully (or is web).");
+    // --- End Check ---
+
+    // Set state to indicate call is fully started AFTER capture setup
+    console.log("[State] Setting state to STARTED");
+    audioState.current = "STARTED";
+
+    // Initialize WebSocket connection
     setStatus("Connecting to backend...");
     ws.current = new WebSocket(websocketUrl);
-    ws.current.binaryType = "arraybuffer";
+    ws.current.binaryType = "arraybuffer"; // Still needed for web audio worklet
+
     ws.current.onopen = () => {
       setStatus("Connected. Joined backend.");
-      setIsCalling(true);
-      onCallStart?.();
+      setIsCalling(true); // Update UI state
+      onCallStart?.(); // Trigger callback
+      // Send join message
       ws.current?.send(
         JSON.stringify({ type: "join", userId, scenarioId: scenarioId })
       );
     };
+
     ws.current.onmessage = async (msg) => {
       try {
         if (typeof msg.data === "string") {
-          const parsed = JSON.parse(msg.data as string);
-          handleControlMessage(parsed);
+          // Check if it's JSON control message or base64 audio (from expo-av recording)
+          let parsed;
+          try {
+            parsed = JSON.parse(msg.data);
+            handleControlMessage(parsed);
+          } catch (jsonError) {
+            // If not JSON, assume it's base64 audio from native recording
+            if (Platform.OS !== "web") {
+              console.warn(
+                "[WS] Received string data on native, assuming base64 audio chunk - This part needs implementation if backend sends base64."
+              );
+            } else {
+              console.warn(
+                "[WS] Received non-JSON string data on web:",
+                msg.data.substring(0, 50) + "..."
+              );
+            }
+          }
         } else {
-          handleAudioChunkFromServer(msg.data);
+          // Handle binary data (only expected for Web Audio Worklet)
+          if (Platform.OS === "web") {
+            handleAudioChunkFromServer(msg.data);
+          } else {
+            console.warn(
+              "[WS] Received unexpected binary data on native platform."
+            );
+          }
         }
       } catch (e) {
-        console.warn("WS parse error:", e);
+        console.warn("WS onmessage processing error:", e);
       }
     };
+
     ws.current.onclose = (event) => {
-      // setStatus("Disconnected");
-      // stopRingTone();
-      // setIsCalling(false);
-      // setTurn(null);
-      // onCallEnd?.();
-      // cleanupAudio();
-      // updateHeadsetStatus();
+      console.log(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+      // Ensure cleanup happens via endCall for consistency
       endCall();
     };
+
     ws.current.onerror = (err) => {
+      // Errors often precede closure, let endCall handle cleanup.
       console.error("WebSocket error:", err);
       setStatus("Connection error");
+      // Optionally trigger endCall immediately if needed
+      // endCall();
     };
   };
 
@@ -1061,9 +1196,10 @@ const CallingWidget: React.FC<Props> = ({
   const handleAudioChunkFromServer = async (data: any) => {
     // If we're stopping/cleaning up, ignore incoming audio immediately.
     if (isStopping.current) {
-      // optional debug: console.log("Dropping audio chunk because call is stopping.");
       return;
     }
+
+    // This function is now WEB-ONLY
     if (Platform.OS === "web") {
       const pcmBuffer =
         typeof data === "string" ? base64ToArrayBuffer(data) : data;
@@ -1086,132 +1222,231 @@ const CallingWidget: React.FC<Props> = ({
       } else {
         pendingChunks.current.push(ab);
       }
-    } else {
-      if (!pcmPlayer.current) {
-        console.error("PCM player not initialized");
-        return;
-      }
-      let base64Chunk: string;
-      if (typeof data === "string") base64Chunk = data;
-      else {
-        console.error("Unknown native audio format");
-        return;
-      }
-
-      // Drop / queue depending on stopping and readiness
-
-      // 1. Hard gate: If we are stopping, drop all chunks immediately.
-      if (isStopping.current) {
-        // optional debug: console.log("Dropping native chunk because stopping");
-        return;
-      }
-
-      // 2. Queue: If player is not warm, queue chunks for later.
-      if (!isAudioReady.current) {
-        pendingAudioChunks.current.push(base64Chunk);
-      }
-      // 3. Play: We are not stopping and player is warm.
-      else {
-        try {
-          if (
-            pcmPlayer.current &&
-            typeof pcmPlayer.current.enqueueBase64 === "function"
-          ) {
-            pcmPlayer.current.enqueueBase64(base64Chunk);
-          }
-        } catch (e) {
-          console.error("PCMPlayer.enqueueBase64 error:", e);
-          // swallow the error (do not rethrow) to avoid native crash
-        }
-      }
     }
+    // NO MORE NATIVE 'ELSE' BLOCK
   };
 
-  const handleControlMessage = (data: any) => {
+  const handleControlMessage = async (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
-        // --- START: MODIFICATION ---
-        // Just update status. Turn switches via worklet 'final_done' after greeting.
         setStatus("AI is ready.");
-        // --- END: MODIFICATION ---
         break;
+
       case "turn":
         if (data.turn === "agent") {
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
-          //isMicActive.current = false;
+          // Mic control is implicitly handled by not being user turn
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak.");
-          isMicActive.current = true;
+          console.log("[Mic] Activating mic via 'turn: user' command.");
+          isMicActive.current = true; // Mic ON
         }
         break;
+
       case "text":
         setStatus(data.data);
         break;
-      case "audio_chunk":
+
+      case "play_stream": {
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
-        //isMicActive.current = false;
-        handleAudioChunkFromServer(data.data);
-        break;
 
-      case "audio_end": {
-        // Tell the worklet we expect final audio frames
-        try {
-          playbackNode.current?.port.postMessage({ cmd: "final_expected" });
-        } catch (e) {
-          console.warn("Failed to post final_expected to worklet:", e);
+        const urlToPlay = data.url;
+        if (!urlToPlay) {
+          console.warn("[Audio] play_stream missing url");
+          break;
         }
 
-        setStatus("Finishing playback...");
-
-        // Reset any existing fallback, then start a new one.
-        if (finalFallbackId.current) {
-          clearTimeout(finalFallbackId.current);
-          finalFallbackId.current = null;
-        }
-
-        // Fallback: if we don't receive final_done within this window, unstick UI.
-        const FALLBACK_MS = 1000; // 1 second — conservative
-        finalFallbackId.current = window.setTimeout(() => {
-          console.warn(
-            "final_done not received within fallback window — forcing user turn."
+        // quick dedupe for rapid identical URLs
+        const now = Date.now();
+        if (
+          lastPlayedUrl.current === urlToPlay &&
+          now - (lastPlayTimestamp.current || 0) < 800
+        ) {
+          console.log(
+            "[Audio] Ignoring duplicate play_stream (recent same URL)"
           );
-          finalFallbackId.current = null;
-          setStatus("Your turn to speak.");
-          setTurn("user");
-          isMicActive.current = true;
-        }, FALLBACK_MS);
+          break;
+        }
+        lastPlayedUrl.current = urlToPlay;
+        lastPlayTimestamp.current = now;
+
+        if (playLock.current) {
+          console.warn(
+            "[Audio] Playback operation already in progress. Ignoring new request for:",
+            urlToPlay
+          );
+          break;
+        }
+        playLock.current = true;
+        hasStartedPlaying.current = false;
+
+        (async () => {
+          let createdSound: Audio.Sound | null = null;
+          const thisCallId = callId.current;
+
+          try {
+            // If web worklet exists, wait for it to drain/finalize (prevents overlap)
+            try {
+              await awaitPlaybackWorkletDrain(700); // 700ms timeout fallback (tune if needed)
+              console.log(
+                "[Audio] playback worklet drained (or flushed) before URL playback."
+              );
+            } catch (e) {
+              console.warn("[Audio] awaitPlaybackWorkletDrain error:", e);
+            }
+
+            // Safely unload previous expo-av sound
+            const previousSound = soundRef.current;
+            soundRef.current = null;
+            setSound(null);
+
+            if (previousSound) {
+              try {
+                previousSound.setOnPlaybackStatusUpdate(null);
+                await previousSound.stopAsync();
+                await previousSound.unloadAsync();
+              } catch (e) {
+                console.warn("[Audio] Error unloading previous sound:", e);
+              }
+            }
+
+            // abort if call changed
+            if (
+              isStopping.current ||
+              audioState.current !== "STARTED" ||
+              thisCallId !== callId.current
+            ) {
+              playLock.current = false;
+              return;
+            }
+
+            console.log("[Audio] Creating sound for url:", urlToPlay);
+            const res = await Audio.Sound.createAsync(
+              { uri: urlToPlay },
+              { shouldPlay: false, progressUpdateIntervalMillis: 200 }
+            );
+
+            createdSound = res.sound;
+
+            // safety guard in case call changed mid-op
+            if (isStopping.current || thisCallId !== callId.current) {
+              try {
+                await createdSound?.unloadAsync();
+              } catch {}
+              playLock.current = false;
+              return;
+            }
+
+            // store ref & state
+            soundRef.current = createdSound;
+            setSound(createdSound);
+
+            // Single start: ensure audible and then play
+            try {
+              await createdSound.setVolumeAsync(1.0);
+              if ((createdSound as any).setIsMutedAsync) {
+                try {
+                  await (createdSound as any).setIsMutedAsync(false);
+                } catch {}
+              }
+              await createdSound.playAsync();
+              hasStartedPlaying.current = true;
+              console.log("[Audio] playAsync started for url:", urlToPlay);
+            } catch (e) {
+              console.error("[Audio] Error during playAsync:", e);
+              try {
+                await createdSound?.unloadAsync();
+              } catch {}
+              soundRef.current = null;
+              setSound(null);
+              playLock.current = false;
+              hasStartedPlaying.current = false;
+              setTurn("user");
+              setStatus("Error playing audio");
+              return;
+            }
+
+            // OPTIONAL: set a safety listener to cleanup when finished (if not already handled elsewhere)
+            const pollFinish = async () => {
+              try {
+                while (createdSound) {
+                  const st = await createdSound.getStatusAsync();
+                  if ((st as any).isLoaded && (st as any).didJustFinish) break;
+                  if (!(st as any).isLoaded) break;
+                  // small sleep
+                  await new Promise((r) => setTimeout(r, 120));
+                }
+              } catch {}
+              // cleanup after finish
+              if (soundRef.current === createdSound) {
+                try {
+                  await createdSound?.unloadAsync();
+                } catch {}
+                soundRef.current = null;
+                setSound(null);
+              }
+              playLock.current = false;
+              hasStartedPlaying.current = false;
+            };
+            pollFinish();
+          } catch (e) {
+            console.error("[Audio] Failed to play:", e);
+            setStatus("Error playing audio");
+            setTurn("user");
+            try {
+              await createdSound?.unloadAsync();
+            } catch {}
+            soundRef.current = null;
+            setSound(null);
+            playLock.current = false;
+          }
+        })();
 
         break;
       }
 
-      case "interrupted": {
-        // Immediate stop & flush of playback so user can speak right away.
-        try {
-          playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
-        } catch (e) {
-          console.warn("Failed to post flushImmediate to worklet:", e);
+      // --- REVISED 'stop_playback' ---
+      case "stop_playback": {
+        // Interruption
+        const soundToStop = soundRef.current; // Get from ref
+        soundRef.current = null; // Clear ref immediately
+        setSound(null); // Clear state immediately
+
+        if (soundToStop) {
+          console.log("[Audio] Interruption. Stopping playback and unloading.");
+          try {
+            soundToStop.setOnPlaybackStatusUpdate(null);
+          } catch {} // Detach listener
+          try {
+            await soundToStop.stopAsync();
+          } catch {}
+          try {
+            await soundToStop.unloadAsync();
+            console.log("[Audio] Sound unloaded due to interruption.");
+          } catch (e) {
+            console.warn("Error unloading sound during interruption:", e);
+          }
+        } else {
+          console.log(
+            "[Audio] Interruption requested, but no sound ref was active."
+          );
         }
 
-        // Stop any ringtones
-        stopRingTone();
+        playLock.current = false; // Release lock on interruption
+        hasStartedPlaying.current = false; // ⬅️ Reset the gate
 
-        // Clear fallback if present (we're already switching to user)
-        if (finalFallbackId.current) {
-          clearTimeout(finalFallbackId.current);
-          finalFallbackId.current = null;
-        }
-
-        // Switch to user turn and enable mic
+        // Update UI immediately
         setTurn("user");
-        setStatus("You can now speak. (Interrupted)");
-        isMicActive.current = true;
+        setStatus("Your turn to speak. (Interrupted)");
+        // Mic activation will happen when 'turn: user' arrives from backend
         break;
       }
+      // --- End REVISED 'stop_playback' ---
 
       default:
         break;
