@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 // Import icons
-import { Ionicons, MaterialIcons } from "@expo/vector-icons"; // <-- Added
+import Icon from "react-native-vector-icons/FontAwesome5";
 
 // These imports are correct for a React Native environment (Expo)
 import {
@@ -1466,15 +1466,15 @@ const CallingWidget: React.FC<Props> = ({
       {/* --- AVATAR AREA --- */}
       <View style={styles.avatarContainer}>
         <View style={styles.avatarIconWrapper}>
-          <Ionicons name="person-circle" size={100} color="#4A90E2" />
+          <Icon name="robot" size={100} color="#4A90E2" />
           <View
             style={[
               styles.micIconCircle,
               turn === "agent" && styles.micIconActive, // Green when agent speaks
             ]}
           >
-            <Ionicons
-              name="mic"
+            <Icon
+              name="volume-up"
               size={14}
               color={turn === "agent" ? "#FFF" : "#4A90E2"}
             />
@@ -1556,8 +1556,8 @@ const CallingWidget: React.FC<Props> = ({
           onPress={toggleMute}
           disabled={!isCalling}
         >
-          <Ionicons
-            name={isMuted ? "mic-off" : "mic"}
+          <Icon
+            name={isMuted ? "microphone-slash" : "microphone"}
             size={28}
             color={!isCalling ? "#aaa" : isMuted ? "#ef4444" : "#333"}
           />
@@ -1572,8 +1572,8 @@ const CallingWidget: React.FC<Props> = ({
           onPress={isCalling ? endCall : startCall}
           disabled={!canStartCall && !isCalling}
         >
-          <MaterialIcons
-            name={isCalling ? "call-end" : "call"}
+          <Icon
+            name={isCalling ? "phone-slash" : "phone"}
             size={32}
             color="#FFF"
           />
@@ -1584,8 +1584,8 @@ const CallingWidget: React.FC<Props> = ({
           onPress={() => setShowTips((prev) => !prev)}
           disabled={!isCalling}
         >
-          <Ionicons
-            name="bulb-outline"
+          <Icon
+            name="lightbulb"
             size={28}
             color={!isCalling ? "#aaa" : showTips ? "#4A90E2" : "#333"}
           />
