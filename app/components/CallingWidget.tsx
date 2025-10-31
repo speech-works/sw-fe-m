@@ -5,7 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
+// Import icons
+import { Ionicons, MaterialIcons } from "@expo/vector-icons"; // <-- Added
+
 // These imports are correct for a React Native environment (Expo)
 import {
   Audio,
@@ -98,7 +103,7 @@ process(inputs) {
 registerProcessor("resampler-processor", ResamplerProcessor);
 `;
 
-// PLAYBACK WORKLET — with simplified and robust final_done logic
+// PLAYBACK WORKLET (unchanged)
 const PLAYBACK_WORKLET_CODE = `
 class PlaybackProcessor extends AudioWorkletProcessor {
 constructor() {
@@ -329,8 +334,19 @@ registerProcessor("playback-processor", PlaybackProcessor);
 
 // ---- Component starts here ----
 
-const INITIAL_STATUS_MESSAGE = "Click to start call";
-const HEADSET_REQUIRED_STATUS = "Connect your headphones to start a call";
+type TranscriptItem = {
+  speaker: "You" | "Alex";
+  text: string;
+};
+
+// Helper function to format seconds into MM:SS
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
+};
 
 const CallingWidget: React.FC<Props> = ({
   websocketUrl,
@@ -343,17 +359,28 @@ const CallingWidget: React.FC<Props> = ({
   scenarioId,
 }) => {
   const [isCalling, setIsCalling] = useState(false);
-  const [status, setStatus] = useState(INITIAL_STATUS_MESSAGE);
+  const [status, setStatus] = useState("Connecting..."); // Changed initial status
   const [turn, setTurn] = useState<"user" | "agent" | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false
   );
 
+  // --- NEW UI STATE ---
+  const [isMuted, setIsMuted] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
+  const [callDuration, setCallDuration] = useState(0);
+  const [suggestedResponses] = useState([
+    "I'd like a pizza",
+    "What's your special?",
+    "Can I have the menu?",
+  ]);
+  // --- END NEW UI STATE ---
+
   const ws = useRef<WebSocket | null>(null);
 
   const playSeq = useRef(0);
-  // Replace whatever you have now with this:
   const forcedStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -393,18 +420,22 @@ const CallingWidget: React.FC<Props> = ({
     "IDLE"
   );
 
-  // STOPPING guard (fast, low-level)
   const isStopping = useRef(false);
-  // Unique identifier per call to ignore stale async events from prior calls
   const callId = useRef(0);
 
-  const soundRef = useRef<Audio.Sound | null>(null); // authoritative native sound object
-  const playLock = useRef<boolean>(false); // prevents overlapping play operations
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const playLock = useRef<boolean>(false);
   const hasStartedPlaying = useRef<boolean>(false);
-  const lastPlayedUrl = useRef<string | null>(null); // dedupe quick repeats
+  const lastPlayedUrl = useRef<string | null>(null);
   const lastPlayTimestamp = useRef<number>(0);
 
-  // Wait for worklet drain/final_done or timeout. Resolves when safe to start URL playback.
+  // --- NEW REFS ---
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMutedRef = useRef(false); // Ref for mute state for async listeners
+  const scrollRef = useRef<ScrollView>(null);
+  // --- END NEW REFS ---
+
+  // (awaitPlaybackWorkletDrain function is unchanged)
   const awaitPlaybackWorkletDrain = (timeoutMs = 700): Promise<void> => {
     return new Promise((resolve) => {
       try {
@@ -497,9 +528,9 @@ const CallingWidget: React.FC<Props> = ({
       const connected = await checkHeadsetConnected();
       setHeadsetConnected(connected);
       if (!connected && !isCalling) {
-        setStatus(HEADSET_REQUIRED_STATUS);
+        // This status is no longer displayed, but logic is kept
       } else if (connected && !isCalling) {
-        setStatus(INITIAL_STATUS_MESSAGE);
+        //
       }
     }
   };
@@ -616,16 +647,26 @@ const CallingWidget: React.FC<Props> = ({
 
   useEffect(() => {
     updateHeadsetStatus();
+    // Set initial status for UI
+    setStatus(
+      Platform.OS === "web" || headsetConnected
+        ? "Press to start call"
+        : "Connect headset to start"
+    );
     return () => {
       try {
         ws.current?.close();
       } catch {}
       stopRingTone();
       cleanupAudio();
+      // Clear timer on unmount
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+      }
     };
   }, []);
 
-  // Ringtone functions (unchanged)
+  // (Ringtone functions are unchanged)
   const startRingTone = () => {
     if (Platform.OS !== "web") {
       startNativeRingtone();
@@ -760,11 +801,11 @@ const CallingWidget: React.FC<Props> = ({
     console.warn("sendChunk called, but should be disabled.");
   };
 
+  // --- MODIFIED: Added Mute Check ---
   const startAudioCapture = async (): Promise<boolean> => {
-    // Added Promise<boolean> return type
     console.log("Starting audio capture...");
 
-    // --- Web Platform Logic (unchanged) ---
+    // --- Web Platform Logic ---
     if (Platform.OS === "web") {
       console.log("Setting up Web Audio capture...");
       try {
@@ -775,7 +816,7 @@ const CallingWidget: React.FC<Props> = ({
           (window as any).webkitAudioContext)();
         audioContext.current = ctx;
 
-        // Add Resampler Worklet
+        // ... (Worklet adding logic is unchanged) ...
         const resamplerBlob = new Blob(
           [
             RESAMPLER_WORKLET_CODE.replace(
@@ -789,7 +830,6 @@ const CallingWidget: React.FC<Props> = ({
         await ctx.audioWorklet.addModule(resamplerUrl);
         URL.revokeObjectURL(resamplerUrl);
 
-        // Add Playback Worklet
         const playbackBlob = new Blob([PLAYBACK_WORKLET_CODE], {
           type: "application/javascript",
         });
@@ -806,10 +846,8 @@ const CallingWidget: React.FC<Props> = ({
         });
         playbackNode.current = playback;
         playback.connect(ctx.destination);
-
-        const myCallId = callId.current; // Capture call ID for async safety
-
-        // Initialize Playback Worklet
+        // ... (Playback worklet init and message handling is unchanged) ...
+        const myCallId = callId.current;
         try {
           playback.port.postMessage({
             cmd: "init",
@@ -825,8 +863,6 @@ const CallingWidget: React.FC<Props> = ({
         } catch (e) {
           console.warn("Error initializing playback worklet:", e);
         }
-
-        // Playback Worklet Message Handler
         playback.port.onmessage = (ev) => {
           if (myCallId !== callId.current) return;
           const d = ev.data;
@@ -843,8 +879,6 @@ const CallingWidget: React.FC<Props> = ({
             setTurn("user");
           }
         };
-
-        // Flush pending web chunks
         if (pendingChunks.current.length > 0) {
           pendingChunks.current.forEach((ab) => {
             if (myCallId === callId.current) {
@@ -858,9 +892,9 @@ const CallingWidget: React.FC<Props> = ({
           pendingChunks.current = [];
         }
 
-        // Resampler Worklet Message Handler
+        // --- MUTE CHECK ADDED HERE ---
         resamplerPortOnMessageHandler.current = (ev) => {
-          if (myCallId !== callId.current) return;
+          if (myCallId !== callId.current || isMutedRef.current) return; // <-- MUTE CHECK
           const pcmArrayBuffer = ev.data as ArrayBuffer;
           const ab = pcmArrayBuffer.slice(0);
 
@@ -880,8 +914,7 @@ const CallingWidget: React.FC<Props> = ({
           }
         };
         resampler.port.onmessage = resamplerPortOnMessageHandler.current;
-
-        // Connect audio graph
+        // ... (Audio graph connection logic is unchanged) ...
         const preFilter = ctx.createBiquadFilter();
         preFilter.type = "lowpass";
         preFilter.frequency.value = Math.min(
@@ -896,16 +929,15 @@ const CallingWidget: React.FC<Props> = ({
         silentGain.connect(ctx.destination);
 
         console.log("Web Audio Worklets started successfully.");
-        return true; // Indicate success for web
+        return true;
       } catch (error) {
         console.error("Failed to start web audio capture:", error);
         setStatus("Mic error: " + (error as Error).message);
-        return false; // Indicate failure for web
+        return false;
       }
 
-      // --- Native Platform Logic (FIXED) ---
+      // --- Native Platform Logic ---
     } else {
-      // iOS or Android
       console.log(
         "Starting audio capture with @dr.pogodin/react-native-audio..."
       );
@@ -914,13 +946,10 @@ const CallingWidget: React.FC<Props> = ({
         if (!granted) {
           setStatus("Microphone permission denied.");
           console.error("Mic permission denied");
-          return false; // Indicate failure
+          return false;
         }
         console.log("Mic permissions granted.");
 
-        // --- ‼️ We have correctly removed the duplicate setAudioModeAsync call. ---
-
-        // Clean up previous stream if exists
         if (micStream.current) {
           console.log("Destroying previous micStream instance...");
           try {
@@ -936,18 +965,12 @@ const CallingWidget: React.FC<Props> = ({
           "Creating new InputAudioStream with potentially smaller buffer..."
         );
         const stream = new InputAudioStream(
-          // --- ‼️ THIS IS THE FIX (Part 2) ‼️ ---
-          //
-          // Use VOICE_RECOGNITION, which is designed for STT and
-          // should ignore the playback stream.
-          //
           AUDIO_SOURCES.VOICE_RECOGNITION || AUDIO_SOURCES.MIC,
-          // --- ‼️ END OF FIX ‼️ ---
           sampleRate,
           CHANNEL_CONFIGS.MONO,
           AUDIO_FORMATS.PCM_16BIT,
           Math.max(2048, Math.floor(sampleRate * 0.1)),
-          true // Use base64 encoding
+          true
         );
 
         stream.addErrorListener((error) => {
@@ -955,10 +978,13 @@ const CallingWidget: React.FC<Props> = ({
           setStatus("Mic stream error.");
         });
 
+        // --- MUTE CHECK ADDED HERE ---
         stream.addChunkListener((chunkBase64) => {
+          if (isMutedRef.current) return; // <-- MUTE CHECK
+
           if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             try {
-              ws.current.send(chunkBase64); // Send base64 string directly
+              ws.current.send(chunkBase64);
             } catch (sendError) {
               console.error("WebSocket send error:", sendError);
             }
@@ -967,25 +993,19 @@ const CallingWidget: React.FC<Props> = ({
 
         console.log("Starting InputAudioStream...");
         await stream.start();
-        micStream.current = stream; // Assign ref AFTER successful start
+        micStream.current = stream;
         console.log("Native mic stream (@dr.pogodin) started successfully.");
-        return true; // Indicate success
+        return true;
       } catch (error) {
         console.error("Failed to start native audio capture:", error);
         setStatus("Mic error: " + (error as Error).message);
-        return false; // Indicate failure
+        return false;
       }
     }
   };
 
-  // Add a ref for the interval timer
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Make sure to import FileSystem
-  // import * as FileSystem from 'expo-file-system';
-
+  // --- MODIFIED: Added Timer, Transcript Reset ---
   const startCall = async () => {
-    // --- 1. STATE LOCK ---
     if (audioState.current !== "IDLE") {
       console.warn(
         `[State] Ignoring startCall, state is ${audioState.current}`
@@ -994,104 +1014,99 @@ const CallingWidget: React.FC<Props> = ({
     }
     console.log("[State] Setting state to STARTING");
     audioState.current = "STARTING";
-    // --- END LOCK ---
 
-    // Assign a fresh call id
     callId.current += 1;
-
-    // Reset stopping guard and web-specific buffers
     isStopping.current = false;
     pendingChunks.current = [];
     outgoingMicBuffer.current = [];
 
     setStatus("Preparing audio...");
-    // Check headset connection for native platforms
     if (Platform.OS !== "web") {
       await updateHeadsetStatus();
       if (!headsetConnected) {
         console.log("Call blocked: No headset connected.");
-        setStatus(HEADSET_REQUIRED_STATUS); // Ensure status reflects block
-        audioState.current = "IDLE"; // Release lock before returning
+        setStatus("Connect headset to start"); // Update UI status
+        audioState.current = "IDLE";
         return;
       }
     }
 
-    // Set Audio Mode for the call
+    // --- NEW: Reset UI State ---
+    setTranscript([]); // Clear previous transcript
+    setCallDuration(0); // Reset timer
+    setIsMuted(false); // Ensure not muted
+    isMutedRef.current = false;
+    // --- END NEW UI State ---
+
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
         interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
-
-        // --- ‼️ THIS IS THE FIX (Part 1) ‼️ ---
-        // We MUST use DuckOthers to allow both streams to run.
         interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-        // We set this to false to stop the OS from linking the streams.
         shouldDuckAndroid: false,
-        // --- ‼️ END OF FIX ‼️ ---
-
         playThroughEarpieceAndroid: false,
       });
       console.log("[Audio Mode] Set for active call.");
     } catch (e) {
       console.error("Failed to set audio mode for call:", e);
       setStatus("Audio setup failed.");
-      audioState.current = "IDLE"; // Release lock
+      audioState.current = "IDLE";
       return;
     }
 
-    // Start Ringtone (platform specific)
     if (Platform.OS === "web") {
       startRingTone();
     } else {
       startNativeRingtone();
     }
+    setStatus("Calling..."); // Update UI
 
-    // --- Start and Check Audio Capture ---
     const captureStarted = await startAudioCapture();
-
     if (!captureStarted) {
       console.error(
         "[startCall] startAudioCapture FAILED. Aborting call start."
       );
+      setStatus("Mic setup failed"); // Update UI
       audioState.current = "IDLE";
       await cleanupAudio();
       return;
     }
 
     console.log("[startCall] Audio capture started successfully (or is web).");
-    // --- End Check ---
-
-    // Set state to indicate call is fully started AFTER capture setup
-    console.log("[State] Setting state to STARTED");
     audioState.current = "STARTED";
 
-    // Initialize WebSocket connection
-    setStatus("Connecting to backend...");
+    setStatus("Connecting...");
     ws.current = new WebSocket(websocketUrl);
-    ws.current.binaryType = "arraybuffer"; // Still needed for web audio worklet
+    ws.current.binaryType = "arraybuffer";
 
     ws.current.onopen = () => {
-      setStatus("Connected. Joined backend.");
-      setIsCalling(true); // Update UI state
-      onCallStart?.(); // Trigger callback
-      // Send join message
+      setStatus("Connected"); // Status for UI
+      setIsCalling(true);
+      onCallStart?.();
+
+      // --- NEW: Start Timer ---
+      if (callTimerRef.current) clearInterval(callTimerRef.current);
+      callTimerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+      // --- END NEW Timer ---
+
       ws.current?.send(
         JSON.stringify({ type: "join", userId, scenarioId: scenarioId })
       );
     };
 
     ws.current.onmessage = async (msg) => {
+      // (This logic is unchanged, but handleControlMessage is modified)
       try {
         if (typeof msg.data === "string") {
-          // Check if it's JSON control message or base64 audio (from expo-av recording)
           let parsed;
           try {
             parsed = JSON.parse(msg.data);
             handleControlMessage(parsed);
           } catch (jsonError) {
-            // If not JSON, assume it's base64 audio from native recording
             if (Platform.OS !== "web") {
               console.warn(
                 "[WS] Received string data on native, assuming base64 audio chunk - This part needs implementation if backend sends base64."
@@ -1104,7 +1119,6 @@ const CallingWidget: React.FC<Props> = ({
             }
           }
         } else {
-          // Handle binary data (only expected for Web Audio Worklet)
           if (Platform.OS === "web") {
             handleAudioChunkFromServer(msg.data);
           } else {
@@ -1120,51 +1134,44 @@ const CallingWidget: React.FC<Props> = ({
 
     ws.current.onclose = (event) => {
       console.log(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
-      // Ensure cleanup happens via endCall for consistency
       endCall();
     };
 
     ws.current.onerror = (err) => {
-      // Errors often precede closure, let endCall handle cleanup.
       console.error("WebSocket error:", err);
       setStatus("Connection error");
-      // Optionally trigger endCall immediately if needed
-      // endCall();
+      endCall();
     };
   };
 
+  // --- MODIFIED: Added Timer Stop ---
   const endCall = async () => {
-    // --- 1. STATE LOCK ---
-    // Prevent this from running multiple times
     if (audioState.current === "STOPPING" || audioState.current === "IDLE") {
       console.log(`[State] Ignoring endCall, state is ${audioState.current}`);
       return;
     }
     console.log("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
-    // --- END LOCK ---
-    // IMMEDIATELY mark stopping so any low-level handlers drop in-flight chunks.
     isStopping.current = true;
 
-    // 2. Stop UI
+    // --- NEW: Stop Timer ---
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+    // --- END NEW Timer ---
+
     stopRingTone();
     setIsCalling(false);
-    setStatus("Call ended.");
+    setStatus("Call ended");
     setTurn(null);
     onCallEnd?.();
 
-    // 3. Stop WebSocket - clear handlers BEFORE closing to avoid a final burst of messages
     try {
       if (ws.current) {
-        try {
-          ws.current.onmessage = null;
-        } catch {}
-        try {
-          ws.current.onclose = null;
-        } catch {}
-        try {
-          ws.current.onerror = null;
-        } catch {}
+        ws.current.onmessage = null;
+        ws.current.onclose = null;
+        ws.current.onerror = null;
         try {
           ws.current.send(JSON.stringify({ type: "end_call" }));
         } catch {}
@@ -1177,20 +1184,20 @@ const CallingWidget: React.FC<Props> = ({
     }
     ws.current = null;
 
-    // 4. Stop Hardware
     try {
       playbackNode.current?.port.postMessage({ cmd: "flushImmediate" });
     } catch {}
 
-    // This calls our safe cleanup function
     await cleanupAudio();
 
-    // 5. Reset UI and Unlock State
-    updateHeadsetStatus();
+    updateHeadsetStatus(); // This will reset the status message via useEffect
     console.log("[State] Setting state to IDLE");
     audioState.current = "IDLE";
+    // Reset duration for UI
+    setCallDuration(0);
   };
 
+  // (base64ToArrayBuffer function is unchanged)
   function base64ToArrayBuffer(base64: string) {
     const binary = atob(base64);
     const len = binary.length;
@@ -1199,13 +1206,11 @@ const CallingWidget: React.FC<Props> = ({
     return bytes.buffer;
   }
 
+  // (handleAudioChunkFromServer function is unchanged)
   const handleAudioChunkFromServer = async (data: any) => {
-    // If we're stopping/cleaning up, ignore incoming audio immediately.
     if (isStopping.current) {
       return;
     }
-
-    // This function is now WEB-ONLY
     if (Platform.OS === "web") {
       const pcmBuffer =
         typeof data === "string" ? base64ToArrayBuffer(data) : data;
@@ -1229,13 +1234,13 @@ const CallingWidget: React.FC<Props> = ({
         pendingChunks.current.push(ab);
       }
     }
-    // NO MORE NATIVE 'ELSE' BLOCK
   };
 
+  // --- MODIFIED: Added Transcript Logic ---
   const handleControlMessage = async (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
-        setStatus("AI is ready.");
+        setStatus("AI is ready");
         break;
 
       case "turn":
@@ -1243,19 +1248,32 @@ const CallingWidget: React.FC<Props> = ({
           stopRingTone();
           setTurn("agent");
           setStatus("Agent is speaking...");
-          // Mic control is implicitly handled by not being user turn
         } else if (data.turn === "user") {
           setTurn("user");
-          setStatus("Your turn to speak.");
+          setStatus("Your turn to speak");
           console.log("[Mic] Activating mic via 'turn: user' command.");
-          isMicActive.current = true; // Mic ON
+          isMicActive.current = true;
         }
         break;
 
+      // --- MODIFIED: Pushes to transcript ---
       case "text":
-        setStatus(data.data);
+        // This is assumed to be text from the AI ("Alex")
+        setTranscript((prev) => [
+          ...prev,
+          { speaker: "Alex", text: data.data },
+        ]);
+        // setStatus(data.data); // We'll use the 'turn' status instead
         break;
 
+      // --- NEW: Handles user's text from backend ---
+      // This assumes your backend sends this message type
+      // after processing the user's speech.
+      case "user_text":
+        setTranscript((prev) => [...prev, { speaker: "You", text: data.data }]);
+        break;
+
+      // (play_stream case is unchanged)
       case "play_stream": {
         stopRingTone();
         setTurn("agent");
@@ -1266,23 +1284,14 @@ const CallingWidget: React.FC<Props> = ({
           console.warn("[Audio] play_stream missing url");
           break;
         }
-
-        // bump sequence token - cancels previous play attempts
         const mySeq = ++playSeq.current;
-
-        // If a playback is already in progress, we'll cancel/unload it first.
-        // This prevents multiple voices playing at once.
         (async () => {
           playLock.current = true;
           hasStartedPlaying.current = false;
-
-          // Cancel any pending forced-start timer for previous playback
           if (forcedStartTimeoutRef.current) {
             clearTimeout(forcedStartTimeoutRef.current);
             forcedStartTimeoutRef.current = null;
           }
-
-          // Get and unload previous sound safely
           const prev = soundRef.current;
           soundRef.current = null;
           setSound(null);
@@ -1297,8 +1306,6 @@ const CallingWidget: React.FC<Props> = ({
               await prev.unloadAsync().catch(() => {});
             } catch {}
           }
-
-          // If call ended or a newer play arrived, abort
           if (
             isStopping.current ||
             mySeq !== playSeq.current ||
@@ -1307,18 +1314,13 @@ const CallingWidget: React.FC<Props> = ({
             playLock.current = false;
             return;
           }
-
-          // Create and load new sound manually to avoid callback race
           const newSound = new Audio.Sound();
           let destroyed = false;
-
           try {
-            // Attach status update AFTER load to ensure it references the real instance
             await newSound.loadAsync(
               { uri: urlToPlay },
               { shouldPlay: false, progressUpdateIntervalMillis: 200 }
             );
-            // abort if newer play started while loading
             if (
               mySeq !== playSeq.current ||
               isStopping.current ||
@@ -1330,27 +1332,19 @@ const CallingWidget: React.FC<Props> = ({
               playLock.current = false;
               return;
             }
-
-            // set status callback
             newSound.setOnPlaybackStatusUpdate(async (status) => {
               try {
-                // ignore callbacks from older sequences
                 if (mySeq !== playSeq.current) return;
-
-                // Note: status here is the success shape
                 if (!status.isLoaded) {
                   if ((status as any).error) {
                     console.error("[Audio] load error:", (status as any).error);
                   }
                   return;
                 }
-
-                // start playback when loaded if not already started
                 if (!status.isPlaying && !hasStartedPlaying.current) {
                   try {
                     hasStartedPlaying.current = true;
                     await newSound.setVolumeAsync(1.0);
-                    // some expo versions may not expose setIsMutedAsync — guard it
                     if ((newSound as any).setIsMutedAsync) {
                       try {
                         await (newSound as any).setIsMutedAsync(false);
@@ -1360,14 +1354,10 @@ const CallingWidget: React.FC<Props> = ({
                   } catch (e) {
                     console.error("[Audio] Error during playAsync:", e);
                     hasStartedPlaying.current = false;
-                    // release lock on error
                     playLock.current = false;
                   }
                 }
-
-                // finish handling
                 if ((status as any).didJustFinish) {
-                  // only clear state if this is the active sequence
                   if (mySeq === playSeq.current) {
                     try {
                       await newSound.unloadAsync();
@@ -1382,12 +1372,8 @@ const CallingWidget: React.FC<Props> = ({
                 console.warn("[Audio status cb] error:", e);
               }
             });
-
-            // store ref/state
             soundRef.current = newSound;
             setSound(newSound);
-
-            // Forced-start fallback after short delay (platform quirks)
             forcedStartTimeoutRef.current = setTimeout(async () => {
               try {
                 forcedStartTimeoutRef.current = null;
@@ -1422,22 +1408,19 @@ const CallingWidget: React.FC<Props> = ({
             playLock.current = false;
           }
         })();
-
         break;
       }
 
-      // --- REVISED 'stop_playback' ---
+      // (stop_playback case is unchanged)
       case "stop_playback": {
-        // Interruption
-        const soundToStop = soundRef.current; // Get from ref
-        soundRef.current = null; // Clear ref immediately
-        setSound(null); // Clear state immediately
-
+        const soundToStop = soundRef.current;
+        soundRef.current = null;
+        setSound(null);
         if (soundToStop) {
           console.log("[Audio] Interruption. Stopping playback and unloading.");
           try {
             soundToStop.setOnPlaybackStatusUpdate(null);
-          } catch {} // Detach listener
+          } catch {}
           try {
             await soundToStop.stopAsync();
           } catch {}
@@ -1452,167 +1435,329 @@ const CallingWidget: React.FC<Props> = ({
             "[Audio] Interruption requested, but no sound ref was active."
           );
         }
-
-        playLock.current = false; // Release lock on interruption
-        hasStartedPlaying.current = false; // ⬅️ Reset the gate
-
-        // Update UI immediately
+        playLock.current = false;
+        hasStartedPlaying.current = false;
         setTurn("user");
         setStatus("Your turn to speak. (Interrupted)");
-        // Mic activation will happen when 'turn: user' arrives from backend
         break;
       }
-      // --- End REVISED 'stop_playback' ---
 
       default:
         break;
     }
   };
 
-  // Headset indicator (unchanged)
-  const HeadsetStatusIndicator = () => {
-    if (Platform.OS === "web") return null;
-    const icon = headsetConnected ? "🎧" : "🔇";
-    const text = headsetConnected ? "Headset Connected" : "No Headset";
-    const color = headsetConnected ? "#10b1" : "#f87171";
-    return (
-      <View style={styles.headsetIndicator}>
-        <Text style={[styles.headsetIcon, { color }]}>{icon}</Text>
-        <Text style={[styles.headsetLabel, { color }]}>{text}</Text>
-      </View>
-    );
+  // --- NEW: Mute Toggle Function ---
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      isMutedRef.current = next; // Update ref for async listeners
+      console.log("Mute set to:", next);
+      return next;
+    });
   };
 
+  // This check is now handled in the startCall button's `disabled` prop
+  const canStartCall = Platform.OS === "web" || headsetConnected;
+
+  // --- NEW: Replaced entire render function ---
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Calling Widget</Text>
-        <HeadsetStatusIndicator />
+      {/* --- AVATAR AREA --- */}
+      <View style={styles.avatarContainer}>
+        <View style={styles.avatarIconWrapper}>
+          <Ionicons name="person-circle" size={100} color="#4A90E2" />
+          <View
+            style={[
+              styles.micIconCircle,
+              turn === "agent" && styles.micIconActive, // Green when agent speaks
+            ]}
+          >
+            <Ionicons
+              name="mic"
+              size={14}
+              color={turn === "agent" ? "#FFF" : "#4A90E2"}
+            />
+          </View>
+        </View>
+        <Text style={styles.avatarName}>Alex</Text>
+        <Text style={styles.avatarSubtitle}>Restaurant Staff</Text>
+        <Text style={styles.timer}>
+          {isCalling ? formatDuration(callDuration) : "00:00"}
+        </Text>
       </View>
-      <Text
-        style={[
-          styles.status,
-          status === HEADSET_REQUIRED_STATUS && styles.statusWarning,
-        ]}
-      >
-        {status}
-      </Text>
 
-      {isCalling ? (
-        <TouchableOpacity style={styles.endCallButton} onPress={endCall}>
-          <Text style={styles.buttonText}>End Call</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={[
-            styles.startCallButton,
-            !headsetConnected && Platform.OS !== "web" && styles.disabledButton,
-          ]}
-          onPress={startCall}
-          disabled={!headsetConnected && Platform.OS !== "web"}
+      {/* --- STATUS / LISTENING INDICATOR --- */}
+      <View style={styles.statusContainer}>
+        {audioState.current === "STARTING" ? (
+          <ActivityIndicator color="#666" />
+        ) : (
+          <Text style={styles.statusText}>
+            {turn === "user"
+              ? "Listening..."
+              : isCalling
+              ? status
+              : "Press to start"}
+          </Text>
+        )}
+      </View>
+
+      {/* --- TRANSCRIPT AREA --- */}
+      <View style={styles.transcriptOuterContainer}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.transcriptScroll}
+          contentContainerStyle={styles.transcriptContainer}
+          onContentSizeChange={() =>
+            scrollRef.current?.scrollToEnd({ animated: true })
+          }
         >
-          <Text style={styles.buttonText}>Start Call</Text>
-        </TouchableOpacity>
+          {transcript.map((item, index) => (
+            <Text key={index} style={styles.transcriptText}>
+              <Text
+                style={
+                  item.speaker === "Alex"
+                    ? styles.speakerAlex
+                    : styles.speakerYou
+                }
+              >
+                {item.speaker}:
+              </Text>
+              {` ${item.text}`}
+            </Text>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* --- SUGGESTED RESPONSES (TIPS) --- */}
+      {showTips && (
+        <View style={styles.tipsContainer}>
+          <Text style={styles.tipsTitle}>SUGGESTED RESPONSES:</Text>
+          <View style={styles.tipsButtonRow}>
+            {suggestedResponses.map((text, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.tipButton}
+                onPress={() => {
+                  /* You could wire this to send a message */
+                }}
+              >
+                <Text style={styles.tipButtonText}>{text}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       )}
 
-      <View style={styles.turnContainer}>
-        {turn === "user" && (
-          <Text style={styles.userTurn}>Your Turn to Speak</Text>
-        )}
-        {turn === "agent" && (
-          <Text style={styles.agentTurn}>Agent is Responding</Text>
-        )}
+      {/* --- CONTROLS AREA --- */}
+      <View style={styles.controlsRow}>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={toggleMute}
+          disabled={!isCalling}
+        >
+          <Ionicons
+            name={isMuted ? "mic-off" : "mic"}
+            size={28}
+            color={!isCalling ? "#aaa" : isMuted ? "#ef4444" : "#333"}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.mainCallButton,
+            isCalling ? styles.endCallButton : styles.startCallButton,
+            !canStartCall && !isCalling && styles.disabledButton,
+          ]}
+          onPress={isCalling ? endCall : startCall}
+          disabled={!canStartCall && !isCalling}
+        >
+          <MaterialIcons
+            name={isCalling ? "call-end" : "call"}
+            size={32}
+            color="#FFF"
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={() => setShowTips((prev) => !prev)}
+          disabled={!isCalling}
+        >
+          <Ionicons
+            name="bulb-outline"
+            size={28}
+            color={!isCalling ? "#aaa" : showTips ? "#4A90E2" : "#333"}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
+// --- NEW STYLES ---
 const styles = StyleSheet.create({
   container: {
-    width: 360,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 5,
-      },
-      web: {
-        boxShadow: "0 6px 20px rgba(0,0,0,0.08)",
-      },
-    }),
-  },
-  header: {
-    flexDirection: "row",
+    width: "100%",
+    height: "100%",
+    maxHeight: 700,
+    padding: 5,
+    flexDirection: "column",
     justifyContent: "space-between",
+    //backgroundColor: "white",
+  },
+  // Avatar
+  avatarContainer: {
     alignItems: "center",
+    paddingTop: 20,
+  },
+  avatarIconWrapper: {
+    position: "relative",
     marginBottom: 8,
   },
-  title: {
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  status: {
-    marginBottom: 12,
-    color: "#666",
-  },
-  statusWarning: {
-    color: "#f87171",
-    fontWeight: "bold",
-  },
-  headsetIndicator: {
-    flexDirection: "row",
+  micIconCircle: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FFF",
+    borderWidth: 2,
+    borderColor: "#4A90E2",
+    justifyContent: "center",
     alignItems: "center",
-    padding: 4,
-    borderRadius: 4,
   },
-  headsetIcon: {
+  micIconActive: {
+    backgroundColor: "#34C759", // Green
+    borderColor: "#FFF",
+  },
+  avatarName: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  avatarSubtitle: {
     fontSize: 16,
-    marginRight: 4,
+    color: "#888",
   },
-  headsetLabel: {
+  timer: {
+    fontSize: 18,
+    color: "#555",
+    marginTop: 8,
+    fontVariant: ["tabular-nums"],
+  },
+  // Status
+  statusContainer: {
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  statusText: {
+    fontSize: 16,
+    color: "#666",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    fontWeight: "500",
+  },
+  // Transcript
+  transcriptOuterContainer: {
+    flex: 1, // Takes up remaining space
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  transcriptScroll: {
+    flex: 1,
+  },
+  transcriptContainer: {
+    padding: 12,
+  },
+  transcriptText: {
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  speakerAlex: {
+    fontWeight: "bold",
+    color: "#00529B",
+  },
+  speakerYou: {
+    fontWeight: "bold",
+    color: "#34C759",
+  },
+  // Tips
+  tipsContainer: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    marginBottom: 10,
+  },
+  tipsTitle: {
     fontSize: 12,
     fontWeight: "bold",
+    color: "#888",
+    marginBottom: 8,
+    textTransform: "uppercase",
   },
-  endCallButton: {
-    width: "100%",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: "#ef4444",
-    borderRadius: 8,
+  tipsButtonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  tipButton: {
+    backgroundColor: "#E4EAF1",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tipButtonText: {
+    color: "#4A90E2",
+    fontWeight: "500",
+  },
+  // Controls
+  controlsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingBottom: 10,
+  },
+  controlButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    ...Platform.select({
+      ios: { shadowOpacity: 0.1, shadowRadius: 5 },
+      android: { elevation: 3 },
+      web: { boxShadow: "0 2px 5px rgba(0,0,0,0.1)" },
+    }),
+  },
+  mainCallButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center",
     alignItems: "center",
   },
   startCallButton: {
-    width: "100%",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: "#2563eb",
-    borderRadius: 8,
-    alignItems: "center",
+    backgroundColor: "#34C759",
+  },
+  endCallButton: {
+    backgroundColor: "#FF3B30",
   },
   disabledButton: {
-    backgroundColor: "#9ca3af",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  turnContainer: {
-    marginTop: 12,
-    fontWeight: "bold",
-  },
-  userTurn: {
-    color: "#2563eb",
-  },
-  agentTurn: {
-    color: "#16a34a",
+    backgroundColor: "#BDBDBD",
   },
 });
 

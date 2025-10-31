@@ -95,7 +95,7 @@ const PhoneCall = () => {
               <CallingWidget
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.1.107:3000"
+                websocketUrl="ws://192.168.1.8:3000"
                 //websocketUrl="ws://localhost:3000"
                 scenarioId={selectedScenario?.id}
               />
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: SHADOW_BUFFER,
-    backgroundColor: theme.colors.background.default,
   },
   modalContent: {
     paddingVertical: 24,
