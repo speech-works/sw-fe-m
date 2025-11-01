@@ -1722,10 +1722,6 @@ const styles = StyleSheet.create({
   // Tips
   tipsContainer: {
     paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
     marginBottom: 10,
   },
   tipsTitle: {
