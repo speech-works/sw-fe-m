@@ -97,6 +97,7 @@ const PhoneCall = () => {
                 //websocketUrl={"wss://api.speechworks.in"}
                 websocketUrl="ws://192.168.1.8:3000"
                 scenarioId={selectedScenario?.id}
+                scenarioIcon={selectedScenario?.icon || "robot"}
                 agentName={selectedScenario?.agent.name || ""}
                 agentDesignation={selectedScenario?.agent.designation || ""}
               />
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: SHADOW_BUFFER,
+    // padding: SHADOW_BUFFER,
   },
   modalContent: {
     paddingVertical: 24,

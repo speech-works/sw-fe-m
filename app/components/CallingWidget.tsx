@@ -40,8 +40,9 @@ type Props = {
   ringtoneAsset?: number;
   ringtoneUri?: string;
   scenarioId?: string;
-  agentName: string; // <-- ADDED
-  agentDesignation: string; // <-- ADDED
+  agentName: string;
+  agentDesignation: string;
+  scenarioIcon: string;
 };
 const DEFAULT_SAMPLE_RATE = 24000;
 
@@ -361,8 +362,9 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneAsset,
   ringtoneUri,
   scenarioId,
-  agentName, // <-- ADDED
-  agentDesignation, // <-- ADDED
+  agentName,
+  agentDesignation,
+  scenarioIcon,
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
@@ -1492,7 +1494,7 @@ const CallingWidget: React.FC<Props> = ({
       {/* --- AVATAR AREA --- */}
       <View style={styles.avatarContainer}>
         <View style={styles.avatarIconWrapper}>
-          <Icon name="robot" size={100} color="#4A90E2" />
+          <Icon name={scenarioIcon} size={100} color="#4A90E2" />
           <View
             style={[
               styles.micIconCircle,
@@ -1629,11 +1631,11 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     height: "100%",
-    maxHeight: 700,
+    //maxHeight: 700,
     padding: 5,
     flexDirection: "column",
     justifyContent: "space-between",
-    //backgroundColor: "white",
+    // backgroundColor: "red",
   },
   // Avatar
   avatarContainer: {
@@ -1698,6 +1700,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderWidth: 1,
     borderColor: "#E0E0E0",
+    height: 0,
   },
   transcriptScroll: {
     flex: 1,
