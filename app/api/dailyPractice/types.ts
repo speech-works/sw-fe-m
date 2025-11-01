@@ -215,4 +215,8 @@ export interface PhoneCallScenario {
   description: string;
   difficulty: DifficultyLevel;
   type: ExposurePracticeType.PHONE_CALL_SIMULATION;
+  agent: {
+    name: string;
+    designation: string;
+  };
 }

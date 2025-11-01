@@ -90,6 +90,7 @@ export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
       ...scenario,
       type: ExposurePracticeType.PHONE_CALL_SIMULATION,
     }));
+    console.log("Fetched phone call scenarios:", mappedData);
     return mappedData;
   } catch (error) {
     console.error(

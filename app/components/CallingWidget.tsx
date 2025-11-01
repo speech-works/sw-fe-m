@@ -30,6 +30,7 @@ import DeviceInfo from "react-native-device-info";
 
 import * as FileSystem from "expo-file-system";
 
+// --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type Props = {
   websocketUrl: string;
   userId?: string;
@@ -39,6 +40,8 @@ type Props = {
   ringtoneAsset?: number;
   ringtoneUri?: string;
   scenarioId?: string;
+  agentName: string; // <-- ADDED
+  agentDesignation: string; // <-- ADDED
 };
 const DEFAULT_SAMPLE_RATE = 24000;
 
@@ -334,8 +337,9 @@ registerProcessor("playback-processor", PlaybackProcessor);
 
 // ---- Component starts here ----
 
+// --- ⬇️ MODIFIED: `speaker` is now `string` ⬇️ ---
 type TranscriptItem = {
-  speaker: "You" | "Alex";
+  speaker: "You" | string;
   text: string;
 };
 
@@ -357,6 +361,8 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneAsset,
   ringtoneUri,
   scenarioId,
+  agentName, // <-- ADDED
+  agentDesignation, // <-- ADDED
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
@@ -371,12 +377,9 @@ const CallingWidget: React.FC<Props> = ({
   const [showTips, setShowTips] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [callDuration, setCallDuration] = useState(0);
-  const [suggestedResponses] = useState([
-    "I'd like a pizza",
-    "What's your special?",
-    "Can I have the menu?",
-  ]);
-  // --- END NEW UI STATE ---
+  // --- ⬇️ MODIFIED: This is now dynamic state ⬇️ ---
+  const [suggestedResponses, setSuggestedResponses] = useState<string[]>([]);
+  // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
 
@@ -503,6 +506,7 @@ const CallingWidget: React.FC<Props> = ({
     });
   };
 
+  // (isPlaybackSuccess function is unchanged)
   function isPlaybackSuccess(s: AVPlaybackStatus): s is AVPlaybackStatus & {
     isPlaying: boolean;
     didJustFinish: boolean;
@@ -512,6 +516,7 @@ const CallingWidget: React.FC<Props> = ({
     return (s as any).isLoaded === true;
   }
 
+  // (checkHeadsetConnected function is unchanged)
   const checkHeadsetConnected = async (): Promise<boolean> => {
     if (Platform.OS === "web") return true;
     try {
@@ -523,18 +528,30 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  const updateHeadsetStatus = async () => {
+  // --- ⬇️ MODIFIED: `updateHeadsetStatus` now sets status text ⬇️ ---
+  const updateHeadsetStatus = async (): Promise<boolean> => {
     if (Platform.OS !== "web") {
       const connected = await checkHeadsetConnected();
       setHeadsetConnected(connected);
-      if (!connected && !isCalling) {
-        // This status is no longer displayed, but logic is kept
-      } else if (connected && !isCalling) {
-        //
+      // Set status based on connection AND call state
+      if (!connected && audioState.current === "IDLE") {
+        setStatus("PLEASE CONNECT YOUR HEADPHONES");
+      } else if (connected && audioState.current === "IDLE") {
+        setStatus("Press to start call");
       }
+      return connected;
+    } else {
+      // Web is always "connected"
+      setHeadsetConnected(true);
+      if (audioState.current === "IDLE") {
+        setStatus("Press to start call");
+      }
+      return true;
     }
   };
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
+  // (cleanupAudio function is unchanged)
   const cleanupAudio = async () => {
     callId.current += 1; // Increment call ID to invalidate handlers
     isStopping.current = true; // Set stopping flag
@@ -645,14 +662,9 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
+  // --- ⬇️ MODIFIED: `useEffect` simplified ⬇️ ---
   useEffect(() => {
-    updateHeadsetStatus();
-    // Set initial status for UI
-    setStatus(
-      Platform.OS === "web" || headsetConnected
-        ? "Press to start call"
-        : "Connect headset to start"
-    );
+    updateHeadsetStatus(); // This will set the correct initial status
     return () => {
       try {
         ws.current?.close();
@@ -665,6 +677,7 @@ const CallingWidget: React.FC<Props> = ({
       }
     };
   }, []);
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
   // (Ringtone functions are unchanged)
   const startRingTone = () => {
@@ -741,7 +754,6 @@ const CallingWidget: React.FC<Props> = ({
       ringAudioCtxRef.current = null;
     }
   };
-
   const startNativeRingtone = async () => {
     if (nativeRingtoneRef.current) {
       try {
@@ -796,12 +808,13 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
+  // (sendChunk function is unchanged)
   const sendChunk = async () => {
     // This function is not used in this architecture
     console.warn("sendChunk called, but should be disabled.");
   };
 
-  // --- MODIFIED: Added Mute Check ---
+  // (startAudioCapture function is unchanged, already includes mute check)
   const startAudioCapture = async (): Promise<boolean> => {
     console.log("Starting audio capture...");
 
@@ -1004,7 +1017,7 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // --- MODIFIED: Added Timer, Transcript Reset ---
+  // --- ⬇️ MODIFIED: `startCall` headset check ⬇️ ---
   const startCall = async () => {
     if (audioState.current !== "IDLE") {
       console.warn(
@@ -1022,10 +1035,11 @@ const CallingWidget: React.FC<Props> = ({
 
     setStatus("Preparing audio...");
     if (Platform.OS !== "web") {
-      await updateHeadsetStatus();
-      if (!headsetConnected) {
+      const connected = await updateHeadsetStatus(); // <-- Get status directly
+      if (!connected) {
+        // <-- Check returned value
         console.log("Call blocked: No headset connected.");
-        setStatus("Connect headset to start"); // Update UI status
+        // Status is already set by updateHeadsetStatus
         audioState.current = "IDLE";
         return;
       }
@@ -1036,6 +1050,7 @@ const CallingWidget: React.FC<Props> = ({
     setCallDuration(0); // Reset timer
     setIsMuted(false); // Ensure not muted
     isMutedRef.current = false;
+    setSuggestedResponses([]); // <-- ADDED: Clear suggestions
     // --- END NEW UI State ---
 
     try {
@@ -1143,8 +1158,9 @@ const CallingWidget: React.FC<Props> = ({
       endCall();
     };
   };
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-  // --- MODIFIED: Added Timer Stop ---
+  // --- ⬇️ MODIFIED: `endCall` order of operations ⬇️ ---
   const endCall = async () => {
     if (audioState.current === "STOPPING" || audioState.current === "IDLE") {
       console.log(`[State] Ignoring endCall, state is ${audioState.current}`);
@@ -1163,7 +1179,7 @@ const CallingWidget: React.FC<Props> = ({
 
     stopRingTone();
     setIsCalling(false);
-    setStatus("Call ended");
+    // setStatus("Call ended"); // This will be overridden by updateHeadsetStatus
     setTurn(null);
     onCallEnd?.();
 
@@ -1190,12 +1206,16 @@ const CallingWidget: React.FC<Props> = ({
 
     await cleanupAudio();
 
-    updateHeadsetStatus(); // This will reset the status message via useEffect
+    // --- SWAPPED ORDER ---
     console.log("[State] Setting state to IDLE");
     audioState.current = "IDLE";
+    updateHeadsetStatus(); // <-- Call this AFTER setting state to IDLE
+    // --- END SWAP ---
+
     // Reset duration for UI
     setCallDuration(0);
   };
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
   // (base64ToArrayBuffer function is unchanged)
   function base64ToArrayBuffer(base64: string) {
@@ -1236,7 +1256,7 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // --- MODIFIED: Added Transcript Logic ---
+  // --- ⬇️ MODIFIED: `handleControlMessage` updated ⬇️ ---
   const handleControlMessage = async (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
@@ -1253,31 +1273,33 @@ const CallingWidget: React.FC<Props> = ({
           setStatus("Your turn to speak");
           console.log("[Mic] Activating mic via 'turn: user' command.");
           isMicActive.current = true;
+          setSuggestedResponses([]); // <-- ADDED: Clear old suggestions
         }
         break;
 
-      // --- MODIFIED: Pushes to transcript ---
       case "text":
-        // This is assumed to be text from the AI ("Alex")
+        // This is assumed to be text from the AI
         setTranscript((prev) => [
           ...prev,
-          { speaker: "Alex", text: data.data },
+          { speaker: agentName, text: data.data }, // <-- MODIFIED: Use agentName
         ]);
-        // setStatus(data.data); // We'll use the 'turn' status instead
         break;
 
-      // --- NEW: Handles user's text from backend ---
-      // This assumes your backend sends this message type
-      // after processing the user's speech.
       case "user_text":
+        // This is text from the User
         setTranscript((prev) => [...prev, { speaker: "You", text: data.data }]);
         break;
 
-      // (play_stream case is unchanged)
       case "play_stream": {
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
+
+        // --- ⬇️ ADDED: Set new suggestions ⬇️ ---
+        if (data.suggestions) {
+          setSuggestedResponses(data.suggestions);
+        }
+        // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
         const urlToPlay = data.url;
         if (!urlToPlay) {
@@ -1447,7 +1469,7 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // --- NEW: Mute Toggle Function ---
+  // (toggleMute function is unchanged)
   const toggleMute = () => {
     setIsMuted((prev) => {
       const next = !prev;
@@ -1457,10 +1479,14 @@ const CallingWidget: React.FC<Props> = ({
     });
   };
 
+  // --- ⬇️ MODIFIED: `canStartCall` now uses state ⬇️ ---
   // This check is now handled in the startCall button's `disabled` prop
-  const canStartCall = Platform.OS === "web" || headsetConnected;
+  const canStartCall =
+    Platform.OS === "web" ||
+    (headsetConnected && audioState.current === "IDLE");
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-  // --- NEW: Replaced entire render function ---
+  // --- ⬇️ MODIFIED: Render function updated ⬇️ ---
   return (
     <View style={styles.container}>
       {/* --- AVATAR AREA --- */}
@@ -1480,8 +1506,9 @@ const CallingWidget: React.FC<Props> = ({
             />
           </View>
         </View>
-        <Text style={styles.avatarName}>Alex</Text>
-        <Text style={styles.avatarSubtitle}>Restaurant Staff</Text>
+        {/* --- MODIFIED: Use props --- */}
+        <Text style={styles.avatarName}>{agentName}</Text>
+        <Text style={styles.avatarSubtitle}>{agentDesignation}</Text>
         <Text style={styles.timer}>
           {isCalling ? formatDuration(callDuration) : "00:00"}
         </Text>
@@ -1493,11 +1520,8 @@ const CallingWidget: React.FC<Props> = ({
           <ActivityIndicator color="#666" />
         ) : (
           <Text style={styles.statusText}>
-            {turn === "user"
-              ? "Listening..."
-              : isCalling
-              ? status
-              : "Press to start"}
+            {/* --- MODIFIED: Show dynamic status --- */}
+            {turn === "user" ? "Listening..." : isCalling ? status : status}
           </Text>
         )}
       </View>
@@ -1516,7 +1540,8 @@ const CallingWidget: React.FC<Props> = ({
             <Text key={index} style={styles.transcriptText}>
               <Text
                 style={
-                  item.speaker === "Alex"
+                  // --- MODIFIED: Use agentName prop ---
+                  item.speaker === agentName
                     ? styles.speakerAlex
                     : styles.speakerYou
                 }
@@ -1534,6 +1559,7 @@ const CallingWidget: React.FC<Props> = ({
         <View style={styles.tipsContainer}>
           <Text style={styles.tipsTitle}>SUGGESTED RESPONSES:</Text>
           <View style={styles.tipsButtonRow}>
+            {/* This now maps over the dynamic state */}
             {suggestedResponses.map((text, i) => (
               <TouchableOpacity
                 key={i}
@@ -1549,7 +1575,7 @@ const CallingWidget: React.FC<Props> = ({
         </View>
       )}
 
-      {/* --- CONTROLS AREA --- */}
+      {/* --- CONTROLS AREA (unchanged) --- */}
       <View style={styles.controlsRow}>
         <TouchableOpacity
           style={styles.controlButton}
@@ -1567,9 +1593,11 @@ const CallingWidget: React.FC<Props> = ({
           style={[
             styles.mainCallButton,
             isCalling ? styles.endCallButton : styles.startCallButton,
+            // --- MODIFIED: Use `canStartCall` variable ---
             !canStartCall && !isCalling && styles.disabledButton,
           ]}
           onPress={isCalling ? endCall : startCall}
+          // --- MODIFIED: Use `canStartCall` variable ---
           disabled={!canStartCall && !isCalling}
         >
           <Icon
@@ -1594,8 +1622,9 @@ const CallingWidget: React.FC<Props> = ({
     </View>
   );
 };
+// --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-// --- NEW STYLES ---
+// --- (STYLES are unchanged from your file) ---
 const styles = StyleSheet.create({
   container: {
     width: "100%",

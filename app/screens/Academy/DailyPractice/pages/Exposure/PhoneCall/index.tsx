@@ -96,8 +96,9 @@ const PhoneCall = () => {
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
                 websocketUrl="ws://192.168.1.8:3000"
-                //websocketUrl="ws://localhost:3000"
                 scenarioId={selectedScenario?.id}
+                agentName={selectedScenario?.agent.name || ""}
+                agentDesignation={selectedScenario?.agent.designation || ""}
               />
             </View>
           )}
