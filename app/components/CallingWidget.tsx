@@ -381,6 +381,8 @@ const CallingWidget: React.FC<Props> = ({
   const [callDuration, setCallDuration] = useState(0);
   // --- ⬇️ MODIFIED: This is now dynamic state ⬇️ ---
   const [suggestedResponses, setSuggestedResponses] = useState<string[]>([]);
+  // --- ⬇️ ADDED: State for notification dot ⬇️ ---
+  const [showNotificationDot, setShowNotificationDot] = useState(false);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
@@ -438,7 +440,9 @@ const CallingWidget: React.FC<Props> = ({
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMutedRef = useRef(false); // Ref for mute state for async listeners
   const scrollRef = useRef<ScrollView>(null);
-  // --- END NEW REFS ---
+  // --- ⬇️ ADDED: Ref to track current tips visibility for listener ⬇️ ---
+  const showTipsRef = useRef(showTips);
+  // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
   const awaitPlaybackWorkletDrain = (timeoutMs = 700): Promise<void> => {
@@ -679,6 +683,12 @@ const CallingWidget: React.FC<Props> = ({
       }
     };
   }, []);
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
+
+  // --- ⬇️ ADDED: useEffect to sync showTips state to ref ⬇️ ---
+  useEffect(() => {
+    showTipsRef.current = showTips;
+  }, [showTips]);
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
   // (Ringtone functions are unchanged)
@@ -1053,6 +1063,7 @@ const CallingWidget: React.FC<Props> = ({
     setIsMuted(false); // Ensure not muted
     isMutedRef.current = false;
     setSuggestedResponses([]); // <-- ADDED: Clear suggestions
+    setShowNotificationDot(false); // <-- ADDED: Clear notification dot
     // --- END NEW UI State ---
 
     try {
@@ -1184,6 +1195,7 @@ const CallingWidget: React.FC<Props> = ({
     // setStatus("Call ended"); // This will be overridden by updateHeadsetStatus
     setTurn(null);
     onCallEnd?.();
+    setShowNotificationDot(false); // <-- ADDED: Clear dot on end call
 
     try {
       if (ws.current) {
@@ -1276,6 +1288,7 @@ const CallingWidget: React.FC<Props> = ({
           console.log("[Mic] Activating mic via 'turn: user' command.");
           isMicActive.current = true;
           setSuggestedResponses([]); // <-- ADDED: Clear old suggestions
+          setShowNotificationDot(false); // <-- ADDED: Clear dot
         }
         break;
 
@@ -1297,9 +1310,14 @@ const CallingWidget: React.FC<Props> = ({
         setTurn("agent");
         setStatus("Agent is speaking...");
 
-        // --- ⬇️ ADDED: Set new suggestions ⬇️ ---
-        if (data.suggestions) {
+        // --- ⬇️ ADDED: Set new suggestions & notification dot ⬇️ ---
+        if (data.suggestions && data.suggestions.length > 0) {
           setSuggestedResponses(data.suggestions);
+          // Only show dot if the panel is currently closed
+          // --- ⬇️ MODIFIED: Use ref for current state ⬇️ ---
+          if (!showTipsRef.current) {
+            setShowNotificationDot(true);
+          }
         }
         // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
@@ -1481,6 +1499,16 @@ const CallingWidget: React.FC<Props> = ({
     });
   };
 
+  // --- ⬇️ ADDED: New handler for tips button ⬇️ ---
+  const toggleTips = () => {
+    // If we are about to open the panel (i.e., showTips is currently false)
+    if (!showTips) {
+      setShowNotificationDot(false);
+    }
+    setShowTips((prev) => !prev);
+  };
+  // --- ⬆️ END OF MODIFICATION ⬆️ ---
+
   // --- ⬇️ MODIFIED: `canStartCall` now uses state ⬇️ ---
   // This check is now handled in the startCall button's `disabled` prop
   const canStartCall =
@@ -1609,17 +1637,22 @@ const CallingWidget: React.FC<Props> = ({
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={() => setShowTips((prev) => !prev)}
-          disabled={!isCalling}
-        >
-          <Icon
-            name="lightbulb"
-            size={28}
-            color={!isCalling ? "#aaa" : showTips ? "#4A90E2" : "#333"}
-          />
-        </TouchableOpacity>
+        {/* --- MODIFIED: Wrapped in View and added conditional dot --- */}
+        <View>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={toggleTips}
+            disabled={!isCalling}
+          >
+            <Icon
+              name="lightbulb"
+              size={28}
+              color={!isCalling ? "#aaa" : showTips ? "#4A90E2" : "#333"}
+            />
+          </TouchableOpacity>
+          {showNotificationDot && <View style={styles.notificationDot} />}
+        </View>
+        {/* --- END OF MODIFICATION --- */}
       </View>
     </View>
   );
@@ -1786,6 +1819,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#BDBDBD",
+  },
+  // --- ⬇️ ADDED: Style for notification dot ⬇️ ---
+  notificationDot: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#FF3B30", // Red dot
+    borderWidth: 1,
+    borderColor: "#FFF",
   },
 });
 
