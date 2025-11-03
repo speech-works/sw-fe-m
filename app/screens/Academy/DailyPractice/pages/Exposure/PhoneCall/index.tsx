@@ -26,6 +26,7 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import axios from "axios";
+const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/ringback-tone.wav");
 
 const PhoneCall = () => {
   const navigation =
@@ -95,11 +96,12 @@ const PhoneCall = () => {
               <CallingWidget
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.1.8:3000"
+                websocketUrl="ws://192.168.1.7:3000"
                 scenarioId={selectedScenario?.id}
                 scenarioIcon={selectedScenario?.icon || "robot"}
                 agentName={selectedScenario?.agent.name || ""}
                 agentDesignation={selectedScenario?.agent.designation || ""}
+                ringtoneAsset={RINGING_SOUND_FILE}
               />
             </View>
           )}
