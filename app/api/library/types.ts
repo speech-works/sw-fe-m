@@ -64,6 +64,7 @@ export interface Technique {
   description: string;
   level: TECHNIQUE_LEVEL_ENUM;
   category: TechniqueCategory;
+  tutorial?: Tutorial; // Will be present when includeTutorial: true
 }
 
 export interface QuizQuestion {
@@ -84,12 +85,17 @@ export interface FinalAnswer {
   yourAnswer: QuizQuestionOption;
 }
 
+// --- THIS IS THE UPDATED INTERFACE ---
 export interface Tutorial {
-  id: string;
+  id: string; // This is the UUID (e.g., "a1b2c3d4-...")
   title: string;
   description: string;
-  videoUrl: string;
+  videoUrl: string; // <-- This is the S3 Object Key
+  glimpseS3Key: string;
+  isFree: boolean;
   videoScript: string;
   learningPath: string[];
   technique: Technique;
+  createdAt: string;
+  updatedAt: string;
 }
