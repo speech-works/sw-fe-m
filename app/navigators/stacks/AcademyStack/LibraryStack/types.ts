@@ -17,6 +17,7 @@ export type LibStackParamList = {
     techniqueName: string;
     finalAnswers: Array<FinalAnswer>;
   };
+  PaymentStack: undefined;
 };
 export type LibStackNavigationProp<T extends keyof LibStackParamList> =
   NativeStackNavigationProp<LibStackParamList, T>;

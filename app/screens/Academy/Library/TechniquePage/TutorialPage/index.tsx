@@ -17,9 +17,12 @@ import {
 import { TECHNIQUES_ENUM, Tutorial } from "../../../../../api/library/types";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Button from "../../../../../components/Button";
-import Video from "react-native-video"; // <-- ADDED: The video player
-// (Placeholder) Import an auth context to check user status
-// import { useAuth } from "../../../../../context/AuthContext";
+import Video from "react-native-video";
+import { useNavigation } from "@react-navigation/native";
+import {
+  LibStackNavigationProp,
+  LibStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 
 interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -30,6 +33,8 @@ const TutorialPage = ({
   techniqueId,
   setActiveStageIndex,
 }: TutorialPageProps) => {
+  const navigation =
+    useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const [tutorial, setTutorial] = useState<Tutorial | null>(null);
   const [isLoading, setIsLoading] = useState(true); // <-- ADDED
   // (Placeholder) Get user's subscription status
@@ -123,7 +128,7 @@ const TutorialPage = ({
             <Button
               text="Go Premium"
               onPress={() => {
-                /* Navigate to your paywall screen */
+                navigation.navigate("PaymentStack");
               }}
               style={styles.premiumButton}
             />
