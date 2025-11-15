@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { StyleSheet, Text, View, Image, Platform, Alert } from "react-native"; // <-- Import Alert
+import { StyleSheet, Text, View, Image, Platform, Alert } from "react-native";
 
 import {
   COMPANY_NAME,
@@ -12,7 +12,7 @@ import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import speechworksLogo from "../../assets/speechworks_logo.png";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import Button from "../../components/Button";
+import Button from "../../components/Button"; // <-- Assumes Button is updated
 import BgWrapper from "../../util/components/BgWrapper";
 import Constants from "expo-constants";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -133,22 +133,22 @@ const LoginScreen = () => {
                 // @ts-ignore
                 textColor={theme.colors.text[provider]}
                 onPress={() => onPressOAuth(provider)}
-                text={
-                  isLoading
-                    ? `Connecting to ${provider}...`
-                    : `Continue with ${
-                        provider.charAt(0).toUpperCase() + provider.slice(1)
-                      }`
-                }
+                // ✅ --- BEST PRACTICE CHANGE ---
+                // Text no longer changes, preventing reflow
+                text={`Continue with ${
+                  provider.charAt(0).toUpperCase() + provider.slice(1)
+                }`}
                 leftIcon={provider}
-                disabled={isLoading} // 🔹 Disables while loading
+                disabled={isLoading}
+                loading={isLoading} // <-- Pass loading prop
+                // ✅ --- END OF CHANGE ---
               />
             );
           })}
         </View>
 
         <Text style={styles.captionText}>
-          By continuing, you agree to our{" "}
+          By continuing, you agree to our
           <Text
             style={styles.linkText}
             onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
@@ -158,7 +158,7 @@ const LoginScreen = () => {
         </Text>
 
         <Text style={styles.captionText}>
-          Need help?{" "}
+          Need help?
           <Text
             style={styles.linkText}
             onPress={() => handleLinkPress(SUPPORT_URL)}

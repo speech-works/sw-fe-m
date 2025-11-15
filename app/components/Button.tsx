@@ -5,13 +5,14 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
-  Platform, // Ensure Platform is imported if theme.shadow uses it for native shadows
+  Platform,
+  ActivityIndicator, // 1. --- Import ActivityIndicator ---
 } from "react-native";
 import {
   parseShadowStyle,
   parseTextStyle,
-} from "../util/functions/parseStyles"; // Assuming this utility exists
-import { theme } from "../Theme/tokens"; // Assuming your theme tokens are defined here
+} from "../util/functions/parseStyles";
+import { theme } from "../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 /**
@@ -40,6 +41,12 @@ interface ButtonProps {
    * @default false
    */
   disabled?: boolean;
+  /**
+   * If true, the button will be disabled and show a spinner
+   * in place of the `leftIcon`.
+   * @default false
+   */
+  loading?: boolean; // 2. --- Add loading prop ---
   /**
    * Name of the MaterialIcons icon to display on the left side of the text.
    */
@@ -77,6 +84,7 @@ const Button: React.FC<ButtonProps> = ({
   onPress,
   text,
   disabled = false,
+  loading = false, // 2. --- Destructure loading prop ---
   leftIcon,
   rightIcon,
   buttonColor,
@@ -84,11 +92,15 @@ const Button: React.FC<ButtonProps> = ({
   style,
   elevation = 1,
 }) => {
+  // 4. --- Button is disabled if explicitly disabled OR loading ---
+  const isDisabled = disabled || loading;
+
   // Determine button styles based on variant and disabled state
   const getButtonStyles = (): ViewStyle[] => {
     const baseStyles: ViewStyle[] = [styles.buttonBase]; // Start with the base style
 
-    if (disabled) {
+    if (isDisabled) {
+      // Use combined isDisabled check
       baseStyles.push(styles.disabledButton);
     } else if (variant === "ghost") {
       baseStyles.push(styles.ghostButton);
@@ -103,7 +115,6 @@ const Button: React.FC<ButtonProps> = ({
       });
 
       // Apply elevation shadow only for normal, non-disabled buttons
-      // (e.g., using Platform.select for native shadow properties)
       if (elevation === 1) {
         baseStyles.push(styles.elevation1);
       } else if (elevation === 2) {
@@ -121,7 +132,8 @@ const Button: React.FC<ButtonProps> = ({
 
   // Determine text and icon color
   const getTextColor = (): TextStyle => {
-    if (disabled) {
+    if (isDisabled) {
+      // Use combined isDisabled check
       return styles.disabledText;
     }
 
@@ -134,27 +146,31 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const buttonTextStyle = getTextColor();
-  const iconColor = buttonTextStyle.color;
+  const iconColor = buttonTextStyle.color as string; // Cast as string for spinner
 
-  // Conditional text margins for spacing between text and icons
-  const textSpacingStyle: TextStyle = {};
-  if (leftIcon) {
-    textSpacingStyle.marginLeft = 8;
-  }
-  if (rightIcon) {
-    textSpacingStyle.marginRight = 8;
-  }
+  // NOTE: Removed the 'textSpacingStyle' logic as it was not being
+  // applied and is made redundant by the `gap: 12` in `styles.buttonBase`.
 
   return (
     <TouchableOpacity
       style={getButtonStyles()}
       onPress={onPress}
       activeOpacity={0.7}
-      disabled={disabled}
+      disabled={isDisabled} // Use combined isDisabled check
     >
-      {leftIcon ? <Icon name={leftIcon} size={20} color={iconColor} /> : null}
+      {/* 3. --- Render spinner OR leftIcon --- */}
+      {loading ? (
+        <ActivityIndicator size="small" color={iconColor} />
+      ) : leftIcon ? (
+        <Icon name={leftIcon} size={20} color={iconColor} />
+      ) : null}
+
       <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
-      {rightIcon ? <Icon name={rightIcon} size={20} color={iconColor} /> : null}
+
+      {/* Also hide rightIcon when loading for a cleaner look */}
+      {!loading && rightIcon ? (
+        <Icon name={rightIcon} size={20} color={iconColor} />
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -165,9 +181,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 12, // This property handles spacing between icon/text
     borderRadius: 16,
     padding: 16,
+    minHeight: 52, // Added to ensure consistent height
   },
   normalButton: {
     backgroundColor: theme.colors.actionPrimary.default,
