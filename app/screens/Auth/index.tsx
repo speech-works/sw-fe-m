@@ -1,5 +1,5 @@
-import React, { useContext } from "react";
-import { StyleSheet, Text, View, Image, Platform } from "react-native"; // <-- Import Platform
+import React, { useContext, useState } from "react";
+import { StyleSheet, Text, View, Image, Platform, Alert } from "react-native"; // <-- Import Alert
 
 import {
   COMPANY_NAME,
@@ -39,7 +39,20 @@ const getDisplayProviders = () => {
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
   const { setUser } = useUserStore();
+
+  // 🔹 loading state per provider
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+
+  // 🔹 simple toast helper
+  const showError = (message: string) => {
+    Alert.alert("Login Error", message);
+  };
+
   const onPressOAuth = async (provider: string) => {
+    if (loadingProvider) return; // prevent multi-trigger
+
+    setLoadingProvider(provider);
+
     try {
       // 1️⃣ Build the Expo-Go proxy redirect URI
       const owner = Constants.expoConfig?.owner;
@@ -47,10 +60,7 @@ const LoginScreen = () => {
       if (!owner || !slug)
         throw new Error("Expo owner/slug missing in app.json!");
 
-      // const redirectUri = `https://auth.expo.io/@${owner}/${slug}`;
       const redirectUri = AuthSession.makeRedirectUri({
-        // preferLocalhost: true,
-        // scheme: "speechworks",
         scheme: "speechworks",
         path: "auth-callback",
       });
@@ -79,20 +89,26 @@ const LoginScreen = () => {
         // 5️⃣ Exchange on your backend
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
         setUser(user);
+
         // 6️⃣ Store & update your app’s auth state
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
         await SecureStore.setItemAsync(
           SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
           refreshToken
         );
+
         login(appJwt);
       } else if (result.type === "cancel") {
         console.log("🔸 User cancelled OAuth");
       } else {
         console.warn("⚠️ Unexpected OAuth result:", result);
+        showError("Unexpected login response. Please try again.");
       }
     } catch (err: any) {
       console.error("🚨 OAuth failed:", err.message || err);
+      showError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoadingProvider(null);
     }
   };
 
@@ -104,22 +120,33 @@ const LoginScreen = () => {
           <Text style={styles.companyName}>{COMPANY_NAME}</Text>
           <Text style={styles.captionText}>{COMPANY_SLOGAN}</Text>
         </View>
+
         <View style={styles.loginButtons}>
-          {getDisplayProviders().map((provider) => (
-            <Button
-              key={provider}
-              // @ts-ignore
-              buttonColor={theme.colors.background[provider]}
-              // @ts-ignore
-              textColor={theme.colors.text[provider]}
-              onPress={() => onPressOAuth(provider)}
-              text={`Continue with ${
-                provider.charAt(0).toUpperCase() + provider.slice(1)
-              }`}
-              leftIcon={provider}
-            />
-          ))}
+          {getDisplayProviders().map((provider) => {
+            const isLoading = loadingProvider === provider;
+
+            return (
+              <Button
+                key={provider}
+                // @ts-ignore
+                buttonColor={theme.colors.background[provider]}
+                // @ts-ignore
+                textColor={theme.colors.text[provider]}
+                onPress={() => onPressOAuth(provider)}
+                text={
+                  isLoading
+                    ? `Connecting to ${provider}...`
+                    : `Continue with ${
+                        provider.charAt(0).toUpperCase() + provider.slice(1)
+                      }`
+                }
+                leftIcon={provider}
+                disabled={isLoading} // 🔹 Disables while loading
+              />
+            );
+          })}
         </View>
+
         <Text style={styles.captionText}>
           By continuing, you agree to our{" "}
           <Text
@@ -129,6 +156,7 @@ const LoginScreen = () => {
             Terms & Privacy Policy
           </Text>
         </Text>
+
         <Text style={styles.captionText}>
           Need help?{" "}
           <Text

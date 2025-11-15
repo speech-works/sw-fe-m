@@ -17,7 +17,6 @@ import {
 } from "./app/util/functions/notifications";
 import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
-import { StripeProvider } from "@stripe/stripe-react-native";
 
 import { NativeModules } from "react-native";
 console.log("NativeModules keys:", Object.keys(NativeModules));
@@ -112,9 +111,7 @@ const App: React.FC = () => {
         >
           <FontLoader />
           <NavigationContainer>
-            <StripeProvider publishableKey={process.env.STRIPE_PUBLISHABLE_KEY}>
-              <MainNavigator />
-            </StripeProvider>
+            <MainNavigator />
           </NavigationContainer>
           <Toast config={toastConfig} />
         </SafeAreaView>
