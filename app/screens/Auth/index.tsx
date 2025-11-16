@@ -9,10 +9,12 @@ import {
 } from "./constants";
 import { theme } from "../../Theme/tokens";
 
+import Qonversion from "@qonversion/react-native-sdk";
+
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import speechworksLogo from "../../assets/speechworks_logo.png";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import Button from "../../components/Button"; // <-- Assumes Button is updated
+import Button from "../../components/Button";
 import BgWrapper from "../../util/components/BgWrapper";
 import Constants from "expo-constants";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -22,6 +24,7 @@ import * as AuthSession from "expo-auth-session";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { loginUser, handleOAuthCallback } from "../../api";
 import { useUserStore } from "../../stores/user";
+import { useAppStore } from "../../stores/app";
 
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
@@ -39,6 +42,9 @@ const getDisplayProviders = () => {
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
   const { setUser } = useUserStore();
+
+  // 2. Get the Qonversion ready state
+  const isQonversionReady = useAppStore((state) => state.isQonversionReady);
 
   // 🔹 loading state per provider
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
@@ -90,6 +96,35 @@ const LoginScreen = () => {
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
         setUser(user);
 
+        // 3. ✅ --- ADD THIS GUARD --- ✅
+        // This check prevents the crash.
+        if (!isQonversionReady) {
+          console.error(
+            "🚨 Qonversion not ready, skipping identify/entitlements."
+          );
+          // Throw an error that will be caught by the `catch` block
+          throw new Error(
+            "Payment service failed to load. Please restart the app and try again."
+          );
+        }
+        // ✅ --- END OF GUARD --- ✅
+
+        //IDENTIFY THE USER IN QONVERSION  🔥🔥🔥
+        // This code is now safe to run
+        await Qonversion.getSharedInstance().identify(String(user.id));
+        console.log("Qonversion: identified user", user.id);
+
+        const entitlements =
+          await Qonversion.getSharedInstance().checkEntitlements();
+        const premiumEntitlement = entitlements.get("premium");
+        const isPremium = premiumEntitlement?.isActive === true;
+        console.log("Qonversion: user premium status:", isPremium);
+
+        useUserStore.getState().setUser({
+          ...useUserStore.getState().user!,
+          isPaid: isPremium,
+        });
+
         // 6️⃣ Store & update your app’s auth state
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
         await SecureStore.setItemAsync(
@@ -133,15 +168,12 @@ const LoginScreen = () => {
                 // @ts-ignore
                 textColor={theme.colors.text[provider]}
                 onPress={() => onPressOAuth(provider)}
-                // ✅ --- BEST PRACTICE CHANGE ---
-                // Text no longer changes, preventing reflow
                 text={`Continue with ${
                   provider.charAt(0).toUpperCase() + provider.slice(1)
                 }`}
                 leftIcon={provider}
                 disabled={isLoading}
-                loading={isLoading} // <-- Pass loading prop
-                // ✅ --- END OF CHANGE ---
+                loading={isLoading}
               />
             );
           })}
@@ -165,6 +197,7 @@ const LoginScreen = () => {
           >
             Contact Support
           </Text>
+          {/* 4. CORRECTED: Removed stray '_' from here */}
         </Text>
       </View>
     </BgWrapper>
@@ -173,6 +206,7 @@ const LoginScreen = () => {
 
 export default LoginScreen;
 
+// Styles (no change)
 const styles = StyleSheet.create({
   wrapper: {
     paddingVertical: 48,
