@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Audio } from "expo-av";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -11,96 +11,154 @@ import toastConfig from "./app/util/config/toastConfig";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
+
 import {
   registerForNotifications,
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
+
 import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
+import { getMyUser } from "./app/api/users";
+import { useUserStore } from "./app/stores/user";
+import { useAppStore } from "./app/stores/app";
 
-import { NativeModules } from "react-native";
-console.log("NativeModules keys:", Object.keys(NativeModules));
+import Qonversion from "@qonversion/react-native-sdk";
+import { initQonversion } from "./app/lib/qonversion";
+import PaywallScreen from "./app/screens/Paywall/PaywallScreen";
 
-// 👇 This is critical for trapping the OAuth redirect back into your JS:
+// MUST be here for OAuth redirect handling
 WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
-  // reset mood log on frontend
-  useMoodCheckStore.getState().checkAndResetIfNeeded();
-
-  const rescheduleAllActiveNotifications = useReminderStore(
-    (state) => state.rescheduleAllActiveNotifications
-  );
-
+  // reset local mood data
   useEffect(() => {
-    const checkToken = async () => {
-      const accessToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY
-      );
-      const refreshToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
-      );
+    // reset local mood data
+    useMoodCheckStore.getState().checkAndResetIfNeeded();
+  }, []);
 
-      // await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
-      // await SecureStore.deleteItemAsync(
-      //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
-      // );
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
+  // 2. Use a ref to track listener attachment
+  const listenerAttached = useRef(false);
 
-      console.log(".................checkToken................");
-      console.log("accessToken", accessToken);
-      console.log("refreshToken", refreshToken);
-      // console.log(
-      //   "ASYNC_KEYS_NAME.SW_ZSTORE_USER",
-      //   AsyncStorage.getItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER)
-      // );
+  // 3. Get state and setters from stores
+  const { user } = useUserStore();
+  const { isQonversionReady, setQonversionReady } = useAppStore();
+
+  // 4. Initialize Qonversion (ONLY ONCE) and update global state
+  useEffect(() => {
+    const initializeSDKs = async () => {
+      try {
+        await initQonversion(); // <-- Awaits the async init
+        console.log("🔥 Qonversion initialization successful");
+        setQonversionReady(true); // <-- Set global flag
+      } catch (e) {
+        console.error("🚨 Qonversion init failed:", e);
+      }
     };
 
+    initializeSDKs();
+  }, [setQonversionReady]); // Dependency ensures it runs once
+
+  // Sync backend user on launch
+  // Sync backend user on launch
+  useEffect(() => {
+    async function syncUser() {
+      try {
+        const backendUser = await getMyUser();
+        useUserStore.getState().setUser(backendUser);
+      } catch (e: any) {
+        // ✅ Check for the expected "logged out" error
+        if (e?.message === "No refresh token found") {
+          console.log("App loaded without a user. Skipping sync.");
+        } else {
+          // Log any other *unexpected* errors
+          console.error("Unable to sync user (unexpected error):", e);
+        }
+      }
+    }
+    syncUser();
+  }, []);
+
+  // 6. Attach entitlement listener AFTER user is logged in & Qonversion is ready
+  useEffect(() => {
+    // This effect now depends on user and Qonversion readiness
+    if (user?.id && isQonversionReady && !listenerAttached.current) {
+      listenerAttached.current = true; // Mark as attached
+      console.log(
+        "👤 User detected AND Qonversion ready, attaching listener:",
+        user.id
+      );
+      attachEntitlementsListener();
+    }
+  }, [user, isQonversionReady]); // Re-runs when user logs in or Qonversion becomes ready
+
+  const attachEntitlementsListener = () => {
+    try {
+      const q = Qonversion.getSharedInstance();
+      console.log("📡 Setting entitlement update listener...");
+
+      q.setEntitlementsUpdateListener({
+        onEntitlementsUpdated: async (entitlements) => {
+          const premium = entitlements.get("premium");
+          const isPremium = premium?.isActive === true;
+
+          console.log("🔄 Entitlement Updated -> Premium:", isPremium);
+
+          const currentUser = useUserStore.getState().user; // Get fresh user state
+          if (currentUser) {
+            useUserStore.getState().setUser({
+              ...currentUser,
+              isPaid: isPremium,
+            });
+          }
+
+          // Sync with backend to update DB isPaid
+          try {
+            const updated = await getMyUser();
+            useUserStore.getState().setUser(updated);
+          } catch (e) {
+            console.log("Failed backend entitlement sync:", e);
+          }
+        },
+      });
+    } catch (err) {
+      console.log("⚠️ Failed to attach Qonversion listener:", err);
+    }
+  };
+
+  // Debug token check
+  useEffect(() => {
+    const checkToken = async () => {
+      const access = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY
+      );
+      const refresh = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      );
+      console.log("App started. Tokens:", { access, refresh });
+    };
     checkToken();
   }, []);
 
+  // iOS audio config
   useEffect(() => {
-    const checkForUpdates = async () => {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-    };
-
-    checkForUpdates();
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
   }, []);
 
+  // Notifications (already correct)
   useEffect(() => {
-    // 1. Register for notifications and set up channels (Android)
-    // This function also requests permissions.
-    registerForNotifications().then((granted) => {
-      if (granted) {
-        console.log("Notification permissions granted.");
-      } else {
-        console.log("Notification permissions denied.");
-        // Consider showing a persistent UI message to the user
-        // explaining why notifications won't work and how to enable them.
-      }
-    });
-
-    // 2. Set up notification listeners for foreground and tap interactions
+    registerForNotifications();
     setupNotificationHandlers();
 
-    // 3. Hydration listener for Zustand store to re-schedule notifications
-    // This ensures notifications are restored/updated after the app fully loads
-    // and the persisted state is available.
-    const unsubscribe = useReminderStore.persist.onFinishHydration(() => {
-      console.log(
-        "Zustand store rehydrated. Attempting to reschedule notifications."
-      );
-      rescheduleAllActiveNotifications();
+    const unsub = useReminderStore.persist.onFinishHydration(() => {
+      useReminderStore.getState().rescheduleAllActiveNotifications();
     });
 
-    // Clean up the subscription when the component unmounts
-    return () => {
-      unsubscribe();
-    };
-  }, [rescheduleAllActiveNotifications]);
+    return () => unsub();
+  }, []);
 
   return (
     <AuthProvider>
@@ -123,7 +181,5 @@ const App: React.FC = () => {
 export default App;
 
 const styles = StyleSheet.create({
-  safeAreaView: {
-    flex: 1,
-  },
+  safeAreaView: { flex: 1 },
 });
