@@ -85,13 +85,12 @@ export interface FinalAnswer {
   yourAnswer: QuizQuestionOption;
 }
 
-// --- THIS IS THE UPDATED INTERFACE ---
 export interface Tutorial {
   id: string; // This is the UUID (e.g., "a1b2c3d4-...")
   title: string;
   description: string;
-  videoUrl: string; // <-- This is the S3 Object Key
-  glimpseS3Key: string;
+  fullVideoId: string;
+  glimpseVideoId: string;
   isFree: boolean;
   videoScript: string;
   learningPath: string[];

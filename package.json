@@ -4,7 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "start:dev": "npx expo start --dev-client --port 3003",
-    "start": "expo start --dev-client",
+    "start": "npx expo start",
     "start:tunnel": "npx expo start --tunnel",
     "web": "npx expo start --web",
     "prebuild": "npx expo prebuild --clean",

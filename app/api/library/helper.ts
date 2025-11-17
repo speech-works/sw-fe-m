@@ -52,6 +52,8 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
         techniques.sort((a, b) => a.name.localeCompare(b.name));
       }
 
+      console.log(`Category: ${categoryName}, Techniques:`, techniques);
+
       // Push the category and its sorted techniques into the final libraryData array.
       libraryData.push({
         category: categoryName,
@@ -59,6 +61,6 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
       });
     }
   }
-
+  console.log("Parsed Library Data:", libraryData);
   return libraryData;
 }
