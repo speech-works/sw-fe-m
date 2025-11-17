@@ -156,11 +156,21 @@ axiosClient.interceptors.response.use(
         const { token: newAccessToken } = await refreshAccessToken({
           refreshToken,
         });
+        console.log("REFRESH RESPONSE:", { newAccessToken });
+
+        if (typeof newAccessToken !== "string") {
+          console.error(
+            "Invalid token received during refresh:",
+            newAccessToken
+          );
+          throw new Error("Invalid token - expected string JWT.");
+        }
 
         await SecureStore.setItemAsync(
           SECURE_KEYS_NAME.SW_APP_JWT_KEY,
           newAccessToken
         );
+
         // ✅ Update React state too (AuthContext)
         const updateTokenFn = getUpdateTokenFn();
         if (updateTokenFn) updateTokenFn(newAccessToken);

@@ -38,6 +38,7 @@ export async function getTutorialByTechnique(
       `/library/techniques/${techniqueId}/tutorial`
     );
     const tut = response.data;
+    console.log("Fetched Tutorial Data:", tut);
     return tut;
   } catch (error) {
     console.error(
