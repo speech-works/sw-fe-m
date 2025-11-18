@@ -65,6 +65,7 @@ export interface Technique {
   level: TECHNIQUE_LEVEL_ENUM;
   category: TechniqueCategory;
   tutorial?: Tutorial; // Will be present when includeTutorial: true
+  hasFree: boolean; // Indicates if the technique has a free tutorial
 }
 
 export interface QuizQuestion {

@@ -15,6 +15,7 @@ export interface ListCardProps {
   onTutorialSelect: () => void;
   onExerciseSelect: () => void;
   disabled?: boolean;
+  hasFree?: boolean;
 }
 
 const ListCard = ({
@@ -24,11 +25,26 @@ const ListCard = ({
   onExerciseSelect,
   onTutorialSelect,
   disabled,
+  hasFree,
 }: ListCardProps) => {
+  // Check if badge is active to apply extra padding
+  const showBadge = hasFree && !disabled;
+
   return (
     <View
-      style={[styles.container, disabled ? styles.disabledContainer : null]}
+      style={[
+        styles.container,
+        disabled ? styles.disabledContainer : null,
+        showBadge ? styles.containerWithBadge : null, // Applies extra top padding if badge exists
+      ]}
     >
+      {/* --- Free Content Badge (Top Left) --- */}
+      {showBadge && (
+        <View style={styles.badgeContainer}>
+          <Text style={styles.badgeText}>FREE CONTENT</Text>
+        </View>
+      )}
+
       <View style={styles.contentContainer}>
         <View style={styles.textContainer}>
           <View style={styles.rowContainer}>
@@ -99,8 +115,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRadius: 12,
     backgroundColor: theme.colors.surface.elevated,
+    position: "relative",
+    overflow: "hidden",
     //...parseShadowStyle(theme.shadow.elevation1),
   },
+  // Adds extra padding to the top so the Title doesn't collide with the Badge
+  containerWithBadge: {
+    paddingTop: 32,
+  },
+  // --- Badge Styles ---
+  badgeContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    backgroundColor: "#4CAF50",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderBottomRightRadius: 10,
+    zIndex: 10,
+  },
+  badgeText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textTransform: "uppercase",
+  },
+  // --------------------
   contentContainer: {
     display: "flex",
     flexDirection: "column",

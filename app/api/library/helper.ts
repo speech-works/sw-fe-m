@@ -14,7 +14,8 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
     {};
 
   rawData.techniques?.forEach((rawTech) => {
-    const { category, id, name, description, level } = rawTech;
+    const { category, id, name, description, level, hasFree } = rawTech;
+    console.log("Processing Technique:", { rawTech });
     if (
       category &&
       category.id &&
@@ -25,6 +26,7 @@ export function parseTechniquesToLibrary(rawData: RawInputData): Library[] {
         name,
         description,
         level,
+        hasFree,
       };
       if (!categorizedTechniques[category.name]) {
         categorizedTechniques[category.name] = [];

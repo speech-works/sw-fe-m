@@ -18,10 +18,11 @@ export async function getLibraryDetails(): Promise<Library[]> {
     const response = await axiosClient.get(`/library/techniques`, {
       params: {
         includeCategory: true,
-        includeTutorial: true, // <-- RECOMMENDED ADDITION
+        includeTutorial: true,
       },
     });
     const techniques = response.data;
+    console.log("Fetched Techniques Data:", techniques);
     // Your helper may need to be updated to parse the new tutorial data
     return parseTechniquesToLibrary({ techniques });
   } catch (error) {

@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useMemo } from "react"; // Import useMemo
 import { theme } from "../../../../../Theme/tokens";
 import ListCard from "../ListCard";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import { Technique } from "../../data";
+// import { Technique } from "../../data"; // Unused import removed for cleanliness
 import {
   LibStackNavigationProp,
   LibStackParamList,
@@ -20,6 +20,19 @@ const ListItem = ({ title, techniques }: ListItemProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
 
+  // Sort techniques: Free content comes first
+  const sortedTechniques = useMemo(() => {
+    // Create a shallow copy to avoid mutating the prop
+    return [...techniques].sort((a, b) => {
+      // If a is free and b is not, a comes first (-1)
+      if (a.hasFree && !b.hasFree) return -1;
+      // If b is free and a is not, b comes first (1)
+      if (!a.hasFree && b.hasFree) return 1;
+      // Otherwise keep original order
+      return 0;
+    });
+  }, [techniques]);
+
   return (
     <View style={styles.container}>
       <View style={styles.itemTitle}>
@@ -30,12 +43,15 @@ const ListItem = ({ title, techniques }: ListItemProps) => {
           </Text>
         </View>
       </View>
-      {techniques.map((tech) => (
+
+      {/* Map over sortedTechniques instead of techniques */}
+      {sortedTechniques.map((tech) => (
         <ListCard
           key={tech.id}
           title={tech.name}
           description={tech.description}
           level={tech.level}
+          hasFree={tech.hasFree}
           onTutorialSelect={function (): void {
             console.log("selected tutorial for technique", tech.id);
             navigation.navigate("TechniquePage", {
