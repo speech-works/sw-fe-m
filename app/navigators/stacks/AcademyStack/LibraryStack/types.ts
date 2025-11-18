@@ -11,6 +11,7 @@ export type LibStackParamList = {
     techniqueLevel: string;
     techniqueName: string;
     stage: LIBRARY_STAGE;
+    hasFree: boolean;
   };
   SummaryPage: {
     techniqueId: TECHNIQUES_ENUM;

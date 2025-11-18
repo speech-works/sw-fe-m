@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
 import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../components/ScreenView";
 import CustomScrollView from "../../../../components/CustomScrollView";
@@ -15,41 +15,90 @@ import TutorialPage from "./TutorialPage";
 import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
+import { useUserStore } from "../../../../stores/user";
 
 const TechniquePage = () => {
+  const { user } = useUserStore();
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
 
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
-  const { techniqueId, techniqueName, techniqueDesc, techniqueLevel, stage } =
-    route.params;
+
+  // @ts-ignore
+  const {
+    techniqueId,
+    techniqueName,
+    techniqueDesc,
+    techniqueLevel,
+    stage,
+    hasFree,
+  } = route.params;
+
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  // Logic: Access is granted if user is paid OR the specific technique is marked free
+  const isContentAccessible = user?.isPaid || hasFree;
+
+  const closeModal = () => setIsModalVisible(false);
+
+  // 1. The main handler strictly expects a number
+  const handleStepChange = (index: number) => {
+    if (index > 0 && !isContentAccessible) {
+      Alert.alert(
+        "Premium Content",
+        "Upgrade to Premium to access Practice sessions and Quizzes.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Upgrade",
+            onPress: () => navigation.navigate("PaymentStack"),
+          },
+        ]
+      );
+      return;
+    }
+    setActiveStageIndex(index);
+  };
+
+  // 2. Helper to unwrap "SetStateAction" (value or function) coming from children
+  const handleChildStageChange = (value: React.SetStateAction<number>) => {
+    // If the child passes a function (e.g., prev => prev + 1), resolve it
+    const index =
+      typeof value === "function"
+        ? (value as (prev: number) => number)(activeStageIndex)
+        : value;
+
+    handleStepChange(index);
+  };
+
+  // 3. Update RenderPage to use the helper
   const RenderPage =
     activeStageIndex === 0 ? (
       <TutorialPage
-        setActiveStageIndex={setActiveStageIndex}
+        setActiveStageIndex={handleChildStageChange} // FIXED
         techniqueId={techniqueId}
       />
-    ) : activeStageIndex === 1 ? (
+    ) : activeStageIndex === 1 && isContentAccessible ? (
       <PracticePage
-        setActiveStageIndex={setActiveStageIndex}
+        setActiveStageIndex={handleChildStageChange} // FIXED
         techniqueId={techniqueId}
       />
-    ) : activeStageIndex === 2 ? (
+    ) : activeStageIndex === 2 && isContentAccessible ? (
       <QuizPage techniqueId={techniqueId} techniqueName={techniqueName} />
     ) : null;
-
-  const closeModal = () => setIsModalVisible(false);
 
   useEffect(() => {
     if (stage === "TUTORIAL") {
       setActiveStageIndex(0);
     } else if (stage === "EXERCISE") {
-      setActiveStageIndex(1);
+      if (isContentAccessible) {
+        setActiveStageIndex(1);
+      } else {
+        setActiveStageIndex(0);
+      }
     }
-  }, [stage]);
+  }, [stage, isContentAccessible]);
 
   return (
     <>
@@ -79,15 +128,26 @@ const TechniquePage = () => {
               />
             </TouchableOpacity>
           </View>
+
           <PageStepper
             steps={[
-              { label: "Tutorial", icon: "play" },
-              { label: "Exercise", icon: "microphone" },
-              { label: "Quiz", icon: "check" },
+              {
+                label: "Tutorial",
+                icon: "play",
+              },
+              {
+                label: "Exercise",
+                icon: isContentAccessible ? "microphone" : "lock",
+              },
+              {
+                label: "Quiz",
+                icon: isContentAccessible ? "check" : "lock",
+              },
             ]}
             currentStepIndex={activeStageIndex}
-            onStepChange={(index) => setActiveStageIndex(index)}
+            onStepChange={handleStepChange}
           />
+
           <CustomScrollView>{RenderPage}</CustomScrollView>
         </View>
       </ScreenView>
@@ -145,55 +205,6 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
   },
-  videoContainer: {
-    height: 420,
-    width: "100%",
-    borderRadius: 16,
-    backgroundColor: theme.colors.background.default,
-    position: "relative",
-  },
-  videoMeta: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    padding: 16,
-    backgroundColor: "black",
-    opacity: 0.6,
-    borderBottomEndRadius: 16,
-    borderBottomStartRadius: 16,
-  },
-  videoMetaTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.onDark,
-  },
-  videoMetaDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  learningPathContainer: {
-    padding: 16,
-    gap: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.background.default,
-  },
-  learningPathTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  learningPathObjectives: {
-    gap: 12,
-  },
-  objective: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  objectiveText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-
   // modal
   modalTitleContainer: {
     gap: 12,
@@ -210,16 +221,15 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingVertical: 24,
     width: "100%",
-    flex: 1, // ← valid because the parent Animated.View has a fixed height
+    flex: 1,
     flexDirection: "column",
     gap: 32,
   },
   scrollView: {
-    flex: 1, // ← forces ScrollView to fill all vertical space under the title
+    flex: 1,
   },
   scrollContainer2: {
     gap: 16,
     alignItems: "center",
-    // NO flex:1 here—let content size itself
   },
 });

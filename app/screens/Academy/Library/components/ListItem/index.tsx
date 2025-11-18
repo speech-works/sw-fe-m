@@ -60,6 +60,7 @@ const ListItem = ({ title, techniques }: ListItemProps) => {
               techniqueDesc: tech.description,
               techniqueLevel: tech.level,
               stage: "TUTORIAL",
+              hasFree: tech.hasFree,
             });
           }}
           onExerciseSelect={function (): void {
@@ -70,6 +71,7 @@ const ListItem = ({ title, techniques }: ListItemProps) => {
               techniqueDesc: tech.description,
               techniqueLevel: tech.level,
               stage: "EXERCISE",
+              hasFree: tech.hasFree,
             });
           }}
         />
