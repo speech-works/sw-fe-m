@@ -10,6 +10,7 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useNavigation } from "@react-navigation/native";
 import { TransformedTechnique } from "../../../../../api/library/types";
+import { useUserStore } from "../../../../../stores/user";
 
 interface ListItemProps {
   title: string;
@@ -17,6 +18,7 @@ interface ListItemProps {
 }
 
 const ListItem = ({ title, techniques }: ListItemProps) => {
+  const { user } = useUserStore();
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
 
@@ -52,6 +54,7 @@ const ListItem = ({ title, techniques }: ListItemProps) => {
           description={tech.description}
           level={tech.level}
           hasFree={tech.hasFree}
+          isPaidUser={user?.isPaid}
           onTutorialSelect={function (): void {
             console.log("selected tutorial for technique", tech.id);
             navigation.navigate("TechniquePage", {

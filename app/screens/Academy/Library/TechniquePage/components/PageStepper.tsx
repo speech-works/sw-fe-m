@@ -8,47 +8,70 @@ interface PageStepperProps {
   steps: Array<{
     label: string;
     icon: string;
+    disabled?: boolean; // Added disabled optional prop
   }>;
   onStepChange?: (stepIndex: number) => void;
   currentStepIndex: number;
 }
+
 const PageStepper = ({
   steps,
   currentStepIndex,
   onStepChange,
 }: PageStepperProps) => {
-  // Define colors based on the provided image
-  const activeColor = theme.colors.actionPrimary.default;
-  const inactiveColor = theme.colors.library.orange[100]; // Light orange for inactive elements and lines
+  const inactiveLineColor = theme.colors.library.orange[100];
 
   return (
     <View style={styles.container}>
       {steps.map((step, index) => {
         const isActive = index === currentStepIndex;
+        const isDisabled = step.disabled;
 
-        // The circle background color is activeColor only if isActive
-        const circleBgColor = isActive ? activeColor : inactiveColor;
+        // --- Color Logic ---
+        let circleBgColor;
+        let iconColor;
+        let labelColor;
 
-        // The icon color is theme.colors.text.onDark only if isActive
-        const iconColor = isActive ? theme.colors.text.onDark : activeColor;
+        if (isDisabled) {
+          // Locked/Disabled State (Grey)
+          circleBgColor = theme.colors.surface.disabled;
+          iconColor = theme.colors.text.disabled || "#9CA3AF";
+          labelColor = theme.colors.text.disabled || "#9CA3AF";
+        } else if (isActive) {
+          // Active State (Primary Orange)
+          circleBgColor = theme.colors.actionPrimary.default;
+          iconColor = theme.colors.text.onDark;
+          labelColor = theme.colors.text.default;
+        } else {
+          // Inactive but Enabled (Light Orange)
+          circleBgColor = theme.colors.library.orange[100];
+          iconColor = theme.colors.actionPrimary.default;
+          labelColor = theme.colors.text.default;
+        }
 
         return (
           <React.Fragment key={index}>
             <View style={styles.stepItem}>
               {/* Step Circle */}
               <TouchableOpacity
-                disabled={currentStepIndex === index}
+                // Disable press if it's the current step OR if it is explicitly disabled
+                disabled={isActive || isDisabled}
                 style={[styles.circle, { backgroundColor: circleBgColor }]}
                 onPress={() => onStepChange && onStepChange(index)}
               >
                 <Icon size={14} name={step.icon} color={iconColor} />
               </TouchableOpacity>
               {/* Step Label */}
-              <Text style={styles.label}>{step.label}</Text>
+              <Text style={[styles.label, { color: labelColor }]}>
+                {step.label}
+              </Text>
             </View>
 
+            {/* Connecting Line */}
             {index < steps.length - 1 && (
-              <View style={[styles.line, { backgroundColor: inactiveColor }]} />
+              <View
+                style={[styles.line, { backgroundColor: inactiveLineColor }]}
+              />
             )}
           </React.Fragment>
         );
@@ -79,7 +102,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    // Color is handled inline based on state
   },
   line: {
     flex: 1,

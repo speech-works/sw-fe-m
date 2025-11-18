@@ -16,6 +16,7 @@ export interface ListCardProps {
   onExerciseSelect: () => void;
   disabled?: boolean;
   hasFree?: boolean;
+  isPaidUser?: boolean; // Added prop to check subscription status
 }
 
 const ListCard = ({
@@ -26,16 +27,21 @@ const ListCard = ({
   onTutorialSelect,
   disabled,
   hasFree,
+  isPaidUser,
 }: ListCardProps) => {
   // Check if badge is active to apply extra padding
   const showBadge = hasFree && !disabled;
+
+  // Logic: Lock exercise if content is NOT free AND user is NOT paid
+  // We also assume if the whole card is disabled, the button is disabled implicitly
+  const isExerciseLocked = !hasFree && !isPaidUser;
 
   return (
     <View
       style={[
         styles.container,
         disabled ? styles.disabledContainer : null,
-        showBadge ? styles.containerWithBadge : null, // Applies extra top padding if badge exists
+        showBadge ? styles.containerWithBadge : null,
       ]}
     >
       {/* --- Free Content Badge (Top Left) --- */}
@@ -62,9 +68,12 @@ const ListCard = ({
           </View>
           <Text style={styles.descriptionText}>{description}</Text>
         </View>
+
         <View style={styles.buttonContainer}>
+          {/* Tutorial Button - Always available (unless card is disabled) */}
           <TouchableOpacity
             onPress={onTutorialSelect}
+            disabled={disabled}
             style={[
               styles.buttonTouch,
               { backgroundColor: theme.colors.library.orange[400] },
@@ -77,22 +86,40 @@ const ListCard = ({
               Tutorial
             </Text>
           </TouchableOpacity>
+
+          {/* Exercise Button - Conditionally Locked */}
           <TouchableOpacity
-            onPress={onExerciseSelect}
+            onPress={isExerciseLocked ? undefined : onExerciseSelect}
+            disabled={disabled || isExerciseLocked}
             style={[
               styles.buttonTouch,
-              { backgroundColor: theme.colors.surface.elevated },
+              // Default Style
+              {
+                backgroundColor: theme.colors.surface.elevated,
+                borderColor: theme.colors.actionPrimary.default,
+              },
+              // Locked Style overwrites
+              isExerciseLocked && styles.lockedButtonTouch,
             ]}
           >
             <Icon
-              name="dumbbell"
+              // Change icon to lock if locked
+              name={isExerciseLocked ? "lock" : "dumbbell"}
               size={14}
-              color={theme.colors.actionPrimary.default}
+              color={
+                isExerciseLocked
+                  ? theme.colors.text.disabled // Grey icon
+                  : theme.colors.actionPrimary.default // Orange/Primary icon
+              }
             />
             <Text
               style={[
                 styles.buttonText,
-                { color: theme.colors.actionPrimary.default },
+                {
+                  color: isExerciseLocked
+                    ? theme.colors.text.disabled // Grey text
+                    : theme.colors.actionPrimary.default, // Primary text
+                },
               ]}
             >
               Exercise
@@ -117,9 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.elevated,
     position: "relative",
     overflow: "hidden",
-    //...parseShadowStyle(theme.shadow.elevation1),
   },
-  // Adds extra padding to the top so the Title doesn't collide with the Badge
   containerWithBadge: {
     paddingTop: 32,
   },
@@ -193,9 +218,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    //...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
-    borderColor: theme.colors.actionPrimary.default,
+    borderColor: theme.colors.surface.disabled,
+    // borderColor is handled inline to support the conditional override easily
+  },
+  // New style for the locked state
+  lockedButtonTouch: {
+    backgroundColor: theme.colors.surface.disabled,
+    borderColor: theme.colors.surface.disabled, // Removes the orange border
   },
   buttonText: {
     ...parseTextStyle(theme.typography.BodySmall),

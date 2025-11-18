@@ -378,7 +378,7 @@ const TutorialPage = ({
             <View style={styles.lockedOverlay}>
               <Icon name="lock" size={48} color={theme.colors.text.onDark} />
               <Text style={styles.lockedText}>
-                Unlock this video with Premium
+                Unlock this tutorial with Premium
               </Text>
               <Button
                 text="Go Premium"

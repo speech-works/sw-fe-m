@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Removed Alert import
 import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../components/ScreenView";
 import CustomScrollView from "../../../../components/CustomScrollView";
@@ -44,26 +44,15 @@ const TechniquePage = () => {
 
   // 1. The main handler strictly expects a number
   const handleStepChange = (index: number) => {
+    // STRICT LOCK: If content is not accessible, do absolutely nothing (not clickable)
     if (index > 0 && !isContentAccessible) {
-      Alert.alert(
-        "Premium Content",
-        "Upgrade to Premium to access Practice sessions and Quizzes.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Upgrade",
-            onPress: () => navigation.navigate("PaymentStack"),
-          },
-        ]
-      );
       return;
     }
     setActiveStageIndex(index);
   };
 
-  // 2. Helper to unwrap "SetStateAction" (value or function) coming from children
+  // 2. Helper to unwrap "SetStateAction"
   const handleChildStageChange = (value: React.SetStateAction<number>) => {
-    // If the child passes a function (e.g., prev => prev + 1), resolve it
     const index =
       typeof value === "function"
         ? (value as (prev: number) => number)(activeStageIndex)
@@ -72,16 +61,16 @@ const TechniquePage = () => {
     handleStepChange(index);
   };
 
-  // 3. Update RenderPage to use the helper
+  // 3. Render Logic
   const RenderPage =
     activeStageIndex === 0 ? (
       <TutorialPage
-        setActiveStageIndex={handleChildStageChange} // FIXED
+        setActiveStageIndex={handleChildStageChange}
         techniqueId={techniqueId}
       />
     ) : activeStageIndex === 1 && isContentAccessible ? (
       <PracticePage
-        setActiveStageIndex={handleChildStageChange} // FIXED
+        setActiveStageIndex={handleChildStageChange}
         techniqueId={techniqueId}
       />
     ) : activeStageIndex === 2 && isContentAccessible ? (
@@ -92,6 +81,7 @@ const TechniquePage = () => {
     if (stage === "TUTORIAL") {
       setActiveStageIndex(0);
     } else if (stage === "EXERCISE") {
+      // Guard: Default to Tutorial if they don't have access
       if (isContentAccessible) {
         setActiveStageIndex(1);
       } else {
@@ -134,14 +124,19 @@ const TechniquePage = () => {
               {
                 label: "Tutorial",
                 icon: "play",
+                disabled: false,
               },
               {
                 label: "Exercise",
                 icon: isContentAccessible ? "microphone" : "lock",
+                // Passing disabled state so PageStepper can grey it out
+                disabled: !isContentAccessible,
               },
               {
                 label: "Quiz",
                 icon: isContentAccessible ? "check" : "lock",
+                // Passing disabled state so PageStepper can grey it out
+                disabled: !isContentAccessible,
               },
             ]}
             currentStepIndex={activeStageIndex}
