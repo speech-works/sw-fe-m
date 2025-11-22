@@ -7,13 +7,7 @@ import {
 } from "../util/functions/parseStyles";
 import { theme } from "../Theme/tokens";
 
-import Happy1 from "../assets/mood-check/Happy1";
-import HappyCustom from "../assets/mood-check/HappyFace";
-import AngryCustom from "../assets/mood-check/AngryFace";
-import SadCustom from "../assets/mood-check/SadFace";
-import CalmCustom from "../assets/mood-check/CalmFace";
-import CustomExcited from "../assets/mood-check/CuriousFace";
-import CustomCrying from "../assets/mood-check/CustomCrying";
+import FinishLineFace from "../assets/mood-check/FinishLineFace";
 
 interface Props {
   onPress: () => void;
@@ -47,8 +41,8 @@ const OnboardingReminderCard: React.FC<Props> = ({
       >
         <View style={styles.contentRow}>
           <View style={styles.textColumn}>
-            <Text style={styles.descText}>ONBOARDING PROGRAM</Text>
-            <Text style={styles.titleText}>Complete Your Onboarding</Text>
+            <Text style={styles.descText}>ONBOARDING</Text>
+            <Text style={styles.titleText}>Personalize your experience</Text>
 
             <View style={styles.progressContainer}>
               <View style={styles.progressBarBg}>
@@ -67,7 +61,7 @@ const OnboardingReminderCard: React.FC<Props> = ({
             </View>
           </View>
 
-          <CustomCrying size={116} />
+          <FinishLineFace size={116} />
         </View>
       </LinearGradient>
     </TouchableOpacity>
