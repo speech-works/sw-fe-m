@@ -59,7 +59,7 @@ const OnboardingQuestions = ({
         showPercentage={true}
         style={styles.progressBar}
       />
-      <CustomScrollView>
+      <CustomScrollView contentContainerStyle={styles.scrollContent}>
         <OnboardingQuestion
           id={currentQuestion.id}
           question={currentQuestion.question}
@@ -87,7 +87,10 @@ const styles = StyleSheet.create({
   progressBar: {
     marginBottom: 32,
   },
-
+  scrollContent: {
+    gap: 32,
+    backgroundColor: "red",
+  },
   buttonOverlayContainer: {
     position: "absolute",
     bottom: 0,

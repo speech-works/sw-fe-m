@@ -6,7 +6,7 @@ import MoodCheck from "./components/MoodCheck";
 import Progress from "./components/Progress";
 import DailyPractice from "./components/DailyPractice";
 import Tiles from "./components/Tiles";
-import CustomScrollView from "../../components/CustomScrollView"; // Re-introducing CustomScrollView
+import CustomScrollView from "../../components/CustomScrollView";
 import { useUserStore } from "../../stores/user";
 import { createSession, getAllSessionsOfUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
@@ -15,8 +15,12 @@ import { getUserStats } from "../../api/stats";
 import { usePracticeStatsStore } from "../../stores/practiceStats";
 import ResourceStats from "./components/ResourceStats";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
-
 import BuyPro from "../Settings/components/BuyPro";
+import { useEventStore } from "../../stores/events";
+import { EVENT_NAMES } from "../../stores/events/constants";
+import OnboardingReminderCard from "../../components/OnboardingReminderCard";
+import { useOnboardingStore } from "../../stores/onboarding";
+import { getActiveOnboardingFlow } from "../../api/onboarding";
 
 const Academy = () => {
   const { user } = useUserStore();
@@ -24,8 +28,17 @@ const Academy = () => {
   const { setPracticeStats } = usePracticeStatsStore();
   const { hasRecordedToday, lastRecordedDate } = useMoodCheckStore();
 
-  // This function contains the core synchronization logic.
-  // It's memoized by useCallback. Its dependencies dictate when its *identity* changes.
+  const emit = useEventStore((s) => s.emit);
+
+  // --- NEW: Get onboarding state properties ---
+  const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
+  const onboardingFlow = useOnboardingStore((s) => s.flow);
+  const getTotalScreens = useOnboardingStore((s) => s.getTotalScreens);
+
+  // Calculate total screens safely. If no flow loads, default to 1 to avoid div by zero errors in UI.
+  const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
+  // --------------------------------------------
+
   const syncSessionWithBackend = useCallback(async () => {
     if (!user) {
       if (practiceSession) {
@@ -73,22 +86,19 @@ const Academy = () => {
     }
   }, [user, practiceSession, setSession, clearSession]);
 
-  // This function now contains the actual refresh logic for the screen
   const handleScreenRefresh = useCallback(async () => {
-    // Re-call your core synchronization and data fetching functions
-    await syncSessionWithBackend(); // Ensure this runs during pull-to-refresh
+    await syncSessionWithBackend();
     if (user?.id) {
       const practiceStats = await getUserStats(user.id);
       console.log("practice stats after refresh-", { practiceStats });
       setPracticeStats(practiceStats);
     }
-  }, [syncSessionWithBackend, user?.id, setPracticeStats]); // Ensure dependencies are correct
+  }, [syncSessionWithBackend, user?.id, setPracticeStats]);
 
   const { refreshControl, refreshing } = usePullToRefresh(handleScreenRefresh);
 
-  // useFocusEffect runs when the screen is focused, and also when its dependency array changes.
   useFocusEffect(
-    useCallback(() => {
+    React.useCallback(() => {
       console.log(
         "Academy screen focused or dependencies changed, triggering sync."
       );
@@ -129,9 +139,8 @@ const Academy = () => {
       setPracticeStats(practiceStats);
     };
     fetchUserStats();
-  }, [user, setPracticeStats]); // Added setPracticeStats to dependencies
+  }, [user, setPracticeStats]);
 
-  // Original useEffect that was being queried about
   useEffect(() => {
     console.log("Refreshing Academy screen useeffect:", { refreshing });
   }, [refreshing]);
@@ -140,14 +149,48 @@ const Academy = () => {
     <ScreenView style={styles.screenView}>
       <CustomScrollView refreshControl={refreshControl}>
         <View style={styles.innerContainer}>
+          {/* ⭐ SHOW REMINDER IF USER HAS NOT COMPLETED ONBOARDING */}
+          {user && !user.hasCompletedOnboarding && (
+            <OnboardingReminderCard
+              // --- NEW: PASS PROGRESS PROPS ---
+              currentStep={currentOnboardingScreen - 1}
+              totalSteps={totalOnboardingScreens}
+              // --------------------------------
+              onPress={async () => {
+                try {
+                  const state = useOnboardingStore.getState();
+
+                  // Check if we have a persisted flow and progress to resume
+                  if (state.flow && state.currentScreen > 1) {
+                    console.log("Resuming existing onboarding flow...");
+                    // Do not fetch. Do not reset. Just open.
+                    emit(EVENT_NAMES.START_ONBOARDING);
+                    return;
+                  }
+
+                  // Otherwise, load fresh
+                  console.log("Starting fresh onboarding flow...");
+                  const flow = await getActiveOnboardingFlow();
+
+                  // Use the action that resets to screen 1
+                  state.startFresh(flow);
+
+                  emit(EVENT_NAMES.START_ONBOARDING);
+                } catch (err) {
+                  console.error("Failed to load onboarding flow:", err);
+                }
+              }}
+            />
+          )}
           {!hasRecordedToday && <MoodCheck />}
+
           <ResourceStats refreshing={refreshing} />
-          {/* ResourceStats will hide during refresh */}
+
           <Progress />
           {!refreshing && <DailyPractice onClickStart={startNewSession} />}
+
           <BuyPro />
           <Tiles />
-          {/* <SubscribeScreen /> */}
         </View>
       </CustomScrollView>
     </ScreenView>

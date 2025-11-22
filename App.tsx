@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Audio } from "expo-av";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +19,7 @@ import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
 
 import { NativeModules } from "react-native";
+
 console.log("NativeModules keys:", Object.keys(NativeModules));
 
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
@@ -101,6 +102,8 @@ const App: React.FC = () => {
       unsubscribe();
     };
   }, [rescheduleAllActiveNotifications]);
+
+  // if (!ready) return <LoadingScreen />;
 
   return (
     <AuthProvider>

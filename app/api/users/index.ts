@@ -9,6 +9,7 @@ export interface User {
   profilePictureUrl?: string;
   dob?: Date;
   phoneNumber?: string;
+
   links?: {
     social: {
       twitter?: string;
@@ -24,6 +25,7 @@ export interface User {
       other?: string;
     };
   };
+
   totalXp?: number;
   xpLogs?: XPLog[];
   freeTasksRemaining?: number;
@@ -32,11 +34,16 @@ export interface User {
   level?: number;
   currentStamina?: number;
   lastStaminaUpdate?: Date;
+
   createdAt?: Date;
   updatedAt?: Date;
   lastLogin?: Date;
 
-  // Extra fields that may not be present in all user objects
+  // required for onboarding logic
+  hasCompletedOnboarding?: boolean;
+  onboardingVersionCompleted?: string | null;
+
+  // Other optional backend fields
   password?: string;
   isVerified?: true;
   oauthId?: string;
