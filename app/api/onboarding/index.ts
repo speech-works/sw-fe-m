@@ -82,26 +82,6 @@ export async function getUserOnboardingAnswers(
 }
 
 /**
- * Update (merge) answers for a user.
- * Backend automatically recalculates adaptive profile.
- */
-export async function updateUserOnboardingAnswers(
-  userId: string,
-  payload: UpdateAnswersPayload
-): Promise<UserOnboardingAnswer> {
-  try {
-    const response = await axiosClient.patch(
-      `/onboarding/answers/${userId}`,
-      payload
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error updating onboarding answers:", error);
-    throw error;
-  }
-}
-
-/**
  * Delete all onboarding answers for a user.
  */
 export async function deleteUserOnboardingAnswers(

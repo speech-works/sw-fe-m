@@ -50,6 +50,7 @@ const OnboardingQuestionScreen: React.FC = () => {
     isCurrentScreenValid,
     answers,
     setFlow,
+    toggleMultiAnswer,
   } = useOnboardingStore();
 
   const emit = useEventStore((s) => s.emit);
@@ -104,23 +105,27 @@ const OnboardingQuestionScreen: React.FC = () => {
   // -----------------------------------------------------
   // SUBMIT ANSWERS
   // -----------------------------------------------------
-  const handleComplete = async () => {
-    try {
-      await submitOnboardingAnswers({ answers });
 
-      // Tell MainNavigator to return to app flow
-      emit(EVENT_NAMES.STOP_ONBOARDING);
+  const submitAnswers = async () => {
+    try {
+      console.log("Submitting onboarding answers:", answers);
+      await submitOnboardingAnswers({ answers });
     } catch (err) {
       console.error("Failed to submit onboarding answers:", err);
     }
   };
 
+  const handleComplete = async () => {
+    // Tell MainNavigator to return to app flow
+    emit(EVENT_NAMES.STOP_ONBOARDING);
+  };
+
   // -----------------------------------------------------
   // NEXT BUTTON
   // -----------------------------------------------------
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isCurrentScreenValid()) return;
-
+    await submitAnswers();
     if (isLast) {
       handleComplete();
       return;
@@ -154,16 +159,22 @@ const OnboardingQuestionScreen: React.FC = () => {
           <OnboardingQuestion
             key={q.id}
             id={q.id}
-            // Pass the sequence (1-based index) for this screen
             sequence={index + 1}
             question={q.questionText}
             description={q.description ?? ""}
-            options={q.options.map((opt) => ({
-              id: opt.id,
-              answer: opt.optionText,
-              description: opt.description ?? "",
+            questionType={q.questionType}
+            options={q.options.map((o) => ({
+              id: o.id,
+              answer: o.optionText,
+              description: o.description ?? "",
             }))}
-            onAnswer={(qid, ans) => setAnswer(qid, ans)}
+            value={q.questionType !== "multi" ? answers[q.id] ?? "" : undefined}
+            values={
+              q.questionType === "multi" && Array.isArray(answers[q.id])
+                ? answers[q.id]
+                : []
+            }
+            onChange={(qid, ans) => setAnswer(qid, ans)}
           />
         ))}
       </CustomScrollView>

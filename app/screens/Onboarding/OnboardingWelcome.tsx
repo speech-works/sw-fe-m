@@ -38,7 +38,7 @@ const OnboardingWelcome: React.FC = () => {
   return (
     <ScreenView>
       <View style={styles.container}>
-        <Text style={styles.title}>Welcome to SpeechWorks 👋</Text>
+        <Text style={styles.title}>Welcome to Speechworks 👋</Text>
         <Text style={styles.subtitle}>
           Before we personalise your practice experience, tell us a little about
           your speaking patterns.
