@@ -20,6 +20,8 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { formatDuration } from "../../../../../util/functions/time";
+import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
+import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -43,21 +45,7 @@ const Exposure = () => {
       onPress: () => {
         navigation.navigate("InterviewSimulationStack");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.blue[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="user-tie"
-            size={20}
-            color={theme.colors.library.blue[400]}
-          />
-        </View>
-      ),
+      icon: <InterviewFace size={52} />,
       disabled: false,
     },
     {
@@ -66,20 +54,7 @@ const Exposure = () => {
       onPress: () => {
         navigation.navigate("PhoneCallsStack");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.green[100] },
-          ]}
-        >
-          <Icon
-            name="phone-alt"
-            size={20}
-            color={theme.colors.library.green[400]}
-          />
-        </View>
-      ),
+      icon: <RoboticPhoneFace size={52} />,
       disabled: false,
     },
     {

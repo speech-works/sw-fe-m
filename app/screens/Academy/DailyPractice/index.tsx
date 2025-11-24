@@ -18,6 +18,11 @@ import {
   DPStackParamList,
 } from "../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
 
+import ReaderFace from "../../../assets/mood-check/ReaderFace";
+import ExposureFace from "../../../assets/sw-faces/ExposureFace";
+import BreathingFace from "../../../assets/sw-faces/BreathingFace";
+import MovieFace from "../../../assets/sw-faces/MovieFace";
+
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
   alignItems: "center",
@@ -50,77 +55,25 @@ const DailyPractice = () => {
       title: "Fun Activities",
       description: "Interactive speech games",
       onPress: moveToFunPractice,
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.orange[100] },
-          ]}
-        >
-          <Icon
-            name="gamepad"
-            size={20}
-            color={theme.colors.library.orange[500]}
-          />
-        </View>
-      ),
+      icon: <MovieFace size={52} />,
     },
     {
       title: "Reading Practice",
       description: "Guided reading exercises",
       onPress: moveToReadingPractice,
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.blue[100] },
-          ]}
-        >
-          <Icon
-            name="book-open"
-            size={20}
-            color={theme.colors.library.blue[400]}
-          />
-        </View>
-      ),
+      icon: <ReaderFace size={52} />,
     },
     {
       title: "Cognitive Therapy",
       description: "Mental exercises & techniques",
       onPress: moveToCognitiveTherapy,
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.green[100] },
-          ]}
-        >
-          <Icon
-            name="brain"
-            size={20}
-            color={theme.colors.library.green[500]}
-          />
-        </View>
-      ),
+      icon: <BreathingFace size={52} />,
     },
     {
       title: "Exposure",
       description: "Real-world speaking scenarios",
       onPress: moveToExposure,
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.purple[100] },
-          ]}
-        >
-          <Icon
-            name="user-friends"
-            size={20}
-            color={theme.colors.library.purple[500]}
-          />
-        </View>
-      ),
+      icon: <ExposureFace size={52} />,
     },
   ];
 

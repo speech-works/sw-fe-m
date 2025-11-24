@@ -19,6 +19,9 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { formatDuration } from "../../../../../util/functions/time";
+import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingFace";
+import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
+import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -40,21 +43,7 @@ const CognitivePractice = () => {
       onPress: () => {
         navigation.navigate("BreathingPractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.blue[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="lungs"
-            size={20}
-            color={theme.colors.library.blue[400]}
-          />
-        </View>
-      ),
+      icon: <GuidedBreathingFace size={52} />,
     },
     {
       title: "Guided Meditation",
@@ -62,16 +51,7 @@ const CognitivePractice = () => {
       onPress: () => {
         navigation.navigate("MeditationPractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.green[100] },
-          ]}
-        >
-          <Icon name="om" size={20} color={theme.colors.library.green[500]} />
-        </View>
-      ),
+      icon: <MeditationFace size={52} />,
     },
     {
       title: "Reframe Thoughts",
@@ -79,20 +59,7 @@ const CognitivePractice = () => {
       onPress: () => {
         navigation.navigate("ReframePractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.purple[100] },
-          ]}
-        >
-          <Icon
-            name="sync-alt"
-            size={20}
-            color={theme.colors.library.purple[500]}
-          />
-        </View>
-      ),
+      icon: <RewiringFace size={52} />,
     },
   ];
   return (

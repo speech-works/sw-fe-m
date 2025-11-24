@@ -20,6 +20,9 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { formatDuration } from "../../../../../util/functions/time";
+import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
+import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
+import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -40,21 +43,7 @@ const FunPractice = () => {
       onPress: () => {
         navigation.navigate("TwisterPracticeStack");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.blue[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="grin-tongue"
-            size={20}
-            color={theme.colors.library.blue[400]}
-          />
-        </View>
-      ),
+      icon: <TongueTwisterFace size={52} />,
     },
     {
       title: "Role Play",
@@ -62,20 +51,7 @@ const FunPractice = () => {
       onPress: () => {
         navigation.navigate("RoleplayPracticeStack");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.green[100] },
-          ]}
-        >
-          <Icon
-            name="theater-masks"
-            size={20}
-            color={theme.colors.library.green[500]}
-          />
-        </View>
-      ),
+      icon: <MaskedFace size={52} />,
     },
     {
       title: "Character Voice",
@@ -83,20 +59,7 @@ const FunPractice = () => {
       onPress: () => {
         navigation.navigate("CharacterVoicePracticeStack");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.purple[100] },
-          ]}
-        >
-          <Icon
-            name="robot"
-            size={20}
-            color={theme.colors.library.purple[500]}
-          />
-        </View>
-      ),
+      icon: <HappyScreamFace size={52} />,
     },
   ];
 
@@ -214,7 +177,6 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 16,
     backgroundColor: theme.colors.surface.elevated,
-    //...parseShadowStyle(theme.shadow.elevation1),
     borderRadius: 12,
   },
   statInfoContainer: {

@@ -18,6 +18,7 @@ import { isSameDay, isValid, set } from "date-fns";
 import { getUserPreferences } from "../../../../api/settings/userPreference";
 import { getAllPracticeActivitiesBySessionId } from "../../../../api";
 import { useUserStore } from "../../../../stores/user";
+import OnCallFace from "../../../../assets/sw-faces/OnCallFace";
 
 interface DailyPracticeProps {
   onClickStart: () => void;
@@ -122,11 +123,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
     <View style={styles.container}>
       <View style={[styles.row, styles.gap16]}>
         <View style={styles.iconCircle}>
-          <Icon
-            name="microphone"
-            size={24}
-            color={theme.colors.actionPrimary.default}
-          />
+          <OnCallFace size={72} />
         </View>
 
         {/* FIX: Removed flex: 1 from detailsContainer and made it a regular view 

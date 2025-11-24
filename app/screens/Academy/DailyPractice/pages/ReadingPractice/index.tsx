@@ -19,6 +19,9 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { formatDuration } from "../../../../../util/functions/time";
+import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
+import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
+import PoetFace from "../../../../../assets/sw-faces/PoetFace";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -42,21 +45,7 @@ const ReadingPractice = () => {
       onPress: () => {
         navigation.navigate("StoryPractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.blue[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="bookmark"
-            size={20}
-            color={theme.colors.library.blue[400]}
-          />
-        </View>
-      ),
+      icon: <StorytellerFace size={52} />,
     },
     {
       title: "Poems",
@@ -64,20 +53,7 @@ const ReadingPractice = () => {
       onPress: () => {
         navigation.navigate("PoemPractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.green[100] },
-          ]}
-        >
-          <Icon
-            name="feather"
-            size={20}
-            color={theme.colors.library.green[500]}
-          />
-        </View>
-      ),
+      icon: <PoetFace size={52} />,
     },
     {
       title: "Quotes",
@@ -85,20 +61,7 @@ const ReadingPractice = () => {
       onPress: () => {
         navigation.navigate("QuotePractice");
       },
-      icon: (
-        <View
-          style={[
-            iconContiainerStyle,
-            { backgroundColor: theme.colors.library.purple[100] },
-          ]}
-        >
-          <Icon
-            name="quote-right"
-            size={20}
-            color={theme.colors.library.purple[500]}
-          />
-        </View>
-      ),
+      icon: <AuthorFace size={52} />,
     },
   ];
 

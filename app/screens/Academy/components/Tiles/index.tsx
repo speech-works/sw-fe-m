@@ -11,6 +11,9 @@ import {
   AcademyStackNavigationProp,
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
+import HeadphoneFace from "../../../../assets/sw-faces/HeadphoneFace";
+import ReportFace from "../../../../assets/sw-faces/ReportFace";
+import IceSportFace from "../../../../assets/sw-faces/IceSportFace";
 
 const Tiles = () => {
   const navigation =
@@ -27,25 +30,17 @@ const Tiles = () => {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.tile} onPress={moveToChallenges}>
-        <Icon
-          name="trophy"
-          color={theme.colors.library.yellow[500]}
-          size={24}
-        />
+        <IceSportFace size={48} />
         <Text style={styles.tileTitleText}>Challenges</Text>
         <Text style={styles.descText}>4/10</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.tile} onPress={moveToLibrary}>
-        <Icon name="book" color={theme.colors.library.blue[400]} size={24} />
+        <HeadphoneFace size={48} />
         <Text style={styles.tileTitleText}>Library</Text>
         <Text style={styles.descText}>120+</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.tile} onPress={moveToProgressDetail}>
-        <Icon
-          name="chart-line"
-          color={theme.colors.library.green[400]}
-          size={24}
-        />
+        <ReportFace size={48} />
         <Text style={styles.tileTitleText}>Progress</Text>
         <Text style={styles.descText}>View</Text>
       </TouchableOpacity>
