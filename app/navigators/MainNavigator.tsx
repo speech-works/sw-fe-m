@@ -20,7 +20,7 @@ export default function MainNavigator() {
   const [suppressAutoOnboarding, setSuppressAutoOnboarding] = useState(false);
 
   // when user actively asks to open onboarding (card press) we force it
-  const [forceOnboarding, setForceOnboarding] = useState(true);
+  const [forceOnboarding, setForceOnboarding] = useState(false);
 
   useEffect(() => {
     if (!events || events.length === 0) return;

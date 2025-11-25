@@ -11,8 +11,8 @@ import FinishLineFace from "../assets/mood-check/FinishLineFace";
 
 interface Props {
   onPress: () => void;
-  currentStep: number; // <-- New Prop
-  totalSteps: number; // <-- New Prop
+  currentStep: number;
+  totalSteps: number;
 }
 
 const OnboardingReminderCard: React.FC<Props> = ({

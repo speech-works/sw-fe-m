@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Slider from "@react-native-community/slider";
 import Icon from "react-native-vector-icons/FontAwesome5";
+
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 
@@ -37,21 +38,23 @@ const OnboardingQuestion = ({
   const isSlider = questionType === "slider";
   const isMulti = questionType === "multi";
 
-  // ---- SLIDER SETUP ----
+  // ---- SLIDER LOGIC ----
   const min = 0;
-  // Use a max of 1 if no options are present to prevent max=0 errors.
   const max = options.length > 0 ? options.length - 1 : 1;
-  const controlledValue = Number(value) || min;
 
-  // Local state for smooth slider interaction
-  const [tempValue, setTempValue] = useState(controlledValue);
+  // 1. Determine the correct VISUAL position (Index) based on the SAVED VALUE (ID)
+  // We compare Strings to ensure "123" matches 123
+  const currentOptionIndex = options.findIndex(
+    (opt) => String(opt.id) === String(value)
+  );
 
-  // Sync tempValue when the external controlled value changes
-  useEffect(() => {
-    setTempValue(controlledValue);
-  }, [controlledValue]);
+  // 2. If the saved value is not found in options (or is empty), default to Index 0
+  const visualIndex = currentOptionIndex !== -1 ? currentOptionIndex : 0;
 
-  // Calculate percentage for display
+  // Local state for smooth slider dragging
+  const [tempValue, setTempValue] = useState(visualIndex);
+
+  // Display Percentage
   const percentage = max > 0 ? Math.round((tempValue / max) * 100) : 0;
 
   // ---- MULTI + RADIO HANDLING ----
@@ -84,16 +87,34 @@ const OnboardingQuestion = ({
             <Slider
               style={styles.slider}
               value={tempValue}
-              // REMOVED step={1} to allow smooth dragging visual
+              step={0.01}
               minimumValue={min}
               maximumValue={max}
-              onValueChange={(v) => setTempValue(v)}
-              onSlidingComplete={(v) => {
-                const rounded = Math.round(v);
-                // Snap visually to the integer
-                setTempValue(rounded);
-                // Commit integer value to store
-                onChange(id, String(rounded));
+              onValueChange={(v: number) => setTempValue(v)}
+              onSlidingComplete={(v: number) => {
+                const normalized = Math.max(0, Math.min(v, max));
+                const percentage = (normalized / max) * 100;
+
+                let score = 1;
+
+                if (percentage >= 96) score = 10;
+                else if (percentage >= 86) score = 9;
+                else if (percentage >= 76) score = 8;
+                else if (percentage >= 66) score = 7;
+                else if (percentage >= 56) score = 6;
+                else if (percentage >= 46) score = 5;
+                else if (percentage >= 36) score = 4;
+                else if (percentage >= 26) score = 3;
+                else if (percentage >= 16) score = 2;
+                else score = 1; // 1–15%
+
+                console.log(
+                  `[Slider] raw: ${v} → ${percentage.toFixed(
+                    1
+                  )}% → Motivation Score: ${score}`
+                );
+
+                onChange(id, score.toString());
               }}
               minimumTrackTintColor={theme.colors.actionPrimary.default}
               maximumTrackTintColor="#E6E6E6"
@@ -101,7 +122,6 @@ const OnboardingQuestion = ({
             />
             <View style={styles.sliderMeta}>
               <Text style={styles.sliderText}>
-                {/* Use Math.round to find the nearest label while dragging */}
                 {options[Math.round(tempValue)]?.answer ?? ""}
               </Text>
               <Text style={styles.sliderPercent}>{percentage}%</Text>
@@ -109,7 +129,7 @@ const OnboardingQuestion = ({
           </View>
         </View>
       ) : (
-        // NON-SLIDER RENDERING BLOCK (Multi-select/Radio)
+        // NON-SLIDER RENDERING BLOCK
         <View style={styles.nonSliderBlock}>
           {description && (
             <Text style={[styles.description, { marginBottom: 4 }]}>
@@ -165,7 +185,10 @@ const OnboardingQuestion = ({
 export default OnboardingQuestion;
 
 const styles = StyleSheet.create({
-  container: { gap: 18 },
+  container: {
+    gap: 18,
+    padding: 16,
+  },
   question: {
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
@@ -206,6 +229,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 14,
     borderWidth: 1.5,
+    borderStyle: "solid",
     borderColor: theme.colors.border.default,
   },
   optionSelected: {
@@ -215,9 +239,11 @@ const styles = StyleSheet.create({
   controlOuter: {
     width: 22,
     height: 22,
+    display: "flex",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
+    borderStyle: "solid",
     borderColor: theme.colors.border.default,
   },
   radioOuter: { borderRadius: 100 },
@@ -231,7 +257,7 @@ const styles = StyleSheet.create({
   controlOuterActive: {
     borderColor: theme.colors.actionPrimary.default,
   },
-  textWrap: { flex: 1, gap: 4 },
+  textWrap: { flex: 1, gap: 4, display: "flex", flexDirection: "column" },
   answer: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,

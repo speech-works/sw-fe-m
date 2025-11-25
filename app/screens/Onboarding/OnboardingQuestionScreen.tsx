@@ -50,7 +50,6 @@ const OnboardingQuestionScreen: React.FC = () => {
     isCurrentScreenValid,
     answers,
     setFlow,
-    toggleMultiAnswer,
   } = useOnboardingStore();
 
   const emit = useEventStore((s) => s.emit);
