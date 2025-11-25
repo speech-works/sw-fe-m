@@ -18,6 +18,7 @@ export interface OnboardingQuestion {
   questionType: QuestionType;
   isRequired: boolean;
   options: OnboardingOption[];
+  adaptiveKey: string | null;
 }
 
 export interface OnboardingFlow {
@@ -41,12 +42,19 @@ export interface UserOnboardingAnswer {
     version: string;
   };
   answers: UserAnswerMap;
+
   createdAt: string;
   updatedAt: string;
 }
 
 export interface SubmitAnswersPayload {
   answers: UserAnswerMap;
+}
+
+export interface SubmitAnswersResponsePayload {
+  answer: UserOnboardingAnswer;
+  isComplete: boolean;
+  profileCompletionPercent: number;
 }
 
 export interface UpdateAnswersPayload {

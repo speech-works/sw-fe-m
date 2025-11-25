@@ -11,14 +11,14 @@ interface OnboardingState {
   currentScreen: number;
 
   // Actions
-  setFlow: (flow: OnboardingFlow) => void; // Updates definition ONLY
-  startFresh: (flow: OnboardingFlow) => void; // Updates definition AND resets to screen 1
-  setAnswer: (questionId: string, value: any) => void;
-  toggleMultiAnswer: (questionId: string, option: any) => void;
+  setFlow: (flow: OnboardingFlow) => void;
+  startFresh: (flow: OnboardingFlow) => void;
+  setAnswer: (key: string, value: any) => void;
+  toggleMultiAnswer: (key: string, option: any) => void;
 
   // Helpers
   getCurrentScreenQuestions: () => OnboardingQuestion[];
-  getTotalScreens: () => number; // <-- NEW HELPER
+  getTotalScreens: () => number;
   isCurrentScreenValid: () => boolean;
 
   // Nav
@@ -34,12 +34,10 @@ export const useOnboardingStore = create<OnboardingState>()(
       answers: {},
       currentScreen: 1,
 
-      // Only update the flow definition. DO NOT reset currentScreen here.
       setFlow: (flow) => {
         set({ flow });
       },
 
-      // Explicitly start over (used by Welcome screen "Start" button)
       startFresh: (flow) => {
         const firstScreen =
           flow.questions.length > 0
@@ -49,21 +47,22 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           flow,
           currentScreen: firstScreen,
-          answers: {}, // Optional: clear answers if starting fresh
+          answers: {},
         });
       },
 
-      setAnswer: (questionId, value) => {
+      setAnswer: (key, value) => {
         const prev = get().answers;
-        set({ answers: { ...prev, [questionId]: value } });
+        set({ answers: { ...prev, [key]: value } });
       },
 
-      toggleMultiAnswer: (questionId, option) => {
-        const current = get().answers[questionId] || [];
+      toggleMultiAnswer: (key, option) => {
+        const current = get().answers[key] || [];
         const updated = current.includes(option)
           ? current.filter((x: any) => x !== option)
           : [...current, option];
-        set({ answers: { ...get().answers, [questionId]: updated } });
+
+        set({ answers: { ...get().answers, [key]: updated } });
       },
 
       getCurrentScreenQuestions: () => {
@@ -72,24 +71,28 @@ export const useOnboardingStore = create<OnboardingState>()(
         return flow.questions.filter((q) => q.screenNumber === currentScreen);
       },
 
-      // <-- NEW HELPER IMPLEMENTATION
       getTotalScreens: () => {
         const { flow } = get();
         if (!flow || flow.questions.length === 0) return 0;
-        // Find the highest screenNumber used in the questions
-        const screenNumbers = flow.questions.map((q) => q.screenNumber);
-        return Math.max(...screenNumbers);
+
+        return Math.max(...flow.questions.map((q) => q.screenNumber));
       },
 
       isCurrentScreenValid: () => {
         const questions = get().getCurrentScreenQuestions();
         const answers = get().answers;
+
         return questions.every((q) => {
           if (!q.isRequired) return true;
-          const value = answers[q.id];
+
+          // 🔥 KEY LOGIC: determine storage key
+          const key = q.adaptiveKey ?? q.id;
+          const value = answers[key];
+
           if (value === undefined || value === null) return false;
           if (typeof value === "string" && value.trim() === "") return false;
           if (Array.isArray(value) && value.length === 0) return false;
+
           return true;
         });
       },
@@ -97,8 +100,10 @@ export const useOnboardingStore = create<OnboardingState>()(
       nextScreen: () => {
         const { flow, currentScreen } = get();
         if (!flow) return;
-        const screenNumbers = flow.questions.map((q) => q.screenNumber);
-        const maxScreen = Math.max(...screenNumbers);
+
+        const maxScreen = Math.max(
+          ...flow.questions.map((q) => q.screenNumber)
+        );
         if (currentScreen < maxScreen) {
           set({ currentScreen: currentScreen + 1 });
         }

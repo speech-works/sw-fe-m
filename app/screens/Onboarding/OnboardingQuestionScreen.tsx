@@ -108,7 +108,14 @@ const OnboardingQuestionScreen: React.FC = () => {
   const submitAnswers = async () => {
     try {
       console.log("Submitting onboarding answers:", answers);
-      await submitOnboardingAnswers({ answers });
+      const { answer, isComplete, profileCompletionPercent } =
+        await submitOnboardingAnswers({ answers });
+      console.log(
+        "submitOnboardingAnswers response",
+        answer,
+        isComplete,
+        profileCompletionPercent
+      );
     } catch (err) {
       console.error("Failed to submit onboarding answers:", err);
     }
@@ -154,28 +161,38 @@ const OnboardingQuestionScreen: React.FC = () => {
       />
 
       <CustomScrollView contentContainerStyle={styles.scrollContent}>
-        {screenQuestions.map((q, index) => (
-          <OnboardingQuestion
-            key={q.id}
-            id={q.id}
-            sequence={index + 1}
-            question={q.questionText}
-            description={q.description ?? ""}
-            questionType={q.questionType}
-            options={q.options.map((o) => ({
-              id: o.id,
-              answer: o.optionText,
-              description: o.description ?? "",
-            }))}
-            value={q.questionType !== "multi" ? answers[q.id] ?? "" : undefined}
-            values={
-              q.questionType === "multi" && Array.isArray(answers[q.id])
-                ? answers[q.id]
-                : []
-            }
-            onChange={(qid, ans) => setAnswer(qid, ans)}
-          />
-        ))}
+        {screenQuestions.map((q, index) => {
+          // 🟢 KEY FIX: choose adaptiveKey if exists, otherwise fallback to id
+          const storageKey = q.adaptiveKey ?? q.id;
+
+          return (
+            <OnboardingQuestion
+              key={q.id}
+              id={q.id}
+              sequence={index + 1}
+              question={q.questionText}
+              description={q.description ?? ""}
+              questionType={q.questionType}
+              options={q.options.map((o) => ({
+                id: o.id,
+                answer: o.optionText,
+                description: o.description ?? "",
+              }))}
+              // use storageKey for UI selection
+              value={
+                q.questionType !== "multi"
+                  ? answers[storageKey] ?? ""
+                  : undefined
+              }
+              values={
+                q.questionType === "multi" && Array.isArray(answers[storageKey])
+                  ? answers[storageKey]
+                  : []
+              }
+              onChange={(_, ans) => setAnswer(storageKey, ans)}
+            />
+          );
+        })}
       </CustomScrollView>
 
       <View style={styles.footerButton}>
@@ -200,7 +217,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     padding: 8,
   },
-  // CRITICAL FIX: gap handles space between questions, paddingBottom handles space for Next button
   scrollContent: {
     gap: 48,
     paddingBottom: 40,

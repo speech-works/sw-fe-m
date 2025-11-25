@@ -92,6 +92,8 @@
     "@types/uuid": "^10.0.0",
     "patch-package": "^8.0.0",
     "postinstall-js": "^0.9.3",
+    "reactotron-apisauce": "^3.0.7",
+    "reactotron-react-native": "^5.1.18",
     "typescript": "^5.8.3"
   },
   "private": true

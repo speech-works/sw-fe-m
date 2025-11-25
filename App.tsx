@@ -24,6 +24,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
 
+if (__DEV__) {
+  require("./ReactotronConfig");
+}
+
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
 

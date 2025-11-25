@@ -4,6 +4,7 @@ import axiosClient from "../axiosClient";
 import {
   OnboardingFlow,
   SubmitAnswersPayload,
+  SubmitAnswersResponsePayload,
   UpdateAnswersPayload,
   UserOnboardingAnswer,
 } from "./types";
@@ -56,7 +57,7 @@ export async function getOnboardingFlowByVersion(
  */
 export async function submitOnboardingAnswers(
   payload: SubmitAnswersPayload
-): Promise<UserOnboardingAnswer> {
+): Promise<SubmitAnswersResponsePayload> {
   try {
     const response = await axiosClient.post(`/onboarding/answers`, payload);
     return response.data;
