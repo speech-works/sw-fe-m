@@ -114,9 +114,10 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 36,
+    // padding: 24,
+    // paddingBottom: 36,
     minHeight: 200,
     // NOTE: no "maxHeight" here. We are now assigning "height" explicitly if maxHeight was provided.
+    overflow: "hidden",
   },
 });

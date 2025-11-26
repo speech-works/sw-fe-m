@@ -19,10 +19,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const SpeechworksFace_StaticGlitch = ({
-  size = 48,
-  ...props
-}: SvgIconProps) => {
+const ErrorFace = ({ size = 48, ...props }: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -103,4 +100,4 @@ const SpeechworksFace_StaticGlitch = ({
     </Svg>
   );
 };
-export default SpeechworksFace_StaticGlitch;
+export default ErrorFace;

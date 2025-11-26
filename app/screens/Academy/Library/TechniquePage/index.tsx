@@ -16,6 +16,8 @@ import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
 import { useUserStore } from "../../../../stores/user";
+import BgPattern_EtherealFlow from "../../../../assets/sw-bg/BgPattern_EtherealFlow";
+import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 
 const TechniquePage = () => {
   const { user } = useUserStore();
@@ -151,13 +153,14 @@ const TechniquePage = () => {
         onClose={closeModal}
         maxHeight="50%"
       >
+        <BgPattern_EtherealFlow />
         <View style={styles.modalContent}>
+          <TherapistFace size={96} />
           <View style={styles.modalTitleContainer}>
             <Text style={styles.modalTiteText}>{techniqueName}</Text>
           </View>
 
           <CustomScrollView
-            style={styles.scrollView}
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollContainer2}
           >
@@ -206,25 +209,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading3),
+    ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
   },
   modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
   },
   modalContent: {
-    paddingVertical: 24,
+    padding: 24,
     width: "100%",
     flex: 1,
-    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 32,
-  },
-  scrollView: {
-    flex: 1,
+    height: "100%",
   },
   scrollContainer2: {
     gap: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
 });

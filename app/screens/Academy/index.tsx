@@ -30,8 +30,8 @@ import usePullToRefresh from "../../hooks/usePullToRefresh";
 // Theme & Styles
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
-import PilotFace from "../../assets/sw-faces/PilotFace";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
+import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
 
 const Academy = () => {
   const { user } = useUserStore();
@@ -184,6 +184,7 @@ const Academy = () => {
         onClose={() => setErrorModalVisible(false)}
         maxHeight="40%" // Adjust height preference
       >
+        <BgPattern_404 />
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{errorTitle}</Text>
           <Text style={styles.modalMessage}>{errorMessage}</Text>
@@ -208,8 +209,9 @@ const styles = StyleSheet.create({
   // --- New Modal Styles ---
   modalContent: {
     alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     gap: 16,
-    paddingTop: 8,
   },
   modalTitle: {
     color: theme.colors.text.title,

@@ -96,7 +96,7 @@ const PhoneCall = () => {
               <CallingWidget
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.1.4:3000"
+                websocketUrl="ws://192.168.1.3:3000"
                 scenarioId={selectedScenario?.id}
                 scenarioIcon={selectedScenario?.icon || "robot"}
                 agentName={selectedScenario?.agent.name || ""}
