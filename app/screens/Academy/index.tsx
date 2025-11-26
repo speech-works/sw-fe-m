@@ -1,54 +1,63 @@
-import { StyleSheet, View } from "react-native";
-import React, { useCallback, useEffect } from "react";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+
+// Components
 import ScreenView from "../../components/ScreenView";
 import MoodCheck from "./components/MoodCheck";
 import Progress from "./components/Progress";
 import DailyPractice from "./components/DailyPractice";
 import Tiles from "./components/Tiles";
 import CustomScrollView from "../../components/CustomScrollView";
+import ResourceStats from "./components/ResourceStats";
+import BuyPro from "../Settings/components/BuyPro";
+import OnboardingReminderCard from "../../components/OnboardingReminderCard";
+import BottomSheetModal from "../../components/BottomSheetModal"; // <--- IMPORT THIS
+
+// Stores & API
 import { useUserStore } from "../../stores/user";
 import { createSession, getAllSessionsOfUser } from "../../api";
 import { useSessionStore } from "../../stores/session";
 import { useMoodCheckStore } from "../../stores/mood";
 import { getUserStats } from "../../api/stats";
 import { usePracticeStatsStore } from "../../stores/practiceStats";
-import ResourceStats from "./components/ResourceStats";
-import usePullToRefresh from "../../hooks/usePullToRefresh";
-import BuyPro from "../Settings/components/BuyPro";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
-import OnboardingReminderCard from "../../components/OnboardingReminderCard";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
+import usePullToRefresh from "../../hooks/usePullToRefresh";
+
+// Theme & Styles
+import { theme } from "../../Theme/tokens";
+import { parseTextStyle } from "../../util/functions/parseStyles";
+import PilotFace from "../../assets/sw-faces/PilotFace";
+import ErrorFace from "../../assets/sw-faces/ErrorFace";
 
 const Academy = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setPracticeStats } = usePracticeStatsStore();
   const { hasRecordedToday, lastRecordedDate } = useMoodCheckStore();
+  const { emit, events, clear } = useEventStore();
 
-  const emit = useEventStore((s) => s.emit);
+  // --- NEW: Local State for Error Modal ---
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  // ----------------------------------------
 
-  // --- NEW: Get onboarding state properties ---
   const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
   const getTotalScreens = useOnboardingStore((s) => s.getTotalScreens);
-
-  // Calculate total screens safely. If no flow loads, default to 1 to avoid div by zero errors in UI.
   const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
-  // --------------------------------------------
 
   const syncSessionWithBackend = useCallback(async () => {
     if (!user) {
       if (practiceSession) {
-        console.log("Sync: No user, clearing local session.");
         clearSession();
       }
       return;
     }
-
-    console.log("Attempting to sync session with backend...");
     try {
       const activeSessions = await getAllSessionsOfUser({
         userId: user.id,
@@ -61,24 +70,11 @@ const Academy = () => {
           practiceSession?.id !== backendOngoingSession.id ||
           practiceSession?.status !== "ONGOING"
         ) {
-          console.log(
-            "Sync: Setting session from backend:",
-            backendOngoingSession
-          );
           setSession(backendOngoingSession);
-        } else {
-          console.log("Sync: Local ongoing session matches backend.");
         }
       } else {
         if (practiceSession && practiceSession.status === "ONGOING") {
-          console.log(
-            "Sync: Backend reports no ongoing session. Clearing local ongoing session."
-          );
           clearSession();
-        } else {
-          console.log(
-            "Sync: No ongoing session on backend, local state consistent or already clear."
-          );
         }
       }
     } catch (error) {
@@ -90,7 +86,6 @@ const Academy = () => {
     await syncSessionWithBackend();
     if (user?.id) {
       const practiceStats = await getUserStats(user.id);
-      console.log("practice stats after refresh-", { practiceStats });
       setPracticeStats(practiceStats);
     }
   }, [syncSessionWithBackend, user?.id, setPracticeStats]);
@@ -99,82 +94,71 @@ const Academy = () => {
 
   useFocusEffect(
     React.useCallback(() => {
-      console.log(
-        "Academy screen focused or dependencies changed, triggering sync."
-      );
       syncSessionWithBackend();
     }, [syncSessionWithBackend])
   );
 
   const startNewSession = async () => {
-    if (!user) {
-      console.log("Cannot start session: User not available.");
-      return;
-    }
+    if (!user) return;
     try {
-      console.log("Attempting to create new session...");
       const newSessionData = await createSession({ userId: user.id });
       if (newSessionData) {
-        console.log("New session created and set:", newSessionData);
         setSession(newSessionData);
-      } else {
-        console.error(
-          "Failed to create session: No session data returned from API."
-        );
       }
     } catch (error) {
       console.error("Failed to create new session:", error);
     }
   };
 
+  // --- UPDATED: Listen for Modal Events ---
   useEffect(() => {
-    console.log("lastRecordedDate", { lastRecordedDate, hasRecordedToday });
-  }, [lastRecordedDate, hasRecordedToday]);
+    if (!events || events.length === 0) return;
+
+    for (const event of events) {
+      if (event.name === EVENT_NAMES.SHOW_ERROR_MODAL) {
+        console.log("→ Error modal triggering via Event Store...");
+
+        // 1. Set the content
+        setErrorTitle(event.detail.modalTitle || "Something went wrong");
+        setErrorMessage(
+          event.detail.errorMessage || "An unexpected error occurred."
+        );
+
+        // 2. Open the modal
+        setErrorModalVisible(true);
+
+        // 3. Clear the event so it doesn't fire again
+        clear(EVENT_NAMES.SHOW_ERROR_MODAL);
+      }
+    }
+  }, [events, clear]);
 
   useEffect(() => {
     if (!user) return;
     const fetchUserStats = async () => {
       const practiceStats = await getUserStats(user.id);
-      console.log("practice stats-", { practiceStats });
       setPracticeStats(practiceStats);
     };
     fetchUserStats();
   }, [user, setPracticeStats]);
 
-  useEffect(() => {
-    console.log("Refreshing Academy screen useeffect:", { refreshing });
-  }, [refreshing]);
-
   return (
     <ScreenView style={styles.screenView}>
       <CustomScrollView refreshControl={refreshControl}>
         <View style={styles.innerContainer}>
-          {/* ⭐ SHOW REMINDER IF USER HAS NOT COMPLETED ONBOARDING */}
           {user && !user.hasCompletedOnboarding && (
             <OnboardingReminderCard
-              // --- NEW: PASS PROGRESS PROPS ---
               currentStep={currentOnboardingScreen - 1}
               totalSteps={totalOnboardingScreens}
-              // --------------------------------
               onPress={async () => {
                 try {
                   const state = useOnboardingStore.getState();
-
-                  // Check if we have a persisted flow and progress to resume
                   if (state.flow && state.currentScreen > 1) {
-                    console.log("Resuming existing onboarding flow...");
-                    // Do not fetch. Do not reset. Just open.
                     emit(EVENT_NAMES.START_ONBOARDING);
                     return;
                   }
-
-                  // Otherwise, load fresh
-                  console.log("Starting fresh onboarding flow...");
                   const flow = await getActiveOnboardingFlow();
-
-                  // Use the action that resets to screen 1
                   state.startFresh(flow);
-
                   emit(EVENT_NAMES.START_ONBOARDING);
                 } catch (err) {
                   console.error("Failed to load onboarding flow:", err);
@@ -193,6 +177,20 @@ const Academy = () => {
           <Tiles />
         </View>
       </CustomScrollView>
+
+      {/* --- NEW: Error Modal Implementation --- */}
+      <BottomSheetModal
+        visible={errorModalVisible}
+        onClose={() => setErrorModalVisible(false)}
+        maxHeight="40%" // Adjust height preference
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>{errorTitle}</Text>
+          <Text style={styles.modalMessage}>{errorMessage}</Text>
+          <ErrorFace size={152} />
+        </View>
+      </BottomSheetModal>
+      {/* --------------------------------------- */}
     </ScreenView>
   );
 };
@@ -206,5 +204,36 @@ const styles = StyleSheet.create({
   innerContainer: {
     gap: 32,
     flex: 1,
+  },
+  // --- New Modal Styles ---
+  modalContent: {
+    alignItems: "center",
+    gap: 16,
+    paddingTop: 8,
+  },
+  modalTitle: {
+    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading3),
+    textAlign: "center",
+  },
+  modalMessage: {
+    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.Body),
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  closeButton: {
+    marginTop: 8,
+    backgroundColor: theme.colors.surface.default, // Light gray/neutral
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+  },
+  closeButtonText: {
+    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "600",
   },
 });

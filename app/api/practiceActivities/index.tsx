@@ -2,6 +2,8 @@ import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
 import { triggerToast } from "../../util/functions/toast";
+import { EVENT_NAMES } from "../../stores/events/constants";
+import { dispatchCustomEvent } from "../../util/functions/events";
 
 interface GetActivitiesBySessionIdReq {
   sessionId: string;
@@ -101,15 +103,21 @@ export async function startPracticeActivity({
     );
     return response.data;
   } catch (error) {
-    console.error("Error starting practice activity:", error);
+    //console.error("Error starting practice activity:", error);
     if (axios.isAxiosError(error) && error.response) {
-      console.error("Backend error details:", error.response.data);
-      triggerToast(
-        "error",
-        "Try Later",
-        error.response.data.error ||
-          "An error occurred while starting the activity."
-      );
+      //console.error("Backend error details:", error.response.data);
+      dispatchCustomEvent(EVENT_NAMES.SHOW_ERROR_MODAL, {
+        errorMessage:
+          error.response.data.error ||
+          "An error occurred while starting the activity.",
+        modalTitle: "Try later",
+      });
+      // triggerToast(
+      //   "error",
+      //   "Try Later",
+      //   error.response.data.error ||
+      //     "An error occurred while starting the activity."
+      // );
     }
     throw error;
   }
