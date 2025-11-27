@@ -21,7 +21,7 @@ import CustomScrollView, {
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { InterviewEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+import { SCEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 import DonePractice from "../../../../components/DonePractice";
 import Separator from "../../../../../../../components/Separator";
 import Button from "../../../../../../../components/Button";
@@ -46,10 +46,9 @@ interface ChatMessage {
 
 const Chat = () => {
   const navigation = useNavigation();
-  const route =
-    useRoute<RouteProp<InterviewEDPStackParamList, "InterviewChat">>();
+  const route = useRoute<RouteProp<SCEDPStackParamList, "SCChat">>();
 
-  const { interview, practiceActivityId } = route.params;
+  const { sc, practiceActivityId } = route.params;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -83,21 +82,21 @@ const Chat = () => {
   // Effect to initialize the chat with the first NPC message
   useEffect(() => {
     if (
-      interview &&
-      interview.practiceData?.stage.initialNodeId &&
+      sc &&
+      sc.practiceData?.stage.initialNodeId &&
       !hasInitialized &&
-      interview.practiceData?.stage.dialogues
+      sc.practiceData?.stage.dialogues
     ) {
-      setCurrentNodeId(interview.practiceData.stage.initialNodeId);
+      setCurrentNodeId(sc.practiceData.stage.initialNodeId);
       setHasInitialized(true);
     }
-  }, [interview, hasInitialized]);
+  }, [sc, hasInitialized]);
 
   // Effect to update messages and options when currentNodeId changes
   useEffect(() => {
-    if (currentNodeId && interview.practiceData?.stage.dialogues) {
+    if (currentNodeId && sc.practiceData?.stage.dialogues) {
       const node: FixedRolePlayNode | undefined =
-        interview.practiceData.stage.dialogues[currentNodeId];
+        sc.practiceData.stage.dialogues[currentNodeId];
       if (node) {
         // Add NPC's line to messages
         setMessages((prevMessages) => [
@@ -129,7 +128,7 @@ const Chat = () => {
       // If currentNodeId becomes null after initialization, it means the conversation has ended
       setCurrentOptions([]);
     }
-  }, [currentNodeId, interview.practiceData, hasInitialized]);
+  }, [currentNodeId, sc.practiceData, hasInitialized]);
 
   // Effect to scroll to the bottom of the chat when messages update and chat is collapsed
   useEffect(() => {
@@ -172,7 +171,7 @@ const Chat = () => {
 
   // Handles the selection of a user response option
   const handleSelectOption = (option: FixedRolePlayNodeOption) => {
-    if (!interview.practiceData?.stage.initialNodeId) return; // Ensure dialogues exist
+    if (!sc.practiceData?.stage.initialNodeId) return; // Ensure dialogues exist
 
     // Add user's selected line to messages
     setMessages((prevMessages) => [
@@ -227,8 +226,7 @@ const Chat = () => {
               size={16}
               color={theme.colors.text.default}
             />
-            {/* Displaying the interview name from route params */}
-            <Text style={styles.topNavigationText}>{interview.name}</Text>
+            <Text style={styles.topNavigationText}>{sc.name}</Text>
           </TouchableOpacity>
           {/* Chevron to toggle expand/collapse, hidden when done or no messages */}
           <TouchableOpacity
@@ -251,13 +249,9 @@ const Chat = () => {
 
         <CustomScrollView contentContainerStyle={styles.scrollContent}>
           {isDone ? (
-            // Display DonePractice component when the practice is marked complete
             <DonePractice />
           ) : (
             <>
-              {/* No briefContainer needed for interview simulation context */}
-              {/* <View style={styles.briefContainer}>...</View> */}
-
               <View style={styles.messagesContainer}>
                 {/* Hidden measuring bubble to determine message height */}
                 {messageHeight === null && (

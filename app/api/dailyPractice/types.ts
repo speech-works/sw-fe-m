@@ -137,47 +137,48 @@ export enum ExposurePracticeType {
   // RANDOM_QUESTIONS = "RANDOM_QUESTIONS", // Uppercase values
   INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
   PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
+  SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE_SIMULATION",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
   // Add other exposure types as needed
 }
 
-export interface InterviewPracticeNodeOption {
+export interface FixedRolePlayNodeOption {
   id: string;
   userLine: string;
   nextNodeId: string | null;
 }
 
-export interface InterviewPracticeNode {
+export interface FixedRolePlayNode {
   id: string;
   npcLine: string;
-  options: InterviewPracticeNodeOption[];
+  options: FixedRolePlayNodeOption[];
 }
 
-export interface InterviewPracticeStageBase {
+export interface FixedRolePlayStageBase {
   npcRole: string;
   userRole: string;
   userCharacter: string[];
   initialNodeId: string;
-  dialogues: Record<string, InterviewPracticeNode>;
+  dialogues: Record<string, FixedRolePlayNode>;
 }
 
-export interface AvailableExposureInterviewRole {
+export interface AvailableExposureFixedRolePlayRole {
   roleName: string;
   roleDescription: string;
   fontAwesomeIcon: string;
 }
 
-export interface InterviewPracticeScenario {
+export interface FixedRolePlayScenario {
   tips: string[];
   duration: number;
-  availableRole: AvailableExposureInterviewRole;
+  availableRole: AvailableExposureFixedRolePlayRole;
   scenarioDetails: string;
 }
 
-export interface InterviewPracticeData {
-  stage: InterviewPracticeStageBase;
-  scenario: InterviewPracticeScenario;
+export interface FixedRolePlayData {
+  stage: FixedRolePlayStageBase;
+  scenario: FixedRolePlayScenario;
 }
 
 export interface ExposurePractice {
@@ -186,7 +187,7 @@ export interface ExposurePractice {
   name: string;
   description: string;
   difficulty: DifficultyLevel;
-  interviewPracticeData?: InterviewPracticeData;
+  practiceData?: FixedRolePlayData;
 }
 
 // Reading Practice

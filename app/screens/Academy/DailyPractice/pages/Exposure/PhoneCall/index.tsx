@@ -20,10 +20,7 @@ import { useUserStore } from "../../../../../../stores/user";
 import CallingWidget from "../../../../../../components/CallingWidget";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
-import {
-  ExposurePracticeType,
-  PhoneCallScenario,
-} from "../../../../../../api/dailyPractice/types";
+import { PhoneCallScenario } from "../../../../../../api/dailyPractice/types";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import axios from "axios";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/ringback-tone.wav");

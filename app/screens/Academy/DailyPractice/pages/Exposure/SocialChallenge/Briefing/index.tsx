@@ -7,9 +7,9 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import {
-  InterviewEDPStackParamList,
-  InterviewEDPStackNavigationProp,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+  SCEDPStackParamList,
+  SCEDPStackNavigationProp,
+} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Button from "../../../../../../../components/Button";
 import CustomScrollView, {
@@ -28,12 +28,9 @@ const Briefing = () => {
   const { practiceSession } = useSessionStore();
   const { addActivity } = useActivityStore();
   const navigation =
-    useNavigation<
-      InterviewEDPStackNavigationProp<keyof InterviewEDPStackParamList>
-    >();
-  const route =
-    useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
-  const { interview } = route.params;
+    useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();
+  const route = useRoute<RouteProp<SCEDPStackParamList, "SCBriefing">>();
+  const { sc } = route.params;
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null
   );
@@ -43,7 +40,7 @@ const Briefing = () => {
     const newActivity = await createPracticeActivity({
       sessionId: practiceSession.id,
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      contentId: interview.id,
+      contentId: sc.id,
     });
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
@@ -56,10 +53,10 @@ const Briefing = () => {
   };
 
   useEffect(() => {
-    console.log("Begin Interview", { currentActivityId });
+    console.log("Begin Challenge", { currentActivityId });
     currentActivityId &&
-      navigation.navigate("InterviewChat", {
-        interview,
+      navigation.navigate("SCChat", {
+        sc,
         practiceActivityId: currentActivityId,
       });
   }, [currentActivityId]);
@@ -77,7 +74,7 @@ const Briefing = () => {
               size={16}
               color={theme.colors.text.default}
             />
-            <Text style={styles.topNavigationText}>Interview</Text>
+            <Text style={styles.topNavigationText}>Social Challenge</Text>
           </TouchableOpacity>
         </View>
         <CustomScrollView contentContainerStyle={styles.scrollContainer}>
@@ -87,20 +84,20 @@ const Briefing = () => {
                 <Icon
                   size={24}
                   name={
-                    interview.practiceData?.scenario.availableRole
-                      .fontAwesomeIcon || "user-tie"
+                    sc.practiceData?.scenario.availableRole.fontAwesomeIcon ||
+                    "user-tie"
                   }
                   color={theme.colors.library.blue[400]}
                 />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.titleText}>{interview.name}</Text>
-                <Text style={styles.descText}>{interview.description}</Text>
+                <Text style={styles.titleText}>{sc.name}</Text>
+                <Text style={styles.descText}>{sc.description}</Text>
               </View>
             </View>
             <View style={styles.characterContainer}>
               <Text style={styles.characterTitleText}>Your Character</Text>
-              {interview.practiceData?.stage.userCharacter.map((c, i) => (
+              {sc.practiceData?.stage.userCharacter.map((c, i) => (
                 <View key={i} style={styles.characterRow}>
                   <Icon
                     solid
@@ -113,7 +110,7 @@ const Briefing = () => {
               ))}
             </View>
           </View>
-          <Button text="Begin Interview" onPress={markActivityStart} />
+          <Button text="Begin Challenge" onPress={markActivityStart} />
         </CustomScrollView>
       </View>
     </ScreenView>

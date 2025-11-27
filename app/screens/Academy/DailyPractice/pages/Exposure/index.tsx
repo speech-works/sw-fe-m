@@ -22,6 +22,7 @@ import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { formatDuration } from "../../../../../util/functions/time";
 import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
 import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
+import WiseFace from "../../../../../assets/sw-faces/WiseFace";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -39,6 +40,15 @@ const Exposure = () => {
   const { practiceStats } = usePracticeStatsStore();
 
   const exposureData: Array<ListCardProps> = [
+    {
+      title: "Social Challenges",
+      description: "Practice uneasy conversations",
+      onPress: () => {
+        navigation.navigate("SocialChallengeStack");
+      },
+      icon: <WiseFace size={52} />,
+      disabled: false,
+    },
     {
       title: "Interview Simulation",
       description: "AI-powered practice",

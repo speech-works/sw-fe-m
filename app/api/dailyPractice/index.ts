@@ -53,7 +53,12 @@ export async function getExposurePracticeByType(
     const response = await axiosClient.get("/exposure-practice", {
       params: { type },
     });
-    return response.data;
+    const data: ExposurePractice[] = response.data.map((practice: any) => ({
+      ...practice,
+      practiceData:
+        practice.interviewPracticeData || practice.socialChallengeData,
+    }));
+    return data;
   } catch (error) {
     console.error(
       "There was a problem with getting all exposure practice by type:",
