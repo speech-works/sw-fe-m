@@ -67,7 +67,7 @@ const Chat = () => {
     FixedRolePlayNodeOption[]
   >([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false); // To track if the initial node has been processed
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Enable LayoutAnimation on Android for smooth transitions
   useEffect(() => {
@@ -98,7 +98,6 @@ const Chat = () => {
       const node: FixedRolePlayNode | undefined =
         sc.practiceData.stage.dialogues[currentNodeId];
       if (node) {
-        // Add NPC's line to messages
         setMessages((prevMessages) => [
           ...prevMessages,
           {
@@ -107,25 +106,12 @@ const Chat = () => {
             text: node.npcLine,
           },
         ]);
-        // Set current options for user
         setCurrentOptions(node.options || []);
-        setSelectedOptionId(null); // Reset selected option
-        if (node.options.length === 0) {
-          // If no options, the dialogue has ended
-          // You might want to automatically mark as done or show a specific end message
-          // setIsDone(true); // Example: Mark as done when dialogue ends
-        }
+        setSelectedOptionId(null);
       } else {
-        // Handle case where node is not found (e.g., end of dialogue or invalid nextNodeId)
         setCurrentOptions([]);
-        // Optionally, add a message indicating the end of the conversation
-        // setMessages((prevMessages) => [
-        //   ...prevMessages,
-        //   { id: `system-end-${Date.now()}`, type: "incoming", text: "Conversation ended." },
-        // ]);
       }
     } else if (currentNodeId === null && hasInitialized) {
-      // If currentNodeId becomes null after initialization, it means the conversation has ended
       setCurrentOptions([]);
     }
   }, [currentNodeId, sc.practiceData, hasInitialized]);
@@ -133,7 +119,6 @@ const Chat = () => {
   // Effect to scroll to the bottom of the chat when messages update and chat is collapsed
   useEffect(() => {
     if (!isExpanded && chatScrollRef.current && messages.length > 0) {
-      // Small delay to ensure layout is complete before scrolling
       setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -157,11 +142,9 @@ const Chat = () => {
     }
   };
 
-  // Toggles the expanded state of the chat, with LayoutAnimation for smooth transitions
   const toggleExpand = () => {
     const nextIsExpanded = !isExpanded;
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut, () => {
-      // After animation, if collapsing, scroll to the end
       if (!nextIsExpanded && chatScrollRef.current) {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }
@@ -169,11 +152,9 @@ const Chat = () => {
     setIsExpanded(nextIsExpanded);
   };
 
-  // Handles the selection of a user response option
   const handleSelectOption = (option: FixedRolePlayNodeOption) => {
-    if (!sc.practiceData?.stage.initialNodeId) return; // Ensure dialogues exist
+    if (!sc.practiceData?.stage.initialNodeId) return;
 
-    // Add user's selected line to messages
     setMessages((prevMessages) => [
       ...prevMessages,
       {
@@ -182,8 +163,8 @@ const Chat = () => {
         text: option.userLine,
       },
     ]);
-    setSelectedOptionId(option.id); // Highlight selected option
-    setCurrentNodeId(option.nextNodeId); // Move to the next dialogue node
+    setSelectedOptionId(option.id);
+    setCurrentNodeId(option.nextNodeId);
   };
 
   const markActivityComplete = async (activityId: string) => {
@@ -213,6 +194,124 @@ const Chat = () => {
     }
   };
 
+  // UPDATED: Render Message Text with Dark Purple Logic for Incoming ()
+  const renderMessageText = (text: string, type: "incoming" | "outgoing") => {
+    const regex = /(\[.*?\]|\(.*?\))/g;
+    const segments = text.split(regex);
+
+    const baseTextStyle =
+      type === "incoming"
+        ? styles.incomingMessageText
+        : styles.outgoinggMessageText;
+
+    const components = segments.flatMap((segment, i) => {
+      if (!segment) return [];
+
+      const isBracket = segment.startsWith("[") && segment.endsWith("]");
+      const isParen = segment.startsWith("(") && segment.endsWith(")");
+
+      if (isBracket || isParen) {
+        let content = segment.slice(1, -1);
+        if (content.endsWith(".")) content = content.slice(0, -1);
+
+        let chipContainerStyle;
+        let chipTextStyle;
+
+        if (isBracket) {
+          // [] Brackets -> Grey
+          chipContainerStyle = styles.inlineChipGrey;
+          chipTextStyle = styles.inlineChipTextDark;
+        } else {
+          // () Parentheses logic
+          if (type === "incoming") {
+            // Incoming -> Dark Purple
+            chipContainerStyle = styles.inlineChipPurple;
+            chipTextStyle = styles.inlineChipText; // White text
+          } else {
+            // Outgoing -> Default Primary
+            chipContainerStyle = styles.inlineChip;
+            chipTextStyle = styles.inlineChipText; // White text
+          }
+        }
+
+        return [
+          <View key={`chip-${i}`} style={chipContainerStyle}>
+            <Text style={chipTextStyle}>{content}</Text>
+          </View>,
+        ];
+      }
+
+      // Normal text splitting
+      return segment.split(" ").map((word, wIndex, arr) => {
+        if (!word && wIndex !== arr.length - 1)
+          return <Text key={`space-${i}-${wIndex}`}> </Text>;
+        if (!word) return null;
+
+        return (
+          <Text key={`text-${i}-${wIndex}`} style={baseTextStyle}>
+            {word}
+            {wIndex < arr.length - 1 ? " " : ""}
+          </Text>
+        );
+      });
+    });
+
+    return <View style={styles.messageTextWrapContainer}>{components}</View>;
+  };
+
+  // Logic to render Option/Suggestion text
+  const renderOptionText = (text: string, isSelected: boolean) => {
+    const regex = /(\[.*?\]|\(.*?\))/g;
+    const segments = text.split(regex);
+
+    const components = segments.flatMap((segment, i) => {
+      if (!segment) return [];
+
+      const isBracket = segment.startsWith("[") && segment.endsWith("]");
+      const isParen = segment.startsWith("(") && segment.endsWith(")");
+
+      if (isBracket || isParen) {
+        let content = segment.slice(1, -1);
+        if (content.endsWith(".")) content = content.slice(0, -1);
+
+        const chipContainerStyle = isBracket
+          ? styles.inlineChipGrey
+          : styles.inlineChip;
+
+        const chipTextStyle = isBracket
+          ? styles.inlineChipTextDark
+          : styles.inlineChipText;
+
+        return [
+          <View key={`chip-${i}`} style={chipContainerStyle}>
+            <Text style={chipTextStyle}>{content}</Text>
+          </View>,
+        ];
+      }
+
+      return segment.split(" ").map((word, wIndex, arr) => {
+        if (!word && wIndex !== arr.length - 1)
+          return <Text key={`space-${i}-${wIndex}`}> </Text>;
+        if (!word) return null;
+
+        return (
+          <Text
+            key={`text-${i}-${wIndex}`}
+            style={[
+              styles.suggestionText,
+              isSelected ? styles.selectedSuggestionText : null,
+            ]}
+          >
+            {word}
+            {wIndex < arr.length - 1 ? " " : ""}
+          </Text>
+        );
+      });
+    });
+
+    return <View style={styles.textWrapContainer}>{components}</View>;
+  };
+
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
@@ -228,12 +327,10 @@ const Chat = () => {
             />
             <Text style={styles.topNavigationText}>{sc.name}</Text>
           </TouchableOpacity>
-          {/* Chevron to toggle expand/collapse, hidden when done or no messages */}
           <TouchableOpacity
             onPress={toggleExpand}
             style={[
               styles.chevronContainer,
-              // Hide chevron if not initialized or no messages yet
               isDone || !hasInitialized || messages.length === 0
                 ? { opacity: 0, pointerEvents: "none" }
                 : null,
@@ -253,7 +350,6 @@ const Chat = () => {
           ) : (
             <>
               <View style={styles.messagesContainer}>
-                {/* Hidden measuring bubble to determine message height */}
                 {messageHeight === null && (
                   <View
                     style={[styles.incomingMessage, styles.hiddenMeasureBubble]}
@@ -262,13 +358,10 @@ const Chat = () => {
                     <Text style={styles.incomingMessageText}>
                       Measuring text: This is a reasonably long message to help
                       determine bubble height accurately for layout purposes.
-                      Ensure this text results in a height that can accommodate
-                      your tallest typical single message.
                     </Text>
                   </View>
                 )}
 
-                {/* Main chat messages scroll view */}
                 {messages.length > 0 && (
                   <CustomScrollView
                     ref={chatScrollRef}
@@ -297,25 +390,15 @@ const Chat = () => {
                             : styles.outgoingMessage
                         }
                       >
-                        <Text
-                          style={
-                            message.type === "incoming"
-                              ? styles.incomingMessageText
-                              : styles.outgoinggMessageText
-                          }
-                        >
-                          {message.text}
-                        </Text>
+                        {renderMessageText(message.text, message.type)}
                       </View>
                     ))}
-                    {/* Spacer view only for expanded mode to ensure last message isn't hidden by suggestions */}
                     {isExpanded && messages.length > 0 && (
                       <View style={{ height: 60 }} />
                     )}
                   </CustomScrollView>
                 )}
 
-                {/* Separator and Suggestions */}
                 {currentOptions.length > 0 && (
                   <>
                     <Separator />
@@ -334,19 +417,12 @@ const Chat = () => {
                                 : null,
                             ]}
                             onPress={() => handleSelectOption(option)}
-                            // Disable option selection if an option has already been chosen for the current turn
                             disabled={selectedOptionId !== null}
                           >
-                            <Text
-                              style={[
-                                styles.suggestionText,
-                                option.id === selectedOptionId
-                                  ? styles.selectedSuggestionText
-                                  : null,
-                              ]}
-                            >
-                              {option.userLine}
-                            </Text>
+                            {renderOptionText(
+                              option.userLine,
+                              option.id === selectedOptionId
+                            )}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -436,12 +512,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatsScrollViewExpanded: {
-    // For isExpanded === true
     gap: 20,
-    // Spacer view is used instead of paddingBottom here
   },
   chatsScrollViewCollapsed: {
-    // For isExpanded === false
     gap: 8,
   },
   incomingMessage: {
@@ -487,11 +560,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: theme.colors.surface.default,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
+    minHeight: 48,
   },
   selectedSuggestionCard: {
     backgroundColor: theme.colors.actionPrimary.default,
@@ -504,6 +576,53 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
+    includeFontPadding: false,
+    lineHeight: 28,
+  },
+  textWrapContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  messageTextWrapContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    width: "100%",
+  },
+  inlineChip: {
+    backgroundColor: theme.colors.actionPrimary.default,
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 0.5,
+  },
+  inlineChipText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontWeight: "700",
+    color: theme.colors.text.onDark,
+    includeFontPadding: false,
+  },
+  inlineChipGrey: {
+    backgroundColor: "#b1a8a8ff",
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 0.5,
+  },
+  inlineChipTextDark: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontWeight: "700",
+    color: theme.colors.text.onDark,
+    includeFontPadding: false,
+  },
+  // NEW: Dark Purple Chip Style
+  inlineChipPurple: {
+    backgroundColor: theme.colors.library.purple[400],
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 0.5,
   },
 });
 
