@@ -14,7 +14,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MessageBubble from "../../../../../../../components/MessageBubble";
 import { theme } from "../../../../../../../Theme/tokens";
-import CallingWidget from "../../../../../../../components/CallingWidget";
 
 // Define Message interface
 interface Message {

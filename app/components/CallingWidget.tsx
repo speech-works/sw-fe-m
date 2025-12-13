@@ -27,8 +27,7 @@ import {
 } from "@dr.pogodin/react-native-audio";
 
 import DeviceInfo from "react-native-device-info";
-
-import * as FileSystem from "expo-file-system";
+import { theme } from "../Theme/tokens";
 
 // --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type Props = {
@@ -1522,7 +1521,11 @@ const CallingWidget: React.FC<Props> = ({
       {/* --- AVATAR AREA --- */}
       <View style={styles.avatarContainer}>
         <View style={styles.avatarIconWrapper}>
-          <Icon name={scenarioIcon} size={100} color="#4A90E2" />
+          <Icon
+            name={scenarioIcon}
+            size={100}
+            color={theme.colors.text.title}
+          />
           <View
             style={[
               styles.micIconCircle,
@@ -1532,7 +1535,9 @@ const CallingWidget: React.FC<Props> = ({
             <Icon
               name="volume-up"
               size={14}
-              color={turn === "agent" ? "#FFF" : "#4A90E2"}
+              color={
+                turn === "agent" ? "#FFF" : theme.colors.actionPrimary.default
+              }
             />
           </View>
         </View>
@@ -1647,7 +1652,13 @@ const CallingWidget: React.FC<Props> = ({
             <Icon
               name="lightbulb"
               size={28}
-              color={!isCalling ? "#aaa" : showTips ? "#4A90E2" : "#333"}
+              color={
+                !isCalling
+                  ? "#aaa"
+                  : showTips
+                  ? theme.colors.actionPrimary.default
+                  : "#333"
+              }
             />
           </TouchableOpacity>
           {showNotificationDot && <View style={styles.notificationDot} />}
@@ -1688,7 +1699,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#FFF",
     borderWidth: 2,
-    borderColor: "#4A90E2",
+    borderColor: theme.colors.actionPrimary.default,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1781,7 +1792,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tipButtonText: {
-    color: "#4A90E2",
+    color: theme.colors.actionPrimary.default,
     fontWeight: "500",
   },
   // Controls

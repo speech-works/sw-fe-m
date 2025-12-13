@@ -93,7 +93,7 @@ const PhoneCall = () => {
               <CallingWidget
                 userId={user.id}
                 //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.1.3:3000"
+                websocketUrl="ws://192.168.1.41:3000"
                 scenarioId={selectedScenario?.id}
                 scenarioIcon={selectedScenario?.icon || "robot"}
                 agentName={selectedScenario?.agent.name || ""}
@@ -240,11 +240,13 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: "center",
     paddingBottom: 32,
+    paddingHorizontal: 16,
   },
   scenarioCard: {
     width: "100%",
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
