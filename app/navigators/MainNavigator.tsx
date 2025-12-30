@@ -7,6 +7,7 @@ import OnboardingStackNavigator from "./stacks/OnboardingStack";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
+import { useUserBehaviorTrendsStore } from "../stores/userBehaviorTrends";
 
 export default function MainNavigator() {
   console.log("main navigator loaded..");
@@ -50,6 +51,11 @@ export default function MainNavigator() {
       }
     }
   }, [events, clear, logout]);
+
+  useEffect(() => {
+    if (!user) return;
+    useUserBehaviorTrendsStore().fetchAllTrends();
+  }, [user]);
 
   // -----------------------------
   // Routing decision

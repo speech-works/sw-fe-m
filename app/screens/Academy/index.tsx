@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -32,6 +32,8 @@ import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
+import { getUserBehaviorHistoricalTrend } from "../../api/userBehaviorTrends";
+import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 
 const Academy = () => {
   const { user } = useUserStore();
@@ -141,6 +143,14 @@ const Academy = () => {
     };
     fetchUserStats();
   }, [user, setPracticeStats]);
+
+  useEffect(() => {
+    async function fetchUserBehaviorTrends() {
+      const trends = await getUserBehaviorHistoricalTrend(ClinicalDomain.AVOIDANCE_BEHAVIOR);
+      console.log("User behavior trends:", trends);
+    }
+    fetchUserBehaviorTrends();
+  }, [])
 
   return (
     <ScreenView style={styles.screenView}>
