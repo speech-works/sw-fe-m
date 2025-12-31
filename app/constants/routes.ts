@@ -1,4 +1,5 @@
 export const ROUTE_NAMES = {
+  HOME: "HOME",
   ACADEMY: "ACADEMY",
   COMMUNITY: "COMMUNITY",
   THERAPY: "THERAPY",

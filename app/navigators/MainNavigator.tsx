@@ -11,7 +11,7 @@ import { useUserBehaviorTrendsStore } from "../stores/userBehaviorTrends";
 
 export default function MainNavigator() {
   console.log("main navigator loaded..");
-
+const {fetchAllTrends} = useUserBehaviorTrendsStore();
   const { isLoggedIn, logout } = useContext(AuthContext);
   const { user } = useUserStore();
 
@@ -54,7 +54,7 @@ export default function MainNavigator() {
 
   useEffect(() => {
     if (!user) return;
-    useUserBehaviorTrendsStore().fetchAllTrends();
+    fetchAllTrends()
   }, [user]);
 
   // -----------------------------

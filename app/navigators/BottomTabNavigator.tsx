@@ -8,6 +8,7 @@ import { questions } from "../data/onboardingQuestions";
 import { ROUTE_NAMES } from "../constants/routes";
 import AcademyStackNavigator from "./stacks/AcademyStack";
 import SettingsStackNavigator from "./stacks/SettingsStack";
+import Home from "../screens/Home";
 
 const Tab = createBottomTabNavigator();
 
@@ -55,6 +56,10 @@ const BottomTabNavigator = () => {
         },
       })}
     >
+        <Tab.Screen 
+        name={ROUTE_NAMES.HOME} 
+        component={Home} 
+    />
       <Tab.Screen
         name={ROUTE_NAMES.ACADEMY}
         component={AcademyStackNavigator}
