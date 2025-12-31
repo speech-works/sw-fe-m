@@ -9,6 +9,9 @@ import { ROUTE_NAMES } from "../constants/routes";
 import AcademyStackNavigator from "./stacks/AcademyStack";
 import SettingsStackNavigator from "./stacks/SettingsStack";
 import Home from "../screens/Home";
+import Explore from "../screens/Explore";
+
+import CustomTabBar from "../components/CustomTabBar";
 
 const Tab = createBottomTabNavigator();
 
@@ -26,44 +29,15 @@ const BottomTabNavigator = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false, // Hide header for all screens
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === ROUTE_NAMES.ACADEMY) {
-            iconName = "user-graduate";
-          } else if (route.name === ROUTE_NAMES.COMMUNITY) {
-            iconName = "users";
-          } else if (route.name === ROUTE_NAMES.THERAPY) {
-            iconName = "user-md";
-          } else if (route.name === ROUTE_NAMES.SETTINGS) {
-            iconName = "cog";
-          }
-
-          return (
-            <FontAwesome5 name={iconName as any} size={size} color={color} />
-          );
-        },
-        tabBarActiveTintColor: theme.colors.actionPrimary.default,
-        tabBarInactiveTintColor: theme.colors.text.default,
-        tabBarShowLabel: false, // Hide text labels
-        tabBarStyle: {
-          backgroundColor: "white",
-          borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
-          height: 60,
-          paddingTop: 12,
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false, // Managed by CustomTabBar
+        // tabBarStyle and tabBarIcon are now handled by CustomTabBar
+      }}
     >
-        <Tab.Screen 
-        name={ROUTE_NAMES.HOME} 
-        component={Home} 
-    />
-      <Tab.Screen
-        name={ROUTE_NAMES.ACADEMY}
-        component={AcademyStackNavigator}
-      />
+      <Tab.Screen name={ROUTE_NAMES.HOME} component={Home} />
+      <Tab.Screen name={ROUTE_NAMES.EXPLORE} component={Explore} />
       <Tab.Screen name={ROUTE_NAMES.COMMUNITY} component={Onboarding} />
       <Tab.Screen
         name={ROUTE_NAMES.SETTINGS}

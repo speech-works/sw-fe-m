@@ -137,6 +137,7 @@ const Settings = () => {
         <CustomScrollView
           style={styles.screenContainer}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 130 }}
         >
           {/* User Profile Section */}
           <View style={styles.profileSection}>

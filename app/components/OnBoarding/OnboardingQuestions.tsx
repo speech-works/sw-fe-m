@@ -8,7 +8,7 @@ import CustomScrollView from "../CustomScrollView";
 
 interface OnboardingQuestionsProps {
   questions: OnboardingQuestionType[]; // Renamed to avoid conflict with component name
-  onAnswer: (questionId: string, answerId: string) => void;
+  onAnswer: (questionId: string, answerId: string | string[]) => void;
 }
 
 // Re-declare the interface here or import it from OnboardingQuestion.tsx
@@ -19,7 +19,7 @@ interface OnboardingQuestionType {
   question: string;
   options: OnboardingAnswer[];
   description: string;
-  onAnswer?: (questionId: string, answerId: string) => void;
+  onAnswer?: (questionId: string, answerId: string | string[]) => void;
 }
 
 interface OnboardingAnswer {
@@ -65,7 +65,8 @@ const OnboardingQuestions = ({
           question={currentQuestion.question}
           options={currentQuestion.options}
           description={currentQuestion.description}
-          onAnswer={onAnswer}
+          questionType="single"
+          onChange={onAnswer}
         />
       </CustomScrollView>
       {/* Button container now overlays */}
@@ -90,6 +91,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     gap: 32,
     backgroundColor: "red",
+    paddingBottom: 130, // Space for Custom Tab Bar
   },
   buttonOverlayContainer: {
     position: "absolute",

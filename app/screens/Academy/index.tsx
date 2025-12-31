@@ -146,15 +146,20 @@ const Academy = () => {
 
   useEffect(() => {
     async function fetchUserBehaviorTrends() {
-      const trends = await getUserBehaviorHistoricalTrend(ClinicalDomain.AVOIDANCE_BEHAVIOR);
+      const trends = await getUserBehaviorHistoricalTrend(
+        ClinicalDomain.AVOIDANCE_BEHAVIOR
+      );
       console.log("User behavior trends:", trends);
     }
     fetchUserBehaviorTrends();
-  }, [])
+  }, []);
 
   return (
     <ScreenView style={styles.screenView}>
-      <CustomScrollView refreshControl={refreshControl}>
+      <CustomScrollView
+        refreshControl={refreshControl}
+        contentContainerStyle={{ paddingBottom: 130 }}
+      >
         <View style={styles.innerContainer}>
           {user && !user.hasCompletedOnboarding && (
             <OnboardingReminderCard

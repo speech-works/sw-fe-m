@@ -10,33 +10,33 @@ const Home = () => {
     <ScreenView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.subGreeting}>Mayank</Text>
+          <Text style={styles.greeting}>Good Morning,</Text>
+          <Text style={styles.subGreeting}>Mayank</Text>
         </View>
         <SmartRecommendationCard />
-        
+
         <ClinicalStatsWidget />
       </ScrollView>
     </ScreenView>
   );
 };
 const styles = StyleSheet.create({
-    container: {
-        paddingTop: 16,
-    },
-    scroll: {
-        paddingBottom: 40,
-    },
-    header: {
-        marginBottom: 8,
-    },
-    greeting: {
-        ...parseTextStyle(theme.typography.Heading3),
-        color: theme.colors.text.default,
-    },
-    subGreeting: {
-        ...parseTextStyle(theme.typography.Heading1),
-        color: theme.colors.text.title,
-    }
+  container: {
+    paddingTop: 16,
+  },
+  scroll: {
+    paddingBottom: 130, // Space for Custom Tab Bar
+  },
+  header: {
+    marginBottom: 8,
+  },
+  greeting: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.default,
+  },
+  subGreeting: {
+    ...parseTextStyle(theme.typography.Heading1),
+    color: theme.colors.text.title,
+  },
 });
 export default Home;

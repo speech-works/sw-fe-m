@@ -58,13 +58,13 @@ const METRIC_CONFIG: Record<
     description: "Facing situations without holding back.",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
-    label: "Control",
+    label: "Mastery", // Was Control
     color: "#60A5FA", // Modern Blue
     icon: "target",
     description: "Managing speech techniques effectively.",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
-    label: "Flow",
+    label: "Ease", // Was Flow
     color: "#A78BFA", // Modern Purple
     icon: "water",
     description: "Smoothness in daily communication.",
@@ -182,7 +182,7 @@ const ClinicalStatsWidget = () => {
         };
       })
       .sort((a, b) => b.percentChange - a.percentChange)
-      .slice(0, 2);
+      .slice(0, 3);
   }, [chartData, trends]);
 
   // Fill opacity delayed (starts at 75% progress, after scale completes)
@@ -195,6 +195,49 @@ const ClinicalStatsWidget = () => {
     ),
   }));
 
+  // Helper for sparkline area
+  const renderSparkline = (
+    data: number[],
+    width: number,
+    height: number,
+    color: string
+  ) => {
+    if (data.length < 2) return null;
+    const max = Math.max(...data, 100);
+    const min = Math.min(...data, 0);
+    const ranges = max - min || 1;
+
+    const points = data.map((val, i) => {
+      const x = i * (width / (data.length - 1));
+      const y = height - ((val - min) / ranges) * height;
+      return { x, y };
+    });
+
+    const lineCmd = points
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`)
+      .join(" ");
+    const areaCmd = `${lineCmd} L ${width},${height} L 0,${height} Z`;
+
+    return (
+      <Svg
+        width={width}
+        height={height}
+        style={{ position: "absolute", bottom: 0, right: 0 }}
+      >
+        <Path d={areaCmd} fill={color} fillOpacity={0.15} stroke="none" />
+        <Path
+          d={lineCmd}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </Svg>
+    );
+  };
+
+  const orangeDark = "#EA580C";
+
   // --- Render Logic ---
   if (loading || !trends || !chartData) {
     return (
@@ -203,6 +246,11 @@ const ClinicalStatsWidget = () => {
       </View>
     );
   }
+
+  // ... (Lines 207-494) ...
+  // Wait, I can't replace the middle. I have to target the specific block at the bottom.
+  // The 'replacementContent' above includes the renderSparkline function which needs to be in the component scope.
+  // I will insert the helper at line 187 (after hooks), and then replace the bottom render block.
 
   const width = Dimensions.get("window").width;
   const CHART_WIDTH = width - 48; // Padding 24 * 2
@@ -493,91 +541,74 @@ const ClinicalStatsWidget = () => {
         )}
       </AnimatedView>
 
-      {/* Momentum Cards */}
-      <Text style={styles.sectionLabel}>MOMENTUM & WINS</Text>
-      <View style={styles.momentumRow}>
-        {momentumWins.map((win, index) => {
-          const isPositive = win.percentChange > 0;
-          const showGreen = isPositive && !win.isNew;
+      {/* Weekly Breakthroughs (Bento Grid) */}
+      <View style={styles.breakthroughContainer}>
+        <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
 
-          // Helper for sparkline
-          const getSparklinePath = (data: number[]) => {
-            if (data.length < 2) return "";
-            const max = Math.max(...data, 100);
-            const min = Math.min(...data, 0);
-            const width = 60;
-            const height = 30;
-            const ranges = max - min || 1;
-            return data
-              .map((val, i) => {
-                const x = i * (width / (data.length - 1));
-                const y = height - ((val - min) / ranges) * height;
-                return `${i === 0 ? "M" : "L"} ${x},${y}`;
-              })
-              .join(" ");
-          };
-          const path = getSparklinePath(win.sparkHistory);
-
-          return (
-            <LinearGradient
-              key={index}
-              colors={["#FFFFFF", "#F8FAFC"]}
-              style={styles.momentumCard}
-            >
-              <View style={styles.momentumHeader}>
-                <LinearGradient
-                  colors={[win.config.color, "#fff"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.iconBox}
+        <View style={styles.bentoGrid}>
+          {/* LEFT COLUMN: HERO (Rank #1) */}
+          {momentumWins[0] && (
+            <View style={[styles.bentoCard, styles.heroCard]}>
+              <View style={styles.heroHeader}>
+                <View>
+                  <Text style={styles.cardTitle}>
+                    {momentumWins[0].config.label}
+                  </Text>
+                  <Text style={styles.heroValue}>
+                    +{Math.round(momentumWins[0].percentChange)}%
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.iconCircle,
+                    { width: 32, height: 32, backgroundColor: "#FFF7ED" },
+                  ]}
                 >
                   <MaterialCommunityIcons
-                    name={win.config.icon as any}
-                    size={14}
-                    color="white"
+                    name={momentumWins[0].config.icon as any}
+                    size={18}
+                    color={theme.colors.library.orange[400]}
                   />
-                </LinearGradient>
-                <Text style={styles.momentumLabel}>{win.config.label}</Text>
+                </View>
               </View>
 
-              <View style={styles.momentumContent}>
-                <View>
-                  {win.isNew ? (
-                    <Text style={styles.momentumSub}>Establishing...</Text>
-                  ) : (
-                    <View
-                      style={{ flexDirection: "row", alignItems: "baseline" }}
-                    >
-                      <Text
-                        style={[
-                          styles.momentumValue,
-                          {
-                            color: showGreen
-                              ? "#10B981"
-                              : theme.colors.text.disabled,
-                          },
-                        ]}
-                      >
-                        {isPositive ? "+" : ""}
-                        {Math.round(win.percentChange)}%
-                      </Text>
-                    </View>
-                  )}
-                  <Text style={styles.momentumSub}>vs last week</Text>
-                </View>
-                <Svg width={60} height={30}>
-                  <Path
-                    d={path}
-                    fill="none"
-                    stroke={win.config.color}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </Svg>
+              {/* Big Chart at bottom */}
+              <View style={styles.heroChartContainer}>
+                {renderSparkline(
+                  momentumWins[0].sparkHistory,
+                  130,
+                  60,
+                  theme.colors.library.orange[400]
+                )}
               </View>
-            </LinearGradient>
-          );
-        })}
+            </View>
+          )}
+
+          {/* RIGHT COLUMN: STACK (Rank #2 & #3) */}
+          <View style={styles.bentoRightCol}>
+            {momentumWins.slice(1, 3).map((win, i) => (
+              <View key={i} style={[styles.bentoCard, styles.miniCard]}>
+                <View style={styles.miniContent}>
+                  <View>
+                    <Text style={styles.cardTitle}>{win.config.label}</Text>
+                    <Text style={styles.miniValue}>
+                      +{Math.round(win.percentChange)}%
+                    </Text>
+                  </View>
+                  {/* Mini Chart on right */}
+                  <View style={{ width: 60, height: 30 }}>
+                    {renderSparkline(
+                      win.sparkHistory,
+                      60,
+                      30,
+                      theme.colors.library.orange[400]
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
     </LinearGradient>
   );
@@ -655,29 +686,64 @@ const styles = StyleSheet.create({
   tooltipPlaceholder: {
     height: 50,
   },
+
+  // --- Breakdown/List Section ---
+  breakthroughContainer: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#94A3B8",
-    letterSpacing: 1,
-    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 16,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  momentumRow: { flexDirection: "row", gap: 12 },
-  momentumCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+  breakthroughRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
   },
-  momentumHeader: {
+  rowLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: 12,
+  },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20, // Circle
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rowTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  rowSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  rowRight: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  rowValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    // Color set inline
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginLeft: 52, // Indent to match text
   },
   iconBox: {
     width: 28,
@@ -688,16 +754,84 @@ const styles = StyleSheet.create({
   },
   momentumLabel: { fontSize: 13, fontWeight: "700", color: "#334155" },
   momentumContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+    flexDirection: "column", // Vertical stack for narrower cards
+    gap: 12,
   },
-  momentumValue: { fontSize: 18, fontWeight: "800" },
+  momentumValue: { fontSize: 20, fontWeight: "800" },
   momentumSub: {
     fontSize: 10,
     color: "#94A3B8",
     marginTop: 2,
     fontWeight: "500",
+  },
+
+  // --- Bento Grid Styles ---
+  bentoGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  bentoCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    overflow: "hidden",
+  },
+  heroCard: {
+    flex: 1.4, // Takes up more width (approx 60% vs 40%)
+    justifyContent: "space-between",
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  heroValue: {
+    fontSize: 28,
+    fontWeight: "800", // Heavy bold
+    color: "#1E293B",
+    letterSpacing: -0.5,
+  },
+  iconCircle: {
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heroChartContainer: {
+    height: 60,
+    marginTop: 12,
+    justifyContent: "flex-end",
+  },
+
+  // Right Column
+  bentoRightCol: {
+    flex: 1,
+    gap: 12,
+    flexDirection: "column",
+  },
+  miniCard: {
+    flex: 1, // fill half height each
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+  },
+  miniContent: {
+    flexDirection: "row", // Horizontal layout for mini cards
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  miniValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1E293B",
   },
 });
 
