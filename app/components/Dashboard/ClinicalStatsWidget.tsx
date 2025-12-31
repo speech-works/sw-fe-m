@@ -36,8 +36,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
-const AnimatedG = Animated.createAnimatedComponent(G); // Defined outside to avoid remounts
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 // --- 1. Translation Map ---
 const METRIC_CONFIG: Record<
@@ -185,7 +186,7 @@ const ClinicalStatsWidget = () => {
   }, [chartData, trends]);
 
   // Fill opacity delayed (starts at 75% progress, after scale completes)
-  const animatedProps = useAnimatedProps(() => ({
+  const animatedOpacity = useAnimatedStyle(() => ({
     opacity: interpolate(
       progress.value,
       [0.75, 1],
@@ -210,20 +211,72 @@ const ClinicalStatsWidget = () => {
   const RADIUS = SIZE / 2 - 30;
   const angleStep = 360 / chartData.allDomains.length;
 
-  // Build Static Paths
-  const buildPath = (data: number[], scale: number = 1) => {
-    return data
-      .map((value, i) => {
-        const r = (value / 100) * RADIUS * scale;
-        const coord = POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
-        return `${coord.x},${coord.y}`;
-      })
-      .join(" ");
+  // Build Static Paths (Changed to return Array of Points for Spline processing)
+  const getPoints = (data: number[], scale: number = 1) => {
+    return data.map((value, i) => {
+      const r = (value / 100) * RADIUS * scale;
+      return POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
+    });
   };
 
-  // We will render the polygon assuming full size, and scale it via <G>
-  const currentPolygonPoints = buildPath(chartData.currentData);
-  const baselinePolygonPoints = buildPath(chartData.baselineData);
+  // --- Spline / Curve Calculation ---
+  const makeSmoothCurve = (
+    points: { x: number; y: number }[],
+    tension: number = 0.45
+  ) => {
+    if (points.length < 2) return "";
+    const len = points.length;
+
+    const getControlPoint = (
+      current: { x: number; y: number },
+      previous: { x: number; y: number },
+      next: { x: number; y: number },
+      reverse?: boolean
+    ) => {
+      const smoothing = tension;
+      const oX = next.x - previous.x;
+      const oY = next.y - previous.y;
+      return {
+        x: current.x + (reverse ? -1 : 1) * (oX * smoothing),
+        y: current.y + (reverse ? -1 : 1) * (oY * smoothing),
+      };
+    };
+
+    const dParts: string[] = [];
+    dParts.push(`M ${points[0].x},${points[0].y}`);
+    for (let i = 0; i < len; i++) {
+      const current = points[i];
+      const next = points[(i + 1) % len];
+      const nextNext = points[(i + 2) % len];
+      const prev = points[i === 0 ? len - 1 : i - 1];
+      const cp1 = getControlPoint(current, prev, next);
+      const cp2 = getControlPoint(next, current, nextNext, true);
+      dParts.push(`C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${next.x},${next.y}`);
+    }
+    dParts.push("Z");
+    return dParts.join(" ");
+  };
+
+  // Generate Point Objects for Data
+  const currentPoints = getPoints(chartData.currentData);
+  const baselinePoints = getPoints(chartData.baselineData);
+
+  // Helper to generate a "perfect" regular polygon for the grid background
+  const getGridPoints = (percentage: number) => {
+    return getPoints(new Array(chartData.allDomains.length).fill(percentage));
+  };
+
+  // Generate Organic Grid Paths (Concentric Blobs)
+  const gridLevels = [25, 50, 75, 100];
+  const gridPaths = gridLevels.map((level) => {
+    // Use slightly lower tension for grid to keep it distinguishable but soft
+    return makeSmoothCurve(getGridPoints(level), 0.3);
+  });
+
+  // Generate Data Paths (High Tension = Blobby/Splatter look)
+  // 0.45 tension creates that "amoeba" look from the reference
+  const currentPathD = makeSmoothCurve(currentPoints, 0.45);
+  const baselinePathD = makeSmoothCurve(baselinePoints, 0.3);
 
   return (
     <LinearGradient
@@ -249,39 +302,31 @@ const ClinicalStatsWidget = () => {
 
       {/* Radar Chart */}
       <View style={styles.chartContainer}>
-        {/* 
-                    Use viewBox to define the internal coordinate system (0,0 to SIZE,SIZE).
-                    'width="100%"' allows it to fill the container.
-                    Default preserveAspectRatio "xMidYMid meet" will center the content.
-                */}
         <Svg height={SIZE} width={CHART_WIDTH} viewBox={`0 0 ${SIZE} ${SIZE}`}>
           <Defs>
             <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
               <Stop
                 offset="0"
-                stopColor={theme.colors.library.orange[400]}
-                stopOpacity="0.6"
+                stopColor={theme.colors.library.orange[300]}
+                stopOpacity="0.7"
               />
               <Stop
                 offset="1"
-                stopColor={theme.colors.library.orange[200]}
-                stopOpacity="0.2"
+                stopColor={theme.colors.library.red[200]}
+                stopOpacity="0.4"
               />
             </SvgGradient>
           </Defs>
 
-          {/* Circular Grid Steps */}
-          {[25, 50, 75, 100].map((p, i) => (
-            <Circle
-              key={p}
-              cx={CENTER}
-              cy={CENTER}
-              r={(p / 100) * RADIUS}
-              stroke={theme.colors.library.red[200]}
-              strokeWidth="1"
-              strokeDasharray={i === 3 ? "0" : "4,4"} // Solid outer ring
+          {/* Organic Grid (Concentric Blobs) */}
+          {gridPaths.map((pathD, i) => (
+            <Path
+              key={`grid-${i}`}
+              d={pathD}
+              stroke={theme.colors.library.orange[200]}
+              strokeWidth="1.5"
+              strokeOpacity={0.4}
               fill="none"
-              opacity={0.5}
             />
           ))}
 
@@ -302,56 +347,60 @@ const ClinicalStatsWidget = () => {
                 y2={end.y}
                 stroke={theme.colors.surface.disabled}
                 strokeWidth="1"
-                strokeDasharray="2,2"
+                strokeDasharray="3,3"
+                opacity={0.3}
               />
             );
           })}
 
-          {/* Baseline (Static) */}
-          <Polygon
-            points={baselinePolygonPoints}
+          {/* Baseline (Static & Organic) */}
+          <Path
+            d={baselinePathD}
             fill="none"
             stroke="#94A3B8"
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeDasharray="4,4"
-            opacity={0.5}
+            opacity={0.4}
           />
 
-          {/* Animated Current Layer: Static Group Now */}
+          {/* Main Chart Layer */}
           <G>
-            {/* 1. FILL Polygon: Delayed Opacity */}
-            <AnimatedPolygon
-              points={currentPolygonPoints}
-              fill="url(#radarGrad)"
-              stroke="none"
-              animatedProps={animatedProps}
-            />
-            {/* 2. STROKE Polygon: Static */}
-            <Polygon
-              points={currentPolygonPoints}
+            {/* 1. GLOW Effect */}
+            <AnimatedPath
+              d={currentPathD}
               fill="none"
-              stroke={theme.colors.library.red[300]}
-              strokeWidth="2.5"
+              stroke={theme.colors.library.orange[300]}
+              strokeWidth="12"
+              strokeOpacity={0.15}
             />
 
-            {/* Dots (Static) */}
-            {chartData.currentData.map((val, i) => {
-              const r = (val / 100) * RADIUS;
-              const coord = POLAR_TO_CARTESIAN(
-                CENTER,
-                CENTER,
-                r,
-                i * angleStep
-              );
+            {/* 2. FILL Path */}
+            <AnimatedPath
+              d={currentPathD}
+              fill="url(#radarGrad)"
+              stroke="none"
+            />
+            {/* 3. STROKE Path */}
+            <Path
+              d={currentPathD}
+              fill="none"
+              stroke={theme.colors.library.orange[400]} // Darker orange stroke
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Dots */}
+            {currentPoints.map((coord, i) => {
               return (
                 <Circle
                   key={`dot-${i}`}
                   cx={coord.x}
                   cy={coord.y}
-                  r="4"
+                  r="5"
                   fill="white"
-                  stroke={theme.colors.library.red[300]}
-                  strokeWidth="2"
+                  stroke={theme.colors.library.orange[400]}
+                  strokeWidth="2.5"
                 />
               );
             })}
