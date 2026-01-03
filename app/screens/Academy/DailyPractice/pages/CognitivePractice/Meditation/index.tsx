@@ -8,6 +8,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
+import { LinearGradient } from "expo-linear-gradient";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
@@ -34,6 +35,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import DonePractice from "../../../components/DonePractice";
+import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 
 const Meditation = () => {
   const navigation = useNavigation();
@@ -317,29 +319,46 @@ const Meditation = () => {
                       }}
                     />
                   )}
+
                 <View style={styles.tipsContainer}>
-                  <View style={styles.tipTitleContainer}>
-                    <Icon
-                      solid
-                      name="lightbulb"
-                      size={16}
-                      color={theme.colors.text.title}
+                  {/* Header Banner */}
+                  <View style={styles.noteHeaderBanner}>
+                    <LinearGradient
+                      colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
                     />
-                    <Text style={styles.tipTitleText}>Practice Tips</Text>
+                    <View style={styles.noteHeaderTextContainer}>
+                      <Text style={styles.noteHeaderTitle}>Tips</Text>
+                      <Text style={styles.noteHeaderSubtitle}>
+                        Before you start
+                      </Text>
+                    </View>
+                    <TherapistFace size={72} />
                   </View>
-                  <View style={styles.tipListContainer}>
+
+                  {/* Vertical Stack */}
+                  <View style={styles.noteStack}>
                     {selectedIndex !== null &&
                       meditationScenarios[
                         selectedIndex
-                      ]?.guidedMeditationData?.tips.map((tip) => (
-                        <View style={styles.tipCard} key={tip}>
-                          <Icon
-                            solid
-                            name="check-circle"
-                            size={16}
-                            color={theme.colors.library.orange[400]}
-                          />
-                          <Text style={styles.tipText}>{tip}</Text>
+                      ]?.guidedMeditationData?.tips.map((tip, index) => (
+                        <View style={styles.noteCard} key={index}>
+                          <View style={styles.noteIconBadge}>
+                            <Icon
+                              name="lightbulb"
+                              size={14}
+                              color="#F59E0B"
+                              solid
+                            />
+                          </View>
+                          <View style={styles.noteContent}>
+                            <Text style={styles.noteTitle}>
+                              Tip {index + 1}
+                            </Text>
+                            <Text style={styles.noteBody}>{tip}</Text>
+                          </View>
                         </View>
                       ))}
                   </View>
@@ -358,10 +377,29 @@ const Meditation = () => {
                     showPercentage={false}
                   />
                 </View>
-                <Button
-                  text={isPlaying ? "Complete Exercise" : "Start Exercise"}
+                <TouchableOpacity
+                  activeOpacity={0.9}
                   onPress={handleStartCompleteExercise}
-                />
+                  style={[
+                    styles.startButton,
+                    { marginHorizontal: 20, marginTop: 10 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.library.orange[400],
+                      theme.colors.library.orange[500],
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.startButtonGradient}
+                  >
+                    <Text style={styles.startButtonText}>
+                      {isPlaying ? "Complete Exercise" : "Start Exercise"}
+                    </Text>
+                    <Icon name="arrow-right" size={16} color="#FFF" />
+                  </LinearGradient>
+                </TouchableOpacity>
               </>
             )}
           </CustomScrollView>
@@ -473,36 +511,99 @@ const styles = StyleSheet.create({
   },
 
   tipsContainer: {
-    padding: 16,
-    gap: 16,
+    paddingHorizontal: 0,
+    gap: 0,
   },
-  tipTitleContainer: {
+  noteHeaderBanner: {
+    marginHorizontal: 0,
+    marginTop: 10,
+    marginBottom: 24,
+    borderRadius: 24,
+    height: 120, // tall banner
+    padding: 24,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    overflow: "hidden",
+    position: "relative",
+  },
+  noteHeaderTextContainer: {
+    flex: 1,
     gap: 8,
+    zIndex: 2,
   },
-  tipTitleText: {
+  noteHeaderTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#881337", // Deep pink/red text
+  },
+  noteHeaderSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
+    color: "#9F1239",
+    fontWeight: "500",
   },
-  tipListContainer: {
-    gap: 12,
+  noteStack: {
+    paddingHorizontal: 0,
+    gap: 16,
+    paddingBottom: 20,
   },
-  tipCard: {
-    backgroundColor: theme.colors.surface.elevated,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    borderRadius: 16,
+  noteCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "flex-start",
+    // Soft, premium shadow like iOS Notes
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  noteIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FEF3C7", // faint yellow
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  noteContent: {
+    flex: 1,
+    gap: 4,
+  },
+  noteTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "700",
+    color: "#171717",
+  },
+  noteBody: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#525252",
+    lineHeight: 22,
+  },
+  startButton: {
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 40,
+  },
+  startButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
   },
-  tipText: {
-    flexShrink: 1,
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+  startButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontWeight: "700",
   },
   progressContainer: {
     borderRadius: 16,

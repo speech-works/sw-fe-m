@@ -5,10 +5,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../../components/ScreenView";
+import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -49,6 +52,7 @@ import { useUserStore } from "../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { readingTips } from "../data";
+import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 
 const StoryPractice = () => {
   const chorusManagerRef = useRef(new ChorusManager());
@@ -203,13 +207,16 @@ const StoryPractice = () => {
 
   return (
     <ScreenView style={styles.screenView}>
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF7ED", "#FFFFFF"] as const}
+          locations={[0, 0.6, 1]} // Extended orange tint to 60%
+          style={{ flex: 1 }}
+        />
+      </View>
       <View style={styles.container}>
         <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.default}
-          />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
           <Text style={styles.topNavigationText}>Story</Text>
         </TouchableOpacity>
 
@@ -323,33 +330,41 @@ const StoryPractice = () => {
             )}
           </CustomScrollView>
         ) : (
-          <CustomScrollView>
-            <View style={styles.tipsContainer}>
-              <View style={styles.tipTitleContainer}>
-                <Icon
-                  solid
-                  name="lightbulb"
-                  size={16}
-                  color={theme.colors.text.title}
-                />
-                <Text style={styles.tipTitleText}>Tips</Text>
+          <CustomScrollView
+            contentContainerStyle={{ paddingHorizontal: 0, paddingBottom: 120 }}
+          >
+            {/* Header Banner */}
+            <View style={styles.noteHeaderBanner}>
+              <LinearGradient
+                colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.noteHeaderTextContainer}>
+                <Text style={styles.noteHeaderTitle}>Tips</Text>
+                <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
               </View>
-              <View style={styles.tipListContainer}>
-                {readingTips.story.map((hint) => (
-                  <View key={hint} style={styles.tipCard}>
-                    <Icon
-                      solid
-                      name="check-circle"
-                      size={16}
-                      color={theme.colors.library.orange[400]}
-                    />
-                    <Text style={styles.tipText}>{hint}</Text>
-                  </View>
-                ))}
-              </View>
+              <TherapistFace size={72} />
             </View>
-            <Button
-              text="Start Practice"
+
+            {/* Vertical Stack */}
+            <View style={styles.noteStack}>
+              {readingTips.story.map((hint, index) => (
+                <View key={index} style={styles.noteCard}>
+                  <View style={styles.noteIconBadge}>
+                    <Icon name="lightbulb" size={14} color="#F59E0B" solid />
+                  </View>
+                  <View style={styles.noteContent}>
+                    <Text style={styles.noteTitle}>Tip {index + 1}</Text>
+                    <Text style={styles.noteBody}>{hint}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
               onPress={async () => {
                 setIsStarting(true);
                 try {
@@ -359,8 +374,24 @@ const StoryPractice = () => {
                 }
               }}
               disabled={isStarting}
-              style={{ marginVertical: 20 }}
-            />
+              style={[
+                styles.startButton,
+                { marginHorizontal: 20, marginTop: 10 },
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startButtonGradient}
+              >
+                <Text style={styles.startButtonText}>Start Practice</Text>
+                <Icon name="arrow-right" size={16} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
           </CustomScrollView>
         )}
       </View>
@@ -431,35 +462,131 @@ const styles = StyleSheet.create({
     color: theme.colors.library.blue[400],
   },
   tipsContainer: {
-    padding: 16,
     gap: 16,
+    marginBottom: 20,
+    marginTop: 10,
   },
   tipTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
-  tipTitleText: {
+  tipHeaderSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.disabled,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  tipHeaderTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
+    fontSize: 28,
   },
-  tipListContainer: {
-    gap: 12,
-  },
-  tipCard: {
-    backgroundColor: theme.colors.surface.elevated,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
+  noteHeaderBanner: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 24,
+    borderRadius: 24,
+    height: 120, // tall banner
+    padding: 24,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
+    overflow: "hidden",
+    position: "relative",
   },
-  tipText: {
-    flexShrink: 1,
+  noteHeaderTextContainer: {
+    flex: 1,
+    gap: 8,
+    zIndex: 2,
+  },
+  noteHeaderTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#881337", // Deep pink/red text
+  },
+  noteHeaderSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "#9F1239",
+    fontWeight: "500",
+  },
+  note3DIcon: {
+    width: 60,
+    height: 70, // skewed aspect for "3D" feel
+    backgroundColor: "#FFE4E6", // Placeholder for actual 3D image base
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    transform: [{ rotate: "-10deg" }, { skewY: "-5deg" }], // Mock 3D feel
+    shadowColor: "#881337",
+    shadowOffset: { width: 5, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0, // Sharp shadow for "cartoon" 3D
+    borderWidth: 1,
+    borderColor: "#FFF",
+  },
+  noteStack: {
+    paddingHorizontal: 20,
+    gap: 16,
+    paddingBottom: 20,
+  },
+  noteCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "flex-start",
+    // Soft, premium shadow like iOS Notes
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  noteIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FEF3C7", // faint yellow
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  noteContent: {
+    flex: 1,
+    gap: 4,
+  },
+  noteTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "700",
+    color: "#171717",
+  },
+  noteBody: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#525252",
+    lineHeight: 22,
+  },
+  startButton: {
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 40,
+  },
+  startButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
+  },
+  startButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontWeight: "700",
   },
 });
