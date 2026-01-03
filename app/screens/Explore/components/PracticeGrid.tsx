@@ -1,4 +1,10 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Dimensions,
+} from "react-native";
 import React from "react";
 import { theme } from "../../../Theme/tokens";
 import {
@@ -7,13 +13,13 @@ import {
 } from "../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import WarriorFace from "../../../assets/mood-check/WarriorFace";
 
 // We need to navigate deep into DailyPracticeStack
-// The structure is Explore -> DailyPracticeStack -> [SpecificStack]
 type RootStackParamList = {
   DailyPracticeStack: {
     screen:
@@ -31,23 +37,39 @@ const PracticeGrid = () => {
   const practices = [
     {
       name: "Reading",
-      icon: <ReaderFace size={56} />,
+      subtitle: "Fluency",
+      icon: <ReaderFace size={64} />,
       route: "ReadingPracticeStack",
+      // Modern Vibrant Gradient: Orange/Peach
+      colors: ["#FFD8B5", "#FFAB76"],
+      shadowColor: "#FFAB76",
     },
     {
       name: "Fun",
-      icon: <MovieFace size={56} />,
+      subtitle: "Expression",
+      icon: <MovieFace size={64} />,
       route: "FunPracticeStack",
+      // Modern Vibrant Gradient: Teal/Mint
+      colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
+      shadowColor: "#98E6E6",
     },
     {
       name: "Cognitive",
-      icon: <BreathingFace size={56} />,
+      subtitle: "Focus",
+      icon: <BreathingFace size={64} />,
       route: "CognitivePracticeStack",
+      // Modern Vibrant Gradient: Lavender/Purple
+      colors: ["#EBCBF5", "#D8A7F0"],
+      shadowColor: "#D8A7F0",
     },
     {
       name: "Exposure",
-      icon: <WarriorFace size={56} />,
+      subtitle: "Courage",
+      icon: <WarriorFace size={64} />,
       route: "ExposureStack",
+      // Modern Vibrant Gradient: Soft Red/Pink
+      colors: ["#FFC8C8", "#FF9E9E"],
+      shadowColor: "#FF9E9E",
     },
   ];
 
@@ -58,17 +80,35 @@ const PracticeGrid = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Quick Practice</Text>
+      <Text style={styles.sectionTitle}>Jump In</Text>
       <View style={styles.grid}>
         {practices.map((p, i) => (
           <TouchableOpacity
             key={i}
-            style={styles.card}
             onPress={() => handlePress(p.route)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
+            style={[
+              styles.cardWrapper,
+              {
+                shadowColor: p.shadowColor,
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 4 },
+              },
+            ]}
           >
-            {p.icon}
-            <Text style={styles.cardTitle}>{p.name}</Text>
+            <LinearGradient
+              colors={p.colors as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardSubtitle}>{p.subtitle}</Text>
+                <Text style={styles.cardTitle}>{p.name}</Text>
+              </View>
+              <View style={styles.iconWrapper}>{p.icon}</View>
+            </LinearGradient>
           </TouchableOpacity>
         ))}
       </View>
@@ -81,6 +121,7 @@ export default PracticeGrid;
 const styles = StyleSheet.create({
   container: {
     gap: 16,
+    marginVertical: 10,
   },
   sectionTitle: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -89,30 +130,44 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between", // Push to edges
+    rowGap: 16, // Vertical gap
   },
-  card: {
-    flexBasis: "48%", // Roughly half width
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    // Ensure height consistency
-    height: 110,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
+  cardWrapper: {
+    width: "48%", // Force 2 columns
+    aspectRatio: 0.9, // Keep consistent shape (slightly taller than square)
     borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
+    // Shadow props applied inline for dynamic colors
+  },
+  cardGradient: {
+    flex: 1,
+    borderRadius: 24,
+    padding: 16,
+    justifyContent: "space-between",
+    position: "relative",
+    overflow: "hidden",
+  },
+  cardHeader: {
+    zIndex: 2,
+  },
+  cardSubtitle: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "rgba(0,0,0,0.5)",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
   cardTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "600",
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "rgba(0,0,0,0.8)",
+    fontSize: 20,
+    marginTop: 2,
+  },
+  iconWrapper: {
+    alignSelf: "flex-end",
+    marginTop: "auto",
+    // Make icon pop out slightly
+    transform: [{ scale: 1.1 }, { translateY: 5 }, { translateX: 5 }],
   },
 });

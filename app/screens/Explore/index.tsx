@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text } from "react-native";
-import React, { useCallback, useState, useEffect } from "react"; // Added useEffect import
+import React, { useCallback, useState, useEffect } from "react";
+import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
 import { useFocusEffect } from "@react-navigation/native";
 import ScreenView from "../../components/ScreenView";
 import CustomScrollView from "../../components/CustomScrollView";
@@ -101,6 +102,16 @@ const Explore = () => {
 
   return (
     <ScreenView style={styles.screenView}>
+      {/* Background Mesh/Gradient */}
+      <View style={StyleSheet.absoluteFillObject}>
+        {/* We use a multi-stop gradient for a 'Mesh' feel */}
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF", "#FFF"]} // Peach -> White
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
+
       <CustomScrollView
         refreshControl={refreshControl}
         contentContainerStyle={styles.scrollContent}
