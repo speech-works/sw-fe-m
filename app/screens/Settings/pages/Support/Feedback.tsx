@@ -1,14 +1,23 @@
-import { StyleSheet, Text, View, Switch } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+} from "react-native";
 import React, { useState } from "react";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
-import TextArea from "../../../../components/TextArea";
-import Button from "../../../../components/Button";
 import { useUserStore } from "../../../../stores/user";
 import { submitAppFeedback } from "../../../../api/settings/helpSupport";
+import { LinearGradient } from "expo-linear-gradient";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
 interface FeedbackProps {
   onFeedbackSubmit: () => void;
@@ -31,133 +40,268 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
     });
     onFeedbackSubmit();
   };
+
   const handleAnonymousChange = () => {
     setSubmitEmail((old) => !old);
   };
+
+  const isFormValid =
+    features.length > 0 || frustrations.length > 0 || otherThoughts.length > 0;
+
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.section}>
-        <Text style={styles.label}>What features would you like to see?</Text>
-        <TextArea
-          value={features}
-          onChangeText={setFeatures}
-          placeholder="Share your ideas for new features or improvements..."
-          numberOfLines={5}
-          containerStyle={styles.textAreaContainer}
-          inputStyle={styles.textAreaInput}
-        />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Anything confusing or frustrating?</Text>
-        <TextArea
-          value={frustrations}
-          onChangeText={setFrustrations}
-          placeholder="Tell us about any challenges or frustrations you've experienced..."
-          numberOfLines={5}
-          containerStyle={styles.textAreaContainer}
-          inputStyle={styles.textAreaInput}
-        />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Any other thoughts?</Text>
-        <TextArea
-          value={otherThoughts}
-          onChangeText={setOtherThoughts}
-          placeholder="Share any other feedback that could help us improve..."
-          numberOfLines={5}
-          containerStyle={styles.textAreaContainer}
-          inputStyle={styles.textAreaInput}
-        />
-      </View>
-      <View style={styles.card}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          <Text style={styles.label}>Submit with your email</Text>
-          <Switch
-            value={submitEmail}
-            trackColor={{
-              false: theme.colors.actionPrimary.default,
-              true: theme.colors.actionPrimary.default,
-            }}
-            onChange={handleAnonymousChange}
-          />
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.wrapper}>
+        {/* 1. Features */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: "#EFF6FF" }]}>
+              <Icon name="magic" size={14} color="#2563EB" />
+            </View>
+            <Text style={styles.label}>Feature Requests</Text>
+          </View>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={features}
+              onChangeText={setFeatures}
+              placeholder="I wish the app could..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={4}
+              style={styles.input}
+              textAlignVertical="top"
+            />
+          </View>
         </View>
-        <View
-          style={{
-            padding: 16,
-            backgroundColor: theme.colors.surface.disabled,
-            borderColor: theme.colors.border.default,
-            borderWidth: 1,
-            borderRadius: 12,
-            width: "100%",
-          }}
+
+        {/* 2. Frustrations */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: "#FEF2F2" }]}>
+              <Icon name="frown" size={14} color="#DC2626" />
+            </View>
+            <Text style={styles.label}>Frustrations</Text>
+          </View>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={frustrations}
+              onChangeText={setFrustrations}
+              placeholder="I find it difficult to..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={4}
+              style={styles.input}
+              textAlignVertical="top"
+            />
+          </View>
+        </View>
+
+        {/* 3. Other */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: "#F0FDF4" }]}>
+              <Icon name="comment-alt" size={14} color="#16A34A" />
+            </View>
+            <Text style={styles.label}>Other Thoughts</Text>
+          </View>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={otherThoughts}
+              onChangeText={setOtherThoughts}
+              placeholder="Any other ideas or feelings..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={4}
+              style={styles.input}
+              textAlignVertical="top"
+            />
+          </View>
+        </View>
+
+        {/* Email Toggle Card */}
+        <View style={styles.toggleCard}>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.toggleLabel}>Follow up with me</Text>
+              <Text style={styles.toggleSub}>
+                Allow us to contact you about this feedback
+              </Text>
+            </View>
+            <Switch
+              value={submitEmail}
+              trackColor={{
+                false: "#CBD5E1",
+                true: "#fb923c",
+              }}
+              thumbColor={"#FFFFFF"}
+              onValueChange={handleAnonymousChange}
+            />
+          </View>
+
+          {submitEmail && (
+            <View style={styles.emailBox}>
+              <Icon name="envelope" size={14} color="#EA580C" />
+              <Text style={styles.emailText}>{user?.email}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Standard Gradient Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleFeedbackSubmit}
+          disabled={!isFormValid}
+          style={[styles.saveButtonContainer, !isFormValid && { opacity: 0.6 }]}
         >
-          <Text
-            style={{
-              color: theme.colors.text.default,
-              ...parseTextStyle(theme.typography.Body),
-            }}
+          <LinearGradient
+            colors={
+              isFormValid ? ["#fb923c", "#ea580c"] : ["#E2E8F0", "#CBD5E1"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.saveButton}
           >
-            {user?.email}
-          </Text>
-        </View>
-        <Text
-          style={{
-            color: theme.colors.text.default + "99",
-            ...parseTextStyle(theme.typography.BodyDetails),
-          }}
-        >
-          We'll only use this to follow up on your feedback if needed
-        </Text>
+            <Text
+              style={[
+                styles.saveButtonText,
+                !isFormValid && { color: "#94A3B8" },
+              ]}
+            >
+              Send Feedback
+            </Text>
+            {isFormValid && <Icon name="paper-plane" size={16} color="white" />}
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Bottom Spacer */}
+        <View style={{ height: 40 }} />
       </View>
-      <Button
-        text="Submit Feedback"
-        onPress={handleFeedbackSubmit}
-        disabled={!(features || otherThoughts || frustrations)}
-      />
-    </View>
+    </ScrollView>
   );
 };
 
 export default Feedback;
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 32, // Padding 32 for generous space
+  },
   wrapper: {
-    gap: 20,
+    gap: 32, // Increased gap
+    paddingTop: 8,
   },
   section: {
-    gap: 8,
+    gap: 12,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginLeft: 4,
+  },
+  iconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    // Subtle border
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   label: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    fontSize: 15, // Uniform font size
+    fontWeight: "700",
+    color: "#1E293B", // Dark Slate
+    letterSpacing: 0.3,
   },
-  textAreaContainer: {
-    backgroundColor: theme.colors.background.default,
-    minHeight: 150,
-    borderRadius: 12,
-  },
-  textAreaInput: {
-    height: "100%",
-    backgroundColor: theme.colors.background.default,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  card: {
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
+  inputWrapper: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    flexDirection: "column",
-    alignItems: "flex-start",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  input: {
+    backgroundColor: "#FFFFFF", // Pure white for modern clean look
+    padding: 20, // Spacious input
+    minHeight: 120,
+    fontSize: 15, // Uniform font size
+    color: "#0F172A", // Darkest slate
+    lineHeight: 22,
+    ...Platform.select({
+      android: { textAlignVertical: "top" },
+    }),
+  },
+
+  // Toggle Card
+  toggleCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    padding: 20,
+    gap: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginTop: 8,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  toggleSub: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  emailBox: {
+    backgroundColor: "#FFF7ED", // Orange 50
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#FFEDD5",
+  },
+  emailText: {
+    fontSize: 14,
+    color: "#EA580C", // Primary Orange
+    fontWeight: "600",
+  },
+
+  // Uniform Button Style (Same as EditProfile)
+  saveButtonContainer: {
+    borderRadius: 30, // Fully rounded
+    marginTop: 16,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "white", // Shadow fix
+  },
+  saveButton: {
+    borderRadius: 30,
+    paddingVertical: 18, // Taller button
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ffffff",
+    letterSpacing: 0.5,
   },
 });

@@ -13,8 +13,24 @@ import BottomSheetModal from "../../../../components/BottomSheetModal";
 import ReportProblem from "./ReportProblem";
 import ContactSupport from "./ContactSupport";
 import Feedback from "./Feedback";
+import { LinearGradient } from "expo-linear-gradient";
 
 type SettingType = "Report Problem" | "Contact Support" | "Feedback";
+
+// Helper for consistent lovely icons
+const LivelyIcon = ({
+  name,
+  color,
+  bg,
+}: {
+  name: string;
+  color: string;
+  bg: string;
+}) => (
+  <View style={[styles.iconContainer, { backgroundColor: bg }]}>
+    <Icon solid name={name} size={16} color={color} />
+  </View>
+);
 
 const Support = () => {
   const navigation = useNavigation();
@@ -28,83 +44,113 @@ const Support = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
+        {/* Aurora Background */}
+        <View style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={["#FFF7ED", "#FFFFFF", "#F8FAFC"]}
+            locations={[0, 0.4, 1]}
+            style={{ flex: 1 }}
+          />
+        </View>
+
         <View style={styles.container}>
-          <TouchableOpacity
-            style={styles.topNavigation}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>Help & Support</Text>
-          </TouchableOpacity>
-          <CustomScrollView contentContainerStyle={styles.scrollView}>
+          {/* Header */}
+          <View style={styles.header}>
             <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Icon name="chevron-left" size={16} color="#1E293B" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Help & Support</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <CustomScrollView contentContainerStyle={styles.scrollView}>
+            {/* Report Problem Card */}
+            <TouchableOpacity
+              activeOpacity={0.8}
               style={styles.card}
               onPress={() => {
                 setOpenSettingType("Report Problem");
                 setIsModalVisible(true);
               }}
             >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Report A Problem</Text>
-                <Text style={styles.descText}>
-                  Let us know what needs fixing
-                </Text>
+              <View style={styles.cardLeft}>
+                <LivelyIcon name="bug" color="#EA580C" bg="#FFF7ED" />
+                <View style={styles.textContainer}>
+                  <Text style={styles.titleText}>Report A Problem</Text>
+                  <Text style={styles.descText}>
+                    Let us know what needs fixing
+                  </Text>
+                </View>
               </View>
+              <Icon name="chevron-right" size={14} color="#CBD5E1" />
             </TouchableOpacity>
 
+            {/* Contact Support Card */}
             <TouchableOpacity
+              activeOpacity={0.8}
               style={styles.card}
               onPress={() => {
                 setOpenSettingType("Contact Support");
                 setIsModalVisible(true);
               }}
             >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Contact Support</Text>
-                <Text style={styles.descText}>
-                  Reach out to our friendly support team
-                </Text>
+              <View style={styles.cardLeft}>
+                <LivelyIcon name="headset" color="#2563EB" bg="#EFF6FF" />
+                <View style={styles.textContainer}>
+                  <Text style={styles.titleText}>Contact Support</Text>
+                  <Text style={styles.descText}>
+                    Reach out to our friendly support team
+                  </Text>
+                </View>
               </View>
+              <Icon name="chevron-right" size={14} color="#CBD5E1" />
             </TouchableOpacity>
 
+            {/* Feedback Card */}
             <TouchableOpacity
+              activeOpacity={0.8}
               style={styles.card}
               onPress={() => {
                 setOpenSettingType("Feedback");
                 setIsModalVisible(true);
               }}
             >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Feedback & Suggestions</Text>
-                <Text style={styles.descText}>
-                  How can we improve SpeechWorks?
-                </Text>
+              <View style={styles.cardLeft}>
+                <LivelyIcon name="lightbulb" color="#DB2777" bg="#FDF2F8" />
+                <View style={styles.textContainer}>
+                  <Text style={styles.titleText}>Feedback & Suggestions</Text>
+                  <Text style={styles.descText}>
+                    How can we improve SpeechWorks?
+                  </Text>
+                </View>
               </View>
+              <Icon name="chevron-right" size={14} color="#CBD5E1" />
             </TouchableOpacity>
           </CustomScrollView>
         </View>
       </ScreenView>
+
       <BottomSheetModal
         visible={isModalVisible}
         onClose={closeModal}
-        maxHeight="70%"
+        maxHeight="90%" // Maximize height for immersion
       >
         <View style={styles.modalContent}>
-          <View style={styles.modalTitleContainer}>
-            <Text style={styles.modalTiteText}>{openSettingType}</Text>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitleText}>{openSettingType}</Text>
             <Text style={styles.modalDescText}>
               {openSettingType === "Report Problem"
-                ? "We usually respond within 24–48 hours. Thank you for helping improve SpeechWorks"
+                ? "We usually respond within 24–48 hours."
                 : openSettingType === "Feedback"
-                ? "Your feedback is valuable! Share your thoughts to help us make the app better for everyone"
-                : null}
+                ? "Your feedback helps us make the app better."
+                : "Get in touch with us directly"}
             </Text>
           </View>
-          <CustomScrollView>
+
+          <View style={styles.modalBody}>
             {openSettingType === "Contact Support" && <ContactSupport />}
             {openSettingType === "Feedback" && (
               <Feedback onFeedbackSubmit={closeModal} />
@@ -112,7 +158,7 @@ const Support = () => {
             {openSettingType === "Report Problem" && (
               <ReportProblem onReportSubmit={closeModal} />
             )}
-          </CustomScrollView>
+          </View>
         </View>
       </BottomSheetModal>
     </>
@@ -124,71 +170,101 @@ export default Support;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#F8FAFC",
   },
   container: {
-    gap: 32,
     flex: 1,
   },
-  topNavigation: {
-    position: "relative",
-    top: 0,
-    display: "flex",
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  topNavigationText: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    color: "#1E293B",
+    fontWeight: "700",
   },
   scrollView: {
     gap: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    padding: 24, // Consistent padding
   },
   card: {
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    backgroundColor: "#FFFFFF",
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    borderRadius: 24, // More rounded
+    padding: 20,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   textContainer: {
     gap: 4,
+    flex: 1,
   },
   titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
   },
   descText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "400",
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
   },
 
-  // modal
-  modalTitleContainer: {
-    gap: 12,
+  // Modal Styles
+  modalContent: {
+    flex: 1,
+    // Removed paddingHorizontal to let children control it for better scroll UX
+  },
+  modalHeader: {
+    marginTop: 20,
+    marginBottom: 20,
     alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 24,
   },
-  modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+  modalTitleText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1E293B",
     textAlign: "center",
   },
-  modalContent: {
-    paddingVertical: 24,
-    width: "100%",
-    flex: 1, // ← valid because the parent Animated.View has a fixed height
-    flexDirection: "column",
-    gap: 32,
+  modalDescText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  modalBody: {
+    flex: 1,
   },
 });

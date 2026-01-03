@@ -16,12 +16,22 @@ import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
 import Achievements from "./components/Achievements";
 import TutStats from "./components/TutStats";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 const ProgressDetail = () => {
   const navigation =
     useNavigation<PDStackNavigationProp<keyof PDStackParamList>>();
 
   return (
     <ScreenView style={styles.screenView}>
+      {/* Background Gradient */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF", "#FFF"]}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
       <View style={styles.container}>
         <TouchableOpacity
           style={styles.topNavigation}

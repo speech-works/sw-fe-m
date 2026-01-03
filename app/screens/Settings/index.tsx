@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
-
+import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { AuthContext } from "../../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
@@ -9,7 +9,10 @@ import { getAllSessionsOfUser, logoutUser } from "../../api";
 import ScreenView from "../../components/ScreenView";
 import CustomScrollView from "../../components/CustomScrollView";
 import { theme } from "../../Theme/tokens";
-import { parseShadowStyle } from "../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../util/functions/parseStyles";
 import { useUserStore } from "../../stores/user";
 import {
   SettingsStackNavigationProp,
@@ -42,8 +45,6 @@ const Settings = () => {
     const refreshToken = await SecureStore.getItemAsync(
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
     );
-    console.log("Access Token:", accessToken);
-    console.log("Refresh Token:", refreshToken);
     if (refreshToken && accessToken) {
       await logoutUser({ refreshToken, appJwt: accessToken });
       logout();
@@ -59,45 +60,28 @@ const Settings = () => {
   };
 
   const menuItems = [
-    // {
-    //   icon: <Icon name="bell" size={16} color="#4A5568" />,
-    //   text: "Notifications",
-    //   onClick: () => {},
-    // },
-    // {
-    //   icon: <Icon name="history" size={16} color="#4A5568" />,
-    //   text: "Practice History",
-    //   onClick: () => {},
-    // },
-    // {
-    //   icon: <Icon name="medal" size={16} color="#4A5568" />,
-    //   text: "Goals & Achievements",
-    //   onClick: () => {},
-    // },
     {
-      icon: <Icon name="tasks" size={16} color={theme.colors.text.title} />,
-      text: "Preferences", // This item might be redundant if this screen IS settings
+      icon: "sliders-h",
+      iconColor: "#3B82F6", // Blue for preferences
+      iconBg: "#EFF6FF",
+      text: "Preferences",
       onClick: () => {
         navigation.navigate("Preferences");
       },
     },
     {
-      icon: (
-        <Icon name="chart-line" size={16} color={theme.colors.text.title} />
-      ),
+      icon: "chart-line",
+      iconColor: "#8B5CF6", // Purple for progress
+      iconBg: "#F5F3FF",
       text: "Progress Report",
       onClick: () => {
         navigation.navigate("ProgressDetail");
       },
     },
     {
-      icon: (
-        <Icon
-          name="question-circle"
-          size={16}
-          color={theme.colors.text.title}
-        />
-      ),
+      icon: "question-circle",
+      iconColor: "#10B981", // Green for help
+      iconBg: "#ECFDF5",
       text: "Help & Support",
       onClick: () => {
         navigation.navigate("HelpSupport");
@@ -114,7 +98,6 @@ const Settings = () => {
           sessionStatus: "COMPLETED",
         });
         setSessionCount(sessions.length);
-        console.log("Fetched user sessions:", sessions);
       } catch (error) {
         console.error("Error fetching user sessions:", error);
       }
@@ -134,67 +117,101 @@ const Settings = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
+        {/* Unified Background Gradient */}
+        <View style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={["#FFF7ED", "#FFF", "#FFF"]}
+            locations={[0, 0.4, 1]}
+            style={{ flex: 1 }}
+          />
+        </View>
+
         <CustomScrollView
           style={styles.screenContainer}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 130 }}
         >
-          {/* User Profile Section */}
-          <View style={styles.profileSection}>
-            <View style={styles.profileInfo}>
-              <Image
-                source={{
-                  uri: user?.profilePictureUrl,
-                }} // Replace with actual user image URL
-                style={styles.profileImage}
-              />
-              <View>
-                <Text style={styles.profileName}>{user?.name}</Text>
+          {/* Header Title */}
+          <Text style={styles.pageTitle}>Settings</Text>
+
+          {/* Aurora Glass Identity Card (Concept A) */}
+          <LinearGradient
+            colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan -> Blue -> Indigo
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.profileSection}
+          >
+            {/* Mesh Glow Blobs */}
+            <View style={styles.bubbleTopRight} />
+            <View style={styles.bubbleBottomLeft} />
+
+            <View style={styles.profileContent}>
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: user?.profilePictureUrl }}
+                  style={styles.profileImage}
+                />
+                <View style={styles.onlineBadge} />
+              </View>
+
+              <View style={styles.centerInfo}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.profileName}>{user?.name}</Text>
+                  {/* Pro Badge */}
+                  <View style={styles.proBadge}>
+                    <Text style={styles.proBadgeText}>FREE</Text>
+                  </View>
+                </View>
                 <Text style={styles.memberSince}>
                   Member since {user?.createdAt?.getFullYear()}
                 </Text>
               </View>
+
+              <TouchableOpacity
+                style={styles.viewProfileButton}
+                onPress={onViewProfile}
+              >
+                <Text style={styles.viewProfileText}>View Profile</Text>
+                <Icon name="chevron-right" size={12} color="#FFF" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.viewProfileButton}
-              onPress={onViewProfile}
-            >
-              <Text style={styles.viewProfileText}>View Full Profile</Text>
-              <Icon
-                name="chevron-right"
-                size={12}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
-          <BuyPro />
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Menu Items */}
-          <View style={styles.menuItems}>
+          {/* Action Tiles Menu */}
+          <View style={styles.menuSection}>
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.menuItem}
+                style={styles.menuTile}
                 onPress={item.onClick}
               >
-                {item.icon}
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: item.iconBg },
+                  ]}
+                >
+                  <Icon name={item.icon} size={18} color={item.iconColor} />
+                </View>
                 <Text style={styles.menuItemText}>{item.text}</Text>
+                <Icon name="chevron-right" size={14} color="#CBD5E1" />
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider} />
+          <BuyPro />
 
-          {/* Sign Out Button */}
-          <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
-            <Icon name="sign-out-alt" size={16} color="#E53E3E" />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
+          {/* Minimal Footer */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.signOutText}>Log Out</Text>
+              <Icon name="sign-out-alt" size={14} color="#EF4444" />
+            </TouchableOpacity>
+            <Text style={styles.versionText}>v2.4.0 (Build 302)</Text>
+          </View>
         </CustomScrollView>
       </ScreenView>
 
@@ -214,99 +231,177 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   screenContainer: {
-    // Renamed from menuContainer, styles adjusted
     flex: 1,
-    //backgroundColor: "#FFFFFF",
-    //paddingHorizontal: 20,
-    paddingTop: 20, // General padding for the top of the scroll content
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
-  // Removed modalOverlay and touchableOverlay styles
-  // Removed closeButton style
+  pageTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    marginBottom: 24,
+  },
+  // Aurora Glass Card Styles
   profileSection: {
-    marginBottom: 20,
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 16,
+    marginBottom: 24,
+    borderRadius: 24,
     ...parseShadowStyle(theme.shadow.elevation1),
-    padding: 24,
-    // paddingTop: 20, // This can be adjusted or removed if screenContainer's paddingTop is sufficient
+    overflow: "hidden", // Clip bubbles
+    position: "relative",
+    // No bg color here, strictly gradient
   },
-  profileInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+  // Mesh Glow Blobs
+  bubbleTopRight: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "#FFFFFF",
+    opacity: 0.2, // Subtle white glow
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -20,
+    left: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#C2410C", // Deep Orange (700)
+    opacity: 0.4, // Deep warm glow
+  },
+  profileContent: {
+    padding: 24,
+    alignItems: "center", // Center everything
     gap: 16,
-    //backgroundColor: "red",
+    zIndex: 1,
+  },
+  imageContainer: {
+    position: "relative",
+    marginBottom: 4,
   },
   profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 10,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: "#E2E8F0",
+    borderWidth: 4,
+    borderColor: "rgba(255,255,255,0.2)", // Glassy halo
   },
-
+  onlineBadge: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#10B981", // Green
+    borderWidth: 3,
+    borderColor: "#FB923C", // Match Gradient (Orange 400)
+  },
+  centerInfo: {
+    alignItems: "center",
+    gap: 6,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   profileName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.text.title,
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  proBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)", // Glassy
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  proBadgeText: {
+    fontSize: 10,
+    color: "#FFF",
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   memberSince: {
     fontSize: 14,
-    color: "#718096",
-    marginBottom: 15,
+    color: "rgba(255,255,255,0.9)",
   },
   viewProfileButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
     justifyContent: "center",
-    padding: 16,
-    borderRadius: 8,
-    borderColor: theme.colors.text.title,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: "rgba(255,255,255,0.15)", // Glassy button
+    borderRadius: 100,
     borderWidth: 1,
-    gap: 12,
+    borderColor: "rgba(255,255,255,0.3)",
+    gap: 8,
+    marginTop: 8,
+    width: "100%",
   },
   viewProfileText: {
-    fontSize: 14,
-    color: theme.colors.text.title,
+    fontSize: 15,
+    color: "#FFF",
     fontWeight: "600",
-    marginRight: 4,
-    textAlign: "center",
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#E2E8F0",
-    marginVertical: 15,
+
+  // Action Menu Tiles
+  menuSection: {
+    gap: 12,
+    marginBottom: 24,
   },
-  menuItems: {
-    paddingHorizontal: 20,
-  },
-  menuItem: {
+  menuTile: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   menuItemText: {
-    fontSize: 16,
+    flex: 1,
+    ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
-    marginLeft: 15,
+    fontWeight: "500",
+  },
+
+  // Footer
+  footer: {
+    alignItems: "center",
+    gap: 16,
+    marginTop: 12,
   },
   signOutButton: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 8,
-    borderColor: "#E53E3E",
-    borderWidth: 1,
-    gap: 12,
+    gap: 8,
+    padding: 12,
   },
   signOutText: {
-    fontSize: 16,
-    color: "#E53E3E",
-    marginLeft: 15,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#EF4444", // Red
     fontWeight: "600",
+  },
+  versionText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#94A3B8",
   },
 });
 

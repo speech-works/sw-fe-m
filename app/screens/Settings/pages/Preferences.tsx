@@ -19,9 +19,11 @@ import {
 import { useUserStore } from "../../../stores/user";
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 
+import { LinearGradient } from "expo-linear-gradient";
+
 type SettingType = "GOAL" | "TIMER" | null;
 
-const ProgressDetail = () => {
+const Preferences = () => {
   const navigation = useNavigation();
   const { user } = useUserStore();
   const [targetMins, setTargetMins] = useState(15);
@@ -203,6 +205,15 @@ const ProgressDetail = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
+        {/* Background Gradient */}
+        <View style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={["#FFF7ED", "#FFF", "#FFF"]}
+            locations={[0, 0.4, 1]}
+            style={{ flex: 1 }}
+          />
+        </View>
+
         <View style={styles.container}>
           <TouchableOpacity
             style={styles.topNavigation}
@@ -357,7 +368,7 @@ const ProgressDetail = () => {
   );
 };
 
-export default ProgressDetail;
+export default Preferences;
 
 const styles = StyleSheet.create({
   screenView: {
