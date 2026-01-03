@@ -5,14 +5,29 @@ import { View, Text, StyleSheet, LayoutChangeEvent } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import { format, startOfWeek, addDays } from "date-fns";
 import { WeeklyStat } from "../../../../../api/stats/types";
+import ExplorerFace from "../../../../../assets/sw-faces/ExplorerFace";
+import { theme } from "../../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 interface Props {
   data: WeeklyStat[];
   percentChange: number;
+  // Customization Props
+  title?: string;
+  emptyTitle?: string;
+  emptySubtitle?: string;
+  showTitle?: boolean;
 }
 
 const BAR_RADIUS = 8;
-const PracticeBarChartKit: React.FC<Props> = ({ data, percentChange }) => {
+const PracticeBarChartKit: React.FC<Props> = ({
+  data,
+  percentChange,
+  title = "Weekly Activity",
+  emptyTitle = "No activity yet",
+  emptySubtitle = "Start your first session",
+  showTitle = true,
+}) => {
   const [chartWidth, setChartWidth] = useState(0);
 
   // 1) Map weekday (0=Sun..6=Sat) → minutes
@@ -70,33 +85,67 @@ const PracticeBarChartKit: React.FC<Props> = ({ data, percentChange }) => {
       ? `+${percentChange}% from last week`
       : `${percentChange}% from last week`;
 
+  // --- Empty State Logic ---
+  const isEmpty = totalMinutes === 0;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Weekly Activity</Text>
-      <Text style={styles.total}>
-        <Text style={styles.bold}>{totalMinutes}</Text>m
-      </Text>
-      <Text style={styles.percent}>{percentText}</Text>
+      {showTitle && <Text style={styles.title}>{title}</Text>}
 
-      <View
-        onLayout={onLayout}
-        style={[styles.chartWrapper, { overflow: "hidden" }]}
-      >
-        {chartWidth > 0 && (
-          <BarChart
-            data={chartData}
-            width={chartWidth}
-            height={200}
-            chartConfig={chartConfig}
-            fromZero
-            withCustomBarColorFromData
-            flatColor
-            yAxisLabel=""
-            yAxisSuffix="m"
-            style={styles.chartStyle}
-          />
-        )}
-      </View>
+      {isEmpty ? (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyContent}>
+            {/* Ghost bars background */}
+            <View style={styles.ghostChartRow}>
+              {[0.4, 0.7, 0.3, 0.8, 0.5, 0.2, 0.6].map((h, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.ghostBar,
+                    { height: h * 60, opacity: 0.2 }, // varied heights
+                  ]}
+                />
+              ))}
+            </View>
+
+            {/* Overlay Content */}
+            <View style={styles.emptyOverlay}>
+              <ExplorerFace size={96} />
+              <View style={styles.emptyTextContainer}>
+                <Text style={styles.emptyText}>{emptyTitle}</Text>
+                <Text style={styles.emptySubText}>{emptySubtitle}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.total}>
+            <Text style={styles.bold}>{totalMinutes}</Text>m
+          </Text>
+          <Text style={styles.percent}>{percentText}</Text>
+
+          <View
+            onLayout={onLayout}
+            style={[styles.chartWrapper, { overflow: "hidden" }]}
+          >
+            {chartWidth > 0 && (
+              <BarChart
+                data={chartData}
+                width={chartWidth}
+                height={200}
+                chartConfig={chartConfig}
+                fromZero
+                withCustomBarColorFromData
+                flatColor
+                yAxisLabel=""
+                yAxisSuffix="m"
+                style={styles.chartStyle}
+              />
+            )}
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -112,6 +161,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    minHeight: 220, // ensure consistent height
   },
   title: {
     fontSize: 14,
@@ -141,6 +191,73 @@ const styles = StyleSheet.create({
   },
   chartStyle: {
     backgroundColor: "#fff3ed",
+  },
+  // Empty State Styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+    overflow: "hidden",
+    position: "relative",
+    height: 160,
+  },
+  emptyContent: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ghostChartRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    width: "80%",
+    height: 100,
+    marginBottom: 10,
+    opacity: 0.5,
+  },
+  ghostBar: {
+    width: 12,
+    backgroundColor: "#ffd8c2", // light peach
+    borderRadius: 4,
+  },
+  emptyOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 243, 237, 0.6)", // Semi-transparent background matching container
+    // backdropFilter has been removed as it is not supported in React Native StyleSheet
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    marginBottom: 8,
+  },
+  emptyTextContainer: {
+    paddingVertical: 8,
+    gap: 4,
+  },
+  emptyText: {
+    ...parseTextStyle(theme.typography.Body),
+    textAlign: "center",
+    color: theme.colors.text.title,
+  },
+  emptySubText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.default,
   },
 });
 
