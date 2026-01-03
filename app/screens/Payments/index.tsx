@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import * as SecureStore from "expo-secure-store";
-import axios from "axios";
-import * as WebBrowser from "expo-web-browser";
-import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import ScreenView from "../../components/ScreenView";
+import CustomScrollView from "../../components/CustomScrollView";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -18,46 +21,24 @@ import { triggerToast } from "../../util/functions/toast";
 import { createRazorpayOrder } from "../../api/payments";
 import { useUserStore } from "../../stores/user";
 
-// export const SubscribeScreen = () => {
-//   const handleSubscribe = async () => {
-//     const token = await SecureStore.getItemAsync(
-//       SECURE_KEYS_NAME.SW_APP_JWT_KEY
-//     );
-//     console.log("handleSubscribe:", { token });
-//     const res = await axios.post(
-//       `${process.env.EXPO_PUBLIC_API_URL}/stripe/create-checkout-session`,
-//       { priceId: "price_xyz" },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       }
-//     );
-//     console.log("handleSubscribe response:", { res });
-//     const { url } = res.data;
-//     await WebBrowser.openBrowserAsync(url);
-//   };
-
-//   return <Button title="Subscribe Now" onPress={handleSubscribe} />;
-// };
-
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
   ANNUALLY = 1,
 }
 
+const { width } = Dimensions.get("window");
+
 const SubscribeScreen = () => {
   const { user } = useUserStore();
   const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
-    PAYMENT_PLAN_TYPE.MONTHLY
+    PAYMENT_PLAN_TYPE.ANNUALLY
   );
 
   const handlePayment = async () => {
     try {
       console.log("⚡ Payment button pressed");
 
-      // 1. Create order on backend
       console.log("➡️ Calling backend to create order for user:", user?.id);
       if (!user?.id) {
         console.error("❌ User ID is not available");
@@ -72,7 +53,7 @@ const SubscribeScreen = () => {
 
       console.log("✅ Raw backend response:", response);
 
-      const order = response; // no .json()
+      const order = response;
       if (!order?.orderId) {
         console.error("❌ Backend did not return an order ID", order);
         return;
@@ -96,7 +77,6 @@ const SubscribeScreen = () => {
         theme: {
           color: theme.colors.actionPrimary.default,
           backdrop_color: "red",
-          //hide_topbar: true,
         },
       };
 
@@ -126,154 +106,169 @@ const SubscribeScreen = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#F97316", "#EC4899"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.screenView}
-    >
-      <View style={styles.topNavigationContainer}>
+    <ScreenView style={styles.screenView}>
+      {/* Aurora Mesh Background */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF", "#FFF"]}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+        {/* Decorative Orbs */}
+        <View style={styles.orbTopRight} />
+        <View style={styles.orbBottomLeft} />
+      </View>
+
+      {/* Header Navigation - Sticky */}
+      <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.topNavigation}
+          style={styles.backButton}
         >
-          <Icon name="chevron-left" size={16} color={"#fff"} />
-          <Text style={styles.topNavigationText}>Back</Text>
+          <Icon name="times" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
       </View>
-      <View style={styles.innerContainer}>
-        <View style={styles.headerWrapper}>
-          <Text style={styles.headerText}>Upgrade to PRO</Text>
-          <Icon
-            solid
-            name="crown"
-            size={22}
-            color={theme.colors.library.orange[300]}
-          />
+
+      <CustomScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
+          <View style={styles.crownIconContainer}>
+            <LinearGradient
+              colors={["#F59E0B", "#D97706"]}
+              style={styles.crownGradient}
+            >
+              <Icon name="crown" size={24} color="#FFF" solid />
+            </LinearGradient>
+          </View>
+          <Text style={styles.heroTitle}>Unlock Your Full Potential</Text>
+          <Text style={styles.heroSubtitle}>
+            Stop guessing. Start improving. Get the AI advantage to master your
+            speech today.
+          </Text>
         </View>
 
-        <View style={styles.tileWraper}>
-          <TouchableOpacity
-            style={[
-              styles.tile,
-              paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && styles.selectedTile,
-            ]}
-            onPress={() => {
-              setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY);
-            }}
-          >
-            <View style={styles.tileInfo}>
-              <View style={styles.tileHeader}>
-                <Text
-                  style={[
-                    styles.tileHeaderText,
-                    paymentPlan !== PAYMENT_PLAN_TYPE.MONTHLY &&
-                      styles.unSelectedText,
-                  ]}
-                >
-                  Monthly
-                </Text>
-                {paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && (
-                  <Icon
-                    solid
-                    name="check-circle"
-                    size={16}
-                    color={theme.colors.library.orange[400]}
-                  />
-                )}
+        {/* Benefits List */}
+        <View style={styles.benefitsContainer}>
+          {[
+            "Unlimited AI Speech Analysis",
+            "Deep Performance Analytics",
+            "Personalized Growth Plan",
+            "Exclusive Pro Content",
+          ].map((benefit, index) => (
+            <View key={index} style={styles.benefitRow}>
+              <View style={styles.checkIcon}>
+                <Icon name="check" size={10} color="#FFF" />
               </View>
-              <Text
-                style={[
-                  styles.priceText,
-                  paymentPlan !== PAYMENT_PLAN_TYPE.MONTHLY &&
-                    styles.unselectedPriceText,
-                ]}
-              >
-                $11.99
-              </Text>
+              <Text style={styles.benefitText}>{benefit}</Text>
             </View>
-            <Text
-              style={[
-                styles.tileFooterText,
-                paymentPlan !== PAYMENT_PLAN_TYPE.MONTHLY &&
-                  styles.unSelectedText,
-              ]}
-            >
-              Billed Monthly
-            </Text>
-          </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Pricing Cards */}
+        <View style={styles.plansContainer}>
+          {/* Annual Plan */}
           <TouchableOpacity
+            onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
             style={[
-              styles.tile,
-              paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && styles.selectedTile,
+              styles.planCard,
+              paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                ? styles.activePlanCard
+                : styles.inactivePlanCard,
             ]}
-            onPress={() => {
-              setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY);
-            }}
+            activeOpacity={0.95}
           >
-            <View style={styles.tileInfo}>
-              <View style={styles.tileHeader}>
-                <Text
-                  style={[
-                    styles.tileHeaderText,
-                    paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
-                      styles.unSelectedText,
-                  ]}
-                >
-                  Annually
-                </Text>
+            {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
+              <LinearGradient
+                colors={[theme.colors.actionPrimary.default, "#EC4899"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bestValueBadge}
+              >
+                <Text style={styles.bestValueText}>BEST VALUE</Text>
+              </LinearGradient>
+            )}
+            <View style={styles.cardContent}>
+              <View style={styles.radioCircle}>
                 {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
-                  <Icon
-                    solid
-                    name="check-circle"
-                    size={16}
-                    color={theme.colors.library.orange[400]}
-                  />
+                  <View style={styles.radioInner} />
                 )}
               </View>
-              <Text
-                style={[
-                  styles.priceText,
-                  paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
-                    styles.unselectedPriceText,
-                ]}
-              >
-                $119.99
-              </Text>
-              <View
-                style={[
-                  styles.saveTag,
-                  paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
-                    styles.saveTagUnselected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.saveTagText,
-                    paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
-                      styles.saveTagTextUnselected,
-                  ]}
-                >
-                  Save 17%
+              <View style={{ flex: 1, gap: 4 }}>
+                <View style={styles.planHeaderRow}>
+                  <Text style={styles.planName}>Annual</Text>
+                  <View style={styles.savingsTag}>
+                    <Text style={styles.savingsText}>SAVE 17%</Text>
+                  </View>
+                </View>
+                <Text style={styles.planDescription}>
+                  <Text style={styles.strikeThrough}>$143.88</Text> $119.99
+                  /year
                 </Text>
+                <Text style={styles.planMath}>That’s just $9.99/month</Text>
               </View>
             </View>
-            <Text
-              style={[
-                styles.tileFooterText,
-                paymentPlan !== PAYMENT_PLAN_TYPE.ANNUALLY &&
-                  styles.unSelectedText,
-              ]}
-            >
-              $9.99/month billed annually
-            </Text>
+          </TouchableOpacity>
+
+          {/* Monthly Plan */}
+          <TouchableOpacity
+            onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY)}
+            style={[
+              styles.planCard,
+              paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
+                ? styles.activePlanCard
+                : styles.inactivePlanCard,
+            ]}
+            activeOpacity={0.95}
+          >
+            <View style={styles.cardContent}>
+              <View style={styles.radioCircle}>
+                {paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && (
+                  <View style={styles.radioInner} />
+                )}
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.planName}>Monthly</Text>
+                <Text style={styles.planDescription}>$11.99 /month</Text>
+                <Text style={styles.planMath}>Flexible, cancel anytime</Text>
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
+      </CustomScrollView>
+
+      {/* Floating Bottom CTA */}
+      <View style={styles.footerContainer}>
+        <TouchableOpacity activeOpacity={0.9} onPress={handlePayment}>
+          <LinearGradient
+            colors={[theme.colors.library.orange[400], "#DB2777"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.upgradeButton}
+          >
+            <Text style={styles.upgradeButtonText}>
+              {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                ? "Start My 7-Day Free Trial" // High conversion copy
+                : "Get Instant Access"}
+            </Text>
+            <Icon name="arrow-right" size={16} color="#FFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={styles.trustRow}>
+          <Icon
+            name="shield-alt"
+            size={12}
+            color={theme.colors.text.disabled}
+          />
+          <Text style={styles.trustText}>
+            30-Day Money-Back Guarantee • Cancel Anytime
+          </Text>
+        </View>
       </View>
-      <TouchableOpacity style={styles.subscribeButton} onPress={handlePayment}>
-        <Text style={styles.subscribeButtonText}>Upgrade Now</Text>
-      </TouchableOpacity>
-    </LinearGradient>
+    </ScreenView>
   );
 };
 
@@ -281,118 +276,250 @@ export default SubscribeScreen;
 
 const styles = StyleSheet.create({
   screenView: {
-    paddingVertical: 20,
+    flex: 1,
+    paddingTop: 0,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
-    justifyContent: "space-around",
-    flex: 1,
+    paddingBottom: 160, // Ensure last item clears the footer
   },
-  topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
-    flexDirection: "row",
+  // Aurora Orbs
+  orbTopRight: {
+    position: "absolute",
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(251, 146, 60, 0.15)", // Orange 400
+    transform: [{ scale: 1.5 }],
+  },
+  orbBottomLeft: {
+    position: "absolute",
+    bottom: 100,
+    left: -50,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: "rgba(236, 72, 153, 0.1)", // Pink 500
+    transform: [{ scale: 1.2 }],
+  },
+
+  // Navbar
+  navBar: {
+    position: "absolute",
+    top: 20, // Adjust for safe area if needed, or use SafeAreaView
+    left: 20,
+    zIndex: 100,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 64,
-  },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  topNavigationText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#fff",
-  },
-  innerContainer: {
-    gap: 32,
-    flex: 1,
-  },
-  headerWrapper: {
-    flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#fff",
-    textAlign: "center",
-  },
-  tileWraper: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  tile: {
-    width: "50%",
-    padding: 20,
-    gap: 36,
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: "#fff",
-  },
-  selectedTile: {
-    borderColor: "#fff",
     ...parseShadowStyle(theme.shadow.elevation1),
-    backgroundColor: theme.colors.background.light,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  tileHeader: {
-    flexDirection: "row",
+
+  // Hero
+  heroContainer: {
     alignItems: "center",
-    justifyContent: "space-between",
+    marginBottom: 32,
+    marginTop: 100, // Added margin to clear header initially
   },
-  tileHeaderText: {
-    ...parseTextStyle(theme.typography.Body),
+  crownIconContainer: {
+    marginBottom: 16,
+    borderRadius: 32, // Match the gradient's radius to fix square shadow
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
-  tileInfo: {
-    gap: 5,
-  },
-  priceText: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    fontWeight: "800",
-  },
-  unselectedPriceText: {
-    color: theme.colors.library.gray[200],
-  },
-  tileFooterText: {
-    ...parseTextStyle(theme.typography.Body),
-  },
-  subscribeButton: {
-    flexDirection: "row",
+  crownGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
-    paddingHorizontal: 12,
     justifyContent: "center",
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: "#000",
-    gap: 12,
   },
-  subscribeButtonText: {
-    color: "#fff",
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-  },
-  saveTag: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  saveTagUnselected: {
-    backgroundColor: theme.colors.background.light,
-  },
-  saveTagText: {
-    color: "#fff",
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 28,
     textAlign: "center",
+    color: theme.colors.text.title,
+    marginBottom: 8,
   },
-  saveTagTextUnselected: {
+  heroSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    textAlign: "center",
+    color: theme.colors.text.default,
+    lineHeight: 22,
+    paddingHorizontal: 10,
+  },
+
+  // Benefits
+  benefitsContainer: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  benefitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  checkIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.actionPrimary.default,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "500",
+  },
+
+  // Plans
+  plansContainer: {
+    gap: 16,
+  },
+  planCard: {
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    borderWidth: 2,
+    padding: 20,
+    position: "relative",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    // overflow: "hidden" REMOVED to allow badge to hang out
+  },
+  activePlanCard: {
+    borderColor: theme.colors.actionPrimary.default,
+    backgroundColor: "#FFF7ED", // Very light orange tint
+  },
+  inactivePlanCard: {
+    borderColor: theme.colors.library.gray[200], // Subtle grey border instead of transparent
+    backgroundColor: "#FFF",
+  },
+  bestValueBadge: {
+    position: "absolute",
+    top: -12,
+    right: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  bestValueText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 10,
+  },
+  cardContent: {
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "center",
+  },
+  radioCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.library.gray[300],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+  planHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  planName: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 18,
     color: theme.colors.text.title,
   },
-  unSelectedText: {
-    color: "#fff",
+  savingsTag: {
+    backgroundColor: "#DEF7EC",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  savingsText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#03543F",
+  },
+  planDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+  planMath: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.disabled,
+  },
+  strikeThrough: {
+    textDecorationLine: "line-through",
+    color: theme.colors.text.disabled,
+  },
+
+  // Footer
+  footerContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+  },
+  upgradeButton: {
+    borderRadius: 16,
+    marginBottom: 12,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    overflow: "hidden",
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  gradientButton: {
+    paddingVertical: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  upgradeButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontSize: 18,
+  },
+  trustRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  trustText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.disabled,
   },
 });

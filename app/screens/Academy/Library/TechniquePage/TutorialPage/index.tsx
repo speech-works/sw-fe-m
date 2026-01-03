@@ -382,7 +382,7 @@ const TutorialPage = ({
               </Text>
               <Button
                 text="Go Premium"
-                onPress={() => navigation.navigate("PaymentStack")}
+                onPress={() => navigation.navigate("PremiumModal" as any)}
                 style={styles.premiumButton}
               />
             </View>

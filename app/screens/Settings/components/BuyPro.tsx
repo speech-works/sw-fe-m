@@ -85,7 +85,7 @@ const BuyPro = () => {
       <TouchableOpacity
         style={styles.ctaButton}
         activeOpacity={0.9}
-        onPress={() => navigation.navigate("PaymentStack")}
+        onPress={() => navigation.navigate("PremiumModal" as any)}
       >
         <LinearGradient
           colors={["#FFFFFF", "#F9FAFB"]}
