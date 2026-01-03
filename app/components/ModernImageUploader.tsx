@@ -90,7 +90,7 @@ const ModernImageUploader = ({
             activeOpacity={0.7}
           >
             <View style={styles.iconCircle}>
-              <Icon name="plus" size={16} color="#EA580C" />
+              <Icon name="plus" size={16} />
             </View>
             <Text style={styles.addText}>Add Image</Text>
           </TouchableOpacity>
@@ -143,9 +143,7 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: "#EA580C", // Brand color
     borderStyle: "dashed",
-    backgroundColor: "#FFF7ED", // Light orange tint
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -153,14 +151,13 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(234, 88, 12, 0.1)",
+    borderRadius: "50%",
+    backgroundColor: theme.colors.surface.disabled,
     alignItems: "center",
     justifyContent: "center",
   },
   addText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#EA580C",
   },
 });

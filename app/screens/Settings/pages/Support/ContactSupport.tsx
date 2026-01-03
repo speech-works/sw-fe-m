@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Linking,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,48 +24,92 @@ const ContactSupport = () => {
   };
 
   return (
-    <View style={styles.wrapper}>
-      <TouchableOpacity onPress={handleEmailPress} style={styles.card}>
-        <View style={styles.iconTextRow}>
-          <Icon
-            name="envelope"
-            size={20}
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.titleText}>Send us an e-mail</Text>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={handleWhatsAppPress} style={styles.card}>
-        <View style={styles.iconTextRow}>
-          <Icon name="whatsapp" size={24} color="#25D366" />
-          <Text style={styles.titleText}>Quick chat on Whatsapp</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.wrapper}>
+        {/* Email Card */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleEmailPress}
+          style={styles.card}
+        >
+          <View style={styles.contentRow}>
+            <View style={[styles.iconBox, { backgroundColor: "#EFF6FF" }]}>
+              <Icon
+                name="envelope"
+                size={18}
+                color={theme.colors.actionPrimary.default}
+                solid
+              />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.titleText}>Send an Email</Text>
+              <Text style={styles.subText}>Get a response within 24h</Text>
+            </View>
+          </View>
+          <Icon name="chevron-right" size={14} color="#CBD5E1" />
+        </TouchableOpacity>
+
+        {/* WhatsApp Card */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleWhatsAppPress}
+          style={styles.card}
+        >
+          <View style={styles.contentRow}>
+            <View style={[styles.iconBox, { backgroundColor: "#F0FDF4" }]}>
+              <Icon name="whatsapp" size={20} color="#16A34A" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.titleText}>Chat on WhatsApp</Text>
+              <Text style={styles.subText}>
+                Instant support for quick queries
+              </Text>
+            </View>
+          </View>
+          <Icon name="chevron-right" size={14} color="#CBD5E1" />
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
 export default ContactSupport;
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20, // Standard 20px padding
+  },
   wrapper: {
-    gap: 20,
+    gap: 16,
+    paddingTop: 8,
   },
   card: {
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    backgroundColor: "#fff", // Consistent white card
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    flexDirection: "column",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  iconTextRow: {
+    borderRadius: 24,
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  contentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    flex: 1,
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   textContainer: {
     gap: 4,
@@ -72,5 +117,10 @@ const styles = StyleSheet.create({
   titleText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
+    fontWeight: "700",
+  },
+  subText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
   },
 });

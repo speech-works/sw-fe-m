@@ -55,16 +55,17 @@ const Support = () => {
 
         <View style={styles.container}>
           {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Icon name="chevron-left" size={16} color="#1E293B" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.header}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon
+              name="chevron-left"
+              size={16}
+              color={theme.colors.text.default}
+            />
             <Text style={styles.headerTitle}>Help & Support</Text>
-            <View style={{ width: 40 }} />
-          </View>
+          </TouchableOpacity>
 
           <CustomScrollView contentContainerStyle={styles.scrollView}>
             {/* Report Problem Card */}
@@ -136,7 +137,7 @@ const Support = () => {
       <BottomSheetModal
         visible={isModalVisible}
         onClose={closeModal}
-        maxHeight="90%" // Maximize height for immersion
+        maxHeight="90%"
       >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -178,33 +179,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: "#1E293B",
-    fontWeight: "700",
+    color: theme.colors.text.title,
+    // Removed manual font weight to match global theme
   },
   scrollView: {
     gap: 16,
-    padding: 24, // Consistent padding
+    padding: 24,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fff",
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 24, // More rounded
+    borderRadius: 24,
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -230,20 +221,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleText: {
-    fontSize: 16,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
     fontWeight: "600",
-    color: "#1E293B",
   },
   descText: {
-    fontSize: 13,
-    color: "#64748B",
-    lineHeight: 18,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
   },
 
   // Modal Styles
   modalContent: {
     flex: 1,
-    // Removed paddingHorizontal to let children control it for better scroll UX
   },
   modalHeader: {
     marginTop: 20,
@@ -253,16 +242,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   modalTitleText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1E293B",
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
     textAlign: "center",
   },
   modalDescText: {
-    fontSize: 14,
-    color: "#64748B",
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
     textAlign: "center",
-    lineHeight: 20,
   },
   modalBody: {
     flex: 1,

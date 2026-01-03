@@ -67,7 +67,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
               value={features}
               onChangeText={setFeatures}
               placeholder="I wish the app could..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.text.disabled}
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -89,7 +89,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
               value={frustrations}
               onChangeText={setFrustrations}
               placeholder="I find it difficult to..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.text.disabled}
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -111,7 +111,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
               value={otherThoughts}
               onChangeText={setOtherThoughts}
               placeholder="Any other ideas or feelings..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.text.disabled}
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -187,10 +187,10 @@ export default Feedback;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32, // Padding 32 for generous space
+    paddingHorizontal: 32,
   },
   wrapper: {
-    gap: 32, // Increased gap
+    gap: 32,
     paddingTop: 8,
   },
   section: {
@@ -208,18 +208,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    // Subtle border
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.03)",
   },
   label: {
-    fontSize: 15, // Uniform font size
+    ...parseTextStyle(theme.typography.Body),
     fontWeight: "700",
-    color: "#1E293B", // Dark Slate
+    color: theme.colors.text.title,
     letterSpacing: 0.3,
   },
   inputWrapper: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.surface.default,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
@@ -227,12 +226,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   input: {
-    backgroundColor: "#FFFFFF", // Pure white for modern clean look
-    padding: 20, // Spacious input
+    backgroundColor: "#fff",
+    padding: 20,
     minHeight: 120,
-    fontSize: 15, // Uniform font size
-    color: "#0F172A", // Darkest slate
-    lineHeight: 22,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
     ...Platform.select({
       android: { textAlignVertical: "top" },
     }),
@@ -240,7 +238,7 @@ const styles = StyleSheet.create({
 
   // Toggle Card
   toggleCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fff",
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#F1F5F9",
@@ -255,15 +253,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   toggleLabel: {
-    fontSize: 16,
+    ...parseTextStyle(theme.typography.Body),
     fontWeight: "600",
-    color: "#1E293B",
+    color: theme.colors.text.title,
   },
   toggleSub: {
-    fontSize: 13,
-    color: "#64748B",
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
     marginTop: 2,
-    lineHeight: 18,
   },
   emailBox: {
     backgroundColor: "#FFF7ED", // Orange 50
@@ -278,29 +275,28 @@ const styles = StyleSheet.create({
     borderColor: "#FFEDD5",
   },
   emailText: {
-    fontSize: 14,
+    ...parseTextStyle(theme.typography.BodySmall),
     color: "#EA580C", // Primary Orange
     fontWeight: "600",
   },
 
-  // Uniform Button Style (Same as EditProfile)
+  // Uniform Button Style
   saveButtonContainer: {
-    borderRadius: 30, // Fully rounded
+    borderRadius: 30,
     marginTop: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "white", // Shadow fix
+    backgroundColor: theme.colors.surface.default,
   },
   saveButton: {
     borderRadius: 30,
-    paddingVertical: 18, // Taller button
+    paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
+    ...parseTextStyle(theme.typography.Button),
     color: "#ffffff",
     letterSpacing: 0.5,
   },

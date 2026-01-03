@@ -8,7 +8,10 @@ import {
   ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
-import { parseShadowStyle } from "../../../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import { useEffect, useState } from "react";
 import ModernImageUploader from "../../../../components/ModernImageUploader";
@@ -131,7 +134,7 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
               value={issueDesc}
               onChangeText={setIssueDesc}
               placeholder="Please describe exactly what happened..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.colors.text.disabled}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -153,7 +156,12 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Icon name="image" size={14} color="#64748B" />
-            <Text style={[styles.sectionTitle, { color: "#64748B" }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: theme.colors.text.default },
+              ]}
+            >
               Screenshots (Optional)
             </Text>
           </View>
@@ -200,10 +208,10 @@ export default ReportProblem;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32, // More padding as requested
+    paddingHorizontal: 32,
   },
   container: {
-    gap: 32, // Increased gap
+    gap: 32,
     paddingTop: 8,
   },
   section: {
@@ -217,9 +225,9 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...parseTextStyle(theme.typography.BodySmall),
     fontWeight: "700",
-    color: "#1E293B",
+    color: theme.colors.text.title,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -246,6 +254,7 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   chipText: {
+    ...parseTextStyle(theme.typography.Body),
     fontSize: 14,
     fontWeight: "600",
     color: "#64748B",
@@ -256,7 +265,7 @@ const styles = StyleSheet.create({
 
   // Input
   inputWrapper: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.surface.default,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
@@ -264,12 +273,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   input: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.surface.elevated,
     padding: 20,
     minHeight: 120,
-    fontSize: 15,
-    color: "#0F172A",
-    lineHeight: 22,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
     ...Platform.select({
       android: { textAlignVertical: "top" },
     }),
@@ -296,6 +304,7 @@ const styles = StyleSheet.create({
   },
   deviceInfoText: {
     flex: 1,
+    ...parseTextStyle(theme.typography.BodySmall),
     fontSize: 13,
     fontWeight: "600",
     color: "#166534", // Green 800
@@ -306,7 +315,7 @@ const styles = StyleSheet.create({
     borderRadius: 30, // Fully rounded
     marginTop: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "white",
+    backgroundColor: theme.colors.surface.default,
   },
   saveButton: {
     borderRadius: 30,
@@ -317,8 +326,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
+    ...parseTextStyle(theme.typography.Button),
     color: "#ffffff",
     letterSpacing: 0.5,
   },
