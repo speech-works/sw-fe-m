@@ -75,7 +75,7 @@ const WorldExplorationGraph = () => {
           percentChange={percentChange}
           title="Discovery Map"
           emptyTitle="Start Exploring"
-          emptySubtitle="There's a world to discover"
+          emptySubtitle="Jump in to discover the world"
           showTitle={false}
           backgroundColor="transparent" // Allow gradient to show through
           contentColor="#FFF"

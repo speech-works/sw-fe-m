@@ -16,9 +16,12 @@ import Svg, {
 
 interface AngryFaceProps extends SvgProps {
   size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
 }
 
-const AngryFace = ({ size = 48, width, height, ...props }: AngryFaceProps) => {
+const AngryFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCount, ...props }: AngryFaceProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
 

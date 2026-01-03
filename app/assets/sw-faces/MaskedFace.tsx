@@ -17,10 +17,13 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
 }
 
-const MaskedFace = ({ size = 48, ...props }: SvgIconProps) => {
+const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 

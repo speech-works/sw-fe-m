@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useEffect } from "react";
 import Svg, {
   Mask,
   Path,
@@ -14,14 +14,64 @@ import Svg, {
   SvgProps,
   Circle,
 } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
 }
 
-const ReaderFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
+const ReaderFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  loop = false,
+  repeatCount = 1,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      progress.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Review Left -> Right
+          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }) // Right -> Left
+        ),
+        loop ? -1 : repeatCount,
+        false
+      );
+    } else {
+      progress.value = withTiming(0);
+    }
+  }, [shouldAnimate, loop, repeatCount]);
+
+  const leftPupilProps = useAnimatedProps(() => ({
+    cx: 16.8 + progress.value * 2, // 16.8 -> 18.8
+  }));
+
+  const rightPupilProps = useAnimatedProps(() => ({
+    cx: 31.2 + progress.value * 2, // 31.2 -> 33.2
+  }));
+
+  const textLineProps = useAnimatedProps(() => ({
+    transform: [{ translateX: progress.value * 3 }], // Shift lines slightly right
+  }));
 
   return (
     <Svg
@@ -90,8 +140,19 @@ const ReaderFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
           fill="#fff"
           d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
         />
-        <Circle cx="16.8" cy="26" r="2.5" fill="#BF360C" />
-        <Circle cx="31.2" cy="26" r="2.5" fill="#BF360C" />
+        {/* Animated Pupils */}
+        <AnimatedCircle
+          animatedProps={leftPupilProps}
+          cy="26"
+          r="2.5"
+          fill="#BF360C"
+        />
+        <AnimatedCircle
+          animatedProps={rightPupilProps}
+          cy="26"
+          r="2.5"
+          fill="#BF360C"
+        />
 
         {/* Thick Reading Glasses (Added) */}
         <G stroke="#1B5E20" strokeWidth="4" fill="none" strokeLinecap="round">
@@ -109,17 +170,19 @@ const ReaderFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
         {/* Script/Paper Prop */}
         <Path fill="#FFF" d="M14 36 L 34 36 L 32 48 L 16 48 Z" />
         {/* Text Lines on paper */}
-        <Path
+        <AnimatedPath
           stroke="#1B5E20"
           strokeWidth="1.5"
           strokeLinecap="round"
           d="M18 40 L 30 40"
+          animatedProps={textLineProps}
         />
-        <Path
+        <AnimatedPath
           stroke="#1B5E20"
           strokeWidth="1.5"
           strokeLinecap="round"
           d="M18 44 L 28 44"
+          animatedProps={textLineProps}
         />
 
         {/* Hand holding paper (Thumb) */}

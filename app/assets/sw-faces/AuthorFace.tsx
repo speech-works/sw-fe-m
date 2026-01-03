@@ -16,10 +16,13 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
 }
 
-const AuthorFace = ({ size = 48, ...props }: SvgIconProps) => {
+const AuthorFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 

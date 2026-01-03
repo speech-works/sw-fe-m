@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useEffect } from "react";
 import Svg, {
   Mask,
   Path,
@@ -13,14 +13,87 @@ import Svg, {
   FeBlend,
   SvgProps,
 } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
 }
 
-const WarriorFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
+const WarriorFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  loop = false,
+  repeatCount = 1,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      progress.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Furrow
+          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }) // Relax
+        ),
+        loop ? -1 : repeatCount,
+        false
+      );
+    } else {
+      progress.value = withTiming(0);
+    }
+  }, [shouldAnimate, loop, repeatCount]);
+
+  const eyebrowProps = useAnimatedProps(() => ({
+    transform: [{ translateY: progress.value * 2 }], // Move down 2px
+  }));
+
+  const upperKnotProps = useAnimatedProps(() => {
+    // Pivot at (42, 16)
+    // Relaxed (0) -> Drooped (+45deg)
+    // Tight (1) -> Normal (0deg)
+    const rotate = (1 - progress.value) * 45;
+    return {
+      transform: [
+        { translateX: 42 },
+        { translateY: 16 },
+        { rotate: `${rotate}deg` },
+        { translateX: -42 },
+        { translateY: -16 },
+      ],
+    };
+  });
+
+  const lowerKnotProps = useAnimatedProps(() => {
+    // Pivot at (42, 18)
+    // Relaxed (0) -> Drooped/Open (-30deg)
+    // Tight (1) -> Normal (0deg)
+    const rotate = (1 - progress.value) * -30;
+    return {
+      transform: [
+        { translateX: 42 },
+        { translateY: 18 },
+        { rotate: `${rotate}deg` },
+        { translateX: -42 },
+        { translateY: -18 },
+      ],
+    };
+  });
 
   return (
     <Svg
@@ -83,8 +156,22 @@ const WarriorFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
         {/* Headband (Red) */}
         <Path fill="#D32F2F" d="M5 14 L 44 14 L 44 20 L 5 20 Z" />
         {/* Headband Knot/Ties */}
-        <Path stroke="#D32F2F" strokeWidth="3" fill="none" d="M42 16 L 46 12" />
-        <Path stroke="#D32F2F" strokeWidth="3" fill="none" d="M42 18 L 46 22" />
+        <AnimatedG animatedProps={upperKnotProps}>
+          <Path
+            stroke="#D32F2F"
+            strokeWidth="3"
+            fill="none"
+            d="M42 16 L 46 12"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={lowerKnotProps}>
+          <Path
+            stroke="#D32F2F"
+            strokeWidth="3"
+            fill="none"
+            d="M42 18 L 46 22"
+          />
+        </AnimatedG>
 
         {/* Eyes (White) */}
         <Path
@@ -103,18 +190,20 @@ const WarriorFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
         />
 
         {/* Determined Eyebrows (Angled Down) */}
-        <Path
-          stroke="#3E2723"
-          strokeWidth="3"
-          strokeLinecap="round"
-          d="M12 13 L 20 16"
-        />
-        <Path
-          stroke="#3E2723"
-          strokeWidth="3"
-          strokeLinecap="round"
-          d="M36 13 L 28 16"
-        />
+        <AnimatedG animatedProps={eyebrowProps}>
+          <Path
+            stroke="#3E2723"
+            strokeWidth="3"
+            strokeLinecap="round"
+            d="M12 13 L 20 16"
+          />
+          <Path
+            stroke="#3E2723"
+            strokeWidth="3"
+            strokeLinecap="round"
+            d="M36 13 L 28 16"
+          />
+        </AnimatedG>
 
         {/* Serious Mouth */}
         <Path
@@ -127,5 +216,4 @@ const WarriorFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
     </Svg>
   );
 };
-
 export default WarriorFace;

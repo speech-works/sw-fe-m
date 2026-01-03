@@ -38,7 +38,7 @@ const PracticeGrid = () => {
     {
       name: "Reading",
       subtitle: "Fluency",
-      icon: <ReaderFace size={64} />,
+      icon: <ReaderFace size={64} shouldAnimate loop />,
       route: "ReadingPracticeStack",
       // Modern Vibrant Gradient: Orange/Peach
       colors: ["#FFD8B5", "#FFAB76"],
@@ -47,7 +47,7 @@ const PracticeGrid = () => {
     {
       name: "Fun",
       subtitle: "Expression",
-      icon: <MovieFace size={64} />,
+      icon: <MovieFace size={64} shouldAnimate loop />,
       route: "FunPracticeStack",
       // Modern Vibrant Gradient: Teal/Mint
       colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
@@ -56,7 +56,7 @@ const PracticeGrid = () => {
     {
       name: "Cognitive",
       subtitle: "Focus",
-      icon: <BreathingFace size={64} />,
+      icon: <BreathingFace size={64} shouldAnimate loop />,
       route: "CognitivePracticeStack",
       // Modern Vibrant Gradient: Lavender/Purple
       colors: ["#EBCBF5", "#D8A7F0"],
@@ -65,7 +65,7 @@ const PracticeGrid = () => {
     {
       name: "Exposure",
       subtitle: "Courage",
-      icon: <WarriorFace size={64} />,
+      icon: <WarriorFace size={64} shouldAnimate loop />,
       route: "ExposureStack",
       // Modern Vibrant Gradient: Soft Red/Pink
       colors: ["#FFC8C8", "#FF9E9E"],

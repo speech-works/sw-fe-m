@@ -15,11 +15,21 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   width?: number | string;
   height?: number | string;
 }
 
-const SvgIcon = ({ width = 48, height = 48 }: SvgIconProps) => (
+const SvgIcon = ({
+  width = 48,
+  height = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => (
   <Svg width={width} height={height} viewBox="0 0 48 48" fill="none">
     <Mask
       id="mask0_2132_4802"

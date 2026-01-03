@@ -297,7 +297,7 @@ const PracticeBarChartKit: React.FC<Props> = ({
               }
             />
 
-            <ExplorerFace size={84} />
+            <ExplorerFace size={84} shouldAnimate loop />
 
             <View style={styles.emptyTextContainer}>
               <Text

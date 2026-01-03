@@ -16,6 +16,9 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
 }
 
@@ -23,7 +26,7 @@ const InspectorFace = ({
   size = 48,
   width,
   height,
-  ...props
+  shouldAnimate, loop, repeatCount, ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;

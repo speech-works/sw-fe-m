@@ -17,9 +17,19 @@ import Svg, {
 interface Angry1Props extends SvgProps {
   width?: number | string;
   height?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
 }
 
-const Angry1 = ({ width = 48, height = 48 }: Angry1Props) => (
+const Angry1 = ({
+  width = 48,
+  height = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: Angry1Props) => (
   <Svg width={width} height={height} viewBox="0 0 48 48" fill="none">
     <Mask
       id="mask0"

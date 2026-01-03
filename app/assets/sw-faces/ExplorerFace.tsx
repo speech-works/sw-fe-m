@@ -30,6 +30,9 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
 }
 
 const GlassesGroup = () => (
@@ -65,20 +68,30 @@ const GlassesGroup = () => (
   </G>
 );
 
-const ExcitedTouristMapFace = ({ size = 48, ...props }: SvgIconProps) => {
+const ExcitedTouristMapFace = ({
+  size = 48,
+  shouldAnimate = false, // Default OFF
+  loop = false,
+  repeatCount = 1,
+  ...props
+}: SvgIconProps) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 1000 }), // Idle on face
-        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.quad) }), // Orbit
-        withTiming(1, { duration: 1000 }) // Idle after land
-      ),
-      -1,
-      false
-    );
-  }, []);
+    if (shouldAnimate) {
+      progress.value = withRepeat(
+        withSequence(
+          withTiming(0, { duration: 100 }), // Initial delay
+          withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.quad) }), // Orbit
+          withTiming(0, { duration: 1000 }) // Reset
+        ),
+        loop ? -1 : repeatCount,
+        false
+      );
+    } else {
+      progress.value = withTiming(0);
+    }
+  }, [shouldAnimate, loop, repeatCount]);
 
   // --- Animation Physics Constants ---
   const P_LIFT = 0.15;

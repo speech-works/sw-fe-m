@@ -18,10 +18,13 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
 }
 
-const WiseFace_RoadCaptain = ({ size = 48, ...props }: SvgIconProps) => {
+const WiseFace_RoadCaptain = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
   // New bandana path: Wider at the start/end to show thickness wrapped around head, snug bottom curve.
   const bandanaPath = "M 4 22 C 4 10, 44 10, 44 22 Q 24 15, 4 22 Z";
   // New knot path: More defined knot shape on the right side with a small tail cue.

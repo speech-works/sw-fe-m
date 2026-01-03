@@ -18,8 +18,8 @@ import Svg, {
 
 const HeadphoneFace = ({
   size = 48,
-  ...props
-}: SvgProps & { size?: number | string }) => (
+  shouldAnimate, loop, repeatCount, ...props
+}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask id="mask_playlist_berry">

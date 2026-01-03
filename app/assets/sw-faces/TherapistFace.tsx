@@ -17,10 +17,13 @@ import Svg, {
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
 }
 
-const TherapistFace = ({ size = 48, ...props }: SvgIconProps) => {
+const TherapistFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
       <Defs>
