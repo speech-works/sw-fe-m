@@ -22,10 +22,7 @@ export default function EDPStackNavigator() {
         name="InterviewSimulationStack"
         component={InterviewEDPStackNavigator}
       />
-      <Stack.Screen
-        name="PhoneCallsStack"
-        component={PhoneCallEDPStackNavigator}
-      />
+
       <Stack.Screen
         name="SecondaryBehaviorsStack"
         component={SBEDPStackNavigator}

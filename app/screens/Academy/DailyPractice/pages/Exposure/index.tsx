@@ -54,7 +54,7 @@ const Exposure = () => {
     {
       title: "AI Phone Calls",
       subtitle: "Speak freely, without hesitation",
-      onPress: () => navigation.navigate("PhoneCallsStack"),
+      onPress: () => navigation.navigate("PhoneCallScreen" as any),
       icon: <RoboticPhoneFace size={80} />,
       colors: ["#F472B6", "#DB2777"] as const, // Pink
       disabled: false,
