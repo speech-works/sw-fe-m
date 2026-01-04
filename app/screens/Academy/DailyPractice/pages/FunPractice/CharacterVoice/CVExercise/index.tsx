@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     gap: 32,
     flexGrow: 1,
     padding: SHADOW_BUFFER,
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   topNavigationContainer: {
     position: "relative",
