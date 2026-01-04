@@ -1,18 +1,53 @@
-import React from "react";
-import { ScrollView, Text, View, StyleSheet } from "react-native";
+import React, { useState, useCallback } from "react";
+import {
+  ScrollView,
+  Text,
+  View,
+  StyleSheet,
+  RefreshControl,
+} from "react-native";
 import ScreenView from "../../components/ScreenView";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
+import ResourceStats from "../Academy/components/ResourceStats";
+import { useUserStore } from "../../stores/user";
+import { getMyUser } from "../../api/users";
+
 const Home = () => {
+  const { setUser } = useUserStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const user = await getMyUser();
+      setUser(user);
+    } catch (error) {
+      console.error("Failed to refresh home:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [setUser]);
+
   return (
     <ScreenView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.greeting}>Good Morning,</Text>
           <Text style={styles.subGreeting}>Mayank</Text>
         </View>
+
+        <ResourceStats refreshing={refreshing} />
+
+        <View style={{ height: 24 }} />
+
         <SmartRecommendationCard />
 
         <ClinicalStatsWidget />
