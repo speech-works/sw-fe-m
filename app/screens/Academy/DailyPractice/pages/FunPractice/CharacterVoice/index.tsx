@@ -83,7 +83,7 @@ const CharacterVoice = () => {
     <ScreenView style={styles.screenView}>
       {/* Background Gradient - Matching FunPractice Teal/Cyan Theme */}
       <LinearGradient
-        colors={["#CCFBF1", "#E0F2FE", "#FFF"]} // Teal 100 -> Sky 100 -> White
+        colors={["#FFF7ED", "#FFEDD5", "#FFF"]} // Orange 50 -> Orange 100 -> White
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.6 }}
         style={StyleSheet.absoluteFill}
@@ -212,7 +212,7 @@ const { width } = Dimensions.get("window");
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#F0FDFA", // Light Teal Background
+    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,

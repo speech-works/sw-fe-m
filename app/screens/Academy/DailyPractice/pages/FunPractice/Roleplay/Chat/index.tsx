@@ -42,6 +42,7 @@ import { PracticeActivityContentType } from "../../../../../../../api/practiceAc
 import { useUserStore } from "../../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import { LinearGradient } from "expo-linear-gradient";
 
 // Define the message structure
 interface ChatMessage {
@@ -233,16 +234,20 @@ const Chat = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>{title}</Text>
           </TouchableOpacity>
-          {currentActivityId && (
+
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {title}
+          </Text>
+
+          {currentActivityId ? (
             <TouchableOpacity
               onPress={toggleExpand}
               style={[
@@ -254,10 +259,12 @@ const Chat = () => {
             >
               <Icon
                 name={isExpanded ? "chevron-circle-up" : "chevron-circle-down"}
-                size={16}
-                color={theme.colors.text.default}
+                size={20}
+                color={theme.colors.library.orange[600]}
               />
             </TouchableOpacity>
+          ) : (
+            <View style={{ width: 32 }} />
           )}
         </View>
 
@@ -266,49 +273,70 @@ const Chat = () => {
             <DonePractice />
           ) : (
             <>
-              <View style={styles.briefContainer}>
-                <View style={styles.roleContainer}>
-                  <View
-                    style={[
-                      styles.roleIconContainer,
-                      { backgroundColor: theme.colors.library.purple[200] },
-                    ]}
+              {/* If no activity started (Intro Screen) - Render Matte Modern Card */}
+              {!currentActivityId && (
+                <View style={styles.introContainer}>
+                  <LinearGradient
+                    colors={["#FFF7ED", "#FFEDD5"]} // Orange Gradient (Lighter)
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.briefCard}
                   >
-                    <Icon
-                      size={20}
-                      name={selectedRole?.fontAwesomeIcon || "user"}
-                      color={theme.colors.library.purple[600]}
-                    />
-                  </View>
-                  <View style={styles.roleTextContanier}>
-                    <Text style={styles.roleTitleText}>
-                      You are the {selectedRole?.roleName || "Participant"}
-                    </Text>
-                    <Text style={styles.roleDescText}>
-                      {selectedRole?.roleDescription ||
-                        "No description available."}
-                    </Text>
-                  </View>
-                </View>
-                {character && character.length > 0 && (
-                  <View style={styles.characterContainer}>
-                    <Text style={styles.characterTitleText}>
-                      Your Character
-                    </Text>
-                    {character.map((c, i) => (
-                      <View key={i} style={styles.characterRow}>
-                        <Icon
-                          solid
-                          size={14}
-                          name="check-circle"
-                          color={theme.colors.library.orange[400]}
-                        />
-                        <Text style={styles.characterText}>{c}</Text>
+                    {/* Watermark Icon */}
+                    <View style={styles.watermarkIconContainer}>
+                      <Icon
+                        name={selectedRole?.fontAwesomeIcon || "user"}
+                        size={140}
+                        color="#EA580C"
+                      />
+                    </View>
+
+                    <View style={styles.briefContent}>
+                      <View style={styles.roleHeader}>
+                        <View style={styles.roleIconBadge}>
+                          <Icon
+                            size={20}
+                            name={selectedRole?.fontAwesomeIcon || "user"}
+                            color="#EA580C"
+                          />
+                        </View>
+                        <View style={styles.roleTextGroup}>
+                          <Text style={styles.introRoleTitle}>
+                            {selectedRole?.roleName || "Participant"}
+                          </Text>
+                          <Text style={styles.introRoleDesc}>
+                            {selectedRole?.roleDescription ||
+                              "No description available."}
+                          </Text>
+                        </View>
                       </View>
-                    ))}
-                  </View>
-                )}
-              </View>
+
+                      {character && character.length > 0 && (
+                        <View style={styles.characterTraitsContainer}>
+                          <Text style={styles.traitsHeader}>
+                            Your Persona Traits
+                          </Text>
+                          <View style={styles.traitsList}>
+                            {character.map((c, i) => (
+                              <View key={i} style={styles.traitRow}>
+                                <Icon
+                                  solid
+                                  size={14}
+                                  name="check"
+                                  color="#EA580C"
+                                />
+                                <Text style={styles.traitText}>{c}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </View>
+              )}
+
+              {/* Chat Interface or Start Button */}
               {currentActivityId ? (
                 <>
                   {messageHeight === null && (
@@ -346,7 +374,6 @@ const Chat = () => {
                         pagingEnabled={!isExpanded}
                         showsVerticalScrollIndicator={isExpanded}
                         scrollEventThrottle={16}
-                        // consider nestedScrollEnabled={true} if it's inside another ScrollView and causing issues on Android
                       >
                         {messages.map((message) => (
                           <View
@@ -455,9 +482,12 @@ const Chat = () => {
   );
 };
 
+export default Chat;
+
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#FFFFFF", // Pure White
   },
   container: {
     flex: 1,
@@ -468,31 +498,39 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: SHADOW_BUFFER,
     paddingTop: SHADOW_BUFFER,
-    paddingBottom: 60 + SHADOW_BUFFER,
+    paddingBottom: 120, // Increased for bottom nav clearance
   },
   topNavigationContainer: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SHADOW_BUFFER,
-    paddingTop: Platform.OS === "ios" ? 10 : SHADOW_BUFFER,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
-    flexShrink: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
+    textAlign: "center",
+    flex: 1,
+    marginHorizontal: 16,
   },
   messagesContainer: {
     padding: 16,
     gap: 20,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    borderRadius: 24,
+    backgroundColor: "#FFF",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   hiddenMeasureBubble: {
@@ -519,25 +557,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderTopLeftRadius: 2,
-    backgroundColor: theme.colors.library.blue[100],
+    backgroundColor: "#EFF6FF", // Blue 50
     maxWidth: "85%",
     alignSelf: "flex-start",
   },
   incomingMessageText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "#1E3A8A",
   },
   outgoingMessage: {
     padding: 16,
     borderRadius: 16,
     borderTopRightRadius: 2,
-    backgroundColor: theme.colors.library.orange[100],
+    backgroundColor: "#FFF7ED", // Orange 50
     maxWidth: "85%",
     alignSelf: "flex-end",
   },
   outgoinggMessageText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "#9A3412",
   },
   chevronContainer: {
     padding: 8,
@@ -555,14 +593,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   suggestionCard: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.surface.default,
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   selectedSuggestionCard: {
     backgroundColor: theme.colors.actionPrimary.default,
@@ -576,75 +615,86 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     textAlign: "center",
   },
-  recordingContainer: {
-    padding: 16,
+  introContainer: {
+    marginTop: 10,
+  },
+  briefCard: {
+    borderRadius: 24,
+    padding: 24,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 220,
     gap: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
     ...parseShadowStyle(theme.shadow.elevation1),
   },
-  recorderContainer: {
-    gap: 16,
-    alignItems: "center",
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    top: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
   },
-  recordTipText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+  briefContent: {
+    zIndex: 1,
+    gap: 24,
   },
-  briefContainer: {
-    padding: 16,
-    gap: 20,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-  },
-  roleContainer: {
+  roleHeader: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 16,
+    alignItems: "center",
   },
-  roleIconContainer: {
-    height: 48,
-    width: 48,
-    borderRadius: 24,
+  roleIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.8)",
     justifyContent: "center",
     alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  roleTextContanier: {
+  roleTextGroup: {
+    flex: 1,
     gap: 4,
-    flexShrink: 1,
   },
-  roleTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+  introRoleTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#9A3412",
   },
-  roleDescText: {
+  introRoleDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "#9A3412",
+    fontWeight: "500",
   },
-  characterContainer: {
+  characterTraitsContainer: {
     padding: 16,
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
     gap: 12,
-    backgroundColor: theme.colors.surface.default,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
   },
-  characterTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    marginBottom: 4,
+  traitsHeader: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    textTransform: "uppercase",
+    color: "#EA580C",
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  characterRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  traitsList: {
     gap: 8,
   },
-  characterText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    flexShrink: 1,
+  traitRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+  traitText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#9A3412",
+    flex: 1,
+    lineHeight: 20,
+    fontSize: 14,
   },
 });
-
-export default Chat;

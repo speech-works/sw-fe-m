@@ -1,3 +1,4 @@
+// Redesigned Roleplay Briefing
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -13,6 +14,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import { theme } from "../../../../../../../Theme/tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import MasonryTips from "../../../../components/MasonryTips";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -31,6 +33,7 @@ const Briefing = () => {
   const roles = roleplay.scenario.availableRoles;
 
   const moveToChat = (selectedRoleName: string) => {
+    // Navigate to Chat
     navigation.navigate("RoleplayChat", {
       id,
       title,
@@ -45,116 +48,103 @@ const Briefing = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Roleplay</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Briefing</Text>
+          <View style={{ width: 32 }} />
         </View>
 
         <CustomScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.briefCard}>
+          {/* Hero Briefing Card - Matte Modern Orange */}
+          <LinearGradient
+            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.briefCard}
+          >
+            {/* Watermark Icon */}
+            <View style={styles.watermarkIconContainer}>
+              <Icon name="theater-masks" size={120} color="#EA580C" />
+            </View>
+
             <View style={styles.infoContainer}>
-              <View style={styles.iconContainer}>
-                <Icon
-                  name="theater-masks"
-                  size={24}
-                  color={theme.colors.library.purple[400]}
-                />
-              </View>
               <View style={styles.roleTextContainer}>
                 <Text style={styles.roleplayTitleText}>{title}</Text>
                 <Text style={styles.roleplayDescText}>{description}</Text>
               </View>
-              <View style={styles.roleSelectionContainer}>
-                <Text style={styles.actionText}>Choose Your Role</Text>
-                <View style={styles.actionContainer}>
-                  {roles.map((role) => (
-                    <TouchableOpacity
-                      key={role.roleName}
-                      onPress={() => moveToChat(role.roleName)}
-                      style={[
-                        styles.actionCard,
-                        {
-                          borderColor: theme.colors.library.purple[200],
-                          backgroundColor: theme.colors.library.purple[100],
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.actionIconContainer,
-                          {
-                            backgroundColor: theme.colors.library.purple[200],
-                          },
-                        ]}
-                      >
-                        <Icon
-                          size={20}
-                          name={role.fontAwesomeIcon}
-                          color={theme.colors.library.purple[600]}
-                        />
-                      </View>
-                      <View style={styles.roleTextContanier}>
-                        <Text style={styles.roleTitleText}>
-                          {role.roleName}
-                        </Text>
-                        <Text style={styles.roleDescText}>
-                          {role.roleDescription}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+
+              {/* Scenario Details Section */}
+              <View style={styles.scenarioSection}>
+                <View style={styles.sectionHeader}>
+                  <Icon name="info-circle" size={14} color="#C2410C" />
+                  <Text style={styles.sectionTitle}>The Scenario</Text>
+                </View>
+                <Text style={styles.scenarioText}>{scenarioDescription}</Text>
+                <View style={styles.durationBadge}>
+                  <Icon name="clock" size={12} color="#1E3A8A" />
+                  <Text style={styles.durationText}>
+                    {roleplay.scenario.duration} mins
+                  </Text>
                 </View>
               </View>
             </View>
-          </View>
-          <View style={styles.scenarioCard}>
-            <View style={styles.scTextContainer}>
-              <Text style={styles.scTitleText}>Scenario Details</Text>
-              <Text style={styles.scDesctext}>{scenarioDescription}</Text>
+          </LinearGradient>
+
+          {/* Role Selection */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionHeading}>Choose Your Role</Text>
+            <View style={styles.roleList}>
+              {roles.map((role) => (
+                <TouchableOpacity
+                  key={role.roleName}
+                  onPress={() => moveToChat(role.roleName)}
+                  style={styles.roleCard}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.roleIconContainer}>
+                    <Icon
+                      size={20}
+                      name={role.fontAwesomeIcon}
+                      color="#EA580C"
+                    />
+                  </View>
+                  <View style={styles.roleInfo}>
+                    <Text style={styles.roleName}>{role.roleName}</Text>
+                    <Text style={styles.roleDesc} numberOfLines={2}>
+                      {role.roleDescription}
+                    </Text>
+                  </View>
+                  <Icon name="chevron-right" size={14} color="#94A3B8" />
+                </TouchableOpacity>
+              ))}
             </View>
-            <View style={styles.footerContainer}>
-              <Icon size={14} name="clock" color={theme.colors.text.default} />
-              <Text style={styles.footerText}>
-                Duration: {roleplay.scenario.duration} mins
-              </Text>
-            </View>
           </View>
+
+          {/* Tips Section */}
           <View style={styles.tipsContainer}>
-            {/* Header Banner */}
+            {/* Header Banner - Matte Orange */}
             <View style={styles.noteHeaderBanner}>
               <LinearGradient
-                colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
+                colors={["#FFEDD5", "#FED7AA"]} // Orange 100 -> 200
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
               <View style={styles.noteHeaderTextContainer}>
-                <Text style={styles.noteHeaderTitle}>Tips</Text>
-                <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
+                <Text style={styles.noteHeaderTitle}>Pro Tips</Text>
+                <Text style={styles.noteHeaderSubtitle}>Before you act</Text>
               </View>
               <TherapistFace size={72} />
             </View>
 
-            {/* Vertical Stack */}
-            <View style={styles.noteStack}>
-              {tips.map((tip, index) => (
-                <View key={index} style={styles.noteCard}>
-                  <View style={styles.noteIconBadge}>
-                    <Icon name="lightbulb" size={14} color="#F59E0B" solid />
-                  </View>
-                  <View style={styles.noteContent}>
-                    <Text style={styles.noteTitle}>Tip {index + 1}</Text>
-                    <Text style={styles.noteBody}>{tip}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+            {/* Masonry Tips Grid */}
+            <MasonryTips tips={tips} />
           </View>
         </CustomScrollView>
       </View>
@@ -167,152 +157,170 @@ export default Briefing;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#FFFFFF", // Pure White
   },
   container: {
     flex: 1,
-    gap: 32,
   },
   scrollContent: {
     gap: 32,
     flexGrow: 1,
     padding: SHADOW_BUFFER,
-    paddingBottom: 20,
+    paddingBottom: 120, // Increased for bottom nav clearance
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
-  //////////////////////////////////
 
+  // Hero Card
   briefCard: {
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    borderRadius: 24,
+    padding: 24,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 200,
     ...parseShadowStyle(theme.shadow.elevation1),
   },
-
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    top: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
+  },
   infoContainer: {
     gap: 24,
-    alignItems: "center",
-  },
-
-  iconContainer: {
-    height: 64,
-    width: 64,
-    borderRadius: "50%",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.colors.library.purple[100],
+    zIndex: 1,
   },
   roleTextContainer: {
-    gap: 4,
-    alignItems: "center",
+    gap: 8,
   },
   roleplayTitleText: {
-    textAlign: "center",
     ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
+    color: "#9A3412", // Deep Orange
+    fontWeight: "800",
+    fontSize: 28,
   },
   roleplayDescText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.Body),
+    color: "#9A3412",
+    lineHeight: 22,
+    fontWeight: "500",
+    opacity: 0.9,
   },
-  roleSelectionContainer: {
-    gap: 16,
+  scenarioSection: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  sectionHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    alignSelf: "stretch",
+    gap: 6,
+    marginBottom: 4,
   },
-  actionText: {
+  sectionTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    textTransform: "uppercase",
+    color: "#1E40AF",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  scenarioText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#1E3A8A",
+    lineHeight: 20,
+  },
+  durationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(30, 64, 175, 0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  durationText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#1E3A8A",
+    fontWeight: "600",
+  },
+
+  // Role Selection
+  sectionContainer: {
+    gap: 16,
+  },
+  sectionHeading: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "700",
+    paddingHorizontal: 8,
   },
-  actionContainer: {
+  roleList: {
     gap: 12,
-    alignSelf: "stretch",
   },
-  actionCard: {
-    padding: 20,
+  roleCard: {
     flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 20,
     gap: 16,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  actionIconContainer: {
-    height: 48,
+  roleIconContainer: {
     width: 48,
-    borderRadius: "50%",
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFF7ED",
     justifyContent: "center",
     alignItems: "center",
   },
-  roleTextContanier: {
-    gap: 4,
-    flexShrink: 1,
-  },
-  roleTitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: 500,
-  },
-  roleDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-
-  /////////////////////////////////
-
-  scenarioCard: {
-    padding: 24,
-    backgroundColor: theme.colors.surface.elevated,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    borderRadius: 16,
-    gap: 24,
-    //...parseShadowStyle(theme.shadow.elevation1),
-  },
-  scTextContainer: {
+  roleInfo: {
+    flex: 1,
     gap: 4,
   },
-  scTitleText: {
+  roleName: {
     ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 16,
     color: theme.colors.text.title,
   },
-  scDesctext: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  footerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  footerText: {
+  roleDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
 
-  /////////////////////////////////
-
+  // Tips
   tipsContainer: {
-    paddingHorizontal: 0,
     gap: 0,
   },
   noteHeaderBanner: {
-    marginHorizontal: 0,
     marginTop: 10,
     marginBottom: 24,
     borderRadius: 24,
@@ -333,55 +341,20 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     fontSize: 24,
     fontWeight: "800",
-    color: "#881337", // Deep pink/red text
+    color: "#9A3412", // Deep Orange
   },
   noteHeaderSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "#9F1239",
-    fontWeight: "500",
+    color: "#C2410C",
+    fontWeight: "600",
   },
   noteStack: {
-    paddingHorizontal: 0,
     gap: 16,
     paddingBottom: 20,
   },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
+  tipsScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     gap: 16,
-    alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  noteIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEF3C7", // faint yellow
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  noteContent: {
-    flex: 1,
-    gap: 4,
-  },
-  noteTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: "#171717",
-  },
-  noteBody: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#525252",
-    lineHeight: 22,
   },
 });

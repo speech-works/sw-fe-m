@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
-  ScrollView,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -53,6 +52,7 @@ import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { readingTips } from "../data";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import MasonryTips from "../../../components/MasonryTips";
 
 const StoryPractice = () => {
   const chorusManagerRef = useRef(new ChorusManager());
@@ -215,10 +215,17 @@ const StoryPractice = () => {
         />
       </View>
       <View style={styles.container}>
-        <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-          <Text style={styles.topNavigationText}>Story</Text>
-        </TouchableOpacity>
+        <View style={styles.topNavigationContainer}>
+          <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+            <Icon
+              name="chevron-left"
+              size={16}
+              color={theme.colors.text.title}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Story</Text>
+          <View style={{ width: 32 }} />
+        </View>
 
         {practiceComplete ? (
           <DonePractice />
@@ -348,20 +355,8 @@ const StoryPractice = () => {
               <TherapistFace size={72} />
             </View>
 
-            {/* Vertical Stack */}
-            <View style={styles.noteStack}>
-              {readingTips.story.map((hint, index) => (
-                <View key={index} style={styles.noteCard}>
-                  <View style={styles.noteIconBadge}>
-                    <Icon name="lightbulb" size={14} color="#F59E0B" solid />
-                  </View>
-                  <View style={styles.noteContent}>
-                    <Text style={styles.noteTitle}>Tip {index + 1}</Text>
-                    <Text style={styles.noteBody}>{hint}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+            {/* Masonry Tips Grid */}
+            <MasonryTips tips={readingTips.story} />
 
             <TouchableOpacity
               activeOpacity={0.9}
@@ -412,17 +407,30 @@ const styles = StyleSheet.create({
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
+    paddingBottom: 120,
+    flexGrow: 1,
   },
-  topNavigation: {
-    position: "relative",
-    top: 0,
+  topNavigationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigationText: {
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   readingPageContainer: {
     padding: 24,
@@ -527,26 +535,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FFF",
   },
-  noteStack: {
-    paddingHorizontal: 20,
+  tipsScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     gap: 16,
-    paddingBottom: 20,
-  },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
   },
   noteIconBadge: {
     width: 32,

@@ -113,14 +113,17 @@ const Reframe = () => {
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        <TouchableOpacity style={styles.topNavigation} onPress={onBackPress}>
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.default}
-          />
-          <Text style={styles.topNavigationText}>Reframe Thoughts</Text>
-        </TouchableOpacity>
+        <View style={styles.topNavigationContainer}>
+          <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+            <Icon
+              name="chevron-left"
+              size={16}
+              color={theme.colors.text.title}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Reframe Thoughts</Text>
+          <View style={{ width: 32 }} />
+        </View>
         <CustomScrollView contentContainerStyle={styles.scrollView}>
           <>
             {isDone ? (
@@ -261,21 +264,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContainer: { gap: 32 },
-  topNavigation: {
-    position: "relative",
-    top: 0,
-    display: "flex",
+  topNavigationContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigationText: {
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   scrollView: {
     gap: 32,
     padding: SHADOW_BUFFER,
+    paddingBottom: 120,
+    flexGrow: 1,
   },
   negativeContainer: {
     padding: 24,

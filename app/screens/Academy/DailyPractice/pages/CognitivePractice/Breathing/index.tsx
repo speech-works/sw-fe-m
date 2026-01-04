@@ -10,6 +10,7 @@ import {
   parseShadowStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { BreathingHalo } from "./components/BreathingHalo";
+import MasonryTips from "../../../components/MasonryTips";
 
 import ProgressBar from "../../../../../../components/ProgressBar";
 import Button from "../../../../../../components/Button";
@@ -162,26 +163,16 @@ const Breathing = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Breathing</Text>
           </TouchableOpacity>
-
-          {/* Single button toggles both music + breath - Only show if not done */}
-          {!isDone && currentActivityId && (
-            <TouchableOpacity onPress={() => setMute((prev) => !prev)}>
-              <Icon
-                name={mute ? "volume-mute" : "volume-up"}
-                size={16}
-                color={theme.colors.actionPrimary.default}
-              />
-            </TouchableOpacity>
-          )}
+          <Text style={styles.headerTitle}>Breathing</Text>
+          <View style={{ width: 32 }} />
         </View>
 
         <CustomScrollView contentContainerStyle={styles.scrollContainer}>
@@ -255,29 +246,14 @@ const Breathing = () => {
                     <TherapistFace size={72} />
                   </View>
 
-                  {/* Vertical Stack */}
-                  <View style={styles.noteStack}>
-                    {[
+                  {/* Masonry Tips Grid */}
+                  <MasonryTips
+                    tips={[
                       "Take deep breaths before starting. Feel your diaphragm expand.",
                       "Maintain a relaxed facial posture. Release jaw tension.",
                       "It's okay to take your time. Focus on smooth transitions.",
-                    ].map((hint, index) => (
-                      <View key={index} style={styles.noteCard}>
-                        <View style={styles.noteIconBadge}>
-                          <Icon
-                            name="lightbulb"
-                            size={14}
-                            color="#F59E0B"
-                            solid
-                          />
-                        </View>
-                        <View style={styles.noteContent}>
-                          <Text style={styles.noteTitle}>Tip {index + 1}</Text>
-                          <Text style={styles.noteBody}>{hint}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
+                    ]}
+                  />
                 </View>
                 <TouchableOpacity
                   activeOpacity={0.9}
@@ -322,25 +298,29 @@ const styles = StyleSheet.create({
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
-    height: "100%",
+    flexGrow: 1,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   haloContainer: {
     justifyContent: "center",

@@ -2,6 +2,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../../Theme/tokens";
+import { LinearGradient } from "expo-linear-gradient";
+import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import MasonryTips from "../../../../components/MasonryTips";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -70,50 +73,104 @@ const Briefing = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Interview</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Interview</Text>
+          <View style={{ width: 32 }} />
         </View>
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.innerContainer}>
-            <View style={styles.briefContainer}>
-              <View style={styles.iconContainer}>
-                <Icon
-                  size={24}
-                  name={
-                    interview.practiceData?.scenario.availableRole
-                      .fontAwesomeIcon || "user-tie"
-                  }
-                  color={theme.colors.library.blue[400]}
-                />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>{interview.name}</Text>
-                <Text style={styles.descText}>{interview.description}</Text>
-              </View>
+
+        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Hero Briefing Card - Matte Modern Orange */}
+          <LinearGradient
+            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.briefCard}
+          >
+            {/* Watermark Icon */}
+            <View style={styles.watermarkIconContainer}>
+              <Icon
+                name={
+                  interview.practiceData?.scenario.availableRole
+                    .fontAwesomeIcon || "user-tie"
+                }
+                size={120}
+                color="#EA580C"
+              />
             </View>
-            <View style={styles.characterContainer}>
-              <Text style={styles.characterTitleText}>Your Character</Text>
-              {interview.practiceData?.stage.userCharacter.map((c, i) => (
-                <View key={i} style={styles.characterRow}>
-                  <Icon
-                    solid
-                    size={14}
-                    name="check-circle"
-                    color={theme.colors.library.orange[400]}
-                  />
-                  <Text style={styles.characterText}>{c}</Text>
+
+            <View style={styles.infoContainer}>
+              <View style={styles.roleTextContainer}>
+                <Text style={styles.roleplayTitleText}>{interview.name}</Text>
+                <Text style={styles.roleplayDescText}>
+                  {interview.description}
+                </Text>
+              </View>
+
+              {/* Scenario Details Section */}
+              <View style={styles.scenarioSection}>
+                <View style={styles.sectionHeader}>
+                  <Icon name="info-circle" size={14} color="#C2410C" />
+                  <Text style={styles.sectionTitle}>The Scenario</Text>
                 </View>
-              ))}
+                <Text style={styles.scenarioText}>
+                  {interview.practiceData?.scenario.scenarioDetails ||
+                    "Prepare for your simulated interview session."}
+                </Text>
+              </View>
             </View>
+          </LinearGradient>
+
+          {/* Tips Section */}
+          <View style={styles.tipsContainer}>
+            {/* Header Banner - Matte Orange */}
+            <View style={styles.noteHeaderBanner}>
+              <LinearGradient
+                colors={["#FFEDD5", "#FED7AA"]} // Orange 100 -> 200
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.noteHeaderTextContainer}>
+                <Text style={styles.noteHeaderTitle}>Pro Tips</Text>
+                <Text style={styles.noteHeaderSubtitle}>Your Character</Text>
+              </View>
+              <TherapistFace size={72} />
+            </View>
+
+            {/* Masonry Tips Grid */}
+            <MasonryTips
+              tips={interview.practiceData?.stage.userCharacter || []}
+            />
           </View>
-          <Button text="Begin Interview" onPress={markActivityStart} />
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={markActivityStart}
+            style={[
+              styles.startButton,
+              { marginHorizontal: 20, marginTop: 10 },
+            ]}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>Begin Interview</Text>
+              <Icon name="arrow-right" size={16} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
         </CustomScrollView>
       </View>
     </ScreenView>
@@ -130,82 +187,147 @@ const styles = StyleSheet.create({
     gap: 32,
     flex: 1,
   },
-  scrollContainer: {
+  scrollContent: {
     gap: 32,
+    flexGrow: 1,
     padding: SHADOW_BUFFER,
+    paddingBottom: 120,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
-  innerContainer: {
+
+  // Hero Card
+  briefCard: {
+    borderRadius: 24,
     padding: 24,
-    gap: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 200,
     ...parseShadowStyle(theme.shadow.elevation1),
-    //shadowOpacity: 1,
+    marginHorizontal: 0,
   },
-  briefContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    top: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
   },
-  iconContainer: {
-    height: 64,
-    width: 64,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: "50%",
-    backgroundColor: theme.colors.library.blue[100],
+  infoContainer: {
+    gap: 24,
+    zIndex: 1,
   },
-  textContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+  roleTextContainer: {
     gap: 8,
   },
-  titleText: {
+  roleplayTitleText: {
     ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
+    color: "#9A3412", // Deep Orange
+    fontWeight: "800",
+    fontSize: 28,
   },
-  descText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  characterContainer: {
-    padding: 16,
-    borderRadius: 16,
-    gap: 12,
-    backgroundColor: theme.colors.surface.default,
-  },
-  characterTitleText: {
+  roleplayDescText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    color: "#9A3412",
+    lineHeight: 22,
+    fontWeight: "500",
+    opacity: 0.9,
   },
-  characterRow: {
+  scenarioSection: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    marginBottom: 4,
   },
-  characterText: {
+  sectionTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    flexShrink: 1,
+    textTransform: "uppercase",
+    color: "#1E40AF",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  scenarioText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#1E3A8A",
+    lineHeight: 20,
+  },
+
+  // Tips
+  tipsContainer: {
+    gap: 0,
+  },
+  noteHeaderBanner: {
+    marginTop: 10,
+    marginBottom: 24,
+    borderRadius: 24,
+    height: 120,
+    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    overflow: "hidden",
+    position: "relative",
+  },
+  noteHeaderTextContainer: {
+    flex: 1,
+    gap: 8,
+    zIndex: 2,
+  },
+  noteHeaderTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#9A3412", // Deep Orange
+  },
+  noteHeaderSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#C2410C",
+    fontWeight: "600",
+  },
+  startButton: {
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 40,
+  },
+  startButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
+  },
+  startButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontWeight: "700",
   },
 });

@@ -4,6 +4,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../../Theme/tokens";
 import { LinearGradient } from "expo-linear-gradient";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import MasonryTips from "../../../../components/MasonryTips";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -69,68 +70,77 @@ const Briefing = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Social Challenge</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Social Challenge</Text>
+          <View style={{ width: 32 }} />
         </View>
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Header Banner */}
-          <View style={styles.noteHeaderBanner}>
-            <LinearGradient
-              colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.noteHeaderTextContainer}>
-              <Text style={styles.noteHeaderTitle}>Briefing</Text>
-              <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
-            </View>
-            <TherapistFace size={72} />
-          </View>
 
-          {/* Scenario Info Card */}
-          <View style={styles.noteStack}>
-            <View style={styles.noteCard}>
-              <View
-                style={[
-                  styles.noteIconBadge,
-                  { backgroundColor: theme.colors.library.blue[100] },
-                ]}
-              >
-                <Icon
-                  size={14}
-                  name={
-                    sc.practiceData?.scenario.availableRole.fontAwesomeIcon ||
-                    "user-tie"
-                  }
-                  color={theme.colors.library.blue[400]}
-                />
-              </View>
-              <View style={styles.noteContent}>
-                <Text style={styles.noteTitle}>{sc.name}</Text>
-                <Text style={styles.noteBody}>{sc.description}</Text>
-              </View>
+        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Hero Briefing Card - Matte Modern Orange */}
+          <LinearGradient
+            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.briefCard}
+          >
+            {/* Watermark Icon */}
+            <View style={styles.watermarkIconContainer}>
+              <Icon
+                name={
+                  sc.practiceData?.scenario.availableRole.fontAwesomeIcon ||
+                  "user-tie"
+                }
+                size={120}
+                color="#EA580C"
+              />
             </View>
 
-            {/* Character Tips */}
-            {sc.practiceData?.stage.userCharacter.map((c, i) => (
-              <View key={i} style={styles.noteCard}>
-                <View style={styles.noteIconBadge}>
-                  <Icon name="lightbulb" size={14} color="#F59E0B" solid />
-                </View>
-                <View style={styles.noteContent}>
-                  <Text style={styles.noteTitle}>Tip {i + 1}</Text>
-                  <Text style={styles.noteBody}>{c}</Text>
-                </View>
+            <View style={styles.infoContainer}>
+              <View style={styles.roleTextContainer}>
+                <Text style={styles.roleplayTitleText}>{sc.name}</Text>
+                <Text style={styles.roleplayDescText}>{sc.description}</Text>
               </View>
-            ))}
+
+              {/* Scenario Details Section */}
+              <View style={styles.scenarioSection}>
+                <View style={styles.sectionHeader}>
+                  <Icon name="info-circle" size={14} color="#C2410C" />
+                  <Text style={styles.sectionTitle}>The Scenario</Text>
+                </View>
+                <Text style={styles.scenarioText}>
+                  {sc.practiceData?.scenario.scenarioDetails ||
+                    "Navigate this social situation with confidence."}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Tips Section */}
+          <View style={styles.tipsContainer}>
+            {/* Header Banner - Matte Orange */}
+            <View style={styles.noteHeaderBanner}>
+              <LinearGradient
+                colors={["#FFEDD5", "#FED7AA"]} // Orange 100 -> 200
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.noteHeaderTextContainer}>
+                <Text style={styles.noteHeaderTitle}>Pro Tips</Text>
+                <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
+              </View>
+              <TherapistFace size={72} />
+            </View>
+
+            {/* Masonry Tips Grid */}
+            <MasonryTips tips={sc.practiceData?.stage.userCharacter || []} />
           </View>
 
           <TouchableOpacity
@@ -170,34 +180,108 @@ const styles = StyleSheet.create({
     gap: 32,
     flex: 1,
   },
-  scrollContainer: {
+  scrollContent: {
     gap: 32,
+    flexGrow: 1,
     padding: SHADOW_BUFFER,
+    paddingBottom: 120,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+
+  // Hero Card
+  briefCard: {
+    borderRadius: 24,
+    padding: 24,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 200,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginHorizontal: 0,
+  },
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    top: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
+  },
+  infoContainer: {
+    gap: 24,
+    zIndex: 1,
+  },
+  roleTextContainer: {
+    gap: 8,
+  },
+  roleplayTitleText: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#9A3412", // Deep Orange
+    fontWeight: "800",
+    fontSize: 28,
+  },
+  roleplayDescText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#9A3412",
+    lineHeight: 22,
+    fontWeight: "500",
+    opacity: 0.9,
+  },
+  scenarioSection: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    textTransform: "uppercase",
+    color: "#1E40AF",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  scenarioText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#1E3A8A",
+    lineHeight: 20,
+  },
+
+  // Tips
+  tipsContainer: {
+    gap: 0,
   },
   noteHeaderBanner: {
-    marginHorizontal: 0,
     marginTop: 10,
     marginBottom: 24,
     borderRadius: 24,
-    height: 120, // tall banner
+    height: 120,
     padding: 24,
     flexDirection: "row",
     alignItems: "center",
@@ -214,56 +298,12 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     fontSize: 24,
     fontWeight: "800",
-    color: "#881337", // Deep pink/red text
+    color: "#9A3412", // Deep Orange
   },
   noteHeaderSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "#9F1239",
-    fontWeight: "500",
-  },
-  noteStack: {
-    paddingHorizontal: 0,
-    gap: 16,
-    paddingBottom: 20,
-  },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  noteIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEF3C7", // faint yellow
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  noteContent: {
-    flex: 1,
-    gap: 4,
-  },
-  noteTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: "#171717",
-  },
-  noteBody: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#525252",
-    lineHeight: 22,
+    color: "#C2410C",
+    fontWeight: "600",
   },
   startButton: {
     borderRadius: 20,

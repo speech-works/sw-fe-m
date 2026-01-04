@@ -13,6 +13,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
+import MasonryTips from "../../../components/MasonryTips";
 
 import Button from "../../../../../../components/Button";
 import DonePractice from "../../../components/DonePractice";
@@ -125,15 +126,16 @@ const Twister = () => {
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Tongue Twister</Text>
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>Tongue Twister</Text>
+          <View style={{ width: 32 }} />
         </View>
 
         {/* Main content area, excluding the absolutely positioned chevron */}
@@ -160,27 +162,10 @@ const Twister = () => {
                   <TherapistFace size={72} />
                 </View>
 
-                {/* Vertical Stack */}
-                <View style={styles.noteStack}>
-                  {twisters[currentIndex]?.tongueTwisterData?.hints.map(
-                    (hint, index) => (
-                      <View key={index} style={styles.noteCard}>
-                        <View style={styles.noteIconBadge}>
-                          <Icon
-                            name="lightbulb"
-                            size={14}
-                            color="#F59E0B"
-                            solid
-                          />
-                        </View>
-                        <View style={styles.noteContent}>
-                          <Text style={styles.noteTitle}>Tip {index + 1}</Text>
-                          <Text style={styles.noteBody}>{hint}</Text>
-                        </View>
-                      </View>
-                    )
-                  )}
-                </View>
+                {/* Horizontal Carousel */}
+                <MasonryTips
+                  tips={twisters[currentIndex]?.tongueTwisterData?.hints || []}
+                />
               </View>
               {currentActivityId ? (
                 <View style={styles.mainContainer}>
@@ -267,24 +252,29 @@ const styles = StyleSheet.create({
     gap: 32,
     flexGrow: 1, // Allow content to grow
     padding: SHADOW_BUFFER,
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   tipsContainer: {
     paddingHorizontal: 0,
@@ -321,49 +311,10 @@ const styles = StyleSheet.create({
     color: "#9F1239",
     fontWeight: "500",
   },
-  noteStack: {
-    paddingHorizontal: 0,
+  tipsScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     gap: 16,
-    paddingBottom: 20,
-  },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  noteIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEF3C7", // faint yellow
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  noteContent: {
-    flex: 1,
-    gap: 4,
-  },
-  noteTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: "#171717",
-  },
-  noteBody: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#525252",
-    lineHeight: 22,
   },
   startButton: {
     borderRadius: 20,

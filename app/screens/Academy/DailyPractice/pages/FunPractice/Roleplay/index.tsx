@@ -32,13 +32,13 @@ import {
 const Roleplay = () => {
   const [roleplayList, setRoleplayList] = useState<FunPractice[]>([]);
 
-  // Matte Modern Palette - Blue/Indigo/Violet Family
+  // Matte Modern Palette - Orange/Warm Family
   const RP_THEMES = [
-    { bg: ["#DBEAFE", "#BFDBFE"], text: "#1E40AF", icon: "#2563EB" }, // Blue: Soft -> Deep Contrast
-    { bg: ["#EDE9FE", "#DDD6FE"], text: "#5B21B6", icon: "#7C3AED" }, // Violet
-    { bg: ["#E0E7FF", "#C7D2FE"], text: "#3730A3", icon: "#4F46E5" }, // Indigo
-    { bg: ["#F1F5F9", "#E2E8F0"], text: "#334155", icon: "#475569" }, // Slate
-    { bg: ["#CFFAFE", "#A5F3FC"], text: "#155E75", icon: "#0891B2" }, // Cyan
+    { bg: ["#FFF7ED", "#FFEDD5"], text: "#9A3412", icon: "#EA580C" }, // Orange: Soft -> Deep Contrast
+    { bg: ["#FEF2F2", "#FEE2E2"], text: "#991B1B", icon: "#EF4444" }, // Red
+    { bg: ["#FFFBEB", "#FEF3C7"], text: "#92400E", icon: "#D97706" }, // Amber
+    { bg: ["#FAFAFA", "#F5F5F5"], text: "#525252", icon: "#737373" }, // Neutral Warm
+    { bg: ["#FFF1F2", "#FFE4E6"], text: "#9F1239", icon: "#F43F5E" }, // Rose
   ];
 
   // Pseudo-random bubble variations (Shared with CharacterVoice for consistency)
@@ -79,9 +79,9 @@ const Roleplay = () => {
     >();
   return (
     <ScreenView style={styles.screenView}>
-      {/* Background Gradient - Soft Indigo/Blue Aurora */}
+      {/* Background Gradient - Soft Orange Aurora */}
       <LinearGradient
-        colors={["#EEF2FF", "#E0E7FF", "#FFF"]} // Indigo 50 -> Indigo 100 -> White
+        colors={["#FFF7ED", "#FFEDD5", "#FFF"]} // Orange 50 -> Orange 100 -> White
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.6 }}
         style={StyleSheet.absoluteFill}
@@ -99,7 +99,7 @@ const Roleplay = () => {
               color={theme.colors.text.title}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Roleplay</Text>
+          <Text style={styles.headerTitle}>Roleplay *</Text>
           <View style={{ width: 32 }} />
         </View>
 
@@ -108,7 +108,7 @@ const Roleplay = () => {
           <View style={styles.heroSection}>
             <View style={styles.heroIconContainer}>
               <LinearGradient
-                colors={["#60A5FA", "#2563EB"]} // Blue Gradient
+                colors={["#FDBA74", "#EA580C"]} // Orange Gradient
                 style={StyleSheet.absoluteFill}
               />
               <Icon name="theater-masks" size={32} color="#FFF" />
@@ -203,7 +203,7 @@ export default Roleplay;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-    backgroundColor: "#60A5FA",
+    backgroundColor: "#FB923C",
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 2,
     borderColor: "#FFF",

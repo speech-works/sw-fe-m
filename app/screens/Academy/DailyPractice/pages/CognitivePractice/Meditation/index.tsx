@@ -15,6 +15,7 @@ import CustomScrollView, {
 import ProgressBar from "../../../../../../components/ProgressBar";
 import Button from "../../../../../../components/Button";
 import MeditationCard from "./components/MeditationCard";
+import MasonryTips from "../../../components/MasonryTips";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
   CognitivePractice,
@@ -282,16 +283,16 @@ const Meditation = () => {
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.topNavigation}
+              style={styles.backButton}
             >
               <Icon
                 name="chevron-left"
                 size={16}
-                color={theme.colors.text.default}
+                color={theme.colors.text.title}
               />
-              <Text style={styles.topNavigationText}>Guided Meditation</Text>
             </TouchableOpacity>
-            {!isDone && (
+            <Text style={styles.headerTitle}>Guided Meditation</Text>
+            {!isDone ? (
               <TouchableOpacity
                 onPress={() => {
                   setMute((old) => !old);
@@ -303,6 +304,8 @@ const Meditation = () => {
                   color={theme.colors.actionPrimary.default}
                 />
               </TouchableOpacity>
+            ) : (
+              <View style={{ width: 16 }} />
             )}
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
@@ -338,30 +341,17 @@ const Meditation = () => {
                     <TherapistFace size={72} />
                   </View>
 
-                  {/* Vertical Stack */}
-                  <View style={styles.noteStack}>
-                    {selectedIndex !== null &&
-                      meditationScenarios[
-                        selectedIndex
-                      ]?.guidedMeditationData?.tips.map((tip, index) => (
-                        <View style={styles.noteCard} key={index}>
-                          <View style={styles.noteIconBadge}>
-                            <Icon
-                              name="lightbulb"
-                              size={14}
-                              color="#F59E0B"
-                              solid
-                            />
-                          </View>
-                          <View style={styles.noteContent}>
-                            <Text style={styles.noteTitle}>
-                              Tip {index + 1}
-                            </Text>
-                            <Text style={styles.noteBody}>{tip}</Text>
-                          </View>
-                        </View>
-                      ))}
-                  </View>
+                  {/* Masonry Tips Grid */}
+                  {selectedIndex !== null &&
+                  meditationScenarios[selectedIndex]?.guidedMeditationData
+                    ?.tips ? (
+                    <MasonryTips
+                      tips={
+                        meditationScenarios[selectedIndex]?.guidedMeditationData
+                          ?.tips || []
+                      }
+                    />
+                  ) : null}
                 </View>
                 <View style={styles.progressContainer}>
                   <View style={styles.progressTitle}>
@@ -382,7 +372,7 @@ const Meditation = () => {
                   onPress={handleStartCompleteExercise}
                   style={[
                     styles.startButton,
-                    { marginHorizontal: 20, marginTop: 10 },
+                    { marginHorizontal: 20, marginTop: 0 }, // Reduced marginTop as grid handles padding
                   ]}
                 >
                   <LinearGradient
@@ -494,20 +484,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24, // Matched others
+    paddingVertical: 10,
   },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
+    paddingBottom: 120,
+    flexGrow: 1,
   },
 
   tipsContainer: {
