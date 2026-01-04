@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -66,19 +67,27 @@ const PhoneCall = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
+        <View style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={["#FFF7ED", "#FFF7ED", "#FFFFFF"] as const}
+            locations={[0, 0.6, 1]}
+            style={{ flex: 1 }}
+          />
+        </View>
         <View style={styles.container}>
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.topNavigation}
+              style={styles.backButton}
             >
               <Icon
                 name="chevron-left"
                 size={16}
-                color={theme.colors.text.default}
+                color={theme.colors.text.title}
               />
-              <Text style={styles.topNavigationText}>AI Phone Calls</Text>
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>AI Phone Calls</Text>
+            <View style={{ width: 32 }} />
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
             {selectedScenario && (
@@ -189,22 +198,26 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
   footerView: {
     position: "absolute",
