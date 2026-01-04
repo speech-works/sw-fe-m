@@ -7,9 +7,12 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Animated, // <-- IMPORTED
+  Modal, // <-- IMPORTED
 } from "react-native";
 // Import icons
-import Icon from "react-native-vector-icons/FontAwesome5";
+import Icon from "react-native-vector-icons/Feather"; // For UI Controls
+import FAIcon from "react-native-vector-icons/FontAwesome5"; // For Scenario Icon (compatibility)
 
 // These imports are correct for a React Native environment (Expo)
 import {
@@ -18,6 +21,7 @@ import {
   InterruptionModeIOS,
   AVPlaybackStatus,
 } from "expo-av";
+import { LinearGradient } from "expo-linear-gradient"; // <-- IMPORTED
 // These imports are correct for a React Native environment (Native Modules)
 import {
   InputAudioStream,
@@ -372,6 +376,7 @@ const CallingWidget: React.FC<Props> = ({
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false
   );
+  const [showHeadsetPrompt, setShowHeadsetPrompt] = useState(false);
 
   // --- NEW UI STATE ---
   const [isMuted, setIsMuted] = useState(false);
@@ -533,16 +538,20 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  // --- ⬇️ MODIFIED: `updateHeadsetStatus` now sets status text ⬇️ ---
-  const updateHeadsetStatus = async (): Promise<boolean> => {
+  // --- ⬇️ MODIFIED: `updateHeadsetStatus` with prompt control ⬇️ ---
+  const updateHeadsetStatus = async (
+    shouldShowPrompt = false
+  ): Promise<boolean> => {
     if (Platform.OS !== "web") {
       const connected = await checkHeadsetConnected();
       setHeadsetConnected(connected);
       // Set status based on connection AND call state
       if (!connected && audioState.current === "IDLE") {
         setStatus("PLEASE CONNECT YOUR HEADPHONES");
+        if (shouldShowPrompt) setShowHeadsetPrompt(true); // Only show if requested
       } else if (connected && audioState.current === "IDLE") {
         setStatus("Press to start call");
+        setShowHeadsetPrompt(false);
       }
       return connected;
     } else {
@@ -669,7 +678,7 @@ const CallingWidget: React.FC<Props> = ({
 
   // --- ⬇️ MODIFIED: `useEffect` simplified ⬇️ ---
   useEffect(() => {
-    updateHeadsetStatus(); // This will set the correct initial status
+    updateHeadsetStatus(false); // Check status but don't popup yet
     return () => {
       try {
         ws.current?.close();
@@ -1036,6 +1045,16 @@ const CallingWidget: React.FC<Props> = ({
       );
       return;
     }
+
+    if (Platform.OS !== "web") {
+      // Check headset *before* changing state to STARTING
+      const connected = await updateHeadsetStatus(true); // <-- Show prompt if disconnected
+      if (!connected) {
+        console.log("Call blocked: No headset connected.");
+        return;
+      }
+    }
+
     console.log("[State] Setting state to STARTING");
     audioState.current = "STARTING";
 
@@ -1045,16 +1064,6 @@ const CallingWidget: React.FC<Props> = ({
     outgoingMicBuffer.current = [];
 
     setStatus("Preparing audio...");
-    if (Platform.OS !== "web") {
-      const connected = await updateHeadsetStatus(); // <-- Get status directly
-      if (!connected) {
-        // <-- Check returned value
-        console.log("Call blocked: No headset connected.");
-        // Status is already set by updateHeadsetStatus
-        audioState.current = "IDLE";
-        return;
-      }
-    }
 
     // --- NEW: Reset UI State ---
     setTranscript([]); // Clear previous transcript
@@ -1515,333 +1524,498 @@ const CallingWidget: React.FC<Props> = ({
     (headsetConnected && audioState.current === "IDLE");
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
+  // We use the raw scenarioIcon from backend (FontAwesome) for the Orb
+  // to ensure it matches the list and isn't generic.
+  const orbIconName = scenarioIcon || "robot";
+
+  // --- ⬇️ ADDED: Animation for Visualizer ⬇️ ---
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    if (turn === "agent" || audioState.current === "STARTED") {
+      pulse.start();
+    } else {
+      pulse.stop();
+      pulseAnim.setValue(1); // Reset
+    }
+    return () => pulse.stop();
+  }, [turn, audioState.current]);
+  // --- ⬆️ END ADDED ⬆️ ---
+
   // --- ⬇️ MODIFIED: Render function updated ⬇️ ---
   return (
     <View style={styles.container}>
-      {/* --- AVATAR AREA --- */}
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatarIconWrapper}>
-          <Icon
-            name={scenarioIcon}
-            size={100}
-            color={theme.colors.text.title}
+      {/* Headphone Status Indicator (Top Center) */}
+      {!isCalling && (
+        <View style={styles.headphoneIndicator}>
+          <FAIcon
+            name="headphones-alt"
+            size={14}
+            color={headsetConnected ? "#10B981" : "#EF4444"}
           />
-          <View
-            style={[
-              styles.micIconCircle,
-              turn === "agent" && styles.micIconActive, // Green when agent speaks
-            ]}
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              fontWeight: "500",
+            }}
           >
-            <Icon
-              name="volume-up"
-              size={14}
-              color={
-                turn === "agent" ? "#FFF" : theme.colors.actionPrimary.default
-              }
+            {headsetConnected ? "Headset Ready" : "No Headset"}
+          </Text>
+        </View>
+      )}
+
+      {/* Spacer to push content center */}
+      <View style={{ flex: 1 }} />
+
+      {/* --- VISUALIZER AREA --- */}
+      <View style={styles.visualizerContainer}>
+        {/* Outer Glow Halo */}
+        <Animated.View
+          style={[
+            styles.orbGlow,
+            {
+              transform: [{ scale: pulseAnim }],
+              opacity: turn === "agent" ? 0.6 : 0.2,
+            },
+          ]}
+        />
+        {/* Core Orb - Modernized with Gradient & Layered Icon */}
+        {/* Core Orb - Nested structure for Shadow + Clipping */}
+        <View style={styles.orbWrapper}>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.orbMask}
+          >
+            {/* Background Reflection Icon */}
+            <FAIcon
+              name={orbIconName}
+              size={80}
+              color="rgba(255,255,255,0.1)"
+              solid
+              style={{ position: "absolute" }}
             />
+            {/* Main Icon */}
+            <FAIcon name={orbIconName} size={48} color="#FFF" solid />
+          </LinearGradient>
+        </View>
+
+        {/* Status Text under Orb */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusTextModern}>
+            {turn === "user"
+              ? "Listening..."
+              : isCalling
+              ? status
+              : "Ready to Connect"}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ flex: 1 }} />
+
+      {/* --- HEADSET PROMPT OVERLAY --- */}
+      <Modal
+        visible={showHeadsetPrompt}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true} // Covers status bar on Android
+      >
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptGlassBox}>
+            <Icon
+              name="headphones-alt"
+              size={40}
+              color={theme.colors.actionPrimary.default}
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.promptTitle}>Headphones Required</Text>
+            <Text style={styles.promptText}>
+              Please connect your headphones to continue.
+            </Text>
+
+            <View style={styles.promptButtonRow}>
+              <TouchableOpacity
+                style={styles.promptButtonPrimary}
+                onPress={() => setShowHeadsetPrompt(false)}
+              >
+                <Text style={styles.promptButtonTextPri}>Okay</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-        {/* --- MODIFIED: Use props --- */}
-        <Text style={styles.avatarName}>{agentName}</Text>
-        <Text style={styles.avatarSubtitle}>{agentDesignation}</Text>
-        <Text style={styles.timer}>
-          {isCalling ? formatDuration(callDuration) : "00:00"}
-        </Text>
-      </View>
-
-      {/* --- STATUS / LISTENING INDICATOR --- */}
-      <View style={styles.statusContainer}>
-        {audioState.current === "STARTING" ? (
-          <ActivityIndicator color="#666" />
-        ) : (
-          <Text style={styles.statusText}>
-            {/* --- MODIFIED: Show dynamic status --- */}
-            {turn === "user" ? "Listening..." : isCalling ? status : status}
-          </Text>
-        )}
-      </View>
-
-      {/* --- TRANSCRIPT AREA --- */}
-      <View style={styles.transcriptOuterContainer}>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.transcriptScroll}
-          contentContainerStyle={styles.transcriptContainer}
-          onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({ animated: true })
-          }
-        >
-          {transcript.map((item, index) => (
-            <Text key={index} style={styles.transcriptText}>
-              <Text
-                style={
-                  // --- MODIFIED: Use agentName prop ---
-                  item.speaker === agentName
-                    ? styles.speakerAlex
-                    : styles.speakerYou
-                }
-              >
-                {item.speaker}:
-              </Text>
-              {` ${item.text}`}
-            </Text>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* --- SUGGESTED RESPONSES (TIPS) --- */}
-      {showTips && (
-        <View style={styles.tipsContainer}>
-          <Text style={styles.tipsTitle}>SUGGESTED RESPONSES:</Text>
+      </Modal>
+      {/* --- SUGGESTIONS (Floating) --- */}
+      {showTips && suggestedResponses.length > 0 && (
+        <View style={styles.glassTipsContainer}>
+          <Text style={styles.tipsTitleModern}>SUGGESTIONS</Text>
           <View style={styles.tipsButtonRow}>
-            {/* This now maps over the dynamic state */}
             {suggestedResponses.map((text, i) => (
               <TouchableOpacity
                 key={i}
-                style={styles.tipButton}
+                style={styles.tipButtonGlass}
                 onPress={() => {
-                  /* You could wire this to send a message */
+                  // Handle suggestion press if needed
                 }}
               >
-                <Text style={styles.tipButtonText}>{text}</Text>
+                <Text style={styles.tipButtonTextModern}>{text}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       )}
 
-      {/* --- CONTROLS AREA (unchanged) --- */}
-      <View style={styles.controlsRow}>
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={toggleMute}
-          disabled={!isCalling}
-        >
-          <Icon
-            name={isMuted ? "microphone-slash" : "microphone"}
-            size={28}
-            color={!isCalling ? "#aaa" : isMuted ? "#ef4444" : "#333"}
-          />
-        </TouchableOpacity>
-
+      {/* --- CONTROLS DOCK --- */}
+      <View style={styles.controlsDock}>
+        {/* Mute */}
         <TouchableOpacity
           style={[
-            styles.mainCallButton,
-            isCalling ? styles.endCallButton : styles.startCallButton,
-            // --- MODIFIED: Use `canStartCall` variable ---
-            !canStartCall && !isCalling && styles.disabledButton,
+            styles.glassControlBtn,
+            isMuted && styles.glassControlBtnActive,
+            !isCalling && { opacity: 0.5 }, // Visual hint but still interactive
           ]}
-          onPress={isCalling ? endCall : startCall}
-          // --- MODIFIED: Use `canStartCall` variable ---
-          disabled={!canStartCall && !isCalling}
+          onPress={() => {
+            if (!isCalling) {
+              setStatus("Start call to use mute");
+              // Reset status after a delay?
+              // Better: simple alert or nothing?
+              // Actually status text is good feedback area.
+              return;
+            }
+            toggleMute();
+          }}
+          // disabled={!isCalling} <-- REMOVED
+        >
+          <Icon name={isMuted ? "mic-off" : "mic"} size={22} color="#FFF" />
+        </TouchableOpacity>
+
+        {/* End / Start Call - Main Button */}
+        <TouchableOpacity
+          style={[
+            styles.mainCallButtonModern,
+            isCalling ? styles.endCallButton : styles.startCallButton,
+            // Removed disabled styling to encourage interaction
+          ]}
+          onPress={() => (isCalling ? endCall() : startCall())}
         >
           <Icon
-            name={isCalling ? "phone-slash" : "phone"}
+            name={isCalling ? "phone-off" : "phone-call"}
             size={32}
             color="#FFF"
           />
         </TouchableOpacity>
 
-        {/* --- MODIFIED: Wrapped in View and added conditional dot --- */}
-        <View>
+        {/* Tips / Suggestions */}
+        <View style={{ position: "relative" }}>
           <TouchableOpacity
-            style={styles.controlButton}
-            onPress={toggleTips}
-            disabled={!isCalling}
+            style={[
+              styles.glassControlBtn,
+              showTips && styles.glassControlBtnActive,
+              !isCalling && { opacity: 0.5 },
+            ]}
+            onPress={() => {
+              if (!isCalling) {
+                setStatus("Start call to saw tips");
+                return;
+              }
+              toggleTips();
+            }}
+            // disabled={!isCalling} <-- REMOVED
           >
             <Icon
-              name="lightbulb"
-              size={28}
-              color={
-                !isCalling
-                  ? "#aaa"
-                  : showTips
-                  ? theme.colors.actionPrimary.default
-                  : "#333"
-              }
+              name="message-circle" // 'lightbulb' -> 'message-circle' or 'edit-3'
+              size={22}
+              color={showTips ? "#FFF" : "rgba(255,255,255,0.7)"}
             />
           </TouchableOpacity>
-          {showNotificationDot && <View style={styles.notificationDot} />}
+          {showNotificationDot && <View style={styles.notificationDotModern} />}
         </View>
-        {/* --- END OF MODIFICATION --- */}
       </View>
     </View>
   );
 };
 // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-// --- (STYLES are unchanged from your file) ---
+// --- NEW FUTURISTIC STYLES ---
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    height: "100%",
-    //maxHeight: 700,
-    padding: 5,
+    flex: 1,
     flexDirection: "column",
     justifyContent: "space-between",
-    // backgroundColor: "red",
-  },
-  // Avatar
-  avatarContainer: {
     alignItems: "center",
-    paddingTop: 20,
+    paddingBottom: 40, // Reduced from 60
+    paddingTop: 40, // Reduced from 60
   },
-  avatarIconWrapper: {
-    position: "relative",
-    marginBottom: 8,
+
+  // Visualizer area - Flexible to prevent overflow
+  visualizerContainer: {
+    flex: 1, // Allow to grow/shrink
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    minHeight: 200, // Ensure strictly visible
+    maxHeight: 400,
   },
-  micIconCircle: {
+  orbGlow: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#FFF",
+    width: 220,
+    height: 220,
+    borderRadius: 110, // CIRCULAR
+    backgroundColor: theme.colors.actionPrimary.default,
+    opacity: 0.3, // Slightly more visible glow
+    shadowColor: theme.colors.actionPrimary.default,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50, // Softer, larger spread
+  },
+  orbWrapper: {
+    width: 140,
+    height: 140,
+    borderRadius: 70, // CIRCULAR
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.5,
+        shadowRadius: 25,
+        shadowOffset: { width: 0, height: 10 },
+      },
+      android: { elevation: 15 },
+      web: { boxShadow: `0 10px 40px rgba(0,0,0,0.5)` },
+    }),
+  },
+  orbMask: {
+    width: 140,
+    height: 140,
+    borderRadius: 70, // CIRCULAR
+    overflow: "hidden", // CLIP CONTENT
     borderWidth: 2,
-    borderColor: theme.colors.actionPrimary.default,
-    justifyContent: "center",
+    borderColor: "rgba(255,255,255,0.4)",
     alignItems: "center",
+    justifyContent: "center",
   },
-  micIconActive: {
-    backgroundColor: "#34C759", // Green
-    borderColor: "#FFF",
-  },
-  avatarName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  avatarSubtitle: {
-    fontSize: 16,
-    color: "#888",
-  },
-  timer: {
-    fontSize: 18,
-    color: "#555",
-    marginTop: 8,
-    fontVariant: ["tabular-nums"],
-  },
-  // Status
   statusContainer: {
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 10,
+    marginTop: 50,
   },
-  statusText: {
+  statusTextModern: {
+    color: "rgba(255,255,255,0.9)", // Slightly softer white
     fontSize: 16,
-    color: "#666",
-    letterSpacing: 1.5,
+    fontWeight: "400", // Elegant, not too thin
+    letterSpacing: 3, // Premium wide tracking
     textTransform: "uppercase",
-    fontWeight: "500",
+    textAlign: "center",
   },
-  // Transcript
-  transcriptOuterContainer: {
-    flex: 1, // Takes up remaining space
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    marginVertical: 10,
+
+  // Headphone Indicator - Sleek Pill
+  headphoneIndicator: {
+    position: "absolute",
+    top: 10, // Higher up
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 30, // Pill shape
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    height: 0,
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  transcriptScroll: {
-    flex: 1,
+
+  // Tips / Suggestions Container
+  glassTipsContainer: {
+    width: "90%",
+    backgroundColor: "rgba(15, 23, 42, 0.6)", // Deeper, more subtle background
+    borderRadius: 24,
+    padding: 20, // More padding
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
-  transcriptContainer: {
-    padding: 12,
-  },
-  transcriptText: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  speakerAlex: {
-    fontWeight: "bold",
-    color: "#00529B",
-  },
-  speakerYou: {
-    fontWeight: "bold",
-    color: "#34C759",
-  },
-  // Tips
-  tipsContainer: {
-    paddingVertical: 10,
-    marginBottom: 10,
-  },
-  tipsTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#888",
-    marginBottom: 8,
+  tipsTitleModern: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 12,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
   },
   tipsButtonRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
+    gap: 10,
   },
-  tipButton: {
-    backgroundColor: "#E4EAF1",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    marginRight: 8,
-    marginBottom: 8,
+  tipButtonGlass: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  tipButtonText: {
-    color: theme.colors.actionPrimary.default,
+  tipButtonTextModern: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
     fontWeight: "500",
   },
-  // Controls
-  controlsRow: {
+
+  // Controls Dock - Floating Premium Look
+  controlsDock: {
     flexDirection: "row",
-    justifyContent: "space-around",
     alignItems: "center",
-    paddingBottom: 10,
+    justifyContent: "space-between", // Spread out nicely
+    width: "85%", // Slightly wider
+    maxWidth: 360,
+    backgroundColor: "rgba(255,255,255,0.07)", // Very subtle glass
+    borderRadius: 50, // Full pill
+    paddingVertical: 12,
+    paddingHorizontal: 32, // More internal breathing room
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20, // Floating soft shadow
+    elevation: 10,
   },
-  controlButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  glassControlBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    ...Platform.select({
-      ios: { shadowOpacity: 0.1, shadowRadius: 5 },
-      android: { elevation: 3 },
-      web: { boxShadow: "0 2px 5px rgba(0,0,0,0.1)" },
-    }),
+    backgroundColor: "rgba(255,255,255,0.03)", // Subtle button bg
   },
-  mainCallButton: {
-    width: 72,
+  glassControlBtnActive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.3)",
+    borderWidth: 1,
+  },
+  mainCallButtonModern: {
+    width: 72, // Larger call button
     height: 72,
     borderRadius: 36,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: -40, // More pronounced float
+    borderWidth: 6, // Thicker border to mask the dock line
+    borderColor: "#0F172A", // Match the dark background of the screen
   },
   startCallButton: {
-    backgroundColor: "#34C759",
+    backgroundColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
   },
   endCallButton: {
-    backgroundColor: "#FF3B30",
+    backgroundColor: "#EF4444",
+    shadowColor: "#EF4444",
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
   },
   disabledButton: {
-    backgroundColor: "#BDBDBD",
+    backgroundColor: "#64748B",
+    shadowOpacity: 0,
   },
-  // --- ⬇️ ADDED: Style for notification dot ⬇️ ---
-  notificationDot: {
+  notificationDotModern: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 4,
+    right: 6,
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#FF3B30", // Red dot
+    backgroundColor: "#F43F5E",
+    borderWidth: 1.5,
+    borderColor: "#1E293B", // Match bg
+  },
+
+  // Headset Prompt - Refined
+  promptOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.85)", // Darker, more immersive
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2000,
+    padding: 20,
+  },
+  promptGlassBox: {
+    width: "100%",
+    maxWidth: 340,
+    backgroundColor: "#1E293B",
+    borderRadius: 30,
+    padding: 32,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#FFF",
+    borderColor: "rgba(255,255,255,0.08)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.6,
+    shadowRadius: 50,
+    elevation: 20,
+  },
+  promptTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#F8FAFC",
+    textAlign: "center",
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  promptText: {
+    fontSize: 15,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  promptButtonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    width: "100%",
+  },
+  promptButtonPrimary: {
+    backgroundColor: theme.colors.actionPrimary.default,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 20,
+    shadowColor: theme.colors.actionPrimary.default,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  promptButtonTextPri: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
 });
 

@@ -66,117 +66,136 @@ const PhoneCall = () => {
 
   return (
     <>
-      <ScreenView style={styles.screenView}>
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFF7ED", "#FFFFFF"] as const}
-            locations={[0, 0.6, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
-        <View style={styles.container}>
-          <View style={styles.topNavigationContainer}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
+      <View style={styles.container}>
+        <LinearGradient
+          colors={["#020617", "#1e1b4b", "#2e1065"] as const} // Deep Slate -> Indigo -> Violet
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        {/* Safe Area Top Layout */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButtonGlass}
+          >
+            <Icon name="chevron-left" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerTextContainer}
+            onPress={() => setIsModalVisible(true)}
+          >
+            <Text style={styles.headerTitleModern}>AI Conversation</Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
+              <Text style={styles.headerSubtitleModern}>
+                {selectedScenario?.name || "Select Scenario"}
+              </Text>
               <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>AI Phone Calls</Text>
-            <View style={{ width: 32 }} />
-          </View>
-          <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            {selectedScenario && (
-              <ScenarioCard
-                onToggle={() => setIsModalVisible(true)}
-                selectedScenario={selectedScenario}
-              />
-            )}
-          </CustomScrollView>
-          {user && (
-            <View style={styles.footerView}>
-              <CallingWidget
-                userId={user.id}
-                //websocketUrl={"wss://api.speechworks.in"}
-                websocketUrl="ws://192.168.0.187:3000"
-                scenarioId={selectedScenario?.id}
-                scenarioIcon={selectedScenario?.icon || "robot"}
-                agentName={selectedScenario?.agent.name || ""}
-                agentDesignation={selectedScenario?.agent.designation || ""}
-                ringtoneAsset={RINGING_SOUND_FILE}
+                name="caret-down"
+                size={12}
+                color="rgba(255,255,255,0.7)"
+                style={{ marginTop: 4 }}
               />
             </View>
+          </TouchableOpacity>
+          {/* Placeholder for settings/tips or balance */}
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Main Calling UI Place */}
+        <View style={styles.mainContent}>
+          {user && (
+            <CallingWidget
+              key={selectedScenario?.id}
+              userId={user.id}
+              websocketUrl="ws://192.168.0.187:3000"
+              scenarioId={selectedScenario?.id}
+              scenarioIcon={selectedScenario?.icon || "robot"}
+              agentName={selectedScenario?.agent.name || "AI Agent"}
+              agentDesignation={
+                selectedScenario?.agent.designation || "Assistant"
+              }
+              ringtoneAsset={RINGING_SOUND_FILE}
+              // We will add new props for styling later if needed,
+              // but for now CallingWidget needs to be refactored to fit this container
+            />
           )}
         </View>
-      </ScreenView>
+      </View>
 
       <BottomSheetModal
         visible={isModalVisible}
         onClose={closeModal}
         maxHeight="80%"
       >
-        <View style={styles.modalContent}>
-          <View style={styles.modalTitleContainer}>
-            <Text style={styles.modalTitleText}>Practice Scenarios</Text>
-            <Text style={styles.modalDescText}>
-              Select a scenario to practice
-            </Text>
-          </View>
+        <LinearGradient
+          colors={["#0f172a", "#1e1b4b", "#2e1065"] as const}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ flex: 1, width: "100%" }}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalTitleContainer}>
+              <Text style={styles.modalTitleText}>Practice Scenarios</Text>
+              <Text style={styles.modalDescText}>
+                Select a scenario to practice
+              </Text>
+            </View>
 
-          <CustomScrollView
-            style={styles.modalScrollView}
-            nestedScrollEnabled={true}
-            contentContainerStyle={styles.modalScrollContainer}
-          >
-            {scenarioData.map((scenario, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.scenarioCard,
-                  selectedScenario?.id === scenario.id &&
-                    styles.selectedScenarioCard,
-                ]}
-                onPress={() => {
-                  setSelectedScenario(scenario);
-                  closeModal();
-                }}
-              >
-                <View style={styles.scenarioIconContainer}>
-                  <Icon
-                    solid
-                    name={scenario.icon}
-                    size={24}
-                    color={theme.colors.actionPrimary.default}
-                  />
-                </View>
-                <View style={styles.scenarioDescContainer}>
-                  <Text
-                    style={[
-                      styles.scenarioNameText,
-                      selectedScenario?.id === scenario.id &&
-                        styles.selectedCardText,
-                    ]}
-                  >
-                    {scenario.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.scenarioDetailText,
-                      selectedScenario?.id === scenario.id &&
-                        styles.selectedCardText,
-                    ]}
-                  >
-                    {scenario.description}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </CustomScrollView>
-        </View>
+            <CustomScrollView
+              style={styles.modalScrollView}
+              nestedScrollEnabled={true}
+              contentContainerStyle={styles.modalScrollContainer}
+            >
+              {scenarioData.map((scenario, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.scenarioCard,
+                    selectedScenario?.id === scenario.id &&
+                      styles.selectedScenarioCard,
+                  ]}
+                  onPress={() => {
+                    setSelectedScenario(scenario);
+                    closeModal();
+                  }}
+                >
+                  <View style={styles.scenarioIconContainer}>
+                    <Icon
+                      solid
+                      name={scenario.icon}
+                      size={24}
+                      color={theme.colors.actionPrimary.default}
+                    />
+                  </View>
+                  <View style={styles.scenarioDescContainer}>
+                    <Text
+                      style={[
+                        styles.scenarioNameText,
+                        selectedScenario?.id === scenario.id &&
+                          styles.selectedCardText,
+                      ]}
+                    >
+                      {scenario.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.scenarioDetailText,
+                        selectedScenario?.id === scenario.id &&
+                          styles.selectedCardText,
+                      ]}
+                    >
+                      {scenario.description}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </CustomScrollView>
+          </View>
+        </LinearGradient>
       </BottomSheetModal>
     </>
   );
@@ -185,53 +204,58 @@ const PhoneCall = () => {
 export default PhoneCall;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-  },
   container: {
     flex: 1,
-    gap: 32,
   },
-  scrollContainer: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
-    flexGrow: 1,
-  },
-  topNavigationContainer: {
+  topHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingTop: 60, // Adjust for safe area approximately
+    paddingBottom: 20,
+    zIndex: 10,
   },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+  backButtonGlass: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.1)", // Glass effect
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
+  headerTextContainer: {
+    alignItems: "center",
   },
-  footerView: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    // padding: SHADOW_BUFFER,
+  headerTitleModern: {
+    fontFamily: "Outfit-Medium", // Assuming font exists, based on other files
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
+  headerSubtitleModern: {
+    fontFamily: "Outfit-Bold",
+    color: "#FFFFFF",
+    fontSize: 16,
+    marginTop: 4,
+  },
+  mainContent: {
+    flex: 1,
+    position: "relative",
+  },
+
+  // Modal Styles (kept largely same)
+  // Modal Styles (Updated for Futuristic Theme)
   modalContent: {
     paddingVertical: 24,
     width: "100%",
     flex: 1,
     flexDirection: "column",
     gap: 32,
+    backgroundColor: "#0f172a", // Fallback
   },
   modalTitleContainer: {
     gap: 12,
@@ -239,11 +263,13 @@ const styles = StyleSheet.create({
   },
   modalTitleText: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
+    fontSize: 22,
+    letterSpacing: 1,
   },
   modalDescText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.6)",
   },
   modalScrollView: {
     flex: 1,
@@ -257,29 +283,32 @@ const styles = StyleSheet.create({
   },
   scenarioCard: {
     width: "100%",
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "rgba(255,255,255,0.05)", // Glass effect
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   selectedScenarioCard: {
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: "rgba(56, 189, 248, 0.15)", // Sky blue tint
+    borderColor: theme.colors.actionPrimary.default,
   },
   selectedCardText: {
-    color: theme.colors.text.onDark,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   scenarioIconContainer: {
-    height: 40,
-    width: 40,
+    height: 44,
+    width: 44,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface.default,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   scenarioDescContainer: {
     gap: 4,
@@ -287,11 +316,12 @@ const styles = StyleSheet.create({
   },
   scenarioNameText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
     fontWeight: "600",
+    fontSize: 16,
   },
   scenarioDetailText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.5)",
   },
 });
