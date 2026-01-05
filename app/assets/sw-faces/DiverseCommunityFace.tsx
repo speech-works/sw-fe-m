@@ -596,9 +596,9 @@ const DiverseCommunityFace = ({
 
     const interval = setInterval(() => {
       // 1. Animate Slide (0 -> 48)
-      //    We want movement Left -> Right.
-      //    Current Scene: 0 -> 48
-      //    Next Scene: -48 -> 0
+      //    Vertical Slide UP
+      //    Current: 0 -> -48 (Moves UP out of view)
+      //    Next: 48 -> 0 (Moves UP into view from bottom)
       slideOffset.value = withTiming(
         48,
         { duration: 1500, easing: Easing.out(Easing.quad) },
@@ -623,11 +623,11 @@ const DiverseCommunityFace = ({
   const nextScene = SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length];
 
   const currentBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateX: slideOffset.value }],
+    transform: [{ translateY: -slideOffset.value }],
   }));
 
   const nextBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateX: -48 + slideOffset.value }],
+    transform: [{ translateY: 48 - slideOffset.value }],
   }));
 
   return (
@@ -667,7 +667,7 @@ const DiverseCommunityFace = ({
       </Defs>
 
       <G mask="url(#global_mask)">
-        {/* Background Slider */}
+        {/* Background Vertical Slider */}
         <AnimatedG animatedProps={currentBgStyle}>
           <BackgroundLayer type={currentScene} />
         </AnimatedG>
