@@ -46,42 +46,53 @@ const WorldExplorationGraph = () => {
 
   return (
     <LinearGradient
-      colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan-400 -> Blue-400 -> Indigo-400 (Lighter, Aurora Vibe)
+      colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan-400 -> Blue-400 -> Indigo-400
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.gradientContainer}
     >
-      {/* Modern UX: Background Glow Blobs for Depth ("Mesh" effect) */}
-      <View style={[styles.glowBlob, styles.blobTopRight]} />
-      <View style={[styles.glowBlob, styles.blobBottomLeft]} />
-
-      <View style={styles.titleContainer}>
-        <View>
-          <Text style={styles.titleText}>World Explored</Text>
-        </View>
-        <View style={styles.titleBadge}>
-          <Icon name="globe-americas" size={12} color="#FFF" />
-          <Text style={styles.badgeText}>{worldPercentage}% Discovered</Text>
-        </View>
+      {/* 1. Top Right Watermark Icon */}
+      <View style={styles.watermarkContainer}>
+        <Icon name="globe-americas" size={120} color="rgba(255,255,255,0.15)" />
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="small" color="#F8FAFC" />
-      ) : error ? (
-        <Text style={{ color: "#EF4444" }}>{error}</Text>
-      ) : (
-        <PracticeChart
-          data={weeklyData}
-          percentChange={percentChange}
-          title="Discovery Map"
-          emptyTitle="Start Exploring"
-          emptySubtitle="Jump in to discover the world"
-          showTitle={false}
-          backgroundColor="transparent" // Allow gradient to show through
-          contentColor="#FFF"
-          barColor="#FFF"
-        />
-      )}
+      {/* 2. Header Content (Chip -> Title -> Desc) */}
+      <View style={styles.headerContent}>
+        {/* Chip */}
+        <View style={styles.chip}>
+          <Icon name="compass" size={10} color="#FFF" />
+          <Text style={styles.chipText}>{worldPercentage}% Discovered</Text>
+        </View>
+
+        {/* Title */}
+        <Text style={styles.titleText}>World Explored</Text>
+
+        {/* Description */}
+        <Text style={styles.descriptionText}>
+          Discover new ways to improve your speech
+        </Text>
+      </View>
+
+      {/* 3. Main Content (Chart) */}
+      <View style={styles.chartContainer}>
+        {loading ? (
+          <ActivityIndicator size="small" color="#F8FAFC" />
+        ) : error ? (
+          <Text style={{ color: "#EF4444" }}>{error}</Text>
+        ) : (
+          <PracticeChart
+            data={weeklyData}
+            percentChange={percentChange}
+            title="Discovery Map"
+            emptyTitle="Start Exploring"
+            emptySubtitle="Jump in to discover the world"
+            showTitle={false}
+            backgroundColor="transparent"
+            contentColor="#FFF"
+            barColor="#FFF"
+          />
+        )}
+      </View>
     </LinearGradient>
   );
 };
@@ -89,76 +100,67 @@ const WorldExplorationGraph = () => {
 export default WorldExplorationGraph;
 
 const styles = StyleSheet.create({
-  // New Container: "Mission Control" Card
   gradientContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
     borderRadius: 24,
-    padding: 20,
-    shadowColor: "#3B82F6", // Lighter Blue Shadow
+    padding: 24, // Increased padding
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 10,
-    overflow: "hidden", // Clip the blobs
+    overflow: "hidden",
     position: "relative",
+    minHeight: 280, // Ensure enough height
   },
-  // Decorative Blobs
-  glowBlob: {
+  watermarkContainer: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    opacity: 0.08, // Much more subtle (was 0.2)
+    top: -20,
+    right: -20,
+    opacity: 1,
+    transform: [{ rotate: "15deg" }], // Dynamic tilt
+    zIndex: 0,
   },
-  blobTopRight: {
-    top: -60, // Push further out to diffuse edge
-    right: -60,
-    backgroundColor: "#fff",
+  headerContent: {
+    zIndex: 1,
+    marginBottom: 24, // Space before chart
+    alignItems: "flex-start", // Left align
   },
-  blobBottomLeft: {
-    bottom: -60,
-    left: -60,
-    backgroundColor: "#6366f1",
-  },
-  titleContainer: {
-    display: "flex",
+  chip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 8,
-    zIndex: 1, // Ensure text is above blobs
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 100, // Pill shape
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    marginBottom: 12, // Space below chip
+  },
+  chipText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#FFF",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
-    letterSpacing: 0.5,
-    textShadowColor: "rgba(0,0,0,0.05)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 24, // Size up
+    marginBottom: 4,
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  subTitleText: {
+  descriptionText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "#94A3B8", // Slate-400
+    color: "rgba(255,255,255,0.9)",
+    maxWidth: "80%", // Prevent overlapping if icon was lower
   },
-  titleBadge: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.25)", // Slightly more opaque for glass feel
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  badgeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#FFF",
-    fontWeight: "700",
+  chartContainer: {
+    zIndex: 1,
+    flex: 1,
   },
 });
