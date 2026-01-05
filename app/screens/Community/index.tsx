@@ -150,6 +150,13 @@ const Community = () => {
             <View style={styles.featuresGrid}>
               <FeatureCard
                 emoji="�"
+                title="Share your story"
+                description="Your story is your strength"
+                gradient={["#E0E7FF", "#C7D2FE"]} // Soft indigo
+                locked
+              />
+              <FeatureCard
+                emoji="�"
                 title="Practice Together"
                 description="Join supportive group sessions where everyone's learning"
                 gradient={["#ECFDF5", "#D1FAE5"]} // Mint gradient
@@ -159,13 +166,6 @@ const Community = () => {
                 title="Celebrate Wins"
                 description="Share your progress and cheer others on"
                 gradient={["#FEF3C7", "#FDE68A"]} // Warm yellow
-                locked
-              />
-              <FeatureCard
-                emoji="�"
-                title="Gentle Guidance"
-                description="Get encouragement from coaches who understand"
-                gradient={["#E0E7FF", "#C7D2FE"]} // Soft indigo
                 locked
               />
             </View>
