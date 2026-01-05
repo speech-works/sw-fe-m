@@ -17,6 +17,18 @@ import Svg, {
   Rect,
   Line,
 } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+  withDelay,
+} from "react-native-reanimated";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type ProfessionalRole = "doctor" | "teacher" | "engineer" | "student";
 type BackgroundStyle = "ocean" | "sunset" | "sky" | "forest" | "city" | "space";
@@ -25,50 +37,124 @@ interface CommunityProps extends SvgProps {
   size?: number | string;
   roles?: ProfessionalRole[]; // Pass 4 roles to shuffle
   bgType?: BackgroundStyle;
+  shouldAnimate?: boolean;
 }
 
-const DiverseCommunityFace = ({
-  size = 150,
-  roles = ["teacher", "doctor", "engineer", "student"],
-  bgType = "city",
-  ...props
-}: CommunityProps) => {
-  const shadowId = `shadow_${bgType}`;
-  const maskId = `mask_${bgType}`;
+const FaceNode = ({
+  faceColor,
+  role,
+  x,
+  y,
+  scale = 0.5,
+  shadowId,
+  shouldAnimate,
+}: {
+  faceColor: string;
+  role: ProfessionalRole;
+  x: number;
+  y: number;
+  scale?: number;
+  shadowId: string;
+  shouldAnimate?: boolean;
+}) => {
+  const blink = useSharedValue(1);
+  const helmetWiggle = useSharedValue(0);
+  const capFloat = useSharedValue(0);
+  const glassesTilt = useSharedValue(0);
 
-  // Background Color Logic
-  const getBgColor = () => {
-    switch (bgType) {
-      case "ocean":
-        return "#0EA5E9"; // Blue
-      case "sunset":
-        return "#F97316"; // Orange
-      case "sky":
-        return "#BAE6FD"; // Light Blue
-      case "forest":
-        return "#22C55E"; // Green
-      case "city":
-        return "#94A3B8"; // Gray
-      case "space":
-        return "#1E1B4B"; // Dark Indigo
-      default:
-        return "#BAE6FD";
+  React.useEffect(() => {
+    if (!shouldAnimate) {
+      blink.value = 1;
+      helmetWiggle.value = 0;
+      capFloat.value = 0;
+      glassesTilt.value = 0;
+      return;
     }
-  };
 
-  const FaceNode = ({
-    faceColor,
-    role,
-    x,
-    y,
-    scale = 0.5,
-  }: {
-    faceColor: string;
-    role: ProfessionalRole;
-    x: number;
-    y: number;
-    scale?: number;
-  }) => (
+    // Random Blink
+    const blinkDuration = Math.random() * 2000 + 3000;
+    blink.value = withRepeat(
+      withSequence(
+        withDelay(
+          blinkDuration,
+          withTiming(0.1, { duration: 150 }) // Close
+        ),
+        withTiming(1, { duration: 150 }) // Open
+      ),
+      -1,
+      false
+    );
+
+    // Engineer Helmet Wiggle
+    if (role === "engineer") {
+      helmetWiggle.value = withRepeat(
+        withSequence(
+          withTiming(-2, { duration: 200 }),
+          withTiming(2, { duration: 200 }),
+          withTiming(0, { duration: 200 }),
+          withDelay(2000, withTiming(0, { duration: 0 }))
+        ),
+        -1,
+        false
+      );
+    }
+
+    // Student Cap Float
+    if (role === "student") {
+      capFloat.value = withRepeat(
+        withSequence(
+          withTiming(-1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.quad) })
+        ),
+        -1,
+        true
+      );
+    }
+
+    // Doctor Glasses Tilt
+    if (role === "doctor") {
+      glassesTilt.value = withRepeat(
+        withSequence(
+          withTiming(-2, { duration: 1000 }),
+          withTiming(2, { duration: 1000 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [shouldAnimate, role]);
+
+  const eyeProps = useAnimatedProps(() => ({
+    // Pivot around Y=24 for blinking
+    transform: [
+      { translateY: 24 },
+      { scaleY: blink.value },
+      { translateY: -24 },
+    ],
+  }));
+
+  const helmetProps = useAnimatedProps(() => ({
+    transform: [{ rotate: `${helmetWiggle.value}deg` }],
+    originX: 24,
+    originY: 24,
+  }));
+
+  const capProps = useAnimatedProps(() => ({
+    // Apply float. Base position is handled by static transform on parent or G if needed.
+    // Since cap has static translate(0, -2), we add float to translateY.
+    // Original static was translate(0, -2), so translateY should be related to that if we replace it?
+    // Actually, animatedProps transform overrides static transform on Animated components usually.
+    // We should include the static offset (-2) in the animated value or prop.
+    transform: [{ translateY: -2 + capFloat.value }],
+  }));
+
+  const glassesProps = useAnimatedProps(() => ({
+    transform: [{ rotate: `${glassesTilt.value}deg` }],
+    originX: 24,
+    originY: 24,
+  }));
+
+  return (
     <G transform={`translate(${x}, ${y}) scale(${scale})`}>
       <G filter={`url(#${shadowId})`}>
         <Path
@@ -79,16 +165,18 @@ const DiverseCommunityFace = ({
 
       {/* PROPS */}
       {role === "engineer" && (
-        <G transform="translate(0, -4)">
-          <Path
-            fill="#FBBF24"
-            d="M3 18 Q 24.5 -6, 46 18 L 47 22 Q 24.5 17, 2 22 Z"
-          />
-          <Path
-            d="M20 5 Q 24.5 0, 29 5 L 29 18 Q 24.5 14, 20 18 Z"
-            fill="#D97706"
-            opacity="0.8"
-          />
+        <G transform="translate(0, -8)">
+          <AnimatedG animatedProps={helmetProps}>
+            <Path
+              fill="#FBBF24"
+              d="M3 18 Q 24.5 -6, 46 18 L 47 22 Q 24.5 17, 2 22 Z"
+            />
+            <Path
+              d="M20 5 Q 24.5 0, 29 5 L 29 18 Q 24.5 14, 20 18 Z"
+              fill="#D97706"
+              opacity="0.8"
+            />
+          </AnimatedG>
         </G>
       )}
 
@@ -110,24 +198,24 @@ const DiverseCommunityFace = ({
       )}
 
       {role === "student" && (
-        <G transform="translate(0, -2)">
+        <AnimatedG animatedProps={capProps}>
           <Path fill="#1E293B" d="M2 11 L 24.5 1 L 47 11 L 24.5 21 Z" />
           <Path fill="#0F172A" d="M10 12 V 17 Q 24.5 21, 39 17 V 12 Z" />
-        </G>
+        </AnimatedG>
       )}
 
       {/* EYES */}
-      <G transform="translate(0.5, 0)">
+      <AnimatedG transform="translate(0.5, 0)" animatedProps={eyeProps}>
         <Circle cx="15.5" cy="24" r="4.2" fill="#FFF" />
         <Circle cx="15.5" cy="24" r="2.2" fill="#111215" />
         <Circle cx="16.5" cy="23" r="0.8" fill="#FFF" opacity="0.8" />
         <Circle cx="32.5" cy="24" r="4.2" fill="#FFF" />
         <Circle cx="32.5" cy="24" r="2.2" fill="#111215" />
         <Circle cx="33.5" cy="23" r="0.8" fill="#FFF" opacity="0.8" />
-      </G>
+      </AnimatedG>
 
       {role === "doctor" && (
-        <G transform="translate(0.5, 0)">
+        <AnimatedG transform="translate(0.5, 0)" animatedProps={glassesProps}>
           <Circle
             cx="15.5"
             cy="24"
@@ -150,7 +238,7 @@ const DiverseCommunityFace = ({
             strokeWidth="1"
             fill="none"
           />
-        </G>
+        </AnimatedG>
       )}
 
       {role === "teacher" && (
@@ -183,6 +271,35 @@ const DiverseCommunityFace = ({
       />
     </G>
   );
+};
+const DiverseCommunityFace = ({
+  size = 150,
+  roles = ["teacher", "doctor", "engineer", "student"],
+  bgType = "city",
+  ...props
+}: CommunityProps) => {
+  const shadowId = `shadow_${bgType}`;
+  const maskId = `mask_${bgType}`;
+
+  // Background Color Logic
+  const getBgColor = () => {
+    switch (bgType) {
+      case "ocean":
+        return "#0EA5E9"; // Blue
+      case "sunset":
+        return "#F97316"; // Orange
+      case "sky":
+        return "#BAE6FD"; // Light Blue
+      case "forest":
+        return "#22C55E"; // Green
+      case "city":
+        return "#94A3B8"; // Gray
+      case "space":
+        return "#1E1B4B"; // Dark Indigo
+      default:
+        return "#BAE6FD";
+    }
+  };
 
   const BackgroundOverlay = () => {
     switch (bgType) {
@@ -448,6 +565,8 @@ const DiverseCommunityFace = ({
           x={12}
           y={8}
           scale={0.5}
+          shadowId={shadowId}
+          shouldAnimate={props.shouldAnimate}
         />
         <FaceNode
           faceColor="#A16207"
@@ -455,6 +574,8 @@ const DiverseCommunityFace = ({
           x={0}
           y={18}
           scale={0.55}
+          shadowId={shadowId}
+          shouldAnimate={props.shouldAnimate}
         />
         <FaceNode
           faceColor="#D97706"
@@ -462,6 +583,8 @@ const DiverseCommunityFace = ({
           x={24}
           y={18}
           scale={0.55}
+          shadowId={shadowId}
+          shouldAnimate={props.shouldAnimate}
         />
         <FaceNode
           faceColor="#FFDABF"
@@ -469,6 +592,8 @@ const DiverseCommunityFace = ({
           x={10}
           y={28}
           scale={0.6}
+          shadowId={shadowId}
+          shouldAnimate={props.shouldAnimate}
         />
       </G>
     </Svg>

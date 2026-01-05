@@ -13,7 +13,7 @@ const Community = () => {
     <View style={styles.container}>
       <View style={styles.contentContainer}>
         {/* Main Illustration */}
-        <DiverseCommunityFace size={FACE_SIZE} />
+        <DiverseCommunityFace size={FACE_SIZE} shouldAnimate />
 
         {/* Text Content */}
         <View style={styles.textContainer}>
