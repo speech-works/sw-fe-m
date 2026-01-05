@@ -11,6 +11,7 @@ import SettingsStackNavigator from "./stacks/SettingsStack";
 import Home from "../screens/Home";
 import Explore from "../screens/Explore";
 import ExploreStackNavigator from "./stacks/ExploreStack";
+import Community from "../screens/Community";
 
 import CustomTabBar from "../components/CustomTabBar";
 
@@ -49,7 +50,7 @@ const BottomTabNavigator = () => {
       />
       <Tab.Screen
         name={ROUTE_NAMES.COMMUNITY}
-        component={Onboarding}
+        component={Community}
         options={{ tabBarLabel: "Community" }}
       />
       <Tab.Screen
