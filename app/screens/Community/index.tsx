@@ -140,9 +140,7 @@ const Community = () => {
         {/* Gentle Header */}
         <View style={styles.header}>
           <Text style={styles.title}>The Speechworks Community</Text>
-          <Text style={styles.subtitle}>
-            A global movement of speakers finding their voice.
-          </Text>
+          <Text style={styles.subtitle}>We are bringing everyone here</Text>
         </View>
 
         <View style={styles.innerContainer}>
@@ -275,6 +273,7 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 8,
+    alignItems: "center",
   },
   innerContainer: {
     gap: 32,
