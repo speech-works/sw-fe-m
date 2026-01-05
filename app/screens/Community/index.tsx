@@ -13,6 +13,7 @@ import CustomScrollView from "../../components/CustomScrollView";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import DiverseCommunityFace from "../../assets/sw-faces/DiverseCommunityFace";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const { width } = Dimensions.get("window");
 const FACE_SIZE = width * 0.55;
@@ -45,7 +46,7 @@ const AnimatedCounter = () => {
         end={{ x: 1, y: 1 }}
         style={styles.counterGradient}
       >
-        <Text style={styles.counterTitle}>INTERESTS REGISTERED</Text>
+        <Text style={styles.counterTitle}>FOUNDING MEMBERS WAITING</Text>
 
         <View style={styles.digitsContainer}>
           {digits.map((digit, index) => (
@@ -53,25 +54,29 @@ const AnimatedCounter = () => {
           ))}
         </View>
 
-        <Text style={styles.counterLabel}>voices finding courage together</Text>
+        <Text style={styles.counterLabel}>
+          future leaders joining the revolution
+        </Text>
       </LinearGradient>
     </View>
   );
 };
 
-// Feature Card with soft gradients
+// Feature Card with Octalysis Gamification Elements
 const FeatureCard = ({
   title,
   description,
-  locked,
-  emoji,
+  iconName,
   gradient,
+  watermarkColor,
+  locked,
 }: {
   title: string;
   description: string;
-  locked?: boolean;
-  emoji: string;
+  iconName: string;
   gradient: readonly [string, string, ...string[]];
+  watermarkColor: string;
+  locked?: boolean;
 }) => (
   <View style={styles.featureCard}>
     <LinearGradient
@@ -80,20 +85,32 @@ const FeatureCard = ({
       end={{ x: 1, y: 1 }}
       style={styles.featureGradient}
     >
-      <View style={styles.featureHeader}>
-        <View style={styles.emojiCircle}>
-          <Text style={styles.featureEmoji}>{emoji}</Text>
-        </View>
-        {locked && (
-          <View style={styles.comingSoonBadge}>
-            <Text style={styles.comingSoonText}>Soon</Text>
-          </View>
-        )}
+      <View style={styles.watermarkContainer}>
+        <MaterialCommunityIcons
+          name={iconName}
+          size={140}
+          color={watermarkColor}
+          style={{ opacity: 0.15 }}
+        />
       </View>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={[styles.featureDescription, locked && { opacity: 0.6 }]}>
-        {description}
-      </Text>
+
+      <View style={styles.featureContent}>
+        <View style={styles.featureHeader}>
+          <View style={styles.iconCircle}>
+            <MaterialCommunityIcons name={iconName} size={28} color="#1F2937" />
+          </View>
+          {locked && (
+            <View style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonText}>SOON</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.featureTextContainer}>
+          <Text style={styles.featureTitle}>{title}</Text>
+          <Text style={styles.featureDescription}>{description}</Text>
+        </View>
+      </View>
     </LinearGradient>
   </View>
 );
@@ -122,9 +139,9 @@ const Community = () => {
       >
         {/* Gentle Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Your Support Circle</Text>
+          <Text style={styles.title}>The Speechworks Community</Text>
           <Text style={styles.subtitle}>
-            A safe space to grow, practice, and celebrate together
+            A global movement of speakers finding their voice.
           </Text>
         </View>
 
@@ -136,42 +153,56 @@ const Community = () => {
           <View style={styles.illustrationSection}>
             <DiverseCommunityFace size={FACE_SIZE} shouldAnimate />
             <Text style={styles.illustrationCaption}>
-              Every voice matters. Every step counts.
+              "The most powerful way to change the world is to change how you
+              speak to it."
             </Text>
           </View>
 
-          {/* Features with Pastel Gradients */}
+          {/* Call for Purpose Section */}
+          <View style={styles.purposeSection}>
+            <Text style={styles.purposeTitle}>Join the Revolution</Text>
+            <Text style={styles.purposeText}>
+              We are democratizing public speaking for everyone, everywhere. Be
+              part of the first cohort to access these game-changing features.
+            </Text>
+          </View>
+
+          {/* Features with Pastel Gradients & Gamification */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>What Awaits You</Text>
+            <Text style={styles.sectionTitle}>Unlockable Achievements</Text>
             <Text style={styles.sectionSubtitle}>
-              Gentle ways to build confidence at your own pace
+              Coming soon to your journey
             </Text>
 
             <View style={styles.featuresGrid}>
               <FeatureCard
-                emoji="�"
-                title="Share your story"
-                description="Your story is your strength"
-                gradient={["#E0E7FF", "#C7D2FE"]} // Soft indigo
+                iconName="trophy-award"
+                title="Leaderboards & Leagues"
+                description="Compete with friends and rise through the ranks. Claim your spot atop the Global Speaker Hall of Fame."
+                gradient={["#FEF3C7", "#FCD34D"]} // Amber Gold
+                watermarkColor="#B45309"
                 locked
               />
               <FeatureCard
-                emoji="�"
-                title="Practice Together"
-                description="Join supportive group sessions where everyone's learning"
-                gradient={["#ECFDF5", "#D1FAE5"]} // Mint gradient
+                iconName="account-group"
+                title="Practice Pods"
+                description="Join exclusive real-time practice rooms. Give feedback, get inspired, and grow together."
+                gradient={["#E0E7FF", "#A5B4FC"]} // Indigo
+                watermarkColor="#4338CA"
+                locked
               />
               <FeatureCard
-                emoji="✨"
-                title="Celebrate Wins"
-                description="Share your progress and cheer others on"
-                gradient={["#FEF3C7", "#FDE68A"]} // Warm yellow
+                iconName="star-four-points"
+                title="Mentor Matching"
+                description="Get paired with expert speakers for 1:1 coaching. Unlock wisdom from the best."
+                gradient={["#ECFDF5", "#6EE7B7"]} // Emerald
+                watermarkColor="#047857"
                 locked
               />
             </View>
           </View>
 
-          {/* Gentle CTA */}
+          {/* Gentle CTA - Scarcity & Ownership */}
           <View style={styles.ctaSection}>
             <View style={styles.ctaCard}>
               <LinearGradient
@@ -181,17 +212,21 @@ const Community = () => {
                 style={styles.ctaCardGradient}
               >
                 <View style={styles.earlyAccessBadge}>
-                  <Text style={styles.earlyAccessText}>✨ Early Access</Text>
+                  <Text style={styles.earlyAccessText}>
+                    ✨ LIMITED SPOTS AVAILABLE
+                  </Text>
                 </View>
 
-                <Text style={styles.ctaTitle}>Join the Circle</Text>
+                <Text style={styles.ctaTitle}>
+                  Claim Founding Member Status
+                </Text>
                 <Text style={styles.ctaSubtitle}>
-                  Be part of something special from the start
+                  Secure your legacy badge and lifetime perks before we launch.
                 </Text>
 
                 <TextInput
                   style={styles.emailInput}
-                  placeholder="Your email"
+                  placeholder="Enter your email"
                   placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={setEmail}
@@ -205,17 +240,17 @@ const Community = () => {
                   onPress={handleJoinWaitlist}
                 >
                   <LinearGradient
-                    colors={["#FB923C", "#F97316"]} // Warm orange
+                    colors={["#EA580C", "#C2410C"]} // Darker Orange/Red for urgency
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.ctaButtonGradient}
                   >
-                    <Text style={styles.ctaButtonText}>I'm Ready to Join</Text>
+                    <Text style={styles.ctaButtonText}>Reserve My Spot</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
                 <Text style={styles.ctaNote}>
-                  🎁 Early members get lifetime perks & exclusive access
+                  🎁 Only 153 spots left for this month.
                 </Text>
               </LinearGradient>
             </View>
@@ -272,9 +307,9 @@ const styles = StyleSheet.create({
   counterTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
-    fontWeight: "700",
-    letterSpacing: 2,
-    marginBottom: 8,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 4,
   },
   digitsContainer: {
     flexDirection: "row",
@@ -306,6 +341,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
+    opacity: 0.8,
   },
   // Illustration
   illustrationSection: {
@@ -317,6 +353,23 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     textAlign: "center",
     fontStyle: "italic",
+    paddingHorizontal: 20,
+  },
+  // Purpose Section
+  purposeSection: {
+    gap: 8,
+    paddingHorizontal: 10,
+  },
+  purposeTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    textAlign: "center",
+  },
+  purposeText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 24,
   },
   // Section
   section: {
@@ -339,13 +392,26 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
+    minHeight: 160,
   },
   featureGradient: {
+    flex: 1,
     padding: 24,
+    position: "relative",
+  },
+  watermarkContainer: {
+    position: "absolute",
+    bottom: -20,
+    right: -20,
+    zIndex: 0,
+    transform: [{ rotate: "-10deg" }],
+  },
+  featureContent: {
+    zIndex: 1,
     gap: 12,
   },
   featureHeader: {
@@ -353,37 +419,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  emojiCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
   },
-  featureEmoji: {
-    fontSize: 28,
-  },
   comingSoonBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   comingSoonText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    fontWeight: "600",
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  featureTextContainer: {
+    gap: 6,
   },
   featureTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
-    color: theme.colors.text.title,
+    fontSize: 20,
+    color: "#1F2937", // Dark gray almost black
   },
   featureDescription: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "#374151", // Gray 700
     lineHeight: 22,
+    fontWeight: "500",
   },
 
   // CTA Section
@@ -395,9 +464,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
-    elevation: 4,
+    elevation: 5,
   },
   ctaCardGradient: {
     padding: 28,
@@ -405,15 +474,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   earlyAccessBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "#FEF3C7",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
   },
   earlyAccessText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
-    fontWeight: "700",
+    color: "#B45309",
+    fontWeight: "800",
+    fontSize: 12,
   },
   ctaTitle: {
     ...parseTextStyle(theme.typography.Heading2),
@@ -429,7 +501,8 @@ const styles = StyleSheet.create({
   emailInput: {
     width: "100%",
     backgroundColor: "#FFFFFF",
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -443,11 +516,11 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     width: "100%",
-    shadowColor: theme.colors.actionPrimary.default,
+    shadowColor: "#EA580C",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 5,
   },
   ctaButtonGradient: {
     paddingVertical: 18,
@@ -457,12 +530,14 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   ctaNote: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "#B45309",
     textAlign: "center",
+    fontWeight: "600",
   },
 });
