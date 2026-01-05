@@ -206,11 +206,11 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
             {/* 2. The Big Grid */}
             <View style={styles.gridContainer}>
               {/* Task Card - HUGE */}
-              <LinearGradient
-                colors={["#6CAD9C", "#458575"]}
-                style={[styles.bigCard, { borderWidth: 0 }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
+                style={[
+                  styles.bigCard,
+                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                ]}
               >
                 {/* Watermark Icon */}
                 <View
@@ -222,31 +222,21 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
                   <Icon
                     name="check-circle"
                     size={90}
-                    color="white"
-                    style={{ opacity: 0.15 }}
+                    color="#10B981"
+                    style={{ opacity: 0.05 }}
                   />
                 </View>
 
                 <View style={styles.cardHeader}>
-                  <Text
-                    style={[
-                      styles.cardLabel,
-                      { color: "rgba(255,255,255,0.9)" },
-                    ]}
-                  >
+                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
                     Free Activity
                   </Text>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={[styles.bigValue, { color: "white" }]}>
+                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
                     {tasksRemaining}
                   </Text>
-                  <Text
-                    style={[
-                      styles.unitLabel,
-                      { color: "rgba(255,255,255,0.8)" },
-                    ]}
-                  >
+                  <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
                     / {tasksTotal}
                   </Text>
                 </View>
@@ -255,7 +245,7 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
                   style={{
                     marginTop: 8,
                     height: 6,
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
                     borderRadius: 3,
                     width: "100%",
                   }}
@@ -263,20 +253,20 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
                   <View
                     style={{
                       height: "100%",
-                      backgroundColor: "white",
+                      backgroundColor: "#10B981",
                       borderRadius: 3,
                       width: `${taskPercentage}%`,
                     }}
                   />
                 </View>
-              </LinearGradient>
+              </View>
 
               {/* Level Card - HUGE */}
-              <LinearGradient
-                colors={["#8E84B8", "#63598C"]}
-                style={[styles.bigCard, { borderWidth: 0 }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
+                style={[
+                  styles.bigCard,
+                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                ]}
               >
                 {/* Watermark Icon */}
                 <View
@@ -288,35 +278,28 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
                   <Icon
                     name="star"
                     size={90}
-                    color="white"
-                    style={{ opacity: 0.2 }}
+                    color="#3B82F6"
+                    style={{ opacity: 0.05 }}
                   />
                 </View>
 
                 <View style={styles.cardHeader}>
-                  <Text
-                    style={[
-                      styles.cardLabel,
-                      { color: "rgba(255,255,255,0.9)" },
-                    ]}
-                  >
+                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
                     Level
                   </Text>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={[styles.bigValue, { color: "white" }]}>
+                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
                     {userLevel}
                   </Text>
                 </View>
                 {/* XP Text */}
-                <Text
-                  style={[styles.xpText, { color: "rgba(255,255,255,0.9)" }]}
-                >
+                <Text style={[styles.xpText, { color: "#3B82F6" }]}>
                   {userProgress
                     ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
                     : "0 XP"}
                 </Text>
-              </LinearGradient>
+              </View>
             </View>
           </View>
         </LinearGradient>
