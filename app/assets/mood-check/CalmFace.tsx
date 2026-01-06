@@ -207,6 +207,14 @@ const CalmFace = ({
           fill="#4A4A4A"
           d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
         />
+
+        {/* Smile */}
+        <Path
+          stroke="#4A4A4A"
+          strokeLinecap="round"
+          strokeWidth={3.558}
+          d="M16.8 36q7.2 4.8 14.4 0"
+        />
       </G>
     </Svg>
   );

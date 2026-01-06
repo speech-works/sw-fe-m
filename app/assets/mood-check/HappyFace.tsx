@@ -206,12 +206,28 @@ const HappyFace = ({
             />
           </AnimatedG>
 
-          <Path
-            stroke="#4A4A4A"
-            strokeLinecap="round"
-            strokeWidth={3.558}
-            d="M16.8 36q7.2 4.8 14.4 0"
-          />
+          {/* Open Mouth Smile with Teeth (Position Tweaked) */}
+          <G>
+            {/* Mouth Interior (Dark) */}
+            <Path
+              fill="#5C4033"
+              d="M15 36 Q24 37 33 36 Q33 44 24 44 Q15 44 15 36 Z"
+            />
+            {/* Teeth (White) */}
+            <Path
+              fill="#FFFFFF"
+              d="M15 36 Q24 37 33 36 L32.5 39 Q24 40 15.5 39 Z"
+            />
+            {/* Mouth Outline */}
+            <Path
+              stroke="#3E2723"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              d="M15 36 Q24 37 33 36 Q33 44 24 44 Q15 44 15 36 Z"
+            />
+          </G>
         </AnimatedG>
 
         {/* Twinkling Stars (Bottom Props) */}
