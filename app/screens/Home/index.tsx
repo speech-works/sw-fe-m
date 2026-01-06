@@ -14,6 +14,8 @@ import { parseTextStyle } from "../../util/functions/parseStyles";
 import ResourceStats from "../Academy/components/ResourceStats";
 import { useUserStore } from "../../stores/user";
 import { getMyUser } from "../../api/users";
+import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
+import MoodCheckBanner from "./components/MoodCheckBanner";
 
 const Home = () => {
   const { setUser } = useUserStore();
@@ -33,6 +35,7 @@ const Home = () => {
 
   return (
     <ScreenView style={styles.container}>
+      <MoodCheckPopup />
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -43,6 +46,8 @@ const Home = () => {
           <Text style={styles.greeting}>Good Morning,</Text>
           <Text style={styles.subGreeting}>Mayank</Text>
         </View>
+
+        <MoodCheckBanner />
 
         <ResourceStats refreshing={refreshing} />
 

@@ -12,7 +12,22 @@ import Svg, {
   FeComposite,
   FeBlend,
   SvgProps,
+  Circle,
+  Ellipse,
+  LinearGradient,
+  Stop,
 } from "react-native-svg";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withTiming,
+  Easing,
+  withSequence,
+} from "react-native-reanimated";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -21,9 +36,53 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const CalmFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const CalmFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+
+  const windOffset = useSharedValue(0);
+  const haloHover = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (!shouldAnimate) {
+      windOffset.value = withTiming(0);
+      haloHover.value = withTiming(0);
+      return;
+    }
+
+    // 1. Wind Animation
+    windOffset.value = withRepeat(
+      withTiming(48, { duration: 3000, easing: Easing.linear }),
+      -1,
+      false
+    );
+
+    // 2. Halo Hover (Bobbing up and down)
+    haloHover.value = withRepeat(
+      withSequence(
+        withTiming(-2, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.quad) })
+      ),
+      -1,
+      true
+    );
+  }, [shouldAnimate]);
+
+  const windProps = useAnimatedProps(() => ({
+    strokeDashoffset: -windOffset.value,
+  }));
+
+  const haloProps = useAnimatedProps(() => ({
+    transform: [{ translateY: haloHover.value }],
+  }));
 
   return (
     <Svg
@@ -68,16 +127,64 @@ const CalmFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCount, 
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
         </Mask>
+        <LinearGradient id="haloGold" x1="0%" y1="0%" x2="100%" y2="0%">
+          <Stop offset="0%" stopColor="#FDB931" />
+          <Stop offset="40%" stopColor="#FFFFAC" />
+          <Stop offset="100%" stopColor="#D4AF37" />
+        </LinearGradient>
       </Defs>
 
       <G mask="url(#neutral_mask)">
-        {/* Background Circle */}
+        {/* Base Background */}
         <Path
           fill="#B8DCC2"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
 
-        {/* Face Shape */}
+        {/* --- 1. Angel Halo (Hovering Ellipse) --- */}
+        <AnimatedG animatedProps={haloProps}>
+          {/* Halo Ring */}
+          <Ellipse
+            cx="24"
+            cy="7"
+            rx="14"
+            ry="4"
+            fill="none"
+            stroke="url(#haloGold)"
+            strokeWidth="2.5"
+            opacity="1"
+          />
+        </AnimatedG>
+
+        {/* --- 2. Wind Animation --- */}
+        <AnimatedG animatedProps={windProps}>
+          <AnimatedPath
+            d="M-24 10 H 72"
+            stroke="#FFFFFF"
+            strokeWidth="3"
+            strokeOpacity="0.4"
+            strokeDasharray="12 36"
+            strokeLinecap="round"
+          />
+          <AnimatedPath
+            d="M-12 24 H 84"
+            stroke="#FFFFFF"
+            strokeWidth="2"
+            strokeOpacity="0.3"
+            strokeDasharray="8 40"
+            strokeLinecap="round"
+          />
+          <AnimatedPath
+            d="M-36 38 H 60"
+            stroke="#FFFFFF"
+            strokeWidth="3"
+            strokeOpacity="0.4"
+            strokeDasharray="16 32"
+            strokeLinecap="round"
+          />
+        </AnimatedG>
+
+        {/* --- 3. Static Face (Foreground) --- */}
         <G filter="url(#neutral_shadow)">
           <Path
             fill="#E7E2CB"

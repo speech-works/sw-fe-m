@@ -9,9 +9,11 @@ interface MoodCheckState {
   hasRecordedToday: boolean;
   moodType: MoodType | null;
   lastRecordedDate: string | null; // ISO date string for daily reset
+  lastPopupDate: string | null; // ISO date string for daily popup
 
   setMood: (mood: MoodType) => void;
   clearMood: () => void;
+  setPopupShown: () => void;
   checkAndResetIfNeeded: () => void;
 }
 
@@ -21,6 +23,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       hasRecordedToday: false,
       moodType: null,
       lastRecordedDate: null,
+      lastPopupDate: null,
 
       setMood: (mood: MoodType) => {
         const today = getLocalTodayDateString();
@@ -39,20 +42,23 @@ export const useMoodCheckStore = create<MoodCheckState>()(
         });
       },
 
+      setPopupShown: () => {
+        const today = getLocalTodayDateString();
+        set({
+          lastPopupDate: today,
+        });
+      },
+
       checkAndResetIfNeeded: () => {
         const today = getLocalTodayDateString();
         const lastDate = get().lastRecordedDate;
-        console.log("checkAndResetIfNeeded run...", {
-          today,
-          lastDate,
-          hasRecordedToday: get().hasRecordedToday,
-        });
 
         if (lastDate !== today) {
           set({
             hasRecordedToday: false,
             moodType: null,
             lastRecordedDate: null,
+            // We DO NOT reset lastPopupDate here because it should persist until the next day's check logic runs
           });
         }
       },

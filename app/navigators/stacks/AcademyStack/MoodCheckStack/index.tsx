@@ -5,11 +5,14 @@ import { MoodCheckStackParamList } from "./types";
 import MoodFUStackNavigator from "./FollowUpStack";
 import { MoodType } from "../../../../api/moodCheck/types";
 
+import MoodCheck from "../../../../screens/Academy/components/MoodCheck";
+
 const Stack = createNativeStackNavigator<MoodCheckStackParamList>();
 
 export default function MoodCheckStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CheckIn" component={MoodCheck} />
       <Stack.Screen
         name="FollowUpStack"
         children={({ route }) => {

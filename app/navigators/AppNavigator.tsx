@@ -5,6 +5,8 @@ import SubscribeScreen from "../screens/Payments";
 import PhoneCall from "../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
 import { View } from "react-native";
 
+import AcademyStackNavigator from "./stacks/AcademyStack";
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -18,6 +20,7 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Root" component={BottomTabNavigator} />
+      <Stack.Screen name="AcademyStack" component={AcademyStackNavigator} />
       <Stack.Screen
         name="PhoneCallScreen"
         component={PhoneCall}
