@@ -47,12 +47,14 @@ const HappyFace = ({
   const eyeScaleY = useSharedValue(1);
   const bounceY = useSharedValue(0);
   const wiggleRotate = useSharedValue(0);
+  const starTwinkle = useSharedValue(0);
 
   React.useEffect(() => {
     if (!shouldAnimate) {
       eyeScaleY.value = withTiming(1);
       bounceY.value = withTiming(0);
       wiggleRotate.value = withTiming(0);
+      starTwinkle.value = withTiming(0);
       return;
     }
 
@@ -74,7 +76,7 @@ const HappyFace = ({
         withTiming(0, { duration: 400, easing: Easing.in(Easing.quad) })
       ),
       -1,
-      true // Reverse not needed for simple bounce sequence, but true makes it yoyo if we just did one move. Sequence does up/down.
+      true
     );
 
     // 3. Wiggle (Joyful head tilt side to side)
@@ -82,6 +84,16 @@ const HappyFace = ({
       withSequence(
         withTiming(-3, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
         withTiming(3, { duration: 1000, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+
+    // 4. Twinkling Stars (Pulse)
+    starTwinkle.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0.5, { duration: 800, easing: Easing.inOut(Easing.quad) })
       ),
       -1,
       true
@@ -105,6 +117,13 @@ const HappyFace = ({
     ],
     originX: 24,
     originY: 24,
+  }));
+
+  const starProps = useAnimatedProps(() => ({
+    opacity: 0.5 + 0.5 * starTwinkle.value,
+    transform: [{ scale: 0.8 + 0.4 * starTwinkle.value }],
+    originX: 24,
+    originY: 40,
   }));
 
   return (
@@ -164,7 +183,7 @@ const HappyFace = ({
           <G filter="url(#face_shadow_filter)">
             <Path
               fill="#F7DFA9"
-              d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 38.736 0 38.736 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-38.736 0-38.736"
+              d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 60 0 60 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-60 0-60"
             />
           </G>
 
@@ -192,6 +211,25 @@ const HappyFace = ({
             strokeLinecap="round"
             strokeWidth={3.558}
             d="M16.8 36q7.2 4.8 14.4 0"
+          />
+        </AnimatedG>
+
+        {/* Twinkling Stars (Bottom Props) */}
+        <AnimatedG animatedProps={starProps}>
+          {/* Left Star */}
+          <Path
+            fill="#FFD700"
+            d="M 12 40 L 13 42 L 15 42 L 13.5 43.5 L 14 45.5 L 12 44 L 10 45.5 L 10.5 43.5 L 9 42 L 11 42 Z"
+          />
+          {/* Right Star */}
+          <Path
+            fill="#FFD700"
+            d="M 36 40 L 37 42 L 39 42 L 37.5 43.5 L 38 45.5 L 36 44 L 34 45.5 L 34.5 43.5 L 33 42 L 35 42 Z"
+          />
+          {/* Center Small Star */}
+          <Path
+            fill="#FFFACD"
+            d="M 24 42 L 24.5 43 L 25.5 43 L 24.8 43.8 L 25 44.8 L 24 44 L 23 44.8 L 23.2 43.8 L 22.5 43 L 23.5 43 Z"
           />
         </AnimatedG>
       </G>
