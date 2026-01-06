@@ -13,6 +13,7 @@ import {
   AcademyStackParamList,
 } from "../../../navigators/stacks/AcademyStack/types";
 import Icon from "react-native-vector-icons/Feather";
+import FaIcon from "react-native-vector-icons/FontAwesome5";
 
 const MoodCheckBanner = () => {
   const { hasRecordedToday } = useMoodCheckStore();
@@ -71,14 +72,10 @@ const MoodCheckBanner = () => {
             </View>
           </View>
 
-          {/* Action Button (Glass) */}
+          {/* Action Button (Pill Style) */}
           <View style={styles.actionButton}>
-            <Text style={styles.actionText}>Start Check-in</Text>
-            <Icon
-              name="chevron-right"
-              size={16}
-              color={theme.colors.text.title}
-            />
+            <FaIcon name="play" size={12} color="#7C3AED" />
+            <Text style={styles.actionText}>Check In</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -165,19 +162,19 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingVertical: 12,
+    backgroundColor: "#FFF",
     paddingHorizontal: 16,
-    borderRadius: 16,
-    marginTop: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     alignSelf: "flex-start",
-    gap: 12,
-    zIndex: 1,
+    gap: 6,
+    zIndex: 2,
+    marginTop: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   actionText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#7C3AED",
     fontWeight: "700",
   },
 });

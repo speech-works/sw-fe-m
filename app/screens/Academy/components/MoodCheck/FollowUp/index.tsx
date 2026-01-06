@@ -5,12 +5,16 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  Dimensions,
 } from "react-native";
-import LottieView from "lottie-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../components/ScreenView";
 import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import {
+  parseTextStyle,
+  parseShadowStyle,
+} from "../../../../../util/functions/parseStyles";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 
 import ListCard, {
@@ -28,6 +32,13 @@ import ExpressYourself, {
 import { MoodType } from "../../../../../api/moodCheck/types";
 import { useMoodCheckStore } from "../../../../../stores/mood";
 
+import AngryFace from "../../../../../assets/mood-check/AngryFace";
+import CalmFace from "../../../../../assets/mood-check/CalmFace";
+import HappyFace from "../../../../../assets/mood-check/HappyFace";
+import SadFace from "../../../../../assets/mood-check/SadFace";
+
+const { width } = Dimensions.get("window");
+
 const iconContainerStyle: ViewStyle = {
   display: "flex",
   alignItems: "center",
@@ -42,7 +53,8 @@ const moodContentMap = {
   [MoodType.HAPPY]: {
     title: "What’s been making you smile today?",
     desc: "Celebrating wins—big or small—boosts confidence. Share your joy.",
-    Icon: "Happy1",
+    FaceComponent: HappyFace,
+    gradientColor: theme.colors.moodcheck.happy,
     helpful: [
       {
         title: "Read a story",
@@ -89,7 +101,8 @@ const moodContentMap = {
   [MoodType.ANGRY]: {
     title: "Got some steam to let off?",
     desc: "Naming anger and putting it into words helps you release tension.",
-    Icon: "Angry1",
+    FaceComponent: AngryFace,
+    gradientColor: theme.colors.moodcheck.angry,
     helpful: [
       {
         title: "Guided Breath Pacing",
@@ -136,7 +149,8 @@ const moodContentMap = {
   [MoodType.SAD]: {
     title: "Need to lighten your heart?",
     desc: "Expressing tough feelings eases the load. Let it out in speech or text.",
-    Icon: "Sad1",
+    FaceComponent: SadFace,
+    gradientColor: theme.colors.moodcheck.sad,
     helpful: [
       {
         title: "Reframing Session",
@@ -183,7 +197,8 @@ const moodContentMap = {
   [MoodType.CALM]: {
     title: "Feeling peaceful right now?",
     desc: "Capture this calm—it’ll be your anchor when things get hectic.",
-    Icon: "Calm1",
+    FaceComponent: CalmFace,
+    gradientColor: theme.colors.moodcheck.calm,
     helpful: [
       {
         title: "Reframing Session",
@@ -229,13 +244,6 @@ const moodContentMap = {
   },
 };
 
-const moodLottieMap = {
-  [MoodType.HAPPY]: require("../../../../../assets/mood-check/lottie/Happy1.json"),
-  [MoodType.ANGRY]: require("../../../../../assets/mood-check/lottie/Angry1.json"),
-  [MoodType.SAD]: require("../../../../../assets/mood-check/lottie/Sad1.json"),
-  [MoodType.CALM]: require("../../../../../assets/mood-check/lottie/Calm1.json"),
-};
-
 const FollowUp = () => {
   const navigation =
     useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
@@ -243,12 +251,13 @@ const FollowUp = () => {
   const { mood } = route.params;
   const { setMood } = useMoodCheckStore();
 
-  const { Icon: MoodIcon, title, desc, helpful } = moodContentMap[mood];
+  const { FaceComponent, title, desc, helpful, gradientColor } =
+    moodContentMap[mood];
   const [expressionType, setExpressionType] =
     useState<EXPRESSION_TYPE_ENUM | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const followUpAct: Array<ListCardProps> = [
+  const followUpAct = [
     {
       title: "Talk it out",
       description: "Record your thoughts with your voice",
@@ -256,20 +265,10 @@ const FollowUp = () => {
         setExpressionType(EXPRESSION_TYPE_ENUM.TALK);
       },
       icon: (
-        <View
-          style={[
-            iconContainerStyle,
-            { backgroundColor: theme.colors.library.orange[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="microphone"
-            size={20}
-            color={theme.colors.library.orange[400]}
-          />
-        </View>
+        <Icon solid name="microphone" size={80} color="rgba(255,255,255,0.2)" />
       ),
+      colors: [theme.colors.library.orange[400], "#F43F5E"] as const,
+      accentColor: "#FFF",
     },
     {
       title: "Write it down",
@@ -277,21 +276,9 @@ const FollowUp = () => {
       onPress: () => {
         setExpressionType(EXPRESSION_TYPE_ENUM.WRITE);
       },
-      icon: (
-        <View
-          style={[
-            iconContainerStyle,
-            { backgroundColor: theme.colors.library.pink[100] },
-          ]}
-        >
-          <Icon
-            solid
-            name="edit"
-            size={20}
-            color={theme.colors.library.pink[500]}
-          />
-        </View>
-      ),
+      icon: <Icon solid name="edit" size={80} color="rgba(255,255,255,0.2)" />,
+      colors: ["#A78BFA", "#7C3AED"] as const,
+      accentColor: "#FFF",
     },
   ];
 
@@ -304,29 +291,41 @@ const FollowUp = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
+        {/* Background Gradient */}
+        <LinearGradient
+          colors={[gradientColor, "#FFFFFF"]}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.6 }}
+        />
+
         <View style={styles.container}>
-          <View style={styles.topNavigationContainer}>
+          {/* Header */}
+          <View style={styles.header}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.topNavigation}
+              style={styles.backButton}
             >
               <Icon
                 name="chevron-left"
                 size={16}
-                color={theme.colors.text.default}
+                color={theme.colors.text.title}
               />
-              <Text style={styles.topNavigationText}>Back</Text>
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Daily Log</Text>
+            <View style={{ width: 32 }} />
           </View>
+
           <CustomScrollView contentContainerStyle={styles.innerContainer}>
             <>
               <View style={styles.titleWrapper}>
-                <LottieView
-                  source={moodLottieMap[mood]}
-                  autoPlay
-                  loop
-                  style={styles.lottie}
-                />
+                <View style={styles.faceContainer}>
+                  <FaceComponent
+                    width={180}
+                    height={180}
+                    shouldAnimate={true}
+                  />
+                </View>
                 {!submitted && <Text style={styles.titleText}>{title}</Text>}
                 {!submitted && <Text style={styles.descText}>{desc}</Text>}
               </View>
@@ -355,14 +354,68 @@ const FollowUp = () => {
                 <>
                   <View style={styles.followUpActContainer}>
                     {followUpAct.map((item, idx) => (
-                      <ListCard
-                        noChevron
+                      <TouchableOpacity
                         key={idx}
-                        title={item.title}
-                        description={item.description}
-                        icon={item.icon}
+                        activeOpacity={0.9}
                         onPress={item.onPress}
-                      />
+                        style={styles.cardWrapper}
+                      >
+                        <LinearGradient
+                          colors={item.colors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.gradientCard}
+                        >
+                          {/* Decorative Bubbles */}
+                          <View
+                            style={[
+                              styles.bubble,
+                              { top: -20, right: -20, width: 80, height: 80 },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.bubble,
+                              {
+                                bottom: 10,
+                                left: 10,
+                                width: 40,
+                                height: 40,
+                                opacity: 0.1,
+                              },
+                            ]}
+                          />
+
+                          <View style={styles.cardContent}>
+                            <View>
+                              <Text style={styles.cardTitle}>{item.title}</Text>
+                              <Text style={styles.cardSubtitle}>
+                                {item.description}
+                              </Text>
+                            </View>
+                            <View style={styles.iconContainer}>
+                              <View style={styles.iconWrapper}>
+                                {item.icon}
+                              </View>
+                            </View>
+                          </View>
+                          <View style={styles.playButton}>
+                            <Icon
+                              name="play"
+                              size={12}
+                              color={item.colors[1]}
+                            />
+                            <Text
+                              style={[
+                                styles.playText,
+                                { color: item.colors[1] },
+                              ]}
+                            >
+                              Start
+                            </Text>
+                          </View>
+                        </LinearGradient>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </>
@@ -403,27 +456,47 @@ const styles = StyleSheet.create({
     gap: 32,
   },
   topNavigationContainer: {
-    position: "relative",
-    top: 0,
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    // Removed
   },
   topNavigation: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    // Removed
   },
   topNavigationText: {
+    // Removed
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 24,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    marginTop: 2,
   },
 
   titleWrapper: {
     gap: 16,
     alignItems: "center",
+  },
+  faceContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading2),
@@ -460,7 +533,69 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   lottie: {
-    width: 80,
-    height: 80,
+    // Removed
+  },
+  cardWrapper: {
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "#fff", // Fallback
+  },
+  gradientCard: {
+    borderRadius: 24,
+    padding: 20,
+    height: 140, // Fixed height for consistency
+    position: "relative",
+    overflow: "hidden",
+    justifyContent: "space-between",
+  },
+  bubble: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  cardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    zIndex: 1,
+  },
+  cardTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#FFF",
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.9)",
+    fontWeight: "500",
+  },
+  iconContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -50,
+    zIndex: 0,
+  },
+  iconWrapper: {
+    // To allow transforming checks if needed
+    transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
+    opacity: 0.9,
+  },
+  playButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+    gap: 6,
+    zIndex: 2,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginTop: "auto", // Push to bottom
+  },
+  playText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "700",
   },
 });

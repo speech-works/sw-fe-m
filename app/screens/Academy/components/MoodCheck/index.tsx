@@ -186,13 +186,12 @@ const MoodCheck = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => academyNavigation.goBack()}
-          hitSlop={12}
           style={styles.backButton}
         >
-          <Icon name="arrow-left" size={20} color={theme.colors.text.title} />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daily Log</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 32 }} />
       </View>
 
       <Text style={styles.questionText}>How are you feeling{"\n"}today?</Text>
@@ -326,22 +325,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     marginBottom: 24,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fff",
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.6)",
     justifyContent: "center",
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   headerTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
   },
   questionText: {
     ...parseTextStyle(theme.typography.Heading1),

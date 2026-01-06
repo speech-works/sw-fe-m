@@ -4,12 +4,19 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import React, { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { theme } from "../../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import {
+  parseTextStyle,
+  parseShadowStyle,
+} from "../../../../../../util/functions/parseStyles";
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { useUserStore } from "../../../../../../stores/user";
@@ -67,74 +74,140 @@ const ExpressYourself = ({
         await logMood({
           userId: user.id,
           mood: moodType,
-          voiceNoteUrl: uploadedRecording.audioUrl, // ✅ Use actual S3 key
+          voiceNoteUrl: uploadedRecording.audioUrl,
         });
-
-        console.log("🎤 Voice mood entry logged:", uploadedRecording.audioUrl);
       }
 
       onSubmit();
       onClose();
     } catch (error) {
       console.error("❌ Failed to submit mood expression:", error);
-      // Optionally show a toast or alert
     }
   };
+
+  // Premium Light Configuration
+  const getConfig = () => {
+    if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
+      return {
+        // Light Purple Gradient (Background)
+        gradient: [
+          theme.colors.library.purple[100],
+          theme.colors.library.purple[200],
+        ] as const,
+        icon: "pencil",
+        title: "Write it down",
+        subtitle: "Clear your mind by putting thoughts into words.",
+        // Vibrant Button
+        buttonGradient: [
+          theme.colors.library.purple[400],
+          theme.colors.library.purple[600],
+        ] as const,
+        // Dark Text for Contrast
+        titleColor: theme.colors.library.purple[800],
+        iconColor: theme.colors.library.purple[400],
+      };
+    }
+    return {
+      // Light Orange Gradient (Background)
+      gradient: [
+        theme.colors.library.orange[100],
+        theme.colors.library.orange[200],
+      ] as const,
+      icon: "microphone",
+      title: "Talk it out",
+      subtitle: "Speak freely to release tension and process emotions.",
+      // Vibrant Button
+      buttonGradient: [
+        theme.colors.library.orange[400],
+        theme.colors.library.red[400],
+      ] as const,
+      // Dark Text for Contrast
+      titleColor: theme.colors.library.orange[800],
+      iconColor: theme.colors.library.orange[400],
+    };
+  };
+
+  const config = getConfig();
 
   return (
     <View>
       <BottomSheetModal visible={expressionType !== null} onClose={onClose}>
-        {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
-          <View style={styles.container}>
-            <View style={styles.innerContainer}>
-              <Text style={styles.title}>Express Your Thoughts</Text>
-              <Text style={styles.description}>
-                Putting it into words helps. Write down anything you’re feeling.
+        <LinearGradient
+          colors={config.gradient}
+          style={styles.container}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Decorative Bubbles (Subtle White) */}
+          <View style={styles.bubbleTopRight} />
+          <View style={styles.bubbleBottomLeft} />
+
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.headerTitle, { color: config.titleColor }]}>
+                {config.title}
               </Text>
+              <Text style={styles.headerSubtitle}>{config.subtitle}</Text>
             </View>
+            <View style={styles.iconContainer}>
+              <MaterialIcon
+                name={config.icon}
+                size={40}
+                color={config.iconColor}
+                style={{ opacity: 0.2 }}
+              />
+            </View>
+          </View>
 
-            <TextInput
-              style={styles.textInput}
-              multiline
-              placeholder="Start writing..."
-              value={writtenText}
-              onChangeText={setWrittenText}
-            />
+          {/* Interaction Card (White Surface) */}
+          <View style={styles.card}>
+            {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
+              <TextInput
+                style={styles.textInput}
+                multiline
+                placeholder="Start writing here..."
+                placeholderTextColor={theme.colors.text.disabled}
+                value={writtenText}
+                onChangeText={setWrittenText}
+              />
+            ) : (
+              <View style={styles.recorderWrapper}>
+                <VoiceRecorder
+                  onRecorded={(uri) => setVoiceRecordingUri(uri)}
+                  prevRecordingUri={voiceRecordingUri || undefined}
+                />
+              </View>
+            )}
+
+            {/* Action Button (Vibrant Pill inside Card) */}
             <TouchableOpacity
-              style={[
-                styles.submitButton,
-                writtenText.length < 1 ? styles.disabledButton : null,
-              ]}
+              activeOpacity={0.8}
               onPress={handleSubmit}
-              disabled={writtenText.length < 1}
+              disabled={
+                expressionType === EXPRESSION_TYPE_ENUM.WRITE
+                  ? writtenText.length < 1
+                  : !voiceRecordingUri
+              }
+              style={[
+                styles.buttonContainer,
+                (expressionType === EXPRESSION_TYPE_ENUM.WRITE
+                  ? writtenText.length < 1
+                  : !voiceRecordingUri) && styles.disabledButtonContainer,
+              ]}
             >
-              <Text style={styles.submitText}>Let it out</Text>
+              <LinearGradient
+                colors={config.buttonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.submitText}>Let it out</Text>
+                <Icon name="arrow-right" size={14} color="#FFF" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-        ) : expressionType === EXPRESSION_TYPE_ENUM.TALK ? (
-          <View style={styles.container}>
-            <Text style={styles.title}>Record Your Voice</Text>
-            <Text style={styles.description}>
-              Speak your mind. Recording your thoughts can help process
-              emotions.
-            </Text>
-
-            <VoiceRecorder
-              onRecorded={(uri) => setVoiceRecordingUri(uri)}
-              prevRecordingUri={voiceRecordingUri || undefined}
-            />
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                !voiceRecordingUri ? styles.disabledButton : null,
-              ]}
-              onPress={handleSubmit}
-              disabled={!voiceRecordingUri}
-            >
-              <Text style={styles.submitText}>Let it out</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+        </LinearGradient>
       </BottomSheetModal>
     </View>
   );
@@ -144,41 +217,98 @@ export default ExpressYourself;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 16,
+    padding: 24,
+    paddingBottom: 40,
+    minHeight: 400,
+    position: "relative",
+    borderRadius: 24,
+    overflow: "hidden",
   },
-  innerContainer: {
-    gap: 8,
+  bubbleTopRight: {
+    position: "absolute",
+    top: -50,
+    right: -30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255, 255, 255, 0.4)", // Substle white on light bg
   },
-  title: {
-    color: theme.colors.text.title,
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -20,
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 24,
+    zIndex: 1,
+  },
+  headerTextContainer: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 28,
+    marginBottom: 8,
   },
-  description: {
-    color: theme.colors.text.default,
-    ...parseTextStyle(theme.typography.BodySmall),
+  headerSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.library.gray[500],
+    lineHeight: 22,
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ rotate: "-15deg" }],
+    // No background, just the icon acting as watermark
+  },
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 32,
+    padding: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: 24,
+    zIndex: 2,
   },
   textInput: {
-    height: 150,
-    borderColor: theme.colors.border.default,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    height: 140,
     textAlignVertical: "top",
-    backgroundColor: theme.colors.background.light,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.library.gray[800],
+    fontSize: 18,
   },
-  submitButton: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    paddingVertical: 18,
-    borderRadius: 12,
+  recorderWrapper: {
     alignItems: "center",
+    paddingVertical: 12,
   },
-  disabledButton: {
-    backgroundColor: theme.colors.actionPrimary.disabled,
+  buttonContainer: {
+    borderRadius: 20,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  disabledButtonContainer: {
+    opacity: 0.5,
+  },
+  gradientButton: {
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   submitText: {
-    color: "#fff",
+    color: "#FFF",
     ...parseTextStyle(theme.typography.Body),
     fontWeight: "700",
+    fontSize: 16,
   },
 });
