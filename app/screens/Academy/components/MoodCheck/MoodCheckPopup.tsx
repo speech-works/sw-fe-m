@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   StyleSheet,
   Text,
@@ -20,37 +21,43 @@ import {
   AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { MoodType } from "../../../../api/moodCheck/types";
-import Angry1 from "../../../../assets/mood-check/Angry1";
-import Calm1 from "../../../../assets/mood-check/Calm1";
-import Happy1 from "../../../../assets/mood-check/Happy1";
-import Sad1 from "../../../../assets/mood-check/Sad1";
+
+// Animated Faces
+import AngryFace from "../../../../assets/mood-check/AngryFace";
+import CalmFace from "../../../../assets/mood-check/CalmFace";
+import HappyFace from "../../../../assets/mood-check/HappyFace";
+import SadFace from "../../../../assets/mood-check/SadFace";
+
 import { getLocalTodayDateString } from "../../../../util/functions/date";
-import Icon from "react-native-vector-icons/Feather";
 
 const emotions = [
   {
     id: MoodType.ANGRY,
     name: "Angry",
-    icon: Angry1,
-    bgColor: theme.colors.moodcheck.angry,
+    icon: AngryFace,
+    tint: theme.colors.moodcheck.angry, // #FFF1F2 (Soft Red)
+    border: "#FECACA", // Red 200
   },
   {
     id: MoodType.CALM,
     name: "Calm",
-    icon: Calm1,
-    bgColor: theme.colors.moodcheck.calm,
+    icon: CalmFace,
+    tint: theme.colors.moodcheck.calm, // #ECFDF5 (Soft Mint)
+    border: "#A7F3D0", // Green 200
   },
   {
     id: MoodType.HAPPY,
     name: "Happy",
-    icon: Happy1,
-    bgColor: theme.colors.moodcheck.happy,
+    icon: HappyFace,
+    tint: theme.colors.moodcheck.happy, // #FFF7ED (Soft Orange)
+    border: "#FED7AA", // Orange 200
   },
   {
     id: MoodType.SAD,
     name: "Sad",
-    icon: Sad1,
-    bgColor: theme.colors.moodcheck.sad,
+    icon: SadFace,
+    tint: theme.colors.moodcheck.sad, // #EFF6FF (Soft Blue)
+    border: "#BFDBFE", // Blue 200
   },
 ];
 
@@ -68,7 +75,6 @@ const MoodCheckPopup = () => {
     // 1. Not recorded today
     // 2. Popup hasn't been shown today
     if (!hasRecordedToday && lastPopupDate !== today) {
-      // Small delay to ensure app is ready/layout is settled
       const timer = setTimeout(() => {
         setVisible(true);
       }, 500);
@@ -102,31 +108,51 @@ const MoodCheckPopup = () => {
       visible={visible}
       animationType="slide"
       onRequestClose={handleSkip}
+      statusBarTranslucent
     >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleSkip} />
         <View style={styles.container}>
-          <View style={styles.handle} />
+          <LinearGradient
+            colors={[
+              theme.colors.library.orange[100],
+              theme.colors.library.orange[200],
+            ]}
+            style={styles.gradientContainer}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.handle} />
 
-          <View style={styles.header}>
-            <Text style={styles.title}>How do you feel today?</Text>
-            <TouchableOpacity onPress={handleSkip} hitSlop={10}>
-              <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.grid}>
-            {emotions.map((emo) => (
-              <TouchableOpacity
-                key={emo.id}
-                style={[styles.card, { backgroundColor: emo.bgColor }]}
-                onPress={() => handleSelectMood(emo.id)}
-              >
-                <emo.icon width={56} height={56} />
-                <Text style={styles.moodName}>{emo.name}</Text>
+            <View style={styles.header}>
+              <Text style={styles.title}>How do you feel today?</Text>
+              <TouchableOpacity onPress={handleSkip} hitSlop={10}>
+                <Text style={styles.skipText}>Skip</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+
+            <View style={styles.grid}>
+              {emotions.map((emo) => (
+                <TouchableOpacity
+                  key={emo.id}
+                  activeOpacity={0.8}
+                  onPress={() => handleSelectMood(emo.id)}
+                  style={styles.cardWrapper}
+                >
+                  <LinearGradient
+                    // Pearlescent Gradient: White -> Tint
+                    colors={["#FFFFFF", emo.tint]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.card, { borderColor: emo.border }]}
+                  >
+                    <emo.icon width={80} height={80} shouldAnimate={true} />
+                    <Text style={styles.moodName}>{emo.name}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </LinearGradient>
         </View>
       </View>
     </Modal>
@@ -145,20 +171,23 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   container: {
-    backgroundColor: theme.colors.background.light,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
+    backgroundColor: "transparent",
+    borderTopLeftRadius: 32, // More curve
+    borderTopRightRadius: 32,
+    overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation2),
   },
+  gradientContainer: {
+    padding: 24,
+    paddingBottom: 50,
+  },
   handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: theme.colors.border.default,
-    borderRadius: 2,
+    width: 48,
+    height: 6,
+    backgroundColor: "rgba(0,0,0,0.1)", // Softer handle
+    borderRadius: 3,
     alignSelf: "center",
-    marginBottom: 24,
+    marginBottom: 32,
   },
   header: {
     flexDirection: "row",
@@ -167,12 +196,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading2), // Larger title
+    color: theme.colors.library.orange[800],
+    fontSize: 24,
   },
   skipText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: theme.colors.library.gray[500],
+    fontWeight: "600",
   },
   grid: {
     flexDirection: "row",
@@ -180,17 +211,23 @@ const styles = StyleSheet.create({
     gap: 16,
     justifyContent: "space-between",
   },
-  card: {
-    width: (Dimensions.get("window").width - 48 - 16) / 2, // (Screen - padding - gap) / 2
+  cardWrapper: {
+    width: (Dimensions.get("window").width - 48 - 16) / 2,
     aspectRatio: 1,
-    borderRadius: 16,
+    // ...parseShadowStyle(theme.shadow.elevation1), // Shadow removed as requested
+  },
+  card: {
+    flex: 1,
+    borderRadius: 28,
+    borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: 8,
   },
   moodName: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    fontWeight: "600",
+    color: theme.colors.library.gray[700],
+    marginTop: 4,
   },
 });
