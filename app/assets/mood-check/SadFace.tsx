@@ -50,12 +50,15 @@ const SadFace = ({
   const droopY = useSharedValue(0);
   const scaleY = useSharedValue(1);
   const tearLevel = useSharedValue(0); // 0 to 1 (filling up)
-
+  const mouthQuiver = useSharedValue(0);
+  const pulse = useSharedValue(0);
+  const rain = useSharedValue(0);
   React.useEffect(() => {
     if (!shouldAnimate) {
       droopY.value = withTiming(0);
       scaleY.value = withTiming(1);
       tearLevel.value = withTiming(0);
+      mouthQuiver.value = withTiming(0);
       return;
     }
 
@@ -63,11 +66,38 @@ const SadFace = ({
     droopY.value = withTiming(0);
     scaleY.value = withTiming(1);
 
-    // Tear Animation (Brimming and Jiggling)
+    // Tear Animation (Very Slow Heave)
     tearLevel.value = withRepeat(
       withSequence(
-        withTiming(0.8, { duration: 2000, easing: Easing.inOut(Easing.sin) }), // Brim
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }) // Full
+        withTiming(0.5, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+
+    // Blue Funk Pulse (Background Aura)
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 6000, easing: Easing.out(Easing.sin) }),
+      -1,
+      false
+    );
+
+    // Rain Animation (Stormy)
+    rain.value = withRepeat(
+      withTiming(1, { duration: 900, easing: Easing.linear }),
+      -1,
+      false
+    );
+
+    // Mouth Quiver (Intermittent shivering)
+    mouthQuiver.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 2000 }), // Wait
+        withTiming(1, { duration: 50 }), // Shake R
+        withTiming(-1, { duration: 50 }), // Shake L
+        withTiming(1, { duration: 50 }), // Shake R
+        withTiming(0, { duration: 50 }) // Stop
       ),
       -1,
       true
@@ -77,6 +107,80 @@ const SadFace = ({
   const faceProps = useAnimatedProps(() => ({
     transform: [{ translateY: droopY.value }, { scaleY: scaleY.value }],
     originY: 24, // Pivot from center
+  }));
+
+  const pulseProps = useAnimatedProps(() => ({
+    transform: [{ scale: 1 + 0.4 * pulse.value }],
+    opacity: 0.3 * (1 - pulse.value), // Fade out
+    originX: 24,
+    originY: 24,
+  }));
+
+  const rain1Props = useAnimatedProps(() => ({
+    transform: [{ translateY: (rain.value % 1) * 70 }, { rotate: "-15deg" }],
+    opacity: 0.3 * (1 - (rain.value % 1)),
+  }));
+
+  const rain2Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.5) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.5) % 1)),
+  }));
+
+  const rain3Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.15) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.15) % 1)),
+  }));
+
+  const rain4Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.7) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.7) % 1)),
+  }));
+
+  const rain5Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.35) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.35) % 1)),
+  }));
+
+  const rain6Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.85) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.85) % 1)),
+  }));
+
+  const rain7Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.25) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.25) % 1)),
+  }));
+
+  const rain8Props = useAnimatedProps(() => ({
+    transform: [
+      { translateY: ((rain.value + 0.6) % 1) * 70 },
+      { rotate: "-15deg" },
+    ],
+    opacity: 0.3 * (1 - ((rain.value + 0.6) % 1)),
+  }));
+
+  const mouthProps = useAnimatedProps(() => ({
+    transform: [{ translateX: mouthQuiver.value * 0.5 }], // Subtle shake
+    originX: 24,
+    originY: 39,
   }));
 
   const leftTearProps = useAnimatedProps(() => ({
@@ -99,6 +203,9 @@ const SadFace = ({
       {...props}
     >
       <Defs>
+        <Filter id="blue_blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur stdDeviation="4" />
+        </Filter>
         <Filter
           id="sad_shadow"
           x="-50%"
@@ -150,6 +257,80 @@ const SadFace = ({
           fill="#E6E8FF"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
+
+        {/* Rain (Stormy Black Drizzle) */}
+        <AnimatedG animatedProps={rain1Props}>
+          <Path
+            d="M 8 -10 V 5"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain2Props}>
+          <Path
+            d="M 14 -15 V 2"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain3Props}>
+          <Path
+            d="M 19 -8 V 7"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain4Props}>
+          <Path
+            d="M 25 -12 V 4"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain5Props}>
+          <Path
+            d="M 31 -6 V 8"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain6Props}>
+          <Path
+            d="M 36 -14 V 1"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain7Props}>
+          <Path
+            d="M 42 -9 V 6"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={rain8Props}>
+          <Path
+            d="M 22 -18 V -2"
+            stroke="#000000"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.2"
+          />
+        </AnimatedG>
 
         {/* Animated Sad Face */}
         <AnimatedG animatedProps={faceProps}>
@@ -214,6 +395,17 @@ const SadFace = ({
             fill="#5B5B5B"
             d="m36.292 16.019-11.591-3.106-.994 3.71 11.591 3.105z"
           />
+
+          {/* Pursed Mouth (Quivering) */}
+          <AnimatedG animatedProps={mouthProps}>
+            <Path
+              d="M 22 39 Q 24 37 26 39"
+              stroke="#5B5B5B"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </AnimatedG>
         </AnimatedG>
       </G>
     </Svg>
