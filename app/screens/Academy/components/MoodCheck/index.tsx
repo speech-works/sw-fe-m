@@ -9,6 +9,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Animated,
+  PanResponder,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -90,6 +91,41 @@ const MoodCheck = () => {
     }
   }).current;
 
+  // Mood Intensity State (0-100)
+  const [moodIntensity, setMoodIntensity] = useState(50);
+  const rulerWidth = width - 40; // Approx ruler track width (paddingHorizontal: 20 * 2)
+
+  // We need a ref for the initial value on gesture start to make the sliding smooth
+  const initialIntensityRef = useRef(50);
+
+  // Let's rewrite the PanResponder to be properly self-contained
+  const panResponderRef = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      // Handle both GranT (Tap) and Move (Drag) with same logic
+      onPanResponderGrant: (evt) => {
+        const { locationX } = evt.nativeEvent;
+        // locationX is now relative to the Overlay View, which matches the ruler width
+        const effectiveX = locationX - 20; // 20 is left padding
+        const pct = (effectiveX / rulerWidth) * 100;
+        const clamped = Math.max(0, Math.min(100, pct));
+
+        setMoodIntensity(clamped);
+      },
+      onPanResponderMove: (evt) => {
+        const { locationX } = evt.nativeEvent;
+        const effectiveX = locationX - 20;
+        const pct = (effectiveX / rulerWidth) * 100;
+        const clamped = Math.max(0, Math.min(100, pct));
+
+        setMoodIntensity(clamped);
+      },
+    })
+  ).current;
+
+  // Update initial ref when state changes outside of gesture (rare here but good practice)
+
   // Ruler Component
   const Ruler = () => {
     const lines = Array.from({ length: 40 }); // Ruler Lines
@@ -111,8 +147,17 @@ const MoodCheck = () => {
           <View
             style={[
               styles.activeIndicator,
-              { backgroundColor: emotions[currentIndex].primaryColor },
+              {
+                backgroundColor: emotions[currentIndex].primaryColor,
+                left: `${moodIntensity}%`, // Use percentage for positioning
+              },
             ]}
+          />
+
+          {/* Transparent Overlay for Gestures */}
+          <View
+            style={StyleSheet.absoluteFill}
+            {...panResponderRef.panHandlers}
           />
         </View>
       </View>
