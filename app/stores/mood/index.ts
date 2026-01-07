@@ -15,6 +15,7 @@ interface MoodCheckState {
   clearMood: () => void;
   setPopupShown: () => void;
   checkAndResetIfNeeded: () => void;
+  _hasHydrated: boolean;
 }
 
 export const useMoodCheckStore = create<MoodCheckState>()(
@@ -24,6 +25,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       moodType: null,
       lastRecordedDate: null,
       lastPopupDate: null,
+      _hasHydrated: false,
 
       setMood: (mood: MoodType) => {
         const today = getLocalTodayDateString();
@@ -44,6 +46,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
 
       setPopupShown: () => {
         const today = getLocalTodayDateString();
+        console.log("MoodStore: setPopupShown called", { today });
         set({
           lastPopupDate: today,
         });
@@ -70,6 +73,7 @@ export const useMoodCheckStore = create<MoodCheckState>()(
       // We use `onRehydrateStorage` to ensure daily reset happens after loading
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state._hasHydrated = true;
           const today = getLocalTodayDateString();
           if (state.lastRecordedDate !== today) {
             state.hasRecordedToday = false;

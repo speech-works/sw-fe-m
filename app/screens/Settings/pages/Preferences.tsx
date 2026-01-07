@@ -1,4 +1,10 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import ScreenView from "../../../components/ScreenView";
@@ -11,6 +17,7 @@ import {
 } from "../../../util/functions/parseStyles";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import TimeSelector from "../../../components/TimeSelector";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { format } from "date-fns";
 import {
   getUserPreferences,
@@ -32,6 +39,7 @@ const Preferences = () => {
   const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
   const [reminderTime, setReminderTime] = useState<Date | null>();
+  const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
 
   const closeModal = () => setIsModalVisible(false);
 
@@ -101,7 +109,7 @@ const Preferences = () => {
   ];
 
   const SelectGoalType = () => (
-    <View style={styles.goalListContanier}>
+    <View style={styles.goalListContainer}>
       {practiceGoalTypeData.map((goal, index) => (
         <TouchableOpacity
           key={index}
@@ -208,72 +216,85 @@ const Preferences = () => {
         {/* Background Gradient */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
-            colors={["#FFF7ED", "#FFF", "#FFF"]}
-            locations={[0, 0.4, 1]}
+            colors={[theme.colors.library.orange[100], "#FFF"]}
+            locations={[0, 1]}
             style={{ flex: 1 }}
           />
         </View>
 
         <View style={styles.container}>
-          <TouchableOpacity
-            style={styles.topNavigation}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
+          <View style={styles.topNavigation}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Icon
+                name="chevron-left"
+                size={16}
+                color={theme.colors.text.title}
+              />
+            </TouchableOpacity>
             <Text style={styles.topNavigationText}>Preferences</Text>
-          </TouchableOpacity>
+            <View style={{ width: 32 }} />
+          </View>
           <CustomScrollView contentContainerStyle={styles.scrollView}>
-            <View style={styles.card}>
+            {/* Preferred Time Card */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => {
+                setOpenSettingType("TIMER");
+                if (Platform.OS === "android") {
+                  setShowAndroidTimePicker(true);
+                } else {
+                  setIsModalVisible(true);
+                }
+              }}
+              style={styles.card}
+            >
               <View style={styles.textContainer}>
                 <Text style={styles.titleText}>Preferred Practice Time</Text>
                 <Text style={styles.descText}>When should we remind you?</Text>
               </View>
-              <TouchableOpacity
-                style={styles.preferredTimeValue}
-                onPress={() => {
-                  setOpenSettingType("TIMER");
-                  setIsModalVisible(true);
-                }}
-              >
+              <View style={styles.valueRow}>
                 {reminderTime && (
                   <Text style={styles.valueText}>
                     {format(reminderTime, "hh:mm a")}
                   </Text>
                 )}
-
                 <Icon
                   name="chevron-right"
-                  size={12}
-                  color={theme.colors.actionPrimary.default}
+                  size={14}
+                  color={theme.colors.library.orange[400]}
                 />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.card}>
+              </View>
+            </TouchableOpacity>
+
+            {/* Goal Type Card */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => {
+                setOpenSettingType("GOAL");
+                setIsModalVisible(true);
+              }}
+              style={styles.card}
+            >
               <View style={styles.textContainer}>
                 <Text style={styles.titleText}>Practice Goal Type</Text>
                 <Text style={styles.descText}>
                   How would you like to train?
                 </Text>
               </View>
-              <TouchableOpacity
-                style={styles.preferredTimeValue}
-                onPress={() => {
-                  setOpenSettingType("GOAL");
-                  setIsModalVisible(true);
-                }}
-              >
+              <View style={styles.valueRow}>
                 <Text style={styles.valueText}>{selectedGoalType}</Text>
                 <Icon
                   name="chevron-right"
-                  size={12}
-                  color={theme.colors.actionPrimary.default}
+                  size={14}
+                  color={theme.colors.library.orange[400]}
                 />
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Dynamic Goal Limit Cards */}
             {selectedGoalType === "Time based" && (
               <View style={styles.card}>
                 <View style={styles.textContainer}>
@@ -289,24 +310,25 @@ const Preferences = () => {
                   >
                     <Icon
                       name="chevron-up"
-                      size={12}
-                      color={theme.colors.actionPrimary.default}
+                      size={14}
+                      color={theme.colors.library.orange[600]}
                     />
                   </TouchableOpacity>
-                  <Text style={styles.valueText}>{targetMins}</Text>
+                  <Text style={styles.valueTextLarge}>{targetMins}</Text>
                   <TouchableOpacity
                     onPress={handleDecrementTargetMins}
                     style={styles.chevronButton}
                   >
                     <Icon
                       name="chevron-down"
-                      size={12}
-                      color={theme.colors.actionPrimary.default}
+                      size={14}
+                      color={theme.colors.library.orange[600]}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
+
             {selectedGoalType === "Task based" && (
               <View style={styles.card}>
                 <View style={styles.textContainer}>
@@ -322,19 +344,19 @@ const Preferences = () => {
                   >
                     <Icon
                       name="chevron-up"
-                      size={12}
-                      color={theme.colors.actionPrimary.default}
+                      size={14}
+                      color={theme.colors.library.orange[600]}
                     />
                   </TouchableOpacity>
-                  <Text style={styles.valueText}>{taskCount}</Text>
+                  <Text style={styles.valueTextLarge}>{taskCount}</Text>
                   <TouchableOpacity
                     onPress={handleDecrementTaskCount}
                     style={styles.chevronButton}
                   >
                     <Icon
                       name="chevron-down"
-                      size={12}
-                      color={theme.colors.actionPrimary.default}
+                      size={14}
+                      color={theme.colors.library.orange[600]}
                     />
                   </TouchableOpacity>
                 </View>
@@ -364,6 +386,20 @@ const Preferences = () => {
           )}
         </View>
       </BottomSheetModal>
+      {showAndroidTimePicker && (
+        <DateTimePicker
+          value={reminderTime || new Date()}
+          mode="time"
+          display="default"
+          is24Hour={true}
+          onChange={(event, date) => {
+            setShowAndroidTimePicker(false);
+            if (date) {
+              setReminderTime(date);
+            }
+          }}
+        />
+      )}
     </>
   );
 };
@@ -375,77 +411,103 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   container: {
-    gap: 32,
+    gap: 24,
     flex: 1,
+    paddingTop: 8,
   },
   topNavigation: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 24,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   topNavigationText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    marginTop: 2,
   },
   scrollView: {
     gap: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingHorizontal: 24, // Match header alignment
+    paddingBottom: 40,
   },
   card: {
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   textContainer: {
-    gap: 4,
+    gap: 6,
+    flex: 1,
   },
   titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.library.orange[800],
+    fontWeight: "700",
+    fontSize: 18,
   },
   descText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "400",
+    color: theme.colors.library.gray[500],
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    // Removed background and padding for clean look
   },
   valueText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.actionPrimary.default,
-    marginHorizontal: 8,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.library.orange[800],
+    fontWeight: "600",
+  },
+  valueTextLarge: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.library.orange[800],
+    width: 30,
+    textAlign: "center",
   },
   valueControlContainer: {
     flexDirection: "column",
     alignItems: "center",
-    width: 75,
+    justifyContent: "center",
+    gap: 2,
+    backgroundColor: "rgba(255,247,237, 1)", // Soft Orange
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   chevronButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-  },
-  preferredTimeValue: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
+    padding: 8,
   },
 
   // modal
   modalTitleContainer: {
-    gap: 12,
+    gap: 4,
     alignItems: "center",
+    marginBottom: 8, // Match ContactSupport wrapper top padding logic
   },
   modalTiteText: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    color: theme.colors.text.title, // Keep title standard
   },
   modalDescText: {
     ...parseTextStyle(theme.typography.BodySmall),
@@ -453,70 +515,75 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingVertical: 24,
+    paddingHorizontal: 20, // Match ContactSupport
     width: "100%",
     flex: 1,
     flexDirection: "column",
-    gap: 32,
+    gap: 24,
+    backgroundColor: "#fff", // White background
   },
-  goalListContanier: {
+  goalListContainer: {
     gap: 16,
     alignItems: "center",
     width: "100%",
   },
   goalCard: {
     width: "100%",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20, // Match ContactSupport
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F1F5F9", // Match ContactSupport
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   disabledCard: {
-    backgroundColor: theme.colors.surface.disabled,
-    opacity: 1,
-    elevation: 0, // Android
-    shadowColor: "transparent", // iOS
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
+    backgroundColor: "#F8FAFC",
+    borderColor: "transparent",
+    elevation: 0,
+    shadowColor: "transparent",
+    opacity: 0.8,
   },
   disabledText: {
     color: theme.colors.text.disabled,
   },
   selectedGoalCard: {
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: "#FFF7ED",
+    borderColor: theme.colors.library.orange[200],
   },
   selectedCardText: {
-    color: theme.colors.text.onDark,
-    fontWeight: "600",
+    color: theme.colors.library.orange[800],
+    fontWeight: "700",
   },
   goalIconContainer2: {
-    height: 40,
-    width: 40,
+    height: 44,
+    width: 44,
   },
   disabledIconContainer: {
     backgroundColor: theme.colors.library.gray[200],
   },
   goalDescContainer: {
     gap: 4,
+    flex: 1,
   },
   goalNameText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
+    fontWeight: "700",
   },
   goalDetailText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
+    ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
   goalIconContainer: {
-    height: 40,
-    width: 40,
+    height: 44,
+    width: 44,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface.default,
+    borderRadius: 22,
+    backgroundColor: "#FFF7ED", // Light orange bg
   },
 });

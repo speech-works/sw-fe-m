@@ -62,14 +62,28 @@ const emotions = [
 ];
 
 const MoodCheckPopup = () => {
-  const { hasRecordedToday, lastPopupDate, setPopupShown } =
+  const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
     useMoodCheckStore();
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
   const [visible, setVisible] = React.useState(false);
 
   useEffect(() => {
+    // Wait for hydration
+    if (!_hasHydrated) {
+      console.log("MoodCheck - Waiting for Hydration");
+      return;
+    }
+
     const today = getLocalTodayDateString();
+
+    console.log("MoodCheck Check:", {
+      _hasHydrated,
+      hasRecordedToday,
+      lastPopupDate,
+      today,
+      shouldShow: !hasRecordedToday && lastPopupDate !== today,
+    });
 
     // Show if:
     // 1. Not recorded today
@@ -80,7 +94,7 @@ const MoodCheckPopup = () => {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [hasRecordedToday, lastPopupDate]);
+  }, [hasRecordedToday, lastPopupDate, _hasHydrated]);
 
   const handleSkip = () => {
     setPopupShown(); // Mark as shown for today
