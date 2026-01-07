@@ -1,5 +1,15 @@
-import React, { useContext, useState } from "react";
-import { StyleSheet, Text, View, Image, Platform, Alert } from "react-native";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  Platform,
+  Alert,
+  Animated,
+  Easing,
+  Dimensions,
+} from "react-native";
 
 import {
   COMPANY_NAME,
@@ -9,11 +19,13 @@ import {
 } from "./constants";
 import { theme } from "../../Theme/tokens";
 
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  parseTextStyle,
+  parseShadowStyle,
+} from "../../util/functions/parseStyles";
 import speechworksLogo from "../../assets/speechworks_logo.png";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import Button from "../../components/Button"; // <-- Assumes Button is updated
-import BgWrapper from "../../util/components/BgWrapper";
+import Button from "../../components/Button";
 import Constants from "expo-constants";
 import { AuthContext } from "../../contexts/AuthContext";
 import * as WebBrowser from "expo-web-browser";
@@ -22,6 +34,8 @@ import * as AuthSession from "expo-auth-session";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { loginUser, handleOAuthCallback } from "../../api";
 import { useUserStore } from "../../stores/user";
+import LoginBackground from "./components/LoginBackground";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
@@ -36,61 +50,79 @@ const getDisplayProviders = () => {
   return ALL_PROVIDERS.filter((provider) => provider !== "apple");
 };
 
+const { height } = Dimensions.get("window");
+
 const LoginScreen = () => {
   const { login } = useContext(AuthContext);
   const { setUser } = useUserStore();
 
-  // 🔹 loading state per provider
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
-  // 🔹 simple toast helper
+  // Animation Refs
+  const logoScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const logoFadeAnim = useRef(new Animated.Value(0)).current;
+  const sheetSlideAnim = useRef(new Animated.Value(height * 0.5)).current; // Start off-screen
+
+  useEffect(() => {
+    Animated.parallel([
+      // Logo Animation: Scale up + Fade in
+      Animated.timing(logoScaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.back(1.5)), // Slight bounce
+      }),
+      Animated.timing(logoFadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      // Sheet Animation: Slide Up
+      Animated.timing(sheetSlideAnim, {
+        toValue: 0,
+        duration: 700,
+        delay: 200, // Wait a bit for logo
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+    ]).start();
+  }, []);
+
   const showError = (message: string) => {
     Alert.alert("Login Error", message);
   };
 
   const onPressOAuth = async (provider: string) => {
     if (loadingProvider) return; // prevent multi-trigger
-
     setLoadingProvider(provider);
 
     try {
-      // 1️⃣ Build the Expo-Go proxy redirect URI
       const owner = Constants.expoConfig?.owner;
       const slug = Constants.expoConfig?.slug;
-      if (!owner || !slug)
-        throw new Error("Expo owner/slug missing in app.json!");
 
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: "speechworks",
         path: "auth-callback",
       });
-      console.log("→ Using redirectUri:", redirectUri);
 
-      // 2️⃣ Ask your backend for the Supabase / Google consent URL
       const { redirectUrl: authUrl } = await loginUser({
         provider,
         redirectTo: redirectUri,
       });
-      console.log("→ Supabase consent URL:", authUrl);
 
-      // 3️⃣ Open the system browser to that URL and *await* the redirect
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
         redirectUri
       );
-      console.log("→ WebBrowser openAuthSessionAsync result:", result);
 
-      // 4️⃣ If successful, extract the `code` and finish the flow
       if (result.type === "success" && result.url) {
         const params = new URLSearchParams(result.url.split("?")[1]);
         const code = params.get("code");
         if (!code) throw new Error("No code returned from OAuth");
 
-        // 5️⃣ Exchange on your backend
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
         setUser(user);
 
-        // 6️⃣ Store & update your app’s auth state
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
         await SecureStore.setItemAsync(
           SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
@@ -112,103 +144,224 @@ const LoginScreen = () => {
     }
   };
 
+  const providers = getDisplayProviders();
+
   return (
-    <BgWrapper>
-      <View style={styles.wrapper}>
-        <View style={styles.brandContainer}>
-          <Image style={styles.logoImg} source={speechworksLogo} />
-          <Text style={styles.companyName}>{COMPANY_NAME}</Text>
-          <Text style={styles.captionText}>{COMPANY_SLOGAN}</Text>
-        </View>
+    <View style={styles.container}>
+      {/*
+        1. TOP SECTION (Brand)
+           - Uses absolute positioning for background to cover the top half
+      */}
+      <View style={styles.topSection}>
+        <LoginBackground />
 
-        <View style={styles.loginButtons}>
-          {getDisplayProviders().map((provider) => {
-            const isLoading = loadingProvider === provider;
-
-            return (
-              <Button
-                key={provider}
-                // @ts-ignore
-                buttonColor={theme.colors.background[provider]}
-                // @ts-ignore
-                textColor={theme.colors.text[provider]}
-                onPress={() => onPressOAuth(provider)}
-                // ✅ --- BEST PRACTICE CHANGE ---
-                // Text no longer changes, preventing reflow
-                text={`Continue with ${
-                  provider.charAt(0).toUpperCase() + provider.slice(1)
-                }`}
-                leftIcon={provider}
-                disabled={isLoading}
-                loading={isLoading} // <-- Pass loading prop
-                // ✅ --- END OF CHANGE ---
-              />
-            );
-          })}
-        </View>
-
-        <Text style={styles.captionText}>
-          By continuing, you agree to our
-          <Text
-            style={styles.linkText}
-            onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+        {/* Logo Content */}
+        <SafeAreaView edges={["top"]} style={styles.brandContent}>
+          <Animated.View
+            style={[
+              styles.logoWrapper,
+              {
+                opacity: logoFadeAnim,
+                transform: [{ scale: logoScaleAnim }],
+              },
+            ]}
           >
-            Terms & Privacy Policy
-          </Text>
-        </Text>
-
-        <Text style={styles.captionText}>
-          Need help?
-          <Text
-            style={styles.linkText}
-            onPress={() => handleLinkPress(SUPPORT_URL)}
-          >
-            Contact Support
-          </Text>
-        </Text>
+            <Image
+              style={styles.logoImg}
+              source={speechworksLogo}
+              resizeMode="contain"
+            />
+          </Animated.View>
+          <Animated.View style={{ opacity: logoFadeAnim }}>
+            <Text style={styles.companyName}>{COMPANY_NAME}</Text>
+            <Text style={styles.captionText}>{COMPANY_SLOGAN}</Text>
+          </Animated.View>
+        </SafeAreaView>
       </View>
-    </BgWrapper>
+
+      {/*
+        2. BOTTOM SECTION (Sheet)
+           - Slides up from bottom
+      */}
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          { transform: [{ translateY: sheetSlideAnim }] },
+        ]}
+      >
+        <SafeAreaView
+          edges={["bottom", "left", "right"]}
+          style={styles.sheetContent}
+        >
+          {/* Header of Sheet */}
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Let's get started</Text>
+            <Text style={styles.sheetSubtitle}>
+              Login to continue your progress
+            </Text>
+          </View>
+
+          {/* Social Buttons */}
+          <View style={styles.loginButtons}>
+            {providers.map((provider) => {
+              const isLoading = loadingProvider === provider;
+
+              let btnBg =
+                theme.colors.background[
+                  provider as keyof typeof theme.colors.background
+                ];
+              let btnText =
+                theme.colors.text[provider as keyof typeof theme.colors.text];
+              let btnBorderWidth = 0;
+              let btnBorderColor = "transparent";
+
+              if (provider === "google") {
+                btnBg = "#FFFFFF";
+                btnText = "#1F2937";
+                btnBorderWidth = 1;
+                btnBorderColor = theme.colors.border.default;
+              }
+
+              return (
+                <Button
+                  key={provider}
+                  text={`Continue with ${
+                    provider.charAt(0).toUpperCase() + provider.slice(1)
+                  }`}
+                  onPress={() => onPressOAuth(provider)}
+                  leftIcon={provider}
+                  disabled={isLoading}
+                  loading={isLoading}
+                  buttonColor={btnBg}
+                  textColor={btnText}
+                  elevation={provider === "google" ? 1 : undefined} // Flat look for others
+                  style={{
+                    borderWidth: btnBorderWidth,
+                    borderColor: btnBorderColor,
+                    marginBottom: 16, // More spacing
+                    height: 56, // Taller buttons
+                  }}
+                />
+              );
+            })}
+          </View>
+
+          {/* Footer / Legal */}
+          <View style={styles.legalContainer}>
+            <Text style={styles.legalText}>
+              By continuing, you agree to our{" "}
+              <Text
+                style={styles.linkText}
+                onPress={() => handleLinkPress(PRIVACY_POLICY_URL)}
+              >
+                Terms & Privacy Policy
+              </Text>
+            </Text>
+            <View style={{ height: 16 }} />
+            <Text style={styles.legalText}>
+              Need help?{" "}
+              <Text
+                style={styles.linkText}
+                onPress={() => handleLinkPress(SUPPORT_URL)}
+              >
+                Contact Support
+              </Text>
+            </Text>
+          </View>
+        </SafeAreaView>
+      </Animated.View>
+    </View>
   );
 };
 
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  wrapper: {
-    paddingVertical: 48,
-    paddingHorizontal: 24,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "space-between",
+  container: {
     flex: 1,
+    backgroundColor: theme.colors.library.orange[100], // Match top bg color
   },
-  brandContainer: {
-    display: "flex",
-    flexDirection: "column",
+  // Top Section
+  topSection: {
+    flex: 0.45, // 45% height
+    position: "relative",
+    justifyContent: "center",
     alignItems: "center",
+  },
+  brandContent: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 20,
     gap: 16,
+  },
+  logoWrapper: {
+    // Large logo area
+    width: 200,
+    height: 120, // Increased size
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoImg: {
-    height: 80,
-    width: 120,
+    width: "100%",
+    height: "100%",
   },
   companyName: {
-    ...parseTextStyle(theme.typography.Heading2),
+    ...parseTextStyle(theme.typography.Heading1), // BIGGER
     color: theme.colors.text.title,
+    textAlign: "center",
   },
   captionText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    opacity: 0.8,
+  },
+
+  // Bottom Sheet
+  bottomSheet: {
+    flex: 0.55, // 55% height
+    backgroundColor: "#FFFFFF",
+    // Removed border radius and shadow as requested
+    overflow: "hidden",
+  },
+  sheetContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    justifyContent: "flex-start",
+  },
+  sheetHeader: {
+    marginBottom: 32,
+    alignItems: "center",
+  },
+  sheetTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    marginBottom: 8,
+  },
+  sheetSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
   },
-  linkText: {
-    color: theme.colors.text.title,
-  },
+
   loginButtons: {
     width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
+    marginBottom: 24,
+  },
+
+  legalContainer: {
+    alignItems: "center",
+    marginTop: "auto",
+    marginBottom: 20,
+  },
+  legalText: {
+    textAlign: "center",
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.disabled,
+  },
+  linkText: {
+    fontWeight: "600",
+    color: theme.colors.actionPrimary.default,
   },
 });
