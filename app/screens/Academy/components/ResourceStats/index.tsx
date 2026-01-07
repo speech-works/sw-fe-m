@@ -133,7 +133,7 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
   const progressOffset = circumference * (1 - staminaPercentage / 100);
 
   // Derived Values for Bars
-  const tasksRemaining = user?.freeTasksRemaining || 0;
+  const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
   const tasksTotal = 5;
   const taskPercentage = (tasksRemaining / tasksTotal) * 100;
 
