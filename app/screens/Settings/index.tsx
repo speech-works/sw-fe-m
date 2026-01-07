@@ -163,7 +163,10 @@ const Settings = () => {
                   </View>
                 </View>
                 <Text style={styles.memberSince}>
-                  Member since {user?.createdAt?.getFullYear()}
+                  Member since{" "}
+                  {user?.createdAt
+                    ? new Date(user.createdAt).getFullYear()
+                    : new Date().getFullYear()}
                 </Text>
               </View>
 
