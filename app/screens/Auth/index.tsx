@@ -100,20 +100,32 @@ const LoginScreen = () => {
       const owner = Constants.expoConfig?.owner;
       const slug = Constants.expoConfig?.slug;
 
+      // iOS simulators have issues with custom schemes
+      // Use preferLocalhost for better iOS simulator support
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: "speechworks",
         path: "auth-callback",
+        preferLocalhost: Platform.OS === "ios" && __DEV__,
       });
+
+      console.log("[Auth] 🔍 Redirect URI:", redirectUri);
+      console.log("[Auth] 🔍 Provider:", provider);
+      console.log("[Auth] 🔍 Platform:", Platform.OS);
+      console.log("[Auth] 🔍 Is Dev:", __DEV__);
 
       const { redirectUrl: authUrl } = await loginUser({
         provider,
         redirectTo: redirectUri,
       });
 
+      console.log("[Auth] 🔍 Supabase Auth URL:", authUrl);
+
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
         redirectUri
       );
+
+      console.log("[Auth] 🔍 Auth session result:", result);
 
       if (result.type === "success" && result.url) {
         const params = new URLSearchParams(result.url.split("?")[1]);
