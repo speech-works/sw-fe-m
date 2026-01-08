@@ -311,9 +311,11 @@ const SmartRecorder: React.FC<Props> = ({
         {/* LEFT SECTION: Tools or Timer */}
         <View
           style={
-            !isRecording && !isPlaying
-              ? styles.leftSection
-              : styles.leftSectionRecording
+            isRecording
+              ? styles.leftSectionRecording
+              : isPlaying
+              ? styles.leftSectionCompact
+              : styles.leftSection
           }
         >
           {isRecording ? (
@@ -479,6 +481,12 @@ const styles = StyleSheet.create({
     width: "auto", // Shrink to fit content
     alignItems: "flex-start",
     paddingLeft: 12, // More padding for "Rec" label
+    justifyContent: "center",
+  },
+  leftSectionCompact: {
+    width: "auto",
+    alignItems: "flex-start",
+    paddingLeft: 4, // Matches leftSection
     justifyContent: "center",
   },
 

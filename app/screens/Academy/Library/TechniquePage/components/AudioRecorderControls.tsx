@@ -103,6 +103,15 @@ const AudioRecorderControls: React.FC<AudioRecorderControlsProps> = ({
 
   const startRecording = async () => {
     try {
+      // Cleanup any existing recording first
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch {}
+        recordingRef.current = null;
+      }
+      stopMeteringTimer();
+
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
@@ -117,6 +126,7 @@ const AudioRecorderControls: React.FC<AudioRecorderControlsProps> = ({
         playsInSilentModeIOS: true,
         interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
       });
 
       const recording = new Audio.Recording();
