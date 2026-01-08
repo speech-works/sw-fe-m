@@ -31,12 +31,16 @@ interface Props {
   onRecorded?: (uri: string) => void;
   onToggle?: () => void;
   prevRecordingUri?: string;
+  minimizeWhenIdle?: boolean;
+  waveformHeight?: number;
 }
 
 const VoiceRecorder: React.FC<Props> = ({
   onRecorded,
   onToggle,
   prevRecordingUri,
+  minimizeWhenIdle = false,
+  waveformHeight = 140,
 }) => {
   const [mode, setMode] = useState<"idle" | "recording" | "playing">("idle");
 
@@ -339,38 +343,49 @@ const VoiceRecorder: React.FC<Props> = ({
   // Only show the active waveform if a recording is in progress, playing, or already exists.
   const isWaveformVisible = isRecording || isPlaying || isReadyForPlayback;
 
+  // If minimizing when idle, and not active, hide waveform and status
+  const shouldHideWaveform = minimizeWhenIdle && !isWaveformVisible;
+
   return (
     <View style={styles.container}>
-      <View style={styles.waveformContainer}>
-        {/* FIX: Use the placeholder container as the single wrapper for both states */}
-        <View style={styles.waveformPlaceholder}>
-          {isWaveformVisible ? (
-            // Render the actual waveform inside the placeholder container
-            <ModernWaveform
-              envelope={waveformEnvelope}
-              mode={isPlaying ? "playback" : isRecording ? "recording" : "idle"}
-              height={140}
-              strokeColor={theme.colors.text.title}
-              glowColor={theme.colors.actionPrimary.default}
-              points={420}
-              fps={30}
-            />
-          ) : (
-            // Render the center line placeholder when the wave is hidden (initial state)
-            <View style={styles.centerLine} />
-          )}
+      {!shouldHideWaveform && (
+        <View style={styles.waveformContainer}>
+          {/* FIX: Use the placeholder container as the single wrapper for both states */}
+          <View
+            style={[styles.waveformPlaceholder, { height: waveformHeight }]}
+          >
+            {isWaveformVisible ? (
+              // Render the actual waveform inside the placeholder container
+              <ModernWaveform
+                envelope={waveformEnvelope}
+                mode={
+                  isPlaying ? "playback" : isRecording ? "recording" : "idle"
+                }
+                height={waveformHeight}
+                strokeColor={theme.colors.text.title}
+                glowColor={theme.colors.actionPrimary.default}
+                points={420}
+                fps={30}
+              />
+            ) : (
+              // Render the center line placeholder when the wave is hidden (initial state)
+              <View style={styles.centerLine} />
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
-      <Text
-        style={[
-          styles.statusText,
-          isRecording && styles.recordingText,
-          isPlaying && styles.playingText,
-        ]}
-      >
-        {statusText}
-      </Text>
+      {(!shouldHideWaveform || isRecording || isPlaying) && (
+        <Text
+          style={[
+            styles.statusText,
+            isRecording && styles.recordingText,
+            isPlaying && styles.playingText,
+          ]}
+        >
+          {statusText}
+        </Text>
+      )}
 
       {/* Control Buttons with RecorderWidget design and logic */}
       <View style={styles.micContainer}>

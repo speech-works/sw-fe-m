@@ -1,0 +1,178 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  RDPStackNavigationProp,
+  RDPStackParamList,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import { useUserStore } from "../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useUIStore } from "../../../../../../stores/ui";
+import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
+import {
+  ReadingPractice,
+  ReadingPracticeType,
+} from "../../../../../../api/dailyPractice/types";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { createPracticeActivity } from "../../../../../../api";
+import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+
+export const useStoryPractice = () => {
+  const { setTabBarVisible } = useUIStore();
+  const chorusManagerRef = useRef(new ChorusManager());
+  const navigation =
+    useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
+
+  // --- State ---
+  const [practiceComplete, setPracticeComplete] = useState(false);
+  const [allStories, setAllStories] = useState<ReadingPractice[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [pages, setPages] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [highlightRange, setHighlightRange] = useState<[number, number]>([
+    -1, 0,
+  ]);
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+
+  // Sheet control for complex tools
+  const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
+
+  // --- Helpers ---
+  const splitTextIntoPages = (text: string): string[] => {
+    return text
+      .split(/\n\s*\n/)
+      .map((section) => section.trim())
+      .filter((section) => section.length > 0);
+  };
+
+  const toggleIndex = useCallback(() => {
+    if (allStories && allStories.length > 0) {
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % allStories.length);
+    }
+  }, [allStories]);
+
+  // --- Effects ---
+
+  // Hide Tab Bar
+  useFocusEffect(
+    useCallback(() => {
+      setTabBarVisible(false);
+      return () => {
+        setTabBarVisible(true);
+      };
+    }, [setTabBarVisible])
+  );
+
+  // Fetch Stories
+  useEffect(() => {
+    const fetchAllStories = async () => {
+      const st = await getReadingPracticeByType(ReadingPracticeType.STORY);
+      setAllStories(st);
+    };
+    fetchAllStories();
+    return () => {
+      chorusManagerRef.current.stop();
+    };
+  }, []);
+
+  // Update Pages when story changes
+  useEffect(() => {
+    const currentText = allStories[selectedIndex]?.textContent || "";
+    const paginated = splitTextIntoPages(currentText);
+    setPages(paginated);
+    setCurrentPage(0);
+    setHighlightRange([-1, 0]);
+  }, [selectedIndex, allStories]);
+
+  // --- Actions ---
+
+  const onBackPress = () => navigation.goBack();
+
+  const markActivityStart = async () => {
+    if (!practiceSession) return;
+    const newActivity = await createPracticeActivity({
+      sessionId: practiceSession.id,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      contentId: allStories[selectedIndex]?.id,
+    });
+    const startedActivity = await startPracticeActivity({
+      id: newActivity.id,
+      userId: practiceSession.user.id,
+    });
+    addActivity({ ...startedActivity });
+    setCurrentActivityId(newActivity.id);
+  };
+
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
+    const completedActivity = await completePracticeActivity({
+      id: activityId,
+      userId: practiceSession.user.id,
+    });
+    updateActivity(activityId, { ...completedActivity });
+  };
+
+  const onDonePress = async () => {
+    try {
+      if (!currentActivityId) throw new Error("Activity not started");
+      await markActivityComplete(currentActivityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: currentActivityId,
+      });
+      setPracticeComplete(true);
+    } catch (error) {
+      console.error("❌ Failed to complete activity:", error);
+    }
+  };
+
+  const currentStory = allStories[selectedIndex];
+
+  return {
+    state: {
+      practiceComplete,
+      allStories,
+      selectedIndex,
+      currentStory,
+      pages,
+      currentPage,
+      highlightRange,
+      currentActivityId,
+      isLoading,
+      isStarting,
+      selectedPracticeTool,
+      voiceRecordingUri,
+      activeToolSheet,
+    },
+    actions: {
+      setSelectedIndex,
+      setCurrentPage,
+      setHighlightRange,
+      setIsStarting,
+      setIsLoading,
+      setSelectedPracticeTool,
+      setActiveToolSheet,
+      setVoiceRecordingUri,
+      onBackPress,
+      onDonePress,
+      markActivityStart,
+      toggleIndex,
+    },
+  };
+};

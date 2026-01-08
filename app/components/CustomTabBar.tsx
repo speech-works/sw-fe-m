@@ -20,6 +20,7 @@ import Animated, {
 import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
+import { useUIStore } from "../stores/ui";
 
 const { width } = Dimensions.get("window");
 
@@ -28,6 +29,10 @@ const CustomTabBar = ({
   descriptors,
   navigation,
 }: BottomTabBarProps) => {
+  const { isTabBarVisible } = useUIStore();
+
+  if (!isTabBarVisible) return null;
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>

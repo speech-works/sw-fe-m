@@ -18,6 +18,12 @@ type VoiceHoverProps = {
   style?: object;
   textStyle?: object;
   onHighlightChange?: (start: number, length: number) => void;
+  // External Control Props
+  rate?: number;
+  prePause?: number;
+  gap?: number;
+  isPlaying?: boolean; // If provided, controls playback externally
+  onComplete?: () => void;
 };
 
 export function VoiceHover({
@@ -25,19 +31,33 @@ export function VoiceHover({
   style,
   textStyle,
   onHighlightChange,
+  rate, // Optional external control
+  prePause: externalPrePause, // Optional external control
+  gap: externalGap, // Optional external control
+  isPlaying: externalIsPlaying, // Optional external control
+  onComplete,
 }: VoiceHoverProps) {
   const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [loadingVoices, setLoadingVoices] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const [baseRate, setBaseRate] = useState(1.0);
-  const [prePause, setPrePause] = useState(200);
-  const [gapBetweenChunks, setGapBetweenChunks] = useState(100);
+  // Internal State (used if external props are not provided)
+  const [internalIsSpeaking, setInternalIsSpeaking] = useState(false);
+  const [internalBaseRate, setInternalBaseRate] = useState(1.0);
+  const [internalPrePause, setInternalPrePause] = useState(200);
+  const [internalGap, setInternalGap] = useState(100);
+
+  // Derived Control Values (External > Internal)
+  const isControlled = externalIsPlaying !== undefined;
+  const isSpeaking = isControlled ? externalIsPlaying! : internalIsSpeaking;
+  const baseRate = rate !== undefined ? rate : internalBaseRate;
+  const prePause =
+    externalPrePause !== undefined ? externalPrePause : internalPrePause;
+  const gapBetweenChunks =
+    externalGap !== undefined ? externalGap : internalGap;
 
   const playTokenRef = useRef(0);
   const chunksRef = useRef<string[]>([]);
   const currentChunkIndexRef = useRef(0);
-  const currentWordIndexRef = useRef(0); // Not directly used for highlighting words anymore
   const highlightTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -104,11 +124,35 @@ export function VoiceHover({
     playTokenRef.current++;
     Speech.stop();
     clearAllHighlightTimeouts();
-    setIsSpeaking(false);
+    if (!isControlled) setInternalIsSpeaking(false);
+
     currentChunkIndexRef.current = 0;
-    currentWordIndexRef.current = 0;
     if (onHighlightChange) onHighlightChange(-1, 0);
   }, [text]);
+
+  // Effect to handle EXTERNAL isPlaying changes
+  useEffect(() => {
+    if (loadingVoices) return;
+    if (isControlled) {
+      if (externalIsPlaying) {
+        // START or RESUME
+        // Logic similar to onPlay but triggered by prop
+        const token = ++playTokenRef.current;
+        chunksRef.current = splitIntoChunks(text);
+        // Verify if we need to reset index
+        if (currentChunkIndexRef.current >= chunksRef.current.length) {
+          currentChunkIndexRef.current = 0;
+        }
+        speakChunks(currentChunkIndexRef.current, token);
+      } else {
+        // STOP
+        playTokenRef.current++;
+        Speech.stop();
+        clearAllHighlightTimeouts();
+        if (onHighlightChange) onHighlightChange(-1, 0);
+      }
+    }
+  }, [externalIsPlaying, loadingVoices, text]);
 
   const clearAllHighlightTimeouts = () => {
     highlightTimeoutsRef.current.forEach((id) => clearTimeout(id));
@@ -127,28 +171,8 @@ export function VoiceHover({
     return results;
   };
 
-  // splitChunkIntoWords is retained but not used for highlighting in chunk-level mode.
-  const splitChunkIntoWords = (
-    chunk: string,
-    chunkStart: number
-  ): { word: string; start: number; length: number }[] => {
-    const wordRegex = /[A-Za-z0-9']+/g;
-    const words: { word: string; start: number; length: number }[] = [];
-    let match: RegExpExecArray | null;
-    while ((match = wordRegex.exec(chunk)) !== null) {
-      const w = match[0];
-      const relIdx = match.index;
-      words.push({
-        word: w,
-        start: chunkStart + relIdx,
-        length: w.length,
-      });
-    }
-    return words;
-  };
-
   const speakChunks = async (startChunkIndex: number, token: number) => {
-    setIsSpeaking(true);
+    // setIsSpeaking(true); // Managed by parents or internal state
 
     const chunkStarts: number[] = [];
     let cumulative = 0;
@@ -198,8 +222,10 @@ export function VoiceHover({
     }
 
     if (playTokenRef.current === token) {
-      setIsSpeaking(false);
+      // Finished normally
+      if (!isControlled) setInternalIsSpeaking(false);
       if (onHighlightChange) onHighlightChange(-1, 0);
+      onComplete?.();
     }
   };
 
@@ -216,13 +242,20 @@ export function VoiceHover({
     }, 50);
   };
 
-  const onPlay = () => {
+  // If params change while speaking, restart logic
+  useEffect(() => {
+    if (isSpeaking && !loadingVoices) {
+      restartFromCurrent();
+    }
+  }, [baseRate, prePause, gapBetweenChunks]); // Depend on resolved values
+
+  const onPlayInternal = () => {
     if (loadingVoices) return;
-    if (isSpeaking) {
+    if (internalIsSpeaking) {
       playTokenRef.current++;
       Speech.stop();
       clearAllHighlightTimeouts();
-      setIsSpeaking(false);
+      setInternalIsSpeaking(false);
       if (onHighlightChange) onHighlightChange(-1, 0);
       return;
     }
@@ -230,15 +263,18 @@ export function VoiceHover({
     const token = playTokenRef.current;
     chunksRef.current = splitIntoChunks(text);
     currentChunkIndexRef.current = 0;
-    currentWordIndexRef.current = 0;
+    setInternalIsSpeaking(true);
     if (onHighlightChange) onHighlightChange(-1, 0);
     speakChunks(0, token);
   };
 
-  // The individual increase/decrease functions are no longer needed
-  // as the Slider's onValueChange will update the state directly.
-  // We'll keep the restartFromCurrent logic within the slider's onValueChange
-  // for consistency with previous button behavior.
+  // Render Controls ONLY if NOT Controlled Externally
+  if (isControlled) {
+    // Just render a hidden view or nothing, as logic is running via hooks/effects handled above?
+    // Actually, we need to return null or just the view if style is passed.
+    // But wait, our 'speakChunks' etc. are closures. Usage is fine.
+    return <View style={style} />;
+  }
 
   return (
     <View style={[styles.container, style]}>
@@ -251,7 +287,9 @@ export function VoiceHover({
             <View style={styles.controlSection}>
               <View style={styles.rowContainer}>
                 <Text style={styles.infoText}>Speech Rate</Text>
-                <Text style={styles.speedText}>{baseRate.toFixed(1)}×</Text>
+                <Text style={styles.speedText}>
+                  {internalBaseRate.toFixed(1)}×
+                </Text>
               </View>
               <View style={styles.sliderWrapper}>
                 <Slider
@@ -259,10 +297,9 @@ export function VoiceHover({
                   minimumValue={0.5} // Minimum rate
                   maximumValue={2.0} // Maximum rate
                   step={0.1} // Step value
-                  value={baseRate}
+                  value={internalBaseRate}
                   onValueChange={(value) => {
-                    setBaseRate(value);
-                    restartFromCurrent(); // Restart speech with new rate
+                    setInternalBaseRate(value);
                   }}
                   minimumTrackTintColor={theme.colors.library.orange[400]}
                   maximumTrackTintColor={theme.colors.surface.default}
@@ -279,7 +316,7 @@ export function VoiceHover({
             <View style={styles.controlSection}>
               <View style={styles.rowContainer}>
                 <Text style={styles.infoText}>Pre-Pause</Text>
-                <Text style={styles.speedText}>{prePause}ms</Text>
+                <Text style={styles.speedText}>{internalPrePause}ms</Text>
               </View>
               <View style={styles.sliderWrapper}>
                 <Slider
@@ -287,10 +324,9 @@ export function VoiceHover({
                   minimumValue={0} // Minimum pre-pause
                   maximumValue={1000} // Maximum pre-pause
                   step={50} // Step value
-                  value={prePause}
+                  value={internalPrePause}
                   onValueChange={(value) => {
-                    setPrePause(value);
-                    restartFromCurrent(); // Restart speech with new pre-pause
+                    setInternalPrePause(value);
                   }}
                   minimumTrackTintColor={theme.colors.library.orange[400]}
                   maximumTrackTintColor={theme.colors.surface.default}
@@ -307,7 +343,7 @@ export function VoiceHover({
             <View style={styles.controlSection}>
               <View style={styles.rowContainer}>
                 <Text style={styles.infoText}>Gap Between Chunks</Text>
-                <Text style={styles.speedText}>{gapBetweenChunks}ms</Text>
+                <Text style={styles.speedText}>{internalGap}ms</Text>
               </View>
               <View style={styles.sliderWrapper}>
                 <Slider
@@ -315,10 +351,9 @@ export function VoiceHover({
                   minimumValue={0} // Minimum gap
                   maximumValue={1000} // Maximum gap
                   step={50} // Step value
-                  value={gapBetweenChunks}
+                  value={internalGap}
                   onValueChange={(value) => {
-                    setGapBetweenChunks(value);
-                    restartFromCurrent(); // Restart speech with new gap
+                    setInternalGap(value);
                   }}
                   minimumTrackTintColor={theme.colors.library.orange[400]}
                   maximumTrackTintColor={theme.colors.surface.default}
@@ -335,11 +370,11 @@ export function VoiceHover({
           {/* Speak/Stop button */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              onPress={onPlay}
-              style={[styles.button, isSpeaking && styles.buttonStop]}
+              onPress={onPlayInternal}
+              style={[styles.button, internalIsSpeaking && styles.buttonStop]}
             >
               <Text style={styles.buttonText}>
-                {isSpeaking ? "Stop" : "Speak"}
+                {internalIsSpeaking ? "Stop" : "Speak"}
               </Text>
             </TouchableOpacity>
           </View>
