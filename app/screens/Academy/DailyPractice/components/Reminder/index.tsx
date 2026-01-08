@@ -25,9 +25,10 @@ import { registerForNotifications } from "../../../../../util/functions/notifica
 
 interface ReminderProps {
   onReminderSet?: () => void;
+  renderTrigger?: (onOpen: () => void) => React.ReactNode;
 }
 
-const Reminder = ({ onReminderSet }: ReminderProps) => {
+const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
   // Use Zustand store action
   const addReminder = useReminderStore((state) => state.addReminder);
 
@@ -173,7 +174,11 @@ const Reminder = ({ onReminderSet }: ReminderProps) => {
 
   return (
     <React.Fragment>
-      <Button text="Set Reminder" onPress={() => setIsVisible(true)} />
+      {renderTrigger ? (
+        renderTrigger(() => setIsVisible(true))
+      ) : (
+        <Button text="Set Reminder" onPress={() => setIsVisible(true)} />
+      )}
 
       <BottomSheetModal
         visible={isVisible}

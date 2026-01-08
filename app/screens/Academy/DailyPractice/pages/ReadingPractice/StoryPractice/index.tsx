@@ -134,11 +134,7 @@ const StoryPractice = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return (
-      <ScreenView style={styles.screenView}>
-        <DonePractice />
-      </ScreenView>
-    );
+    return <DonePractice />;
   }
 
   // Pre-Practice (Tips) View

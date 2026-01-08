@@ -196,7 +196,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
 
       const { sound } = await Audio.Sound.createAsync(
         { uri },
-        { shouldPlay: true },
+        { shouldPlay: true, progressUpdateIntervalMillis: 50 },
         (status) => {
           if (status.isLoaded) {
             setPlaybackPosition(status.positionMillis);

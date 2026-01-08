@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -41,12 +41,34 @@ const SmartRecorder: React.FC<Props> = ({
     stopPlayback,
     state,
     waveform,
+    playbackPosition, // Needed for replay sync
     deleteRecording,
   } = useAudioRecorder();
 
   const isRecording = state === "recording";
   const isPlaying = state === "playback";
   const hasRecording = !!prevRecordingUri;
+
+  // Waveform Visualization Logic
+  const POINTS = 40; // Match the visualizer
+  const displayEnvelope = useMemo(() => {
+    if (isRecording) {
+      const slice = waveform.slice(-POINTS);
+      return [
+        ...new Array(Math.max(0, POINTS - slice.length)).fill(0),
+        ...slice,
+      ];
+    }
+    if (isPlaying) {
+      const index = Math.floor(playbackPosition / 50); // 50ms per sample
+      const slice = waveform.slice(Math.max(0, index - POINTS), index);
+      return [
+        ...new Array(Math.max(0, POINTS - slice.length)).fill(0),
+        ...slice,
+      ];
+    }
+    return waveform; // Review Mode: Show full history squeezed
+  }, [waveform, isRecording, isPlaying, playbackPosition]);
 
   const handleStartRecording = async () => {
     await startRecording();
@@ -120,7 +142,7 @@ const SmartRecorder: React.FC<Props> = ({
           {isRecording || isPlaying ? (
             <View style={styles.waveformWrapper}>
               <ModernWaveform
-                envelope={waveform}
+                envelope={displayEnvelope}
                 mode={state}
                 height={32}
                 glowColor={
@@ -128,7 +150,7 @@ const SmartRecorder: React.FC<Props> = ({
                     ? theme.colors.library.red[500]
                     : theme.colors.library.orange[500]
                 }
-                points={40}
+                points={POINTS}
               />
             </View>
           ) : hasRecording ? (
