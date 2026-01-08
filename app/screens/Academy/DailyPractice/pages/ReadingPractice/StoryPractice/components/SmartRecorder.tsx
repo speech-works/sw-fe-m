@@ -392,15 +392,15 @@ const SmartRecorder: React.FC<Props> = ({
         {/* RIGHT SECTION: Next or Stop/Play controls */}
         <View style={styles.rightSection}>
           {isRecording ? (
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={stopRecording}
-            >
-              <Icon
-                name="stop"
-                size={20}
-                color={theme.colors.library.red[500]}
+            <TouchableOpacity style={styles.stopButton} onPress={stopRecording}>
+              <LinearGradient
+                colors={[
+                  theme.colors.library.red[500],
+                  theme.colors.library.red[600],
+                ]}
+                style={StyleSheet.absoluteFill}
               />
+              <Icon name="stop" size={16} color="#FFF" />
             </TouchableOpacity>
           ) : hasUri ? (
             // Review Mode: Submit (Check) Button
@@ -441,7 +441,17 @@ const styles = StyleSheet.create({
   },
   dockRecording: {
     backgroundColor: "#FFF",
-    borderColor: theme.colors.library.orange[200],
+    borderColor: theme.colors.library.red[200],
+    borderWidth: 2,
+  },
+  stopButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden", // For gradient
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   separator: {
     width: 1,
