@@ -188,30 +188,9 @@ const StoryPractice = () => {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={async () => {
-              console.log("[StoryPractice] 🔵 Start Practice button pressed");
-              console.log(
-                "[StoryPractice] 🔍 Current state - isStarting:",
-                isStarting
-              );
-              console.log(
-                "[StoryPractice] 🔍 Current story:",
-                currentStory?.title
-              );
-              console.log(
-                "[StoryPractice] 🔍 Practice session exists:",
-                !!practiceSession
-              );
-              console.log("[StoryPractice] 🔍 Has hydrated:", hasHydrated);
-
               actions.setIsStarting(true);
-              console.log("[StoryPractice] ⏳ Set isStarting to true");
-
               try {
-                console.log("[StoryPractice] 🚀 Calling markActivityStart...");
                 await actions.markActivityStart();
-                console.log(
-                  "[StoryPractice] ✅ markActivityStart completed successfully"
-                );
               } catch (error) {
                 console.error(
                   "[StoryPractice] ❌ Error in markActivityStart:",
@@ -219,17 +198,10 @@ const StoryPractice = () => {
                 );
               } finally {
                 actions.setIsStarting(false);
-                console.log("[StoryPractice] ⏹️ Set isStarting to false");
               }
             }}
             disabled={isStarting || !hasHydrated}
             style={styles.startButton}
-            onPressIn={() =>
-              console.log("[StoryPractice] 👆 Button press IN detected")
-            }
-            onPressOut={() =>
-              console.log("[StoryPractice] 👆 Button press OUT detected")
-            }
           >
             <LinearGradient
               colors={

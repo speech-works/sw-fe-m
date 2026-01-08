@@ -1,15 +1,10 @@
 import * as React from "react";
 import { View } from "react-native";
 import Svg, {
-  Mask,
+  ClipPath,
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
   FeComposite,
   FeBlend,
   SvgProps,
@@ -400,12 +395,18 @@ const FaceNode = ({
 
   return (
     <G transform={`translate(${x}, ${y}) scale(${scale})`}>
-      <G filter={`url(#${shadowId})`}>
-        <Path
-          fill={faceColor}
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
-      </G>
+      {/* Shadow - Vector approximation */}
+      <Path
+        fill="#000000"
+        opacity={0.25}
+        d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        transform="translate(1, 1)"
+      />
+      {/* Face Shape */}
+      <Path
+        fill={faceColor}
+        d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+      />
 
       {/* PROPS */}
       {role === "engineer" && (
@@ -633,28 +634,7 @@ const DiverseCommunityFace = ({
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
       <Defs>
-        <Filter
-          id="global_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="bg" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="alpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={1} dy={1} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="alpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="bg" result="shadow" />
-          <FeBlend in="SourceGraphic" in2="shadow" />
-        </Filter>
-        <Mask
+        <ClipPath
           id="global_mask"
           x="0"
           y="0"
@@ -663,10 +643,10 @@ const DiverseCommunityFace = ({
           maskUnits="userSpaceOnUse"
         >
           <Circle cx="24" cy="24" r="24" fill="#fff" />
-        </Mask>
+        </ClipPath>
       </Defs>
 
-      <G mask="url(#global_mask)">
+      <G clipPath="url(#global_mask)">
         {/* Background Vertical Slider */}
         <AnimatedG animatedProps={currentBgStyle}>
           <BackgroundLayer type={currentScene} />
@@ -726,4 +706,4 @@ const CommunityGallery = () => {
   );
 };
 
-export default DiverseCommunityFace;
+export default React.memo(DiverseCommunityFace);

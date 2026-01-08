@@ -82,14 +82,8 @@ export const useStoryPractice = () => {
   // Fetch Stories
   useEffect(() => {
     const fetchAllStories = async () => {
-      console.log("[useStoryPractice] 📚 Fetching stories...");
       try {
         const st = await getReadingPracticeByType(ReadingPracticeType.STORY);
-        console.log(
-          "[useStoryPractice] ✅ Stories fetched:",
-          st.length,
-          "stories"
-        );
         setAllStories(st);
       } catch (error) {
         console.error("[useStoryPractice] ❌ Error fetching stories:", error);
@@ -103,13 +97,8 @@ export const useStoryPractice = () => {
 
   // Update Pages when story changes
   useEffect(() => {
-    console.log(
-      "[useStoryPractice] 📄 Updating pages for story index:",
-      selectedIndex
-    );
     const currentText = allStories[selectedIndex]?.textContent || "";
     const paginated = splitTextIntoPages(currentText);
-    console.log("[useStoryPractice] 📄 Pages created:", paginated.length);
     setPages(paginated);
     setCurrentPage(0);
     setHighlightRange([-1, 0]);
@@ -120,15 +109,6 @@ export const useStoryPractice = () => {
   const onBackPress = () => navigation.goBack();
 
   const markActivityStart = async () => {
-    console.log("[useStoryPractice] 🎬 markActivityStart called");
-    console.log("[useStoryPractice] 🔍 practiceSession:", practiceSession?.id);
-    console.log("[useStoryPractice] 🔍 selectedIndex:", selectedIndex);
-    console.log(
-      "[useStoryPractice] 🔍 currentStory:",
-      allStories[selectedIndex]?.id,
-      allStories[selectedIndex]?.title
-    );
-
     if (!user) {
       console.error("[useStoryPractice] ❌ No user found!");
       return;
@@ -138,38 +118,24 @@ export const useStoryPractice = () => {
       // Create session if it doesn't exist
       let sessionToUse = practiceSession;
       if (!sessionToUse) {
-        console.log(
-          "[useStoryPractice] 📝 No session found, creating new session..."
-        );
         const newSession = await createSession({ userId: user.id });
-        console.log("[useStoryPractice] ✅ Session created:", newSession.id);
         setSession(newSession);
         sessionToUse = newSession;
       }
 
-      console.log("[useStoryPractice] 📝 Creating practice activity...");
       const newActivity = await createPracticeActivity({
         sessionId: sessionToUse.id,
         contentType: PracticeActivityContentType.READING_PRACTICE,
         contentId: allStories[selectedIndex]?.id,
       });
-      console.log("[useStoryPractice] ✅ Activity created:", newActivity.id);
 
-      console.log("[useStoryPractice] ▶️ Starting practice activity...");
       const startedActivity = await startPracticeActivity({
         id: newActivity.id,
         userId: sessionToUse.user.id,
       });
-      console.log("[useStoryPractice] ✅ Activity started successfully");
 
       addActivity({ ...startedActivity });
-      console.log("[useStoryPractice] 💾 Activity added to store");
-
       setCurrentActivityId(newActivity.id);
-      console.log(
-        "[useStoryPractice] 🎯 Current activity ID set to:",
-        newActivity.id
-      );
     } catch (error) {
       console.error("[useStoryPractice] ❌ Error in markActivityStart:", error);
       throw error;

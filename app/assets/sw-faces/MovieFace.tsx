@@ -1,14 +1,9 @@
 import React, { useEffect } from "react";
 import Svg, {
-  Mask,
+  ClipPath,
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
   FeComposite,
   FeBlend,
   SvgProps,
@@ -27,18 +22,20 @@ import Animated, {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+interface SvgIconProps extends SvgProps {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}
+
 const MovieFace = ({
   size = 48,
   shouldAnimate = false,
   loop = false,
   repeatCount = 1,
   ...props
-}: SvgProps & {
-  size?: number | string;
-  shouldAnimate?: boolean;
-  loop?: boolean;
-  repeatCount?: number;
-}) => {
+}: SvgIconProps) => {
   const activeWidth = typeof size === "number" ? size : size;
   const activeHeight = typeof size === "number" ? size : size;
   const sheenProgress = useSharedValue(0);
@@ -75,57 +72,35 @@ const MovieFace = ({
       {...props}
     >
       <Defs>
-        <Filter
-          id="3d_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-        <Mask
-          id="3d_mask"
-          x="0"
-          y="0"
-          width="48"
-          height="48"
-          maskUnits="userSpaceOnUse"
-        >
+        <ClipPath id="3d_mask">
           <Path
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </Mask>
+        </ClipPath>
         {/* ClipPath for Lenses to contain the sheen */}
-        <Mask id="lens_mask">
+        <ClipPath id="lens_mask">
           <Rect x="12" y="22" width="10" height="6" rx="1" fill="white" />
           <Rect x="26" y="22" width="10" height="6" rx="1" fill="white" />
-        </Mask>
+        </ClipPath>
       </Defs>
-      <G mask="url(#3d_mask)">
+      <G clipPath="url(#3d_mask)">
         <Path
           fill="#5200B7"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        <G filter="url(#3d_shadow)">
-          <Path
-            fill="#FFDABF"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-        </G>
+        {/* Shadow - Vector approximation */}
+        <Path
+          fill="black"
+          opacity={0.25}
+          transform="translate(4, 4)"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        {/* Face Shape */}
+        <Path
+          fill="#FFDABF"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
         <G transform="translate(0, -2)">
           <Path fill="#FFF" d="M8 20 H 40 V 30 H 8 Z" />
 
@@ -150,7 +125,7 @@ const MovieFace = ({
           />
 
           {/* Sheen Layer - Masked to Lenses */}
-          <G mask="url(#lens_mask)">
+          <G clipPath="url(#lens_mask)">
             {/* Left Lens Sheen */}
             <AnimatedPath
               animatedProps={glareProps}
@@ -183,4 +158,4 @@ const MovieFace = ({
   );
 };
 
-export default MovieFace;
+export default React.memo(MovieFace);

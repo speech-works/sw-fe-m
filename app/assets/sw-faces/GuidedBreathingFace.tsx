@@ -1,16 +1,9 @@
-import * as React from "react-native";
+import React from "react";
 import Svg, {
-  Mask,
+  ClipPath,
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Line,
   Circle,
@@ -23,7 +16,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const GuidedBreathingFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const GuidedBreathingFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -36,28 +35,7 @@ const GuidedBreathingFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...p
       {...props}
     >
       <Defs>
-        <Filter
-          id="release_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-        <Mask
+        <ClipPath
           id="release_mask"
           x="0"
           y="0"
@@ -69,23 +47,28 @@ const GuidedBreathingFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...p
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </Mask>
+        </ClipPath>
       </Defs>
 
-      <G mask="url(#release_mask)">
+      <G clipPath="url(#release_mask)">
         {/* Background - HIGH CONTRAST DARK GREY */}
         <Path
           fill="#424242"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
 
+        {/* Shadow - Vector approximation */}
+        <Path
+          fill="black"
+          opacity={0.25}
+          transform="translate(4, 4)"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
         {/* Face Shape - Light Terracotta (skin tone) */}
-        <G filter="url(#release_shadow)">
-          <Path
-            fill="#FFCCBC"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-        </G>
+        <Path
+          fill="#FFCCBC"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
 
         {/* Eyes (Closed with a gentle upward curve of relief) - Bolder Stroke Color */}
         <Path
@@ -141,4 +124,4 @@ const GuidedBreathingFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...p
     </Svg>
   );
 };
-export default GuidedBreathingFace;
+export default React.memo(GuidedBreathingFace);

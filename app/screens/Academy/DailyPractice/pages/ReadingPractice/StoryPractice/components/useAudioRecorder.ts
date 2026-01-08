@@ -75,7 +75,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
             // Smooth check
             setMetering(rawLevel);
             samplesRef.current.push(rawLevel);
-            setWaveform([...samplesRef.current]);
+            // OPTIMIZATION: Only update state with the tail (last 50 samples) during recording.
+            // This prevents O(N) array copying every frame as the recording grows.
+            // The full history is preserved in samplesRef.current.
+            setWaveform(samplesRef.current.slice(-50));
           }
         } catch (e) {
           // ignore
@@ -194,6 +197,8 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       recordingRef.current = null;
       setState("idle");
       setMetering(0);
+      // OPTIMIZATION: Restore full waveform on stop for review/playback
+      setWaveform([...samplesRef.current]);
       return uri;
     } catch (e) {
       console.error("Failed to stop recording", e);

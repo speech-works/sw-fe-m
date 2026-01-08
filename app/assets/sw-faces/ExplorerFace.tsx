@@ -1,14 +1,9 @@
 import React, { useEffect } from "react";
 import Svg, {
-  Mask,
+  ClipPath,
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
   FeComposite,
   FeBlend,
   SvgProps,
@@ -239,35 +234,14 @@ const ExcitedTouristMapFace = ({
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
       <Defs>
-        <Filter
-          id="finish_cool_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="bgFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="bgFix" result="sh" />
-          <FeBlend in="SourceGraphic" in2="sh" />
-        </Filter>
-        <Mask id="m">
+        <ClipPath id="m">
           <Path
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </Mask>
+        </ClipPath>
       </Defs>
-      <G mask="url(#m)">
+      <G clipPath="url(#m)">
         {/* Background - Deep Ocean */}
         <Path fill="#01579B" d="M0 0h48v48H0z" />
 
@@ -290,7 +264,14 @@ const ExcitedTouristMapFace = ({
         />
 
         {/* DROPPED FACE STRUCTURE */}
-        <G filter="url(#finish_cool_shadow)" transform="translate(0, 6)">
+        <G transform="translate(0, 6)">
+          {/* Shadow - Vector approximation */}
+          <Path
+            fill="black"
+            opacity={0.25}
+            transform="translate(4, 4)"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           {/* 1. GLASSES BEHIND */}
           <AnimatedG animatedProps={glassesAnimatedProps}>
             <AnimatedG animatedProps={backOpacityProps}>
@@ -343,4 +324,4 @@ const ExcitedTouristMapFace = ({
   );
 };
 
-export default ExcitedTouristMapFace;
+export default React.memo(ExcitedTouristMapFace);
