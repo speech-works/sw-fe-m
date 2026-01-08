@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -20,7 +21,7 @@ import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
   useReminderStore,
   ReminderType as StoreReminderType,
-} from "../../../../../stores/reminders"; // Import store and ReminderType alias
+} from "../../../../../stores/reminders";
 import { registerForNotifications } from "../../../../../util/functions/notifications";
 
 interface ReminderProps {
@@ -29,20 +30,16 @@ interface ReminderProps {
 }
 
 const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
-  // Use Zustand store action
   const addReminder = useReminderStore((state) => state.addReminder);
-
   const [isVisible, setIsVisible] = useState(false);
   const [reminderType, setReminderType] =
-    useState<StoreReminderType>("ONE_TIME"); // Changed to match store's ReminderType
+    useState<StoreReminderType>("ONE_TIME");
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<Date>(new Date());
-  const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]); // 0=Sun, 6=Sat
-
+  const [selectedWeekDays, setSelectedWeekDays] = useState<number[]>([]);
   const [reminderNotes, setReminderNotes] = useState<string>("");
 
-  // Helper to format date for display (MM/DD/YYYY)
   const getFormattedDate = (date: Date) => {
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const day = date.getDate().toString().padStart(2, "0");
@@ -50,47 +47,39 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
     return `${month}/${day}/${year}`;
   };
 
-  // Helper to format time for display (HH:MM)
   const getFormattedTime = (date: Date) => {
     const hrs = date.getHours().toString().padStart(2, "0");
     const mins = date.getMinutes().toString().padStart(2, "0");
     return `${hrs}:${mins}`;
   };
 
-  // Whenever the modal opens, default “date”→ tomorrow and “time”→ now
   useEffect(() => {
     if (isVisible) {
       const now = new Date();
       const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1); // Set to tomorrow
-
+      tomorrow.setDate(now.getDate() + 1);
       setSelectedDate(tomorrow);
-      setSelectedTime(now); // Keep current time
-
-      // Reset notes and weekdays when opening the modal
+      setSelectedTime(now);
       setReminderNotes("");
       setSelectedWeekDays([]);
-      setReminderType("ONE_TIME"); // Default to one-time on open
+      setReminderType("ONE_TIME");
     }
   }, [isVisible]);
 
   const closeModal = () => {
     setIsVisible(false);
-    // State is reset by useEffect when modal opens again, or by explicit resets in handleSaveReminder if needed
   };
 
   const handleSaveReminder = async () => {
-    // 1. Request notification permissions first
     const hasPermissions = await registerForNotifications();
     if (!hasPermissions) {
       Alert.alert(
         "Permissions Required",
-        "Please enable notification permissions in your device settings to receive reminders."
+        "Please enable notification permissions in your device settings."
       );
-      return; // Stop the process if permissions are not granted
+      return;
     }
 
-    // 2. Validate inputs before saving
     const now = new Date();
     const reminderDateTime = new Date(
       selectedDate.getFullYear(),
@@ -106,44 +95,32 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
     ) {
       Alert.alert(
         "Invalid Date/Time",
-        "One-time reminders must be set for a future date and time. Please adjust."
+        "One-time reminders must be in the future."
       );
       return;
     }
 
     if (reminderType === "ROUTINE" && selectedWeekDays.length === 0) {
-      Alert.alert(
-        "No Days Selected",
-        "Please select at least one day for a routine reminder."
-      );
+      Alert.alert("No Days Selected", "Please select at least one day.");
       return;
     }
 
-    // 3. Prepare reminder object for the Zustand store
     const reminderData = {
       type: reminderType,
-      // Format date as 'YYYY-MM-DD'
       date: selectedDate.toISOString().split("T")[0],
-      // Format time as 'HH:MM'
       time: getFormattedTime(selectedTime),
-      notes: reminderNotes.trim() || undefined, // Store as undefined if notes are empty
-      weekDays: reminderType === "ROUTINE" ? selectedWeekDays : undefined, // Only include for routine
+      notes: reminderNotes.trim() || undefined,
+      weekDays: reminderType === "ROUTINE" ? selectedWeekDays : undefined,
     };
 
-    // 4. Call the Zustand store action to add the reminder
     try {
       await addReminder(reminderData);
       Alert.alert("Success", "Your reminder has been set!");
-      if (onReminderSet) {
-        onReminderSet();
-      }
-      closeModal(); // Close modal on successful save
+      if (onReminderSet) onReminderSet();
+      closeModal();
     } catch (error) {
       console.error("Failed to save reminder:", error);
-      Alert.alert(
-        "Error",
-        "There was an error setting your reminder. Please try again."
-      );
+      Alert.alert("Error", "Could not save reminder. Please try again.");
     }
   };
 
@@ -152,24 +129,27 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
       if (prev.includes(dayIndex)) {
         return prev.filter((d) => d !== dayIndex);
       } else {
-        return [...prev, dayIndex].sort((a, b) => a - b); // Keep sorted for consistency
+        return [...prev, dayIndex].sort((a, b) => a - b);
       }
     });
   };
 
-  const onChangeDate = (_: any, date?: Date) => {
-    if (date) {
-      setSelectedDate(date);
-    }
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const isAndroid = Platform.OS === "android";
+
+  const onChangeDate = (event: any, date?: Date) => {
+    if (isAndroid) setShowDatePicker(false);
+    if (event.type === "dismissed") return;
+    if (date) setSelectedDate(date);
   };
 
-  const onChangeTime = (_: any, time?: Date) => {
-    if (time) {
-      setSelectedTime(time);
-    }
+  const onChangeTime = (event: any, time?: Date) => {
+    if (isAndroid) setShowTimePicker(false);
+    if (event.type === "dismissed") return;
+    if (time) setSelectedTime(time);
   };
 
-  // Weekday display letters (0=Sun, 6=Sat)
   const weekDayLetters = ["S", "M", "T", "W", "T", "F", "S"];
 
   return (
@@ -189,7 +169,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
           <View style={styles.modalTitleContainer}>
             <Text style={styles.modalTiteText}>Set Reminder</Text>
             <Text style={styles.modalDescText}>
-              Select a time to receive notification
+              Set a time to build your daily habit
             </Text>
           </View>
 
@@ -235,31 +215,72 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
           >
             <>
               <View style={styles.pickerSection}>
-                {/* Date picker only for "One Time" reminders */}
                 {reminderType === "ONE_TIME" && (
-                  <>
+                  <View style={{ width: "100%" }}>
                     <Text style={styles.inputLabel}>Date</Text>
-                    <DateTimePicker
-                      value={selectedDate}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "inline" : "default"}
-                      onChange={onChangeDate}
-                      minimumDate={new Date()} // Prevent selecting past dates
-                      maximumDate={new Date(2100, 11, 31)}
-                      style={styles.datePicker}
-                    />
-                  </>
+                    {isAndroid ? (
+                      <TouchableOpacity
+                        onPress={() => setShowDatePicker(true)}
+                        style={styles.androidPickerButton}
+                      >
+                        <Text style={styles.androidPickerText}>
+                          {getFormattedDate(selectedDate)}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="inline"
+                        onChange={onChangeDate}
+                        minimumDate={new Date()}
+                        maximumDate={new Date(2100, 11, 31)}
+                        style={styles.datePicker}
+                      />
+                    )}
+                    {isAndroid && showDatePicker && (
+                      <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="default"
+                        onChange={onChangeDate}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                  </View>
                 )}
 
-                <Text style={[styles.inputLabel, { marginTop: 16 }]}>Time</Text>
-                <DateTimePicker
-                  value={selectedTime}
-                  mode="time"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  is24Hour={true} // Ensure 24-hour format
-                  onChange={onChangeTime}
-                  style={styles.timePicker}
-                />
+                <View style={{ width: "100%", marginTop: 16 }}>
+                  <Text style={styles.inputLabel}>Time</Text>
+                  {isAndroid ? (
+                    <TouchableOpacity
+                      onPress={() => setShowTimePicker(true)}
+                      style={styles.androidPickerButton}
+                    >
+                      <Text style={styles.androidPickerText}>
+                        {getFormattedTime(selectedTime)}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <DateTimePicker
+                      value={selectedTime}
+                      mode="time"
+                      display="spinner"
+                      is24Hour={true}
+                      onChange={onChangeTime}
+                      style={styles.timePicker}
+                    />
+                  )}
+                  {isAndroid && showTimePicker && (
+                    <DateTimePicker
+                      value={selectedTime}
+                      mode="time"
+                      display="default"
+                      is24Hour={true}
+                      onChange={onChangeTime}
+                    />
+                  )}
+                </View>
               </View>
 
               {reminderType === "ROUTINE" && (
@@ -296,12 +317,13 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
                 <Text style={styles.inputLabel}>Notes (optional)</Text>
                 <TextInput
                   style={[styles.input, styles.notesInput]}
-                  placeholder="Focus on breath control exercises"
+                  placeholder="Focus on breath control..."
+                  placeholderTextColor={theme.colors.text.disabled}
                   value={reminderNotes}
                   onChangeText={setReminderNotes}
                   multiline
                   numberOfLines={4}
-                  maxLength={200} // Optional: limit notes length
+                  maxLength={200}
                 />
               </View>
 
@@ -315,8 +337,19 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
                 <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSaveReminder}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.saveButtonText}>Save Reminder</Text>
+                  <LinearGradient
+                    colors={[
+                      theme.colors.actionPrimary.default,
+                      theme.colors.library.orange[500],
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.saveGradient}
+                  >
+                    <Text style={styles.saveButtonText}>Save Reminder</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </>
@@ -332,135 +365,110 @@ export default Reminder;
 const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
-    paddingVertical: 24,
+    paddingHorizontal: 24,
+    paddingTop: 12,
     width: "100%",
-    gap: 32,
   },
   modalTitleContainer: {
-    gap: 12,
+    marginTop: 8,
+    marginBottom: 32,
     alignItems: "center",
+    gap: 8,
   },
   modalTiteText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    textAlign: "center",
   },
   modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.text.default,
+    textAlign: "center",
+    opacity: 0.7,
   },
   scrollView: {
     flex: 1,
   },
   scrollContainer: {
-    gap: 16,
-    alignItems: "center",
+    gap: 24,
+    paddingBottom: 40,
   },
-
   toggleContainer: {
     flexDirection: "row",
-    backgroundColor: theme.colors.background.default,
-    borderRadius: 24,
-    overflow: "hidden",
-    alignSelf: "center",
-    width: "80%",
-    height: 48,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 30,
+    padding: 4,
+    width: "100%",
+    height: 56,
   },
   toggleButton: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 26,
   },
   toggleButtonActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: "#FFFFFF",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   toggleButtonText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: theme.colors.text.disabled,
+    fontWeight: "600",
   },
   toggleButtonTextActive: {
-    color: theme.colors.text.onDark,
-    fontWeight: "bold",
+    color: theme.colors.text.title,
+    fontWeight: "700",
   },
   pickerSection: {
     width: "100%",
-    alignItems: "center",
-    gap: 8,
+    gap: 20,
   },
   inputLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    marginBottom: 4,
-    alignSelf: "flex-start",
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "700",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontSize: 11,
   },
-
   datePicker: {
     width: "100%",
+    alignSelf: "center",
   },
   timePicker: {
     width: "100%",
+    alignSelf: "center",
   },
-  inputSection: {
+  androidPickerButton: {
     width: "100%",
-    gap: 16,
-  },
-  input: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    justifyContent: "center",
+    borderColor: "#E2E8F0",
+    alignItems: "flex-start",
   },
-  notesInput: {
-    height: 100,
-    textAlignVertical: "top",
+  androidPickerText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 18,
+    color: theme.colors.text.title,
+    fontWeight: "500",
   },
-  actionButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    gap: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: theme.colors.background.light,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-  },
-  cancelButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: theme.colors.actionPrimary.default,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  saveButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.onDark,
-    fontWeight: "bold",
-  },
-
   repeatContainer: {
     width: "100%",
-    alignItems: "flex-start",
-    marginBottom: 16,
     gap: 12,
   },
   repeatLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "700",
     marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontSize: 11,
   },
   weekDaysRow: {
     flexDirection: "row",
@@ -468,14 +476,14 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   dayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20, // Half of width/height for perfect circle
-    borderWidth: 1, // Added border for better visual separation when not active
-    borderColor: theme.colors.border.default,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.background.default,
+    backgroundColor: "#FFFFFF",
   },
   dayButtonActive: {
     backgroundColor: theme.colors.actionPrimary.default,
@@ -483,10 +491,64 @@ const styles = StyleSheet.create({
   },
   dayButtonText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: theme.colors.text.disabled,
+    fontWeight: "600",
   },
   dayButtonTextActive: {
-    color: theme.colors.text.onDark,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  inputSection: {
+    width: "100%",
+    gap: 8,
+  },
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 0,
+    borderRadius: 20,
+    padding: 20,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+  },
+  notesInput: {
+    height: 120,
+    textAlignVertical: "top",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  cancelButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.disabled,
+    fontWeight: "600",
+  },
+  saveButton: {
+    flex: 2,
+    height: 56,
+    borderRadius: 28,
+    overflow: "hidden", // Clip gradient
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  saveGradient: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  saveButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });

@@ -121,7 +121,7 @@ const SmartRecorder: React.FC<Props> = ({
               style={styles.controlButton}
               onPress={handleDiscard}
             >
-              <Icon name="trash" size={20} color={theme.colors.text.default} />
+              <Icon name="trash" size={20} color="#94A3B8" />
             </TouchableOpacity>
           ) : (
             <View style={styles.toolsWrapper}>{renderTools?.()}</View>
@@ -161,9 +161,9 @@ const SmartRecorder: React.FC<Props> = ({
               />
               <Icon
                 name="play"
-                size={18}
-                color={theme.colors.text.default}
-                style={{ marginLeft: 2 }}
+                size={20}
+                color="#94A3B8"
+                style={{ marginLeft: 3 }}
               />
             </TouchableOpacity>
           ) : (
@@ -337,8 +337,8 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   controlButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
