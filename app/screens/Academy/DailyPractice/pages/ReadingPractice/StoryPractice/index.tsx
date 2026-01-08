@@ -52,6 +52,8 @@ const StoryPractice = () => {
     selectedPracticeTool,
     activeToolSheet,
     voiceRecordingUri,
+    hasHydrated,
+    practiceSession,
   } = state;
 
   // --- VoiceHover Config State ---
@@ -186,27 +188,68 @@ const StoryPractice = () => {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={async () => {
+              console.log("[StoryPractice] 🔵 Start Practice button pressed");
+              console.log(
+                "[StoryPractice] 🔍 Current state - isStarting:",
+                isStarting
+              );
+              console.log(
+                "[StoryPractice] 🔍 Current story:",
+                currentStory?.title
+              );
+              console.log(
+                "[StoryPractice] 🔍 Practice session exists:",
+                !!practiceSession
+              );
+              console.log("[StoryPractice] 🔍 Has hydrated:", hasHydrated);
+
               actions.setIsStarting(true);
+              console.log("[StoryPractice] ⏳ Set isStarting to true");
+
               try {
+                console.log("[StoryPractice] 🚀 Calling markActivityStart...");
                 await actions.markActivityStart();
+                console.log(
+                  "[StoryPractice] ✅ markActivityStart completed successfully"
+                );
+              } catch (error) {
+                console.error(
+                  "[StoryPractice] ❌ Error in markActivityStart:",
+                  error
+                );
               } finally {
                 actions.setIsStarting(false);
+                console.log("[StoryPractice] ⏹️ Set isStarting to false");
               }
             }}
-            disabled={isStarting}
+            disabled={isStarting || !hasHydrated}
             style={styles.startButton}
+            onPressIn={() =>
+              console.log("[StoryPractice] 👆 Button press IN detected")
+            }
+            onPressOut={() =>
+              console.log("[StoryPractice] 👆 Button press OUT detected")
+            }
           >
             <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
+              colors={
+                !hasHydrated
+                  ? ["#94A3B8", "#64748B"] // Gray when loading
+                  : [
+                      theme.colors.library.orange[400],
+                      theme.colors.library.orange[500],
+                    ]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.startButtonGradient}
             >
-              <Text style={styles.startButtonText}>Start Practice</Text>
-              <Icon name="arrow-right" size={16} color="#FFF" />
+              <Text style={styles.startButtonText}>
+                {!hasHydrated ? "Loading..." : "Start Practice"}
+              </Text>
+              {hasHydrated && (
+                <Icon name="arrow-right" size={16} color="#FFF" />
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

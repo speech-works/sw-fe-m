@@ -100,12 +100,11 @@ const LoginScreen = () => {
       const owner = Constants.expoConfig?.owner;
       const slug = Constants.expoConfig?.slug;
 
-      // iOS simulators have issues with custom schemes
-      // Use preferLocalhost for better iOS simulator support
+      // iOS simulators have issues with custom schemes in development
+      // Use Expo's proxy for iOS dev, custom scheme for Android/production
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: "speechworks",
         path: "auth-callback",
-        preferLocalhost: Platform.OS === "ios" && __DEV__,
       });
 
       console.log("[Auth] 🔍 Redirect URI:", redirectUri);
@@ -122,7 +121,10 @@ const LoginScreen = () => {
 
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
-        redirectUri
+        redirectUri,
+        {
+          preferEphemeralSession: true,
+        }
       );
 
       console.log("[Auth] 🔍 Auth session result:", result);

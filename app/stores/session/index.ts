@@ -7,6 +7,7 @@ import { reviveDatesInObject } from "../../util/functions/date";
 
 interface PracticeSessionState {
   practiceSession: PracticeSession | null;
+  hasHydrated: boolean;
   setSession: (session: PracticeSession) => void;
   clearSession: () => void;
 }
@@ -15,6 +16,7 @@ export const useSessionStore = create<PracticeSessionState>()(
   persist(
     (set) => ({
       practiceSession: null,
+      hasHydrated: false,
 
       setSession: (practiceSession) => {
         set({ practiceSession });
@@ -33,6 +35,10 @@ export const useSessionStore = create<PracticeSessionState>()(
           state.practiceSession = reviveDatesInObject(
             state.practiceSession
           ) as PracticeSession | null;
+        }
+        // Mark hydration as complete
+        if (state) {
+          state.hasHydrated = true;
         }
       },
     }
