@@ -141,7 +141,7 @@ const SmartRecorder: React.FC<Props> = ({
     const frames = framesRef.current;
     const elapsed = playbackPositionMsRef.current ?? 0;
 
-    if (!frames.length) {
+    if (!frames || !frames.length) {
       pushEnvelopeSample(
         Math.max(
           0,
@@ -311,7 +311,9 @@ const SmartRecorder: React.FC<Props> = ({
         {/* LEFT SECTION: Tools or Timer */}
         <View
           style={
-            !isRecording ? styles.leftSection : styles.leftSectionRecording
+            !isRecording && !isPlaying
+              ? styles.leftSection
+              : styles.leftSectionRecording
           }
         >
           {isRecording ? (
@@ -338,7 +340,9 @@ const SmartRecorder: React.FC<Props> = ({
         {/* CENTER SECTION:  Mic Button OR Waveform */}
         <View
           style={
-            !isRecording ? styles.centerSection : styles.centerSectionRecording
+            !isRecording && !isPlaying
+              ? styles.centerSection
+              : styles.centerSectionRecording
           }
         >
           {isRecording || isPlaying ? (
@@ -350,8 +354,12 @@ const SmartRecorder: React.FC<Props> = ({
                 }
                 height={32} // Reduced height for better fit
                 strokeColor={theme.colors.text.title}
-                glowColor={theme.colors.actionPrimary.default}
-                points={isRecording ? 120 : 80} // More points for wider view
+                glowColor={
+                  isRecording
+                    ? theme.colors.library.red[500]
+                    : theme.colors.library.orange[500]
+                }
+                points={50} // 50 bars for clean pill look
                 fps={30}
               />
             </View>
