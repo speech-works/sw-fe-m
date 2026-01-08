@@ -6,19 +6,16 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
-  Animated,
   LayoutAnimation,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import Button from "../../../../../../components/Button";
 import MasonryTips from "../../../components/MasonryTips";
 import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
@@ -28,7 +25,6 @@ import { DAFTool } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel"; // New Import
 import Metronome from "../../../../Library/TechniquePage/components/Metronome";
-import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 import SmartRecorder from "./components/SmartRecorder"; // New Import
 
 import { theme } from "../../../../../../Theme/tokens";
@@ -36,9 +32,9 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import { toPascalCase } from "../../../../../../util/functions/strings";
 import { readingTips } from "../data";
 import { useStoryPractice } from "./useStoryPractice";
+import { ToolType } from "../../../../../../api/tools/types";
 
 const { width } = Dimensions.get("window");
 
@@ -46,7 +42,6 @@ const StoryPractice = () => {
   const { state, actions } = useStoryPractice();
   const {
     practiceComplete,
-    allStories,
     currentStory,
     pages,
     currentPage,
@@ -88,11 +83,11 @@ const StoryPractice = () => {
 
   const renderToolSheetContent = () => {
     switch (activeToolSheet) {
-      case "DAF":
+      case ToolType.DAF:
         return <DAFTool />;
-      case "Metronome":
+      case ToolType.METRONOME:
         return <Metronome />;
-      case "Voicehover":
+      case ToolType.CHORUS:
         return (
           <VoiceHoverConfigPanel
             baseRate={vhRate}
@@ -119,14 +114,14 @@ const StoryPractice = () => {
       actions.setSelectedPracticeTool("");
       actions.setActiveToolSheet(null);
       // Stop VoiceHover if deselected
-      if (toolName === "Voicehover") setVhIsPlaying(false);
+      if (toolName === ToolType.CHORUS) setVhIsPlaying(false);
     } else {
       actions.setSelectedPracticeTool(toolName);
       // Open sheet for all tools now, including VoiceHover
       if (
-        toolName === "DAF" ||
-        toolName === "Metronome" ||
-        toolName === "Voicehover"
+        toolName === ToolType.DAF ||
+        toolName === ToolType.METRONOME ||
+        toolName === ToolType.CHORUS
       ) {
         actions.setActiveToolSheet(toolName);
       } else {
@@ -320,7 +315,7 @@ const StoryPractice = () => {
 
               <View style={styles.textArea}>
                 {/* VoiceHover Logic */}
-                {selectedPracticeTool === "Voicehover" && (
+                {selectedPracticeTool === ToolType.CHORUS && (
                   <View style={{ height: 0, overflow: "hidden" }}>
                     <VoiceHover
                       text={pages[currentPage] || ""}
@@ -405,9 +400,9 @@ const StoryPractice = () => {
           renderTools={() => (
             <View style={styles.dockTools}>
               {[
-                { id: "DAF", icon: "headphones", label: "DAF" },
-                { id: "Voicehover", icon: "highlighter", label: "Guide" },
-                { id: "Metronome", icon: "clock", label: "Tempo" },
+                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
+                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
+                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
               ].map((tool) => {
                 const isActive = selectedPracticeTool === tool.id;
                 return (
@@ -448,7 +443,7 @@ const StoryPractice = () => {
       >
         <View style={styles.sheetContent}>
           <Text style={styles.sheetTitle}>
-            {activeToolSheet === "Voicehover"
+            {activeToolSheet === ToolType.CHORUS
               ? "Guide Settings"
               : `${activeToolSheet} Settings`}
           </Text>
@@ -556,21 +551,7 @@ const styles = StyleSheet.create({
   },
 
   // Action Dock
-  actionDockWrapper: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 20, // Safe area
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.95)", // Glass-like background
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 20,
-  },
+  actionDockWrapper: {},
   actionDock: {
     paddingTop: 16,
     paddingHorizontal: 20,

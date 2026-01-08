@@ -1,26 +1,13 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  LayoutChangeEvent,
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  useSharedValue,
-} from "react-native-reanimated";
 
 // Reuse existing logic components
 import AudioRecorderControls from "../../../../../Library/TechniquePage/components/AudioRecorderControls";
@@ -318,14 +305,7 @@ const SmartRecorder: React.FC<Props> = ({
 
       {/* Floating Dock */}
       <LinearGradient
-        colors={
-          isRecording
-            ? [
-                theme.colors.library.orange[100],
-                theme.colors.library.orange[100],
-              ]
-            : ["#FFF", "#FDFDFD"]
-        }
+        colors={["#FFF", "#FDFDFD"]}
         style={[styles.dock, isRecording && styles.dockRecording]}
       >
         {/* LEFT SECTION: Tools or Timer */}
