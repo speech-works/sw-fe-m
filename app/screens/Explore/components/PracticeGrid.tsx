@@ -116,7 +116,7 @@ const PracticeGrid = () => {
   );
 };
 
-export default PracticeGrid;
+export default React.memo(PracticeGrid);
 
 const styles = StyleSheet.create({
   container: {

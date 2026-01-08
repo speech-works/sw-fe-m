@@ -45,69 +45,79 @@ const WorldExplorationGraph = () => {
   // We'll stick to a nice Blue/Indigo gradient for "World".
 
   return (
-    <LinearGradient
-      colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan-400 -> Blue-400 -> Indigo-400
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradientContainer}
-    >
-      {/* 1. Top Right Watermark Icon */}
-      <View style={styles.watermarkContainer}>
-        <Icon name="globe-americas" size={120} color="rgba(255,255,255,0.15)" />
-      </View>
-
-      {/* 2. Header Content (Chip -> Title -> Desc) */}
-      <View style={styles.headerContent}>
-        {/* Chip */}
-        <View style={styles.chip}>
-          <Icon name="compass" size={10} color="#FFF" />
-          <Text style={styles.chipText}>{worldPercentage}% Discovered</Text>
+    <View style={styles.shadowContainer} shouldRasterizeIOS={true}>
+      <LinearGradient
+        colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan-400 -> Blue-400 -> Indigo-400
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        {/* 1. Top Right Watermark Icon */}
+        <View style={styles.watermarkContainer}>
+          <Icon
+            name="globe-americas"
+            size={120}
+            color="rgba(255,255,255,0.15)"
+          />
         </View>
 
-        {/* Title */}
-        <Text style={styles.titleText}>World Explored</Text>
+        {/* 2. Header Content (Chip -> Title -> Desc) */}
+        <View style={styles.headerContent}>
+          {/* Chip */}
+          <View style={styles.chip}>
+            <Icon name="compass" size={10} color="#FFF" />
+            <Text style={styles.chipText}>{worldPercentage}% Discovered</Text>
+          </View>
 
-        {/* Description */}
-        <Text style={styles.descriptionText}>
-          Discover new ways to improve your speech
-        </Text>
-      </View>
+          {/* Title */}
+          <Text style={styles.titleText}>World Explored</Text>
 
-      {/* 3. Main Content (Chart) */}
-      <View style={styles.chartContainer}>
-        {loading ? (
-          <ActivityIndicator size="small" color="#F8FAFC" />
-        ) : error ? (
-          <Text style={{ color: "#EF4444" }}>{error}</Text>
-        ) : (
-          <PracticeChart
-            data={weeklyData}
-            percentChange={percentChange}
-            title="Discovery Map"
-            emptyTitle="Start Exploring"
-            emptySubtitle="Jump in to discover the world"
-            showTitle={false}
-            backgroundColor="transparent"
-            contentColor="#FFF"
-            barColor="#FFF"
-          />
-        )}
-      </View>
-    </LinearGradient>
+          {/* Description */}
+          <Text style={styles.descriptionText}>
+            Discover new ways to improve your speech
+          </Text>
+        </View>
+
+        {/* 3. Main Content (Chart) */}
+        <View style={styles.chartContainer}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#F8FAFC" />
+          ) : error ? (
+            <Text style={{ color: "#EF4444" }}>{error}</Text>
+          ) : (
+            <PracticeChart
+              data={weeklyData}
+              percentChange={percentChange}
+              title="Discovery Map"
+              emptyTitle="Start Exploring"
+              emptySubtitle="Jump in to discover the world"
+              showTitle={false}
+              backgroundColor="transparent"
+              contentColor="#FFF"
+              barColor="#FFF"
+            />
+          )}
+        </View>
+      </LinearGradient>
+    </View>
   );
 };
 
-export default WorldExplorationGraph;
+export default React.memo(WorldExplorationGraph);
 
 const styles = StyleSheet.create({
-  gradientContainer: {
+  shadowContainer: {
+    borderRadius: 24,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8, // Reduced from 16
+    elevation: 8,
+    backgroundColor: "#22d3ee", // Needed for shadow logic on some androids
+  },
+  gradient: {
     borderRadius: 24,
     padding: 24, // Increased padding
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
     overflow: "hidden",
     position: "relative",
     minHeight: 280, // Ensure enough height

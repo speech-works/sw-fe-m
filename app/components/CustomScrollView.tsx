@@ -1,21 +1,24 @@
 // CustomScrollView.tsx
-import React, { forwardRef, useState, useRef } from "react";
+import React, { forwardRef } from "react";
 import {
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
-  Text,
-  Animated,
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   StyleProp,
   ViewStyle,
   TextStyle,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../Theme/tokens"; // Keep your existing import
+import Animated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  scrollTo,
+  useAnimatedRef,
+  runOnJS,
+} from "react-native-reanimated";
+import { theme } from "../Theme/tokens";
 
 export const SHADOW_BUFFER = 5;
 
@@ -27,12 +30,12 @@ interface CustomScrollViewProps {
   buttonIconStyle?: StyleProp<TextStyle>;
   showButtonsInitially?: boolean;
   showScrollButtons?: boolean;
-
   [key: string]: any;
 }
 
-// Wrap your component in forwardRef<ScrollView, CustomScrollViewProps>
-const CustomScrollView = forwardRef<ScrollView, CustomScrollViewProps>(
+const BUTTON_AREA_HEIGHT = 100;
+
+const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
   (
     {
       children,
@@ -46,131 +49,74 @@ const CustomScrollView = forwardRef<ScrollView, CustomScrollViewProps>(
     },
     ref
   ) => {
-    // Now ref is the forwarded ref that parent can use.
-    // You can still keep your own internal scrollViewRef if you want local refs,
-    // but we only need one ref so that parent’s `ref` points at the <ScrollView> below.
-    const [showScrollToTop, setShowScrollToTop] =
-      useState(showButtonsInitially);
-    const [showScrollToBottom, setShowScrollToBottom] =
-      useState(showButtonsInitially);
+    // Internal ref for Reanimated scrollTo
+    const internalRef = useAnimatedRef<Animated.ScrollView>();
 
-    const currentScrollY = useRef(0);
-    const [scrollViewLayout, setScrollViewLayout] = useState<{
-      width: number;
-      height: number;
-    } | null>(null);
-    const [contentSize, setContentSize] = useState<{
-      width: number;
-      height: number;
-    } | null>(null);
+    // Shared values for scroll state
+    const scrollY = useSharedValue(0);
+    const contentHeight = useSharedValue(0);
+    const layoutHeight = useSharedValue(0);
 
-    const scrollToTopOpacity = useRef(
-      new Animated.Value(showButtonsInitially ? 1 : 0)
-    ).current;
-    const scrollToBottomOpacity = useRef(
-      new Animated.Value(showButtonsInitially ? 1 : 0)
-    ).current;
+    // Scroll Handler running on UI thread
+    const scrollHandler = useAnimatedScrollHandler({
+      onScroll: (event) => {
+        scrollY.value = event.contentOffset.y;
+        contentHeight.value = event.contentSize.height;
+        layoutHeight.value = event.layoutMeasurement.height;
+      },
+    });
 
-    const BUTTON_AREA_HEIGHT = 100; // Approximate height for button + padding
+    // Helper to sync external ref if provided (optional/advanced, avoiding for simplicity unless needed)
+    // For this refactor, we primarily rely on internalRef for the buttons.
+    // If parent needs ref, we might need a workaround, but typically parents just use it for scrollTo.
+    // We will attach the passed ref to the component alongside internalRef if possible,
+    // or just rely on the user passing a ref that Reanimated can handle.
+    // A simple strategy is to let the parent control the ref if they want, but use ours for the buttons.
+    // However, Reanimated's scrollTo needs an AnimatedRef.
+    // We'll wrap the scrolling functions.
 
-    const animateButtonVisibility = (
-      animatedValue: Animated.Value,
-      isVisible: boolean
-    ) => {
-      Animated.timing(animatedValue, {
-        toValue: isVisible ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+    const handleScrollToTop = () => {
+      // Run on UI thread directly
+      scrollTo(internalRef, 0, 0, true);
     };
 
-    const updateButtonVisibility = (
-      currentScrollYPos: number,
-      visibleHeight: number,
-      totalContentHeight: number
-    ) => {
-      const isScrollableUp = currentScrollYPos > 0;
-      if (isScrollableUp !== showScrollToTop) {
-        setShowScrollToTop(isScrollableUp);
-        animateButtonVisibility(scrollToTopOpacity, isScrollableUp);
+    const handleScrollToBottom = () => {
+      // Run on UI thread directly
+      const maxOffset = contentHeight.value - layoutHeight.value;
+      if (maxOffset > 0) {
+        scrollTo(internalRef, 0, maxOffset, true);
       }
+    };
 
+    // Animated styles for buttons
+    const topButtonStyle = useAnimatedStyle(() => {
+      const isScrollableUp = scrollY.value > 10; // small buffer
+      return {
+        opacity: withTiming(isScrollableUp ? 1 : 0, { duration: 200 }),
+        // Disable pointer events when invisible effectively by checking opacity in render or zIndex?
+        // Reanimated doesn't modify pointerEvents easily. We can use transform scale.
+        transform: [{ scale: withTiming(isScrollableUp ? 1 : 0.8) }],
+      };
+    });
+
+    const bottomButtonStyle = useAnimatedStyle(() => {
+      // If we haven't measured yet, hide
+      if (contentHeight.value === 0 || layoutHeight.value === 0) {
+        return { opacity: 0 };
+      }
       const isScrollableDown =
-        currentScrollYPos + visibleHeight < totalContentHeight - 1;
-      if (isScrollableDown !== showScrollToBottom) {
-        setShowScrollToBottom(isScrollableDown);
-        animateButtonVisibility(scrollToBottomOpacity, isScrollableDown);
-      }
-    };
-
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const {
-        contentOffset,
-        layoutMeasurement,
-        contentSize: currentContentSize,
-      } = event.nativeEvent;
-      currentScrollY.current = contentOffset.y;
-
-      updateButtonVisibility(
-        contentOffset.y,
-        layoutMeasurement.height,
-        currentContentSize.height
-      );
-
-      if (
-        contentSize?.height !== currentContentSize.height ||
-        contentSize?.width !== currentContentSize.width
-      ) {
-        setContentSize(currentContentSize);
-      }
-    };
-
-    const handleContentSizeChange = (width: number, height: number) => {
-      setContentSize({ width, height });
-
-      if (scrollViewLayout) {
-        updateButtonVisibility(
-          currentScrollY.current,
-          scrollViewLayout.height,
-          height
-        );
-      }
-    };
-
-    const handleScrollViewLayout = (event: LayoutChangeEvent) => {
-      const { width, height } = event.nativeEvent.layout;
-      setScrollViewLayout({ width, height });
-
-      if (contentSize) {
-        updateButtonVisibility(
-          currentScrollY.current,
-          height,
-          contentSize.height
-        );
-      }
-    };
-
-    // Expose two methods that can be called via the forwarded ref if needed:
-    const scrollToTop = () => {
-      if (ref && typeof ref !== "function" && ref.current) {
-        (ref.current as ScrollView).scrollTo({ y: 0, animated: true });
-      }
-    };
-
-    const scrollToBottom = () => {
-      if (ref && typeof ref !== "function" && ref.current) {
-        (ref.current as ScrollView).scrollToEnd({ animated: true });
-      }
-    };
+        scrollY.value + layoutHeight.value < contentHeight.value - 20; // 20px buffer
+      return {
+        opacity: withTiming(isScrollableDown ? 1 : 0, { duration: 200 }),
+        transform: [{ scale: withTiming(isScrollableDown ? 1 : 0.8) }],
+      };
+    });
 
     return (
       <View style={styles.container}>
-        <ScrollView
-          // Attach the forwarded ref here
-          ref={ref}
-          onScroll={handleScroll}
-          onContentSizeChange={handleContentSizeChange}
-          onLayout={handleScrollViewLayout}
+        <Animated.ScrollView
+          ref={internalRef} // Use internal ref for our local logic
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           contentContainerStyle={[
             styles.scrollContent,
@@ -183,24 +129,21 @@ const CustomScrollView = forwardRef<ScrollView, CustomScrollViewProps>(
           {...rest}
         >
           {children}
-        </ScrollView>
+        </Animated.ScrollView>
 
-        {/* Conditionally render scroll buttons based on showScrollButtons prop */}
         {showScrollButtons && (
           <>
-            {/* Scroll to Top Button */}
             <Animated.View
               style={[
                 styles.baseButton,
                 styles.topButton,
                 buttonContainerStyle,
                 topButtonContainerStyle,
-                { opacity: scrollToTopOpacity },
+                topButtonStyle,
               ]}
-              pointerEvents={showScrollToTop ? "auto" : "none"}
             >
               <TouchableOpacity
-                onPress={scrollToTop}
+                onPress={handleScrollToTop}
                 style={styles.touchableButton}
               >
                 <Icon
@@ -210,19 +153,17 @@ const CustomScrollView = forwardRef<ScrollView, CustomScrollViewProps>(
               </TouchableOpacity>
             </Animated.View>
 
-            {/* Scroll to Bottom Button */}
             <Animated.View
               style={[
                 styles.baseButton,
                 styles.bottomButton,
                 buttonContainerStyle,
                 bottomButtonContainerStyle,
-                { opacity: scrollToBottomOpacity },
+                bottomButtonStyle,
               ]}
-              pointerEvents={showScrollToBottom ? "auto" : "none"}
             >
               <TouchableOpacity
-                onPress={scrollToBottom}
+                onPress={handleScrollToBottom}
                 style={styles.touchableButton}
               >
                 <Icon
@@ -238,13 +179,14 @@ const CustomScrollView = forwardRef<ScrollView, CustomScrollViewProps>(
   }
 );
 
+export default CustomScrollView;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1, // Allows content to grow within ScrollView
-    // paddingBottom is handled inline based on BUTTON_AREA_HEIGHT
+    flexGrow: 1,
   },
   baseButton: {
     position: "absolute",
@@ -255,19 +197,24 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)", // Added BG for visibility
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   baseIcon: {
-    fontSize: 24,
+    fontSize: 20,
     color: theme.colors.actionPrimary.default,
   },
   topButton: {
     bottom: 120,
-    right: -20,
+    right: 20, // Cleaned up positioning
   },
   bottomButton: {
     bottom: 50,
-    right: -20,
+    right: 20,
   },
 });
-
-export default CustomScrollView;

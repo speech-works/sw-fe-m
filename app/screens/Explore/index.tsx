@@ -2,6 +2,7 @@ import { StyleSheet, View, Text } from "react-native";
 import React, { useCallback, useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
 import CustomScrollView from "../../components/CustomScrollView";
 import { theme } from "../../Theme/tokens";
@@ -101,7 +102,7 @@ const Explore = () => {
   }, [user, setPracticeStats]);
 
   return (
-    <ScreenView style={styles.screenView}>
+    <View style={styles.screenView}>
       {/* Background Mesh/Gradient */}
       <View style={StyleSheet.absoluteFillObject}>
         {/* We use a multi-stop gradient for a 'Mesh' feel */}
@@ -112,32 +113,34 @@ const Explore = () => {
         />
       </View>
 
-      <CustomScrollView
-        refreshControl={refreshControl}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Explore</Text>
-          <Text style={styles.subtitle}>
-            Discover new ways to improve your speech.
-          </Text>
-        </View>
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+        <CustomScrollView
+          refreshControl={refreshControl}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Explore</Text>
+            <Text style={styles.subtitle}>
+              Discover new ways to improve your speech.
+            </Text>
+          </View>
 
-        <View style={styles.innerContainer}>
-          {/* World Exploration Map */}
-          <WorldExplorationGraph />
+          <View style={styles.innerContainer}>
+            {/* World Exploration Map */}
+            <WorldExplorationGraph />
 
-          {/* 4 Types of Practice Grid */}
-          <PracticeGrid />
+            {/* 4 Types of Practice Grid */}
+            <PracticeGrid />
 
-          {/* Upgrade CTA */}
-          <BuyPro />
+            {/* Upgrade CTA */}
+            <BuyPro />
 
-          {/* Inline Library Section */}
-          <LibrarySection />
-        </View>
-      </CustomScrollView>
+            {/* Inline Library Section */}
+            <LibrarySection />
+          </View>
+        </CustomScrollView>
+      </SafeAreaView>
 
       {/* Error Modal */}
       <BottomSheetModal
@@ -152,7 +155,7 @@ const Explore = () => {
           <ErrorFace size={152} />
         </View>
       </BottomSheetModal>
-    </ScreenView>
+    </View>
   );
 };
 

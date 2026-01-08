@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -89,104 +89,104 @@ const PracticeBarChartKit: React.FC<Props> = ({
 }) => {
   const [chartWidth, setChartWidth] = useState(0);
 
-  // 1) Process Real Data
-  const dayMap = new Map<number, number>();
-  data.forEach(({ date, totalTime }) => {
-    const d = new Date(date);
-    dayMap.set(d.getDay(), Math.round(totalTime));
-  });
-
-  // 2) Display order Mon(1) → Sun(0)
-  const order = [1, 2, 3, 4, 5, 6, 0] as const;
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
-  const labels = order.map((dayOffset) =>
-    format(addDays(weekStart, dayOffset - 1), "EEE")
-  );
-
-  const realValues = order.map((wd) => dayMap.get(wd) ?? 0);
-  const totalMinutes = realValues.reduce((sum, v) => sum + v, 0);
-  const isEmpty = totalMinutes === 0;
-
-  // 2) Determine Display Values (Real vs Dummy)
-  const displayValues = isEmpty ? EMPTY_DUMMY_VALUES : realValues;
-
-  // 3) Compute today & yesterday
-  const todayIdx = new Date().getDay();
-  const yesterdayIdx = (todayIdx + 6) % 7;
-
-  // 4) Per-bar colors
-  const getColors = () => {
-    if (isEmpty) {
-      // Ghost colors: All same, low opacity
-      return displayValues.map(
-        () =>
-          (opacity = 1) =>
-            contentColor === "#333"
-              ? `rgba(0,0,0, 0.06)`
-              : `rgba(255,255,255, 0.15)` // Increased visibility for white ghost bars
-      );
-    }
-    // Real colors logic
-    return order.map((wd) => (opacity = 1) => {
-      // If barColor override is provided (e.g. White for Hero Card)
-      if (barColor) {
-        if (wd === todayIdx) return `rgba(255,255,255, 1)`; // Brightest
-        if (wd === yesterdayIdx) return `rgba(255,255,255, 0.7)`;
-        return `rgba(255,255,255, 0.4)`; // Dim
-      }
-
-      // Default Orange Theme
-      if (wd === todayIdx) return `rgba(169,65,3,${opacity})`; // dark
-      if (wd === yesterdayIdx) return `rgba(215,108,43,${opacity})`; // medium
-      return `rgba(253,220,198,${opacity})`; // light peach
+  // 1) Process Real Data (Memoized)
+  const { displayValues, isEmpty, totalMinutes, labels } = useMemo(() => {
+    const dayMap = new Map<number, number>();
+    data.forEach(({ date, totalTime }) => {
+      const d = new Date(date);
+      dayMap.set(d.getDay(), Math.round(totalTime));
     });
-  };
 
-  // 5) Chart config
-  const chartData = {
-    labels,
-    datasets: [{ data: displayValues, colors: getColors() }],
-  };
+    // Display order Mon(1) → Sun(0)
+    const order = [1, 2, 3, 4, 5, 6, 0] as const;
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
+    const labels = order.map((dayOffset) =>
+      format(addDays(weekStart, dayOffset - 1), "EEE")
+    );
 
-  // Helper to handle "transparent" passed from parent for Gradient backgrounds
+    const realValues = order.map((wd) => dayMap.get(wd) ?? 0);
+    const totalMinutes = realValues.reduce((sum, v) => sum + v, 0);
+    const isEmpty = totalMinutes === 0;
+
+    return {
+      displayValues: isEmpty ? EMPTY_DUMMY_VALUES : realValues,
+      isEmpty,
+      totalMinutes,
+      labels,
+    };
+  }, [data]);
+
+  // 2) Per-bar colors (Memoized)
+  const chartData = useMemo(() => {
+    const todayIdx = new Date().getDay();
+    const yesterdayIdx = (todayIdx + 6) % 7;
+    const order = [1, 2, 3, 4, 5, 6, 0] as const;
+
+    const getColors = () => {
+      if (isEmpty) {
+        return displayValues.map(
+          () =>
+            (opacity = 1) =>
+              contentColor === "#333"
+                ? `rgba(0,0,0, 0.06)`
+                : `rgba(255,255,255, 0.15)`
+        );
+      }
+      return order.map((wd) => (opacity = 1) => {
+        if (barColor) {
+          if (wd === todayIdx) return `rgba(255,255,255, 1)`;
+          if (wd === yesterdayIdx) return `rgba(255,255,255, 0.7)`;
+          return `rgba(255,255,255, 0.4)`;
+        }
+        if (wd === todayIdx) return `rgba(169,65,3,${opacity})`;
+        if (wd === yesterdayIdx) return `rgba(215,108,43,${opacity})`;
+        return `rgba(253,220,198,${opacity})`;
+      });
+    };
+
+    return {
+      labels,
+      datasets: [{ data: displayValues, colors: getColors() }],
+    };
+  }, [displayValues, isEmpty, contentColor, barColor, labels]); // displayValues depends on data, so this updates when data updates
+
+  // 3) Chart config (Memoized)
   const isTransparent = backgroundColor === "transparent";
   const containerStyle = isTransparent
-    ? {
-        backgroundColor: "transparent",
-        borderWidth: 0,
-        elevation: 0,
-        shadowOpacity: 0,
-        shadowColor: "transparent",
-        padding: 0, // Reduce padding as parent likely handles it
-      }
+    ? styles.transparentContainer
     : { backgroundColor };
 
   // Helper for Chart Transparency
   const transparentColor = "rgba(0, 0, 0, 0)";
 
-  const chartConfig = {
-    backgroundGradientFrom: isTransparent ? transparentColor : backgroundColor,
-    backgroundGradientTo: isTransparent ? transparentColor : backgroundColor,
-    // Axis/Text color
-    color: (opacity = 1) =>
-      contentColor === "#333"
-        ? `rgba(0,0,0,${opacity * (isEmpty ? 0.3 : 0.7)})`
-        : `rgba(255,255,255,${opacity * (isEmpty ? 0.6 : 0.9)})`,
-    strokeWidth: 0,
-    barPercentage: 0.6,
-    decimalPlaces: 0,
-    propsForBackgroundLines: {
-      stroke:
-        contentColor === "#333" ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.1)",
-      strokeWidth: 1,
-      strokeDasharray: "", // Solid lines look better on gradient
-    },
-    fillShadowGradientOpacity: 1, // Full opacity for bars since we handle color alpha
-    yAxisLabel: "",
-    yAxisSuffix: "m",
-    barRadius: BAR_RADIUS, // rounds all corners
-    contentInset: { top: 0, bottom: BAR_RADIUS }, // push bottom corner out of view
-  };
+  const chartConfig = useMemo(() => {
+    return {
+      backgroundGradientFrom: isTransparent
+        ? transparentColor
+        : backgroundColor,
+      backgroundGradientTo: isTransparent ? transparentColor : backgroundColor,
+      color: (opacity = 1) =>
+        contentColor === "#333"
+          ? `rgba(0,0,0,${opacity * (isEmpty ? 0.3 : 0.7)})`
+          : `rgba(255,255,255,${opacity * (isEmpty ? 0.6 : 0.9)})`,
+      strokeWidth: 0,
+      barPercentage: 0.6,
+      decimalPlaces: 0,
+      propsForBackgroundLines: {
+        stroke:
+          contentColor === "#333"
+            ? "rgba(0,0,0,0.05)"
+            : "rgba(255,255,255,0.1)",
+        strokeWidth: 1,
+        strokeDasharray: "",
+      },
+      fillShadowGradientOpacity: 1,
+      yAxisLabel: "",
+      yAxisSuffix: "m",
+      barRadius: BAR_RADIUS,
+      contentInset: { top: 0, bottom: BAR_RADIUS },
+    };
+  }, [backgroundColor, isTransparent, contentColor, isEmpty]);
 
   // 6) Measure chart width
   const onLayout = (e: LayoutChangeEvent) =>
@@ -405,6 +405,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     textAlign: "center",
   },
+  transparentContainer: {
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowColor: "transparent",
+    padding: 0,
+  },
 });
 
-export default PracticeBarChartKit;
+export default React.memo(PracticeBarChartKit);

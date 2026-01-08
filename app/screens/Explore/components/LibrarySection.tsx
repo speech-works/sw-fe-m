@@ -28,6 +28,7 @@ const LibrarySection = () => {
         style={styles.cardContainer}
         onPress={() => navigation.navigate("LibraryStack")}
         activeOpacity={0.9}
+        shouldRasterizeIOS={true} // Performance optimization for shadows
       >
         <LinearGradient
           // Premium Purple-Pink-Orange Gradient
@@ -90,7 +91,7 @@ const LibrarySection = () => {
   );
 };
 
-export default LibrarySection;
+export default React.memo(LibrarySection);
 
 const styles = StyleSheet.create({
   container: {
