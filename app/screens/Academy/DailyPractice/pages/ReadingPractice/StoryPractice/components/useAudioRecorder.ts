@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import * as Speech from "expo-speech";
 import { Platform } from "react-native";
 import {
   AndroidAudioEncoder,
@@ -69,6 +70,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
           if (status.isRecording && (status as any).metering !== undefined) {
             const db = (status as any).metering;
             const rawLevel = normalizeDb(db);
+            // console.log("Metering:", db, rawLevel); // Uncomment for spammy debug
 
             // Smooth check
             setMetering(rawLevel);
@@ -103,15 +105,31 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       setWaveform([]);
       samplesRef.current = [];
       setMetering(0);
+      console.log("[useAudioRecorder] Starting recording sequence...");
+
+      // 1.5 Stop any TTS
+      try {
+        const isSpeaking = await Speech.isSpeakingAsync();
+        if (isSpeaking) {
+          console.log("[useAudioRecorder] TTS is speaking, stopping...");
+          Speech.stop();
+          // Short delay to let OS release audio focus
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      } catch (e) {
+        console.warn("[useAudioRecorder] Failed to check/stop Speech:", e);
+      }
 
       // 2. Permissions
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
-        console.warn("Permission denied");
+        console.warn("[useAudioRecorder] Permission denied");
         return;
       }
 
       // 3. Audio Mode (RECORDING)
+      // Highly specific settings for recording
+      console.log("[useAudioRecorder] Setting Audio Mode for Recording...");
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -121,7 +139,11 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         playThroughEarpieceAndroid: false,
       });
 
+      // Crucial Delay for Mode Switch
+      await new Promise((r) => setTimeout(r, 200));
+
       // 4. Start (Explicit Options)
+      console.log("[useAudioRecorder] Preparing recorder...");
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync({
         android: {
@@ -149,13 +171,15 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
 
       recording.setProgressUpdateInterval(SAMPLE_INTERVAL_MS);
 
+      console.log("[useAudioRecorder] Starting Async...");
       await recording.startAsync();
       recordingRef.current = recording;
 
       setState("recording");
       startMeteringLogic();
+      console.log("[useAudioRecorder] Recording started successfully.");
     } catch (e) {
-      console.error("Failed to start recording", e);
+      console.error("[useAudioRecorder] Failed to start recording", e);
       setState("idle");
     }
   };
@@ -179,6 +203,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
 
   const startPlayback = async (uri: string) => {
     try {
+      console.log("[useAudioRecorder] Starting playback for:", uri);
       // 1. Audio Mode (PLAYBACK - Speaker Force)
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -194,6 +219,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
         soundRef.current = null;
       }
 
+      console.log("[useAudioRecorder] Loading sound...");
       const { sound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true, progressUpdateIntervalMillis: 50 },
@@ -203,18 +229,25 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
             setDuration(status.durationMillis || 0);
 
             if (status.didJustFinish) {
+              console.log("[useAudioRecorder] Playback finished.");
               setState("idle");
               setPlaybackPosition(0);
               setMetering(0);
             }
+          } else if (status.error) {
+            console.warn(
+              "[useAudioRecorder] Playback error update:",
+              status.error
+            );
           }
         }
       );
 
       soundRef.current = sound;
       setState("playback");
+      console.log("[useAudioRecorder] Playback started.");
     } catch (e) {
-      console.error("Playback failed", e);
+      console.error("[useAudioRecorder] Playback failed", e);
       setState("idle");
     }
   };

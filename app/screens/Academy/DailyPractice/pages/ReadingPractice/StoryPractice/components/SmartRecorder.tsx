@@ -46,7 +46,8 @@ const SmartRecorder: React.FC<Props> = ({
   } = useAudioRecorder();
 
   const isRecording = state === "recording";
-  const isPlaying = state === "playback";
+  // Playback state is only valid if we actually have a recording to play
+  const isPlaying = state === "playback" && !!prevRecordingUri;
   const hasRecording = !!prevRecordingUri;
 
   // Waveform Visualization Logic
@@ -89,8 +90,10 @@ const SmartRecorder: React.FC<Props> = ({
     stopPlayback();
   };
 
-  const handleDiscard = () => {
-    deleteRecording();
+  const handleDiscard = async () => {
+    // Ensure we stop and clean up locally
+    await deleteRecording();
+    // Then notify parent to clear the URI
     onDiscard?.();
   };
 
@@ -132,14 +135,8 @@ const SmartRecorder: React.FC<Props> = ({
         {!isRecording && !hasRecording && <View style={styles.separator} />}
 
         {/* CENTER SECTION:  Mic Button OR Waveform */}
-        <View
-          style={
-            !isRecording && !isPlaying
-              ? styles.centerSection
-              : styles.centerSectionRecording
-          }
-        >
-          {isRecording || isPlaying ? (
+        {(isRecording || isPlaying) && (
+          <View style={styles.centerSectionRecording}>
             <View style={styles.waveformWrapper}>
               <ModernWaveform
                 envelope={displayEnvelope}
@@ -153,7 +150,12 @@ const SmartRecorder: React.FC<Props> = ({
                 points={POINTS}
               />
             </View>
-          ) : hasRecording ? (
+          </View>
+        )}
+
+        {/* Play Button for Review (Center) - Only if hasRecording and NOT playing/recording */}
+        {hasRecording && !isPlaying && !isRecording && (
+          <View style={styles.centerSection}>
             <TouchableOpacity style={styles.playButton} onPress={handlePlay}>
               <LinearGradient
                 colors={["#FFF", "#F5F5F5"]}
@@ -166,11 +168,8 @@ const SmartRecorder: React.FC<Props> = ({
                 style={{ marginLeft: 3 }}
               />
             </TouchableOpacity>
-          ) : (
-            // Idle Center: Empty Spacer
-            <View style={{ flex: 1 }} />
-          )}
-        </View>
+          </View>
+        )}
 
         {/* RIGHT SECTION: Stop/Submit */}
         <View style={styles.rightSection}>
@@ -204,7 +203,7 @@ const SmartRecorder: React.FC<Props> = ({
               <Icon name="check" size={20} color="#FFF" />
             </TouchableOpacity>
           ) : (
-            // Idle Right: Mic Button (Moved from Center)
+            // Idle Right: Mic Button
             <TouchableOpacity
               style={styles.mainMicButton}
               onPress={handleStartRecording}
@@ -301,6 +300,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingRight: 4,
     justifyContent: "center",
+    flexShrink: 0, // Prevent shrinking when left section expands
   },
   waveformWrapper: {
     flex: 1,

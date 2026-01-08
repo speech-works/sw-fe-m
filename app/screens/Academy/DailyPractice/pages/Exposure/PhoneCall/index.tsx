@@ -111,7 +111,7 @@ const PhoneCall = () => {
             <CallingWidget
               key={selectedScenario?.id}
               userId={user.id}
-              websocketUrl="ws://192.168.0.187:3000"
+              websocketUrl="ws://192.168.0.131:3000"
               scenarioId={selectedScenario?.id}
               scenarioIcon={selectedScenario?.icon || "robot"}
               agentName={selectedScenario?.agent.name || "AI Agent"}
