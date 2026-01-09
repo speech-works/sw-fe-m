@@ -21,11 +21,14 @@ import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 
 // Tools
-import { DAFTool } from "../../../../Tools/DAF";
+import { DAFTool, useDAF } from "../../../../Tools/DAF"; // Updated import
 import { VoiceHover } from "../../../../Tools/VoiceHover";
-import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel"; // New Import
-import Metronome from "../../../../Library/TechniquePage/components/Metronome";
-import SmartRecorder from "./components/SmartRecorder"; // New Import
+import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
+import Metronome, {
+  useMetronome,
+} from "../../../../Library/TechniquePage/components/Metronome"; // Updated import
+import SmartRecorder from "./components/SmartRecorder";
+import { ScrollView } from "react-native"; // Add ScrollView import
 
 import { theme } from "../../../../../../Theme/tokens";
 import {
@@ -40,6 +43,7 @@ const { width } = Dimensions.get("window");
 
 const StoryPractice = () => {
   const { state, actions } = useStoryPractice();
+  /* State Destructuring */
   const {
     practiceComplete,
     currentStory,
@@ -61,6 +65,13 @@ const StoryPractice = () => {
   const [vhPrePause, setVhPrePause] = useState(200);
   const [vhGap, setVhGap] = useState(100);
   const [vhIsPlaying, setVhIsPlaying] = useState(false);
+
+  // --- Persistent Tool State (Hooks) ---
+  // Mute logic if tool is NOT selected. If selected, logic runs regardless of sheet visibility.
+  const metronomeState = useMetronome(
+    selectedPracticeTool !== ToolType.METRONOME
+  );
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
   // --- Rendering Helpers ---
 
@@ -86,9 +97,25 @@ const StoryPractice = () => {
   const renderToolSheetContent = () => {
     switch (activeToolSheet) {
       case ToolType.DAF:
-        return <DAFTool />;
+        return (
+          <DAFTool
+            isDAFActive={dafState.isDAFActive}
+            onToggleDAF={dafState.toggleDAF}
+            delayMs={dafState.delayMs}
+            onDelayChange={dafState.setDelayMs}
+            hasPermission={dafState.hasPermission}
+            statusMessage={dafState.statusMessage}
+          />
+        );
       case ToolType.METRONOME:
-        return <Metronome />;
+        return (
+          <Metronome
+            isPlaying={metronomeState.isPlaying}
+            onTogglePlay={(val) => metronomeState.setIsPlaying(val)}
+            speed={metronomeState.speed}
+            onSpeedChange={(val) => metronomeState.setSpeed(val)}
+          />
+        );
       case ToolType.CHORUS:
         return (
           <VoiceHoverConfigPanel
@@ -107,29 +134,20 @@ const StoryPractice = () => {
     }
   };
 
-  // If it has UI, we might want to put its controls in the sheet too.
-  // Let's assume VoiceHover is special and renders logic + controls.
-
   const handleToolSelect = (toolName: string) => {
     if (selectedPracticeTool === toolName) {
       // Toggle off
       actions.setSelectedPracticeTool("");
       actions.setActiveToolSheet(null);
+
       // Stop VoiceHover if deselected
       if (toolName === ToolType.CHORUS) setVhIsPlaying(false);
+
+      // Metronome and DAF stop automatically because their hooks get muted (muteLogic=true)
     } else {
       actions.setSelectedPracticeTool(toolName);
-      // Open sheet for all tools now, including VoiceHover
-      if (
-        toolName === ToolType.DAF ||
-        toolName === ToolType.METRONOME ||
-        toolName === ToolType.CHORUS
-      ) {
-        actions.setActiveToolSheet(toolName);
-      } else {
-        // VoiceHover might not need a sheet if it's just highlighting
-        actions.setActiveToolSheet(null);
-      }
+      // Open sheet for all tools
+      actions.setActiveToolSheet(toolName);
     }
   };
 
@@ -269,7 +287,7 @@ const StoryPractice = () => {
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
         <CustomScrollView
-          scrollEnabled={false}
+          scrollEnabled={true}
           contentContainerStyle={[
             styles.readingScrollContent,
             { paddingBottom: bottomPadding },
@@ -450,16 +468,19 @@ const StoryPractice = () => {
       <BottomSheetModal
         visible={!!activeToolSheet}
         onClose={() => actions.setActiveToolSheet(null)}
-        maxHeight={360} // Slightly taller for VoiceHover controls
+        maxHeight={500} // Increased for better visibility
       >
-        <View style={styles.sheetContent}>
+        <ScrollView
+          contentContainerStyle={styles.sheetContent}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.sheetTitle}>
             {activeToolSheet === ToolType.CHORUS
               ? "Guide Settings"
               : `${activeToolSheet} Settings`}
           </Text>
           {renderToolSheetContent()}
-        </View>
+        </ScrollView>
       </BottomSheetModal>
     </ScreenView>
   );

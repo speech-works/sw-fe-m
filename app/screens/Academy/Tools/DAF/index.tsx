@@ -6,22 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-// Assume a real-time audio library like @siteed/expo-audio-studio or mykin-ai/expo-audio-stream
-// For demonstration, we'll mock its interface. In a real app, you'd import:
-// import { AudioProcessor, AudioStreamer } from '@siteed/expo-audio-studio';
-// OR
-// import { startMicrophone, playSound, stopMicrophone, stopSound } from 'mykin-ai/expo-audio-stream';
-
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
 import { theme } from "../../../../Theme/tokens";
 import { Audio } from "expo-av"; // Use expo-av for microphone permissions
 
 // --- Mocking the Real-time Audio Library Interface ---
-// In a real application, you would replace this with actual imports and API calls
-// from a library like @siteed/expo-audio-studio or mykin-ai/expo-audio-stream.
 interface RealtimeAudioLib {
   startMicrophone: (options: {
     sampleRate: number;
@@ -29,7 +20,7 @@ interface RealtimeAudioLib {
     bufferSize: number;
   }) => Promise<void>;
   stopMicrophone: () => Promise<void>;
-  onAudioFrame: (callback: (frame: number[]) => void) => () => void; // Listener for incoming audio frames
+  onAudioFrame: (callback: (frame: number[]) => void) => () => void;
   playAudioChunk: (
     chunk: number[],
     sampleRate: number,
@@ -38,84 +29,68 @@ interface RealtimeAudioLib {
   stopPlayback: () => Promise<void>;
 }
 
-// Simple mock implementation for demonstration purposes.
-// This mock does NOT simulate real-time performance or actual audio output.
-// It's just to make the component logic compilable and illustrate the flow.
 const mockRealtimeAudioLib: RealtimeAudioLib = (() => {
   let audioFrameCallback: ((frame: number[]) => void) | null = null;
-  const mockAudioBuffer = new Array(512).fill(0); // Simulate a small audio buffer
+  const mockAudioBuffer = new Array(512).fill(0);
 
   return {
     async startMicrophone(options) {
-      console.log("Mock: Starting microphone with options:", options);
-      // In a real library, this would set up native audio input.
-      // We can simulate frames being received at an interval here.
-      // This part is crucial for real DAF: low-latency frame delivery.
+      // console.log("Mock: Starting microphone with options:", options);
       setInterval(() => {
         if (audioFrameCallback) {
-          // In a real scenario, this would be actual microphone data.
-          // For mock, just send a dummy buffer.
           audioFrameCallback(
             mockAudioBuffer.map(() => Math.random() * 0.1 - 0.05)
           );
         }
-      }, options.bufferSize / (options.sampleRate / 1000)); // Simulate frame rate
+      }, options.bufferSize / (options.sampleRate / 1000));
       return Promise.resolve();
     },
     async stopMicrophone() {
-      console.log("Mock: Stopping microphone.");
-      // In a real library, this would tear down native audio input.
+      // console.log("Mock: Stopping microphone.");
       return Promise.resolve();
     },
     onAudioFrame(callback) {
       audioFrameCallback = callback;
       return () => {
         audioFrameCallback = null;
-      }; // Cleanup function
+      };
     },
     async playAudioChunk(chunk, sampleRate, channels) {
-      // In a real library, this would play the audio data to the output.
-      console.log(
-        `Mock: Playing audio chunk (${chunk.length} samples, ${sampleRate}Hz, ${channels}ch)`
-      );
+      // console.log(`Mock: Playing audio chunk (${chunk.length} samples, ${sampleRate}Hz, ${channels}ch)`);
       return Promise.resolve();
     },
     async stopPlayback() {
-      console.log("Mock: Stopping playback.");
+      // console.log("Mock: Stopping playback.");
       return Promise.resolve();
     },
   };
 })();
 // --- End Mocking ---
 
-type DAFToolProps = {
-  style?: object;
-};
-
-// Queue for audio frames to implement delay
 interface AudioFrame {
-  timestamp: number; // When this frame was captured
-  data: number[]; // The raw audio data
+  timestamp: number;
+  data: number[];
 }
 
-export function DAFTool({ style }: DAFToolProps) {
+export const useDAF = (muteLogic = false) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isDAFActive, setIsDAFActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     "Microphone permission required."
   );
-  const [delayMs, setDelayMs] = useState(250); // Default DAF delay
+  const [delayMs, setDelayMs] = useState(250);
+
   const audioQueueRef = useRef<AudioFrame[]>([]);
-  const lastPlaybackTimeRef = useRef(0);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const bufferSize = 1024; // Number of samples per audio frame (adjust based on library)
-  const sampleRate = 44100; // Standard audio sample rate
-  const channels = 1; // Mono audio for simplicity
+  const bufferSize = 1024;
+  const sampleRate = 44100;
+  const channels = 1;
 
   // Request microphone permissions
   useEffect(() => {
+    if (muteLogic) return;
+
     (async () => {
-      // Use Audio.requestPermissionsAsync for microphone permissions
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
       if (status !== "granted") {
@@ -124,11 +99,11 @@ export function DAFTool({ style }: DAFToolProps) {
         setStatusMessage("Permission granted. Press Start DAF.");
       }
     })();
-  }, []);
+  }, [muteLogic]);
 
-  // Effect for managing real-time audio input and output
+  // Audio processing logic
   useEffect(() => {
-    if (!hasPermission) return;
+    if (muteLogic || !hasPermission) return;
 
     let unsubscribeFromAudioFrames: (() => void) | null = null;
 
@@ -140,10 +115,8 @@ export function DAFTool({ style }: DAFToolProps) {
           bufferSize,
         });
 
-        // Set up listener for incoming audio frames
         unsubscribeFromAudioFrames = mockRealtimeAudioLib.onAudioFrame(
           (frameData) => {
-            // Add incoming frame with its capture timestamp to the queue
             audioQueueRef.current.push({
               timestamp: Date.now(),
               data: frameData,
@@ -151,25 +124,19 @@ export function DAFTool({ style }: DAFToolProps) {
           }
         );
 
-        // Start interval for playing delayed audio frames
-        // This interval determines how frequently we check for and play delayed audio
         playIntervalRef.current = setInterval(() => {
-          if (!isDAFActive) return; // Only play if DAF is active
+          if (!isDAFActive) return;
 
           const now = Date.now();
-          // Find the first frame that is "old enough" to be played back (current time - delay)
           const indexToPlay = audioQueueRef.current.findIndex(
             (frame) => now - frame.timestamp >= delayMs
           );
 
           if (indexToPlay !== -1) {
-            // Remove and get frames that are ready to be played
             const framesToPlay = audioQueueRef.current.splice(
               0,
               indexToPlay + 1
             );
-
-            // Concatenate all data from frames that are ready to play in this interval
             const combinedData = framesToPlay.flatMap((frame) => frame.data);
 
             if (combinedData.length > 0) {
@@ -178,7 +145,7 @@ export function DAFTool({ style }: DAFToolProps) {
                 .catch((e) => console.error("Error playing audio chunk:", e));
             }
           }
-        }, 50); // Check and play every 50ms (adjust for latency vs. processing load)
+        }, 50);
 
         setStatusMessage("DAF Active. Speak into microphone.");
       } catch (error) {
@@ -203,7 +170,7 @@ export function DAFTool({ style }: DAFToolProps) {
       await mockRealtimeAudioLib
         .stopPlayback()
         .catch((e) => console.error("Error stopping playback:", e));
-      audioQueueRef.current = []; // Clear any remaining audio in queue
+      audioQueueRef.current = [];
       setStatusMessage("DAF Stopped.");
     };
 
@@ -213,30 +180,97 @@ export function DAFTool({ style }: DAFToolProps) {
       stopAudioProcessing();
     }
 
-    // Cleanup function for this effect
     return () => {
-      stopAudioProcessing(); // Ensure everything is stopped on unmount or effect re-run
+      stopAudioProcessing();
     };
-  }, [isDAFActive, hasPermission, delayMs]); // Re-run if DAF state, permission, or delay changes
+  }, [isDAFActive, hasPermission, delayMs, muteLogic]);
 
-  const toggleDAF = () => {
+  const toggleDAF = useCallback(() => {
     if (hasPermission === false) {
       setStatusMessage("Microphone permission not granted.");
       return;
     }
     setIsDAFActive((prev) => !prev);
+  }, [hasPermission]);
+
+  return {
+    isDAFActive,
+    setIsDAFActive,
+    toggleDAF,
+    delayMs,
+    setDelayMs,
+    hasPermission,
+    statusMessage,
   };
+};
 
-  const onDelayChange = useCallback((value: number) => {
-    const newDelay = Math.round(value);
-    setDelayMs(newDelay);
-    // When delay changes, if DAF is active, the useEffect will re-run and restart processing
-    // with the new delay, effectively applying the change.
-  }, []);
+// Component
+type DAFToolProps = {
+  style?: object;
+  // Controlled props
+  isDAFActive?: boolean;
+  onToggleDAF?: () => void;
+  delayMs?: number;
+  onDelayChange?: (val: number) => void;
+  hasPermission?: boolean | null;
+  statusMessage?: string;
+};
 
-  if (hasPermission === null) {
+export function DAFTool({
+  style,
+  isDAFActive: controlledIsActive,
+  onToggleDAF,
+  delayMs: controlledDelay,
+  onDelayChange,
+  hasPermission: controlledPermission,
+  statusMessage: controlledMessage,
+}: DAFToolProps) {
+  const isControlled = controlledIsActive !== undefined;
+
+  const internalHook = useDAF(isControlled);
+
+  const activeIsDAFActive = isControlled
+    ? controlledIsActive
+    : internalHook.isDAFActive;
+  const activeToggleDAF = isControlled ? onToggleDAF : internalHook.toggleDAF;
+  const activeDelayMs = isControlled
+    ? (controlledDelay as number)
+    : internalHook.delayMs;
+  const activeSetDelayMs = isControlled
+    ? onDelayChange
+    : internalHook.setDelayMs;
+  const activeHasPermission = isControlled
+    ? controlledPermission
+    : internalHook.hasPermission;
+  const activeStatusMessage = isControlled
+    ? controlledMessage
+    : internalHook.statusMessage;
+
+  const handleDelayChange = useCallback(
+    (value: number) => {
+      const newDelay = Math.round(value);
+      if (activeSetDelayMs) activeSetDelayMs(newDelay);
+    },
+    [activeSetDelayMs]
+  );
+
+  if (activeHasPermission === null && !isControlled) {
+    // If controlled, we assume permission is handled by parent/hook in parent.
+    // If null, it means loading.
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.centerContent, style]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.statusText}>
+          Requesting microphone permission...
+        </Text>
+      </View>
+    );
+  }
+
+  if (isControlled && activeHasPermission === null) {
+    // Controlled mode + null permission = also loading
+    return (
+      <View style={[styles.container, styles.centerContent, style]}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.statusText}>
           Requesting microphone permission...
@@ -252,15 +286,15 @@ export function DAFTool({ style }: DAFToolProps) {
       <View style={styles.controlsSection}>
         {/* Start/Stop DAF Button */}
         <TouchableOpacity
-          onPress={toggleDAF}
+          onPress={activeToggleDAF}
           style={[
             styles.button,
-            isDAFActive ? styles.buttonStop : styles.buttonStart,
+            activeIsDAFActive ? styles.buttonStop : styles.buttonStart,
           ]}
-          disabled={hasPermission === false}
+          disabled={activeHasPermission === false}
         >
           <Text style={styles.buttonText}>
-            {isDAFActive ? "Stop DAF" : "Start DAF"}
+            {activeIsDAFActive ? "Stop DAF" : "Start DAF"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -269,7 +303,7 @@ export function DAFTool({ style }: DAFToolProps) {
       <View style={styles.controlSection}>
         <View style={styles.rowContainer}>
           <Text style={styles.infoText}>Delay Time</Text>
-          <Text style={styles.speedText}>{delayMs}ms</Text>
+          <Text style={styles.speedText}>{activeDelayMs}ms</Text>
         </View>
         <View style={styles.sliderWrapper}>
           <Slider
@@ -277,8 +311,8 @@ export function DAFTool({ style }: DAFToolProps) {
             minimumValue={0} // Minimum delay
             maximumValue={1000} // Max 1 second delay (adjust as needed for DAF effect)
             step={25} // Step by 25ms
-            value={delayMs}
-            onValueChange={onDelayChange}
+            value={activeDelayMs}
+            onValueChange={handleDelayChange}
             minimumTrackTintColor={theme.colors.library.orange[400]}
             maximumTrackTintColor={theme.colors.surface.default}
             thumbTintColor={theme.colors.library.orange[400]}
@@ -290,7 +324,7 @@ export function DAFTool({ style }: DAFToolProps) {
         </View>
       </View>
 
-      <Text style={styles.statusText}>{statusMessage}</Text>
+      <Text style={styles.statusText}>{activeStatusMessage}</Text>
     </View>
   );
 }

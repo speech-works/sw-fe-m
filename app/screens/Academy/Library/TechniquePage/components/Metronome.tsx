@@ -5,34 +5,52 @@ import { Audio } from "expo-av";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 
-const Metronome = () => {
-  const [isPlaying, setIsPlaying] = useState(true); // Enable/disable metronome
+export const useMetronome = (muteLogic = false) => {
+  const [isPlaying, setIsPlaying] = useState(true); // Default true so it auto-starts
+  const [speed, setSpeed] = useState(72);
+  const [isSoundLoaded, setIsSoundLoaded] = useState(false); // Track loading
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
-  const [speed, setSpeed] = useState(72);
-  const min = 30;
-  const max = 150;
 
-  // Load the metronome tick sound
+  // Load sound
   useEffect(() => {
+    if (muteLogic) {
+      setIsSoundLoaded(false);
+      return;
+    }
+
     const loadSound = async () => {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../../../../../assets/single-tick.mp3")
-      );
-      soundRef.current = sound;
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          require("../../../../../assets/single-tick.mp3")
+        );
+        soundRef.current = sound;
+        setIsSoundLoaded(true);
+      } catch (error) {
+        console.warn("Failed to load metronome sound", error);
+      }
     };
 
     loadSound();
 
     return () => {
       soundRef.current?.unloadAsync();
-      clearInterval(intervalRef.current as NodeJS.Timeout);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setIsSoundLoaded(false);
     };
-  }, []);
+  }, [muteLogic]);
 
-  // Update metronome interval when speed changes or play toggles
+  // Playback logic
   useEffect(() => {
-    if (!isPlaying || !soundRef.current) return;
+    if (muteLogic || !isSoundLoaded) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    if (!isPlaying || !soundRef.current) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
 
     const intervalMs = (60 / speed) * 1000;
 
@@ -45,13 +63,62 @@ const Metronome = () => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [speed, isPlaying]);
+  }, [speed, isPlaying, muteLogic, isSoundLoaded]); // Depend on isSoundLoaded
+
+  return {
+    isPlaying,
+    setIsPlaying,
+    speed,
+    setSpeed,
+  };
+};
+
+interface MetronomeProps {
+  // Controlled props (optional)
+  isPlaying?: boolean;
+  onTogglePlay?: (playing: boolean) => void;
+  speed?: number;
+  onSpeedChange?: (speed: number) => void;
+}
+
+const Metronome = ({
+  isPlaying: controlledIsPlaying,
+  onTogglePlay,
+  speed: controlledSpeed,
+  onSpeedChange,
+}: MetronomeProps) => {
+  const isControlled = controlledIsPlaying !== undefined;
+
+  // If controlled, mute the internal hook logic (because parent runs it)
+  // If uncontrolled, run the internal hook logic normally
+  const internalHook = useMetronome(isControlled);
+
+  const activeIsPlaying = isControlled
+    ? controlledIsPlaying
+    : internalHook.isPlaying;
+  const activeSetIsPlaying = isControlled
+    ? onTogglePlay
+    : internalHook.setIsPlaying;
+
+  const activeSpeed = isControlled
+    ? (controlledSpeed as number)
+    : internalHook.speed;
+  const activeSetSpeed = isControlled ? onSpeedChange : internalHook.setSpeed;
+
+  const togglePlay = () => {
+    if (activeSetIsPlaying) {
+      activeSetIsPlaying(!activeIsPlaying);
+    }
+  };
+
+  const min = 30;
+  const max = 150;
 
   return (
     <View style={styles.container}>
       <View style={styles.rowContainer}>
         <Text style={styles.infoText}>Metronome Speed</Text>
-        <Text style={styles.speedText}>{speed} BPM</Text>
+        <Text style={styles.speedText}>{activeSpeed} BPM</Text>
       </View>
 
       <View style={styles.sliderWrapper}>
@@ -60,8 +127,8 @@ const Metronome = () => {
           minimumValue={min}
           maximumValue={max}
           step={1}
-          value={speed}
-          onValueChange={setSpeed}
+          value={activeSpeed}
+          onValueChange={(val) => activeSetSpeed && activeSetSpeed(val)}
           minimumTrackTintColor={theme.colors.library.orange[400]}
           maximumTrackTintColor={theme.colors.surface.default}
           thumbTintColor={theme.colors.library.orange[400]}
@@ -72,6 +139,23 @@ const Metronome = () => {
         <Text style={styles.paceText}>Slow</Text>
         <Text style={styles.paceText}>Fast</Text>
       </View>
+
+      {/* Play/Stop Button (Added for UI completeness, though mostly auto-plays in original) */}
+      {/* Original didn't have a button, just speed slider and always running if mounted? */}
+      {/* Original logic: const [isPlaying, setIsPlaying] = useState(true); */}
+      {/* Original renders: No button. Just runs. */}
+      {/* But user wants to control it? */}
+      {/* Let's respect original UI: No button. Just slider. */}
+      {/* But if it's persistent, how does user STOP it? */}
+      {/* They likely toggle the tool OFF in the parent dock. */}
+      {/* When tool is toggled off, parent unmounts hook or stops it. */}
+      {/* So we don't need a button here if original didn't have one. */}
+      {/* Wait, original code: const [isPlaying, setIsPlaying] = useState(true); */}
+      {/* It was always playing. So merely selecting tool = playing. */}
+      {/* Deselecting tool = unmounting = stopping. */}
+      {/* So persistent mode = selecting tool = persistent playing. */}
+      {/* Deselecting tool = kill hook. */}
+      {/* Perfect. */}
     </View>
   );
 };
