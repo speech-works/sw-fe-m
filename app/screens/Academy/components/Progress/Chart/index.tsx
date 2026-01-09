@@ -165,26 +165,32 @@ const PracticeBarChartKit: React.FC<Props> = ({
         ? transparentColor
         : backgroundColor,
       backgroundGradientTo: isTransparent ? transparentColor : backgroundColor,
+      backgroundGradientFromOpacity: 0,
+      backgroundGradientToOpacity: 0,
       color: (opacity = 1) =>
         contentColor === "#333"
           ? `rgba(0,0,0,${opacity * (isEmpty ? 0.3 : 0.7)})`
-          : `rgba(255,255,255,${opacity * (isEmpty ? 0.6 : 0.9)})`,
+          : `rgba(255,255,255,${opacity * (isEmpty ? 0.5 : 0.7)})`,
       strokeWidth: 0,
-      barPercentage: 0.6,
+      barPercentage: 0.5,
       decimalPlaces: 0,
       propsForBackgroundLines: {
         stroke:
           contentColor === "#333"
-            ? "rgba(0,0,0,0.05)"
-            : "rgba(255,255,255,0.1)",
-        strokeWidth: 1,
-        strokeDasharray: "",
+            ? "rgba(0,0,0,0.04)"
+            : "rgba(255,255,255,0.08)",
+        strokeWidth: 0.5,
+        strokeDasharray: "3, 6",
       },
       fillShadowGradientOpacity: 1,
       yAxisLabel: "",
       yAxisSuffix: "m",
       barRadius: BAR_RADIUS,
       contentInset: { top: 0, bottom: BAR_RADIUS },
+      propsForLabels: {
+        fontSize: 10,
+        fontWeight: "500",
+      },
     };
   }, [backgroundColor, isTransparent, contentColor, isEmpty]);
 
@@ -337,14 +343,14 @@ const PracticeBarChartKit: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: "#fff3ed",
+    backgroundColor: "transparent",
     borderRadius: 16,
     paddingHorizontal: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowColor: "transparent",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
     minHeight: 220, // ensure consistent height
   },
   title: {
