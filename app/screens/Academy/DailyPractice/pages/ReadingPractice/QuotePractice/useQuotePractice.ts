@@ -1,0 +1,186 @@
+import { useCallback, useEffect, useState, useRef } from "react";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  RDPStackNavigationProp,
+  RDPStackParamList,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import { useUserStore } from "../../../../../../stores/user";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useUIStore } from "../../../../../../stores/ui";
+import {
+  ReadingPractice,
+  ReadingPracticeType,
+} from "../../../../../../api/dailyPractice/types";
+import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
+import {
+  completePracticeActivity,
+  startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { createPracticeActivity, createSession } from "../../../../../../api";
+import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+
+export const useQuotePractice = () => {
+  const { setTabBarVisible } = useUIStore();
+  const chorusManagerRef = useRef(new ChorusManager());
+  const navigation =
+    useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
+  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession, hasHydrated, setSession } = useSessionStore();
+  const { user } = useUserStore();
+  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+    useRecordedVoice(user?.id);
+
+  // --- State ---
+  const [practiceComplete, setPracticeComplete] = useState(false);
+  const [allQuotes, setAllQuotes] = useState<ReadingPractice[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [highlightRange, setHighlightRange] = useState<[number, number]>([
+    -1, 0,
+  ]);
+
+  // Quotes don't usually need pagination, but if we want to be consistent:
+  // We'll just stick to single page for quotes for now.
+
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+
+  // Sheet control for complex tools
+  const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
+
+  // --- Helpers ---
+  const toggleIndex = useCallback(() => {
+    if (allQuotes && allQuotes.length > 0) {
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % allQuotes.length);
+    }
+  }, [allQuotes]);
+
+  // --- Effects ---
+
+  // Hide Tab Bar
+  useFocusEffect(
+    useCallback(() => {
+      setTabBarVisible(false);
+      return () => {
+        setTabBarVisible(true);
+      };
+    }, [setTabBarVisible])
+  );
+
+  // Fetch Quotes
+  useEffect(() => {
+    const fetchAllQuotes = async () => {
+      try {
+        const q = await getReadingPracticeByType(ReadingPracticeType.QUOTE);
+        setAllQuotes(q);
+      } catch (error) {
+        console.error("[useQuotePractice] ❌ Error fetching quotes:", error);
+      }
+    };
+    fetchAllQuotes();
+    return () => {
+      chorusManagerRef.current.stop();
+    };
+  }, []);
+
+  // --- Actions ---
+
+  const onBackPress = () => navigation.goBack();
+
+  const markActivityStart = async () => {
+    if (!user) {
+      console.error("[useQuotePractice] ❌ No user found!");
+      return;
+    }
+
+    try {
+      // Create session if it doesn't exist
+      let sessionToUse = practiceSession;
+      if (!sessionToUse) {
+        const newSession = await createSession({ userId: user.id });
+        setSession(newSession);
+        sessionToUse = newSession;
+      }
+
+      const newActivity = await createPracticeActivity({
+        sessionId: sessionToUse.id,
+        contentType: PracticeActivityContentType.READING_PRACTICE,
+        contentId: allQuotes[selectedIndex]?.id,
+      });
+
+      const startedActivity = await startPracticeActivity({
+        id: newActivity.id,
+        userId: sessionToUse.user.id,
+      });
+
+      addActivity({ ...startedActivity });
+      setCurrentActivityId(newActivity.id);
+    } catch (error) {
+      console.error("[useQuotePractice] ❌ Error in markActivityStart:", error);
+      throw error;
+    }
+  };
+
+  const markActivityComplete = async (activityId: string) => {
+    if (!practiceSession || !doesActivityExist(activityId)) return;
+    const completedActivity = await completePracticeActivity({
+      id: activityId,
+      userId: practiceSession.user.id,
+    });
+    updateActivity(activityId, { ...completedActivity });
+  };
+
+  const onDonePress = async () => {
+    try {
+      if (!currentActivityId) throw new Error("Activity not started");
+      await markActivityComplete(currentActivityId);
+      await submitVoiceRecording({
+        recordingSource: RecordingSourceType.ACTIVITY,
+        activityId: currentActivityId,
+      });
+      setPracticeComplete(true);
+    } catch (error) {
+      console.error("❌ Failed to complete activity:", error);
+    }
+  };
+
+  const currentQuote = allQuotes[selectedIndex];
+
+  return {
+    state: {
+      practiceComplete,
+      allQuotes,
+      selectedIndex,
+      currentQuote,
+      currentActivityId,
+      isLoading,
+      isStarting,
+      selectedPracticeTool,
+      voiceRecordingUri,
+      activeToolSheet,
+      practiceSession,
+      hasHydrated,
+      highlightRange,
+    },
+    actions: {
+      setSelectedIndex,
+      setHighlightRange,
+      setIsStarting,
+      setIsLoading,
+      setSelectedPracticeTool,
+      setActiveToolSheet,
+      setVoiceRecordingUri,
+      onBackPress,
+      onDonePress,
+      markActivityStart,
+      toggleIndex,
+    },
+  };
+};
