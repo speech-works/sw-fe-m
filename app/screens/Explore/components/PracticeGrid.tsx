@@ -5,7 +5,7 @@ import {
   View,
   Dimensions,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { theme } from "../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -18,6 +18,9 @@ import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import WarriorFace from "../../../assets/mood-check/WarriorFace";
+import { useUserStore } from "../../../stores/user";
+import { getUserStats } from "../../../api/stats";
+import { PracticeStatSummary } from "../../../api/stats/types";
 
 // We need to navigate deep into DailyPracticeStack
 type RootStackParamList = {
@@ -33,41 +36,54 @@ type RootStackParamList = {
 const PracticeGrid = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useUserStore();
+  const [stats, setStats] = useState<PracticeStatSummary[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getUserStats(user.id)
+      .then((data) => setStats(data))
+      .catch((err) => console.error("PracticeGrid stats error:", err));
+  }, [user]);
+
+  const getCount = (type: string) => {
+    return stats.find((s) => s.contentType === type)?.itemsCompleted || 0;
+  };
 
   const practices = [
     {
       name: "Reading",
       subtitle: "Fluency",
+      countLabel: `${getCount("READING_PRACTICE")} Done`,
       icon: <ReaderFace size={64} shouldAnimate loop />,
       route: "ReadingPracticeStack",
-      // Modern Vibrant Gradient: Orange/Peach
       colors: ["#FFD8B5", "#FFAB76"],
       shadowColor: "#FFAB76",
     },
     {
       name: "Fun",
       subtitle: "Expression",
+      countLabel: `${getCount("FUN_PRACTICE")} Done`,
       icon: <MovieFace size={64} shouldAnimate loop />,
       route: "FunPracticeStack",
-      // Modern Vibrant Gradient: Teal/Mint
       colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
       shadowColor: "#98E6E6",
     },
     {
       name: "Cognitive",
       subtitle: "Focus",
+      countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
       icon: <BreathingFace size={64} shouldAnimate loop />,
       route: "CognitivePracticeStack",
-      // Modern Vibrant Gradient: Lavender/Purple
       colors: ["#EBCBF5", "#D8A7F0"],
       shadowColor: "#D8A7F0",
     },
     {
       name: "Exposure",
       subtitle: "Courage",
+      countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
       icon: <WarriorFace size={64} shouldAnimate loop />,
       route: "ExposureStack",
-      // Modern Vibrant Gradient: Soft Red/Pink
       colors: ["#FFC8C8", "#FF9E9E"],
       shadowColor: "#FF9E9E",
     },
@@ -104,7 +120,19 @@ const PracticeGrid = () => {
               style={styles.cardGradient}
             >
               <View style={styles.cardHeader}>
-                <Text style={styles.cardSubtitle}>{p.subtitle}</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={styles.cardSubtitle}>{p.subtitle}</Text>
+                  {/* Small badge for count */}
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countText}>{p.countLabel}</Text>
+                  </View>
+                </View>
                 <Text style={styles.cardTitle}>{p.name}</Text>
               </View>
               <View style={styles.iconWrapper}>{p.icon}</View>
@@ -169,5 +197,16 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     // Make icon pop out slightly
     transform: [{ scale: 1.1 }, { translateY: 5 }, { translateX: 5 }],
+  },
+  countBadge: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  countText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(0,0,0,0.6)",
   },
 });
