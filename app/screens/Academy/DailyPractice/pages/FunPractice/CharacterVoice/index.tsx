@@ -29,6 +29,13 @@ import {
 const CharacterVoice = () => {
   const [cvList, setcvList] = useState<FunPractice[]>([]);
 
+  const navigation =
+    useNavigation<
+      CharacterVoiceFDPStackNavigationProp<
+        keyof CharacterVoiceFDPStackParamList
+      >
+    >();
+
   // Award-Winning Gradient Palette
   // Award-Winning Gradient Palette - Lightened & Softer
   // Matte Modern Palette - "Boiled down" soft pastels, less shiny
@@ -73,12 +80,18 @@ const CharacterVoice = () => {
     fetchVoices();
   }, []);
 
-  const navigation =
-    useNavigation<
-      CharacterVoiceFDPStackNavigationProp<
-        keyof CharacterVoiceFDPStackParamList
-      >
-    >();
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: { display: "none" },
+      });
+    }
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
   return (
     <ScreenView style={styles.screenView}>
       {/* Background Gradient - Matching FunPractice Teal/Cyan Theme */}

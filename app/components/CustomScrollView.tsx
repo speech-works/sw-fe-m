@@ -18,6 +18,7 @@ import Animated, {
   useAnimatedRef,
   runOnJS,
 } from "react-native-reanimated";
+import { useImperativeHandle } from "react";
 import { theme } from "../Theme/tokens";
 
 export const SHADOW_BUFFER = 5;
@@ -74,6 +75,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     // A simple strategy is to let the parent control the ref if they want, but use ours for the buttons.
     // However, Reanimated's scrollTo needs an AnimatedRef.
     // We'll wrap the scrolling functions.
+    useImperativeHandle(ref, () => internalRef.current as Animated.ScrollView);
 
     const handleScrollToTop = () => {
       // Run on UI thread directly

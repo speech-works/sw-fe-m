@@ -30,6 +30,11 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 
 const Roleplay = () => {
+  const navigation =
+    useNavigation<
+      RoleplayFDPStackNavigationProp<keyof RoleplayFDPStackParamList>
+    >();
+
   const [roleplayList, setRoleplayList] = useState<FunPractice[]>([]);
 
   // Matte Modern Palette - Orange/Warm Family
@@ -73,10 +78,18 @@ const Roleplay = () => {
     fetchTwisters();
   }, []);
 
-  const navigation =
-    useNavigation<
-      RoleplayFDPStackNavigationProp<keyof RoleplayFDPStackParamList>
-    >();
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: { display: "none" },
+      });
+    }
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
   return (
     <ScreenView style={styles.screenView}>
       {/* Background Gradient - Soft Orange Aurora */}

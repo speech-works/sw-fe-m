@@ -40,5 +40,14 @@ export function useRecordedVoice(userId?: string) {
     }
   };
 
-  return { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording };
+  const resetRecording = () => {
+    setVoiceRecordingUri(null);
+  };
+
+  return {
+    voiceRecordingUri,
+    setVoiceRecordingUri,
+    submitVoiceRecording,
+    resetRecording,
+  };
 }

@@ -122,10 +122,22 @@ const CVExercise = () => {
   };
 
   useEffect(() => {
-    const t = cvData.texts;
-    console.log("cvData", { cvData });
-    setTexts(t);
-  }, []);
+    if (cvData?.texts) {
+      setTexts(cvData.texts);
+    }
+  }, [cvData]);
+
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: { display: "none" },
+      });
+    }
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
   return (
     <ScreenView style={styles.screenView}>

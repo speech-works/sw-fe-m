@@ -9,6 +9,7 @@ import {
   UIManager,
   Platform,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   parseShadowStyle,
@@ -78,14 +79,14 @@ const Chat = () => {
   );
 
   const character = useMemo(() => stage?.userCharacter, [stage]);
-  const initialNodeIdFromStage = useMemo(() => stage?.initialNodeId, [stage]);
+  const startingNodeId = useMemo(() => stage?.initialNodeId, [stage]);
   const dialogues = useMemo(() => stage?.dialogues, [stage]);
 
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [messageHeight, setMessageHeight] = useState<number | null>(null);
-  const chatScrollRef = useRef<ScrollView>(null);
+  const chatScrollRef = useRef<Animated.ScrollView>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -109,11 +110,23 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (initialNodeIdFromStage && !hasInitialized && dialogues) {
-      setCurrentNodeId(initialNodeIdFromStage);
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: { display: "none" },
+      });
+    }
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
+
+  useEffect(() => {
+    if (startingNodeId && !hasInitialized && dialogues) {
+      setCurrentNodeId(startingNodeId);
       setHasInitialized(true);
     }
-  }, [initialNodeIdFromStage, dialogues, hasInitialized]);
+  }, [startingNodeId, dialogues, hasInitialized]);
 
   useEffect(() => {
     if (currentNodeId && dialogues) {
