@@ -7,6 +7,7 @@ import Svg, {
   SvgProps,
   Line,
   Circle,
+  Ellipse,
 } from "react-native-svg";
 import Animated, {
   useSharedValue,
@@ -21,144 +22,103 @@ import Animated, {
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
+
+export type BreathingPhase =
+  | "idle"
+  | "inhale"
+  | "hold-in"
+  | "exhale"
+  | "hold-out";
 
 interface SvgIconProps extends SvgProps {
-  shouldAnimate?: boolean;
-  loop?: boolean;
-  repeatCount?: number;
   size?: number | string;
-  inhaleDuration?: number;
-  holdDuration?: number;
-  exhaleDuration?: number;
-  isHoldAfterExhale?: boolean;
-  holdAfterExhaleDuration?: number;
+  phase?: BreathingPhase;
+  shouldAnimate?: boolean;
 }
 
 const GuidedBreathingFace = ({
   size = 48,
+  phase = "idle",
   shouldAnimate = true,
-  loop = true,
-  repeatCount,
-  inhaleDuration = 4000,
-  holdDuration = 4000,
-  exhaleDuration = 4000,
-  isHoldAfterExhale = false,
-  holdAfterExhaleDuration = 0,
   ...props
 }: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
+  // Scale fixed at 1 (disabled zoom)
   const scale = useSharedValue(1);
   const breathOpacity = useSharedValue(0);
 
+  // Mouth dimensions
+  const mouthRx = useSharedValue(2.0);
+  const mouthRy = useSharedValue(2.0);
+
+  const eyeTranslateY = useSharedValue(0);
+
   useEffect(() => {
-    if (!shouldAnimate) {
-      cancelAnimation(scale);
-      cancelAnimation(breathOpacity);
-      return;
-    }
+    if (!shouldAnimate) return;
+    const DURATION = 500; // Standard transition duration
 
-    const runAnimation = () => {
-      // Scale Animation Sequence
-      scale.value = withSequence(
-        // Inhale: Scale up
-        withTiming(1.15, {
-          duration: inhaleDuration,
+    switch (phase) {
+      case "idle":
+        mouthRx.value = withTiming(2.0, { duration: DURATION });
+        mouthRy.value = withTiming(2.0, { duration: DURATION });
+        eyeTranslateY.value = withTiming(0, { duration: DURATION });
+        breathOpacity.value = withTiming(0, { duration: DURATION });
+        break;
+
+      case "inhale":
+        // Mouth: Small Round (Pursed)
+        mouthRx.value = withTiming(2.0, { duration: DURATION });
+        mouthRy.value = withTiming(2.0, { duration: DURATION });
+        // Eyes: Lift
+        eyeTranslateY.value = withTiming(-1.5, {
+          duration: DURATION,
+          easing: Easing.out(Easing.quad),
+        });
+        // Breath: Invisible
+        breathOpacity.value = withTiming(0, { duration: 200 });
+        break;
+
+      case "hold-in":
+        // Mouth: Flat
+        mouthRx.value = withTiming(3.0, { duration: DURATION });
+        mouthRy.value = withTiming(0.5, { duration: DURATION });
+        // Eyes: Stay Lifted
+        eyeTranslateY.value = withTiming(-1.5, { duration: DURATION });
+        // Breath: Invisible
+        breathOpacity.value = withTiming(0, { duration: 200 });
+        break;
+
+      case "exhale":
+        // Mouth: Big Open
+        mouthRx.value = withTiming(3.5, { duration: DURATION });
+        mouthRy.value = withTiming(3.5, { duration: DURATION });
+        // Eyes: Relax
+        eyeTranslateY.value = withTiming(0, {
+          duration: DURATION,
           easing: Easing.inOut(Easing.ease),
-        }),
-        // Hold: Stay scaled up
-        withDelay(holdDuration, withTiming(1.15, { duration: 0 })),
-        // Exhale: Scale down
-        withTiming(1, {
-          duration: exhaleDuration,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        // Optional Hold after Exhale
-        withDelay(
-          isHoldAfterExhale ? holdAfterExhaleDuration : 0,
-          withTiming(1, { duration: 0 })
-        )
-      );
+        });
+        // Breath: Visible (fade in then pulse/stay)
+        breathOpacity.value = withSequence(
+          withTiming(1, { duration: 300 })
+          // Optional: visual pulse could go here, but static visible is fine for now
+        );
+        break;
 
-      // Breath Opacity Animation Sequence
-      breathOpacity.value = withSequence(
-        // Inhale: Invisible
-        withTiming(0, { duration: inhaleDuration }),
-        // Hold: Invisible
-        withDelay(holdDuration, withTiming(0, { duration: 0 })),
-        // Exhale: Visible
-        withTiming(1, { duration: exhaleDuration * 0.2 }),
-        withDelay(
-          exhaleDuration * 0.6,
-          withTiming(0, { duration: exhaleDuration * 0.2 })
-        ),
-        // Optional Hold after Exhale: Invisible
-        withDelay(
-          isHoldAfterExhale ? holdAfterExhaleDuration : 0,
-          withTiming(0, { duration: 0 })
-        )
-      );
-    };
-
-    if (loop) {
-      scale.value = withRepeat(
-        withSequence(
-          // Inhale: Scale up
-          withTiming(1.15, {
-            duration: inhaleDuration,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          // Hold: Stay scaled up
-          withDelay(holdDuration, withTiming(1.15, { duration: 0 })),
-          // Exhale: Scale down
-          withTiming(1, {
-            duration: exhaleDuration,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          // Optional Hold after Exhale
-          withDelay(
-            isHoldAfterExhale ? holdAfterExhaleDuration : 0,
-            withTiming(1, { duration: 0 })
-          )
-        ),
-        -1, // Infinite repeat
-        false // Do not reverse
-      );
-
-      breathOpacity.value = withRepeat(
-        withSequence(
-          // Inhale: Invisible
-          withTiming(0, { duration: inhaleDuration }),
-          // Hold: Invisible
-          withDelay(holdDuration, withTiming(0, { duration: 0 })),
-          // Exhale: Fade in quickly, stay, then fade out
-          withTiming(1, { duration: exhaleDuration * 0.2 }),
-          withDelay(
-            exhaleDuration * 0.6,
-            withTiming(0, { duration: exhaleDuration * 0.2 })
-          ),
-          // Optional Hold after Exhale: Invisible
-          withDelay(
-            isHoldAfterExhale ? holdAfterExhaleDuration : 0,
-            withTiming(0, { duration: 0 })
-          )
-        ),
-        -1,
-        false
-      );
-    } else {
-      runAnimation();
+      case "hold-out":
+        // Mouth: Flat
+        mouthRx.value = withTiming(3.0, { duration: DURATION });
+        mouthRy.value = withTiming(0.5, { duration: DURATION });
+        // Eyes: Stay Relaxed
+        eyeTranslateY.value = withTiming(0, { duration: DURATION });
+        // Breath: fade out
+        breathOpacity.value = withTiming(0, { duration: 300 });
+        break;
     }
-  }, [
-    shouldAnimate,
-    loop,
-    inhaleDuration,
-    holdDuration,
-    exhaleDuration,
-    holdAfterExhaleDuration,
-    isHoldAfterExhale,
-  ]);
+  }, [phase]);
 
   const animatedGroupProps = useAnimatedProps(() => {
     return {
@@ -169,6 +129,19 @@ const GuidedBreathingFace = ({
   const animatedBreathProps = useAnimatedProps(() => {
     return {
       opacity: breathOpacity.value,
+    };
+  });
+
+  const animatedMouthProps = useAnimatedProps(() => {
+    return {
+      rx: mouthRx.value,
+      ry: mouthRy.value,
+    };
+  });
+
+  const animatedEyesProps = useAnimatedProps(() => {
+    return {
+      transform: [{ translateY: eyeTranslateY.value }],
     };
   });
 
@@ -215,52 +188,56 @@ const GuidedBreathingFace = ({
         />
 
         {/* Eyes (Closed with a gentle upward curve of relief) - Bolder Stroke Color */}
-        <Path
-          stroke="#000000" // Black
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M14 24 Q 18 23, 22 24"
-          fill="none"
-        />
-        <Path
-          stroke="#000000" // Black
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M26 24 Q 30 23, 34 24"
-          fill="none"
-        />
+        <AnimatedG animatedProps={animatedEyesProps}>
+          <Path
+            stroke="#000000" // Black
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M14 24 Q 18 23, 22 24"
+            fill="none"
+          />
+          <Path
+            stroke="#000000" // Black
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M26 24 Q 30 23, 34 24"
+            fill="none"
+          />
+        </AnimatedG>
 
         {/* Mouth (Soft, slightly open 'O' for exhaling) - Bolder Color */}
-        <Circle cx="24" cy="34" r="2.5" fill="#000000" />
+        <AnimatedCircle
+          cx="24"
+          cy="34"
+          animatedProps={animatedMouthProps}
+          fill="#000000"
+        />
 
-        {/* Breath Visual: Wispy, dissipating elements - Animated Opacity */}
+        {/* Breath Visual: Stream of air blowing OUT (below mouth) */}
         <AnimatedG animatedProps={animatedBreathProps}>
-          <Line
-            x1="20"
-            y1="31"
-            x2="18"
-            y2="28"
-            stroke="#3E2723"
+          {/* Center Stream */}
+          <Path
+            d="M24 38 C 24 40, 24 43, 22 45"
+            stroke="#90A4AE" // Light Blue-Grey for air
             strokeWidth="2"
             strokeLinecap="round"
+            fill="none"
           />
-          <Line
-            x1="28"
-            y1="31"
-            x2="30"
-            y2="28"
-            stroke="#3E2723"
+          {/* Left Stream */}
+          <Path
+            d="M21 38 C 20 40, 18 43, 16 44"
+            stroke="#90A4AE"
             strokeWidth="2"
             strokeLinecap="round"
+            fill="none"
           />
-          <Line
-            x1="24"
-            y1="30"
-            x2="24"
-            y2="27"
-            stroke="#3E2723"
+          {/* Right Stream */}
+          <Path
+            d="M27 38 C 28 40, 30 43, 32 44"
+            stroke="#90A4AE"
             strokeWidth="2"
             strokeLinecap="round"
+            fill="none"
           />
         </AnimatedG>
       </AnimatedG>

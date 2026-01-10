@@ -4,7 +4,9 @@ import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../../Theme/tokens";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
-import GuidedBreathingFace from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
+import GuidedBreathingFace, {
+  BreathingPhase,
+} from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
 
 type BreathingHaloProps = {
   inhale: number; // seconds
@@ -27,10 +29,12 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
   // Animated values
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const faceOpacity = useRef(new Animated.Value(1)).current;
 
   // Phase text: “Breathe In” | “Hold” | “Breathe Out”
   const [phaseText, setPhaseText] = useState<string>("Breathe In");
+
+  // Phase state for Face Animation
+  const [currentPhase, setCurrentPhase] = useState<BreathingPhase>("idle");
 
   // Convert seconds → ms
   const inhaleMs = inhale * 1000;
@@ -67,6 +71,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
       // ─── INHALE ───────────────────────────────────────────
       setPhaseText("Breathe In");
+      setCurrentPhase("inhale");
       if (!muteRef.current) {
         playBreath("inhale", inhaleMs, isCurrentlyMuted);
       }
@@ -86,6 +91,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
       // ─── HOLD (Full Lungs) ────────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
+        setCurrentPhase("hold-in");
         await new Promise<void>((resolve) => {
           Animated.delay(holdMs).start(({ finished }) => {
             if (finished && isMounted.current) resolve();
@@ -96,6 +102,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
       // ─── EXHALE ───────────────────────────────────────────
       setPhaseText("Breathe Out");
+      setCurrentPhase("exhale");
       if (!muteRef.current) {
         playBreath("exhale", exhaleMs, isCurrentlyMuted);
       }
@@ -115,6 +122,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
       // ─── HOLD (Empty Lungs) ───────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
+        setCurrentPhase("hold-out");
         await new Promise<void>((resolve) => {
           Animated.delay(holdMs).start(({ finished }) => {
             if (finished && isMounted.current) resolve();
@@ -125,6 +133,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
     } while (repeat && isMounted.current);
 
     if (isMounted.current) {
+      setCurrentPhase("idle");
       onCycleComplete?.();
     }
   }, [
@@ -143,7 +152,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
     const start = async () => {
       await loadBreathSounds();
       if (isMounted.current) {
-        setIsReady(true);
+        // setIsReady(true) - no longer needed as phase drives it
         runBreathingCycle();
       }
     };
@@ -156,23 +165,11 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
     };
   }, [loadBreathSounds, runBreathingCycle, stopBreathSounds, scaleAnim]);
 
-  // Track if we are ready to start animation (after audio load)
-  const [isReady, setIsReady] = useState(false);
-
   return (
     <View style={styles.container}>
       {/* Animated Face */}
       <View style={styles.faceContainer}>
-        <GuidedBreathingFace
-          size={CIRCLE_SIZE}
-          shouldAnimate={isReady}
-          loop={repeat}
-          inhaleDuration={inhaleMs}
-          holdDuration={holdMs}
-          exhaleDuration={exhaleMs}
-          isHoldAfterExhale={holdMs > 0}
-          holdAfterExhaleDuration={holdMs}
-        />
+        <GuidedBreathingFace size={CIRCLE_SIZE} phase={currentPhase} />
       </View>
 
       {/* Text Below */}
