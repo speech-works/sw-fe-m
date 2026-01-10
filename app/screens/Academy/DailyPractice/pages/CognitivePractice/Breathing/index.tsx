@@ -129,7 +129,7 @@ const Breathing = () => {
 
     // Clear the interval when the component unmounts or when isDone becomes true
     return () => clearInterval(interval);
-  }, [isDone]); // Add isDone to dependency array
+  }, [isDone, currentActivityId]); // Add currentActivityId to dependency array
 
   // ─── When unmounting, fully stop & unload the background track ───────────────────
   useEffect(() => {
