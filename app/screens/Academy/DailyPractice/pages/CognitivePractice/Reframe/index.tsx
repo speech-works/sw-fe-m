@@ -42,6 +42,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import DonePractice from "../../../components/DonePractice";
 import { LinearGradient } from "expo-linear-gradient";
+import RainOverlay from "./components/RainOverlay";
 
 const Reframe = () => {
   const navigation =
@@ -186,6 +187,7 @@ const Reframe = () => {
             >
               {/* Negative Thought Section */}
               <View style={styles.negativeSection}>
+                <RainOverlay />
                 <View style={styles.negativeLabelRow}>
                   <Icon name="cloud-rain" size={14} color="#A5B4FC" />
                   <Text style={styles.sectionLabel}>NEGATIVE THOUGHT</Text>
@@ -445,6 +447,8 @@ const styles = StyleSheet.create({
     marginTop: 32, // More breathing room
     marginBottom: 24,
     alignItems: "center", // Center content
+    position: "relative", // Needed for RainOverlay
+    overflow: "hidden", // Clip rain drops
   },
   negativeLabelRow: {
     flexDirection: "row",
