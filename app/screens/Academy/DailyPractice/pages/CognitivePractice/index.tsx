@@ -38,7 +38,7 @@ const CognitivePractice = () => {
       title: "Guided Breathing",
       subtitle: "Breathing exercise",
       onPress: () => navigation.navigate("BreathingPractice"),
-      icon: <GuidedBreathingFace size={80} />,
+      icon: <GuidedBreathingFace size={80} shouldAnimate={false} />,
       colors: ["#F9A8D4", "#DB2777"] as const, // Pink/Rose
     },
     {

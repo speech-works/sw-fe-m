@@ -1,10 +1,10 @@
-// components/BreathingHalo.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
-import Svg, { Path } from "react-native-svg";
+// import Svg, { Path } from "react-native-svg";
 import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../../Theme/tokens";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
+import GuidedBreathingFace from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
 
 type BreathingHaloProps = {
   inhale: number; // seconds
@@ -142,7 +142,10 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
     isMounted.current = true;
     const start = async () => {
       await loadBreathSounds();
-      if (isMounted.current) runBreathingCycle();
+      if (isMounted.current) {
+        setIsReady(true);
+        runBreathingCycle();
+      }
     };
     start();
 
@@ -153,46 +156,24 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
     };
   }, [loadBreathSounds, runBreathingCycle, stopBreathSounds, scaleAnim]);
 
+  // Track if we are ready to start animation (after audio load)
+  const [isReady, setIsReady] = useState(false);
+
   return (
     <View style={styles.container}>
-      {/* Animated Face Circle */}
-      <Animated.View
-        style={[
-          styles.faceCircle,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        {/* Simple SVG Face Features */}
-        <Svg width="100%" height="100%" viewBox="0 0 100 100">
-          {/* Closed Eyes */}
-          <Path
-            d="M 30 40 Q 40 45, 50 40"
-            stroke="#9A3412" // Darker Orange/Brown
-            strokeWidth="4"
-            strokeLinecap="round"
-            fill="none"
-            transform="translate(-15, 0)"
-          />
-          <Path
-            d="M 30 40 Q 40 45, 50 40"
-            stroke="#9A3412"
-            strokeWidth="4"
-            strokeLinecap="round"
-            fill="none"
-            transform="translate(35, 0)"
-          />
-          {/* Mouth - Small dash/smile */}
-          <Path
-            d="M 45 65 L 55 65"
-            stroke="#9A3412"
-            strokeWidth="4"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </Svg>
-      </Animated.View>
+      {/* Animated Face */}
+      <View style={styles.faceContainer}>
+        <GuidedBreathingFace
+          size={CIRCLE_SIZE}
+          shouldAnimate={isReady}
+          loop={repeat}
+          inhaleDuration={inhaleMs}
+          holdDuration={holdMs}
+          exhaleDuration={exhaleMs}
+          isHoldAfterExhale={holdMs > 0}
+          holdAfterExhaleDuration={holdMs}
+        />
+      </View>
 
       {/* Text Below */}
       <View style={styles.textContainer}>
@@ -210,16 +191,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 48,
   },
-  faceCircle: {
+  faceContainer: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: "#F97316", // Bright Orange (Tailwind orange-500)
-    shadowColor: "#F97316",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   textContainer: {
     height: 40, // fixed height to prevent jumping
