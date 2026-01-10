@@ -1,4 +1,10 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ImageBackground,
+} from "react-native";
 import React, { useEffect, useState, useRef } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -282,28 +288,6 @@ const Meditation = () => {
     setIsDone(true);
   };
 
-  // Timer logic for progress
-  useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setProgress((prevProgress) => {
-          // Allow timer to go beyond 5 mins, just update UI
-          return prevProgress + 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isPlaying]);
-
   const displayMinutes = Math.floor(progress / 60);
   const displaySeconds = progress % 60;
 
@@ -311,9 +295,9 @@ const Meditation = () => {
   if (isStarted && !isDone) {
     return (
       <View style={styles.immersiveContainer}>
-        {/* Cool, Calming Violet Gradient */}
+        {/* Deep Indigo Gradient to match Face - Darker Variant */}
         <LinearGradient
-          colors={["#2E1065", "#4C1D95", "#5B21B6"]} // Deep Violet
+          colors={["#3949AB", "#283593", "#1A237E"]} // Darker shades of Indigo
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -324,7 +308,7 @@ const Meditation = () => {
           <Text
             style={[
               styles.timerText,
-              { marginTop: 60 },
+              { marginTop: 0 }, // Handled by container padding
               progress >= TOTAL_SESSION_SECONDS && { color: "#4ADE80" }, // Green if > 5 mins
             ]}
           >
@@ -333,7 +317,6 @@ const Meditation = () => {
               .padStart(2, "0")}`}
           </Text>
 
-          {/* Large Meditation Face */}
           {/* Large Meditation Face */}
           <View>
             <MeditationFace size={240} />
@@ -773,116 +756,138 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingVertical: 24, // Increased top padding
   },
   scrollView: {
     flex: 1,
   },
   scrollContainer2: {
-    paddingBottom: 48,
-    gap: 16,
+    paddingBottom: 64, // More bottom space
+    gap: 20, // Increased gap for airy feel
+    paddingTop: 12,
   },
   modalHeader: {
-    alignItems: "center",
+    alignItems: "flex-start", // Left-align for editorial look
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 32, // Significant spacing
+    marginTop: 16,
   },
   modalHandle: {
-    width: 48,
+    width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E2E8F0",
-    marginBottom: 8,
+    backgroundColor: "#CBD5E1", // Lighter handle
+    marginBottom: 24,
+    opacity: 0.6,
+    alignSelf: "center", // Keep handle centered
   },
   modalTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontSize: 20,
+    ...parseTextStyle(theme.typography.Heading1), // Heavy font
+    fontSize: 32, // Large editorial size
+    color: "#0F172A", // Slate-900 (Darker)
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
   modalSubtitleText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: "#64748B", // Slate-500
+    marginTop: 4,
+    maxWidth: "90%",
+    lineHeight: 24,
   },
 
   // Med Card Styles
   medCardBase: {
     width: "100%",
-    borderRadius: 20,
+    borderRadius: 32, // Squircle / Super-rounded
     overflow: "hidden",
   },
   medCardUnselected: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    // Soft shadow
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: "#F8FAFC", // Very subtle slate-50
+    // Minimal floating shadow
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 0, // No border
   },
   medCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    gap: 16,
+    padding: 24, // Generous padding
+    gap: 20,
   },
   medCardGradient: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    gap: 16,
+    padding: 24, // Generous padding
+    gap: 20,
   },
 
   // Icons
   medIconContainerSelected: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  medIconContainerUnselected: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F8FAFC",
+    width: 56, // Large icon
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.25)", // Frosted glass
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  medIconContainerUnselected: {
+    width: 56, // Large icon
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    // Subtle shadow for icon
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
 
   // Text
   medDescContainer: {
     flex: 1,
-    gap: 2,
+    gap: 6,
   },
   medNameText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "600",
-    color: "#1E293B",
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#334155", // Slate-700
+    letterSpacing: -0.3,
   },
   medDetailText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#64748B",
+    ...parseTextStyle(theme.typography.Body),
+    color: "#94A3B8", // Slate-400
+    fontSize: 15,
+    fontWeight: "500",
   },
   medNameTextSelected: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: "#FFF",
-    fontSize: 16,
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 19,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.3,
   },
   medDetailTextSelected: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.8)",
+    ...parseTextStyle(theme.typography.Body),
+    color: "rgba(255,255,255,0.85)", // High contrast
+    fontSize: 15,
+    fontWeight: "500",
   },
   // Immersive Styles
   immersiveContainer: {
     flex: 1,
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: 80, // Safe area padding for timer
   },
   immersiveContent: {
     flex: 1,
@@ -896,10 +901,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   timerText: {
-    ...parseTextStyle(theme.typography.Heading2),
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 56, // Even Larger
     fontVariant: ["tabular-nums"],
-    color: "#E2E8F0", // Slate-200
-    marginBottom: 48,
-    opacity: 0.9,
+    color: "#F8FAFC",
+    marginBottom: 72,
+    opacity: 0.95,
+    fontWeight: "200", // Thinner, elegant font
+    letterSpacing: 4,
+    lineHeight: 80,
   },
 });
