@@ -11,7 +11,7 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 
 const { width, height: screenHeight } = Dimensions.get("window");
-const NUM_DROPS = 100;
+const NUM_DROPS = 120; // Mild intensity
 
 interface RainDropProps {
   index: number;
@@ -20,8 +20,8 @@ interface RainDropProps {
 const RainDrop: React.FC<RainDropProps> = ({ index }) => {
   // Random properties for this drop
   const randomX = Math.random() * width;
-  const randomDelay = Math.random() * 2000; // Reduced from 3000
-  const randomDuration = 2500 + Math.random() * 1500; // 2.5-4 seconds (faster)
+  const randomDelay = Math.random() * 2500; // Spread out start times
+  const randomDuration = 3500 + Math.random() * 1500; // 3.5-5 seconds (slower, gentler)
   const randomHeight = 15 + Math.random() * 25; // 15-40px
   const randomWidth = Math.random() < 0.2 ? 2 : 1; // Mostly 1px, some 2px
 
@@ -151,15 +151,23 @@ const WaterLevel: React.FC = () => {
   // Create irregular wave path for realistic water surface
   const createWavePath = (offset: number = 0) => {
     const waveWidth = width * 2;
-    const waveHeight = 3;
+    const baseHeight = 2;
+    const amplitude = 2; // Wave height variation
 
+    // Create more pronounced waves with varying peaks and troughs
     return `
-      M0,${waveHeight}
-      Q${waveWidth * 0.15},${waveHeight - 1.5} ${waveWidth * 0.3},${waveHeight}
-      T${waveWidth * 0.6},${waveHeight}
-      T${waveWidth * 0.9},${waveHeight}
-      T${waveWidth},${waveHeight}
-      L${waveWidth},10 L0,10 Z
+      M0,${baseHeight}
+      C${waveWidth * 0.1},${baseHeight - amplitude} ${waveWidth * 0.2},${
+      baseHeight + amplitude
+    } ${waveWidth * 0.25},${baseHeight}
+      S${waveWidth * 0.35},${baseHeight - amplitude * 0.8} ${
+      waveWidth * 0.5
+    },${baseHeight}
+      S${waveWidth * 0.65},${baseHeight + amplitude * 1.2} ${
+      waveWidth * 0.75
+    },${baseHeight}
+      S${waveWidth * 0.85},${baseHeight - amplitude} ${waveWidth},${baseHeight}
+      L${waveWidth},15 L0,15 Z
     `;
   };
 
