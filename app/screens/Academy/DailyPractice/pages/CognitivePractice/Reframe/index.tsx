@@ -187,11 +187,7 @@ const Reframe = () => {
               {/* Negative Thought Section */}
               <View style={styles.negativeSection}>
                 <View style={styles.negativeLabelRow}>
-                  <Icon
-                    name="cloud-rain"
-                    size={14}
-                    color={theme.colors.text.disabled}
-                  />
+                  <Icon name="cloud-rain" size={14} color="#A5B4FC" />
                   <Text style={styles.sectionLabel}>NEGATIVE THOUGHT</Text>
                 </View>
                 <Text style={styles.negativeText}>
@@ -199,19 +195,12 @@ const Reframe = () => {
                 </Text>
               </View>
 
-              {/* Divider Arrow */}
-              <View style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <View style={styles.dividerIconBox}>
-                  <Icon name="arrow-down" size={14} color="#6366F1" />
-                </View>
-                <View style={styles.dividerLine} />
-              </View>
+              {/* Divider - Minimalist Space */}
+              <View style={styles.dividerContainer} />
 
               {/* Reframe Options */}
               <View style={styles.positiveSection}>
                 <View style={styles.positiveLabelRow}>
-                  <Icon name="sun" size={14} color="#F59E0B" />
                   <Text style={styles.sectionLabelPositive}>
                     CHOOSE A BETTER PERSPECTIVE
                   </Text>
@@ -223,23 +212,14 @@ const Reframe = () => {
                     return (
                       <TouchableOpacity
                         key={index}
-                        activeOpacity={0.8}
+                        activeOpacity={0.7} // More tactile feedback
                         style={[
                           styles.optionCard,
                           isSelected && styles.optionCardSelected,
                         ]}
                         onPress={() => setSelectedReframe(item)}
                       >
-                        <View
-                          style={[
-                            styles.radioCircle,
-                            isSelected && styles.radioCircleSelected,
-                          ]}
-                        >
-                          {isSelected && (
-                            <Icon name="check" size={10} color="#FFF" />
-                          )}
-                        </View>
+                        {/* Radio Circle Removed - Tile Interaction */}
                         <Text
                           style={[
                             styles.optionText,
@@ -343,13 +323,13 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
-    minHeight: 600,
+    minHeight: 650, // Taller card
   },
   cardHeaderGradient: {
     padding: 24,
     paddingBottom: 48, // Space for overlap
     position: "relative",
-    height: 180,
+    height: 160,
   },
   headerTopRow: {
     flexDirection: "row",
@@ -360,144 +340,142 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
   categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: "700",
     color: "#FFF",
-    letterSpacing: 1,
+    letterSpacing: 1.5, // Airy tracking
   },
   glassButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
   glassButtonText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
+    fontSize: 13,
     color: "#FFF",
     fontWeight: "600",
   },
   headerWatermark: {
     position: "absolute",
-    right: -10,
-    bottom: -10,
-    opacity: 0.15,
-    transform: [{ rotate: "-10deg" }],
+    right: -20,
+    bottom: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "-15deg" }],
   },
   cardBodySheet: {
     backgroundColor: "#FFFFFF",
+    marginTop: -40, // Overlap
+    paddingHorizontal: 24,
+    paddingTop: 0, // Let elements float up if needed, or stick to padding
+    paddingBottom: 40,
+    minHeight: 500,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    marginTop: -40, // Overlap
-    padding: 24,
-    paddingBottom: 40,
-    minHeight: 400,
-    alignItems: "center",
   },
 
   // Start Overlay
   startOverlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
+    zIndex: 20, // Higher zIndex
     justifyContent: "flex-start",
-    paddingTop: 120, // Position higher up (overlapping header slightly)
+    paddingTop: 100,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.85)", // More opaque for focus
+
     borderRadius: 32,
   },
   startContent: {
-    padding: 32,
+    padding: 40,
     alignItems: "center",
-    gap: 16,
+    gap: 20,
     backgroundColor: "#FFF",
-    borderRadius: 24,
+    borderRadius: 32,
     ...parseShadowStyle(theme.shadow.elevation2),
-    width: "90%",
+    width: "85%",
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   startTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
+    ...parseTextStyle(theme.typography.Heading2), // Larger title
     textAlign: "center",
-    color: "#4F46E5", // Indigo 600
+    color: "#1E1B4B", // Midnight
   },
   startDesc: {
     ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
     textAlign: "center",
-    color: theme.colors.text.default,
+    color: "#4B5563",
+    lineHeight: 24,
   },
   startButton: {
     width: "100%",
-    backgroundColor: "#6366F1", // Indigo 500
+    backgroundColor: "#4F46E5", // Indigo 600
+    height: 56,
+    borderRadius: 16,
+    shadowColor: "#4F46E5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   // Content Sections
+
+  // Content Sections
+
+  // Negative Section - Modern Hero
   negativeSection: {
     width: "100%",
-    backgroundColor: "#F5F3FF", // Violet 50
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    marginTop: 32, // More breathing room
+    marginBottom: 24,
+    alignItems: "center", // Center content
   },
   negativeLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 16,
+    opacity: 0.6,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 0.5,
-    color: "#8B5CF6", // Violet 500
-  },
-  sectionLabelPositive: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    color: "#4F46E5", // Indigo 600
+    letterSpacing: 2, // Wide tracking
+    color: "#6B7280",
+    textTransform: "uppercase",
   },
   negativeText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
-    color: "#1F2937", // Gray 800
-    lineHeight: 26,
+    ...parseTextStyle(theme.typography.Heading2), // Larger heading
+    fontSize: 28,
+    color: "#111827", // Almost black
+    lineHeight: 38,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
-  // Divider
+  // Divider - Vertical Space
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 16,
+    height: 16,
     width: "100%",
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E0E7FF",
-  },
-  dividerIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#EEF2FF",
-    borderWidth: 1,
-    borderColor: "#C7D2FE",
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 12,
-  },
+  dividerLine: { display: "none" },
+  dividerIconBox: { display: "none" },
 
   // Positive Section
   positiveSection: {
@@ -505,73 +483,82 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   positiveLabelRow: {
-    flexDirection: "row",
+    marginBottom: 12,
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+  },
+  sectionLabelPositive: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 2,
+    color: "#6366F1", // Indigo 500
+    textTransform: "uppercase",
+    textAlign: "center",
   },
   optionsList: {
-    gap: 12,
+    gap: 16,
   },
   optionCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: 16,
-    backgroundColor: "#FFF",
+    alignItems: "center", // Center vertically
+    padding: 24, // Larger click area
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderColor: "#F3F4F6",
+    // Modern "Float" shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03, // Very subtle
+    shadowRadius: 16,
+    elevation: 2,
   },
   optionCardSelected: {
-    borderColor: "#6366F1",
-    backgroundColor: "#EEF2FF",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    borderColor: "#6366F1", // Indigo border
+    backgroundColor: "#F5F3FF", // Violet tint
+    shadowColor: "#6366F1", // Colored shadow glow
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#D1D5DB",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  radioCircleSelected: {
-    borderColor: "#6366F1",
-    backgroundColor: "#6366F1",
-  },
+  // Removed Radio Circle styles
+  radioCircle: { display: "none" },
+  radioCircleSelected: { display: "none" },
+
   optionText: {
     flex: 1,
     ...parseTextStyle(theme.typography.Body),
-    color: "#4B5563",
+    fontSize: 17,
+    color: "#374151",
+    lineHeight: 26,
+    textAlign: "center", // Center text in tile
   },
   optionTextSelected: {
     color: "#4338CA", // Indigo 700
-    fontWeight: "500",
+    fontWeight: "600",
   },
 
   // Write Own
   writeOwnContainer: {
-    marginTop: 16,
-    gap: 8,
+    marginTop: 32,
+    gap: 12,
   },
   writeOwnLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
     fontWeight: "600",
-    color: "#6B7280",
+    color: "#9CA3AF",
+    textAlign: "center",
   },
   textAreaWrapper: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: "#F9FAFB",
+    padding: 8,
   },
   textAreaInput: {
-    fontSize: 15,
+    fontSize: 16,
     color: "#374151",
-    minHeight: 80,
+    minHeight: 100,
+    textAlign: "center", // Center input text like the cards
   },
 });
