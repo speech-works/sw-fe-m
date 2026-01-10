@@ -3,11 +3,9 @@ import {
   Text,
   TouchableOpacity,
   View,
-  LayoutChangeEvent,
   ScrollView,
-  LayoutAnimation,
-  UIManager,
   Platform,
+  UIManager,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import React, { useState, useRef, useEffect, useMemo } from "react";
@@ -87,9 +85,7 @@ const Chat = () => {
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [messageHeight, setMessageHeight] = useState<number | null>(null);
   const chatScrollRef = useRef<Animated.ScrollView>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
@@ -153,37 +149,12 @@ const Chat = () => {
   }, [currentNodeId, dialogues, hasInitialized]);
 
   useEffect(() => {
-    if (!isExpanded && chatScrollRef.current && messages.length > 0) {
+    if (chatScrollRef.current && messages.length > 0) {
       setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages, isExpanded]);
-
-  useEffect(() => {
-    if (!isExpanded && messageHeight != null && chatScrollRef.current) {
-      setTimeout(() => {
-        chatScrollRef.current?.scrollToEnd({ animated: false });
-      }, 0);
-    }
-  }, [messageHeight, isExpanded]);
-
-  const onFirstMessageLayout = (e: LayoutChangeEvent) => {
-    const { height } = e.nativeEvent.layout;
-    if (height !== messageHeight && height > 0) {
-      setMessageHeight(height);
-    }
-  };
-
-  const toggleExpand = () => {
-    const nextIsExpanded = !isExpanded;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut, () => {
-      if (!nextIsExpanded && chatScrollRef.current) {
-        chatScrollRef.current?.scrollToEnd({ animated: true });
-      }
-    });
-    setIsExpanded(nextIsExpanded);
-  };
+  }, [messages]);
 
   const handleSelectOption = (option: RolePlayNodeOption) => {
     if (!dialogues) return;
@@ -247,286 +218,241 @@ const Chat = () => {
 
   const bottomPadding = 400; // Space for the dock
 
-  return (
-    <ScreenView style={styles.screenView}>
-      {/* Background - Matches Twister */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
-          locations={[0, 0.6, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
+  if (isDone) {
+    return <DonePractice />;
+  }
 
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {title}
-          </Text>
+  // Common Elements
+  const Background = () => (
+    <View style={StyleSheet.absoluteFillObject}>
+      <LinearGradient
+        colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
+        locations={[0, 0.6, 1]}
+        style={{ flex: 1 }}
+      />
+    </View>
+  );
 
-          {currentActivityId ? (
-            <TouchableOpacity
-              onPress={toggleExpand}
-              style={[
-                styles.chevronContainer,
-                isDone || messages.length === 0
-                  ? { opacity: 0, pointerEvents: "none" }
-                  : null,
-              ]}
-            >
-              <Icon
-                name={isExpanded ? "chevron-circle-up" : "chevron-circle-down"}
-                size={20}
-                color={theme.colors.library.orange[600]}
-              />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 32 }} />
-          )}
-        </View>
+  const Header = () => (
+    <View style={styles.topNavigationContainer}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+      </TouchableOpacity>
+
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {title}
+      </Text>
+
+      <View style={{ width: 32 }} />
+    </View>
+  );
+
+  // 1. Intro Layout (Scrollable Page)
+  if (!currentActivityId) {
+    return (
+      <ScreenView style={styles.screenView}>
+        <Background />
+        <Header />
 
         <CustomScrollView
           scrollEnabled={true}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: bottomPadding }, // Ensure content isn't hidden behind dock
-          ]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
         >
-          {isDone ? (
-            <DonePractice />
-          ) : (
-            <>
-              {/* If no activity started (Intro Screen) - Render Matte Modern Card */}
-              {!currentActivityId && (
-                <View style={styles.introContainer}>
-                  <LinearGradient
-                    colors={["#FFF7ED", "#FFEDD5"]} // Orange Gradient (Lighter)
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.briefCard}
-                  >
-                    {/* Watermark Icon */}
-                    <View style={styles.watermarkIconContainer}>
-                      <Icon
-                        name={selectedRole?.fontAwesomeIcon || "user"}
-                        size={140}
-                        color="#EA580C"
-                      />
-                    </View>
+          <View style={styles.introContainer}>
+            <LinearGradient
+              colors={["#FFF7ED", "#FFEDD5"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.briefCard}
+            >
+              {/* Watermark Icon */}
+              <View style={styles.watermarkIconContainer}>
+                <Icon
+                  name={selectedRole?.fontAwesomeIcon || "user"}
+                  size={140}
+                  color="#EA580C"
+                />
+              </View>
 
-                    <View style={styles.briefContent}>
-                      <View style={styles.roleHeader}>
-                        <View style={styles.roleIconBadge}>
-                          <Icon
-                            size={20}
-                            name={selectedRole?.fontAwesomeIcon || "user"}
-                            color="#EA580C"
-                          />
-                        </View>
-                        <View style={styles.roleTextGroup}>
-                          <Text style={styles.introRoleTitle}>
-                            {selectedRole?.roleName || "Participant"}
-                          </Text>
-                          <Text style={styles.introRoleDesc}>
-                            {selectedRole?.roleDescription ||
-                              "No description available."}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {character && character.length > 0 && (
-                        <View style={styles.characterTraitsContainer}>
-                          <Text style={styles.traitsHeader}>
-                            Your Persona Traits
-                          </Text>
-                          <View style={styles.traitsList}>
-                            {character.map((c, i) => (
-                              <View key={i} style={styles.traitRow}>
-                                <Icon
-                                  solid
-                                  size={14}
-                                  name="check"
-                                  color="#EA580C"
-                                />
-                                <Text style={styles.traitText}>{c}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                  </LinearGradient>
+              <View style={styles.briefContent}>
+                <View style={styles.roleHeader}>
+                  <View style={styles.roleIconBadge}>
+                    <Icon
+                      size={20}
+                      name={selectedRole?.fontAwesomeIcon || "user"}
+                      color="#EA580C"
+                    />
+                  </View>
+                  <View style={styles.roleTextGroup}>
+                    <Text style={styles.introRoleTitle}>
+                      {selectedRole?.roleName || "Participant"}
+                    </Text>
+                    <Text style={styles.introRoleDesc}>
+                      {selectedRole?.roleDescription ||
+                        "No description available."}
+                    </Text>
+                  </View>
                 </View>
-              )}
 
-              {/* Chat Interface */}
-              {currentActivityId && (
-                <>
-                  {messageHeight === null && (
-                    <View
-                      style={[
-                        styles.incomingMessage,
-                        styles.hiddenMeasureBubble,
-                      ]}
-                      onLayout={onFirstMessageLayout}
-                    >
-                      <Text style={styles.incomingMessageText}>
-                        Measuring text: This is a reasonably long message to
-                        help determine bubble height accurately for layout
-                        purposes. Ensure this text results in a height that can
-                        accommodate your tallest typical single message.
-                      </Text>
+                {character && character.length > 0 && (
+                  <View style={styles.characterTraitsContainer}>
+                    <Text style={styles.traitsHeader}>Your Persona Traits</Text>
+                    <View style={styles.traitsList}>
+                      {character.map((c, i) => (
+                        <View key={i} style={styles.traitRow}>
+                          <Icon solid size={14} name="check" color="#EA580C" />
+                          <Text style={styles.traitText}>{c}</Text>
+                        </View>
+                      ))}
                     </View>
-                  )}
-                  {(messages.length > 0 || currentOptions.length > 0) && (
-                    <View style={styles.messagesContainer}>
-                      <CustomScrollView
-                        ref={chatScrollRef}
-                        contentContainerStyle={
-                          isExpanded
-                            ? styles.chatsScrollViewExpanded
-                            : styles.chatsScrollViewCollapsed
-                        }
-                        style={
-                          isExpanded
-                            ? styles.expandedChatsView
-                            : messageHeight
-                            ? { height: messageHeight, overflow: "hidden" }
-                            : { maxHeight: 0 }
-                        }
-                        pagingEnabled={!isExpanded}
-                        showsVerticalScrollIndicator={isExpanded}
-                        scrollEventThrottle={16}
-                      >
-                        {messages.map((message) => (
-                          <View
-                            key={message.id}
-                            style={
-                              message.type === "incoming"
-                                ? styles.incomingMessage
-                                : styles.outgoingMessage
-                            }
-                          >
-                            <Text
-                              style={
-                                message.type === "incoming"
-                                  ? styles.incomingMessageText
-                                  : styles.outgoinggMessageText
-                              }
-                            >
-                              {message.text}
-                            </Text>
-                          </View>
-                        ))}
-                        {/* Spacer view only for expanded mode to scroll last message above suggestions */}
-                        {isExpanded && messages.length > 0 && (
-                          <View style={{ height: 60 }} />
-                        )}
-                      </CustomScrollView>
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
 
-                      {currentOptions.length > 0 && (
-                        <>
-                          <Separator />
-                          <View style={styles.suggestionsContainer}>
-                            <Text style={styles.suggestionsTitleText}>
-                              Suggested Responses:
-                            </Text>
-                            <View style={styles.suggestedTextContainer}>
-                              {currentOptions.map((option) => (
-                                <TouchableOpacity
-                                  key={option.id}
-                                  style={[
-                                    styles.suggestionCard,
-                                    option.id === selectedOptionId
-                                      ? styles.selectedSuggestionCard
-                                      : null,
-                                  ]}
-                                  onPress={() => handleSelectOption(option)}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.suggestionText,
-                                      option.id === selectedOptionId
-                                        ? styles.selectedSuggestionText
-                                        : null,
-                                    ]}
-                                  >
-                                    {option.userLine}
-                                  </Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          </View>
-                        </>
-                      )}
-                    </View>
-                  )}
-                </>
-              )}
-              {/* Start Button for Intro */}
-              {!currentActivityId && (
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={async () => {
-                    setIsStarting(true);
-                    try {
-                      await markActivityStart();
-                    } finally {
-                      setIsStarting(false);
-                    }
-                  }}
-                  disabled={isStarting}
-                  style={styles.startButton}
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.startButtonGradient}
-                  >
-                    <Text style={styles.startButtonText}>Start Practice</Text>
-                    <Icon name="arrow-right" size={16} color="#FFF" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={async () => {
+                setIsStarting(true);
+                try {
+                  await markActivityStart();
+                } finally {
+                  setIsStarting(false);
+                }
+              }}
+              disabled={isStarting}
+              style={styles.startButton}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startButtonGradient}
+              >
+                <Text style={styles.startButtonText}>Start Practice</Text>
+                <Icon name="arrow-right" size={16} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </CustomScrollView>
+      </ScreenView>
+    );
+  }
+
+  // 2. Chat Layout (Flex Box + Dock)
+  return (
+    <ScreenView style={styles.screenView}>
+      <Background />
+      <Header />
+
+      {/* Chat Area - Expands */}
+      <View style={{ flex: 1, overflow: "hidden" }}>
+        <CustomScrollView
+          ref={chatScrollRef}
+          contentContainerStyle={styles.chatsScrollView}
+          style={styles.chatsView}
+          scrollEventThrottle={16}
+        >
+          {/* Initial Spacer for top padding */}
+          <View style={{ height: 16 }} />
+
+          {messages.map((message) => (
+            <View
+              key={message.id}
+              style={
+                message.type === "incoming"
+                  ? styles.incomingMessage
+                  : styles.outgoingMessage
+              }
+            >
+              <Text
+                style={
+                  message.type === "incoming"
+                    ? styles.incomingMessageText
+                    : styles.outgoinggMessageText
+                }
+              >
+                {message.text}
+              </Text>
+            </View>
+          ))}
+
+          {/* Bottom Spacer for visual breathing room before input/dock */}
+          <View style={{ height: 24 }} />
         </CustomScrollView>
       </View>
 
-      {/* Action Dock (Fixed Bottom) - Only show when activity started or for consistency */}
-      {currentActivityId && !isDone && (
-        <View style={styles.actionDockWrapper}>
-          <SmartRecorder
-            onRecorded={setVoiceRecordingUri}
-            prevRecordingUri={voiceRecordingUri || undefined}
-            onSubmit={async () => {
-              setIsLoading(true);
-              try {
-                await onDonePress();
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            onDiscard={() => {
-              setVoiceRecordingUri(null);
-            }}
-          />
-        </View>
-      )}
+      {/* Action Dock - Fixed Bottom */}
+      <View style={styles.bottomDockContainer}>
+        {currentOptions.length > 0 && (
+          <View style={styles.suggestionsDock}>
+            <Text style={styles.suggestionsTitleText}>Select a response:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsScrollContent}
+            >
+              {currentOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.suggestionCard,
+                    option.id === selectedOptionId
+                      ? styles.selectedSuggestionCard
+                      : null,
+                  ]}
+                  onPress={() => handleSelectOption(option)}
+                >
+                  <LinearGradient
+                    colors={
+                      option.id === selectedOptionId
+                        ? [
+                            theme.colors.actionPrimary.default,
+                            theme.colors.actionPrimary.default,
+                          ]
+                        : ["rgba(255,255,255,0.95)", "rgba(255,255,255,0.85)"]
+                    }
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Text
+                    style={[
+                      styles.suggestionText,
+                      option.id === selectedOptionId
+                        ? styles.selectedSuggestionText
+                        : null,
+                    ]}
+                  >
+                    {option.userLine}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <SmartRecorder
+          onRecorded={setVoiceRecordingUri}
+          prevRecordingUri={voiceRecordingUri || undefined}
+          onSubmit={async () => {
+            setIsLoading(true);
+            try {
+              await onDonePress();
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          onDiscard={() => {
+            setVoiceRecordingUri(null);
+          }}
+        />
+      </View>
     </ScreenView>
   );
 };
@@ -576,29 +502,13 @@ const styles = StyleSheet.create({
   messagesContainer: {
     padding: 16,
     gap: 20,
-    borderRadius: 24,
-    backgroundColor: "#FFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "transparent",
   },
-  hiddenMeasureBubble: {
-    position: "absolute",
-    opacity: 0,
-    top: -99999,
-    left: -99999,
-    zIndex: -1,
-    pointerEvents: "none",
-  },
-  expandedChatsView: {
+  chatsView: {
     flex: 1,
   },
-  chatsScrollViewExpanded: {
-    // For isExpanded === true
+  chatsScrollView: {
     gap: 20,
-    // Spacer view is used instead of paddingBottom here
-  },
-  chatsScrollViewCollapsed: {
-    // For isExpanded === false
-    gap: 8,
   },
   incomingMessage: {
     padding: 16,
@@ -633,39 +543,54 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: "center",
   },
-  suggestionsContainer: {
-    gap: 20,
+  suggestionText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "left",
+  },
+
+  // Bottom Dock
+  bottomDockContainer: {
+    // Positioning handled by ScrollView padding?
+    // Actually we want this fixed at bottom
+    // SmartRecorder might have its own absolute positioning, let's wrap it nicely
+  },
+  suggestionsDock: {
+    marginBottom: 0, // Sit right on top of recorder
+    gap: 12,
+    paddingBottom: 4,
+  },
+  suggestionsScrollContent: {
+    paddingHorizontal: 24,
+    gap: 12,
+    paddingRight: 40,
   },
   suggestionsTitleText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
-    fontWeight: "bold",
-  },
-  suggestedTextContainer: {
-    gap: 12,
+    color: theme.colors.text.disabled,
+    fontWeight: "600",
+    marginLeft: 24,
   },
   suggestionCard: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 24, // Pill shape
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "rgba(255,255,255,0.4)",
     ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
+    maxWidth: 280, // Cap width for carousel
+    minWidth: 100,
   },
   selectedSuggestionCard: {
-    backgroundColor: theme.colors.actionPrimary.default,
     borderColor: theme.colors.actionPrimary.default,
   },
   selectedSuggestionText: {
-    color: theme.colors.text.onDark,
-  },
-  suggestionText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
+    color: "#FFF",
+    fontWeight: "600",
   },
   introContainer: {
     marginTop: 10,
