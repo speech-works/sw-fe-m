@@ -34,7 +34,7 @@ interface SvgIconProps extends SvgProps {
 }
 
 const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
-  const scale = useSharedValue(0.8);
+  const scale = useSharedValue(0.0);
   const opacity = useSharedValue(0.6);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: scale.value }],
+      transform: [{ scale: scale.value }, { translateY: -size * 0.3 }], // Offset to forehead (approx 30% up)
       opacity: opacity.value,
     };
   });
