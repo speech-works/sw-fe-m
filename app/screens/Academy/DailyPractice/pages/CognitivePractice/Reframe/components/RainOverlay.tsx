@@ -7,8 +7,11 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  FadeIn,
+  FadeOut,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import SunshineOverlay from "./SunshineOverlay";
 
 const { width, height: screenHeight } = Dimensions.get("window");
 const NUM_DROPS = 120; // Mild intensity
@@ -66,16 +69,38 @@ const RainDrop: React.FC<RainDropProps> = ({ index }) => {
   );
 };
 
-const RainOverlay: React.FC = () => {
+interface RainOverlayProps {
+  showSunshine?: boolean;
+}
+
+const RainOverlay: React.FC<RainOverlayProps> = ({ showSunshine = false }) => {
   return (
     <View style={styles.container} pointerEvents="none">
-      {/* Rain drops */}
-      {Array.from({ length: NUM_DROPS }).map((_, index) => (
-        <RainDrop key={index} index={index} />
-      ))}
+      {showSunshine ? (
+        <Animated.View
+          key="sunshine"
+          entering={FadeIn.duration(800)}
+          exiting={FadeOut.duration(800)}
+          style={StyleSheet.absoluteFillObject}
+        >
+          <SunshineOverlay />
+        </Animated.View>
+      ) : (
+        <Animated.View
+          key="rain"
+          entering={FadeIn.duration(800)}
+          exiting={FadeOut.duration(800)}
+          style={StyleSheet.absoluteFillObject}
+        >
+          {/* Rain drops */}
+          {Array.from({ length: NUM_DROPS }).map((_, index) => (
+            <RainDrop key={index} index={index} />
+          ))}
 
-      {/* Water accumulation at bottom */}
-      <WaterLevel />
+          {/* Water accumulation at bottom */}
+          <WaterLevel />
+        </Animated.View>
+      )}
     </View>
   );
 };

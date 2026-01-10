@@ -157,6 +157,11 @@ const Reframe = () => {
             end={{ x: 1, y: 1 }}
             style={styles.cardHeaderGradient}
           >
+            {/* Rain/Sunshine Animation */}
+            <RainOverlay
+              showSunshine={!!(selectedReframe || writtenReframe.length > 0)}
+            />
+
             <View style={styles.headerTopRow}>
               <View style={styles.categoryPill}>
                 <Icon name="brain" size={12} color="#FFF" />
@@ -187,7 +192,6 @@ const Reframe = () => {
             >
               {/* Negative Thought Section */}
               <View style={styles.negativeSection}>
-                <RainOverlay />
                 <View style={styles.negativeLabelRow}>
                   <Icon name="cloud-rain" size={14} color="#A5B4FC" />
                   <Text style={styles.sectionLabel}>NEGATIVE THOUGHT</Text>
@@ -332,6 +336,7 @@ const styles = StyleSheet.create({
     paddingBottom: 48, // Space for overlap
     position: "relative",
     height: 160,
+    overflow: "hidden", // Clip rain/sun animation to header bounds
   },
   headerTopRow: {
     flexDirection: "row",
@@ -447,8 +452,6 @@ const styles = StyleSheet.create({
     marginTop: 32, // More breathing room
     marginBottom: 24,
     alignItems: "center", // Center content
-    position: "relative", // Needed for RainOverlay
-    overflow: "hidden", // Clip rain drops
   },
   negativeLabelRow: {
     flexDirection: "row",
