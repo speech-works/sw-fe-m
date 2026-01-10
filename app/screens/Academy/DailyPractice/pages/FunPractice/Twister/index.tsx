@@ -43,10 +43,19 @@ import { useUserStore } from "../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
+import { DAFTool, useDAF } from "../../../../Tools/DAF";
+import Metronome, {
+  useMetronome,
+} from "../../../../Library/TechniquePage/components/Metronome";
+import { ToolType } from "../../../../../../api/tools/types";
+import { ScrollView } from "react-native";
+import { VoiceHover } from "../../../../Tools/VoiceHover";
+import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
+
 // Tool Types (Simplified for Twister if needed, or reuse generic)
-enum ToolType {
-  DAF = "DAF",
-}
+// enum ToolType {
+//   DAF = "DAF",
+// }
 
 const { width } = Dimensions.get("window");
 
@@ -62,6 +71,66 @@ const Twister = () => {
     resetRecording,
   } = useRecordedVoice(user?.id);
 
+  const [selectedPracticeTool, setSelectedPracticeTool] = useState<string>("");
+  const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
+
+  // --- Tools Hooks ---
+  const metronomeState = useMetronome(
+    selectedPracticeTool !== ToolType.METRONOME
+  );
+  const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  const handleToolSelect = (toolName: string) => {
+    if (selectedPracticeTool === toolName) {
+      setSelectedPracticeTool("");
+      setActiveToolSheet(null);
+      if (toolName === ToolType.CHORUS) setVhIsPlaying(false);
+    } else {
+      setSelectedPracticeTool(toolName);
+      setActiveToolSheet(toolName);
+    }
+  };
+
+  const renderToolSheetContent = () => {
+    switch (activeToolSheet) {
+      case ToolType.DAF:
+        return (
+          <DAFTool
+            isDAFActive={dafState.isDAFActive}
+            onToggleDAF={dafState.toggleDAF}
+            delayMs={dafState.delayMs}
+            onDelayChange={dafState.setDelayMs}
+            hasPermission={dafState.hasPermission}
+            statusMessage={dafState.statusMessage}
+          />
+        );
+      case ToolType.METRONOME:
+        return (
+          <Metronome
+            isPlaying={metronomeState.isPlaying}
+            onTogglePlay={(val) => metronomeState.setIsPlaying(val)}
+            speed={metronomeState.speed}
+            onSpeedChange={(val) => metronomeState.setSpeed(val)}
+          />
+        );
+      case ToolType.CHORUS:
+        return (
+          <VoiceHoverConfigPanel
+            baseRate={vhRate}
+            setBaseRate={setVhRate}
+            prePause={vhPrePause}
+            setPrePause={setVhPrePause}
+            gapBetweenChunks={vhGap}
+            setGapBetweenChunks={setVhGap}
+            isSpeaking={vhIsPlaying}
+            onToggleSpeech={() => setVhIsPlaying(!vhIsPlaying)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   // --- State ---
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,9 +142,14 @@ const Twister = () => {
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
 
-  // Tools State (Optional, keeping minimal for now)
-  const [selectedPracticeTool, setSelectedPracticeTool] = useState<string>("");
-  const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
+  // --- VoiceHover Config State ---
+  const [vhRate, setVhRate] = useState(1.0);
+  const [vhPrePause, setVhPrePause] = useState(200);
+  const [vhGap, setVhGap] = useState(100);
+  const [vhIsPlaying, setVhIsPlaying] = useState(false);
+  const [highlightRange, setHighlightRange] = useState<[number, number]>([
+    -1, 0,
+  ]);
 
   // --- Effects ---
 
@@ -173,6 +247,32 @@ const Twister = () => {
   };
 
   // --- Render Helpers ---
+
+  const renderHighlightedText = () => {
+    const text = twisters[currentIndex]?.tongueTwisterData?.text || "";
+    const [start, length] = highlightRange;
+    if (start < 0 || length === 0) {
+      return <Text style={styles.readingText}>{text}</Text>;
+    }
+    const before = text.slice(0, start);
+    const word = text.slice(start, start + length);
+    const after = text.slice(start + length);
+
+    return (
+      <Text style={styles.readingText}>
+        {before}
+        <Text
+          style={{
+            backgroundColor: theme.colors.library.orange[200],
+            color: theme.colors.text.title,
+          }}
+        >
+          {word}
+        </Text>
+        {after}
+      </Text>
+    );
+  };
 
   // --- Main Render ---
 
@@ -354,9 +454,22 @@ const Twister = () => {
                 <Text style={styles.titleText}>
                   {twisters[currentIndex]?.name}
                 </Text>
-                <Text style={styles.readingText}>
-                  {twisters[currentIndex]?.tongueTwisterData?.text}
-                </Text>
+                {selectedPracticeTool === ToolType.CHORUS && (
+                  <View style={{ height: 0, overflow: "hidden" }}>
+                    <VoiceHover
+                      text={
+                        twisters[currentIndex]?.tongueTwisterData?.text || ""
+                      }
+                      onHighlightChange={(s, l) => setHighlightRange([s, l])}
+                      rate={vhRate}
+                      prePause={vhPrePause}
+                      gap={vhGap}
+                      isPlaying={vhIsPlaying}
+                      onComplete={() => setVhIsPlaying(false)}
+                    />
+                  </View>
+                )}
+                {renderHighlightedText()}
               </View>
             </View>
           </View>
@@ -382,12 +495,62 @@ const Twister = () => {
           }}
           renderTools={() => (
             <View style={styles.dockTools}>
-              {/* Placeholder for tools if we want to add Metronome later */}
-              <View style={{ flex: 1 }} />
+              {[
+                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
+                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
+                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
+              ].map((tool) => {
+                const isActive = selectedPracticeTool === tool.id;
+                return (
+                  <TouchableOpacity
+                    key={tool.id}
+                    style={[styles.dockItem, isActive && styles.dockItemActive]}
+                    onPress={() => {
+                      LayoutAnimation.configureNext(
+                        LayoutAnimation.Presets.easeInEaseOut
+                      );
+                      handleToolSelect(tool.id);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Icon
+                      name={tool.icon}
+                      size={20}
+                      color={isActive ? "#FFF" : "#94A3B8"}
+                    />
+                    {isActive && (
+                      <Text style={styles.dockItemLabel} numberOfLines={1}>
+                        {tool.label}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         />
       </View>
+
+      {/* Detail Sheet for Tools */}
+      <BottomSheetModal
+        visible={!!activeToolSheet}
+        onClose={() => setActiveToolSheet(null)}
+        maxHeight={500}
+      >
+        <ScrollView
+          contentContainerStyle={styles.sheetContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.sheetTitle}>
+            {activeToolSheet === ToolType.CHORUS
+              ? "Guide Settings"
+              : activeToolSheet === ToolType.DAF
+              ? "DAF Settings"
+              : "Metronome Settings"}
+          </Text>
+          {renderToolSheetContent()}
+        </ScrollView>
+      </BottomSheetModal>
     </ScreenView>
   );
 };
@@ -578,5 +741,34 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     opacity: 0.6,
     zIndex: 0,
+  },
+  // Tools Sheet
+  sheetContent: {
+    padding: 24,
+  },
+  sheetTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  // Dock Items
+  dockItem: {
+    paddingVertical: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 30,
+    flexDirection: "row",
+    flex: 1,
+  },
+  dockItemActive: {
+    backgroundColor: theme.colors.library.orange[400],
+    paddingHorizontal: 12,
+    flex: 2.5,
+  },
+  dockItemLabel: {
+    marginLeft: 6,
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });
