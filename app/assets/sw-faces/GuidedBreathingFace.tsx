@@ -8,6 +8,9 @@ import Svg, {
   Line,
   Circle,
   Ellipse,
+  LinearGradient,
+  RadialGradient,
+  Stop,
 } from "react-native-svg";
 import Animated, {
   useSharedValue,
@@ -160,6 +163,25 @@ const GuidedBreathingFace = ({
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
         </ClipPath>
+        <LinearGradient id="night_sky" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#0F172A" />
+          <Stop offset="0.5" stopColor="#1E293B" />
+          <Stop offset="1" stopColor="#334155" />
+        </LinearGradient>
+        <RadialGradient
+          id="moon_glow"
+          cx="24"
+          cy="22"
+          rx="18"
+          ry="18"
+          fx="24"
+          fy="22"
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor="#FEF3C7" stopOpacity="0.4" />
+          <Stop offset="0.6" stopColor="#FEF3C7" stopOpacity="0.1" />
+          <Stop offset="1" stopColor="#FEF3C7" stopOpacity="0" />
+        </RadialGradient>
       </Defs>
 
       {/* Main Face Group - Scaling animation applied here */}
@@ -168,16 +190,39 @@ const GuidedBreathingFace = ({
         origin="24, 24"
         animatedProps={animatedGroupProps}
       >
-        {/* Background - HIGH CONTRAST DARK GREY */}
+        {/* 1. SKY BACKGROUND - Using Path instead of Rect to ensure compatibility */}
+        <Path d="M0 0 H48 V48 H0 Z" fill="url(#night_sky)" />
+
+        {/* 2. STARS (Static) */}
+        <Circle cx="10" cy="10" r="0.5" fill="#FFF" opacity="0.8" />
+        <Circle cx="38" cy="8" r="0.4" fill="#FFF" opacity="0.6" />
+        <Circle cx="4" cy="20" r="0.3" fill="#FFF" opacity="0.5" />
+        <Circle cx="44" cy="22" r="0.3" fill="#FFF" opacity="0.7" />
+        <Circle cx="16" cy="5" r="0.3" fill="#FFF" opacity="0.4" />
+        <Circle cx="30" cy="4" r="0.2" fill="#FFF" opacity="0.5" />
+
+        {/* 3. GLOWING MOON (Behind Face) */}
+        {/* Outer Glow */}
+        <Circle cx="24" cy="22" r="14" fill="url(#moon_glow)" />
+        {/* Moon Body */}
+        <Circle cx="24" cy="22" r="6" fill="#FEF3C7" opacity="0.9" />
+
+        {/* 4. FOREST SILHOUETTE (Bottom Horizon) */}
         <Path
-          fill="#424242"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          fill="#020617" // Very dark blue/black
+          d="M0 48 V 32 L 4 36 L 8 28 L 12 34 L 16 30 L 22 40 L 26 30 L 30 36 L 36 28 L 40 34 L 44 26 L 48 32 V 48 H 0 Z"
+          opacity="0.6"
+        />
+        <Path
+          fill="#0F172A" // Dark Slate
+          d="M0 48 V 40 Q 12 42, 24 41 Q 36 40, 48 38 V 48 H 0 Z"
+          opacity="0.8"
         />
 
-        {/* Shadow - Vector approximation */}
+        {/* Shadow - Vector approximation (Slightly adjusted for new bg) */}
         <Path
           fill="black"
-          opacity={0.25}
+          opacity={0.15}
           transform="translate(4, 4)"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
         />
@@ -206,7 +251,7 @@ const GuidedBreathingFace = ({
         </AnimatedG>
 
         {/* Mouth (Soft, slightly open 'O' for exhaling) - Bolder Color */}
-        <AnimatedCircle
+        <AnimatedEllipse
           cx="24"
           cy="34"
           animatedProps={animatedMouthProps}
