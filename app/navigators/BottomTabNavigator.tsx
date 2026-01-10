@@ -1,5 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 
@@ -16,6 +17,14 @@ import Community from "../screens/Community";
 import CustomTabBar from "../components/CustomTabBar";
 
 const Tab = createBottomTabNavigator();
+
+const getTabBarVisibility = (route: any, mainScreenName: string) => {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? mainScreenName;
+  if (routeName === mainScreenName) {
+    return { display: "flex" } as const;
+  }
+  return { display: "none" } as const;
+};
 
 const BottomTabNavigator = () => {
   const Onboarding = () => {
@@ -46,7 +55,10 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name={ROUTE_NAMES.EXPLORE}
         component={ExploreStackNavigator}
-        options={{ tabBarLabel: "Explore" }}
+        options={({ route }) => ({
+          tabBarLabel: "Explore",
+          tabBarStyle: getTabBarVisibility(route, "Explore"),
+        })}
       />
       <Tab.Screen
         name={ROUTE_NAMES.COMMUNITY}
@@ -56,7 +68,10 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name={ROUTE_NAMES.SETTINGS}
         component={SettingsStackNavigator}
-        options={{ tabBarLabel: "Settings" }}
+        options={({ route }) => ({
+          tabBarLabel: "Settings",
+          tabBarStyle: getTabBarVisibility(route, "Settings"),
+        })}
       />
       {/* <Tab.Screen name={ROUTE_NAMES.THERAPY} component={Logout} /> */}
     </Tab.Navigator>

@@ -79,7 +79,10 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                 <View style={styles.profileDetails}>
                   <Text style={styles.profileName}>{user?.name}</Text>
                   <Text style={styles.memberSince}>
-                    Member since {user?.createdAt?.getFullYear()}
+                    Member since{" "}
+                    {user?.createdAt
+                      ? new Date(user.createdAt).getFullYear()
+                      : new Date().getFullYear()}
                   </Text>
                   {userLevelData && (
                     <View style={styles.levelTitle}>

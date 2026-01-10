@@ -31,6 +31,15 @@ const CustomTabBar = ({
 }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
 
+  const focusedRoute = state.routes[state.index];
+  const focusedDescriptor = descriptors[focusedRoute.key];
+  const focusedOptions = focusedDescriptor.options;
+
+  // @ts-ignore
+  if ((focusedOptions.tabBarStyle as any)?.display === "none") {
+    return null;
+  }
+
   if (!isTabBarVisible) return null;
 
   return (
