@@ -1,4 +1,3 @@
-import React from "react";
 import {
   StyleSheet,
   View,
@@ -18,7 +17,6 @@ import {
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
 import Reminder from "../Reminder";
-import ScreenView from "../../../../../components/ScreenView";
 
 const { width } = Dimensions.get("window");
 
@@ -26,7 +24,7 @@ const DonePractice = () => {
   const navigation = useNavigation<any>();
 
   return (
-    <ScreenView style={styles.container}>
+    <View style={styles.container}>
       {/* Immersive Gradient Background */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
@@ -108,7 +106,7 @@ const DonePractice = () => {
           </View>
         </View>
       </View>
-    </ScreenView>
+    </View>
   );
 };
 

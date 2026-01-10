@@ -89,10 +89,7 @@ const Breathing = () => {
     const prepare = async () => {
       await loadBackground();
       if (isCurrent) {
-        // Only start background music if not done
-        if (!isDone) {
-          toggleBackground(true);
-        }
+        // Prepare audio but do not start yet
       }
     };
     prepare();
@@ -102,22 +99,22 @@ const Breathing = () => {
     };
   }, [loadBackground, toggleBackground, isDone]); // Add isDone to dependency array
 
-  // ─── Whenever mute flips, stop/play background in sync ──────────────────────────
+  // ─── Whenever mute flips or activity starts, update audio ──────────────────────────
   useEffect(() => {
-    // Only toggle background if not done
-    if (!isDone) {
+    // Only toggle background if active and not done
+    if (currentActivityId && !isDone) {
       toggleBackground(!mute);
-    } else {
+    } else if (isDone) {
       // If done, ensure background is stopped
       stopBackground();
     }
-  }, [mute, toggleBackground, stopBackground, isDone]); // Add stopBackground and isDone to dependency array
+  }, [mute, currentActivityId, isDone, toggleBackground, stopBackground]);
 
   // ─── Timer for session progress ────────────────────────────────────────────────
   useEffect(() => {
     let interval: NodeJS.Timeout;
     // Start the timer when the component mounts and if not done
-    if (!isDone) {
+    if (currentActivityId && !isDone) {
       interval = setInterval(() => {
         setElapsedSeconds((prevSeconds) => {
           // Stop the timer if the session is complete
@@ -156,8 +153,61 @@ const Breathing = () => {
   const displaySeconds = elapsedSeconds % 60;
   const totalDisplayMinutes = totalSessionDurationInSeconds / 60;
 
+  if (currentActivityId && !isDone) {
+    return (
+      <View style={styles.immersiveContainer}>
+        {/* Warm Gradient Background */}
+        <LinearGradient
+          colors={["#FEF3C7", "#FDE68A", "#FCD34D"]} // Yellow-100 -> Yellow-300
+          locations={[0, 0.4, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        <View style={styles.immersiveContent}>
+          {/* Timer Display */}
+          <Text style={[styles.timerText, { marginTop: 60 }]}>
+            {`${displayMinutes.toString().padStart(2, "0")}:${displaySeconds
+              .toString()
+              .padStart(2, "0")}`}
+          </Text>
+
+          {/* Centered Halo */}
+          <BreathingHalo inhale={4} hold={4} exhale={4} repeat mute={mute} />
+        </View>
+
+        {/* Bottom Controls */}
+        <View style={styles.immersiveControls}>
+          <Button
+            text="End Session"
+            variant="ghost" // Ghost/Subtle button style if available, or just standard
+            style={{
+              backgroundColor: "rgba(255,255,255,0.5)",
+              borderColor: "rgba(0,0,0,0.05)",
+            }}
+            textColor="#92400E"
+            onPress={async () => {
+              setIsLoading(true);
+              try {
+                await markActivityDone();
+                setIsDone(true);
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            disabled={isLoading}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (isDone) {
+    return <DonePractice />;
+  }
+
   return (
     <ScreenView style={styles.screenView}>
+      {/* ── STANDARD MODE (Intro) ────────────────────────────────────────────── */}
       <View style={styles.container}>
         {/* ── Top Bar with Back + Mute Button ──────────────────────────────────────── */}
         <View style={styles.topNavigationContainer}>
@@ -176,109 +226,57 @@ const Breathing = () => {
         </View>
 
         <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          <>
-            {isDone ? (
-              <DonePractice />
-            ) : currentActivityId ? (
-              <View style={styles.exerciseContainer}>
-                {/* ── Breathing Halo (passes down the same “mute” prop) ───────────────────────── */}
-                <View style={styles.haloContainer}>
-                  <BreathingHalo
-                    inhale={4}
-                    hold={4}
-                    exhale={4}
-                    repeat
-                    mute={mute}
-                  />
+          <View>
+            {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
+            <View style={styles.tipsContainer}>
+              {/* Header Banner */}
+              <View style={styles.noteHeaderBanner}>
+                <LinearGradient
+                  colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.noteHeaderTextContainer}>
+                  <Text style={styles.noteHeaderTitle}>Tips</Text>
+                  <Text style={styles.noteHeaderSubtitle}>
+                    Before you start
+                  </Text>
                 </View>
-                <View style={styles.actionContainer}>
-                  {/* ── Session Progress ───────────────────────────────────────────────────────── */}
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressTitle}>
-                      <Text style={styles.progressTitleText}>
-                        Session Progress
-                      </Text>
-                      <Text style={styles.progressDescText}>
-                        {displayMinutes}/{totalDisplayMinutes} minutes
-                      </Text>
-                    </View>
-                    <ProgressBar
-                      currentStep={elapsedSeconds} // Use elapsedSeconds for current progress
-                      totalSteps={totalSessionDurationInSeconds} // Use totalSessionDurationInSeconds for the total steps
-                      showStepIndicator={false}
-                      showPercentage={false}
-                    />
-                  </View>
-
-                  <Button
-                    text="Mark Complete"
-                    onPress={async () => {
-                      setIsLoading(true);
-                      try {
-                        await markActivityDone();
-                        setIsDone(true);
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    disabled={isLoading}
-                  />
-                </View>
+                <TherapistFace size={72} />
               </View>
-            ) : (
-              <View>
-                {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
-                <View style={styles.tipsContainer}>
-                  {/* Header Banner */}
-                  <View style={styles.noteHeaderBanner}>
-                    <LinearGradient
-                      colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <View style={styles.noteHeaderTextContainer}>
-                      <Text style={styles.noteHeaderTitle}>Tips</Text>
-                      <Text style={styles.noteHeaderSubtitle}>
-                        Before you start
-                      </Text>
-                    </View>
-                    <TherapistFace size={72} />
-                  </View>
 
-                  {/* Masonry Tips Grid */}
-                  <MasonryTips
-                    tips={[
-                      "Take deep breaths before starting. Feel your diaphragm expand.",
-                      "Maintain a relaxed facial posture. Release jaw tension.",
-                      "It's okay to take your time. Focus on smooth transitions.",
-                    ]}
-                  />
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={markActivityStart}
-                  style={[
-                    styles.startButton,
-                    { marginHorizontal: 20, marginTop: 10 },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.startButtonGradient}
-                  >
-                    <Text style={styles.startButtonText}>Start Exercise</Text>
-                    <Icon name="arrow-right" size={16} color="#FFF" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
+              {/* Masonry Tips Grid */}
+              <MasonryTips
+                tips={[
+                  "Take deep breaths before starting. Feel your diaphragm expand.",
+                  "Maintain a relaxed facial posture. Release jaw tension.",
+                  "It's okay to take your time. Focus on smooth transitions.",
+                ]}
+              />
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={markActivityStart}
+              style={[
+                styles.startButton,
+                { marginHorizontal: 20, marginTop: 10 },
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startButtonGradient}
+              >
+                <Text style={styles.startButtonText}>Start Exercise</Text>
+                <Icon name="arrow-right" size={16} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </CustomScrollView>
       </View>
     </ScreenView>
@@ -451,5 +449,27 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     gap: 20,
+  },
+  // Immersive Styles
+  immersiveContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  immersiveContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  immersiveControls: {
+    paddingBottom: 48,
+  },
+  timerText: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontVariant: ["tabular-nums"],
+    color: "#78350F", // Amber-900
+    marginBottom: 48,
+    opacity: 0.8,
   },
 });

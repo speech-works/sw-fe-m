@@ -1,6 +1,7 @@
 // components/BreathingHalo.tsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../../Theme/tokens";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
@@ -24,19 +25,12 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 }) => {
   const { loadBreathSounds, playBreath, stopBreathSounds } = useBreathAudio();
 
-  // Animated values:
-  const outerScale = useRef(new Animated.Value(1)).current;
-  const outerOpacity = useRef(new Animated.Value(0.3)).current;
-  const middleScale = useRef(new Animated.Value(1)).current;
-  const middleOpacity = useRef(new Animated.Value(0.4)).current;
-  const innerScale = useRef(new Animated.Value(1)).current;
-  const innerOpacity = useRef(new Animated.Value(0.5)).current;
-  const centerDotScale = useRef(new Animated.Value(1)).current;
+  // Animated values
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const faceOpacity = useRef(new Animated.Value(1)).current;
 
-  // Phase text: “Inhale” | “Hold” | “Exhale”
-  const [phaseText, setPhaseText] = useState<"Inhale" | "Hold" | "Exhale">(
-    "Inhale"
-  );
+  // Phase text: “Breathe In” | “Hold” | “Breathe Out”
+  const [phaseText, setPhaseText] = useState<string>("Breathe In");
 
   // Convert seconds → ms
   const inhaleMs = inhale * 1000;
@@ -47,7 +41,7 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
   // Track if still mounted
   const isMounted = useRef(true);
 
-  // MODIFIED: Use a ref to store the latest mute state for the getter function
+  // Ref for mute state
   const muteRef = useRef(mute);
 
   useEffect(() => {
@@ -63,89 +57,33 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
   // Orchestrate one full inhale→hold→exhale→hold cycle
   const runBreathingCycle = useCallback(async () => {
-    // Reset all animations to “rest”
-    const resetAnimations = () => {
-      outerScale.stopAnimation();
-      outerOpacity.stopAnimation();
-      middleScale.stopAnimation();
-      middleOpacity.stopAnimation();
-      innerScale.stopAnimation();
-      innerOpacity.stopAnimation();
-      centerDotScale.stopAnimation();
-
-      outerScale.setValue(1);
-      outerOpacity.setValue(0.3);
-      middleScale.setValue(1);
-      middleOpacity.setValue(0.4);
-      innerScale.setValue(1);
-      innerOpacity.setValue(0.5);
-      centerDotScale.setValue(1);
-    };
-    resetAnimations();
-
-    // MODIFIED: Define the getter function for the current mute state
     const isCurrentlyMuted = () => muteRef.current;
+
+    // Reset
+    scaleAnim.setValue(1);
 
     do {
       if (!isMounted.current) break;
 
       // ─── INHALE ───────────────────────────────────────────
-      if (!mute) {
-        await playBreath("inhale", inhaleMs, isCurrentlyMuted);
+      setPhaseText("Breathe In");
+      if (!muteRef.current) {
+        playBreath("inhale", inhaleMs, isCurrentlyMuted);
       }
-      setPhaseText("Inhale");
+
       await new Promise<void>((resolve) => {
-        Animated.parallel([
-          Animated.timing(outerScale, {
-            toValue: 1.6,
-            duration: inhaleMs,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(outerOpacity, {
-            toValue: 0.8,
-            duration: inhaleMs,
-            useNativeDriver: true,
-          }),
-          Animated.timing(middleScale, {
-            toValue: 1.4,
-            duration: inhaleMs,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-            delay: inhaleMs / 6,
-          }),
-          Animated.timing(middleOpacity, {
-            toValue: 0.8,
-            duration: inhaleMs,
-            useNativeDriver: true,
-            delay: inhaleMs / 6,
-          }),
-          Animated.timing(innerScale, {
-            toValue: 1.2,
-            duration: inhaleMs,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-            delay: inhaleMs / 3,
-          }),
-          Animated.timing(innerOpacity, {
-            toValue: 0.8,
-            duration: inhaleMs,
-            useNativeDriver: true,
-            delay: inhaleMs / 3,
-          }),
-          Animated.timing(centerDotScale, {
-            toValue: 1.05,
-            duration: inhaleMs,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]).start(({ finished }) => {
+        Animated.timing(scaleAnim, {
+          toValue: 1.5,
+          duration: inhaleMs,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }).start(({ finished }) => {
           if (finished && isMounted.current) resolve();
         });
       });
       if (!isMounted.current) break;
 
-      // ─── HOLD (after inhale) ───────────────────────────────────
+      // ─── HOLD (Full Lungs) ────────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
         await new Promise<void>((resolve) => {
@@ -156,63 +94,25 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
         if (!isMounted.current) break;
       }
 
-      // ─── EXHALE ───────────────────────────────────────────────
-      if (!mute) {
-        await playBreath("exhale", exhaleMs, isCurrentlyMuted);
+      // ─── EXHALE ───────────────────────────────────────────
+      setPhaseText("Breathe Out");
+      if (!muteRef.current) {
+        playBreath("exhale", exhaleMs, isCurrentlyMuted);
       }
-      setPhaseText("Exhale");
+
       await new Promise<void>((resolve) => {
-        Animated.parallel([
-          Animated.timing(outerScale, {
-            toValue: 1,
-            duration: exhaleMs,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(outerOpacity, {
-            toValue: 0.3,
-            duration: exhaleMs,
-            useNativeDriver: true,
-          }),
-          Animated.timing(middleScale, {
-            toValue: 1,
-            duration: exhaleMs,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
-            delay: exhaleMs / 6,
-          }),
-          Animated.timing(middleOpacity, {
-            toValue: 0.4,
-            duration: exhaleMs,
-            useNativeDriver: true,
-            delay: exhaleMs / 6,
-          }),
-          Animated.timing(innerScale, {
-            toValue: 1,
-            duration: exhaleMs,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
-            delay: exhaleMs / 3,
-          }),
-          Animated.timing(innerOpacity, {
-            toValue: 0.5,
-            duration: exhaleMs,
-            useNativeDriver: true,
-            delay: exhaleMs / 3,
-          }),
-          Animated.timing(centerDotScale, {
-            toValue: 1,
-            duration: exhaleMs,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]).start(({ finished }) => {
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: exhaleMs,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }).start(({ finished }) => {
           if (finished && isMounted.current) resolve();
         });
       });
       if (!isMounted.current) break;
 
-      // ─── HOLD (after exhale) ────────────────────────────────────
+      // ─── HOLD (Empty Lungs) ───────────────────────────────
       if (holdMs > 0) {
         setPhaseText("Hold");
         await new Promise<void>((resolve) => {
@@ -224,26 +124,17 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
       }
     } while (repeat && isMounted.current);
 
-    // Reset and callback
     if (isMounted.current) {
-      setPhaseText("Inhale");
       onCycleComplete?.();
     }
   }, [
     inhaleMs,
     holdMs,
     exhaleMs,
-    mute,
     repeat,
     playBreath,
     onCycleComplete,
-    outerScale,
-    outerOpacity,
-    middleScale,
-    middleOpacity,
-    innerScale,
-    innerOpacity,
-    centerDotScale,
+    scaleAnim,
   ]);
 
   // On mount: load breath clips, then start cycle. On unmount: stop everything.
@@ -257,114 +148,88 @@ export const BreathingHalo: React.FC<BreathingHaloProps> = ({
 
     return () => {
       isMounted.current = false;
-      outerScale.stopAnimation();
-      outerOpacity.stopAnimation();
-      middleScale.stopAnimation();
-      middleOpacity.stopAnimation();
-      innerScale.stopAnimation();
-      innerOpacity.stopAnimation();
-      centerDotScale.stopAnimation();
+      scaleAnim.stopAnimation();
       stopBreathSounds();
     };
-  }, [
-    loadBreathSounds,
-    runBreathingCycle,
-    stopBreathSounds,
-    outerScale,
-    outerOpacity,
-    middleScale,
-    middleOpacity,
-    innerScale,
-    innerOpacity,
-    centerDotScale,
-  ]);
+  }, [loadBreathSounds, runBreathingCycle, stopBreathSounds, scaleAnim]);
 
   return (
     <View style={styles.container}>
+      {/* Animated Face Circle */}
       <Animated.View
         style={[
-          styles.haloBase,
+          styles.faceCircle,
           {
-            transform: [{ scale: outerScale }],
-            opacity: outerOpacity,
-            backgroundColor: "#FF9A56",
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.haloBase,
-          styles.middleRing,
-          {
-            transform: [{ scale: middleScale }],
-            opacity: middleOpacity,
-            backgroundColor: "#FFB37C",
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.haloBase,
-          styles.innerRing,
-          {
-            transform: [{ scale: innerScale }],
-            opacity: innerOpacity,
-            backgroundColor: "#FFD4A3",
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.centerDot,
-          {
-            transform: [{ scale: centerDotScale }],
+            transform: [{ scale: scaleAnim }],
           },
         ]}
       >
-        <Text style={styles.phaseText}>{phaseText}</Text>
+        {/* Simple SVG Face Features */}
+        <Svg width="100%" height="100%" viewBox="0 0 100 100">
+          {/* Closed Eyes */}
+          <Path
+            d="M 30 40 Q 40 45, 50 40"
+            stroke="#9A3412" // Darker Orange/Brown
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
+            transform="translate(-15, 0)"
+          />
+          <Path
+            d="M 30 40 Q 40 45, 50 40"
+            stroke="#9A3412"
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
+            transform="translate(35, 0)"
+          />
+          {/* Mouth - Small dash/smile */}
+          <Path
+            d="M 45 65 L 55 65"
+            stroke="#9A3412"
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </Svg>
       </Animated.View>
+
+      {/* Text Below */}
+      <View style={styles.textContainer}>
+        <Text style={styles.phaseText}>{phaseText}</Text>
+      </View>
     </View>
   );
 };
 
-const RING_SIZE = 120;
+const CIRCLE_SIZE = 200;
+
 const styles = StyleSheet.create({
   container: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  haloBase: {
-    position: "absolute",
-    width: RING_SIZE,
-    height: RING_SIZE,
-    borderRadius: RING_SIZE / 2,
-  },
-  middleRing: {
-    width: RING_SIZE * 0.85,
-    height: RING_SIZE * 0.85,
-    borderRadius: (RING_SIZE * 0.85) / 2,
-    zIndex: 1,
-  },
-  innerRing: {
-    width: RING_SIZE * 0.7,
-    height: RING_SIZE * 0.7,
-    borderRadius: (RING_SIZE * 0.7) / 2,
-    zIndex: 2,
-  },
-  centerDot: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FFF",
     justifyContent: "center",
+    gap: 48,
+  },
+  faceCircle: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
+    backgroundColor: "#F97316", // Bright Orange (Tailwind orange-500)
+    shadowColor: "#F97316",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  textContainer: {
+    height: 40, // fixed height to prevent jumping
     alignItems: "center",
-    elevation: 4,
-    zIndex: 3,
+    justifyContent: "center",
   },
   phaseText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 32,
+    color: "#78350F", // Dark Orange/Brown
+    opacity: 0.9,
   },
 });
