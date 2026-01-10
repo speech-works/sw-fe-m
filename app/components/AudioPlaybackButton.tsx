@@ -201,11 +201,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     }
   };
 
-  let iconName = "play-circle";
+  let iconName = "play";
   if (isLoading || isBuffering) {
     // Render loading/buffering indicator
   } else if (isPlaying) {
-    iconName = "pause-circle";
+    iconName = "pause";
   }
 
   return (

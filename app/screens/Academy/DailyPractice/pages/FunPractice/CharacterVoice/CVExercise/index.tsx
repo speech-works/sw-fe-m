@@ -15,7 +15,7 @@ import MasonryTips from "../../../../components/MasonryTips";
 import Button from "../../../../../../../components/Button";
 import DonePractice from "../../../../components/DonePractice";
 import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
-import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
+import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import {
@@ -139,10 +139,93 @@ const CVExercise = () => {
     };
   }, [navigation]);
 
+  // --- Render Helpers ---
+
+  const bottomPadding = 400; // Space for the dock
+
+  if (isDone) {
+    return <DonePractice />;
+  }
+
+  // 1. Pre-Practice (Tips) View
+  if (!currentActivityId) {
+    return (
+      <ScreenView style={styles.screenView}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFEEF8", "#FFFFFF"]}
+          locations={[0, 0.4, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={styles.container}>
+          <View style={styles.topNavigationContainer}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Icon
+                name="chevron-left"
+                size={16}
+                color={theme.colors.text.title}
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Character Voice</Text>
+            <View style={{ width: 32 }} />
+          </View>
+
+          <CustomScrollView contentContainerStyle={styles.tipsScrollContent}>
+            <View style={styles.noteHeaderBanner}>
+              <LinearGradient
+                colors={["#FFE4E6", "#FFEDD5"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.noteHeaderTextContainer}>
+                <Text style={styles.noteHeaderTitle}>Tips</Text>
+                <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
+              </View>
+              <TherapistFace size={72} />
+            </View>
+
+            <MasonryTips tips={cvData.hints} />
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={async () => {
+                setIsStarting(true);
+                try {
+                  await markActivityStart();
+                } finally {
+                  setIsStarting(false);
+                }
+              }}
+              disabled={isStarting}
+              style={styles.startButton}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.startButtonGradient}
+              >
+                <Text style={styles.startButtonText}>Start Practice</Text>
+                <Icon name="arrow-right" size={16} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </CustomScrollView>
+        </View>
+      </ScreenView>
+    );
+  }
+
+  // 2. Active Practice View
   return (
     <ScreenView style={styles.screenView}>
       <LinearGradient
-        colors={["#FFF7ED", "#FFEDD5", "#FFF"]} // Orange 50 -> Orange 100 -> White
+        colors={["#FFF7ED", "#FFEDD5", "#FFF"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.6 }}
         style={StyleSheet.absoluteFill}
@@ -163,105 +246,93 @@ const CVExercise = () => {
           <View style={{ width: 32 }} />
         </View>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
-          {isDone ? (
-            <DonePractice />
-          ) : (
-            <>
-              <View style={styles.tipsContainer}>
-                {/* Header Banner */}
-                <View style={styles.noteHeaderBanner}>
-                  <LinearGradient
-                    colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={styles.noteHeaderTextContainer}>
-                    <Text style={styles.noteHeaderTitle}>Tips</Text>
-                    <Text style={styles.noteHeaderSubtitle}>
-                      Before you start
-                    </Text>
-                  </View>
-                  <TherapistFace size={72} />
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: bottomPadding },
+          ]}
+        >
+          <View style={styles.cardContainer}>
+            {/* 1. Warm Gradient Header */}
+            <LinearGradient
+              colors={["#2DD4BF", "#0F766E"]} // Teal 400 -> Teal 700 (Matching Character Voice Theme)
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardHeaderGradient}
+            >
+              <View style={styles.headerTopRow}>
+                <View style={styles.categoryPill}>
+                  <Icon name="microphone-alt" size={12} color="#115E59" />
+                  <Text style={styles.categoryPillText}>VOICE</Text>
                 </View>
 
-                {/* Horizontal Carousel */}
-                <MasonryTips tips={cvData.hints} />
-              </View>
-              {currentActivityId ? (
-                <View style={styles.exerciseCard}>
-                  <View style={styles.textContainer}>
-                    <View style={styles.titleAndSample}>
-                      <Text style={styles.titleText}>{name}</Text>
-                      <AudioPlaybackButton
-                        audioUrl={cvData.exampleAudioUrl}
-                        iconSize={16}
-                        activeColor={theme.colors.actionPrimary.default}
-                        // You can also pass a custom style:
-                        // style={{ marginTop: 10 }}
-                      />
-                    </View>
-
-                    <Text style={styles.actualText}>{texts[currentIndex]}</Text>
-                  </View>
-                  <VoiceRecorder
-                    onToggle={toggleIndex}
-                    onRecorded={(uri) => {
-                      setVoiceRecordingUri(uri);
-                    }}
-                  />
-                </View>
-              ) : (
+                {/* Glassy Next Button */}
                 <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={async () => {
-                    setIsStarting(true);
-                    try {
-                      await markActivityStart();
-                    } finally {
-                      setIsStarting(false);
-                    }
-                  }}
-                  disabled={isStarting}
-                  style={[
-                    styles.startButton,
-                    { marginHorizontal: 20, marginTop: 10 },
-                  ]}
+                  onPress={toggleIndex}
+                  style={styles.glassButton}
                 >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.startButtonGradient}
-                  >
-                    <Text style={styles.startButtonText}>Start Practice</Text>
-                    <Icon name="arrow-right" size={16} color="#FFF" />
-                  </LinearGradient>
+                  <Text style={styles.glassButtonText}>Next</Text>
+                  <Icon name="chevron-right" size={12} color="#FFF" />
                 </TouchableOpacity>
-              )}
+              </View>
 
-              {!!voiceRecordingUri && (
-                <Button
-                  text="Mark Complete"
-                  onPress={async () => {
-                    setIsLoading(true);
-                    try {
-                      await onDonePress();
-                      setIsDone(true);
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
-                  disabled={isLoading}
+              <View style={styles.titleContainer}>
+                <Text style={styles.articleTitle}>{name}</Text>
+                <AudioPlaybackButton
+                  audioUrl={cvData.exampleAudioUrl}
+                  iconSize={14}
+                  activeColor="#FFF"
+                  style={styles.playbackButton}
                 />
-              )}
-            </>
-          )}
+              </View>
+
+              {/* Watermark */}
+              <View style={styles.headerWatermark}>
+                <Icon
+                  name="microphone-alt"
+                  size={96}
+                  color="rgba(255,255,255,0.15)"
+                />
+              </View>
+            </LinearGradient>
+
+            {/* 2. White Sheet Content */}
+            <View style={styles.cardBodySheet}>
+              {/* Internal Watermark */}
+              <View style={styles.sheetWatermarkContainer}>
+                <Icon
+                  name={cvData.icon || "user"}
+                  size={120}
+                  color={theme.colors.library.orange[200]}
+                />
+              </View>
+
+              <View style={styles.textArea}>
+                <Text style={styles.readingText}>{texts[currentIndex]}</Text>
+              </View>
+            </View>
+          </View>
         </CustomScrollView>
+      </View>
+
+      {/* Action Dock (Fixed Bottom) */}
+      <View style={styles.actionDockWrapper}>
+        <SmartRecorder
+          onRecorded={setVoiceRecordingUri}
+          prevRecordingUri={voiceRecordingUri || undefined}
+          onToggle={toggleIndex}
+          onSubmit={async () => {
+            setIsLoading(true);
+            try {
+              await onDonePress();
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+          onDiscard={() => {
+            setVoiceRecordingUri(null);
+          }}
+        />
       </View>
     </ScreenView>
   );
@@ -276,13 +347,17 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  tipsScrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
     gap: 32,
   },
   scrollContent: {
     gap: 32,
     flexGrow: 1,
     padding: SHADOW_BUFFER,
-    paddingBottom: 120,
+    // Bottom padding inserted dynamically via style prop
   },
   topNavigationContainer: {
     flexDirection: "row",
@@ -306,43 +381,124 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
     fontWeight: "600",
   },
-  exerciseCard: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 32,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
+  // Card Styles
+  cardContainer: {
+    borderRadius: 32,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden", // Clip the sheet
+    minHeight: 450,
   },
-  textContainer: {
-    gap: 16,
-    justifyContent: "center",
+  cardHeaderGradient: {
+    padding: 24,
+    paddingBottom: 48, // Space for overlap
+    position: "relative",
+    height: 180,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  titleAndSample: {
+  categoryPill: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  categoryPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#115E59",
+    letterSpacing: 1,
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  glassButtonText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 12,
+    color: "#FFF",
+    fontWeight: "600",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 24,
+    gap: 12,
+    zIndex: 1,
+  },
+  articleTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#FFF",
+    fontSize: 26,
+    zIndex: 1,
+  },
+  headerWatermark: {
+    position: "absolute",
+    right: -20,
+    bottom: -10,
+    opacity: 0.15,
+    transform: [{ rotate: "-15deg" }],
+  },
+  cardBodySheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -40, // Overlap
+    padding: 32,
+    paddingBottom: 40,
+    minHeight: 300,
+    alignItems: "center",
+    justifyContent: "center", // Center text vertically
+  },
+  sheetWatermarkContainer: {
+    position: "absolute",
+    top: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
     justifyContent: "center",
+    opacity: 0.6,
+    zIndex: 0,
   },
-  titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: 600,
+  textArea: {
+    marginTop: 16,
+    alignItems: "center",
+    zIndex: 1,
   },
-  actualText: {
-    ...parseTextStyle(theme.typography.Heading3),
+  playbackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 0, // Override default padding
+  },
+  readingText: {
+    ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.default,
+    lineHeight: 36,
+    fontSize: 24,
     textAlign: "center",
-    fontWeight: 400,
   },
 
-  tipsContainer: {
-    paddingHorizontal: 0,
-    gap: 0,
-  },
   noteHeaderBanner: {
-    marginHorizontal: 0,
-    marginTop: 10,
+    marginVertical: 20,
     marginBottom: 24,
     borderRadius: 24,
     height: 120, // tall banner
@@ -375,6 +531,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   startButton: {
+    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     marginBottom: 40,
@@ -392,4 +549,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
   },
+  // Recorder Dock
+  actionDockWrapper: {},
 });
