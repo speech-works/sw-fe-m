@@ -270,7 +270,13 @@ const WorldExplorationGraph = () => {
             <View style={styles.statBadge}>
               <View style={styles.statContent}>
                 <View style={styles.statRow}>
-                  <Text style={styles.statNumber}>{totalWeeklyMinutes}m</Text>
+                  <Text style={styles.statNumber}>
+                    {totalWeeklyMinutes > 60
+                      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${
+                          totalWeeklyMinutes % 60
+                        }m`
+                      : `${totalWeeklyMinutes}m`}
+                  </Text>
                   {hasComparison && (
                     <Text
                       style={[
