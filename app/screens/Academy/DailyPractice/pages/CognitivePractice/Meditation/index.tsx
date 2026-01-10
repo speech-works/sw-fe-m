@@ -37,6 +37,7 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
 
 const Meditation = () => {
   const navigation = useNavigation();
@@ -185,6 +186,57 @@ const Meditation = () => {
     }
   }, [isPlaying, mute, toggleBackground]);
 
+  const markActivityStart = async () => {
+    if (!practiceSession || !cognitivePracticeId || selectedIndex === null)
+      return;
+
+    try {
+      const newActivity = await createPracticeActivity({
+        sessionId: practiceSession.id,
+        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+        contentId: cognitivePracticeId,
+      });
+
+      const startedActivity = await startPracticeActivity({
+        id: newActivity.id,
+        userId: practiceSession.user.id,
+      });
+
+      addActivity({
+        ...startedActivity,
+        cognitivePractice: meditationScenarios[selectedIndex],
+      });
+
+      setCurrentActivityId(newActivity.id);
+    } catch (e) {
+      console.error("Failed to start activity", e);
+    }
+  };
+
+  const markActivityComplete = async () => {
+    if (
+      !practiceSession ||
+      !currentActivityId ||
+      !doesActivityExist(currentActivityId) ||
+      selectedIndex === null
+    )
+      return;
+
+    try {
+      const completedActivity = await completePracticeActivity({
+        id: currentActivityId,
+        userId: practiceSession.user.id,
+      });
+
+      updateActivity(currentActivityId, {
+        ...completedActivity,
+        cognitivePractice: meditationScenarios[selectedIndex],
+      });
+    } catch (e) {
+      console.error("Failed to complete activity", e);
+    }
+  };
+
   // Timer logic for progress
   useEffect(() => {
     if (isPlaying) {
@@ -213,71 +265,125 @@ const Meditation = () => {
     };
   }, [isPlaying, TOTAL_SESSION_SECONDS]);
 
-  const handleStartCompleteExercise = async () => {
+  const [isStarted, setIsStarted] = useState(false);
+
+  // ... (previous state variables remain if needed)
+
+  const handleStart = async () => {
+    await markActivityStart();
+    setIsStarted(true);
+    setIsPlaying(true);
+    setProgress(0);
+  };
+
+  const handleComplete = async () => {
+    setIsPlaying(false);
+    await markActivityComplete();
+    setIsDone(true);
+  };
+
+  // Timer logic for progress
+  useEffect(() => {
     if (isPlaying) {
-      // If currently playing, "Complete Exercise" button was pressed
-      setIsPlaying(false);
-      setProgress(0); // Reset progress on completion
-      await markActivityComplete();
-      setIsDone(true);
+      intervalRef.current = setInterval(() => {
+        setProgress((prevProgress) => {
+          // Allow timer to go beyond 5 mins, just update UI
+          return prevProgress + 1;
+        });
+      }, 1000);
     } else {
-      // If not playing, "Start Exercise" button was pressed
-      await markActivityStart();
-      setIsPlaying(true);
-      if (progress === TOTAL_SESSION_SECONDS) {
-        // If session was completed, restart from 0
-        setProgress(0);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     }
-  };
 
-  const markActivityStart = async () => {
-    if (!practiceSession || !cognitivePracticeId) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
-      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-      contentId: cognitivePracticeId,
-    });
-    setCurrentActivityId(newActivity.id);
-    const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
-      userId: practiceSession.user.id,
-    });
-    addActivity({
-      ...startedActivity,
-    });
-  };
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isPlaying]);
 
-  const markActivityComplete = async () => {
-    if (
-      !practiceSession ||
-      !currentActivityId ||
-      !doesActivityExist(currentActivityId)
-    )
-      return;
-    const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
-      userId: practiceSession.user.id,
-    });
-    updateActivity(currentActivityId, {
-      ...completedActivity,
-    });
-  };
+  const displayMinutes = Math.floor(progress / 60);
+  const displaySeconds = progress % 60;
 
-  const minutes = Math.floor(progress / 60);
-  const seconds = progress % 60;
-  const progressText = `${minutes}/${TOTAL_SESSION_SECONDS / 60} minutes`;
+  // Immersive Practice View
+  if (isStarted && !isDone) {
+    return (
+      <View style={styles.immersiveContainer}>
+        {/* Cool, Calming Violet Gradient */}
+        <LinearGradient
+          colors={["#2E1065", "#4C1D95", "#5B21B6"]} // Deep Violet
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        <View style={styles.immersiveContent}>
+          {/* Timer */}
+          <Text
+            style={[
+              styles.timerText,
+              { marginTop: 60 },
+              progress >= TOTAL_SESSION_SECONDS && { color: "#4ADE80" }, // Green if > 5 mins
+            ]}
+          >
+            {`${displayMinutes.toString().padStart(2, "0")}:${displaySeconds
+              .toString()
+              .padStart(2, "0")}`}
+          </Text>
+
+          {/* Large Meditation Face */}
+          {/* Large Meditation Face */}
+          <View>
+            <MeditationFace size={240} />
+          </View>
+        </View>
+
+        {/* Audio Player (Invisible but active) */}
+        <VoiceHoverPlayer
+          voiceHoverUrl={voiceHoverUrl}
+          mute={mute}
+          hoverVolume={hoverVolume}
+          isPlaying={isPlaying}
+          playbackRatePercent={-20}
+        />
+
+        {/* Bottom Controls */}
+        <View style={styles.immersiveControls}>
+          <TouchableOpacity
+            onPress={() => setMute(!mute)}
+            style={{ marginBottom: 20, alignSelf: "center", opacity: 0.8 }}
+          >
+            <Icon
+              name={mute ? "volume-mute" : "volume-up"}
+              size={24}
+              color="#FFF"
+            />
+          </TouchableOpacity>
+
+          <Button
+            text="Complete Session"
+            variant="ghost"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.1)",
+              borderColor: "rgba(255,255,255,0.1)",
+              minWidth: 200,
+            }}
+            textColor="#F8FAFC"
+            onPress={handleComplete}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (isDone) {
+    return <DonePractice />;
+  }
 
   return (
     <>
-      <VoiceHoverPlayer
-        voiceHoverUrl={voiceHoverUrl}
-        mute={mute}
-        hoverVolume={hoverVolume}
-        isPlaying={isPlaying}
-        playbackRatePercent={-20}
-      />
-
       <ScreenView style={styles.screenView}>
         <View style={styles.container}>
           <View style={styles.topNavigationContainer}>
@@ -292,106 +398,88 @@ const Meditation = () => {
               />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Guided Meditation</Text>
-            {!isDone ? (
-              <TouchableOpacity
-                onPress={() => {
-                  setMute((old) => !old);
-                }}
-              >
-                <Icon
-                  name={mute ? "volume-mute" : "volume-up"}
-                  size={16}
-                  color={theme.colors.actionPrimary.default}
-                />
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: 16 }} />
-            )}
+            <View style={{ width: 32 }} />
           </View>
+
           <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            {isDone ? (
-              <DonePractice />
-            ) : (
-              <>
-                {selectedIndex !== null &&
-                  meditationScenarios[selectedIndex] && (
-                    <MeditationCard
-                      selectedMed={meditationScenarios[selectedIndex]}
-                      onMedToggle={() => {
-                        setIsVisible((old) => !old);
-                      }}
-                    />
-                  )}
+            <>
+              {selectedIndex !== null && meditationScenarios[selectedIndex] && (
+                <MeditationCard
+                  selectedMed={meditationScenarios[selectedIndex]}
+                  onMedToggle={() => {
+                    setIsVisible((old) => !old);
+                  }}
+                />
+              )}
 
-                <View style={styles.tipsContainer}>
-                  {/* Header Banner */}
-                  <View style={styles.noteHeaderBanner}>
-                    <LinearGradient
-                      colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <View style={styles.noteHeaderTextContainer}>
-                      <Text style={styles.noteHeaderTitle}>Tips</Text>
-                      <Text style={styles.noteHeaderSubtitle}>
-                        Before you start
-                      </Text>
-                    </View>
-                    <TherapistFace size={72} />
-                  </View>
-
-                  {/* Masonry Tips Grid */}
-                  {selectedIndex !== null &&
-                  meditationScenarios[selectedIndex]?.guidedMeditationData
-                    ?.tips ? (
-                    <MasonryTips
-                      tips={
-                        meditationScenarios[selectedIndex]?.guidedMeditationData
-                          ?.tips || []
-                      }
-                    />
-                  ) : null}
-                </View>
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressTitle}>
-                    <Text style={styles.progressTitleText}>
-                      Session Progress
-                    </Text>
-                    <Text style={styles.progressDescText}>{progressText}</Text>
-                  </View>
-                  <ProgressBar
-                    currentStep={progress}
-                    totalSteps={TOTAL_SESSION_SECONDS}
-                    showStepIndicator={false}
-                    showPercentage={false}
-                  />
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={handleStartCompleteExercise}
-                  style={[
-                    styles.startButton,
-                    { marginHorizontal: 20, marginTop: 0 }, // Reduced marginTop as grid handles padding
-                  ]}
-                >
+              <View style={styles.tipsContainer}>
+                {/* Header Banner */}
+                <View style={styles.noteHeaderBanner}>
                   <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]}
+                    colors={["#EEF2FF", "#E0E7FF", "#C7D2FE"]} // Soft Indigo
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.startButtonGradient}
-                  >
-                    <Text style={styles.startButtonText}>
-                      {isPlaying ? "Complete Exercise" : "Start Exercise"}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  {/* Decorative Elements */}
+                  <View style={styles.bannerBubbleLeft} />
+                  <View style={styles.bannerBubbleRight} />
+
+                  <View style={styles.noteHeaderTextContainer}>
+                    <View style={styles.bannerChip}>
+                      <Icon name="lightbulb" size={10} color="#4338CA" />
+                      <Text style={styles.bannerChipText}>PREPARATION</Text>
+                    </View>
+                    <Text
+                      style={[styles.noteHeaderTitle, { color: "#312E81" }]}
+                    >
+                      Tips
                     </Text>
-                    <Icon name="arrow-right" size={16} color="#FFF" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </>
-            )}
+                    <Text
+                      style={[styles.noteHeaderSubtitle, { color: "#4338CA" }]}
+                    >
+                      Before you start
+                    </Text>
+                  </View>
+                  <TherapistFace size={80} />
+                </View>
+
+                {/* Masonry Tips Grid */}
+                {selectedIndex !== null &&
+                meditationScenarios[selectedIndex]?.guidedMeditationData
+                  ?.tips ? (
+                  <MasonryTips
+                    tips={
+                      meditationScenarios[selectedIndex]?.guidedMeditationData
+                        ?.tips || []
+                    }
+                  />
+                ) : null}
+              </View>
+
+              {/* Start Button */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleStart}
+                style={[
+                  styles.startButton,
+                  { marginHorizontal: 20, marginTop: 20 },
+                ]}
+              >
+                <LinearGradient
+                  colors={[
+                    theme.colors.library.purple[400],
+                    theme.colors.library.purple[500],
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.startButtonGradient}
+                >
+                  <Text style={styles.startButtonText}>Start Exercise</Text>
+                  <Icon name="arrow-right" size={16} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
           </CustomScrollView>
         </View>
       </ScreenView>
@@ -402,10 +490,11 @@ const Meditation = () => {
         maxHeight="80%"
       >
         <View style={styles.modalContent}>
-          <View style={styles.modalTitleContainer}>
-            <Text style={styles.modalTiteText}>Meditation Library</Text>
-            <Text style={styles.modalDescText}>
-              Select a scenario to meditate in
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitleText}>Meditation Library</Text>
+            <Text style={styles.modalSubtitleText}>
+              Select a scenario to start your practice
             </Text>
           </View>
 
@@ -414,52 +503,67 @@ const Meditation = () => {
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollContainer2}
           >
-            {selectedIndex !== null &&
-              meditationScenarios.map((med, index) => (
+            {meditationScenarios.map((med, index) => {
+              const isSelected = selectedIndex === index;
+              return (
                 <TouchableOpacity
                   key={index}
-                  style={[
-                    styles.medCard,
-                    meditationScenarios[selectedIndex]?.name === med.name &&
-                      styles.selectedMedCard,
-                  ]}
+                  activeOpacity={0.9}
                   onPress={() => {
                     setSelectedIndex(index);
                     closeModal();
                   }}
+                  style={[
+                    styles.medCardBase,
+                    isSelected ? null : styles.medCardUnselected,
+                  ]}
                 >
-                  <View
-                    style={[styles.medIconContainer, styles.medIconContainer2]}
-                  >
-                    <Icon
-                      solid
-                      name={med.guidedMeditationData?.icon!}
-                      size={24}
-                      color={theme.colors.actionPrimary.default}
-                    />
-                  </View>
-                  <View style={styles.medDescContainer}>
-                    <Text
-                      style={[
-                        styles.medNameText,
-                        meditationScenarios[selectedIndex]?.name === med.name &&
-                          styles.selectedCardText,
-                      ]}
+                  {isSelected ? (
+                    <LinearGradient
+                      colors={["#7C3AED", "#6D28D9"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.medCardGradient}
                     >
-                      {med.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.medDetailText,
-                        meditationScenarios[selectedIndex]?.name === med.name &&
-                          styles.selectedCardText,
-                      ]}
-                    >
-                      {med.description}
-                    </Text>
-                  </View>
+                      <View style={styles.medIconContainerSelected}>
+                        <Icon
+                          solid
+                          name={med.guidedMeditationData?.icon || "spa"}
+                          size={18}
+                          color="#7C3AED"
+                        />
+                      </View>
+                      <View style={styles.medDescContainer}>
+                        <Text style={styles.medNameTextSelected}>
+                          {med.name}
+                        </Text>
+                        <Text style={styles.medDetailTextSelected}>
+                          {med.description}
+                        </Text>
+                      </View>
+                      <Icon name="check-circle" solid size={20} color="#FFF" />
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.medCardContent}>
+                      <View style={styles.medIconContainerUnselected}>
+                        <Icon
+                          solid
+                          name={med.guidedMeditationData?.icon || "spa"}
+                          size={18}
+                          color="#94A3B8"
+                        />
+                      </View>
+                      <View style={styles.medDescContainer}>
+                        <Text style={styles.medNameText}>{med.name}</Text>
+                        <Text style={styles.medDetailText}>
+                          {med.description}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </TouchableOpacity>
-              ))}
+              );
+            })}
           </CustomScrollView>
         </View>
       </BottomSheetModal>
@@ -517,29 +621,68 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     marginTop: 10,
     marginBottom: 24,
-    borderRadius: 24,
-    height: 120, // tall banner
+    borderRadius: 32,
+    height: 140, // taller banner
     padding: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     overflow: "hidden",
     position: "relative",
+    // Subtler border
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+  },
+  bannerBubbleLeft: {
+    position: "absolute",
+    bottom: -40,
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  bannerBubbleRight: {
+    position: "absolute",
+    top: -60,
+    right: 40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
   noteHeaderTextContainer: {
     flex: 1,
-    gap: 8,
+    justifyContent: "center",
+    gap: 4,
     zIndex: 2,
   },
+  bannerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+  bannerChipText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#4338CA",
+    letterSpacing: 0.5,
+  },
   noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 24,
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 28,
     fontWeight: "800",
-    color: "#881337", // Deep pink/red text
+    color: "#312E81",
   },
   noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#9F1239",
+    ...parseTextStyle(theme.typography.Body),
+    color: "#4338CA",
     fontWeight: "500",
   },
   noteStack: {
@@ -554,20 +697,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
     alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    // Premium shadow
+    shadowColor: theme.colors.library.purple[200],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     elevation: 2,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.03)",
   },
   noteIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEF3C7", // faint yellow
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F3E8FF", // faint purple
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
@@ -626,76 +769,137 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
   },
-  modalTitleContainer: {
-    gap: 12,
-    alignItems: "center",
+  // Modal Styles
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
   },
-  modalTiteText: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContainer2: {
+    paddingBottom: 48,
+    gap: 16,
+  },
+  modalHeader: {
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  modalHandle: {
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#E2E8F0",
+    marginBottom: 8,
+  },
+  modalTitleText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontSize: 20,
   },
-  modalDescText: {
+  modalSubtitleText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
   },
-  modalContent: {
-    paddingVertical: 24,
-    width: "100%",
-    flex: 1, // ← valid because the parent Animated.View has a fixed height
-    flexDirection: "column",
-    gap: 32,
-  },
-  scrollView: {
-    flex: 1, // ← forces ScrollView to fill all vertical space under the title
-    padding: 4,
-  },
-  scrollContainer2: {
-    gap: 16,
-    alignItems: "center",
-    paddingBottom: 32,
-    // NO flex:1 here—let content size itself
-  },
 
-  medCard: {
+  // Med Card Styles
+  medCardBase: {
     width: "100%",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  medCardUnselected: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    // Soft shadow
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  medCardContent: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 16,
     gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  selectedMedCard: {
-    backgroundColor: theme.colors.actionPrimary.default,
+  medCardGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 16,
   },
-  selectedCardText: {
-    color: theme.colors.text.onDark,
-    fontWeight: "600",
-  },
-  medIconContainer: {
-    height: 40,
+
+  // Icons
+  medIconContainerSelected: {
     width: 40,
-    display: "flex",
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface.default,
   },
-  medIconContainer2: {
-    height: 40,
+  medIconContainerUnselected: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
+
+  // Text
   medDescContainer: {
-    gap: 4,
-    flexShrink: 1,
+    flex: 1,
+    gap: 2,
   },
   medNameText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    fontWeight: "600",
+    color: "#1E293B",
   },
   medDetailText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    color: "#64748B",
+  },
+  medNameTextSelected: {
+    ...parseTextStyle(theme.typography.Body),
+    fontWeight: "700",
+    color: "#FFF",
+    fontSize: 16,
+  },
+  medDetailTextSelected: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "rgba(255,255,255,0.8)",
+  },
+  // Immersive Styles
+  immersiveContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  immersiveContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  immersiveControls: {
+    paddingBottom: 48,
+    width: "100%",
+    alignItems: "center",
+  },
+  timerText: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontVariant: ["tabular-nums"],
+    color: "#E2E8F0", // Slate-200
+    marginBottom: 48,
+    opacity: 0.9,
   },
 });

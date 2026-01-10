@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { theme } from "../../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -7,6 +7,7 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import { CognitivePractice } from "../../../../../../../api/dailyPractice/types";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface MeditationCardProps {
   onMedToggle: () => void;
@@ -15,32 +16,57 @@ interface MeditationCardProps {
 
 const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
   return (
-    <TouchableOpacity style={styles.metaCard} onPress={onMedToggle}>
-      <View style={styles.contentContainer}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleText}>{selectedMed?.name}</Text>
-          <Text style={styles.timeText}>
-            {selectedMed?.guidedMeditationData?.durationMinutes} mins
-          </Text>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.container}
+      onPress={onMedToggle}
+      testID="meditation-change-card"
+    >
+      <LinearGradient
+        colors={["#7C3AED", "#6D28D9"]} // Violet-600 to Violet-700
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        {/* Decorative Bubbles */}
+        <View style={styles.bubbleTopRight} />
+        <View style={styles.bubbleBottomLeft} />
+
+        {/* Watermark */}
+        <View style={styles.watermarkContainer}>
+          <Icon name="spa" size={120} color="#FFF" style={{ opacity: 0.1 }} />
         </View>
-        <Text style={styles.descText}>{selectedMed?.description}</Text>
-        <View style={styles.cardFooter}>
-          <Icon
-            solid
-            name={"headphones"}
-            size={16}
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.footerText}>Voice guided</Text>
+
+        <View style={styles.contentContainer}>
+          {/* Chip */}
+          <View style={styles.chip}>
+            <Icon name="headphones" size={10} color="#FFF" />
+            <Text style={styles.chipText}>Voice Guided</Text>
+          </View>
+
+          <View style={styles.textContainer}>
+            <Text style={styles.titleText}>{selectedMed?.name}</Text>
+            <Text style={styles.descText} numberOfLines={2}>
+              {selectedMed?.description}
+            </Text>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.timeBadge}>
+              <Icon name="clock" size={12} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.footerText}>
+                {selectedMed?.guidedMeditationData?.durationMinutes} mins
+              </Text>
+            </View>
+
+            {/* Change Button */}
+            <View style={styles.glassButton}>
+              <Text style={styles.glassButtonText}>Change</Text>
+              <Icon name="chevron-right" size={10} color="#FFF" />
+            </View>
+          </View>
         </View>
-      </View>
-      <View style={styles.iconContainer}>
-        <Icon
-          name="chevron-right"
-          size={16}
-          color={theme.colors.text.default}
-        />
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 };
@@ -48,46 +74,105 @@ const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
 export default MeditationCard;
 
 const styles = StyleSheet.create({
-  metaCard: {
-    ...parseShadowStyle(theme.shadow.elevation1),
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 16,
+  container: {
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "#fff",
+  },
+  gradient: {
+    borderRadius: 24,
     padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    gap: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  // Decorative
+  bubbleTopRight: {
+    position: "absolute",
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  watermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    transform: [{ rotate: "-15deg" }],
   },
   contentContainer: {
     gap: 16,
-    flexShrink: 1,
+    zIndex: 2,
   },
-  iconContainer: {},
-  titleContainer: {
+  chip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    gap: 6,
+  },
+  chipText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  textContainer: {
+    gap: 4,
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  timeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    color: "#FFF",
+    fontSize: 22,
   },
   descText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255, 255, 255, 0.8)",
   },
   cardFooter: {
     flexDirection: "row",
-    gap: 8,
     alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  timeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   footerText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "600",
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  glassButtonText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });
