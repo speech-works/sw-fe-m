@@ -1,4 +1,10 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ScrollView,
+} from "react-native";
 import React, { useEffect, useState } from "react";
 import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -35,6 +41,7 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import DonePractice from "../../../components/DonePractice";
+import { LinearGradient } from "expo-linear-gradient";
 
 const Reframe = () => {
   const navigation =
@@ -69,6 +76,8 @@ const Reframe = () => {
       setSelectedScenarioIndex(
         (prevIndex) => (prevIndex + 1) % scenarios.length
       );
+      setSelectedReframe(null);
+      setWrittenReframe("");
     }
   };
 
@@ -110,145 +119,188 @@ const Reframe = () => {
     fetchScenarios();
   }, []);
 
+  if (isDone) {
+    return <DonePractice />;
+  }
+
+  const currentScenario = scenarios[selectedScenarioIndex];
+
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Reframe Thoughts</Text>
-          <View style={{ width: 32 }} />
-        </View>
-        <CustomScrollView contentContainerStyle={styles.scrollView}>
-          <>
-            {isDone ? (
-              <DonePractice />
-            ) : (
-              <>
-                <View style={styles.negativeContainer}>
-                  <View style={styles.negativeTextContainer}>
-                    <View style={styles.scenario}>
-                      <Text style={styles.negativeTitleText}>
-                        Current Negative Thought
-                      </Text>
-                      <TouchableOpacity onPress={toggleIndex}>
-                        <Icon
-                          name={"random"}
-                          size={14}
-                          color={theme.colors.actionPrimary.default}
-                        />
-                      </TouchableOpacity>
-                    </View>
+      {/* Background */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#E0E7FF", "#EEF2FF", "#FFFFFF"]} // Soft Indigo/White
+          locations={[0, 0.6, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
 
-                    <View style={styles.negativeBox}>
-                      <Text style={styles.negativeText}>
-                        {scenarios[selectedScenarioIndex]?.negativeThought}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.ideaContainer}>
-                    <Icon
-                      solid
-                      size={14}
-                      name="lightbulb"
-                      color={theme.colors.library.orange[800]}
-                    />
-                    <Text style={styles.ideaText}>
-                      Let's transform this thought into something more
-                      empowering
-                    </Text>
-                  </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.screenHeaderTitle}>Reframe Thoughts</Text>
+        <View style={{ width: 32 }} />
+      </View>
+
+      <CustomScrollView
+        contentContainerStyle={[styles.scrollContainer, { paddingBottom: 120 }]}
+      >
+        <View style={styles.cardContainer}>
+          {/* 1. Indigo/Blurple Gradient Header */}
+          <LinearGradient
+            colors={["#6366F1", "#818CF8"]} // Indigo 500 -> 400
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardHeaderGradient}
+          >
+            <View style={styles.headerTopRow}>
+              <View style={styles.categoryPill}>
+                <Icon name="brain" size={12} color="#FFF" />
+                <Text style={styles.categoryPillText}>REFRAME</Text>
+              </View>
+
+              {/* Glassy Shuffle Button */}
+              <TouchableOpacity
+                onPress={toggleIndex}
+                style={styles.glassButton}
+              >
+                <Text style={styles.glassButtonText}>Shuffle</Text>
+                <Icon name="random" size={12} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Watermark */}
+            <View style={styles.headerWatermark}>
+              <Icon name="cloud" size={96} color="rgba(255,255,255,0.15)" />
+            </View>
+          </LinearGradient>
+
+          {/* 2. White Sheet Content */}
+          <View style={styles.cardBodySheet}>
+            {/* Content (Blurred or Visible based on state) */}
+            <View
+              style={{ opacity: !currentActivityId ? 0.3 : 1, width: "100%" }}
+            >
+              {/* Negative Thought Section */}
+              <View style={styles.negativeSection}>
+                <View style={styles.negativeLabelRow}>
+                  <Icon
+                    name="cloud-rain"
+                    size={14}
+                    color={theme.colors.text.disabled}
+                  />
+                  <Text style={styles.sectionLabel}>NEGATIVE THOUGHT</Text>
+                </View>
+                <Text style={styles.negativeText}>
+                  "{currentScenario?.negativeThought || "Loading..."}"
+                </Text>
+              </View>
+
+              {/* Divider Arrow */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <View style={styles.dividerIconBox}>
+                  <Icon name="arrow-down" size={14} color="#6366F1" />
+                </View>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Reframe Options */}
+              <View style={styles.positiveSection}>
+                <View style={styles.positiveLabelRow}>
+                  <Icon name="sun" size={14} color="#F59E0B" />
+                  <Text style={styles.sectionLabelPositive}>
+                    CHOOSE A BETTER PERSPECTIVE
+                  </Text>
                 </View>
 
-                {currentActivityId ? (
-                  <>
-                    <View style={styles.positiveContainer}>
-                      <Text style={styles.positiveTitleText}>
-                        Choose a Positive Reframe
-                      </Text>
-                      <View style={styles.reframeListContainer}>
-                        {scenarios[selectedScenarioIndex]?.reframedThoughts.map(
-                          (item, index) => (
-                            <TouchableOpacity
-                              key={index}
-                              style={styles.reframeTextBox}
-                              onPress={() => {
-                                setSelectedReframe(item);
-                              }}
-                            >
-                              <View
-                                style={[
-                                  styles.selectIconContainer,
-                                  selectedReframe === item &&
-                                    styles.selectedIconContainer,
-                                ]}
-                              >
-                                {selectedReframe === item && (
-                                  <Icon
-                                    solid
-                                    name="check"
-                                    size={12}
-                                    color={theme.colors.text.onDark}
-                                  />
-                                )}
-                              </View>
-                              <Text style={styles.reframeText}>{item}</Text>
-                            </TouchableOpacity>
-                          )
-                        )}
-                      </View>
-                      <View style={styles.writeContainer}>
-                        <Text style={styles.writeTitleText}>
-                          Write Your Own Reframe
-                        </Text>
-                        <View style={styles.textFieldContainer}>
-                          <TextArea
-                            value={writtenReframe}
-                            onChangeText={setWrittenReframe}
-                            placeholder="Type your positive perspective here..."
-                            numberOfLines={5}
-                            containerStyle={styles.textAreaContainer}
-                            inputStyle={styles.textAreaInput}
-                          />
+                <View style={styles.optionsList}>
+                  {currentScenario?.reframedThoughts.map((item, index) => {
+                    const isSelected = selectedReframe === item;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.optionCard,
+                          isSelected && styles.optionCardSelected,
+                        ]}
+                        onPress={() => setSelectedReframe(item)}
+                      >
+                        <View
+                          style={[
+                            styles.radioCircle,
+                            isSelected && styles.radioCircleSelected,
+                          ]}
+                        >
+                          {isSelected && (
+                            <Icon name="check" size={10} color="#FFF" />
+                          )}
                         </View>
-                      </View>
-                    </View>
-                    <View style={styles.btnContainer}>
-                      {(selectedReframe || writtenReframe.length > 0) && (
-                        <Button
-                          text="Submit"
-                          onPress={async () => {
-                            await markActivityDone();
-                            setIsDone(true);
-                          }}
-                        />
-                      )}
-                      <Button
-                        variant="ghost"
-                        text="Home"
-                        onPress={() => {
-                          academyNav.navigate("Academy");
-                        }}
-                        style={{
-                          backgroundColor: theme.colors.surface.elevated,
-                          borderColor: "transparent",
-                        }}
-                      />
-                    </View>
-                  </>
-                ) : (
-                  <Button text="Start Exercise" onPress={markActivityStart} />
+                        <Text
+                          style={[
+                            styles.optionText,
+                            isSelected && styles.optionTextSelected,
+                          ]}
+                        >
+                          {item}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Write Your Own */}
+                <View style={styles.writeOwnContainer}>
+                  <Text style={styles.writeOwnLabel}>Or write your own:</Text>
+                  <TextArea
+                    value={writtenReframe}
+                    onChangeText={setWrittenReframe}
+                    placeholder="I can handle this by..."
+                    numberOfLines={3}
+                    inputStyle={styles.textAreaInput}
+                    containerStyle={styles.textAreaWrapper}
+                  />
+                </View>
+
+                {(selectedReframe || writtenReframe.length > 0) && (
+                  <Button
+                    text="Submit Reframe"
+                    onPress={async () => {
+                      await markActivityDone();
+                      setIsDone(true);
+                    }}
+                    style={{ marginTop: 24 }}
+                  />
                 )}
-              </>
-            )}
-          </>
-        </CustomScrollView>
-      </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Start Button Overlay if not started - MOVED HERE */}
+          {!currentActivityId && (
+            <View style={styles.startOverlay}>
+              <View style={styles.startContent}>
+                <Text style={styles.startTitle}>
+                  Ready to Shift Perspective?
+                </Text>
+                <Text style={styles.startDesc}>
+                  Learn to identify negative thoughts and replace them with
+                  empowering ones.
+                </Text>
+                <Button
+                  text="Start Exercise"
+                  onPress={markActivityStart}
+                  style={styles.startButton}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+      </CustomScrollView>
     </ScreenView>
   );
 };
@@ -257,146 +309,269 @@ export default Reframe;
 
 const styles = StyleSheet.create({
   screenView: {
-    paddingBottom: 0,
-  },
-  container: {
-    gap: 32,
     flex: 1,
   },
-  scrollContainer: { gap: 32 },
-  topNavigationContainer: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   backButton: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  scrollView: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
-    paddingBottom: 120,
-    flexGrow: 1,
-  },
-  negativeContainer: {
-    padding: 24,
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  scenario: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  negativeTextContainer: {
-    gap: 12,
-  },
-  negativeTitleText: {
+  screenHeaderTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
   },
-  negativeBox: {
-    padding: 16,
-    backgroundColor: theme.colors.surface.default,
-    borderRadius: 16,
-  },
-  negativeText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  ideaContainer: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-  },
-  ideaText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  positiveContainer: {
-    gap: 20,
-  },
-  positiveTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  reframeListContainer: {
-    gap: 16,
-  },
-  reframeTextBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  reframeText: {
-    flexShrink: 1,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  selectIconContainer: {
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedIconContainer: {
-    backgroundColor: theme.colors.library.orange[400],
-    borderColor: "transparent",
-  },
-  writeContainer: {
-    padding: 24,
-    gap: 12,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-  },
-  writeTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  textFieldContainer: {
-    display: "flex",
-    flex: 1,
-    borderRadius: 12,
-    backgroundColor: theme.colors.background.default,
-  },
-  textAreaContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background.default,
-  },
-  textAreaInput: {
-    minHeight: 50,
-    backgroundColor: theme.colors.background.default,
-    ...parseTextStyle(theme.typography.BodySmall),
+  scrollContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
 
-  btnContainer: {
+  // Card UI
+  cardContainer: {
+    borderRadius: 32,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+    minHeight: 600,
+  },
+  cardHeaderGradient: {
+    padding: 24,
+    paddingBottom: 48, // Space for overlap
+    position: "relative",
+    height: 180,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  categoryPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: 1,
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  glassButtonText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 12,
+    color: "#FFF",
+    fontWeight: "600",
+  },
+  headerWatermark: {
+    position: "absolute",
+    right: -10,
+    bottom: -10,
+    opacity: 0.15,
+    transform: [{ rotate: "-10deg" }],
+  },
+  cardBodySheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -40, // Overlap
+    padding: 24,
+    paddingBottom: 40,
+    minHeight: 400,
+    alignItems: "center",
+  },
+
+  // Start Overlay
+  startOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    justifyContent: "flex-start",
+    paddingTop: 120, // Position higher up (overlapping header slightly)
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 32,
+  },
+  startContent: {
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    width: "90%",
+  },
+  startTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    textAlign: "center",
+    color: "#4F46E5", // Indigo 600
+  },
+  startDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    textAlign: "center",
+    color: theme.colors.text.default,
+  },
+  startButton: {
+    width: "100%",
+    backgroundColor: "#6366F1", // Indigo 500
+  },
+
+  // Content Sections
+  negativeSection: {
+    width: "100%",
+    backgroundColor: "#F5F3FF", // Violet 50
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 8,
+  },
+  negativeLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    color: "#8B5CF6", // Violet 500
+  },
+  sectionLabelPositive: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    color: "#4F46E5", // Indigo 600
+  },
+  negativeText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 18,
+    color: "#1F2937", // Gray 800
+    lineHeight: 26,
+  },
+
+  // Divider
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+    width: "100%",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E0E7FF",
+  },
+  dividerIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 12,
+  },
+
+  // Positive Section
+  positiveSection: {
+    width: "100%",
+    gap: 16,
+  },
+  positiveLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  optionsList: {
     gap: 12,
-    paddingBottom: 32,
+  },
+  optionCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  optionCardSelected: {
+    borderColor: "#6366F1",
+    backgroundColor: "#EEF2FF",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  radioCircleSelected: {
+    borderColor: "#6366F1",
+    backgroundColor: "#6366F1",
+  },
+  optionText: {
+    flex: 1,
+    ...parseTextStyle(theme.typography.Body),
+    color: "#4B5563",
+  },
+  optionTextSelected: {
+    color: "#4338CA", // Indigo 700
+    fontWeight: "500",
+  },
+
+  // Write Own
+  writeOwnContainer: {
+    marginTop: 16,
+    gap: 8,
+  },
+  writeOwnLabel: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  textAreaWrapper: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    backgroundColor: "#F9FAFB",
+  },
+  textAreaInput: {
+    fontSize: 15,
+    color: "#374151",
+    minHeight: 80,
   },
 });
