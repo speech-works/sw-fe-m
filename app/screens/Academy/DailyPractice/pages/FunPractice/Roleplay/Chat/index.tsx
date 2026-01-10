@@ -31,7 +31,7 @@ import {
   RolePlayNode,
   RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
-import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
+
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import {
@@ -44,6 +44,8 @@ import { useUserStore } from "../../../../../../../stores/user";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { LinearGradient } from "expo-linear-gradient";
+import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import { Dimensions } from "react-native";
 
 // Define the message structure
 interface ChatMessage {
@@ -241,9 +243,21 @@ const Chat = () => {
     }
   };
 
+  // --- Render Helpers ---
+
+  const bottomPadding = 400; // Space for the dock
+
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
+      {/* Background - Matches Twister */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
+          locations={[0, 0.6, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
+      <View style={{ flex: 1 }}>
         <View style={styles.topNavigationContainer}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -281,7 +295,13 @@ const Chat = () => {
           )}
         </View>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+        <CustomScrollView
+          scrollEnabled={true}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: bottomPadding }, // Ensure content isn't hidden behind dock
+          ]}
+        >
           {isDone ? (
             <DonePractice />
           ) : (
@@ -349,8 +369,8 @@ const Chat = () => {
                 </View>
               )}
 
-              {/* Chat Interface or Start Button */}
-              {currentActivityId ? (
+              {/* Chat Interface */}
+              {currentActivityId && (
                 <>
                   {messageHeight === null && (
                     <View
@@ -451,15 +471,12 @@ const Chat = () => {
                       )}
                     </View>
                   )}
-                  <VoiceRecorder
-                    onRecorded={(uri) => {
-                      setVoiceRecordingUri(uri);
-                    }}
-                  />
                 </>
-              ) : (
-                <Button
-                  text="Start Practice"
+              )}
+              {/* Start Button for Intro */}
+              {!currentActivityId && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
                   onPress={async () => {
                     setIsStarting(true);
                     try {
@@ -469,28 +486,47 @@ const Chat = () => {
                     }
                   }}
                   disabled={isStarting}
-                />
-              )}
-
-              {!!voiceRecordingUri && (
-                <Button
-                  text="Mark Complete"
-                  onPress={async () => {
-                    setIsLoading(true);
-                    try {
-                      await onDonePress();
-                      setIsDone(true);
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
-                  disabled={isLoading}
-                />
+                  style={styles.startButton}
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.library.orange[400],
+                      theme.colors.library.orange[500],
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.startButtonGradient}
+                  >
+                    <Text style={styles.startButtonText}>Start Practice</Text>
+                    <Icon name="arrow-right" size={16} color="#FFF" />
+                  </LinearGradient>
+                </TouchableOpacity>
               )}
             </>
           )}
         </CustomScrollView>
       </View>
+
+      {/* Action Dock (Fixed Bottom) - Only show when activity started or for consistency */}
+      {currentActivityId && !isDone && (
+        <View style={styles.actionDockWrapper}>
+          <SmartRecorder
+            onRecorded={setVoiceRecordingUri}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onSubmit={async () => {
+              setIsLoading(true);
+              try {
+                await onDonePress();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onDiscard={() => {
+              setVoiceRecordingUri(null);
+            }}
+          />
+        </View>
+      )}
     </ScreenView>
   );
 };
@@ -504,14 +540,12 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    gap: 16,
   },
   scrollContent: {
     gap: 24,
     flexGrow: 1,
     paddingHorizontal: SHADOW_BUFFER,
     paddingTop: SHADOW_BUFFER,
-    paddingBottom: 120, // Increased for bottom nav clearance
   },
   topNavigationContainer: {
     display: "flex",
@@ -568,27 +602,32 @@ const styles = StyleSheet.create({
   },
   incomingMessage: {
     padding: 16,
-    borderRadius: 16,
-    borderTopLeftRadius: 2,
-    backgroundColor: "#EFF6FF", // Blue 50
+    borderRadius: 20,
+    borderTopLeftRadius: 4,
+    backgroundColor: "#FFFFFF",
     maxWidth: "85%",
     alignSelf: "flex-start",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   incomingMessageText: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#1E3A8A",
+    color: theme.colors.text.default,
   },
   outgoingMessage: {
     padding: 16,
-    borderRadius: 16,
-    borderTopRightRadius: 2,
-    backgroundColor: "#FFF7ED", // Orange 50
+    borderRadius: 20,
+    borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.library.orange[100],
     maxWidth: "85%",
     alignSelf: "flex-end",
+    borderWidth: 1,
+    borderColor: "rgba(251, 146, 60, 0.1)", // Orange border hint
   },
   outgoinggMessageText: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#9A3412",
+    color: "#9A3412", // Dark Orange
   },
   chevronContainer: {
     padding: 8,
@@ -709,5 +748,27 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
     fontSize: 14,
+  },
+  // Recorder Dock
+  actionDockWrapper: {
+    // Dock is self-contained with margins
+  },
+  startButton: {
+    marginTop: 20,
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 40,
+  },
+  startButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
+  },
+  startButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
   },
 });
