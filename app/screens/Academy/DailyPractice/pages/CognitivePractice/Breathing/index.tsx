@@ -118,10 +118,6 @@ const Breathing = () => {
       interval = setInterval(() => {
         setElapsedSeconds((prevSeconds) => {
           // Stop the timer if the session is complete
-          if (prevSeconds >= totalSessionDurationInSeconds) {
-            clearInterval(interval);
-            return totalSessionDurationInSeconds; // Cap at total duration
-          }
           return prevSeconds + 1; // Increment by 1 second
         });
       }, 1000); // Update every 1000 milliseconds (1 second)
@@ -158,14 +154,23 @@ const Breathing = () => {
       <View style={styles.immersiveContainer}>
         {/* Warm Gradient Background */}
         <LinearGradient
-          colors={["#FEF3C7", "#FDE68A", "#FCD34D"]} // Yellow-100 -> Yellow-300
-          locations={[0, 0.4, 1]}
+          colors={["#000000", "#020617", "#0F172A"]} // Black -> Slate-950 -> Slate-900
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
 
         <View style={styles.immersiveContent}>
           {/* Timer Display */}
-          <Text style={[styles.timerText, { marginTop: 60 }]}>
+          <Text
+            style={[
+              styles.timerText,
+              { marginTop: 60 },
+              elapsedSeconds >= totalSessionDurationInSeconds && {
+                color: "#4ADE80",
+              },
+            ]}
+          >
             {`${displayMinutes.toString().padStart(2, "0")}:${displaySeconds
               .toString()
               .padStart(2, "0")}`}
@@ -181,10 +186,10 @@ const Breathing = () => {
             text="End Session"
             variant="ghost" // Ghost/Subtle button style if available, or just standard
             style={{
-              backgroundColor: "rgba(255,255,255,0.5)",
-              borderColor: "rgba(0,0,0,0.05)",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              borderColor: "rgba(255,255,255,0.1)",
             }}
-            textColor="#92400E"
+            textColor="#F8FAFC"
             onPress={async () => {
               setIsLoading(true);
               try {
@@ -468,8 +473,8 @@ const styles = StyleSheet.create({
   timerText: {
     ...parseTextStyle(theme.typography.Heading2),
     fontVariant: ["tabular-nums"],
-    color: "#78350F", // Amber-900
+    color: "#E2E8F0", // Slate-200
     marginBottom: 48,
-    opacity: 0.8,
+    opacity: 0.9,
   },
 });

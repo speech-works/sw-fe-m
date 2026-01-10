@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   phaseText: {
     ...parseTextStyle(theme.typography.Heading2),
     fontSize: 32,
-    color: "#78350F", // Dark Orange/Brown
+    color: "#F1F5F9", // Slate-100 for dark mode
     opacity: 0.9,
   },
 });

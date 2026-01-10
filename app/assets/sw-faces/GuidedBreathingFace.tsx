@@ -54,10 +54,6 @@ const GuidedBreathingFace = ({
   const scale = useSharedValue(1);
   const breathOpacity = useSharedValue(0);
 
-  // Mouth dimensions
-  const mouthRx = useSharedValue(2.0);
-  const mouthRy = useSharedValue(2.0);
-
   const eyeTranslateY = useSharedValue(0);
 
   useEffect(() => {
@@ -66,16 +62,11 @@ const GuidedBreathingFace = ({
 
     switch (phase) {
       case "idle":
-        mouthRx.value = withTiming(2.0, { duration: DURATION });
-        mouthRy.value = withTiming(2.0, { duration: DURATION });
         eyeTranslateY.value = withTiming(0, { duration: DURATION });
         breathOpacity.value = withTiming(0, { duration: DURATION });
         break;
 
       case "inhale":
-        // Mouth: Small Round (Pursed)
-        mouthRx.value = withTiming(2.0, { duration: DURATION });
-        mouthRy.value = withTiming(2.0, { duration: DURATION });
         // Eyes: Lift
         eyeTranslateY.value = withTiming(-1.5, {
           duration: DURATION,
@@ -86,9 +77,6 @@ const GuidedBreathingFace = ({
         break;
 
       case "hold-in":
-        // Mouth: Flat
-        mouthRx.value = withTiming(3.0, { duration: DURATION });
-        mouthRy.value = withTiming(0.5, { duration: DURATION });
         // Eyes: Stay Lifted
         eyeTranslateY.value = withTiming(-1.5, { duration: DURATION });
         // Breath: Invisible
@@ -96,9 +84,6 @@ const GuidedBreathingFace = ({
         break;
 
       case "exhale":
-        // Mouth: Big Open
-        mouthRx.value = withTiming(3.5, { duration: DURATION });
-        mouthRy.value = withTiming(3.5, { duration: DURATION });
         // Eyes: Relax
         eyeTranslateY.value = withTiming(0, {
           duration: DURATION,
@@ -112,9 +97,6 @@ const GuidedBreathingFace = ({
         break;
 
       case "hold-out":
-        // Mouth: Flat
-        mouthRx.value = withTiming(3.0, { duration: DURATION });
-        mouthRy.value = withTiming(0.5, { duration: DURATION });
         // Eyes: Stay Relaxed
         eyeTranslateY.value = withTiming(0, { duration: DURATION });
         // Breath: fade out
@@ -132,13 +114,6 @@ const GuidedBreathingFace = ({
   const animatedBreathProps = useAnimatedProps(() => {
     return {
       opacity: breathOpacity.value,
-    };
-  });
-
-  const animatedMouthProps = useAnimatedProps(() => {
-    return {
-      rx: mouthRx.value,
-      ry: mouthRy.value,
     };
   });
 
@@ -249,14 +224,6 @@ const GuidedBreathingFace = ({
             fill="none"
           />
         </AnimatedG>
-
-        {/* Mouth (Soft, slightly open 'O' for exhaling) - Bolder Color */}
-        <AnimatedEllipse
-          cx="24"
-          cy="34"
-          animatedProps={animatedMouthProps}
-          fill="#000000"
-        />
 
         {/* Breath Visual: Stream of air blowing OUT (below mouth) */}
         <AnimatedG animatedProps={animatedBreathProps}>
