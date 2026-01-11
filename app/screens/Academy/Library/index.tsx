@@ -419,50 +419,89 @@ const Library = () => {
       <BottomSheetModal
         visible={isSelectionModalVisible}
         onClose={() => setIsSelectionModalVisible(false)}
-        maxHeight={Platform.OS === "ios" ? 320 : 340}
+        // maxHeight={undefined} // Allow full expansion
       >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Choose Mode</Text>
-          <Text style={styles.modalSubtitle}>
+        <LinearGradient
+          colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
+          style={styles.modalGradientContainer}
+        >
+          {/* Watermark Background */}
+          <View style={styles.modalWatermark} pointerEvents="none">
+            <Icon
+              name={(() => {
+                const group = SLP_GROUPS.find((g) =>
+                  g.techniqueIds.includes(
+                    selectedTechnique?.id as TECHNIQUES_ENUM
+                  )
+                );
+                switch (group?.id) {
+                  case "UNDERSTANDING":
+                    return "brain";
+                  case "MODIFICATION":
+                    return "tools";
+                  case "FLUENCY":
+                    return "feather";
+                  case "RELAXATION":
+                    return "spa";
+                  default:
+                    return "lightbulb";
+                }
+              })()}
+              size={180}
+              color={theme.colors.library.orange[200]}
+              style={{ opacity: 0.25, transform: [{ rotate: "-15deg" }] }}
+            />
+          </View>
+
+          <Text style={styles.premiumModalTitle}>Choose Mode</Text>
+          <Text style={styles.premiumModalSubtitle}>
             How would you like to practice {selectedTechnique?.name}?
           </Text>
 
-          <View style={styles.modalActions}>
+          <View style={styles.premiumModalActions}>
             <TouchableOpacity
-              style={styles.modalButtonPrimary}
+              style={styles.premiumButtonShadow}
+              activeOpacity={0.8}
               onPress={() => handleNavigate("TUTORIAL")}
             >
               <LinearGradient
                 colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
-                style={styles.modalValuesGradient}
+                  theme.colors.actionPrimary.default,
+                  theme.colors.actionPrimary.default,
+                ]} // Standard Primary
+                style={styles.premiumButtonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Icon name="play" color="#FFF" size={14} />
-                <Text style={styles.modalButtonTextPrimary}>
+                <Icon
+                  name="play"
+                  color="#FFF"
+                  size={16}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.premiumButtonTextPrimary}>
                   Watch Tutorial
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.modalButtonSecondary}
+              style={styles.premiumButtonSecondary}
+              activeOpacity={0.7}
               onPress={() => handleNavigate("EXERCISE")}
             >
               <Icon
                 name="dumbbell"
-                color={theme.colors.library.orange[500]}
-                size={14}
+                color={theme.colors.text.default}
+                size={16}
+                style={{ marginRight: 8 }}
               />
-              <Text style={styles.modalButtonTextSecondary}>
+              <Text style={styles.premiumButtonTextSecondary}>
                 Start Exercise
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
       </BottomSheetModal>
     </ScreenView>
   );
@@ -608,65 +647,92 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Modal
-  modalContent: {
-    padding: 24,
+  // Premium Modal Styles
+  modalGradientContainer: {
+    padding: 32,
     alignItems: "center",
+    paddingBottom: 48,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    position: "relative",
+    overflow: "hidden", // Clip watermark
   },
-  modalTitle: {
+  modalWatermark: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    zIndex: 0,
+  },
+  premiumModalTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
+    color: "#111827",
+    fontSize: 28,
+    fontWeight: "800",
     marginBottom: 8,
-  },
-  modalSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
     textAlign: "center",
-    marginBottom: 24,
+    letterSpacing: -0.5,
+    zIndex: 1,
+    marginTop: 16,
   },
-  modalActions: {
-    width: "100%",
-    gap: 12,
+  premiumModalSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#374151",
+    fontSize: 17,
+    lineHeight: 26,
+    textAlign: "center",
+    marginBottom: 32,
+    zIndex: 1,
+    opacity: 0.9,
   },
-  modalButtonPrimary: {
+  premiumModalActions: {
     width: "100%",
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: theme.colors.library.orange[400],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    gap: 16, // Increased gap
+    zIndex: 1,
+  },
+  premiumButtonShadow: {
+    width: "100%",
+    borderRadius: 30, // Increased radius to match standard
+    shadowColor: theme.colors.actionPrimary.default,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 4,
   },
-  modalValuesGradient: {
+  premiumButtonGradient: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 18,
+    borderRadius: 30,
   },
-  modalButtonTextPrimary: {
+  premiumButtonTextPrimary: {
     ...parseTextStyle(theme.typography.Button),
     color: "#FFFFFF",
-    fontWeight: "700",
+    fontWeight: "700", // Standard weight
     fontSize: 16,
+    letterSpacing: 0.5,
   },
-  modalButtonSecondary: {
+  premiumButtonSecondary: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
+    borderRadius: 30, // Match primary
     backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: theme.colors.library.gray[200],
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  modalButtonTextSecondary: {
+  premiumButtonTextSecondary: {
     ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.default,
-    fontWeight: "600",
+    color: "#374151",
+    fontWeight: "700", // Match strength
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
