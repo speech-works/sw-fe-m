@@ -360,7 +360,7 @@ const Chat = () => {
           scrollEventThrottle={16}
         >
           {/* Initial Spacer for top padding */}
-          <View style={{ height: 16 }} />
+          <View style={{ height: 24 }} />
 
           {messages.map((message) => (
             <View
@@ -384,7 +384,7 @@ const Chat = () => {
           ))}
 
           {/* Bottom Spacer for visual breathing room before input/dock */}
-          <View style={{ height: 24 }} />
+          <View style={{ height: 32 }} />
         </CustomScrollView>
       </View>
 
@@ -509,6 +509,7 @@ const styles = StyleSheet.create({
   },
   chatsScrollView: {
     gap: 20,
+    paddingHorizontal: 24,
   },
   incomingMessage: {
     padding: 16,
@@ -556,6 +557,7 @@ const styles = StyleSheet.create({
     // SmartRecorder might have its own absolute positioning, let's wrap it nicely
   },
   suggestionsDock: {
+    marginTop: 16,
     marginBottom: 0, // Sit right on top of recorder
     gap: 12,
     paddingBottom: 4,
