@@ -8,11 +8,14 @@ import { getDailyActivityStatsForTheWeek } from "../../../api/progressReport";
 import { WeeklyStat } from "../../../api/progressReport/types";
 import { LinearGradient } from "expo-linear-gradient";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { getDetailedWeeklySummary } from "../../../api/progressReport";
 
 const WorldExplorationGraph = () => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
-  const [percentChange, setPercentChange] = useState<number>(0);
+  // Use detailed percentages
+  const [minutesChange, setMinutesChange] = useState<number>(0);
+  const [sessionsChange, setSessionsChange] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Configuration
@@ -22,10 +25,15 @@ const WorldExplorationGraph = () => {
     if (!user?.id) return;
     setLoading(true);
 
-    getDailyActivityStatsForTheWeek(user.id)
-      .then((response) => {
-        setWeeklyData(response.days);
-        setPercentChange(response.percentChange || 0);
+    Promise.all([
+      getDailyActivityStatsForTheWeek(user.id),
+      getDetailedWeeklySummary(user.id),
+    ])
+      .then(([dailyResp, summaryResp]) => {
+        setWeeklyData(dailyResp.days);
+        // Use granular changes
+        setMinutesChange(summaryResp.percentagePracticeMinutesChange || 0);
+        setSessionsChange(summaryResp.percentageSessionsChange || 0);
       })
       .catch((err) => console.error("Stats error:", err))
       .finally(() => setLoading(false));
@@ -36,13 +44,28 @@ const WorldExplorationGraph = () => {
     weeklyData.reduce((sum, d) => sum + d.totalTime, 0)
   );
   const daysActive = weeklyData.filter((d) => d.totalTime > 0).length;
-  const streakText =
-    daysActive > 0 ? `${daysActive} Day Streak` : "Start Streak";
 
-  // Comparison Logic (Edge Case: Hide if no meaningful data)
-  const hasComparison = weeklyData.length > 0 && Math.abs(percentChange) > 0;
-  const isPositive = percentChange >= 0;
-  const comparisonText = `${Math.abs(Math.round(percentChange))}%`;
+  // Comparison Helpers
+  const formatChange = (change: number, hasHistory: boolean) => {
+    if (!hasHistory) return null;
+    let displayed = Math.abs(Math.round(change));
+    // Clamp to 99 if negative and >= 100
+    if (change < 0 && displayed >= 100) displayed = 99;
+
+    return {
+      text: `${displayed}%`,
+      isPositive: change >= 0,
+      value: change,
+    };
+  };
+
+  // Check if we have meaningful data (dates back to logic if prev week existed)
+  // For now assuming if change != 0 it means we have history
+  const hasMinutesHistory = Math.abs(minutesChange) > 0;
+  const hasSessionsHistory = Math.abs(sessionsChange) > 0;
+
+  const minutesStats = formatChange(minutesChange, hasMinutesHistory);
+  const sessionsStats = formatChange(sessionsChange, hasSessionsHistory);
 
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;
@@ -101,19 +124,10 @@ const WorldExplorationGraph = () => {
         {/* Content Layer */}
         <View style={styles.contentLayer}>
           {/* Header Row */}
+          {/* Header Row */}
           <View style={styles.headerRow}>
             <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
-            {hasComparison && (
-              <View style={styles.comparisonBadge}>
-                <Icon
-                  name={isPositive ? "arrow-up" : "arrow-down"}
-                  size={10}
-                  color="#FFF"
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={styles.comparisonText}>{comparisonText}</Text>
-              </View>
-            )}
+            {/* Redundant comparison removed */}
           </View>
 
           {/* Hero: Chart or Empty State */}
@@ -250,17 +264,7 @@ const WorldExplorationGraph = () => {
               <View style={styles.statContent}>
                 <View style={styles.statRow}>
                   <Text style={styles.statNumber}>{daysActive}</Text>
-                  {hasComparison && (
-                    <Text
-                      style={[
-                        styles.comparisonIndicator,
-                        { color: isPositive ? "#4ADE80" : "#F87171" },
-                      ]}
-                    >
-                      {isPositive ? "↑" : "↓"}
-                      {Math.abs(Math.round(percentChange))}%
-                    </Text>
-                  )}
+                  {/* Streak comparison is confusing/unavailable, removed for clarity */}
                 </View>
                 <Text style={styles.statLabel}>Day Streak</Text>
               </View>
@@ -277,16 +281,32 @@ const WorldExplorationGraph = () => {
                         }m`
                       : `${totalWeeklyMinutes}m`}
                   </Text>
-                  {hasComparison && (
-                    <Text
+                  {minutesStats && (
+                    <View
                       style={[
-                        styles.comparisonIndicator,
-                        { color: isPositive ? "#4ADE80" : "#F87171" },
+                        styles.comparisonIndicatorPill,
+                        {
+                          backgroundColor: "rgba(255, 255, 255, 0.35)", // Slightly more opaque for contrast
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.2)",
+                        },
                       ]}
                     >
-                      {isPositive ? "↑" : "↓"}
-                      {Math.abs(Math.round(percentChange))}%
-                    </Text>
+                      <Text
+                        style={[
+                          styles.comparisonIndicatorText,
+                          {
+                            // Darker shades for better visibility on the lightened background
+                            color: minutesStats.isPositive
+                              ? "#047857" // Deep Green
+                              : "#991B1B", // Deep Red
+                          },
+                        ]}
+                      >
+                        {minutesStats.isPositive ? "↑" : "↓"}{" "}
+                        {minutesStats.text}
+                      </Text>
+                    </View>
                   )}
                 </View>
                 <Text style={styles.statLabel}>Total</Text>
@@ -513,9 +533,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     lineHeight: 28,
   },
-  comparisonIndicator: {
-    fontSize: 13,
-    fontWeight: "700",
+  comparisonIndicatorPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+  comparisonIndicatorText: {
+    fontSize: 12,
+    fontWeight: "800",
     letterSpacing: -0.3,
   },
   statLabel: {

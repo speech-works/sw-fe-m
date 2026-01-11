@@ -163,35 +163,48 @@ const LibrarySection = ({
       <BottomSheetModal
         visible={isInfoModalVisible}
         onClose={() => setIsInfoModalVisible(false)}
-        maxHeight={450}
       >
-        <View style={styles.modalContent}>
-          {/* Header Graphic */}
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEDD5"]}
-            style={styles.modalIconBubble}
-          >
+        {/* Redesigned Premium Glassmorphic Modal Content */}
+        <LinearGradient
+          colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
+          style={styles.modalGradientContainer}
+        >
+          {/* Watermark Background */}
+          <View style={styles.modalWatermark} pointerEvents="none">
             <Icon
               name={getHeaderIcon()}
-              size={32}
-              color={theme.colors.library.orange[500]}
+              size={180}
+              color={theme.colors.library.orange[200]}
+              style={{ opacity: 0.25, transform: [{ rotate: "-15deg" }] }}
             />
-          </LinearGradient>
+          </View>
 
           <Text style={styles.modalTitle}>{title}</Text>
-          {subtitle && <Text style={styles.modalSubtitle}>{subtitle}</Text>}
+          {subtitle && (
+            <Text style={styles.modalSubtitle}>{subtitle.toUpperCase()}</Text>
+          )}
 
           <View style={styles.divider} />
 
           <Text style={styles.modalBody}>{aboutText}</Text>
 
+          {/* Standard Primary Action Button */}
           <TouchableOpacity
-            style={styles.closeButton}
+            activeOpacity={0.8}
             onPress={() => setIsInfoModalVisible(false)}
+            style={styles.standardButtonWrapper}
           >
-            <Text style={styles.closeButtonText}>Got it</Text>
+            <LinearGradient
+              colors={[
+                theme.colors.actionPrimary.default,
+                theme.colors.actionPrimary.default,
+              ]} // Consistently use primary action color
+              style={styles.closeButton}
+            >
+              <Text style={styles.closeButtonText}>Got it</Text>
+            </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </BottomSheetModal>
     </View>
   );
@@ -265,67 +278,85 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  // Modal Styles
-  modalContent: {
-    padding: 24,
+  // Premium Modal Styles
+  modalGradientContainer: {
+    padding: 32, // Increased padding
     alignItems: "center",
-    paddingBottom: 40,
+    paddingBottom: 48,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    position: "relative",
+    overflow: "hidden", // Clip watermark
   },
-  modalIconBubble: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#FED7AA", // Orange 200
+  modalWatermark: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    zIndex: 0,
   },
   modalTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    color: "#1F2937",
-    marginBottom: 4,
+    color: "#111827",
+    fontSize: 28, // Bold & Large
+    fontWeight: "800",
+    marginBottom: 8,
     textAlign: "center",
+    letterSpacing: -0.5,
+    zIndex: 1,
+    marginTop: 20,
   },
   modalSubtitle: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.gray[500],
-    textTransform: "uppercase",
+    color: theme.colors.library.gray[400],
     fontWeight: "700",
-    fontSize: 11,
+    fontSize: 12,
+    letterSpacing: 1.5, // Spaced out
     marginBottom: 24,
     textAlign: "center",
+    zIndex: 1,
   },
   divider: {
-    width: 40,
+    width: 60,
     height: 4,
-    backgroundColor: theme.colors.library.gray[200],
+    backgroundColor: "rgba(0,0,0,0.04)", // Very subtle
     borderRadius: 2,
-    marginBottom: 24,
+    marginBottom: 32,
+    zIndex: 1,
   },
   modalBody: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#4B5563",
-    fontSize: 16,
-    lineHeight: 26,
+    color: "#374151", // Gray 700
+    fontSize: 17, // Larger body
+    lineHeight: 28,
+    fontWeight: "400",
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 40,
+    opacity: 0.9,
+    zIndex: 1,
   },
-  closeButton: {
-    backgroundColor: theme.colors.library.orange[500],
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 30,
-    shadowColor: theme.colors.library.orange[400],
+  standardButtonWrapper: {
+    width: "100%",
+    maxWidth: 280,
+    shadowColor: theme.colors.actionPrimary.default,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+    borderRadius: 30,
+    zIndex: 1,
+  },
+  closeButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
   closeButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: "#FFF",
     fontWeight: "700",
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
