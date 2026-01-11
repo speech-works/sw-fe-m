@@ -164,7 +164,7 @@ const TechniquePage = () => {
           {/* Header */}
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.navigate("Library")}
               style={styles.backButton}
             >
               <Icon
@@ -186,7 +186,7 @@ const TechniquePage = () => {
               <Icon
                 name="info-circle"
                 size={16}
-                color={theme.colors.text.subtitle}
+                color={theme.colors.text.title}
               />
             </TouchableOpacity>
           </View>
@@ -317,6 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
+    zIndex: 10,
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -328,6 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginTop: 2,
+    zIndex: 1,
   },
   infoButton: {
     width: 32,
@@ -338,6 +340,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
+    zIndex: 10,
   },
 
   // Stepper

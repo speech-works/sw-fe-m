@@ -84,9 +84,6 @@ const BentoPathSelector = ({
                 <Text style={styles.activeLabel} numberOfLines={1}>
                   {step.label}
                 </Text>
-
-                {/* Active Indicator Dot */}
-                <View style={styles.activeDot} />
               </LinearGradient>
             ) : (
               // Inactive State: Glass/Ghost
@@ -162,15 +159,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginTop: -2, // Optical alignment
     fontWeight: "700",
-  },
-  activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FFFFFF",
-    position: "absolute",
-    bottom: 6,
-    opacity: 0.8,
   },
   icon: {
     // shadowColor: "rgba(0,0,0,0.2)",
