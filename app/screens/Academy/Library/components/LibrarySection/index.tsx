@@ -16,6 +16,8 @@ import {
   TECHNIQUE_LEVEL_ENUM,
 } from "../../../../../api/library/types";
 import TechniqueCard from "../TechniqueCard";
+import { LinearGradient } from "expo-linear-gradient";
+import BottomSheetModal from "../../../../../components/BottomSheetModal";
 
 // Enable LayoutAnimation on Android
 if (
@@ -26,7 +28,7 @@ if (
 }
 
 interface LibrarySectionProps {
-  sectionId?: string; // New prop for specific styling logic
+  sectionId?: string;
   title: string;
   subtitle: string;
   aboutText: string;
@@ -44,18 +46,28 @@ const LibrarySection = ({
   isPaidUser,
   onTechniqueSelect,
 }: LibrarySectionProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
 
-  const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
+  // Bento Logic:
+  const isUnderstanding = sectionId === "UNDERSTANDING";
+
+  // Icon mapping for header
+  const getHeaderIcon = () => {
+    switch (sectionId) {
+      case "UNDERSTANDING":
+        return "brain";
+      case "MODIFICATION":
+        return "tools";
+      case "FLUENCY":
+        return "feather";
+      case "RELAXATION":
+        return "spa";
+      default:
+        return "lightbulb";
+    }
   };
 
   if (techniques.length === 0) return null;
-
-  // Bento Grid Logic:
-  // If "UNDERSTANDING", first item is Hero.
-  const isUnderstanding = sectionId === "UNDERSTANDING";
 
   return (
     <View style={styles.container}>
@@ -75,33 +87,54 @@ const LibrarySection = ({
         />
       </View>
 
-      {/* Header Section */}
+      {/* --- Minimal Header --- */}
       <View style={styles.header}>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.title}>{title}</Text>
-        </View>
+        {/* Title Column */}
+        <View style={styles.titleColumn}>
+          {subtitle && (
+            <View style={styles.subtitlePill}>
+              <Text style={styles.subtitleText}>{subtitle}</Text>
+            </View>
+          )}
 
-        <TouchableOpacity onPress={toggleExpand} style={styles.aboutToggle}>
-          <Text style={styles.aboutToggleText}>About this category</Text>
-          <Icon
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={10}
-            color={theme.colors.library.orange[500]}
-          />
-        </TouchableOpacity>
+          <View style={styles.mainTitleRow}>
+            {/* Soft Icon Circle */}
+            <LinearGradient
+              colors={["#FFF7ED", "#FFEDD5"]} // Very subtle orange wash
+              style={styles.iconCircle}
+            >
+              <Icon
+                name={getHeaderIcon()}
+                size={18}
+                color={theme.colors.library.orange[500]}
+              />
+            </LinearGradient>
 
-        {isExpanded && (
-          <View style={styles.aboutContent}>
-            <Text style={styles.aboutText}>{aboutText}</Text>
+            <Text style={styles.title}>{title}</Text>
+
+            {/* Info Icon Toggle - Opens Modal */}
+            <TouchableOpacity
+              onPress={() => setIsInfoModalVisible(true)}
+              style={styles.infoIconWrapper}
+              hitSlop={12}
+            >
+              <Icon
+                name="info-circle"
+                size={20}
+                color={
+                  isInfoModalVisible
+                    ? theme.colors.library.orange[500]
+                    : theme.colors.library.gray[300]
+                }
+              />
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
       </View>
 
-      {/* Techniques List */}
+      {/* --- Techniques List --- */}
       <View style={styles.list}>
         {techniques.map((tech, index) => {
-          // Map level enum to display string
           const displayLevel =
             {
               [TECHNIQUE_LEVEL_ENUM.BEGINNER]: "Foundation",
@@ -109,7 +142,6 @@ const LibrarySection = ({
               [TECHNIQUE_LEVEL_ENUM.ADVANCED]: "Deep Practice",
             }[tech.level] || "Foundation";
 
-          // Bento Logic: First item of Understanding is Hero
           const isHero = isUnderstanding && index === 0;
 
           return (
@@ -126,6 +158,41 @@ const LibrarySection = ({
           );
         })}
       </View>
+
+      {/* --- Info Bottom Sheet --- */}
+      <BottomSheetModal
+        visible={isInfoModalVisible}
+        onClose={() => setIsInfoModalVisible(false)}
+        maxHeight={450}
+      >
+        <View style={styles.modalContent}>
+          {/* Header Graphic */}
+          <LinearGradient
+            colors={["#FFF7ED", "#FFEDD5"]}
+            style={styles.modalIconBubble}
+          >
+            <Icon
+              name={getHeaderIcon()}
+              size={32}
+              color={theme.colors.library.orange[500]}
+            />
+          </LinearGradient>
+
+          <Text style={styles.modalTitle}>{title}</Text>
+          {subtitle && <Text style={styles.modalSubtitle}>{subtitle}</Text>}
+
+          <View style={styles.divider} />
+
+          <Text style={styles.modalBody}>{aboutText}</Text>
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setIsInfoModalVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Got it</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
     </View>
   );
 };
@@ -146,59 +213,119 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  titleColumn: {
+    // marginBottom: 8,
+  },
+  subtitlePill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
     marginBottom: 8,
   },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    fontSize: 24, // Slightly larger
-  },
-  subtitle: {
+  subtitleText: {
     ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.library.gray[500],
     fontWeight: "700",
-    marginBottom: 4,
+    fontSize: 10,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
-    letterSpacing: 1.5,
-    fontSize: 11,
   },
-  aboutToggle: {
+  mainTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "rgba(255, 144, 64, 0.08)", // distinct bg
-    borderRadius: 20,
+    gap: 12,
   },
-  aboutToggleText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.orange[600],
-    fontWeight: "600",
-    fontSize: 12,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FFEDD5", // Orange 100
   },
-  aboutContent: {
-    marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.7)", // semi-transparent
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.library.orange[300],
+  title: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#111827", // Gray 900
+    fontSize: 22,
+    flex: 1,
+    lineHeight: 28,
   },
-  aboutText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    lineHeight: 20,
+  infoIconWrapper: {
+    padding: 8,
   },
   list: {
     paddingHorizontal: 24,
-    gap: 16, // using gap from ListCard container
+    gap: 16,
+  },
+
+  // Modal Styles
+  modalContent: {
+    padding: 24,
+    alignItems: "center",
+    paddingBottom: 40,
+  },
+  modalIconBubble: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#FED7AA", // Orange 200
+  },
+  modalTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#1F2937",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.library.gray[500],
+    textTransform: "uppercase",
+    fontWeight: "700",
+    fontSize: 11,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  divider: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.library.gray[200],
+    borderRadius: 2,
+    marginBottom: 24,
+  },
+  modalBody: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#4B5563",
+    fontSize: 16,
+    lineHeight: 26,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  closeButton: {
+    backgroundColor: theme.colors.library.orange[500],
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: theme.colors.library.orange[400],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  closeButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
