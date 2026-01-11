@@ -4,10 +4,22 @@ import {
   Text,
   TouchableOpacity,
   View,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import { LinearGradient } from "expo-linear-gradient";
+import Icon from "react-native-vector-icons/FontAwesome5";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export type FilterType =
   | "ALL"
@@ -21,46 +33,77 @@ interface LibraryFilterBarProps {
   onSelectFilter: (filter: FilterType) => void;
 }
 
-const FILTERS: FilterType[] = [
-  "ALL",
-  "Foundation",
-  "Build",
-  "Deep Practice",
-  "Free",
+const FILTERS: { type: FilterType; label: string; icon: string }[] = [
+  { type: "ALL", label: "All", icon: "th-large" },
+  { type: "Foundation", label: "Foundation", icon: "seedling" },
+  { type: "Build", label: "Build", icon: "hammer" },
+  { type: "Deep Practice", label: "Deep Practice", icon: "brain" },
+  { type: "Free", label: "Free", icon: "gift" },
 ];
 
 const LibraryFilterBar = ({
   currentFilter,
   onSelectFilter,
 }: LibraryFilterBarProps) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const handlePress = (filter: FilterType) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    onSelectFilter(filter);
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        decelerationRate="fast"
       >
-        {FILTERS.map((filter) => {
-          const isSelected = currentFilter === filter;
+        {FILTERS.map((item) => {
+          const isSelected = currentFilter === item.type;
+
+          // Active Gradient Colors
+          // Using a warm orange/coral gradient for active state
+          const activeColors = ["#F97316", "#EA580C"] as const; // Orange 500 -> 600
+
           return (
             <TouchableOpacity
-              key={filter}
-              onPress={() => onSelectFilter(filter)}
+              key={item.type}
+              onPress={() => handlePress(item.type)}
+              activeOpacity={0.8}
               style={[
-                styles.chip,
-                isSelected ? styles.chipSelected : styles.chipUnselected,
+                styles.chipWrapper,
+                isSelected && styles.chipWrapperSelected,
               ]}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  isSelected
-                    ? styles.chipTextSelected
-                    : styles.chipTextUnselected,
-                ]}
-              >
-                {filter === "ALL" ? "All" : filter}
-              </Text>
+              {isSelected ? (
+                <LinearGradient
+                  colors={activeColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.chipGradient}
+                >
+                  <Icon
+                    name={item.icon}
+                    size={14}
+                    color="#FFFFFF"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.chipTextSelected}>{item.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.chipInactive}>
+                  <Icon
+                    name={item.icon}
+                    size={14}
+                    color="#6B7280" // Muted gray
+                    style={{ marginRight: 6, opacity: 0.7 }}
+                  />
+                  <Text style={styles.chipTextUnselected}>{item.label}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -73,41 +116,54 @@ export default LibraryFilterBar;
 
 const styles = StyleSheet.create({
   container: {
-    // Faux glass handled by parent or transparent here
     paddingVertical: 12,
-    marginTop: -4, // Pull up slightly
+    marginBottom: 4,
   },
   scrollContent: {
     paddingHorizontal: 24,
-    gap: 8,
+    gap: 10,
+    alignItems: "center",
   },
-  chip: {
+  chipWrapper: {
+    borderRadius: 24,
+    // Add shadow to wrapper if needed, but usually inner content or gradient handles it
+    shadowColor: theme.colors.library.orange[400],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0, // Hidden by default
+    shadowRadius: 8,
+    elevation: 0,
+  },
+  chipWrapperSelected: {
+    shadowOpacity: 0.25, // Show shadow when selected
+    elevation: 4,
+  },
+  chipGradient: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  chipInactive: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: "#F3F4F6", // Light gray background
     borderWidth: 1,
-    shadowColor: theme.colors.library.gray[400],
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  chipSelected: {
-    backgroundColor: theme.colors.library.orange[100],
-    borderColor: theme.colors.library.orange[300], // Slightly stronger border
-  },
-  chipUnselected: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi transparent
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  chipText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontWeight: "600",
+    borderColor: "transparent", // Or subtle border if preferred
   },
   chipTextSelected: {
-    color: theme.colors.library.orange[700],
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
   chipTextUnselected: {
-    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#6B7280", // Muted gray text
+    fontWeight: "500",
+    fontSize: 14,
   },
 });
