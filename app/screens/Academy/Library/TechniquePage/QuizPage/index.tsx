@@ -17,6 +17,8 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useNavigation } from "@react-navigation/native";
 import { getQuizByTechnique } from "../../../../../api/library";
+import CustomScrollView from "../../../../../components/CustomScrollView";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -30,6 +32,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedAnsIndex, setSelectedAnsIndex] = useState<number>();
   const [answers, setAnswers] = useState<FinalAnswer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const nextQuestion = () => {
     if (quiz && quiz.length > 0) {
@@ -47,98 +50,396 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
 
   useEffect(() => {
     const fetchQuiz = async () => {
-      const quizQuestions = await getQuizByTechnique(techniqueId);
-      setQuiz(quizQuestions);
+      try {
+        setIsLoading(true);
+        console.log("🔍 Fetching quiz for techniqueId:", techniqueId);
+        const quizQuestions = await getQuizByTechnique(techniqueId);
+        console.log("📝 Quiz response:", quizQuestions);
+        console.log("📊 Quiz length:", quizQuestions?.length);
+        console.log("📋 Quiz type:", typeof quizQuestions);
+        console.log("📦 Quiz is array?", Array.isArray(quizQuestions));
+
+        if (
+          quizQuestions &&
+          Array.isArray(quizQuestions) &&
+          quizQuestions.length > 0
+        ) {
+          console.log(
+            "✅ Setting quiz with",
+            quizQuestions.length,
+            "questions"
+          );
+          setQuiz(quizQuestions);
+        } else {
+          console.warn("⚠️ Quiz data is empty or invalid:", quizQuestions);
+          setQuiz([]);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching quiz:", error);
+        setQuiz([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchQuiz();
-  }, [techniqueId]); // Added techniqueId to dependency array for completeness
+  }, [techniqueId]);
 
-  return (
-    <View style={styles.innerContainer}>
-      <View style={styles.quizContainer}>
-        <Text style={styles.quizTitle}>Quick Assessment</Text>
-        <View style={styles.qAndA}>
-          <Text style={styles.qText}>{quiz[selectedIndex]?.questionText}</Text>
-          <View style={styles.answers}>
-            {quiz[selectedIndex]?.options.map((opt, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[
-                  styles.ansRow,
-                  selectedAnsIndex === i && styles.selectedAnsRow,
-                ]}
-                onPress={() => {
-                  selectOption(i);
-                }}
-              >
-                <Text style={styles.ansText}>{opt.optionText}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-        <View style={styles.quizFooter}>
-          <Text style={styles.quizQCountText}>{`${selectedIndex + 1} of ${
-            quiz.length
-          } Questions `}</Text>
-          <TouchableOpacity
-            disabled={selectedAnsIndex === undefined}
-            style={[
-              styles.nextQButton,
-              selectedAnsIndex === undefined && styles.nextQButtonDisabled,
-            ]}
-            onPress={() => {
-              // Create the current answer object
-              const currentAnswer: FinalAnswer = {
-                question: quiz[selectedIndex],
-                yourAnswer: quiz[selectedIndex]?.options[selectedAnsIndex!],
-              };
+  const progress = quiz.length > 0 ? (selectedIndex + 1) / quiz.length : 0;
 
-              // Check if it's the last question
-              if (selectedIndex + 1 === quiz.length) {
-                // If it's the last question, create the final array including the current answer
-                // and navigate with this complete array.
-                const finalAnswersWithLast = [...answers, currentAnswer];
-                navigation.navigate("SummaryPage", {
-                  techniqueId,
-                  techniqueName,
-                  finalAnswers: finalAnswersWithLast,
-                });
-              } else {
-                // If not the last question, update answers state for the next question,
-                // reset selection, and move to the next question.
-                setAnswers((old) => [...old, currentAnswer]);
-                resetOptionSelection();
-                nextQuestion();
-              }
-            }}
-          >
-            <Text style={styles.nextQText}>
-              {selectedIndex + 1 === quiz.length ? "Submit" : "Next"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading quiz...</Text>
       </View>
-      <View style={styles.quizInfo}>
+    );
+  }
+
+  if (!quiz || quiz.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
         <Icon
-          solid
-          size={20}
-          name="info-circle"
-          color={theme.colors.library.blue[400]}
+          name="clipboard-list"
+          size={48}
+          color={theme.colors.text.default}
         />
-        <Text style={styles.quizInfoText}>
-          Practice will be marked complete after quiz
+        <Text style={styles.emptyTitle}>No Quiz Available</Text>
+        <Text style={styles.emptyText}>
+          This technique doesn't have a quiz yet.
         </Text>
       </View>
-    </View>
+    );
+  }
+
+  const currentQuestion = quiz[selectedIndex];
+  if (!currentQuestion) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading question...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.innerContainer}>
+        {/* Progress Indicator */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressText}>
+              Question {selectedIndex + 1} of {quiz.length}
+            </Text>
+            <Text style={styles.progressPercent}>
+              {Math.round(progress * 100)}%
+            </Text>
+          </View>
+          <View style={styles.progressBarContainer}>
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
+            />
+          </View>
+        </View>
+
+        {/* Quiz Card */}
+        <View style={styles.quizContainer}>
+          <View style={styles.questionSection}>
+            <View style={styles.questionHeader}>
+              <View style={styles.questionNumberBadge}>
+                <Text style={styles.questionNumberText}>
+                  {selectedIndex + 1}
+                </Text>
+              </View>
+              <Text style={styles.quizTitle}>Assessment Question</Text>
+            </View>
+            <Text style={styles.qText}>{currentQuestion.questionText}</Text>
+          </View>
+
+          {/* Answer Options */}
+          <View style={styles.answers}>
+            {currentQuestion.options?.map((opt, i) => {
+              const isSelected = selectedAnsIndex === i;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.ansRow, isSelected && styles.selectedAnsRow]}
+                  onPress={() => {
+                    selectOption(i);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.ansRowContent}>
+                    {/* Radio Button */}
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        isSelected && styles.radioOuterSelected,
+                      ]}
+                    >
+                      {isSelected && (
+                        <Icon name="check" size={12} color="#FFF" />
+                      )}
+                    </View>
+
+                    {/* Answer Text */}
+                    <Text
+                      style={[
+                        styles.ansText,
+                        isSelected && styles.ansTextSelected,
+                      ]}
+                    >
+                      {opt.optionText}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Footer with Navigation */}
+          <View style={styles.quizFooter}>
+            <TouchableOpacity
+              disabled={selectedAnsIndex === undefined}
+              style={[
+                styles.nextQButton,
+                selectedAnsIndex === undefined && styles.nextQButtonDisabled,
+              ]}
+              onPress={() => {
+                const currentAnswer: FinalAnswer = {
+                  question: currentQuestion,
+                  yourAnswer: currentQuestion.options[selectedAnsIndex!],
+                };
+
+                if (selectedIndex + 1 === quiz.length) {
+                  const finalAnswersWithLast = [...answers, currentAnswer];
+                  navigation.navigate("SummaryPage", {
+                    techniqueId,
+                    techniqueName,
+                    finalAnswers: finalAnswersWithLast,
+                  });
+                } else {
+                  setAnswers((old) => [...old, currentAnswer]);
+                  resetOptionSelection();
+                  nextQuestion();
+                }
+              }}
+            >
+              <Text style={styles.nextQText}>
+                {selectedIndex + 1 === quiz.length
+                  ? "Submit Quiz"
+                  : "Next Question"}
+              </Text>
+              <Icon
+                name={
+                  selectedIndex + 1 === quiz.length
+                    ? "check-circle"
+                    : "arrow-right"
+                }
+                size={16}
+                color="#FFF"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Info Banner */}
+        <View style={styles.quizInfo}>
+          <Icon
+            solid
+            size={18}
+            name="info-circle"
+            color={theme.colors.library.blue[400]}
+          />
+          <Text style={styles.quizInfoText}>
+            Practice will be marked complete after quiz submission
+          </Text>
+        </View>
+      </View>
+    </CustomScrollView>
   );
 };
 
 export default QuizPage;
 
 const styles = StyleSheet.create({
-  innerContainer: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
     gap: 16,
   },
+  loadingText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+  },
+  emptyTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+    marginTop: 16,
+  },
+  emptyText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+  },
+  scrollContent: {
+    padding: 16,
+    flexGrow: 1,
+  },
+  innerContainer: {
+    gap: 20,
+  },
+  // Progress Section
+  progressSection: {
+    gap: 10,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "600",
+  },
+  progressPercent: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.library.orange[500],
+    fontWeight: "700",
+  },
+  progressBarContainer: {
+    height: 6,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface.disabled,
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 8,
+  },
+  // Quiz Container
+  quizContainer: {
+    gap: 24,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface.elevated,
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  questionSection: {
+    gap: 16,
+  },
+  questionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  questionNumberBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.library.orange[100],
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  questionNumberText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.library.orange[500],
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  quizTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    fontSize: 11,
+  },
+  qText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    lineHeight: 28,
+    fontWeight: "600",
+  },
+  // Answers
+  answers: {
+    gap: 12,
+  },
+  ansRow: {
+    padding: 18,
+    borderWidth: 2,
+    borderRadius: 12,
+    borderColor: theme.colors.border.default,
+    backgroundColor: theme.colors.surface.default,
+  },
+  selectedAnsRow: {
+    borderColor: theme.colors.library.orange[400],
+    backgroundColor: theme.colors.library.orange[100],
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  ansRowContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.border.default,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface.default,
+  },
+  radioOuterSelected: {
+    borderColor: theme.colors.library.orange[500],
+    backgroundColor: theme.colors.library.orange[500],
+  },
+  ansText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    flex: 1,
+    lineHeight: 22,
+  },
+  ansTextSelected: {
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+  // Footer
+  quizFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingTop: 8,
+  },
+  nextQButton: {
+    backgroundColor: theme.colors.library.orange[500],
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  nextQButtonDisabled: {
+    backgroundColor: theme.colors.surface.disabled,
+    opacity: 0.5,
+  },
+  nextQText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  // Info Banner
   quizInfo: {
     flexDirection: "row",
     alignItems: "center",
@@ -146,74 +447,13 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 12,
     backgroundColor: theme.colors.library.blue[100],
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.library.blue[400],
   },
   quizInfoText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.blue[400],
-    flexShrink: 1,
-  },
-  quizContainer: {
-    gap: 24,
-    padding: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  quizTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: 600,
-  },
-  qAndA: {
-    gap: 12,
-  },
-  qText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  answers: {
-    gap: 12,
-  },
-  ansRow: {
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: theme.colors.border.default,
-  },
-  selectedAnsRow: {
-    borderColor: theme.colors.border.selected,
-  },
-  ansText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  quizFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  quizQCountText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  nextQButton: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  nextQButtonDisabled: {
-    backgroundColor: theme.colors.surface.disabled,
-    opacity: 1,
-    elevation: 0, // Android
-    shadowColor: "transparent", // iOS
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  },
-  nextQText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.onDark,
+    color: theme.colors.library.blue[500],
+    flexShrink: 1,
+    lineHeight: 20,
   },
 });
