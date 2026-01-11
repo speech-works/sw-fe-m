@@ -105,7 +105,6 @@ const SunshineOverlay: React.FC = () => {
   const sunGlow = useSharedValue(1);
   const sunOpacity = useSharedValue(1);
   const sunRise = useSharedValue(100); // Start below visible area
-  const treeShimmer = useSharedValue(0.7);
 
   useEffect(() => {
     // Sun rises from bottom to final position over 3 seconds
@@ -136,28 +135,12 @@ const SunshineOverlay: React.FC = () => {
         false
       );
     }, 3000); // Start glow after sunrise completes
-
-    // Trees shimmer in sun's light
-    treeShimmer.value = withRepeat(
-      withSequence(
-        withTiming(0.85, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0.7, { duration: 2500, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      false
-    );
   }, []);
 
   const sunStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: sunGlow.value }, { translateY: sunRise.value }],
       opacity: sunOpacity.value,
-    };
-  });
-
-  const treeStyle = useAnimatedStyle(() => {
-    return {
-      opacity: treeShimmer.value,
     };
   });
 
@@ -192,7 +175,7 @@ const SunshineOverlay: React.FC = () => {
       </Animated.View>
 
       {/* Dense Forest - taller trees, in front of sun */}
-      <Animated.View style={[styles.forestContainer, treeStyle]}>
+      <Animated.View style={styles.forestContainer}>
         <Svg
           width={width}
           height={120}
@@ -231,28 +214,24 @@ const SunshineOverlay: React.FC = () => {
           <Path
             d={`M${0} 120 L ${width * 0.15} 18 L ${width * 0.3} 120 Z`}
             fill="#14532D"
-            opacity={0.85}
           />
           <Path
             d={`M${width * 0.25} 120 L ${width * 0.4} 14 L ${
               width * 0.55
             } 120 Z`}
             fill="#14532D"
-            opacity={0.85}
           />
           <Path
             d={`M${width * 0.5} 120 L ${width * 0.65} 16 L ${
               width * 0.8
             } 120 Z`}
             fill="#14532D"
-            opacity={0.85}
           />
           <Path
             d={`M${width * 0.75} 120 L ${width * 0.9} 12 L ${
               width * 1.05
             } 120 Z`}
             fill="#14532D"
-            opacity={0.85}
           />
 
           {/* Foreground Trees - brightest, catching sunlight */}
@@ -261,21 +240,18 @@ const SunshineOverlay: React.FC = () => {
               width * 0.35
             } 120 Z`}
             fill="#15803D"
-            opacity={0.9}
           />
           <Path
             d={`M${width * 0.4} 120 L ${width * 0.55} 22 L ${
               width * 0.7
             } 120 Z`}
             fill="#16A34A"
-            opacity={0.9}
           />
           <Path
             d={`M${width * 0.65} 120 L ${width * 0.8} 25 L ${
               width * 0.95
             } 120 Z`}
             fill="#15803D"
-            opacity={0.9}
           />
         </Svg>
       </Animated.View>
