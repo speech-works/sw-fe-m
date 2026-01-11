@@ -181,11 +181,12 @@ const TechniquePage = () => {
             <TouchableOpacity
               style={styles.infoButton}
               onPress={() => setIsModalVisible(true)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Icon
-                name="question"
-                size={14}
-                color={theme.colors.library.orange[500]}
+                name="info-circle"
+                size={16}
+                color={theme.colors.text.subtitle}
               />
             </TouchableOpacity>
           </View>
@@ -308,32 +309,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
   headerTitle: {
-    ...parseTextStyle(theme.typography.Heading2), // Larger premium title
+    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    position: "absolute",
+    left: 0,
+    right: 0,
     textAlign: "center",
-    flex: 1,
-    fontSize: 20, // Override if Heading2 is too big for title bar
+    fontSize: 18,
     fontWeight: "700",
+    marginTop: 2,
   },
   infoButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,247,237,0.8)", // Orange tint
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
-    borderColor: theme.colors.library.orange[200],
+    borderColor: "rgba(0,0,0,0.05)",
   },
 
   // Stepper

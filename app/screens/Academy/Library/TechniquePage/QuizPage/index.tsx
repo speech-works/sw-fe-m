@@ -228,20 +228,16 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
                 }
               }}
             >
-              <Text style={styles.nextQText}>
+              <Text
+                style={[
+                  styles.nextQText,
+                  selectedAnsIndex === undefined && styles.nextQTextDisabled,
+                ]}
+              >
                 {selectedIndex + 1 === quiz.length
                   ? "Submit Quiz"
                   : "Next Question"}
               </Text>
-              <Icon
-                name={
-                  selectedIndex + 1 === quiz.length
-                    ? "check-circle"
-                    : "arrow-right"
-                }
-                size={16}
-                color="#FFF"
-              />
             </TouchableOpacity>
           </View>
         </View>
@@ -297,7 +293,8 @@ const styles = StyleSheet.create({
   },
   // Progress Section
   progressSection: {
-    gap: 10,
+    gap: 12,
+    paddingHorizontal: 4,
   },
   progressHeader: {
     flexDirection: "row",
@@ -308,96 +305,124 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
     fontWeight: "600",
+    fontSize: 13,
   },
   progressPercent: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.library.orange[500],
-    fontWeight: "700",
+    fontWeight: "800",
+    fontSize: 14,
   },
   progressBarContainer: {
-    height: 6,
+    height: 8,
     borderRadius: 8,
     overflow: "hidden",
-    backgroundColor: theme.colors.surface.disabled,
+    backgroundColor: "rgba(0,0,0,0.06)",
   },
   progressBarFill: {
     height: "100%",
     borderRadius: 8,
   },
-  // Quiz Container
+  // Quiz Container - Modern Gradient Card
   quizContainer: {
-    gap: 24,
-    padding: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    gap: 28,
+    padding: 28,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    position: "relative",
+    overflow: "hidden",
+    shadowColor: theme.colors.library.orange[300],
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
   },
   questionSection: {
-    gap: 16,
+    gap: 18,
+    zIndex: 1,
   },
   questionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
   },
   questionNumberBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.library.orange[100],
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.library.orange[500],
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: theme.colors.library.orange[500],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    transform: [{ rotate: "3deg" }],
   },
   questionNumberText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.orange[500],
-    fontWeight: "700",
-    fontSize: 14,
+    ...parseTextStyle(theme.typography.Body),
+    color: "#FFFFFF",
+    fontWeight: "900",
+    fontSize: 18,
   },
   quizTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "600",
+    color: theme.colors.library.orange[500],
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1.5,
     fontSize: 11,
   },
   qText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    lineHeight: 28,
-    fontWeight: "600",
+    lineHeight: 32,
+    fontWeight: "700",
+    fontSize: 22,
+    letterSpacing: -0.5,
   },
-  // Answers
+  // Answers - Premium Card Style
   answers: {
-    gap: 12,
+    gap: 14,
+    zIndex: 1,
   },
   ansRow: {
-    padding: 18,
+    padding: 20,
     borderWidth: 2,
-    borderRadius: 12,
-    borderColor: theme.colors.border.default,
-    backgroundColor: theme.colors.surface.default,
+    borderRadius: 16,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FAFAFA",
+    position: "relative",
+    overflow: "hidden",
   },
   selectedAnsRow: {
     borderColor: theme.colors.library.orange[400],
-    backgroundColor: theme.colors.library.orange[100],
-    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "#FFF7ED",
+    borderWidth: 2.5,
+    shadowColor: theme.colors.library.orange[400],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
   ansRowContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 16,
+    zIndex: 1,
   },
   radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: theme.colors.border.default,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2.5,
+    borderColor: "#D1D5DB",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.surface.default,
+    backgroundColor: "#FFFFFF",
   },
   radioOuterSelected: {
     borderColor: theme.colors.library.orange[500],
@@ -405,55 +430,75 @@ const styles = StyleSheet.create({
   },
   ansText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "#374151",
     flex: 1,
-    lineHeight: 22,
+    lineHeight: 24,
+    fontSize: 16,
+    fontWeight: "500",
   },
   ansTextSelected: {
-    color: theme.colors.text.title,
-    fontWeight: "600",
+    color: "#111827",
+    fontWeight: "700",
   },
   // Footer
   quizFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+    marginTop: 4,
+    zIndex: 1,
   },
   nextQButton: {
     backgroundColor: theme.colors.library.orange[500],
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   nextQButtonDisabled: {
-    backgroundColor: theme.colors.surface.disabled,
-    opacity: 0.5,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   nextQText: {
     ...parseTextStyle(theme.typography.Button),
     color: "#FFFFFF",
-    fontWeight: "700",
+    fontWeight: "800",
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
-  // Info Banner
+  nextQTextDisabled: {
+    color: "#9CA3AF",
+  },
+  // Info Banner - Subtle Modern Style
   quizInfo: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     padding: 16,
     gap: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.library.blue[100],
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.library.blue[400],
+    backgroundColor: "rgba(59, 130, 246, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.1)",
   },
   quizInfoText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.blue[500],
+    color: "#64748B",
     flexShrink: 1,
-    lineHeight: 20,
+    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
