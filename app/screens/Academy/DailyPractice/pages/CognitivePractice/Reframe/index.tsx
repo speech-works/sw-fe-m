@@ -157,11 +157,17 @@ const Reframe = () => {
             end={{ x: 1, y: 1 }}
             style={styles.cardHeaderGradient}
           >
-            {/* Rain/Sunshine Animation */}
+            {/* Rain/Sunshine Animation - Behind everything */}
             <RainOverlay
               showSunshine={!!(selectedReframe || writtenReframe.length > 0)}
             />
 
+            {/* Watermark - Behind buttons */}
+            <View style={styles.headerWatermark}>
+              <Icon name="cloud" size={96} color="rgba(255,255,255,0.15)" />
+            </View>
+
+            {/* Buttons - On top with higher z-index */}
             <View style={styles.headerTopRow}>
               <View style={styles.categoryPill}>
                 <Icon name="brain" size={12} color="#FFF" />
@@ -176,11 +182,6 @@ const Reframe = () => {
                 <Text style={styles.glassButtonText}>Shuffle</Text>
                 <Icon name="random" size={12} color="#FFF" />
               </TouchableOpacity>
-            </View>
-
-            {/* Watermark */}
-            <View style={styles.headerWatermark}>
-              <Icon name="cloud" size={96} color="rgba(255,255,255,0.15)" />
             </View>
           </LinearGradient>
 
@@ -342,6 +343,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    zIndex: 10, // Above rain/sunshine animation
+    position: "relative",
   },
   categoryPill: {
     flexDirection: "row",
