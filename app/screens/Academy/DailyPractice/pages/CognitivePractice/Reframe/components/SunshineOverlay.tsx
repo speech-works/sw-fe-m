@@ -7,6 +7,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  withDelay,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
@@ -16,33 +17,125 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
 const { width } = Dimensions.get("window");
+
+// Bird component - individual bird with wing flapping
+interface BirdProps {
+  delay: number;
+  yPosition: number;
+  duration: number;
+}
+
+const Bird: React.FC<BirdProps> = ({ delay, yPosition, duration }) => {
+  const translateX = useSharedValue(width + 50);
+  const wingFlap = useSharedValue(0);
+
+  useEffect(() => {
+    // Fly from right to left
+    translateX.value = withDelay(
+      delay,
+      withRepeat(
+        withTiming(-100, {
+          duration: duration,
+          easing: Easing.linear,
+        }),
+        -1,
+        false
+      )
+    );
+
+    // Wing flapping animation
+    wingFlap.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 250, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 250, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  const birdStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
+  const wingStyle = useAnimatedStyle(() => {
+    // More subtle wing flapping
+    return {
+      transform: [{ scaleY: 0.85 + wingFlap.value * 0.15 }],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          top: yPosition,
+          left: 0,
+        },
+        birdStyle,
+      ]}
+    >
+      <Animated.View style={wingStyle}>
+        <Svg width={12} height={8} viewBox="0 0 12 8">
+          {/* Realistic bird silhouette with curved wings */}
+          <Path
+            d="M 6,2 Q 3,0 1,1 Q 2,3 6,3.5 Q 10,3 11,1 Q 9,0 6,2 Z"
+            fill="#FFFFFF"
+            opacity={0.9}
+          />
+          {/* Small body */}
+          <Path
+            d="M 5.5,3 L 6.5,3 L 6.5,4 L 5.5,4 Z"
+            fill="#FFFFFF"
+            opacity={0.9}
+          />
+        </Svg>
+      </Animated.View>
+    </Animated.View>
+  );
+};
 
 const SunshineOverlay: React.FC = () => {
   const sunGlow = useSharedValue(1);
   const sunOpacity = useSharedValue(1);
+  const sunRise = useSharedValue(100); // Start below visible area
   const treeShimmer = useSharedValue(0.7);
 
   useEffect(() => {
-    // Pulsing sun glow effect - more pronounced breathing
-    sunGlow.value = withRepeat(
-      withSequence(
-        withTiming(1.3, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      false
-    );
+    // Sun rises from bottom to final position over 3 seconds
+    sunRise.value = withTiming(10, {
+      duration: 3000,
+      easing: Easing.out(Easing.cubic),
+    });
 
-    // Pulsing opacity for extra glow effect
-    sunOpacity.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0.85, { duration: 2000, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      false
-    );
+    // After rise completes, start pulsing glow effect
+    setTimeout(() => {
+      // Pulsing sun glow effect - more pronounced breathing
+      sunGlow.value = withRepeat(
+        withSequence(
+          withTiming(1.3, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        false
+      );
+
+      // Pulsing opacity for extra glow effect
+      sunOpacity.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.85, { duration: 2000, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        false
+      );
+    }, 3000); // Start glow after sunrise completes
 
     // Trees shimmer in sun's light
     treeShimmer.value = withRepeat(
@@ -57,7 +150,7 @@ const SunshineOverlay: React.FC = () => {
 
   const sunStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: sunGlow.value }],
+      transform: [{ scale: sunGlow.value }, { translateY: sunRise.value }],
       opacity: sunOpacity.value,
     };
   });
@@ -186,6 +279,23 @@ const SunshineOverlay: React.FC = () => {
           />
         </Svg>
       </Animated.View>
+
+      {/* Flying Birds - Multiple flocks */}
+      {/* Flock 1 - Top */}
+      <Bird delay={0} yPosition={20} duration={15000} />
+      <Bird delay={500} yPosition={25} duration={15500} />
+      <Bird delay={1000} yPosition={18} duration={14800} />
+
+      {/* Flock 2 - Middle */}
+      <Bird delay={3000} yPosition={45} duration={16000} />
+      <Bird delay={3500} yPosition={50} duration={16200} />
+      <Bird delay={4000} yPosition={42} duration={15800} />
+      <Bird delay={4500} yPosition={48} duration={16100} />
+
+      {/* Flock 3 - Lower */}
+      <Bird delay={7000} yPosition={70} duration={17000} />
+      <Bird delay={7600} yPosition={75} duration={17200} />
+      <Bird delay={8200} yPosition={68} duration={16800} />
     </View>
   );
 };
