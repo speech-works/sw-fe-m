@@ -20,7 +20,7 @@ import {
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { useUserStore } from "../../../../../../stores/user";
-import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
+import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 
@@ -153,16 +153,16 @@ const ExpressYourself = ({
             <View style={styles.iconContainer}>
               <MaterialIcon
                 name={config.icon}
-                size={40}
+                size={32}
                 color={config.iconColor}
                 style={{ opacity: 0.2 }}
               />
             </View>
           </View>
 
-          {/* Interaction Card (White Surface) */}
-          <View style={styles.card}>
-            {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
+          {/* Interaction Section */}
+          {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
+            <View style={styles.card}>
               <TextInput
                 style={styles.textInput}
                 multiline
@@ -171,42 +171,38 @@ const ExpressYourself = ({
                 value={writtenText}
                 onChangeText={setWrittenText}
               />
-            ) : (
-              <View style={styles.recorderWrapper}>
-                <VoiceRecorder
-                  onRecorded={(uri) => setVoiceRecordingUri(uri)}
-                  prevRecordingUri={voiceRecordingUri || undefined}
-                />
-              </View>
-            )}
-
-            {/* Action Button (Vibrant Pill inside Card) */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleSubmit}
-              disabled={
-                expressionType === EXPRESSION_TYPE_ENUM.WRITE
-                  ? writtenText.length < 1
-                  : !voiceRecordingUri
-              }
-              style={[
-                styles.buttonContainer,
-                (expressionType === EXPRESSION_TYPE_ENUM.WRITE
-                  ? writtenText.length < 1
-                  : !voiceRecordingUri) && styles.disabledButtonContainer,
-              ]}
-            >
-              <LinearGradient
-                colors={config.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
+              {/* Action Button for Write mode */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleSubmit}
+                disabled={writtenText.length < 1}
+                style={[
+                  styles.buttonContainer,
+                  writtenText.length < 1 && styles.disabledButtonContainer,
+                ]}
               >
-                <Text style={styles.submitText}>Let it out</Text>
-                <Icon name="arrow-right" size={14} color="#FFF" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+                <LinearGradient
+                  colors={config.buttonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.submitText}>Let it out</Text>
+                  <Icon name="arrow-right" size={14} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.recorderSection}>
+              <Text style={styles.recorderHint}>Ready to record</Text>
+              <SmartRecorder
+                onRecorded={(uri) => setVoiceRecordingUri(uri)}
+                prevRecordingUri={voiceRecordingUri || undefined}
+                onSubmit={handleSubmit}
+                onDiscard={() => setVoiceRecordingUri(null)}
+              />
+            </View>
+          )}
         </LinearGradient>
       </BottomSheetModal>
     </View>
@@ -218,8 +214,7 @@ export default ExpressYourself;
 const styles = StyleSheet.create({
   container: {
     padding: 24,
-    paddingBottom: 40,
-    minHeight: 400,
+    paddingBottom: 24,
     position: "relative",
     borderRadius: 24,
     overflow: "hidden",
@@ -246,26 +241,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: 16,
     zIndex: 1,
   },
   headerTextContainer: {
     flex: 1,
-    paddingRight: 16,
+    paddingRight: 12,
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 28,
-    marginBottom: 8,
+    fontSize: 22,
+    marginBottom: 4,
   },
   headerSubtitle: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.library.gray[500],
-    lineHeight: 22,
+    lineHeight: 20,
+    fontSize: 14,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
+    width: 48,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
     transform: [{ rotate: "-15deg" }],
@@ -286,9 +282,16 @@ const styles = StyleSheet.create({
     color: theme.colors.library.gray[800],
     fontSize: 18,
   },
-  recorderWrapper: {
-    alignItems: "center",
-    paddingVertical: 12,
+  recorderSection: {
+    gap: 16,
+    zIndex: 2,
+    paddingBottom: 10,
+  },
+  recorderHint: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    opacity: 0.7,
   },
   buttonContainer: {
     borderRadius: 20,

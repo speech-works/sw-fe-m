@@ -75,6 +75,7 @@ const moodContentMap = {
           </View>
         ),
         action: "StoryPractice", // route name placeholder
+        gradientColors: [theme.colors.library.orange[400], "#F43F5E"] as const,
       },
       {
         title: "Roleplay Session",
@@ -95,6 +96,7 @@ const moodContentMap = {
           </View>
         ),
         action: "RoleplayPracticeStack",
+        gradientColors: ["#34D399", "#059669"] as const,
       },
     ],
   },
@@ -123,6 +125,7 @@ const moodContentMap = {
           </View>
         ),
         action: "BreathingPractice",
+        gradientColors: ["#A78BFA", "#7C3AED"] as const,
       },
       {
         title: "Stress Relief Session",
@@ -143,6 +146,10 @@ const moodContentMap = {
           </View>
         ),
         action: "MeditationPractice",
+        gradientColors: [
+          theme.colors.library.green[400],
+          theme.colors.library.green[600],
+        ] as const,
       },
     ],
   },
@@ -171,6 +178,10 @@ const moodContentMap = {
           </View>
         ),
         action: "ReframePractice",
+        gradientColors: [
+          theme.colors.library.blue[400],
+          theme.colors.library.blue[600],
+        ] as const,
       },
       {
         title: "Fearlessness Session",
@@ -191,6 +202,10 @@ const moodContentMap = {
           </View>
         ),
         action: "MeditationPractice",
+        gradientColors: [
+          theme.colors.library.green[400],
+          theme.colors.library.green[600],
+        ] as const,
       },
     ],
   },
@@ -219,6 +234,10 @@ const moodContentMap = {
           </View>
         ),
         action: "ReframePractice",
+        gradientColors: [
+          theme.colors.library.blue[400],
+          theme.colors.library.blue[600],
+        ] as const,
       },
       {
         title: "Body scan meditation",
@@ -239,6 +258,10 @@ const moodContentMap = {
           </View>
         ),
         action: "MeditationPractice",
+        gradientColors: [
+          theme.colors.library.green[400],
+          theme.colors.library.green[600],
+        ] as const,
       },
     ],
   },
@@ -341,6 +364,7 @@ const FollowUp = () => {
                       title={item.title}
                       description={item.description}
                       icon={item.icon}
+                      gradientColors={item.gradientColors}
                       onPress={() => {
                         navigation.navigate({
                           name: item.action as any,
@@ -449,7 +473,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   container: {
-    gap: 32,
+    gap: 16,
     flex: 1,
   },
   innerContainer: {
@@ -471,7 +495,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    marginBottom: 24,
   },
   backButton: {
     width: 32,
