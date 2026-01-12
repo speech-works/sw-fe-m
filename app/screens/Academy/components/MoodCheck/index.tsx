@@ -284,7 +284,11 @@ const MoodCheck = () => {
               <TouchableOpacity
                 key={emo.id}
                 onPress={() => {
-                  flatListRef.current?.scrollToIndex({ index, animated: true });
+                  flatListRef.current?.scrollToIndex({
+                    index,
+                    animated: true,
+                    viewPosition: 0.5, // Center the item
+                  });
                 }}
                 style={[
                   styles.moodPill,
