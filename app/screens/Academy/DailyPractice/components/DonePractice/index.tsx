@@ -15,7 +15,6 @@ import {
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
-import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
 import Reminder from "../Reminder";
 
 const { width } = Dimensions.get("window");
@@ -35,14 +34,16 @@ const DonePractice = () => {
       </View>
 
       <View style={styles.content}>
-        {/* Animated Face */}
-        <View style={styles.faceContainer}>
-          {/* Subtle Glow behind the face */}
+        {/* Checkmark */}
+        <View style={styles.checkmarkContainer}>
           <LinearGradient
-            colors={["rgba(251, 146, 60, 0.2)", "transparent"]}
-            style={styles.glow}
-          />
-          <StorytellerFace size={160} shouldAnimate loop />
+            colors={["#10B981", "#059669"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.checkmarkCircle}
+          >
+            <Icon name="check" size={60} color="#FFFFFF" />
+          </LinearGradient>
         </View>
 
         {/* Success Text */}
@@ -123,20 +124,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     gap: 40,
   },
-  faceContainer: {
+  checkmarkContainer: {
     padding: 24,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
   },
-  glow: {
-    position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -100 }, { translateY: -100 }],
+  checkmarkCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   textContainer: {
     alignItems: "center",
