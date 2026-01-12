@@ -7,11 +7,14 @@ import {
   Animated,
   StatusBar,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import ScreenView from "../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../components/CustomScrollView";
+
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../../Theme/tokens";
@@ -121,6 +124,21 @@ const Library = () => {
 
   // Header Elevation Animation based on scroll
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Enable LayoutAnimation on Android
+  useEffect(() => {
+    if (
+      Platform.OS === "android" &&
+      UIManager.setLayoutAnimationEnabledExperimental
+    ) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
+  // Trigger animation when filter changes
+  useEffect(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [activeFilter]);
 
   useEffect(() => {
     const fetchLibraryDetails = async () => {
@@ -508,8 +526,6 @@ const Library = () => {
 };
 
 export default Library;
-
-import { Platform } from "react-native";
 
 const styles = StyleSheet.create({
   screenView: {

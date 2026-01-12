@@ -255,13 +255,9 @@ const TechniquePage = () => {
             />
           </View>
 
-          {/* Icon Bubble */}
-          <View style={styles.modalIconBubble}>
-            <Icon
-              name={techniqueIcon}
-              size={32}
-              color={theme.colors.library.orange[500]}
-            />
+          {/* Therapist Face */}
+          <View style={styles.modalFaceContainer}>
+            <TherapistFace width={120} height={120} />
           </View>
 
           <View style={styles.modalTitleContainer}>
@@ -375,19 +371,8 @@ const styles = StyleSheet.create({
     top: -30,
     zIndex: 0,
   },
-  modalIconBubble: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    shadowColor: theme.colors.library.orange[300],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+  modalFaceContainer: {
+    marginBottom: 20,
     zIndex: 1,
   },
   modalTitleContainer: {
