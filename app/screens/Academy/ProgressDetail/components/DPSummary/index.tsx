@@ -45,7 +45,10 @@ const DPSummary = () => {
     EXPOSURE_PRACTICE: "#34D399",
   };
 
-  const gradients: Record<ContentTypeKey, string[]> = {
+  const gradients: Record<
+    ContentTypeKey,
+    readonly [string, string, ...string[]]
+  > = {
     READING_PRACTICE: ["#FBBF24", "#F59E0B"],
     COGNITIVE_PRACTICE: ["#FB923C", "#F97316"],
     FUN_PRACTICE: ["#60A5FA", "#3B82F6"],
@@ -138,9 +141,6 @@ const DPSummary = () => {
               {/* Chart with 3D effect */}
               <View style={styles.chartWrapper}>
                 <View style={styles.chartArea}>
-                  {/* 3D Shadow effect - Moved inside for correct alignment */}
-                  <View style={styles.chartShadow3D} />
-
                   <PieChart
                     data={chartData.map((item) => ({
                       name: item.name,
@@ -149,7 +149,7 @@ const DPSummary = () => {
                       legendFontColor: "#FFFFFF",
                       legendFontSize: 16,
                     }))}
-                    width={screenWidth - 90}
+                    width={280}
                     height={280}
                     chartConfig={{
                       backgroundColor: "transparent",
@@ -161,7 +161,7 @@ const DPSummary = () => {
                     }}
                     accessor={"population"}
                     backgroundColor={"transparent"}
-                    paddingLeft={"0"}
+                    paddingLeft={"70"}
                     hasLegend={false}
                     center={[0, 0]}
                     absolute
@@ -184,16 +184,16 @@ const DPSummary = () => {
                     const midAngle = startAngle + sliceAngle / 2;
 
                     // Convert to radians
+                    // -90 degrees because chart starts at 12 o'clock, but 0 degrees in trig is 3 o'clock
                     const angleRad = ((midAngle - 90) * Math.PI) / 180;
 
                     // Chart dimensions
-                    const chartWidth = screenWidth - 90;
-                    const chartHeight = 280;
-                    const centerX = chartWidth / 2;
-                    const centerY = chartHeight / 2;
+                    const chartSize = 280;
+                    const centerX = chartSize / 2;
+                    const centerY = chartSize / 2;
 
-                    // Fixed radius in pixels (placing labels inside the slices)
-                    const labelRadius = 70;
+                    // Radius for label placement
+                    const labelRadius = chartSize / 3.5;
 
                     const x = centerX + labelRadius * Math.cos(angleRad);
                     const y = centerY + labelRadius * Math.sin(angleRad);
@@ -221,7 +221,7 @@ const DPSummary = () => {
             ) as ContentTypeKey;
             const gradient = contentType
               ? gradients[contentType]
-              : ["#E5E7EB", "#D1D5DB"];
+              : (["#E5E7EB", "#D1D5DB"] as const);
             const icon = contentType ? icons[contentType] : "circle";
 
             return (
@@ -271,11 +271,7 @@ const DPSummary = () => {
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Icon
-            name="chart-pie"
-            size={48}
-            color={theme.colors.text.placeholder}
-          />
+          <Icon name="chart-pie" size={48} color={theme.colors.text.default} />
           <Text style={styles.emptyText}>No practice data available</Text>
           <Text style={styles.emptySubtext}>
             Complete some practices to see your distribution
@@ -356,20 +352,11 @@ const styles = StyleSheet.create({
     position: "relative",
     paddingVertical: 30,
   },
-  chartShadow3D: {
-    position: "absolute",
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: "rgba(0, 0, 0, 0.08)",
-    top: 30, // Vertically centered with offset: (280-240)/2 + 10
-    left: (screenWidth - 90 - 240) / 2, // Center horizontally in chartArea
-    zIndex: -1,
-  },
   chartArea: {
     position: "relative",
-    width: screenWidth - 90,
+    width: 280,
     height: 280,
+    alignSelf: "center",
   },
   percentageBadge: {
     position: "absolute",
