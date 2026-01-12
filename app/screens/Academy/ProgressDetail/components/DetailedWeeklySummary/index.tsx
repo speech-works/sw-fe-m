@@ -11,6 +11,7 @@ import { DetailedWeeklySummaryResponse } from "../../../../../api/progressReport
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { format, addDays, startOfWeek } from "date-fns";
 import * as Localization from "expo-localization";
+import { LinearGradient } from "expo-linear-gradient";
 
 export const formatDelta = (delta: number, unit: string) => {
   const value = delta.toFixed(1);
@@ -52,54 +53,147 @@ const DetailedWeeklySummary = () => {
     return `${format(start, "MMM d")} – ${format(end, "MMM d")}`;
   };
 
+  // Format comparison stats
+  const formatChange = (change: number) => {
+    if (change === 0) return null;
+    let displayed = Math.abs(Math.round(change));
+    if (change < 0 && displayed >= 100) displayed = 99;
+
+    return {
+      text: `${displayed}%`,
+      isPositive: change >= 0,
+    };
+  };
+
+  const minutesStats = weeklyData
+    ? formatChange(weeklyData.percentagePracticeMinutesChange)
+    : null;
+  const sessionsStats = weeklyData
+    ? formatChange(weeklyData.percentageSessionsChange)
+    : null;
+
   return (
-    <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.titleText}>Weekly Summary</Text>
-          <Text style={styles.dateRangeText}>{getWeekRangeLabel()}</Text>
-        </View>
-        <Icon
-          name="calendar-alt"
-          size={20}
-          color={theme.colors.library.green[400]}
-        />
-      </View>
+    <View style={styles.shadowContainer}>
+      <LinearGradient
+        colors={["#8B5CF6", "#6D28D9"]} // Purple gradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        {/* Watermark Bubbles */}
+        <View style={styles.bubbleTopRight} />
+        <View style={styles.bubbleBottomLeft} />
 
-      {weeklyData ? (
-        <View style={styles.row}>
-          {/* Practice Time */}
-          <View style={styles.column}>
-            <Text style={styles.valueText}>
-              {weeklyData.totalPracticeMinutes < 60
-                ? `${weeklyData.totalPracticeMinutes}m`
-                : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
-            </Text>
-            <Text style={styles.labelText}>Practice Time</Text>
-            {formatDelta(weeklyData.percentagePracticeMinutesChange, "%")}
+        {/* Calendar Icon Watermark */}
+        <View style={styles.calendarWatermark}>
+          <Icon
+            name="calendar-week"
+            size={140}
+            color="rgba(255,255,255,0.08)"
+          />
+        </View>
+
+        {/* Content Layer */}
+        <View style={styles.contentLayer}>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.headerLabel}>WEEKLY SUMMARY</Text>
+              <Text style={styles.dateRangeText}>{getWeekRangeLabel()}</Text>
+            </View>
+            <Icon name="chart-line" size={20} color="rgba(255,255,255,0.9)" />
           </View>
 
-          <View style={styles.divider} />
+          {/* Stats Badges */}
+          {weeklyData ? (
+            <View style={styles.statsRow}>
+              {/* Practice Time Badge */}
+              <View style={styles.statBadge}>
+                <Icon name="clock" size={18} color="rgba(255,255,255,0.9)" />
+                <View style={styles.statContent}>
+                  <View style={styles.statValueRow}>
+                    <Text style={styles.statNumber}>
+                      {weeklyData.totalPracticeMinutes < 60
+                        ? `${weeklyData.totalPracticeMinutes}m`
+                        : `${(weeklyData.totalPracticeMinutes / 60).toFixed(
+                            1
+                          )}h`}
+                    </Text>
+                    {minutesStats && (
+                      <View
+                        style={[
+                          styles.comparisonPill,
+                          {
+                            backgroundColor: "rgba(255, 255, 255, 0.35)",
+                            borderWidth: 1,
+                            borderColor: "rgba(255, 255, 255, 0.2)",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.comparisonText,
+                            {
+                              color: minutesStats.isPositive
+                                ? "#047857"
+                                : "#991B1B",
+                            },
+                          ]}
+                        >
+                          {minutesStats.isPositive ? "↑" : "↓"}{" "}
+                          {minutesStats.text}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.statLabel}>Practice Time</Text>
+                </View>
+              </View>
 
-          {/* Sessions */}
-          <View style={styles.column}>
-            <Text style={styles.valueText}>{weeklyData.totalSessions}</Text>
-            <Text style={styles.labelText}>Days in Week</Text>
-            {formatDelta(weeklyData.percentageSessionsChange, "%")}
-          </View>
-
-          {/* <View style={styles.divider} /> */}
-
-          {/* Avg Confidence – placeholder */}
-          {/* <View style={styles.column}>
-            <Text style={styles.valueText}>7.2</Text>
-            <Text style={styles.labelText}>Avg. Confidence</Text>
-            <Text style={styles.deltaPositive}>+0.5</Text>
-          </View> */}
+              {/* Sessions Badge */}
+              <View style={styles.statBadge}>
+                <Icon name="fire" size={18} color="rgba(255,255,255,0.9)" />
+                <View style={styles.statContent}>
+                  <View style={styles.statValueRow}>
+                    <Text style={styles.statNumber}>
+                      {weeklyData.totalSessions}
+                    </Text>
+                    {sessionsStats && (
+                      <View
+                        style={[
+                          styles.comparisonPill,
+                          {
+                            backgroundColor: "rgba(255, 255, 255, 0.35)",
+                            borderWidth: 1,
+                            borderColor: "rgba(255, 255, 255, 0.2)",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.comparisonText,
+                            {
+                              color: sessionsStats.isPositive
+                                ? "#047857"
+                                : "#991B1B",
+                            },
+                          ]}
+                        >
+                          {sessionsStats.isPositive ? "↑" : "↓"}{" "}
+                          {sessionsStats.text}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.statLabel}>Days Active</Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.loadingText}>Loading...</Text>
+          )}
         </View>
-      ) : (
-        <Text style={styles.loadingText}>Loading...</Text>
-      )}
+      </LinearGradient>
     </View>
   );
 };
@@ -107,56 +201,126 @@ const DetailedWeeklySummary = () => {
 export default DetailedWeeklySummary;
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 20,
-    borderRadius: 16,
-    gap: 16,
-    backgroundColor: theme.colors.background.light,
-    ...parseShadowStyle(theme.shadow.elevation1),
+  shadowContainer: {
+    borderRadius: 24,
+    shadowColor: "#8B5CF6",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    backgroundColor: "#DDD6FE",
+    overflow: "hidden",
+  },
+  gradient: {
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    minHeight: 180,
+    position: "relative",
+  },
+  // Watermark Bubbles
+  bubbleTopRight: {
+    position: "absolute",
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -50,
+    left: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  calendarWatermark: {
+    position: "absolute",
+    right: -40,
+    top: -20,
+    opacity: 0.6,
+  },
+  contentLayer: {
+    flex: 1,
+    justifyContent: "space-between",
+    zIndex: 1,
+    gap: 24,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginBottom: 8,
+  headerLabel: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 4,
   },
   dateRangeText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    marginBottom: 8,
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 14,
+    fontWeight: "500",
   },
-  row: {
+  statsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginTop: 8,
+    gap: 12,
+    justifyContent: "center",
   },
-  column: {
-    flex: 1,
+  statBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    flex: 1,
   },
-  valueText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+  statContent: {
+    gap: 2,
+    flex: 1,
   },
-  labelText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+  statValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+    flexWrap: "wrap",
   },
-  divider: {
-    width: 1,
-    backgroundColor: theme.colors.border.default,
-    marginHorizontal: 10,
-    alignSelf: "stretch",
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#FFF",
+    letterSpacing: -0.5,
+    lineHeight: 28,
+  },
+  comparisonPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  comparisonText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.75)",
   },
   loadingText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.9)",
     textAlign: "center",
-    marginTop: 8,
   },
 });
