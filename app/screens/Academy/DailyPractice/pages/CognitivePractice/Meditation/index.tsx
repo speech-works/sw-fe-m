@@ -362,7 +362,7 @@ const Meditation = () => {
   }
 
   if (isDone) {
-    return <DonePractice />;
+    return <DonePractice practiceName="meditation" />;
   }
 
   return (

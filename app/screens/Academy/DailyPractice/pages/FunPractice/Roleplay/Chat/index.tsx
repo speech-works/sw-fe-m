@@ -219,7 +219,7 @@ const Chat = () => {
   const bottomPadding = 400; // Space for the dock
 
   if (isDone) {
-    return <DonePractice />;
+    return <DonePractice practiceName="roleplay" />;
   }
 
   // Common Elements

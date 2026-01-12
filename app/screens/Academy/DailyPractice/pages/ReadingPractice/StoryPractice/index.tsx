@@ -154,7 +154,7 @@ const StoryPractice = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice />;
+    return <DonePractice practiceName="story practice" />;
   }
 
   // Pre-Practice (Tips) View

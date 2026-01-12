@@ -158,7 +158,7 @@ const QuotePractice = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice />;
+    return <DonePractice practiceName="quote practice" />;
   }
 
   // Pre-Practice (Tips) View

@@ -20,7 +20,11 @@ import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 
 const { width } = Dimensions.get("window");
 
-const DonePractice = () => {
+interface DonePracticeProps {
+  practiceName?: string;
+}
+
+const DonePractice = ({ practiceName = "practice" }: DonePracticeProps) => {
   const navigation = useNavigation<any>();
 
   return (
@@ -54,7 +58,7 @@ const DonePractice = () => {
         <View style={styles.textContainer}>
           <Text style={styles.titleText}>Great Job!</Text>
           <Text style={styles.descText}>
-            You've completed your daily story practice. Keep up the momentum!
+            You've completed your daily {practiceName}. Keep up the momentum!
           </Text>
         </View>
 

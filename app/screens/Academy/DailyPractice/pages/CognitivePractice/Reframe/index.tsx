@@ -121,7 +121,7 @@ const Reframe = () => {
   }, []);
 
   if (isDone) {
-    return <DonePractice />;
+    return <DonePractice practiceName="reframe practice" />;
   }
 
   const currentScenario = scenarios[selectedScenarioIndex];

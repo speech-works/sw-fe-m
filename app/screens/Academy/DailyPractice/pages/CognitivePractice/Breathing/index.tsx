@@ -207,7 +207,7 @@ const Breathing = () => {
   }
 
   if (isDone) {
-    return <DonePractice />;
+    return <DonePractice practiceName="breathing exercise" />;
   }
 
   return (

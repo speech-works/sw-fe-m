@@ -293,7 +293,7 @@ const Chat = () => {
   );
 
   if (isDone) {
-    return <DonePractice />;
+    return <DonePractice practiceName="social challenge" />;
   }
 
   return (

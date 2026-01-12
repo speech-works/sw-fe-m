@@ -277,7 +277,7 @@ const Twister = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice />;
+    return <DonePractice practiceName="tongue twister" />;
   }
 
   // 1. Pre-Practice (Tips) View

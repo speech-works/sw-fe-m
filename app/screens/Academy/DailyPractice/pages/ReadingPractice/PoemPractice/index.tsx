@@ -255,7 +255,7 @@ const PoemPractice = () => {
 
   // --- View: Done Practice ---
   if (practiceComplete) {
-    return <DonePractice />;
+    return <DonePractice practiceName="poem practice" />;
   }
 
   // --- View: Pre-Practice (Tips) ---
