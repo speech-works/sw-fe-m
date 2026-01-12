@@ -22,6 +22,7 @@ import { theme } from "../../../../../Theme/tokens";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { LinearGradient } from "expo-linear-gradient";
+import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 
 if (
   Platform.OS === "android" &&
@@ -64,6 +65,9 @@ const SummaryPage = () => {
 
   return (
     <ScreenView style={styles.screenView}>
+      {/* Confetti Animation */}
+      <ConfettiAnimation />
+
       <LinearGradient
         colors={["#FFF7ED", "#FFF", "#FFF"]}
         locations={[0, 0.4, 1]}

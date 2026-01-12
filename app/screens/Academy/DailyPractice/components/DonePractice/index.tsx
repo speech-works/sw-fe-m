@@ -16,6 +16,7 @@ import {
 } from "../../../../../util/functions/parseStyles";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import Reminder from "../Reminder";
+import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 
 const { width } = Dimensions.get("window");
 
@@ -24,6 +25,9 @@ const DonePractice = () => {
 
   return (
     <View style={styles.container}>
+      {/* Confetti Animation */}
+      <ConfettiAnimation />
+
       {/* Immersive Gradient Background */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
