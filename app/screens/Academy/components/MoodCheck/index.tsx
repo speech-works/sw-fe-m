@@ -10,6 +10,7 @@ import {
   NativeScrollEvent,
   Animated,
   PanResponder,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -30,7 +31,7 @@ import CalmFace from "../../../../assets/mood-check/CalmFace";
 import HappyFace from "../../../../assets/mood-check/HappyFace";
 import SadFace from "../../../../assets/mood-check/SadFace";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 // Data
 const emotions = [
@@ -64,9 +65,11 @@ const emotions = [
   },
 ];
 
-// Constants
+// Constants - Responsive sizing
 const ITEM_WIDTH = width * 0.6;
 const SPACING = (width - ITEM_WIDTH) / 2;
+const ICON_SIZE = Math.min(width * 0.45, 180); // Scale icon based on screen width, max 180
+const CAROUSEL_HEIGHT = Math.min(height * 0.28, 250); // Scale carousel based on screen height, max 250
 
 const MoodCheck = () => {
   const academyNavigation =
@@ -194,121 +197,130 @@ const MoodCheck = () => {
         <View style={{ width: 32 }} />
       </View>
 
-      <Text style={styles.questionText}>How are you feeling{"\n"}today?</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <Text style={styles.questionText}>How are you feeling{"\n"}today?</Text>
 
-      {/* Carousel */}
-      <View style={styles.carouselContainer}>
-        <Animated.FlatList
-          ref={flatListRef}
-          data={emotions}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={ITEM_WIDTH}
-          decelerationRate="fast"
-          contentContainerStyle={{
-            paddingHorizontal: SPACING,
-          }}
-          onScroll={handleScroll}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-          renderItem={({ item, index }) => {
-            const inputRange = [
-              (index - 1) * ITEM_WIDTH,
-              index * ITEM_WIDTH,
-              (index + 1) * ITEM_WIDTH,
-            ];
+        {/* Carousel */}
+        <View style={styles.carouselContainer}>
+          <Animated.FlatList
+            ref={flatListRef}
+            data={emotions}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={ITEM_WIDTH}
+            decelerationRate="fast"
+            contentContainerStyle={{
+              paddingHorizontal: SPACING,
+            }}
+            onScroll={handleScroll}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+            renderItem={({ item, index }) => {
+              const inputRange = [
+                (index - 1) * ITEM_WIDTH,
+                index * ITEM_WIDTH,
+                (index + 1) * ITEM_WIDTH,
+              ];
 
-            const scale = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.6, 1.1, 0.6], // Active item is larger
-              extrapolate: "clamp",
-            });
+              const scale = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.6, 1.1, 0.6], // Active item is larger
+                extrapolate: "clamp",
+              });
 
-            const opacity = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.4, 1, 0.4], // Active item is opaque
-              extrapolate: "clamp",
-            });
+              const opacity = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.4, 1, 0.4], // Active item is opaque
+                extrapolate: "clamp",
+              });
 
-            return (
-              <View
-                style={{
-                  width: ITEM_WIDTH,
-                  alignItems: "center",
-                  justifyContent: "center",
+              return (
+                <View
+                  style={{
+                    width: ITEM_WIDTH,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Animated.View style={{ transform: [{ scale }], opacity }}>
+                    <item.icon
+                      width={ICON_SIZE}
+                      height={ICON_SIZE}
+                      shouldAnimate={index === currentIndex}
+                    />
+                  </Animated.View>
+                </View>
+              );
+            }}
+          />
+        </View>
+
+        {/* Indicator Text */}
+        <View style={styles.feedbackContainer}>
+          <Text style={styles.feedbackLabel}>I'm Feeling</Text>
+          <Text
+            style={[
+              styles.feedbackValue,
+              { color: emotions[currentIndex].primaryColor },
+            ]}
+          >
+            {emotions[currentIndex].name}
+          </Text>
+        </View>
+
+        {/* Ruler */}
+        <Ruler />
+
+        {/* Bottom Tabs/Button */}
+        <View style={styles.bottomControls}>
+          <View style={styles.pillContainer}>
+            {emotions.map((emo, index) => (
+              <TouchableOpacity
+                key={emo.id}
+                onPress={() => {
+                  flatListRef.current?.scrollToIndex({ index, animated: true });
                 }}
-              >
-                <Animated.View style={{ transform: [{ scale }], opacity }}>
-                  <item.icon
-                    width={180}
-                    height={180}
-                    shouldAnimate={index === currentIndex}
-                  />
-                </Animated.View>
-              </View>
-            );
-          }}
-        />
-      </View>
-
-      {/* Indicator Text */}
-      <View style={styles.feedbackContainer}>
-        <Text style={styles.feedbackLabel}>I'm Feeling</Text>
-        <Text
-          style={[
-            styles.feedbackValue,
-            { color: emotions[currentIndex].primaryColor },
-          ]}
-        >
-          {emotions[currentIndex].name}
-        </Text>
-      </View>
-
-      {/* Ruler */}
-      <Ruler />
-
-      {/* Bottom Tabs/Button */}
-      <View style={styles.bottomControls}>
-        <View style={styles.pillContainer}>
-          {emotions.map((emo, index) => (
-            <TouchableOpacity
-              key={emo.id}
-              onPress={() => {
-                flatListRef.current?.scrollToIndex({ index, animated: true });
-              }}
-              style={[
-                styles.moodPill,
-                index === currentIndex && { backgroundColor: emo.primaryColor },
-              ]}
-            >
-              <Text
                 style={[
-                  styles.pillText,
+                  styles.moodPill,
                   index === currentIndex && {
-                    color: "white",
-                    fontWeight: "700",
+                    backgroundColor: emo.primaryColor,
                   },
                 ]}
               >
-                {emo.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.pillText,
+                    index === currentIndex && {
+                      color: "white",
+                      fontWeight: "700",
+                    },
+                  ]}
+                >
+                  {emo.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
 
-      {/* Main CTA */}
-      <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          { backgroundColor: emotions[currentIndex].primaryColor },
-        ]}
-        onPress={handleSelect}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.confirmButtonText}>Continue</Text>
-      </TouchableOpacity>
+        {/* Main CTA */}
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            { backgroundColor: emotions[currentIndex].primaryColor },
+          ]}
+          onPress={handleSelect}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.confirmButtonText}>Continue</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
@@ -319,7 +331,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    paddingTop: 60,
+    paddingTop: 32,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   header: {
     flexDirection: "row",
@@ -327,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    marginBottom: 24,
+    marginBottom: height * 0.02,
   },
   backButton: {
     width: 32,
@@ -348,36 +367,37 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading1),
     textAlign: "center",
     color: theme.colors.text.title,
-    marginBottom: 20,
+    marginBottom: height * 0.02,
     lineHeight: 40,
+    paddingHorizontal: 20,
   },
   carouselContainer: {
-    height: 250,
+    height: CAROUSEL_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: height * 0.02,
   },
   feedbackContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: height * 0.015,
   },
   feedbackLabel: {
-    fontSize: 18,
+    fontSize: Math.min(width * 0.045, 18),
     color: theme.colors.text.title,
     fontWeight: "500",
   },
   feedbackValue: {
-    fontSize: 20,
+    fontSize: Math.min(width * 0.05, 20),
     fontWeight: "800",
   },
   rulerContainer: {
     height: 60,
     width: "100%",
     justifyContent: "center",
-    marginBottom: 30,
+    marginBottom: height * 0.025,
     overflow: "hidden",
   },
   rulerTrack: {
@@ -405,7 +425,7 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: height * 0.025,
   },
   pillContainer: {
     flexDirection: "row",
@@ -413,23 +433,26 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 4,
     gap: 4,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    maxWidth: width - 40,
   },
   moodPill: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: Math.max(width * 0.035, 12),
     borderRadius: 24,
   },
   pillText: {
-    fontSize: 13,
+    fontSize: Math.min(width * 0.033, 13),
     color: theme.colors.text.default,
     fontWeight: "500",
   },
   confirmButton: {
     marginHorizontal: 32,
-    paddingVertical: 16,
+    paddingVertical: Math.max(height * 0.018, 14),
     borderRadius: 20,
     alignItems: "center",
-    marginBottom: 40,
+    marginTop: height * 0.02,
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   confirmButtonText: {
