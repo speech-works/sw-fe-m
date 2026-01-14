@@ -5,7 +5,9 @@ import { ClinicalDomain, UserBehaviorHistoricalTrend, UserBehaviorTrendsResponse
  * Fetches the user's clinical trends (scores and history) from the backend.
  * Endpoint: GET /trends
  */
-export const getUserBehaviorTrends = async (domain: ClinicalDomain): Promise<UserBehaviorTrendsResponse> => {
+export const getUserBehaviorTrends = async (
+  domain: ClinicalDomain
+): Promise<UserBehaviorTrendsResponse> => {
   try {
   const response = await axiosClient.get("/trends", { params: { domain } });
   return response.data;
