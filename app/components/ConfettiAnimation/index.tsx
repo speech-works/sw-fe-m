@@ -15,14 +15,14 @@ interface ConfettiPiece {
 }
 
 const COLORS = [
-  "#FF6B6B", // Red
-  "#4ECDC4", // Teal
-  "#45B7D1", // Blue
-  "#FFA07A", // Light Salmon
-  "#98D8C8", // Mint
-  "#F7DC6F", // Yellow
-  "#BB8FCE", // Purple
-  "#85C1E2", // Sky Blue
+  "#EF4444", // Vibrant Red
+  "#F97316", // Bright Orange
+  "#F59E0B", // Amber
+  "#10B981", // Emerald
+  "#06B6D4", // Cyan
+  "#3B82F6", // Blue
+  "#8B5CF6", // Violet
+  "#EC4899", // Pink
 ];
 
 const ConfettiAnimation = () => {

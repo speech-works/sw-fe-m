@@ -1,6 +1,7 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { MoodType } from "../../../api/moodCheck/types";
+import { PackModule } from "../../../api/packs/types";
 
 export type AcademyStackParamList = {
   Academy: undefined;
@@ -10,6 +11,7 @@ export type AcademyStackParamList = {
   ProgressDetailStack: undefined;
   Progress: undefined;
   PaymentStack: undefined;
+  PackModule: { module: PackModule; packId: string };
   MoodCheckStack:
     | { screen: "FollowUpStack"; params: { mood: MoodType } }
     | { screen: "CheckIn" };

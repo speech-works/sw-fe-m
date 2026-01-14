@@ -1,5 +1,11 @@
 import axiosClient from "../axiosClient";
-import { ClinicalDomain, UserBehaviorHistoricalTrend, UserBehaviorTrendsResponse } from "./types";
+import {
+  ClinicalDomain,
+  UserBehaviorHistoricalTrend,
+  UserBehaviorTrendsResponse,
+  GrowthProfile,
+  WeeklyBreakthroughs,
+} from "./types";
 
 /**
  * Fetches the user's clinical trends (scores and history) from the backend.
@@ -9,15 +15,16 @@ export const getUserBehaviorTrends = async (
   domain: ClinicalDomain
 ): Promise<UserBehaviorTrendsResponse> => {
   try {
-  const response = await axiosClient.get("/trends", { params: { domain } });
-  return response.data;
+    const response = await axiosClient.get("/trends", { params: { domain } });
+    return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-
-export const getUserBehaviorHistoricalTrend = async (domain: ClinicalDomain): Promise<UserBehaviorHistoricalTrend> => {
+export const getUserBehaviorHistoricalTrend = async (
+  domain: ClinicalDomain
+): Promise<UserBehaviorHistoricalTrend> => {
   const trends = await getUserBehaviorTrends(domain);
 
   // Safety check: ensure we received an array with data
@@ -26,8 +33,9 @@ export const getUserBehaviorHistoricalTrend = async (domain: ClinicalDomain): Pr
   }
 
   // 1. Sort by date descending (Newest -> Oldest) to identify the "current" score
-  const sortedTrends = [...trends].sort((a: any, b: any) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const sortedTrends = [...trends].sort(
+    (a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   const latestRecord = sortedTrends[0];
@@ -45,3 +53,22 @@ export const getUserBehaviorHistoricalTrend = async (domain: ClinicalDomain): Pr
     history: history,
   };
 };
+
+export const getGrowthProfile = async (): Promise<GrowthProfile> => {
+  try {
+    const response = await axiosClient.get("/users/me/growth-profile");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getWeeklyBreakthroughs =
+  async (): Promise<WeeklyBreakthroughs> => {
+    try {
+      const response = await axiosClient.get("/users/me/weekly-breakthroughs");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };

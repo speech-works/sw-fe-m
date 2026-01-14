@@ -13,25 +13,29 @@ import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import ResourceStats from "../Academy/components/ResourceStats";
 import { useUserStore } from "../../stores/user";
+import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { getMyUser } from "../../api/users";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 
 const Home = () => {
   const { setUser } = useUserStore();
+  const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const user = await getMyUser();
+      const [user] = await Promise.all([getMyUser(), fetchAllTrends()]);
       setUser(user);
+      setRefreshKey((prev) => prev + 1); // Triggers re-mount/refresh of child components if needed
     } catch (error) {
       console.error("Failed to refresh home:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [setUser]);
+  }, [setUser, fetchAllTrends]);
 
   return (
     <ScreenView style={styles.container}>
@@ -53,7 +57,7 @@ const Home = () => {
 
         <View style={{ height: 24 }} />
 
-        <SmartRecommendationCard />
+        <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
         <ClinicalStatsWidget />
       </ScrollView>

@@ -9,11 +9,13 @@ import {
 } from "react-native";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
-import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+import {
+  ClinicalDomain,
+  GrowthProfile,
+} from "../../api/userBehaviorTrends/types";
 import SkeletonLoader from "../SkeletonLoader";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, {
-  Polygon,
   Line,
   Circle,
   Text as SvgText,
@@ -26,54 +28,61 @@ import Svg, {
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
-  useAnimatedProps,
   withTiming,
   Easing,
-  withDelay,
   useAnimatedStyle,
   interpolate,
   Extrapolation,
 } from "react-native-reanimated";
 
-const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 // --- 1. Translation Map ---
 const METRIC_CONFIG: Record<
   ClinicalDomain,
-  { label: string; color: string; icon: string; description: string }
+  {
+    label: string;
+    color: string;
+    icon: string;
+    description: string;
+    profileKey: Exclude<keyof GrowthProfile, "lastUpdated">;
+  }
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
     color: "#4ADE80", // Modern Green
     icon: "shield-check",
     description: "Belief in your ability to speak freely.",
+    profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
     color: "#F472B6", // Modern Pink/Orange
     icon: "fire",
     description: "Facing situations without holding back.",
+    profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery", // Was Control
     color: "#60A5FA", // Modern Blue
     icon: "target",
     description: "Managing speech techniques effectively.",
+    profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease", // Was Flow
     color: "#A78BFA", // Modern Purple
     icon: "water",
     description: "Smoothness in daily communication.",
+    profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
     color: "#F87171", // Modern Red
     icon: "account-group",
     description: "Active participation in social life.",
+    profileKey: "social",
   },
 };
 
@@ -92,7 +101,8 @@ const POLAR_TO_CARTESIAN = (
 };
 
 const ClinicalStatsWidget = () => {
-  const { trends, fetchAllTrends, loading } = useUserBehaviorTrendsStore();
+  const { growthProfile, weeklyBreakthroughs, fetchAllTrends, loading, error } =
+    useUserBehaviorTrendsStore();
   const [selectedMetric, setSelectedMetric] = useState<ClinicalDomain | null>(
     null
   );
@@ -101,17 +111,20 @@ const ClinicalStatsWidget = () => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    fetchAllTrends();
+    // If not loaded, or stale logic (optional), fetch
+    if (!growthProfile) {
+      fetchAllTrends();
+    }
   }, []);
 
   useEffect(() => {
-    if (!loading && trends) {
+    if (!loading && growthProfile) {
       progress.value = withTiming(1, {
         duration: 1200,
         easing: Easing.out(Easing.exp),
       });
     }
-  }, [loading, trends]);
+  }, [loading, growthProfile]);
 
   const onShare = async () => {
     try {
@@ -123,123 +136,46 @@ const ClinicalStatsWidget = () => {
 
   // --- Data Logic ---
   const chartData = useMemo(() => {
-    if (!trends) return null;
+    if (!growthProfile) return null;
     const allDomains = Object.values(ClinicalDomain);
 
     const currentData = allDomains.map((domain) => {
-      const trend = trends[domain];
-      const latest = trend?.history[trend.history.length - 1]?.score ?? 50;
-      return 100 - latest;
+      const key = METRIC_CONFIG[domain].profileKey;
+      // The API returns values 0-100 directly where 100 is GOOD.
+      // Radar chart usually plots higher val = further out.
+      return growthProfile[key] || 50;
     });
 
-    const baselineData = allDomains.map((domain) => {
-      const trend = trends[domain];
-      const first = trend?.history[0]?.score ?? 50;
-      return 100 - first;
-    });
+    const baselineData = allDomains.map(() => 50); // Default middle if no baseline
 
     return { allDomains, currentData, baselineData };
-  }, [trends]);
+  }, [growthProfile]);
 
-  // --- Momentum Logic ---
-  const momentumWins = useMemo(() => {
-    if (!trends || !chartData) return [];
+  const width = Dimensions.get("window").width;
+  const CHART_WIDTH = width - 48; // Padding 24 * 2
+  const SIZE = 220;
+  const CENTER = SIZE / 2;
+  const RADIUS = SIZE / 2 - 30;
 
-    return chartData.allDomains
-      .map((domain, i) => {
-        const trend = trends[domain];
-        const historyReverse = trend?.history.slice().reverse() || [];
-
-        const thisWeekData = historyReverse
-          .slice(0, 7)
-          .map((h) => 100 - h.score);
-        const lastWeekData = historyReverse
-          .slice(7, 14)
-          .map((h) => 100 - h.score);
-
-        const thisWeekAvg = thisWeekData.length
-          ? thisWeekData.reduce((a, b) => a + b, 0) / thisWeekData.length
-          : 0;
-        const lastWeekAvg = lastWeekData.length
-          ? lastWeekData.reduce((a, b) => a + b, 0) / lastWeekData.length
-          : thisWeekAvg;
-
-        let percentChange = 0;
-        if (lastWeekAvg > 0)
-          percentChange = ((thisWeekAvg - lastWeekAvg) / lastWeekAvg) * 100;
-
-        const isNew = historyReverse.length < 3;
-        const sparkHistory = (trend?.history || [])
-          .slice(-10)
-          .map((h) => 100 - h.score);
-
-        return {
-          domain,
-          percentChange,
-          isNew,
-          sparkHistory,
-          config: METRIC_CONFIG[domain],
-        };
-      })
-      .sort((a, b) => b.percentChange - a.percentChange)
-      .slice(0, 3);
-  }, [chartData, trends]);
-
-  // Fill opacity delayed (starts at 75% progress, after scale completes)
-  const animatedOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      progress.value,
-      [0.75, 1],
-      [0, 1],
-      Extrapolation.CLAMP
-    ),
-  }));
-
-  // Helper for sparkline area
-  const renderSparkline = (
-    data: number[],
-    width: number,
-    height: number,
-    color: string
-  ) => {
-    if (data.length < 2) return null;
-    const max = Math.max(...data, 100);
-    const min = Math.min(...data, 0);
-    const ranges = max - min || 1;
-
-    const points = data.map((val, i) => {
-      const x = i * (width / (data.length - 1));
-      const y = height - ((val - min) / ranges) * height;
-      return { x, y };
-    });
-
-    const lineCmd = points
-      .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`)
-      .join(" ");
-    const areaCmd = `${lineCmd} L ${width},${height} L 0,${height} Z`;
-
+  // Error State
+  if (error) {
     return (
-      <Svg
-        width={width}
-        height={height}
-        style={{ position: "absolute", bottom: 0, right: 0 }}
-      >
-        <Path d={areaCmd} fill={color} fillOpacity={0.15} stroke="none" />
-        <Path
-          d={lineCmd}
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
+      <View style={[styles.card, styles.centerContent]}>
+        <MaterialCommunityIcons
+          name="alert-circle-outline"
+          size={48}
+          color={theme.colors.library.red[400]}
         />
-      </Svg>
+        <Text style={styles.errorText}>Unable to load usage data</Text>
+        <TouchableOpacity onPress={fetchAllTrends} style={styles.retryBtn}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
     );
-  };
+  }
 
-  const orangeDark = "#EA580C";
-
-  // --- Render Logic ---
-  if (loading || !trends || !chartData) {
+  // Safe guard for early render
+  if (loading || !growthProfile || !chartData || !weeklyBreakthroughs) {
     return (
       <View style={styles.card}>
         <SkeletonLoader width={"100%"} height={300} />
@@ -247,21 +183,12 @@ const ClinicalStatsWidget = () => {
     );
   }
 
-  // ... (Lines 207-494) ...
-  // Wait, I can't replace the middle. I have to target the specific block at the bottom.
-  // The 'replacementContent' above includes the renderSparkline function which needs to be in the component scope.
-  // I will insert the helper at line 187 (after hooks), and then replace the bottom render block.
-
-  const width = Dimensions.get("window").width;
-  const CHART_WIDTH = width - 48; // Padding 24 * 2
-  const SIZE = 220;
-  const CENTER = SIZE / 2;
-  const RADIUS = SIZE / 2 - 30;
   const angleStep = 360 / chartData.allDomains.length;
 
   // Build Static Paths (Changed to return Array of Points for Spline processing)
   const getPoints = (data: number[], scale: number = 1) => {
     return data.map((value, i) => {
+      // Normalize value 0-100 to radius
       const r = (value / 100) * RADIUS * scale;
       return POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
     });
@@ -307,7 +234,7 @@ const ClinicalStatsWidget = () => {
 
   // Generate Point Objects for Data
   const currentPoints = getPoints(chartData.currentData);
-  const baselinePoints = getPoints(chartData.baselineData);
+  // const baselinePoints = getPoints(chartData.baselineData);
 
   // Helper to generate a "perfect" regular polygon for the grid background
   const getGridPoints = (percentage: number) => {
@@ -324,7 +251,12 @@ const ClinicalStatsWidget = () => {
   // Generate Data Paths (High Tension = Blobby/Splatter look)
   // 0.45 tension creates that "amoeba" look from the reference
   const currentPathD = makeSmoothCurve(currentPoints, 0.45);
-  const baselinePathD = makeSmoothCurve(baselinePoints, 0.3);
+  // const baselinePathD = makeSmoothCurve(baselinePoints, 0.3);
+
+  // Weekly Breakthroughs Domain List
+  const domainBreakthroughs = Object.keys(
+    weeklyBreakthroughs
+  ) as (keyof typeof weeklyBreakthroughs)[];
 
   return (
     <LinearGradient
@@ -401,16 +333,6 @@ const ClinicalStatsWidget = () => {
             );
           })}
 
-          {/* Baseline (Static & Organic) */}
-          <Path
-            d={baselinePathD}
-            fill="none"
-            stroke="#94A3B8"
-            strokeWidth="1.5"
-            strokeDasharray="4,4"
-            opacity={0.4}
-          />
-
           {/* Main Chart Layer */}
           <G>
             {/* 1. GLOW Effect */}
@@ -474,23 +396,7 @@ const ClinicalStatsWidget = () => {
 
             // Determine vertical baseline adjustment
             // react-native-svg expects proper AlignmentBaseline type
-            type AlignmentBaseLine =
-              | "middle"
-              | "baseline"
-              | "text-bottom"
-              | "alphabetic"
-              | "ideographic"
-              | "central"
-              | "mathematical"
-              | "text-top"
-              | "bottom"
-              | "center"
-              | "top"
-              | "text-before-edge"
-              | "text-after-edge"
-              | "before-edge"
-              | "after-edge"
-              | "hanging";
+            type AlignmentBaseLine = "middle"; // Simplified
             let baseline: AlignmentBaseLine = "middle";
 
             return (
@@ -541,74 +447,195 @@ const ClinicalStatsWidget = () => {
         )}
       </AnimatedView>
 
-      {/* Weekly Breakthroughs (Bento Grid) */}
+      {/* Weekly Breakthroughs */}
       <View style={styles.breakthroughContainer}>
         <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
 
-        <View style={styles.bentoGrid}>
-          {/* LEFT COLUMN: HERO (Rank #1) */}
-          {momentumWins[0] && (
-            <View style={[styles.bentoCard, styles.heroCard]}>
-              <View style={styles.heroHeader}>
-                <View>
-                  <Text style={styles.cardTitle}>
-                    {momentumWins[0].config.label}
-                  </Text>
-                  <Text style={styles.heroValue}>
-                    +{Math.round(momentumWins[0].percentChange)}%
-                  </Text>
-                </View>
+        {(() => {
+          // 1. Sort & Top 3
+          const sortedKeys = domainBreakthroughs
+            .sort((a, b) => {
+              const scoreA = weeklyBreakthroughs[a]?.current || 0;
+              const scoreB = weeklyBreakthroughs[b]?.current || 0;
+              return scoreB - scoreA;
+            })
+            .slice(0, 3);
+
+          if (sortedKeys.length === 0) return null;
+
+          const topKey = sortedKeys[0];
+          const secondaryKeys = sortedKeys.slice(1);
+
+          // Helper to get config & data
+          const getItem = (key: keyof typeof weeklyBreakthroughs) => {
+            const data = weeklyBreakthroughs[key];
+            const domain = (
+              Object.keys(METRIC_CONFIG) as ClinicalDomain[]
+            ).find((d) => METRIC_CONFIG[d].profileKey === key);
+            const config = domain ? METRIC_CONFIG[domain] : null;
+            return { data, config };
+          };
+
+          const heroItem = getItem(topKey);
+
+          return (
+            <View style={styles.heroChartContainer}>
+              {/* Left Col: Hero Card */}
+              {heroItem.data && heroItem.config && (
                 <View
                   style={[
-                    styles.iconCircle,
-                    { width: 32, height: 32, backgroundColor: "#FFF7ED" },
+                    styles.miniCard,
+                    styles.heroCard,
+                    {
+                      backgroundColor: `${heroItem.config.color}08`,
+                      borderColor: `${heroItem.config.color}20`,
+                      borderWidth: 1,
+                    },
                   ]}
                 >
-                  <MaterialCommunityIcons
-                    name={momentumWins[0].config.icon as any}
-                    size={18}
-                    color={theme.colors.library.orange[400]}
-                  />
-                </View>
-              </View>
-
-              {/* Big Chart at bottom */}
-              <View style={styles.heroChartContainer}>
-                {renderSparkline(
-                  momentumWins[0].sparkHistory,
-                  130,
-                  60,
-                  theme.colors.library.orange[400]
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* RIGHT COLUMN: STACK (Rank #2 & #3) */}
-          <View style={styles.bentoRightCol}>
-            {momentumWins.slice(1, 3).map((win, i) => (
-              <View key={i} style={[styles.bentoCard, styles.miniCard]}>
-                <View style={styles.miniContent}>
-                  <View>
-                    <Text style={styles.cardTitle}>{win.config.label}</Text>
-                    <Text style={styles.miniValue}>
-                      +{Math.round(win.percentChange)}%
+                  <View style={styles.heroHeader}>
+                    <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                      {heroItem.config.label}
                     </Text>
+                    <MaterialCommunityIcons
+                      name={heroItem.config.icon as any}
+                      size={18}
+                      color={heroItem.config.color}
+                    />
                   </View>
-                  {/* Mini Chart on right */}
-                  <View style={{ width: 60, height: 30 }}>
-                    {renderSparkline(
-                      win.sparkHistory,
-                      60,
-                      30,
-                      theme.colors.library.orange[400]
+                  <Text style={styles.heroValue}>{heroItem.data.current}</Text>
+                  <View style={styles.btChangeRow}>
+                    {heroItem.data.change !== 0 && (
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
+                        <Text
+                          style={[
+                            styles.btChange,
+                            heroItem.data.trend === "IMPROVING"
+                              ? styles.textSuccess
+                              : styles.textNeutral,
+                          ]}
+                        >
+                          {heroItem.data.change > 0 ? "+" : ""}
+                          {heroItem.data.change.toFixed(1)}%
+                        </Text>
+
+                        <MaterialCommunityIcons
+                          name={
+                            heroItem.data.trend === "IMPROVING"
+                              ? "trending-up"
+                              : "trending-down"
+                          }
+                          size={16}
+                          color={
+                            heroItem.data.trend === "IMPROVING"
+                              ? theme.colors.library.green[400]
+                              : theme.colors.library.red[400]
+                          }
+                          style={{ marginLeft: 4 }}
+                        />
+                      </View>
                     )}
                   </View>
                 </View>
+              )}
+
+              {/* Right Col: Stacked Mini Cards */}
+              <View style={styles.bentoBottomRow}>
+                {secondaryKeys.map((key) => {
+                  const { data, config } = getItem(key);
+                  if (!data || !config) return null;
+                  const isImp = data.trend === "IMPROVING";
+                  const isWorsening = data.trend === "WORSENING";
+
+                  return (
+                    <View
+                      key={key}
+                      style={[
+                        styles.miniCard,
+                        {
+                          backgroundColor: `${config.color}08`,
+                          borderColor: `${config.color}20`,
+                          borderWidth: 1,
+                        },
+                      ]}
+                    >
+                      <View style={styles.miniContent}>
+                        {/* Header Row: Title Left, Icon Right */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            // marginBottom: 4, // Removed to fix alignment
+                          }}
+                        >
+                          <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                            {config.label}
+                          </Text>
+                          <MaterialCommunityIcons
+                            name={config.icon as any}
+                            size={14}
+                            color={config.color}
+                          />
+                        </View>
+
+                        {/* Middle: Score */}
+                        <Text style={styles.miniValue}>{data.current}</Text>
+
+                        {/* Bottom: Change & Icon */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            marginTop: "auto",
+                          }}
+                        >
+                          {/* Change & Icon (Only if non-zero) */}
+                          {data.change !== 0 && (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.btChange,
+                                  isImp
+                                    ? styles.textSuccess
+                                    : styles.textNeutral,
+                                  { fontSize: 11, fontWeight: "700" },
+                                ]}
+                              >
+                                {data.change.toFixed(1)}%
+                              </Text>
+
+                              <MaterialCommunityIcons
+                                name={isImp ? "trending-up" : "trending-down"}
+                                size={14}
+                                color={
+                                  isImp
+                                    ? theme.colors.library.green[400]
+                                    : theme.colors.library.red[400]
+                                }
+                                style={{ marginLeft: 2 }}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
+          );
+        })()}
       </View>
     </LinearGradient>
   );
@@ -656,6 +683,88 @@ const styles = StyleSheet.create({
     height: 220,
     marginBottom: 8,
   },
+  iconCircle: {
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    minHeight: 300,
+  },
+  errorText: {
+    color: theme.colors.text.default,
+    marginTop: 12,
+    marginBottom: 16,
+    fontSize: 14,
+  },
+  retryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.library.orange[400],
+    borderRadius: 20,
+  },
+  retryText: {
+    color: theme.colors.text.onDark,
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  heroChartContainer: {
+    marginTop: 12,
+    flexDirection: "column", // Vertical Stack
+    gap: 12,
+  },
+  heroCard: {
+    height: 140, // Fixed height for Hero
+    justifyContent: "space-between",
+    width: "100%", // Full Width
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  heroValue: {
+    fontSize: 36, // Larger for Hero
+    fontWeight: "800",
+    color: "#1E293B",
+    letterSpacing: -1,
+    marginTop: 8,
+  },
+  bentoBottomRow: {
+    flexDirection: "row", // Horizontal Row for bottom cards
+    gap: 12,
+  },
+  miniCard: {
+    flex: 1, // Equal width
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+    padding: 16,
+    borderRadius: 20,
+    height: 110, // Fixed height for Mini cards
+  },
+  miniContent: {
+    flexDirection: "column", // Stack content in mini card for vertical space
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    height: "100%",
+  },
+  miniValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginTop: 4,
+  },
   tooltipWrapper: {
     marginBottom: 20,
     minHeight: 50,
@@ -702,137 +811,18 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  breakthroughRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  rowLeft: {
+  btChangeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 2,
   },
-  rowIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20, // Circle
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  rowSubtitle: {
+  btChange: {
     fontSize: 11,
-    color: "#64748B",
-    marginTop: 2,
-    fontWeight: "500",
-  },
-  rowRight: {
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  rowValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    // Color set inline
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#F1F5F9",
-    marginLeft: 52, // Indent to match text
-  },
-  iconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  momentumLabel: { fontSize: 13, fontWeight: "700", color: "#334155" },
-  momentumContent: {
-    flexDirection: "column", // Vertical stack for narrower cards
-    gap: 12,
-  },
-  momentumValue: { fontSize: 20, fontWeight: "800" },
-  momentumSub: {
-    fontSize: 10,
-    color: "#94A3B8",
-    marginTop: 2,
-    fontWeight: "500",
-  },
-
-  // --- Bento Grid Styles ---
-  bentoGrid: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-  },
-  bentoCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
-    overflow: "hidden",
-  },
-  heroCard: {
-    flex: 1.4, // Takes up more width (approx 60% vs 40%)
-    justifyContent: "space-between",
-  },
-  heroHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  cardTitle: {
-    fontSize: 13,
     fontWeight: "700",
-    color: "#64748B",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
-  heroValue: {
-    fontSize: 28,
-    fontWeight: "800", // Heavy bold
-    color: "#1E293B",
-    letterSpacing: -0.5,
-  },
-  iconCircle: {
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heroChartContainer: {
-    height: 60,
-    marginTop: 12,
-    justifyContent: "flex-end",
-  },
-
-  // Right Column
-  bentoRightCol: {
-    flex: 1,
-    gap: 12,
-    flexDirection: "column",
-  },
-  miniCard: {
-    flex: 1, // fill half height each
-    justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 12,
-  },
-  miniContent: {
-    flexDirection: "row", // Horizontal layout for mini cards
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  miniValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#1E293B",
-  },
+  textSuccess: { color: theme.colors.library.green[400] },
+  textError: { color: theme.colors.library.red[400] },
+  textNeutral: { color: theme.colors.text.default },
 });
 
 export default ClinicalStatsWidget;

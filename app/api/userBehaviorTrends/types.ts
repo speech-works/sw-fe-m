@@ -23,17 +23,43 @@ export interface UserBehaviorHistoricalTrend {
   history: ClinicalTrendDataPoint[];
 }
 
-export type TrendsMap = Partial<Record<ClinicalDomain, UserBehaviorHistoricalTrend>>;
-
+export type TrendsMap = Partial<
+  Record<ClinicalDomain, UserBehaviorHistoricalTrend>
+>;
 
 // api response
 
-export type  UserBehaviorTrendsResponse = Array<{
+export type UserBehaviorTrendsResponse = Array<{
   id: string;
   domain: ClinicalDomain;
   value: number; // 0–100, always HIGH BAD
   source: TrendSource;
   context?: Record<string, any>;
   createdAt: Date;
+}>;
+
+// ============================================================================
+// GROWTH PROFILE TYPES (NEW)
+// ============================================================================
+export interface GrowthProfile {
+  mastery: number; // 0-100
+  ease: number;
+  courage: number;
+  confidence: number;
+  social: number;
+  lastUpdated: Date | string | null;
 }
->
+
+export interface Breakthrough {
+  current: number; // Current score (0-100)
+  change: number; // Percentage change
+  trend: "IMPROVING" | "STABLE" | "WORSENING";
+}
+
+export interface WeeklyBreakthroughs {
+  mastery: Breakthrough;
+  ease: Breakthrough;
+  courage: Breakthrough;
+  confidence: Breakthrough;
+  social: Breakthrough;
+}

@@ -1,25 +1,25 @@
 import { ClinicalDomain } from "../userBehaviorTrends/types";
 
 export enum PackCategory {
-  STABILIZATION = "STABILIZATION", // Crisis/Grounding (CBT, Mindfulness)
-  FOUNDATION = "FOUNDATION", // Education (The "Why")
-  INTERVENTION = "INTERVENTION", // Active Therapy (Exposures, Techniques)
-  MAINTENANCE = "MAINTENANCE", // Drills/Daily Practice
+  STABILIZATION = "STABILIZATION",
+  FOUNDATION = "FOUNDATION",
+  INTERVENTION = "INTERVENTION",
+  MAINTENANCE = "MAINTENANCE",
 }
 
 export enum PackIntensity {
-  LOW = 1, // Passive (Listening, Reading) - Safe for Crisis
-  MEDIUM = 2, // Private Practice (Mirror work)
-  HIGH = 3, // Public Exposure (Real world) - High Risk/High Reward
+  LOW = 1,
+  MEDIUM = 2,
+  HIGH = 3,
 }
 
 export enum PackPhilosophy {
-  FOUNDATION = "FOUNDATION", // Education
-  FLUENCY = "FLUENCY", // Physical mechanics
-  MODIFICATION = "MODIFICATION", // Changing the stutter
-  ACCEPTANCE = "ACCEPTANCE", // Psychology/CBT
-  COGNITIVE = "COGNITIVE", // Mindset work
-  SOCIAL = "SOCIAL", // Exposures
+  FOUNDATION = "FOUNDATION",
+  FLUENCY = "FLUENCY",
+  MODIFICATION = "MODIFICATION",
+  ACCEPTANCE = "ACCEPTANCE",
+  COGNITIVE = "COGNITIVE",
+  SOCIAL = "SOCIAL",
 }
 
 export enum ContentBlockType {
@@ -38,7 +38,7 @@ export type TextBlockContent = {
 
 export type VideoBlockContent = {
   provider: "YOUTUBE" | "VIMEO" | "S3";
-  videoId: string; // or URL
+  videoId: string;
   durationSeconds?: number;
   thumbnailUrl?: string;
 };
@@ -49,52 +49,56 @@ export type AudioBlockContent = {
 };
 
 export type ReferenceBlockContent = {
-  // For FORM, ACTIVITY, SIMULATION
   refId: string;
-  // Optional override title or description to show on the card
   titleOverride?: string;
   descriptionOverride?: string;
 };
 
-// Union type for the column
+export enum ActivityType {
+  COGNITIVE_PRACTICE = "COGNITIVE_PRACTICE",
+  EXPOSURE_PRACTICE = "EXPOSURE_PRACTICE",
+  FUN_PRACTICE = "FUN_PRACTICE",
+  READING_PRACTICE = "READING_PRACTICE",
+}
+
+export interface ActivityBlockContent {
+  title: string;
+  activityType: ActivityType;
+  intent: string;
+  emotionalLoad: number;
+  instructions: string;
+  configuration: any;
+}
+
 export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | AudioBlockContent
-  | ReferenceBlockContent;
-
+  | ReferenceBlockContent
+  | ActivityBlockContent;
 
 export interface ModuleContentBlock {
-    id: string;
-    type: ContentBlockType;
-    content: BlockContentPayload;
-    orderIndex: number;
+  id: string;
+  type: ContentBlockType;
+  content: BlockContentPayload;
+  orderIndex: number;
 }
-
 
 export interface PackModule {
   id: string;
   title: string;
   description: string;
-  estimatedDurationMin: number; // mins
-  isMandatory?: boolean;
+  estimatedDurationMin: number;
+  isMandatory: boolean;
   orderIndex: number;
   blocks: ModuleContentBlock[];
 }
 
-export interface PackClinicalVector {
-  [ClinicalDomain.AFFECTIVE_DISTRESS]: number;
-  [ClinicalDomain.AVOIDANCE_BEHAVIOR]: number;
-  [ClinicalDomain.IMPAIRMENT_STRUGGLE]: number;
-  [ClinicalDomain.FUNCTIONAL_LIMITATION]: number;
-  [ClinicalDomain.PARTICIPATION_RESTRICTION]: number;
-}
-
 export enum SpeechGoal {
-  FEEL_CALMER = "FEEL_CALMER", // Emotional Relief
-  STOP_AVOIDING = "STOP_AVOIDING", // Reduce Avoidance
-  SPEAK_EASIER = "SPEAK_EASIER", // Reduce Physical Effort
-  HANDLE_SITUATIONS = "HANDLE_SITUATIONS", // Performance / Situational Speech
+  FEEL_CALMER = "FEEL_CALMER",
+  STOP_AVOIDING = "STOP_AVOIDING",
+  SPEAK_EASIER = "SPEAK_EASIER",
+  HANDLE_SITUATIONS = "HANDLE_SITUATIONS",
   NOT_SURE = "NOT_SURE",
 }
 
@@ -105,26 +109,45 @@ export interface Pack {
   coverImage?: string;
   category: PackCategory;
   intensity: PackIntensity;
-  clinicalVector: PackClinicalVector;
-  contraindications?: {
-    domain: ClinicalDomain;
-    min?: number;
-    max?: number; 
-    penaltyWeight: number;
-  }[]
+  philosophy: PackPhilosophy;
   targetGoals: SpeechGoal[];
   modules: PackModule[];
-  philosophy: PackPhilosophy;
 }
+
 export interface PackRecommendation {
   pack: Pack;
-  reasoning: string;
+  reason: string;
+  tags: string[];
+  strategy: "STABILIZE" | "CHALLENGE" | "MAINTAIN";
   matchScore: number;
 }
+
+export enum PackStatus {
+  NOT_STARTED = "NOT_STARTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+}
+
+export enum ModuleStatus {
+  NOT_STARTED = "NOT_STARTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  SKIPPED = "SKIPPED",
+}
+
+export interface ModuleProgress {
+  moduleId: string;
+  title: string;
+  orderIndex: number;
+  status: ModuleStatus;
+  attempts: number;
+  completedAt: Date | string | null;
+  isMandatory: boolean;
+  progress?: number;
+}
+
 export interface PackProgress {
-  packId: string;
-  completedModuleIds: string[];
-  startedAt: string;
-  lastActiveAt: string;
-  percentComplete: number;
+  packStatus: PackStatus;
+  completedAt: Date | string | null;
+  modules: ModuleProgress[];
 }
