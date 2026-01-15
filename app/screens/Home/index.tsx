@@ -17,10 +17,22 @@ import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { getMyUser } from "../../api/users";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import MoodCheckBanner from "./components/MoodCheckBanner";
+import OnboardingReminderCard from "../../components/OnboardingReminderCard";
+import { useOnboardingStore } from "../../stores/onboarding";
+import { getActiveOnboardingFlow } from "../../api/onboarding";
+import { useEventStore } from "../../stores/events";
+import { EVENT_NAMES } from "../../stores/events/constants";
 
 const Home = () => {
-  const { setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
+  const { emit } = useEventStore();
+
+  const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
+  const onboardingFlow = useOnboardingStore((s) => s.flow);
+  const getTotalScreens = useOnboardingStore((s) => s.getTotalScreens);
+  const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
+
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -60,6 +72,27 @@ const Home = () => {
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
         <ClinicalStatsWidget />
+
+        {user && !user.hasCompletedOnboarding && (
+          <OnboardingReminderCard
+            currentStep={currentOnboardingScreen - 1}
+            totalSteps={totalOnboardingScreens}
+            onPress={async () => {
+              try {
+                const state = useOnboardingStore.getState();
+                if (state.flow && state.currentScreen > 1) {
+                  emit(EVENT_NAMES.START_ONBOARDING);
+                  return;
+                }
+                const flow = await getActiveOnboardingFlow();
+                state.startFresh(flow);
+                emit(EVENT_NAMES.START_ONBOARDING);
+              } catch (err) {
+                console.error("Failed to load onboarding flow:", err);
+              }
+            }}
+          />
+        )}
       </ScrollView>
     </ScreenView>
   );

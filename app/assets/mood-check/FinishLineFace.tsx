@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Animated, Easing } from "react-native";
 import Svg, {
   Mask,
   Path,
@@ -21,16 +22,71 @@ interface SvgIconProps extends SvgProps {
   loop?: boolean;
   repeatCount?: number;
   size?: number | string;
+  transparentBg?: boolean;
 }
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 const FinishLineCoolFace = ({
   size = 48,
   width,
   height,
-  shouldAnimate, loop, repeatCount, ...props
+  shouldAnimate = true,
+  loop,
+  repeatCount,
+  transparentBg,
+  ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+
+  const wiggle = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (!shouldAnimate) {
+      wiggle.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(wiggle, {
+          toValue: 1,
+          duration: 150,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(wiggle, {
+          toValue: 0,
+          duration: 150,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+      wiggle.setValue(0);
+    };
+  }, [shouldAnimate]);
+
+  const leftRotation = wiggle.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "12deg"], // Larger range, faster
+  });
+
+  const rightRotation = wiggle.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["-12deg", "0deg"],
+  });
+
+  const flutterScale = wiggle.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0.9, 1], // Compress in middle of swing
+  });
 
   return (
     <Svg
@@ -40,6 +96,7 @@ const FinishLineCoolFace = ({
       fill="none"
       {...props}
     >
+      {/* ... previous Defs and background ... */}
       <Defs>
         <Filter
           id="finish_cool_shadow"
@@ -78,10 +135,12 @@ const FinishLineCoolFace = ({
       </Defs>
       <G mask="url(#finish_cool_mask)">
         {/* Background - Victory Gold/Yellow */}
-        <Path
-          fill="#FFC107"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
+        {!transparentBg && (
+          <Path
+            fill="#FFC107"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+        )}
 
         <G filter="url(#finish_cool_shadow)">
           <Path
@@ -119,21 +178,39 @@ const FinishLineCoolFace = ({
 
         {/* Checkered Tape Snapping (Broken in middle) */}
         {/* Left piece */}
-        <G transform="rotate(10 12 40)">
+        <AnimatedG
+          transform={[
+            { translateX: 12 },
+            { translateY: 40 },
+            { rotate: leftRotation },
+            { scaleX: flutterScale }, // Add flutter scale
+            { translateX: -12 },
+            { translateY: -40 },
+          ]}
+        >
           <Rect x="0" y="38" width="20" height="6" fill="#FFF" />
           <Rect x="0" y="38" width="5" height="3" fill="#000" />
           <Rect x="10" y="38" width="5" height="3" fill="#000" />
           <Rect x="5" y="41" width="5" height="3" fill="#000" />
           <Rect x="15" y="41" width="5" height="3" fill="#000" />
-        </G>
+        </AnimatedG>
         {/* Right piece */}
-        <G transform="rotate(-10 36 40)">
+        <AnimatedG
+          transform={[
+            { translateX: 36 },
+            { translateY: 40 },
+            { rotate: rightRotation },
+            { scaleX: flutterScale }, // Add flutter scale
+            { translateX: -36 },
+            { translateY: -40 },
+          ]}
+        >
           <Rect x="28" y="38" width="20" height="6" fill="#FFF" />
           <Rect x="28" y="38" width="5" height="3" fill="#000" />
           <Rect x="38" y="38" width="5" height="3" fill="#000" />
           <Rect x="33" y="41" width="5" height="3" fill="#000" />
           <Rect x="43" y="41" width="5" height="3" fill="#000" />
-        </G>
+        </AnimatedG>
 
         {/* Confetti bits */}
         <Rect
