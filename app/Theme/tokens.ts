@@ -61,6 +61,13 @@ export const theme = {
       barLight: colors.orange[400],
     },
 
+    feedback: {
+      error: colors.red[500],
+      success: colors.green[500],
+      warning: colors.yellow[500],
+      info: colors.blue[500],
+    },
+
     library: { ...colors },
 
     moodcheck: {

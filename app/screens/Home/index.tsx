@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   ScrollView,
   Text,
   View,
   StyleSheet,
   RefreshControl,
+  Dimensions,
+  Animated,
 } from "react-native";
 import ScreenView from "../../components/ScreenView";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
@@ -22,16 +24,65 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
+import { startOasesCollection, getOasesProgress } from "../../api/oases";
+import OASESWidget from "../../components/OASESWidget";
+import { useNavigation } from "@react-navigation/native";
+import { useMoodCheckStore } from "../../stores/mood";
+
+const { width } = Dimensions.get("window");
 
 const Home = () => {
   const { user, setUser } = useUserStore();
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
+  const { hasRecordedToday } = useMoodCheckStore();
 
   const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
   const getTotalScreens = useOnboardingStore((s) => s.getTotalScreens);
   const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
+
+  const navigation = useNavigation<any>();
+  const [oasesProgress, setOasesProgress] = useState<{
+    dayNumber: number;
+    totalDays: number;
+  } | null>(null);
+
+  // --- OASES Rapid Collection Auto-Start ---
+  React.useEffect(() => {
+    if (!user?.hasCompletedOnboarding) return;
+
+    const initOases = async () => {
+      try {
+        // Step 2: Initialize Collection (Idempotent)
+        await startOasesCollection().catch((err) => {
+          console.warn(
+            "[Home] startOasesCollection failed (continuing to fetch progress):",
+            err.response?.data || err.message,
+          );
+        });
+
+        // Fetch Progress
+        const progress = await getOasesProgress();
+
+        const safeDay =
+          progress && typeof progress.dayNumber === "number"
+            ? progress.dayNumber + 1
+            : 1;
+
+        setOasesProgress({
+          dayNumber: safeDay, // 0-indexed from backend, display 1-indexed
+          totalDays: 7, // Fixed 7-day flow
+        });
+      } catch (err: any) {
+        console.error(
+          "[Home] Failed to load OASES progress:",
+          err.response?.data || err.message,
+        );
+      }
+    };
+    initOases();
+  }, [user?.hasCompletedOnboarding]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -49,6 +100,19 @@ const Home = () => {
     }
   }, [setUser, fetchAllTrends]);
 
+  const carouselItemWidth = width * 0.85;
+  const carouselSpacing = 16;
+  const carouselInset = (width - carouselItemWidth) / 2;
+  const snapInterval = carouselItemWidth + carouselSpacing;
+
+  // Pagination Logic (React Native Animated)
+  const scrollX = useRef(new Animated.Value(0)).current;
+
+  // Calculate total pages logic
+  const showMoodCheck = !hasRecordedToday;
+  const totalPages = showMoodCheck ? 2 : 1;
+  const paginationData = Array.from({ length: totalPages }, (_, i) => i);
+
   return (
     <ScreenView style={styles.container}>
       <MoodCheckPopup />
@@ -63,7 +127,115 @@ const Home = () => {
           <Text style={styles.subGreeting}>Mayank</Text>
         </View>
 
-        <MoodCheckBanner />
+        {/* --- Top Carousel --- */}
+        <View>
+          <Animated.ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: carouselInset - carouselSpacing / 2, // Center the first item
+              paddingRight: carouselInset - carouselSpacing / 2, // Center the last item
+              marginBottom: 16, // Reduced margin to fit dots
+            }}
+            snapToInterval={snapInterval}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: false }, // Width animation requires false
+            )}
+            scrollEventThrottle={16}
+          >
+            {/* Card 1: Onboarding or OASES */}
+            <View
+              style={[
+                styles.carouselItem,
+                { width: carouselItemWidth, marginRight: carouselSpacing },
+              ]}
+            >
+              {user && !user.hasCompletedOnboarding ? (
+                <OnboardingReminderCard
+                  currentStep={currentOnboardingScreen - 1}
+                  totalSteps={totalOnboardingScreens}
+                  style={{ marginBottom: 0 }}
+                  onPress={async () => {
+                    try {
+                      const state = useOnboardingStore.getState();
+                      if (state.flow && state.currentScreen > 1) {
+                        emit(EVENT_NAMES.START_ONBOARDING);
+                        return;
+                      }
+                      const flow = await getActiveOnboardingFlow();
+                      state.startFresh(flow);
+                      emit(EVENT_NAMES.START_ONBOARDING);
+                    } catch (err) {
+                      console.error("Failed to load onboarding flow:", err);
+                    }
+                  }}
+                />
+              ) : (
+                <OASESWidget
+                  dayNumber={oasesProgress?.dayNumber}
+                  totalDays={oasesProgress?.totalDays}
+                  style={{ marginBottom: 0 }}
+                  onPress={() => {
+                    navigation.navigate("AcademyStack", {
+                      screen: "DailyPracticeStack",
+                      params: {
+                        screen: "OASESIntro",
+                      },
+                    });
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Card 2: Mood Check (if not recorded today) */}
+            {showMoodCheck && (
+              <View
+                style={[
+                  styles.carouselItem,
+                  { width: carouselItemWidth, marginRight: carouselSpacing },
+                ]}
+              >
+                <MoodCheckBanner style={{ marginBottom: 0 }} />
+              </View>
+            )}
+          </Animated.ScrollView>
+
+          {/* Pagination Indicators */}
+          {totalPages > 1 && (
+            <View style={styles.paginationContainer}>
+              {paginationData.map((_, index) => {
+                const inputRange = [
+                  (index - 1) * snapInterval,
+                  index * snapInterval,
+                  (index + 1) * snapInterval,
+                ];
+
+                const dotWidth = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [8, 24, 8],
+                  extrapolate: "clamp",
+                });
+
+                const opacity = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0.4, 1, 0.4],
+                  extrapolate: "clamp",
+                });
+
+                return (
+                  <Animated.View
+                    key={index}
+                    style={[styles.dot, { width: dotWidth, opacity: opacity }]}
+                  />
+                );
+              })}
+            </View>
+          )}
+        </View>
+        {/* ------------------- */}
 
         <ResourceStats refreshing={refreshing} />
 
@@ -72,27 +244,6 @@ const Home = () => {
         <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
         <ClinicalStatsWidget />
-
-        {user && !user.hasCompletedOnboarding && (
-          <OnboardingReminderCard
-            currentStep={currentOnboardingScreen - 1}
-            totalSteps={totalOnboardingScreens}
-            onPress={async () => {
-              try {
-                const state = useOnboardingStore.getState();
-                if (state.flow && state.currentScreen > 1) {
-                  emit(EVENT_NAMES.START_ONBOARDING);
-                  return;
-                }
-                const flow = await getActiveOnboardingFlow();
-                state.startFresh(flow);
-                emit(EVENT_NAMES.START_ONBOARDING);
-              } catch (err) {
-                console.error("Failed to load onboarding flow:", err);
-              }
-            }}
-          />
-        )}
       </ScrollView>
     </ScreenView>
   );
@@ -105,7 +256,7 @@ const styles = StyleSheet.create({
     paddingBottom: 130, // Space for Custom Tab Bar
   },
   header: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   greeting: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -114,6 +265,25 @@ const styles = StyleSheet.create({
   subGreeting: {
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
+  },
+  carouselContent: {
+    // Deprecated, handled inline
+    marginBottom: 24,
+  },
+  carouselItem: {
+    // Deprecated, handled inline
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 24,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.background.default,
   },
 });
 export default Home;

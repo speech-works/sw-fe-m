@@ -1,35 +1,28 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
-import { theme } from "../Theme/tokens";
+import { parseTextStyle } from "../util/functions/parseStyles";
+// import { theme } from "../Theme/tokens"; // REMOVED to fix circular dependency/crash
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
-
-import FinishLineFace from "../assets/mood-check/FinishLineFace";
+import ReaderFace from "../assets/mood-check/ReaderFace"; // Using ReaderFace as placehoder or other available face
 
 interface Props {
   onPress: () => void;
-  currentStep: number;
-  totalSteps: number;
+  dayNumber?: number;
+  totalDays?: number;
   style?: any;
 }
 
-const OnboardingReminderCard: React.FC<Props> = ({
+const OASESWidget: React.FC<Props> = ({
   onPress,
-  currentStep,
-  totalSteps,
+  dayNumber = 1,
+  totalDays = 7,
   style,
 }) => {
-  // Ensure we don't divide by zero if totalSteps is somehow 0
-  const safeTotal = totalSteps > 0 ? totalSteps : 1;
-  // Ensure current step doesn't visually exceed total (e.g. if on the "Done" screen)
-  const safeCurrent = Math.min(currentStep + 1, safeTotal); // +1 because currentStep is 0-indexed usually
-
-  // Calculate percentage between 0 and 100 for the width width
+  // Calculate percentage
+  const safeTotal = totalDays > 0 ? totalDays : 1;
+  const safeCurrent = Math.min(dayNumber, safeTotal);
   const progressPercentage = Math.min(
     Math.max((safeCurrent / safeTotal) * 100, 0),
     100,
@@ -39,8 +32,8 @@ const OnboardingReminderCard: React.FC<Props> = ({
     <View style={[styles.container, style]}>
       <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
         <LinearGradient
-          // Cyan/Blue Gradient
-          colors={["#22D3EE", "#0EA5E9"]}
+          // Orange/Warm Gradient for Practice
+          colors={["#F97316", "#EA580C"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
@@ -49,30 +42,28 @@ const OnboardingReminderCard: React.FC<Props> = ({
           <View style={styles.bubbleTopRight} />
           <View style={styles.bubbleBottomLeft} />
 
-          {/* Watermark Image - Restored Face */}
+          {/* Watermark Image */}
           <View style={styles.faceContainer}>
-            <FinishLineFace size={160} transparentBg shouldAnimate={false} />
+            <ReaderFace size={160} transparentBg shouldAnimate={false} />
           </View>
 
           {/* Header Section */}
           <View style={styles.content}>
             <View style={styles.chip}>
-              <Icon name="zap" size={12} color="white" />
-              <Text style={styles.chipText}>Setup Required</Text>
+              <Icon name="sun" size={12} color="white" />
+              <Text style={styles.chipText}>Daily Requirement</Text>
             </View>
 
             <View style={styles.textContainer}>
-              <Text style={styles.title}>Complete Profile</Text>
-              <Text style={styles.subtitle}>
-                Finish setting up to get your personalized plan
-              </Text>
+              <Text style={styles.title}>Daily Check-in</Text>
+              <Text style={styles.subtitle}>Complete your 7-Day Pulse</Text>
             </View>
 
             {/* Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressLabels}>
                 <Text style={styles.progressText}>
-                  Step {safeCurrent} of {safeTotal}
+                  Day {safeCurrent} of {safeTotal}
                 </Text>
                 <Text style={styles.progressText}>
                   {Math.round(progressPercentage)}%
@@ -91,8 +82,8 @@ const OnboardingReminderCard: React.FC<Props> = ({
 
           {/* Action Button (Pill Style) */}
           <View style={styles.actionButton}>
-            <FaIcon name="play" size={12} color="#0284C7" />
-            <Text style={styles.actionText}>Continue Setup</Text>
+            <FaIcon name="play" size={12} color="#EA580C" />
+            <Text style={styles.actionText}>Start Today's Batch</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -100,13 +91,13 @@ const OnboardingReminderCard: React.FC<Props> = ({
   );
 };
 
-export default OnboardingReminderCard;
+export default OASESWidget;
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
     borderRadius: 24,
-    shadowColor: "#0EA5E9",
+    shadowColor: "#EA580C",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -169,12 +160,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "white",
+    // Hardcoded Heading2
+    fontFamily: "Inter_600SemiBold",
     fontSize: 24,
+    lineHeight: 32,
+    fontWeight: "600",
+    color: "white",
   },
   subtitle: {
-    ...parseTextStyle(theme.typography.Body),
+    // Hardcoded Body
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: "400",
     color: "rgba(255, 255, 255, 0.9)",
     maxWidth: "65%",
   },
@@ -213,11 +211,18 @@ const styles = StyleSheet.create({
     gap: 6,
     zIndex: 2,
     marginTop: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowColor: "rgba(0, 0, 0, 0.1)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 5,
+    elevation: 2,
   },
   actionText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#0284C7", // Sky 600
+    // Hardcoded BodySmall
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#EA580C", // Orange 600
     fontWeight: "700",
   },
 });

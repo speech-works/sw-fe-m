@@ -52,6 +52,7 @@ const BottomTabNavigator = () => {
         component={Home}
         options={{ tabBarLabel: "Home" }}
       />
+
       <Tab.Screen
         name={ROUTE_NAMES.EXPLORE}
         component={ExploreStackNavigator}

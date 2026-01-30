@@ -17,7 +17,7 @@ interface Props {
   sequence?: number;
   question: string;
   description?: string;
-  questionType: "single" | "multi" | "slider";
+  questionType: "SINGLE" | "MULTI" | "SLIDER";
   options: OnboardingOption[];
   value?: string;
   values?: string[];
@@ -35,8 +35,8 @@ const OnboardingQuestion = ({
   values = [],
   onChange,
 }: Props) => {
-  const isSlider = questionType === "slider";
-  const isMulti = questionType === "multi";
+  const isSlider = questionType === "SLIDER";
+  const isMulti = questionType === "MULTI";
 
   // ---- SLIDER LOGIC ----
   const min = 0;
@@ -45,7 +45,7 @@ const OnboardingQuestion = ({
   // 1. Determine the correct VISUAL position (Index) based on the SAVED VALUE (ID)
   // We compare Strings to ensure "123" matches 123
   const currentOptionIndex = options.findIndex(
-    (opt) => String(opt.id) === String(value)
+    (opt) => String(opt.id) === String(value),
   );
 
   // 2. If the saved value is not found in options (or is empty), default to Index 0
@@ -66,7 +66,7 @@ const OnboardingQuestion = ({
     if (currentValues.includes(optionId)) {
       return onChange(
         id,
-        currentValues.filter((v) => v !== String(optionId))
+        currentValues.filter((v) => v !== String(optionId)),
       );
     }
     return onChange(id, [...currentValues, String(optionId)]);
@@ -110,8 +110,8 @@ const OnboardingQuestion = ({
 
                 console.log(
                   `[Slider] raw: ${v} → ${percentage.toFixed(
-                    1
-                  )}% → Motivation Score: ${score}`
+                    1,
+                  )}% → Motivation Score: ${score}`,
                 );
 
                 onChange(id, score.toString());

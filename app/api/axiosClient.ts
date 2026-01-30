@@ -3,7 +3,7 @@ import axios from "axios";
 import * as Localization from "expo-localization";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "./constants";
-import { refreshToken as refreshAccessToken } from "./auth";
+// import { refreshToken as refreshAccessToken } from "./auth"; // Removed to fix circular dependency
 import { getUpdateTokenFn } from "../util/functions/authToken";
 import { dispatchCustomEvent } from "../util/functions/events";
 import { EVENT_NAMES } from "../stores/events/constants";
@@ -86,7 +86,7 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   async (config) => {
     const token = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_JWT_KEY
+      SECURE_KEYS_NAME.SW_APP_JWT_KEY,
     );
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -95,14 +95,14 @@ axiosClient.interceptors.request.use(
     if (Localization.getCalendars()[0].timeZone) {
       console.log(
         "setting x-client-timezone header:if:",
-        Localization.getCalendars()[0].timeZone
+        Localization.getCalendars()[0].timeZone,
       );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;
     } else {
       console.log(
         "setting x-client-timezone header:else:",
-        Localization.getCalendars()[0].timeZone
+        Localization.getCalendars()[0].timeZone,
       );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;
@@ -110,7 +110,7 @@ axiosClient.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response Interceptor
@@ -118,7 +118,7 @@ axiosClient.interceptors.response.use(
   (response) => {
     if (response.data?.error) {
       return Promise.reject(
-        new Error(`Error from backend: ${response.data.error}`)
+        new Error(`Error from backend: ${response.data.error}`),
       );
     }
     // --- DATE PARSING HERE ---
@@ -149,26 +149,32 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = await SecureStore.getItemAsync(
-          SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+          SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
         );
         if (!refreshToken) throw new Error("No refresh token found");
 
-        const { token: newAccessToken } = await refreshAccessToken({
-          refreshToken,
-        });
+        // Use a new axios instance to avoid interceptors
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {
+            refreshToken,
+          },
+        );
+        const { token: newAccessToken } = refreshResponse.data;
+
         console.log("REFRESH RESPONSE:", { newAccessToken });
 
         if (typeof newAccessToken !== "string") {
           console.error(
             "Invalid token received during refresh:",
-            newAccessToken
+            newAccessToken,
           );
           throw new Error("Invalid token - expected string JWT.");
         }
 
         await SecureStore.setItemAsync(
           SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-          newAccessToken
+          newAccessToken,
         );
 
         // ✅ Update React state too (AuthContext)
@@ -194,7 +200,7 @@ axiosClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosClient;

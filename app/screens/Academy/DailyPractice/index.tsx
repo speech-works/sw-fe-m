@@ -22,6 +22,7 @@ import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
+import { useUserStore } from "../../../stores/user";
 
 const iconContiainerStyle: ViewStyle = {
   display: "flex",
@@ -50,7 +51,35 @@ const DailyPractice = () => {
     navigation.navigate("ExposureStack");
   };
 
+  const { user } = useUserStore();
+  const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
+
   const dailyPracticeData: Array<ListCardProps> = [
+    // Condition: Render OASES "Daily Check-in" ONLY if onboarding is complete
+    ...(hasCompletedOnboarding
+      ? [
+          {
+            title: "Daily Check-in",
+            description: "Complete your 7-Day Pulse",
+            onPress: () => navigation.navigate("OASESIntro"),
+            icon: (
+              <Icon
+                name="calendar-check"
+                size={52}
+                color={theme.colors.actionPrimary.default}
+              />
+            ),
+          },
+        ]
+      : [
+          // Otherwise show "Complete Profile" to nudge them to finish onboarding
+          {
+            title: "Complete Profile",
+            description: "Finish your clinical intake",
+            onPress: () => navigation.navigate("OnboardingStack"), // Assuming this key exists globally or handle appropriately
+            icon: <Icon name="user-clock" size={52} color={"#F59E0B"} />,
+          },
+        ]),
     {
       title: "Fun Activities",
       description: "Interactive speech games",

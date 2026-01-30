@@ -25,6 +25,7 @@ import {
 } from "../../api/onboarding";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
+import { useUserStore } from "../../stores/user";
 
 const OnboardingQuestionScreen: React.FC = () => {
   // ----------------------------
@@ -67,7 +68,7 @@ const OnboardingQuestionScreen: React.FC = () => {
         } catch (err) {
           console.error(
             "Failed to fetch onboarding flow inside question screen:",
-            err
+            err,
           );
         }
       }
@@ -80,12 +81,20 @@ const OnboardingQuestionScreen: React.FC = () => {
 
   if (!flow) return null;
 
-  // ----------------------------
+  // -----------------------------------------------------
+  // SCROLL HANDLING
+  // -----------------------------------------------------
+  const scrollRef = React.useRef<any>(null);
+
   // Sync route param → store.currentScreen
-  // ----------------------------
   useEffect(() => {
     if (currentScreen !== screenNumber) {
       useOnboardingStore.setState({ currentScreen: screenNumber });
+    }
+    // Scroll to top when screen number changes
+    if (scrollRef.current) {
+      console.log("Scrolling to top for screen:", screenNumber);
+      scrollRef.current.scrollTo({ y: 0, animated: true });
     }
   }, [screenNumber, currentScreen]);
 
@@ -114,8 +123,15 @@ const OnboardingQuestionScreen: React.FC = () => {
         "submitOnboardingAnswers response",
         answer,
         isComplete,
-        profileCompletionPercent
+        profileCompletionPercent,
       );
+
+      if (isComplete) {
+        const { user, setUser } = useUserStore.getState();
+        if (user) {
+          setUser({ ...user, hasCompletedOnboarding: true });
+        }
+      }
     } catch (err) {
       console.error("Failed to submit onboarding answers:", err);
     }
@@ -132,15 +148,25 @@ const OnboardingQuestionScreen: React.FC = () => {
   const handleNext = async () => {
     if (!isCurrentScreenValid()) return;
     await submitAnswers();
+
+    // 🟢 KEY FIX: If this was the last screen, force completion locally
+    // This handles cases where backend might report partial completion (e.g. 74%)
+    // but the user has physically finished the flow.
     if (isLast) {
+      console.log("Algo: Final screen submitted. Forcing local completion.");
+      const { user, setUser } = useUserStore.getState();
+      if (user) {
+        setUser({ ...user, hasCompletedOnboarding: true });
+      }
+
       handleComplete();
       return;
     }
 
-    nextScreen();
+    // nextScreen(); // Removed: logic is now driven by route param + useEffect sync
 
-    // navigate to next screenNumber
-    navigation.navigate("OnboardingQuestion", {
+    // Use push to add a new screen instance
+    (navigation as any).push("OnboardingQuestion", {
       screenNumber: currentScreen + 1,
     });
   };
@@ -160,7 +186,10 @@ const OnboardingQuestionScreen: React.FC = () => {
         style={styles.progressBar}
       />
 
-      <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      <CustomScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scrollContent}
+      >
         {screenQuestions.map((q, index) => {
           // 🟢 KEY FIX: choose adaptiveKey if exists, otherwise fallback to id
           const storageKey = q.adaptiveKey ?? q.id;
@@ -180,12 +209,12 @@ const OnboardingQuestionScreen: React.FC = () => {
               }))}
               // use storageKey for UI selection
               value={
-                q.questionType !== "multi"
-                  ? answers[storageKey] ?? ""
+                q.questionType !== "MULTI"
+                  ? (answers[storageKey] ?? "")
                   : undefined
               }
               values={
-                q.questionType === "multi" && Array.isArray(answers[storageKey])
+                q.questionType === "MULTI" && Array.isArray(answers[storageKey])
                   ? answers[storageKey]
                   : []
               }

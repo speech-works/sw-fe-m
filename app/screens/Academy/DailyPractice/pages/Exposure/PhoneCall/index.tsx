@@ -56,7 +56,7 @@ const PhoneCall = () => {
             "error",
             "Try Later",
             error.response.data.error ||
-              "An error occurred while fetching call scenarios."
+              "An error occurred while fetching call scenarios.",
           );
         }
       }

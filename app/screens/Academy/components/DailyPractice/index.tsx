@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
 import Button from "../../../../components/Button";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
 
 import {
@@ -27,7 +26,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const [practiceType, setPracticeType] = useState<"TIME_BASED" | "TASK_BASED">(
-    "TIME_BASED"
+    "TIME_BASED",
   );
   const [targetMinutes, setTargetMinutes] = useState<number>(15);
   const [achievedMinutes, setAchievedMinutes] = useState<number>(0);
@@ -42,7 +41,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
       isSessionFresh = isSameDay(sessionDate, currentDate);
     } else {
       console.warn(
-        "DailyPractice: practiceSession.startedAt is NOT a valid Date object."
+        "DailyPractice: practiceSession.startedAt is NOT a valid Date object.",
       );
     }
   }
@@ -82,11 +81,12 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
         setAchievedTaskCount(taskCount);
         let totalAchievedMinutes = 0;
         const completedActivities = activities.filter(
-          (activity) => activity.status === "COMPLETED"
+          (activity) => activity.status === "COMPLETED",
         );
 
         completedActivities.forEach((activity) => {
           if (
+            activity.startedAt &&
             activity.completedAt &&
             isValid(activity.startedAt) &&
             isValid(activity.completedAt)

@@ -1,6 +1,6 @@
 // notifications.ts
 import * as Notifications from "expo-notifications";
-import { Reminder } from "../../stores/reminders";
+import type { Reminder } from "../../stores/reminders";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 
@@ -13,7 +13,7 @@ export const setupNotificationHandlers = () => {
   Notifications.addNotificationReceivedListener((notification) => {
     console.log(
       "Notification received while app is foregrounded:",
-      notification
+      notification,
     );
     // You might want to display a custom in-app banner or toast here
     // rather than the default system notification.

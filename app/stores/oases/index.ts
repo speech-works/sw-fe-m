@@ -1,0 +1,57 @@
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys"; // Verify this key exists or create new one
+import {
+  OasesDailyBatch,
+  OasesAnswerSubmission,
+  OasesQuestion,
+} from "../../api/oases/types";
+
+interface OasesState {
+  dailyBatch: OasesDailyBatch | null;
+  answers: Record<string, number | string | string[]>; // Map questionID -> Value
+  isTimerRunning: boolean;
+
+  // Actions
+  setDailyBatch: (batch: OasesDailyBatch) => void;
+  setAnswer: (questionId: string, value: number | string | string[]) => void;
+  resetOases: () => void;
+
+  // Helpers
+  isBatchComplete: () => boolean;
+}
+
+export const useOasesStore = create<OasesState>()(
+  persist(
+    (set, get) => ({
+      dailyBatch: null,
+      answers: {},
+      isTimerRunning: false,
+
+      setDailyBatch: (batch) => set({ dailyBatch: batch }),
+
+      setAnswer: (questionId, value) => {
+        const prev = get().answers;
+        set({ answers: { ...prev, [questionId]: value } });
+      },
+
+      resetOases: () =>
+        set({ dailyBatch: null, answers: {}, isTimerRunning: false }),
+
+      isBatchComplete: () => {
+        const { dailyBatch, answers } = get();
+        if (!dailyBatch) return false;
+
+        // simple check: do we have an answer for every question?
+        return dailyBatch.questions.every(
+          (q) => answers[q.id] !== undefined && answers[q.id] !== "",
+        );
+      },
+    }),
+    {
+      name: ASYNC_KEYS_NAME.SW_ZSTORE_OASES,
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);

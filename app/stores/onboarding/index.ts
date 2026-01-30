@@ -83,7 +83,8 @@ export const useOnboardingStore = create<OnboardingState>()(
         const answers = get().answers;
 
         return questions.every((q) => {
-          if (!q.isRequired) return true;
+          // Default to TRUE (required) if 'isRequired' is undefined or true. Only skip if explicitly false.
+          if (q.isRequired === false) return true;
 
           // 🔥 KEY LOGIC: determine storage key
           const key = q.adaptiveKey ?? q.id;
@@ -102,7 +103,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         if (!flow) return;
 
         const maxScreen = Math.max(
-          ...flow.questions.map((q) => q.screenNumber)
+          ...flow.questions.map((q) => q.screenNumber),
         );
         if (currentScreen < maxScreen) {
           set({ currentScreen: currentScreen + 1 });
@@ -131,6 +132,6 @@ export const useOnboardingStore = create<OnboardingState>()(
           state.flow = reviveDatesInObject(state.flow) as OnboardingFlow;
         }
       },
-    }
-  )
+    },
+  ),
 );

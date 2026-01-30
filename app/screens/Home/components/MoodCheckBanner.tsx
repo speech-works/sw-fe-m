@@ -15,7 +15,11 @@ import {
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
 
-const MoodCheckBanner = () => {
+interface Props {
+  style?: any;
+}
+
+const MoodCheckBanner = ({ style }: Props) => {
   const { hasRecordedToday } = useMoodCheckStore();
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
@@ -23,7 +27,7 @@ const MoodCheckBanner = () => {
   if (hasRecordedToday) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
@@ -99,7 +103,7 @@ const styles = StyleSheet.create({
   gradient: {
     borderRadius: 24,
     padding: 24,
-    minHeight: 180,
+    height: 260,
     justifyContent: "space-between",
     position: "relative",
   },

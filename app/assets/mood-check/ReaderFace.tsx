@@ -31,6 +31,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const ReaderFace = ({
@@ -40,6 +41,7 @@ const ReaderFace = ({
   shouldAnimate = false,
   loop = false,
   repeatCount = 1,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -51,10 +53,10 @@ const ReaderFace = ({
       progress.value = withRepeat(
         withSequence(
           withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Review Left -> Right
-          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }) // Right -> Left
+          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Right -> Left
         ),
         loop ? -1 : repeatCount,
-        false
+        false,
       );
     } else {
       progress.value = withTiming(0);
@@ -120,7 +122,7 @@ const ReaderFace = ({
       <G mask="url(#reader_mask)">
         {/* Background - Study Green */}
         <Path
-          fill="#66BB6A"
+          fill={transparentBg ? "transparent" : "#66BB6A"}
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
 
