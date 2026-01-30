@@ -100,9 +100,11 @@ const Home = () => {
     }
   }, [setUser, fetchAllTrends]);
 
-  const carouselItemWidth = width * 0.85;
-  const carouselSpacing = 16;
-  const carouselInset = (width - carouselItemWidth) / 2;
+  const carouselItemWidth = width - 32; // Exact match to other cards (width - 32)
+  const carouselSpacing = 8;
+  // Calculate padding to center the card.
+  // Carousel is full width (width).
+  const sidePadding = (width - carouselItemWidth) / 2;
   const snapInterval = carouselItemWidth + carouselSpacing;
 
   // Pagination Logic (React Native Animated)
@@ -114,10 +116,10 @@ const Home = () => {
   const paginationData = Array.from({ length: totalPages }, (_, i) => i);
 
   return (
-    <ScreenView style={styles.container}>
+    <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
       <MoodCheckPopup />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -128,13 +130,12 @@ const Home = () => {
         </View>
 
         {/* --- Top Carousel --- */}
-        <View>
+        <View style={{ marginHorizontal: -16 }}>
           <Animated.ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{
-              paddingHorizontal: carouselInset - carouselSpacing / 2, // Center the first item
-              paddingRight: carouselInset - carouselSpacing / 2, // Center the last item
+              paddingHorizontal: sidePadding,
               marginBottom: 16, // Reduced margin to fit dots
             }}
             snapToInterval={snapInterval}

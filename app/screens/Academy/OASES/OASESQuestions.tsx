@@ -131,7 +131,6 @@ const OASESQuestions = () => {
       <BottomSheetModal
         visible={isStopModalVisible}
         onClose={() => setIsStopModalVisible(false)}
-        maxHeight="35%"
       >
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Stop Check-in?</Text>
