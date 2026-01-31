@@ -38,11 +38,23 @@ const OASESIntro = () => {
             "[OASESIntro] Batch is complete. Navigating to OASESComplete.",
           );
           navigation.replace("OASESComplete");
-          return; // Ensure no further navigation occurs
+          return;
+        }
+
+        if (!batch.questions || batch.questions.length === 0) {
+          console.warn(
+            "[OASESIntro] Batch incomplete but no questions returned.",
+          );
+          Alert.alert(
+            "Notice",
+            "No questions available for today. Please check back later.",
+            [{ text: "OK", onPress: () => navigation.goBack() }],
+          );
+          return;
         }
 
         console.log("[OASESIntro] Navigating to OASESQuestions.");
-        // Only navigate to questions if NOT complete
+        // Only navigate to questions if NOT complete AND has questions
         navigation.replace("OASESQuestions");
       } catch (error: any) {
         console.error(

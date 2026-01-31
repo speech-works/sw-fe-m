@@ -64,8 +64,8 @@ const MoodCheckBanner = ({ style }: Props) => {
           {/* Header Section */}
           <View style={styles.content}>
             <View style={styles.chip}>
-              <Icon name="clock" size={12} color="white" />
-              <Text style={styles.chipText}>Daily Check-in</Text>
+              <Icon name="smile" size={12} color="white" />
+              <Text style={styles.chipText}>Mood Check</Text>
             </View>
 
             <View style={styles.textContainer}>

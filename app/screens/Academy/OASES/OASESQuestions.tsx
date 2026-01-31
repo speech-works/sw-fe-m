@@ -28,10 +28,56 @@ const OASESQuestions = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isStopModalVisible, setIsStopModalVisible] = useState(false);
 
-  if (!dailyBatch) return null;
+  if (
+    !dailyBatch ||
+    !dailyBatch.questions ||
+    dailyBatch.questions.length === 0
+  ) {
+    // Safety valve: Navigate back if data is missing
+    return (
+      <ScreenView>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text style={{ color: theme.colors.text.default }}>
+            No questions available for today.
+          </Text>
+          <Button
+            text="Go Back"
+            onPress={() => navigation.navigate("Root")}
+            style={{ marginTop: 20 }}
+          />
+        </View>
+      </ScreenView>
+    );
+  }
 
-  const questions = dailyBatch.questions || [];
+  const questions = dailyBatch.questions;
   const currentQuestion = questions[currentIndex];
+
+  if (!currentQuestion) {
+    // Should not happen if logic is correct, but safe guard
+    return (
+      <ScreenView>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text style={{ color: theme.colors.feedback.error }}>
+            Error loading question.
+          </Text>
+          <Button
+            text="Reset"
+            onPress={() => {
+              setCurrentIndex(0);
+              navigation.navigate("Root");
+            }}
+            style={{ marginTop: 20 }}
+          />
+        </View>
+      </ScreenView>
+    );
+  }
+
   const totalQuestions = questions.length;
 
   const isLast = currentIndex === totalQuestions - 1;

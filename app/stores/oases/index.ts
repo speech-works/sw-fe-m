@@ -12,6 +12,7 @@ interface OasesState {
   dailyBatch: OasesDailyBatch | null;
   answers: Record<string, number | string | string[]>; // Map questionID -> Value
   isTimerRunning: boolean;
+  lastFetchedAt: string | null; // ISO Date string
 
   // Actions
   setDailyBatch: (batch: OasesDailyBatch) => void;
@@ -28,8 +29,10 @@ export const useOasesStore = create<OasesState>()(
       dailyBatch: null,
       answers: {},
       isTimerRunning: false,
+      lastFetchedAt: null,
 
-      setDailyBatch: (batch) => set({ dailyBatch: batch }),
+      setDailyBatch: (batch) =>
+        set({ dailyBatch: batch, lastFetchedAt: new Date().toISOString() }),
 
       setAnswer: (questionId, value) => {
         const prev = get().answers;
@@ -37,7 +40,12 @@ export const useOasesStore = create<OasesState>()(
       },
 
       resetOases: () =>
-        set({ dailyBatch: null, answers: {}, isTimerRunning: false }),
+        set({
+          dailyBatch: null,
+          answers: {},
+          isTimerRunning: false,
+          lastFetchedAt: null,
+        }),
 
       isBatchComplete: () => {
         const { dailyBatch, answers } = get();

@@ -24,10 +24,15 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
-import { startOasesCollection, getOasesProgress } from "../../api/oases";
+import {
+  startOasesCollection,
+  getOasesProgress,
+  getTodayOasesQuestions,
+} from "../../api/oases";
 import OASESWidget from "../../components/OASESWidget";
 import { useNavigation } from "@react-navigation/native";
 import { useMoodCheckStore } from "../../stores/mood";
+import { useOasesStore } from "../../stores/oases";
 
 const { width } = Dimensions.get("window");
 
@@ -54,31 +59,59 @@ const Home = () => {
 
     const initOases = async () => {
       try {
-        // Step 2: Initialize Collection (Idempotent)
-        await startOasesCollection().catch((err) => {
-          console.warn(
-            "[Home] startOasesCollection failed (continuing to fetch progress):",
-            err.response?.data || err.message,
-          );
-        });
+        // Step 1: Check Cache (Optimized Load)
+        const state = useOasesStore.getState();
+        const todayStr = new Date().toISOString().split("T")[0];
+        const lastFetchedStr = state.lastFetchedAt
+          ? state.lastFetchedAt.split("T")[0]
+          : null;
 
-        // Fetch Progress
-        const progress = await getOasesProgress();
+        let batch = state.dailyBatch;
 
-        const safeDay =
-          progress && typeof progress.dayNumber === "number"
-            ? progress.dayNumber + 1
-            : 1;
+        // If not fetched today, or no batch exists, fetch from API
+        if (todayStr !== lastFetchedStr || !batch) {
+          try {
+            // Initialize Collection (Idempotent)
+            await startOasesCollection();
+            // Fetch Fresh Batch
+            batch = await getTodayOasesQuestions();
+            // Update Store (timestamp updated in setter)
+            state.setDailyBatch(batch);
+          } catch (err: any) {
+            console.warn(
+              "[Home] Failed to fetch fresh OASES data:",
+              err.response?.data || err.message,
+            );
+            // Fallback to existing batch if any? No, better to hide if fresh fetch failed and might be stale
+          }
+        } else {
+          console.log("[Home] Using cached OASES data for today.");
+        }
 
+        // Step 2: Determine Visibility based on Batch (Cached or Fresh)
+        if (
+          !batch ||
+          batch.isComplete ||
+          !batch.questions ||
+          batch.questions.length === 0
+        ) {
+          // No questions to handle -> Hide widget
+          setOasesProgress(null);
+          return;
+        }
+
+        // Step 3: Set UI State
+        const safeDay = batch.dayNumber || 1;
         setOasesProgress({
-          dayNumber: safeDay, // 0-indexed from backend, display 1-indexed
+          dayNumber: safeDay,
           totalDays: 7, // Fixed 7-day flow
         });
       } catch (err: any) {
         console.error(
-          "[Home] Failed to load OASES progress:",
+          "[Home] Error in OASES init flow:",
           err.response?.data || err.message,
         );
+        setOasesProgress(null); // Ensure hidden on error
       }
     };
     initOases();
@@ -111,9 +144,25 @@ const Home = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
 
   // Calculate total pages logic
+  const showOnboarding = user && !user.hasCompletedOnboarding;
+  const showOases = !!oasesProgress && !showOnboarding;
   const showMoodCheck = !hasRecordedToday;
-  const totalPages = showMoodCheck ? 2 : 1;
+
+  const cards = [];
+  if (showOnboarding) cards.push("onboarding");
+  else if (showOases) cards.push("oases");
+
+  if (showMoodCheck) cards.push("mood");
+
+  const totalPages = cards.length;
   const paginationData = Array.from({ length: totalPages }, (_, i) => i);
+
+  if (totalPages === 0) {
+    // If no cards, hide the whole carousel section?
+    // Or just render nothing inside.
+    // The View container has margins, might want to return null or hide it.
+    // For now, let's just let it be empty or hide if totalPages 0
+  }
 
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
@@ -130,112 +179,119 @@ const Home = () => {
         </View>
 
         {/* --- Top Carousel --- */}
-        <View style={{ marginHorizontal: -16 }}>
-          <Animated.ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: sidePadding,
-              marginBottom: 16, // Reduced margin to fit dots
-            }}
-            snapToInterval={snapInterval}
-            decelerationRate="fast"
-            snapToAlignment="start"
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: false }, // Width animation requires false
-            )}
-            scrollEventThrottle={16}
-          >
-            {/* Card 1: Onboarding or OASES */}
-            <View
-              style={[
-                styles.carouselItem,
-                { width: carouselItemWidth, marginRight: carouselSpacing },
-              ]}
-            >
-              {user && !user.hasCompletedOnboarding ? (
-                <OnboardingReminderCard
-                  currentStep={currentOnboardingScreen - 1}
-                  totalSteps={totalOnboardingScreens}
-                  style={{ marginBottom: 0 }}
-                  onPress={async () => {
-                    try {
-                      const state = useOnboardingStore.getState();
-                      if (state.flow && state.currentScreen > 1) {
-                        emit(EVENT_NAMES.START_ONBOARDING);
-                        return;
-                      }
-                      const flow = await getActiveOnboardingFlow();
-                      state.startFresh(flow);
-                      emit(EVENT_NAMES.START_ONBOARDING);
-                    } catch (err) {
-                      console.error("Failed to load onboarding flow:", err);
-                    }
-                  }}
-                />
-              ) : (
-                <OASESWidget
-                  dayNumber={oasesProgress?.dayNumber}
-                  totalDays={oasesProgress?.totalDays}
-                  style={{ marginBottom: 0 }}
-                  onPress={() => {
-                    navigation.navigate("AcademyStack", {
-                      screen: "DailyPracticeStack",
-                      params: {
-                        screen: "OASESIntro",
-                      },
-                    });
-                  }}
-                />
+        {totalPages > 0 && (
+          <View style={{ marginHorizontal: -16 }}>
+            <Animated.ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingHorizontal: sidePadding,
+                marginBottom: 16, // Reduced margin to fit dots
+              }}
+              snapToInterval={snapInterval}
+              decelerationRate="fast"
+              snapToAlignment="start"
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: false }, // Width animation requires false
               )}
-            </View>
+              scrollEventThrottle={16}
+            >
+              {/* Card 1: Onboarding or OASES */}
+              {(showOnboarding || showOases) && (
+                <View
+                  style={[
+                    styles.carouselItem,
+                    { width: carouselItemWidth, marginRight: carouselSpacing },
+                  ]}
+                >
+                  {showOnboarding ? (
+                    <OnboardingReminderCard
+                      currentStep={currentOnboardingScreen - 1}
+                      totalSteps={totalOnboardingScreens}
+                      style={{ marginBottom: 0 }}
+                      onPress={async () => {
+                        try {
+                          const state = useOnboardingStore.getState();
+                          if (state.flow && state.currentScreen > 1) {
+                            emit(EVENT_NAMES.START_ONBOARDING);
+                            return;
+                          }
+                          const flow = await getActiveOnboardingFlow();
+                          state.startFresh(flow);
+                          emit(EVENT_NAMES.START_ONBOARDING);
+                        } catch (err) {
+                          console.error("Failed to load onboarding flow:", err);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <OASESWidget
+                      dayNumber={oasesProgress?.dayNumber}
+                      totalDays={oasesProgress?.totalDays}
+                      style={{ marginBottom: 0 }}
+                      onPress={() => {
+                        navigation.navigate("AcademyStack", {
+                          screen: "DailyPracticeStack",
+                          params: {
+                            screen: "OASESIntro",
+                          },
+                        });
+                      }}
+                    />
+                  )}
+                </View>
+              )}
 
-            {/* Card 2: Mood Check (if not recorded today) */}
-            {showMoodCheck && (
-              <View
-                style={[
-                  styles.carouselItem,
-                  { width: carouselItemWidth, marginRight: carouselSpacing },
-                ]}
-              >
-                <MoodCheckBanner style={{ marginBottom: 0 }} />
+              {/* Card 2: Mood Check (if not recorded today) */}
+              {showMoodCheck && (
+                <View
+                  style={[
+                    styles.carouselItem,
+                    { width: carouselItemWidth, marginRight: carouselSpacing },
+                  ]}
+                >
+                  <MoodCheckBanner style={{ marginBottom: 0 }} />
+                </View>
+              )}
+            </Animated.ScrollView>
+
+            {/* Pagination Indicators */}
+            {totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                {paginationData.map((_, index) => {
+                  const inputRange = [
+                    (index - 1) * snapInterval,
+                    index * snapInterval,
+                    (index + 1) * snapInterval,
+                  ];
+
+                  const dotWidth = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [8, 24, 8],
+                    extrapolate: "clamp",
+                  });
+
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.4, 1, 0.4],
+                    extrapolate: "clamp",
+                  });
+
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        { width: dotWidth, opacity: opacity },
+                      ]}
+                    />
+                  );
+                })}
               </View>
             )}
-          </Animated.ScrollView>
-
-          {/* Pagination Indicators */}
-          {totalPages > 1 && (
-            <View style={styles.paginationContainer}>
-              {paginationData.map((_, index) => {
-                const inputRange = [
-                  (index - 1) * snapInterval,
-                  index * snapInterval,
-                  (index + 1) * snapInterval,
-                ];
-
-                const dotWidth = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [8, 24, 8],
-                  extrapolate: "clamp",
-                });
-
-                const opacity = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [0.4, 1, 0.4],
-                  extrapolate: "clamp",
-                });
-
-                return (
-                  <Animated.View
-                    key={index}
-                    style={[styles.dot, { width: dotWidth, opacity: opacity }]}
-                  />
-                );
-              })}
-            </View>
-          )}
-        </View>
+          </View>
+        )}
         {/* ------------------- */}
 
         <ResourceStats refreshing={refreshing} />

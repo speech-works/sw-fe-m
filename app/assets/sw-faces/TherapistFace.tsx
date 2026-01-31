@@ -14,6 +14,7 @@ interface SvgIconProps extends SvgProps {
   loop?: boolean;
   repeatCount?: number;
   size?: number | string;
+  transparentBg?: boolean;
 }
 
 const TherapistFace = ({
@@ -21,6 +22,7 @@ const TherapistFace = ({
   shouldAnimate,
   loop,
   repeatCount,
+  transparentBg,
   ...props
 }: SvgIconProps) => {
   return (
@@ -35,10 +37,12 @@ const TherapistFace = ({
       </Defs>
       <G clipPath="url(#clip_mask)">
         {/* --- BASE FACE --- */}
-        <Path
-          fill="#BBDEFB"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
+        {!transparentBg && (
+          <Path
+            fill="#BBDEFB"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+        )}
         {/* Shadow - Vector approximation */}
         <Path
           fill="black"

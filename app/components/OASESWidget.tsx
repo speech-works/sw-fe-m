@@ -5,7 +5,7 @@ import { parseTextStyle } from "../util/functions/parseStyles";
 // import { theme } from "../Theme/tokens"; // REMOVED to fix circular dependency/crash
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
-import ReaderFace from "../assets/mood-check/ReaderFace"; // Using ReaderFace as placehoder or other available face
+import TherapistFace from "../assets/sw-faces/TherapistFace";
 
 interface Props {
   onPress: () => void;
@@ -44,27 +44,28 @@ const OASESWidget: React.FC<Props> = ({
 
           {/* Watermark Image */}
           <View style={styles.faceContainer}>
-            <ReaderFace size={160} transparentBg shouldAnimate={false} />
+            <TherapistFace size={160} shouldAnimate={false} transparentBg />
           </View>
 
           {/* Header Section */}
           <View style={styles.content}>
             <View style={styles.chip}>
-              <Icon name="sun" size={12} color="white" />
-              <Text style={styles.chipText}>Daily Requirement</Text>
+              <Icon name="activity" size={12} color="white" />
+              <Text style={styles.chipText}>Clinical Assessment</Text>
             </View>
 
             <View style={styles.textContainer}>
-              <Text style={styles.title}>Daily Check-in</Text>
-              <Text style={styles.subtitle}>Complete your 7-Day Pulse</Text>
+              <Text style={styles.title}>Unlock Your Profile</Text>
+              <Text style={styles.subtitle}>
+                Step {safeCurrent} of {safeTotal} • Measuring the impact of
+                stuttering on your life.
+              </Text>
             </View>
 
             {/* Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressLabels}>
-                <Text style={styles.progressText}>
-                  Day {safeCurrent} of {safeTotal}
-                </Text>
+                <Text style={styles.progressText}>Progress</Text>
                 <Text style={styles.progressText}>
                   {Math.round(progressPercentage)}%
                 </Text>
@@ -83,7 +84,7 @@ const OASESWidget: React.FC<Props> = ({
           {/* Action Button (Pill Style) */}
           <View style={styles.actionButton}>
             <FaIcon name="play" size={12} color="#EA580C" />
-            <Text style={styles.actionText}>Start Today's Batch</Text>
+            <Text style={styles.actionText}>Continue Assessment</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -168,13 +169,13 @@ const styles = StyleSheet.create({
     color: "white",
   },
   subtitle: {
-    // Hardcoded Body
+    // Hardcoded BodySmall
     fontFamily: "Inter_400Regular",
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: "400",
     color: "rgba(255, 255, 255, 0.9)",
-    maxWidth: "65%",
+    maxWidth: "90%",
   },
   progressSection: {
     marginTop: 8,
