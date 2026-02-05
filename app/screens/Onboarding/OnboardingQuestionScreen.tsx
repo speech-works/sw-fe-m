@@ -87,20 +87,18 @@ const OnboardingQuestionScreen: React.FC = () => {
   const scrollRef = React.useRef<any>(null);
 
   // Sync route param → store.currentScreen
+  // Sync route param → store.currentScreen
   useEffect(() => {
-    if (currentScreen !== screenNumber) {
-      useOnboardingStore.setState({ currentScreen: screenNumber });
-    }
     // Scroll to top when screen number changes
     if (scrollRef.current) {
       console.log("Scrolling to top for screen:", screenNumber);
       scrollRef.current.scrollTo({ y: 0, animated: true });
     }
-  }, [screenNumber, currentScreen]);
+  }, [screenNumber]);
 
-  const screenQuestions = getCurrentScreenQuestions();
+  const screenQuestions = getCurrentScreenQuestions(screenNumber);
   const totalScreens = Math.max(...flow.questions.map((q) => q.screenNumber));
-  const isLast = currentScreen === totalScreens;
+  const isLast = screenNumber === totalScreens;
 
   // -----------------------------------------------------
   // SKIP → emit STOP_ONBOARDING to return app to main flow
@@ -146,7 +144,7 @@ const OnboardingQuestionScreen: React.FC = () => {
   // NEXT BUTTON
   // -----------------------------------------------------
   const handleNext = async () => {
-    if (!isCurrentScreenValid()) return;
+    if (!isCurrentScreenValid(screenNumber)) return;
     await submitAnswers();
 
     // 🟢 KEY FIX: If this was the last screen, force completion locally
@@ -167,7 +165,7 @@ const OnboardingQuestionScreen: React.FC = () => {
 
     // Use push to add a new screen instance
     (navigation as any).push("OnboardingQuestion", {
-      screenNumber: currentScreen + 1,
+      screenNumber: screenNumber + 1,
     });
   };
 
@@ -179,7 +177,7 @@ const OnboardingQuestionScreen: React.FC = () => {
       </TouchableOpacity>
 
       <ProgressBar
-        currentStep={currentScreen}
+        currentStep={screenNumber}
         totalSteps={totalScreens}
         showStepIndicator
         showPercentage
@@ -228,7 +226,7 @@ const OnboardingQuestionScreen: React.FC = () => {
         <Button
           text={isLast ? "Complete" : "Next"}
           variant="normal"
-          disabled={!isCurrentScreenValid()}
+          disabled={!isCurrentScreenValid(screenNumber)}
           onPress={handleNext}
         />
       </View>

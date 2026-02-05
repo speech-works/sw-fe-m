@@ -17,6 +17,7 @@ import {
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useNavigation } from "@react-navigation/native";
 import { getQuizByTechnique } from "../../../../../api/library";
+import { submitQuizAnswer as submitAnswerApi } from "../../../../../api/quiz";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -33,6 +34,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
   const [selectedAnsIndex, setSelectedAnsIndex] = useState<number>();
   const [answers, setAnswers] = useState<FinalAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nextQuestion = () => {
     if (quiz && quiz.length > 0) {
@@ -67,7 +69,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
           console.log(
             "✅ Setting quiz with",
             quizQuestions.length,
-            "questions"
+            "questions",
           );
           setQuiz(quizQuestions);
         } else {
@@ -203,40 +205,81 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
           {/* Footer with Navigation */}
           <View style={styles.quizFooter}>
             <TouchableOpacity
-              disabled={selectedAnsIndex === undefined}
+              disabled={selectedAnsIndex === undefined || isSubmitting}
               style={[
                 styles.nextQButton,
-                selectedAnsIndex === undefined && styles.nextQButtonDisabled,
+                (selectedAnsIndex === undefined || isSubmitting) &&
+                  styles.nextQButtonDisabled,
               ]}
-              onPress={() => {
-                const currentAnswer: FinalAnswer = {
-                  question: currentQuestion,
-                  yourAnswer: currentQuestion.options[selectedAnsIndex!],
-                };
+              onPress={async () => {
+                if (selectedAnsIndex === undefined) return;
 
-                if (selectedIndex + 1 === quiz.length) {
-                  const finalAnswersWithLast = [...answers, currentAnswer];
-                  navigation.navigate("SummaryPage", {
-                    techniqueId,
-                    techniqueName,
-                    finalAnswers: finalAnswersWithLast,
-                  });
-                } else {
-                  setAnswers((old) => [...old, currentAnswer]);
-                  resetOptionSelection();
-                  nextQuestion();
+                try {
+                  setIsSubmitting(true);
+                  // Submit answer to backend for mastery tracking
+                  // Note: The API expects array of selected indices
+                  await submitAnswerApi(currentQuestion.id, [selectedAnsIndex]);
+
+                  const currentAnswer: FinalAnswer = {
+                    question: currentQuestion,
+                    yourAnswer: currentQuestion.options[selectedAnsIndex!],
+                  };
+
+                  if (selectedIndex + 1 === quiz.length) {
+                    const finalAnswersWithLast = [...answers, currentAnswer];
+                    navigation.navigate("SummaryPage", {
+                      techniqueId,
+                      techniqueName,
+                      finalAnswers: finalAnswersWithLast,
+                    });
+                  } else {
+                    setAnswers((old) => [...old, currentAnswer]);
+                    resetOptionSelection();
+                    nextQuestion();
+                  }
+                } catch (error) {
+                  console.error("Failed to submit answer", error);
+                  // Optional: Show alert to user? For now we just log
+                  // Proceed anyway? Or block?
+                  // Let's block to ensure data consistency, or maybe allow proceed in offline?
+                  // For now, we'll allow proceed to not block user flow on network error,
+                  // but ideally we should retry.
+
+                  // Construct answer anyway for local flow
+                  const currentAnswer: FinalAnswer = {
+                    question: currentQuestion,
+                    yourAnswer: currentQuestion.options[selectedAnsIndex!],
+                  };
+
+                  if (selectedIndex + 1 === quiz.length) {
+                    const finalAnswersWithLast = [...answers, currentAnswer];
+                    navigation.navigate("SummaryPage", {
+                      techniqueId,
+                      techniqueName,
+                      finalAnswers: finalAnswersWithLast,
+                    });
+                  } else {
+                    setAnswers((old) => [...old, currentAnswer]);
+                    resetOptionSelection();
+                    nextQuestion();
+                  }
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
             >
               <Text
                 style={[
                   styles.nextQText,
-                  selectedAnsIndex === undefined && styles.nextQTextDisabled,
+                  (selectedAnsIndex === undefined || isSubmitting) &&
+                    styles.nextQTextDisabled,
                 ]}
               >
-                {selectedIndex + 1 === quiz.length
-                  ? "Submit Quiz"
-                  : "Next Question"}
+                {isSubmitting
+                  ? "Submitting..."
+                  : selectedIndex + 1 === quiz.length
+                    ? "Submit Quiz"
+                    : "Next Question"}
               </Text>
             </TouchableOpacity>
           </View>

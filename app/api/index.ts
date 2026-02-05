@@ -41,3 +41,34 @@ export {
   deleteSubscriptionById,
 } from "./subscription";
 export { getUserStats } from "./stats";
+
+// Form Submission API (for exposure feedback, pack reflections, etc.)
+export { submitFormResponse } from "./forms";
+export type {
+  FormSubmitRequest,
+  FormResponse,
+  FormContext,
+} from "./forms/types";
+
+// Quiz API (mastery tracking)
+export {
+  submitQuizAnswer,
+  getAllMasteryRecords,
+  getTopicMastery,
+  checkTopicAccess,
+} from "./quiz";
+export type {
+  QuizSubmitRequest,
+  QuizSubmissionResult,
+  UserKnowledgeMastery,
+  CanAccessResponse,
+} from "./quiz/types";
+
+// Overall State API (clinical + engagement metrics for home page)
+export { getCurrentOverallState, getOverallStateHistory } from "./overallState";
+export type {
+  ClinicalSummary,
+  EngagementSummary,
+  CombinedView,
+  UserOverallStateAggregate,
+} from "./overallState/types";

@@ -34,6 +34,7 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from "react-native-reanimated";
+import DimensionDetailModal from "./DimensionDetailModal";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -91,7 +92,7 @@ const POLAR_TO_CARTESIAN = (
   centerX: number,
   centerY: number,
   radius: number,
-  angleInDegrees: number
+  angleInDegrees: number,
 ) => {
   const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
   return {
@@ -101,11 +102,18 @@ const POLAR_TO_CARTESIAN = (
 };
 
 const ClinicalStatsWidget = () => {
-  const { growthProfile, weeklyBreakthroughs, fetchAllTrends, loading, error } =
-    useUserBehaviorTrendsStore();
+  const {
+    growthProfile,
+    weeklyBreakthroughs,
+    historicalProfile,
+    fetchAllTrends,
+    loading,
+    error,
+  } = useUserBehaviorTrendsStore();
   const [selectedMetric, setSelectedMetric] = useState<ClinicalDomain | null>(
-    null
+    null,
   );
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Animation Shared Value
   const progress = useSharedValue(0);
@@ -132,6 +140,35 @@ const ClinicalStatsWidget = () => {
         message: "Check out my growth profile on SpeechWorks! 🚀",
       });
     } catch (error) {}
+  };
+
+  // --- Dynamic Subtitle Logic ---
+  const getDynamicSubtitle = (): string => {
+    if (!weeklyBreakthroughs) return "Loading your progress...";
+
+    // Find the dimension with the biggest improvement
+    const improvements = (
+      Object.keys(weeklyBreakthroughs) as (keyof typeof weeklyBreakthroughs)[]
+    )
+      .filter((key) => weeklyBreakthroughs[key]?.trend === "IMPROVING")
+      .map((key) => {
+        const domain = (Object.keys(METRIC_CONFIG) as ClinicalDomain[]).find(
+          (d) => METRIC_CONFIG[d].profileKey === key,
+        );
+        return {
+          key,
+          label: domain ? METRIC_CONFIG[domain].label : key,
+          change: weeklyBreakthroughs[key]?.change || 0,
+        };
+      })
+      .sort((a, b) => b.change - a.change);
+
+    if (improvements.length === 0) {
+      return "Building your foundation";
+    }
+
+    const best = improvements[0];
+    return `Your ${best.label} improved ${Math.abs(best.change).toFixed(0)}% this week!`;
   };
 
   // --- Data Logic ---
@@ -197,7 +234,7 @@ const ClinicalStatsWidget = () => {
   // --- Spline / Curve Calculation ---
   const makeSmoothCurve = (
     points: { x: number; y: number }[],
-    tension: number = 0.45
+    tension: number = 0.45,
   ) => {
     if (points.length < 2) return "";
     const len = points.length;
@@ -206,7 +243,7 @@ const ClinicalStatsWidget = () => {
       current: { x: number; y: number },
       previous: { x: number; y: number },
       next: { x: number; y: number },
-      reverse?: boolean
+      reverse?: boolean,
     ) => {
       const smoothing = tension;
       const oX = next.x - previous.x;
@@ -251,11 +288,21 @@ const ClinicalStatsWidget = () => {
   // Generate Data Paths (High Tension = Blobby/Splatter look)
   // 0.45 tension creates that "amoeba" look from the reference
   const currentPathD = makeSmoothCurve(currentPoints, 0.45);
-  // const baselinePathD = makeSmoothCurve(baselinePoints, 0.3);
+
+  // Generate Ghost Overlay Path (Historical Comparison)
+  let historicalPathD: string | null = null;
+  if (historicalProfile) {
+    const historicalData = chartData.allDomains.map((domain) => {
+      const key = METRIC_CONFIG[domain].profileKey;
+      return historicalProfile[key] || 50;
+    });
+    const historicalPoints = getPoints(historicalData);
+    historicalPathD = makeSmoothCurve(historicalPoints, 0.45);
+  }
 
   // Weekly Breakthroughs Domain List
   const domainBreakthroughs = Object.keys(
-    weeklyBreakthroughs
+    weeklyBreakthroughs,
   ) as (keyof typeof weeklyBreakthroughs)[];
 
   return (
@@ -269,7 +316,7 @@ const ClinicalStatsWidget = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>GROWTH PROFILE</Text>
-          <Text style={styles.subtitle}>Your potential is expanding</Text>
+          <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
         </View>
         <TouchableOpacity onPress={onShare} style={styles.iconBtn}>
           <MaterialCommunityIcons
@@ -316,7 +363,7 @@ const ClinicalStatsWidget = () => {
               CENTER,
               CENTER,
               RADIUS,
-              i * angleStep
+              i * angleStep,
             );
             return (
               <Line
@@ -335,6 +382,26 @@ const ClinicalStatsWidget = () => {
 
           {/* Main Chart Layer */}
           <G>
+            {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
+            {historicalPathD && (
+              <>
+                <Path
+                  d={historicalPathD}
+                  fill="rgba(200, 200, 200, 0.15)"
+                  stroke="none"
+                />
+                <Path
+                  d={historicalPathD}
+                  fill="none"
+                  stroke="#94A3B8"
+                  strokeWidth="2"
+                  strokeDasharray="6,4"
+                  strokeLinecap="round"
+                  opacity={0.6}
+                />
+              </>
+            )}
+
             {/* 1. GLOW Effect */}
             <AnimatedPath
               d={currentPathD}
@@ -383,7 +450,7 @@ const ClinicalStatsWidget = () => {
               CENTER,
               CENTER,
               RADIUS + 24,
-              i * angleStep
+              i * angleStep,
             );
             const config = METRIC_CONFIG[domain];
             const isSelected = selectedMetric === domain;
@@ -400,7 +467,13 @@ const ClinicalStatsWidget = () => {
             let baseline: AlignmentBaseLine = "middle";
 
             return (
-              <G key={i} onPress={() => setSelectedMetric(domain)}>
+              <G
+                key={i}
+                onPress={() => {
+                  setSelectedMetric(domain);
+                  setModalVisible(true);
+                }}
+              >
                 {/* Large Touchable Area (Quasi-transparent for hit testing) */}
                 <Circle cx={pos.x} cy={pos.y} r="45" fill="rgba(0,0,0,0.01)" />
 
@@ -637,6 +710,34 @@ const ClinicalStatsWidget = () => {
           );
         })()}
       </View>
+
+      {/* Dimension Detail Modal */}
+      <DimensionDetailModal
+        visible={modalVisible}
+        domain={selectedMetric}
+        currentScore={
+          selectedMetric && weeklyBreakthroughs
+            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                ?.current || 0
+            : 0
+        }
+        change={
+          selectedMetric && weeklyBreakthroughs
+            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                ?.change || 0
+            : 0
+        }
+        trend={
+          selectedMetric && weeklyBreakthroughs
+            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                ?.trend || "STABLE"
+            : "STABLE"
+        }
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedMetric(null);
+        }}
+      />
     </LinearGradient>
   );
 };

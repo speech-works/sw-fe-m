@@ -17,9 +17,9 @@ interface OnboardingState {
   toggleMultiAnswer: (key: string, option: any) => void;
 
   // Helpers
-  getCurrentScreenQuestions: () => OnboardingQuestion[];
+  getCurrentScreenQuestions: (screenNum?: number) => OnboardingQuestion[];
   getTotalScreens: () => number;
-  isCurrentScreenValid: () => boolean;
+  isCurrentScreenValid: (screenNum?: number) => boolean;
 
   // Nav
   nextScreen: () => void;
@@ -65,10 +65,11 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({ answers: { ...get().answers, [key]: updated } });
       },
 
-      getCurrentScreenQuestions: () => {
+      getCurrentScreenQuestions: (screenNum?: number) => {
         const { flow, currentScreen } = get();
         if (!flow) return [];
-        return flow.questions.filter((q) => q.screenNumber === currentScreen);
+        const targetScreen = screenNum ?? currentScreen;
+        return flow.questions.filter((q) => q.screenNumber === targetScreen);
       },
 
       getTotalScreens: () => {
@@ -78,8 +79,8 @@ export const useOnboardingStore = create<OnboardingState>()(
         return Math.max(...flow.questions.map((q) => q.screenNumber));
       },
 
-      isCurrentScreenValid: () => {
-        const questions = get().getCurrentScreenQuestions();
+      isCurrentScreenValid: (screenNum?: number) => {
+        const questions = get().getCurrentScreenQuestions(screenNum);
         const answers = get().answers;
 
         return questions.every((q) => {
