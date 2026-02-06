@@ -51,6 +51,7 @@ const Home = () => {
   const [oasesProgress, setOasesProgress] = useState<{
     dayNumber: number;
     totalDays: number;
+    totalRemaining: number;
   } | null>(null);
 
   // --- OASES Rapid Collection Auto-Start ---
@@ -88,14 +89,21 @@ const Home = () => {
           console.log("[Home] Using cached OASES data for today.");
         }
 
-        // Step 2: Determine Visibility based on Batch (Cached or Fresh)
+        // Step 2: Determine Visibility based on Assessment Progress
+        // With same-day progression, show widget as long as assessment is not complete
+        if (!batch || batch.isComplete) {
+          // Assessment fully complete -> Hide widget
+          setOasesProgress(null);
+          return;
+        }
+
+        // Show widget if there are remaining questions (current batch or future batches)
+        const totalRemaining = batch.metadata?.totalRemaining ?? 0;
         if (
-          !batch ||
-          batch.isComplete ||
-          !batch.questions ||
-          batch.questions.length === 0
+          totalRemaining === 0 &&
+          (!batch.questions || batch.questions.length === 0)
         ) {
-          // No questions to handle -> Hide widget
+          // No remaining questions at all -> Hide widget
           setOasesProgress(null);
           return;
         }
@@ -104,7 +112,8 @@ const Home = () => {
         const safeDay = batch.dayNumber || 1;
         setOasesProgress({
           dayNumber: safeDay,
-          totalDays: 7, // Fixed 7-day flow
+          totalDays: 7, // Fixed 7-day flow (for progress display)
+          totalRemaining: totalRemaining,
         });
       } catch (err: any) {
         console.error(
@@ -229,6 +238,7 @@ const Home = () => {
                     <OASESWidget
                       dayNumber={oasesProgress?.dayNumber}
                       totalDays={oasesProgress?.totalDays}
+                      totalRemaining={oasesProgress?.totalRemaining}
                       style={{ marginBottom: 0 }}
                       onPress={() => {
                         navigation.navigate("AcademyStack", {

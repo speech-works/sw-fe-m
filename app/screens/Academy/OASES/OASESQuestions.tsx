@@ -9,10 +9,14 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import BottomSheetModal from "../../../components/BottomSheetModal";
+import OASESContinueModal from "../../../components/OASESContinueModal";
 import { useNavigation } from "@react-navigation/native";
 import { useOasesStore } from "../../../stores/oases";
-import { submitOasesBatch } from "../../../api/oases";
-import { OasesAnswerSubmission } from "../../../api/oases/types";
+import { submitOasesBatch, getTodayOasesQuestions } from "../../../api/oases";
+import {
+  OasesAnswerSubmission,
+  OasesDailyBatch,
+} from "../../../api/oases/types";
 import OnboardingQuestion from "../../../components/OnBoarding/OnboardingQuestion";
 import ScreenView from "../../../components/ScreenView";
 import Button from "../../../components/Button";
@@ -22,11 +26,17 @@ import { parseTextStyle } from "../../../util/functions/parseStyles";
 
 const OASESQuestions = () => {
   const navigation = useNavigation<any>();
-  const { dailyBatch, answers, setAnswer } = useOasesStore();
+  const { dailyBatch, answers, setAnswer, setDailyBatch, resetOases } =
+    useOasesStore();
 
   // Local pagination state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isStopModalVisible, setIsStopModalVisible] = useState(false);
+  const [isContinueModalVisible, setIsContinueModalVisible] = useState(false);
+  const [nextBatchData, setNextBatchData] = useState<OasesDailyBatch | null>(
+    null,
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (
     !dailyBatch ||
@@ -94,6 +104,9 @@ const OASESQuestions = () => {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       // Format payload
       const formattedAnswers: OasesAnswerSubmission[] = Object.keys(
@@ -104,11 +117,50 @@ const OASESQuestions = () => {
       }));
 
       await submitOasesBatch({ answers: formattedAnswers });
-      navigation.replace("OASESComplete");
+
+      // Fetch next batch to check if assessment is complete
+      const nextBatch = await getTodayOasesQuestions();
+
+      if (nextBatch.isComplete) {
+        // Entire assessment is complete
+        navigation.replace("OASESComplete");
+      } else if (nextBatch.questions && nextBatch.questions.length > 0) {
+        // More questions available - show continue modal
+        setNextBatchData(nextBatch);
+        setIsContinueModalVisible(true);
+      } else {
+        // Edge case: not complete but no questions (shouldn't happen)
+        navigation.replace("OASESComplete");
+      }
     } catch (err) {
       console.error(err);
       Alert.alert("Submission Failed", "Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleContinue = () => {
+    if (nextBatchData) {
+      // Reset answers for new batch
+      resetOases();
+      setDailyBatch(nextBatchData);
+      setCurrentIndex(0);
+      setIsContinueModalVisible(false);
+      setNextBatchData(null);
+    }
+  };
+
+  const handleSaveForLater = () => {
+    // Save the next batch to store so it's available when user returns
+    if (nextBatchData) {
+      // Clear answers (for the completed batch) but keep the new batch ready
+      resetOases();
+      setDailyBatch(nextBatchData);
+    }
+    setIsContinueModalVisible(false);
+    setNextBatchData(null);
+    navigation.navigate("Root");
   };
 
   // Map OASES options to UI component expected format
@@ -124,9 +176,7 @@ const OASESQuestions = () => {
     <ScreenView>
       {/* Header Info */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          Day {dailyBatch.dayNumber} Check-in
-        </Text>
+        <Text style={styles.headerTitle}>OASES Assessment</Text>
         <TouchableOpacity
           onPress={() => setIsStopModalVisible(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -168,9 +218,9 @@ const OASESQuestions = () => {
 
       <View style={styles.footer}>
         <Button
-          text={isLast ? "Submit" : "Next"}
+          text={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
           onPress={handleNext}
-          disabled={!canProceed}
+          disabled={!canProceed || isSubmitting}
         />
       </View>
 
@@ -207,6 +257,14 @@ const OASESQuestions = () => {
           </View>
         </View>
       </BottomSheetModal>
+
+      {/* Continue Modal */}
+      <OASESContinueModal
+        visible={isContinueModalVisible}
+        remainingQuestions={nextBatchData?.metadata?.totalRemaining || 0}
+        onContinue={handleContinue}
+        onSaveForLater={handleSaveForLater}
+      />
     </ScreenView>
   );
 };
@@ -226,6 +284,11 @@ const styles = StyleSheet.create({
   estimatedTime: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
+  },
+  stepLabel: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    marginBottom: 4,
   },
   progress: {
     marginTop: 8,

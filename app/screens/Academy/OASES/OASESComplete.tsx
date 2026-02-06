@@ -42,7 +42,7 @@ const OASESComplete = () => {
   }, []);
 
   const handleDone = () => {
-    navigation.navigate("DailyPractice"); // Or go back to Dashboard/Home
+    navigation.navigate("Home");
   };
 
   if (loading) {
@@ -85,9 +85,10 @@ const OASESComplete = () => {
 
         {/* Text Header */}
         <View style={styles.headerText}>
-          <Text style={styles.title}>All Done for Today!</Text>
+          <Text style={styles.title}>Assessment Complete! 🎉</Text>
           <Text style={styles.subtitle}>
-            Great job! You've captured today's insights.
+            You've completed the OASES assessment. Your personalized profile is
+            now being generated.
           </Text>
         </View>
 
@@ -96,12 +97,11 @@ const OASESComplete = () => {
           <View style={styles.statsCard}>
             <View style={styles.statsHeader}>
               <Text style={styles.statsTitle}>
-                Day {progress.dayNumber} Complete
+                {progress.totalAnswered} Questions Answered
               </Text>
               <Text style={styles.statsSubtitle}>
-                {7 - progress.dayNumber === 0
-                  ? "Profile complete!"
-                  : `${7 - progress.dayNumber} days until profile unlock`}
+                Completed over {progress.dayNumber} day
+                {progress.dayNumber !== 1 ? "s" : ""}
               </Text>
             </View>
 
@@ -121,10 +121,8 @@ const OASESComplete = () => {
           </View>
         )}
 
-        <View style={{ flex: 1 }} />
-
         {/* Action Button */}
-        <View style={{ width: "100%", paddingBottom: 20 }}>
+        <View style={styles.footerButton}>
           <Button text="Back to Dashboard" onPress={handleDone} />
         </View>
       </View>
@@ -146,13 +144,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40, // Safe Area padding
+    paddingTop: 40,
+    paddingBottom: 40,
     alignItems: "center",
+    justifyContent: "center",
     gap: 32,
   },
   checkmarkContainer: {
-    marginTop: 20, // Add some spacing top if needed
+    // No extra top margin needed with centered layout
   },
   checkmarkCircle: {
     width: 120,
@@ -242,6 +241,10 @@ const styles = StyleSheet.create({
   actionButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: theme.colors.text.title,
+  },
+  footerButton: {
+    width: "100%",
+    marginTop: 8,
   },
 });
 

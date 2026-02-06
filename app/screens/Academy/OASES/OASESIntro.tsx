@@ -16,6 +16,9 @@ const OASESIntro = () => {
   const setDailyBatch = useOasesStore((state) => state.setDailyBatch);
 
   useEffect(() => {
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+
     const init = async () => {
       try {
         console.log("[OASESIntro] init: Starting...");
@@ -32,29 +35,38 @@ const OASESIntro = () => {
         console.log("[OASESIntro] Daily Batch stored:", batch);
         setDailyBatch(batch);
 
-        // 3. Navigate
+        // 3. Navigate based on state
         if (batch.isComplete) {
           console.log(
-            "[OASESIntro] Batch is complete. Navigating to OASESComplete.",
+            "[OASESIntro] Assessment is complete. Navigating to OASESComplete.",
           );
           navigation.replace("OASESComplete");
           return;
         }
 
+        // Edge case: Not complete but no questions (backend guide says retry)
         if (!batch.questions || batch.questions.length === 0) {
-          console.warn(
-            "[OASESIntro] Batch incomplete but no questions returned.",
-          );
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(
+              `[OASESIntro] Empty questions, retrying (${retryCount}/${MAX_RETRIES})...`,
+            );
+            // Small delay before retry
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await init();
+            return;
+          }
+
+          console.warn("[OASESIntro] No questions available after retries.");
           Alert.alert(
-            "Notice",
-            "No questions available for today. Please check back later.",
+            "Loading Questions",
+            "We're preparing your next set of questions. Please try again in a moment.",
             [{ text: "OK", onPress: () => navigation.goBack() }],
           );
           return;
         }
 
         console.log("[OASESIntro] Navigating to OASESQuestions.");
-        // Only navigate to questions if NOT complete AND has questions
         navigation.replace("OASESQuestions");
       } catch (error: any) {
         console.error(
@@ -77,10 +89,7 @@ const OASESIntro = () => {
             return;
           }
         }
-        Alert.alert(
-          "Error",
-          "Could not load daily questions. Please try again.",
-        );
+        Alert.alert("Error", "Could not load questions. Please try again.");
         navigation.goBack();
       } finally {
         setLoading(false);

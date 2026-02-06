@@ -5,7 +5,6 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
-  Share,
 } from "react-native";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
@@ -24,15 +23,18 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
+  Rect,
 } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   withTiming,
+  withRepeat,
   Easing,
   useAnimatedStyle,
   interpolate,
   Extrapolation,
+  withSequence,
 } from "react-native-reanimated";
 import DimensionDetailModal from "./DimensionDetailModal";
 
@@ -134,13 +136,54 @@ const ClinicalStatsWidget = () => {
     }
   }, [loading, growthProfile]);
 
-  const onShare = async () => {
+  // --- Refresh Handler ---
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const rotationAnim = useSharedValue(0);
+  const pulseAnim = useSharedValue(1);
+
+  const onRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+
+    // Start continuous rotation animation
+    rotationAnim.value = withRepeat(
+      withTiming(360, {
+        duration: 1000,
+        easing: Easing.linear,
+      }),
+      -1, // Infinite repeat
+      false, // Don't reverse
+    );
+
+    // Subtle pulse on card
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(0.98, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+
     try {
-      await Share.share({
-        message: "Check out my growth profile on SpeechWorks! 🚀",
-      });
-    } catch (error) {}
+      await fetchAllTrends();
+    } catch (error) {
+      console.error("Failed to refresh:", error);
+    } finally {
+      // Stop animations
+      rotationAnim.value = withTiming(0, { duration: 200 });
+      pulseAnim.value = withTiming(1, { duration: 200 });
+      setIsRefreshing(false);
+    }
   };
+
+  const refreshIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotationAnim.value}deg` }],
+  }));
+
+  const cardPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseAnim.value }],
+  }));
 
   // --- Dynamic Subtitle Logic ---
   const getDynamicSubtitle = (): string => {
@@ -192,7 +235,7 @@ const ClinicalStatsWidget = () => {
   const CHART_WIDTH = width - 48; // Padding 24 * 2
   const SIZE = 220;
   const CENTER = SIZE / 2;
-  const RADIUS = SIZE / 2 - 30;
+  const RADIUS = SIZE / 2 - 40; // Reduced to fit labels inside white panel
 
   // Error State
   if (error) {
@@ -306,439 +349,467 @@ const ClinicalStatsWidget = () => {
   ) as (keyof typeof weeklyBreakthroughs)[];
 
   return (
-    <LinearGradient
-      colors={["white", "white"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>GROWTH PROFILE</Text>
-          <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+    <Animated.View style={cardPulseStyle}>
+      <View
+        // Vibrant Purple/Violet Gradient for Growth/Insights
+        style={styles.container}
+      >
+        {/* Decorative Bubbles */}
+        <View style={styles.decorBubble1} />
+        <View style={styles.decorBubble2} />
+        <View style={styles.decorBubble3} />
+
+        {/* Header */}
+        {/* Header */}
+        <View style={styles.header}>
+          {/* Top Row: Chip + Refresh */}
+          <View style={styles.headerTopRow}>
+            <View style={styles.chip}>
+              <MaterialCommunityIcons
+                name="chart-donut"
+                size={12}
+                color={theme.colors.library.blue[500]}
+              />
+              <Text style={styles.chipText}>Clinical Assessment</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={onRefresh}
+              disabled={isRefreshing}
+              activeOpacity={0.8}
+              style={[
+                styles.refreshBtn,
+                isRefreshing && styles.refreshBtnActive,
+              ]}
+            >
+              <Animated.View style={refreshIconStyle}>
+                <MaterialCommunityIcons
+                  name="sync"
+                  size={16}
+                  color={
+                    isRefreshing
+                      ? theme.colors.library.blue[500]
+                      : theme.colors.text.default
+                  }
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Title & Subtitle */}
+          <View style={styles.textContainer}>
+            <Text style={styles.bigTitle}>Growth Profile</Text>
+            <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+          </View>
         </View>
-        <TouchableOpacity onPress={onShare} style={styles.iconBtn}>
-          <MaterialCommunityIcons
-            name="share-variant-outline"
-            size={20}
-            color={theme.colors.text.default}
-          />
-        </TouchableOpacity>
-      </View>
 
-      {/* Radar Chart */}
-      <View style={styles.chartContainer}>
-        <Svg height={SIZE} width={CHART_WIDTH} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-          <Defs>
-            <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop
-                offset="0"
-                stopColor={theme.colors.library.orange[300]}
-                stopOpacity="0.7"
-              />
-              <Stop
-                offset="1"
-                stopColor={theme.colors.library.red[200]}
-                stopOpacity="0.4"
-              />
-            </SvgGradient>
-          </Defs>
+        {/* Main Content Panel (White) */}
+        <View style={styles.contentPanel}>
+          {/* Radar Chart */}
+          <View style={styles.chartContainer}>
+            <Svg
+              height={SIZE}
+              width={CHART_WIDTH}
+              viewBox={`0 0 ${SIZE} ${SIZE}`}
+            >
+              <Defs>
+                <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop
+                    offset="0"
+                    stopColor={theme.colors.library.orange[300]}
+                    stopOpacity="0.7"
+                  />
+                  <Stop
+                    offset="1"
+                    stopColor={theme.colors.library.red[200]}
+                    stopOpacity="0.4"
+                  />
+                </SvgGradient>
+              </Defs>
 
-          {/* Organic Grid (Concentric Blobs) */}
-          {gridPaths.map((pathD, i) => (
-            <Path
-              key={`grid-${i}`}
-              d={pathD}
-              stroke={theme.colors.library.orange[200]}
-              strokeWidth="1.5"
-              strokeOpacity={0.4}
-              fill="none"
-            />
-          ))}
-
-          {/* Axes */}
-          {chartData.allDomains.map((_, i) => {
-            const end = POLAR_TO_CARTESIAN(
-              CENTER,
-              CENTER,
-              RADIUS,
-              i * angleStep,
-            );
-            return (
-              <Line
-                key={i}
-                x1={CENTER}
-                y1={CENTER}
-                x2={end.x}
-                y2={end.y}
-                stroke={theme.colors.surface.disabled}
-                strokeWidth="1"
-                strokeDasharray="3,3"
-                opacity={0.3}
-              />
-            );
-          })}
-
-          {/* Main Chart Layer */}
-          <G>
-            {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
-            {historicalPathD && (
-              <>
+              {/* Organic Grid (Concentric Blobs) */}
+              {gridPaths.map((pathD, i) => (
                 <Path
-                  d={historicalPathD}
-                  fill="rgba(200, 200, 200, 0.15)"
+                  key={`grid-${i}`}
+                  d={pathD}
+                  stroke={theme.colors.library.gray[200]}
+                  strokeWidth="1.5"
+                  fill="none"
+                />
+              ))}
+
+              {/* Axes */}
+              {chartData.allDomains.map((_, i) => {
+                const end = POLAR_TO_CARTESIAN(
+                  CENTER,
+                  CENTER,
+                  RADIUS,
+                  i * angleStep,
+                );
+                return (
+                  <Line
+                    key={i}
+                    x1={CENTER}
+                    y1={CENTER}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke={theme.colors.library.gray[300]}
+                    strokeWidth="1"
+                    strokeDasharray="3,3"
+                  />
+                );
+              })}
+
+              {/* Main Chart Layer */}
+              <G>
+                {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
+                {historicalPathD && (
+                  <>
+                    <Path
+                      d={historicalPathD}
+                      fill="rgba(200, 200, 200, 0.15)"
+                      stroke="none"
+                    />
+                    <Path
+                      d={historicalPathD}
+                      fill="none"
+                      stroke="#94A3B8"
+                      strokeWidth="2"
+                      strokeDasharray="6,4"
+                      strokeLinecap="round"
+                      opacity={0.6}
+                    />
+                  </>
+                )}
+
+                {/* 1. GLOW Effect */}
+                <AnimatedPath
+                  d={currentPathD}
+                  fill="none"
+                  stroke={theme.colors.library.orange[300]}
+                  strokeWidth="12"
+                  strokeOpacity={0.15}
+                />
+
+                {/* 2. FILL Path */}
+                <AnimatedPath
+                  d={currentPathD}
+                  fill="url(#radarGrad)"
                   stroke="none"
                 />
+                {/* 3. STROKE Path */}
                 <Path
-                  d={historicalPathD}
+                  d={currentPathD}
                   fill="none"
-                  stroke="#94A3B8"
-                  strokeWidth="2"
-                  strokeDasharray="6,4"
+                  stroke={theme.colors.library.orange[400]} // Darker orange stroke
+                  strokeWidth="3"
                   strokeLinecap="round"
-                  opacity={0.6}
+                  strokeLinejoin="round"
                 />
-              </>
-            )}
 
-            {/* 1. GLOW Effect */}
-            <AnimatedPath
-              d={currentPathD}
-              fill="none"
-              stroke={theme.colors.library.orange[300]}
-              strokeWidth="12"
-              strokeOpacity={0.15}
-            />
-
-            {/* 2. FILL Path */}
-            <AnimatedPath
-              d={currentPathD}
-              fill="url(#radarGrad)"
-              stroke="none"
-            />
-            {/* 3. STROKE Path */}
-            <Path
-              d={currentPathD}
-              fill="none"
-              stroke={theme.colors.library.orange[400]} // Darker orange stroke
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-
-            {/* Dots */}
-            {currentPoints.map((coord, i) => {
-              return (
-                <Circle
-                  key={`dot-${i}`}
-                  cx={coord.x}
-                  cy={coord.y}
-                  r="5"
-                  fill="white"
-                  stroke={theme.colors.library.orange[400]}
-                  strokeWidth="2.5"
-                />
-              );
-            })}
-          </G>
-
-          {/* Labels */}
-          {chartData.allDomains.map((domain, i) => {
-            // Position with slightly more padding
-            const pos = POLAR_TO_CARTESIAN(
-              CENTER,
-              CENTER,
-              RADIUS + 24,
-              i * angleStep,
-            );
-            const config = METRIC_CONFIG[domain];
-            const isSelected = selectedMetric === domain;
-
-            // Determine text anchor based on horizontal position
-            type TextAnchor = "start" | "middle" | "end";
-            let anchor: TextAnchor = "middle";
-            if (pos.x < CENTER - 10) anchor = "end";
-            if (pos.x > CENTER + 10) anchor = "start";
-
-            // Determine vertical baseline adjustment
-            // react-native-svg expects proper AlignmentBaseline type
-            type AlignmentBaseLine = "middle"; // Simplified
-            let baseline: AlignmentBaseLine = "middle";
-
-            return (
-              <G
-                key={i}
-                onPress={() => {
-                  setSelectedMetric(domain);
-                  setModalVisible(true);
-                }}
-              >
-                {/* Large Touchable Area (Quasi-transparent for hit testing) */}
-                <Circle cx={pos.x} cy={pos.y} r="45" fill="rgba(0,0,0,0.01)" />
-
-                {/* Text Label */}
-                <SvgText
-                  key={`text-${i}`}
-                  x={pos.x}
-                  y={pos.y}
-                  fill={
-                    isSelected ? config.color : theme.colors.library.red[300]
-                  }
-                  fontSize={isSelected ? "11" : "10"}
-                  fontWeight={isSelected ? "800" : "600"}
-                  textAnchor={anchor}
-                  alignmentBaseline={baseline}
-                >
-                  {config.label.toUpperCase()}
-                </SvgText>
-              </G>
-            );
-          })}
-        </Svg>
-      </View>
-
-      {/* Tooltip */}
-      <AnimatedView
-        style={[styles.tooltipWrapper, { opacity: selectedMetric ? 1 : 0 }]}
-      >
-        {selectedMetric ? (
-          <View style={styles.tooltipSubtleCard}>
-            <MaterialCommunityIcons
-              name="information-variant"
-              size={16}
-              color={theme.colors.library.orange[400]}
-              style={{ marginTop: 1 }}
-            />
-            <Text style={styles.tooltipSubtleText}>
-              {METRIC_CONFIG[selectedMetric].description}
-            </Text>
-          </View>
-        ) : (
-          // Placeholder height
-          <View style={styles.tooltipPlaceholder} />
-        )}
-      </AnimatedView>
-
-      {/* Weekly Breakthroughs */}
-      <View style={styles.breakthroughContainer}>
-        <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
-
-        {(() => {
-          // 1. Sort & Top 3
-          const sortedKeys = domainBreakthroughs
-            .sort((a, b) => {
-              const scoreA = weeklyBreakthroughs[a]?.current || 0;
-              const scoreB = weeklyBreakthroughs[b]?.current || 0;
-              return scoreB - scoreA;
-            })
-            .slice(0, 3);
-
-          if (sortedKeys.length === 0) return null;
-
-          const topKey = sortedKeys[0];
-          const secondaryKeys = sortedKeys.slice(1);
-
-          // Helper to get config & data
-          const getItem = (key: keyof typeof weeklyBreakthroughs) => {
-            const data = weeklyBreakthroughs[key];
-            const domain = (
-              Object.keys(METRIC_CONFIG) as ClinicalDomain[]
-            ).find((d) => METRIC_CONFIG[d].profileKey === key);
-            const config = domain ? METRIC_CONFIG[domain] : null;
-            return { data, config };
-          };
-
-          const heroItem = getItem(topKey);
-
-          return (
-            <View style={styles.heroChartContainer}>
-              {/* Left Col: Hero Card */}
-              {heroItem.data && heroItem.config && (
-                <View
-                  style={[
-                    styles.miniCard,
-                    styles.heroCard,
-                    {
-                      backgroundColor: `${heroItem.config.color}08`,
-                      borderColor: `${heroItem.config.color}20`,
-                      borderWidth: 1,
-                    },
-                  ]}
-                >
-                  <View style={styles.heroHeader}>
-                    <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
-                      {heroItem.config.label}
-                    </Text>
-                    <MaterialCommunityIcons
-                      name={heroItem.config.icon as any}
-                      size={18}
-                      color={heroItem.config.color}
-                    />
-                  </View>
-                  <Text style={styles.heroValue}>{heroItem.data.current}</Text>
-                  <View style={styles.btChangeRow}>
-                    {heroItem.data.change !== 0 && (
-                      <View
-                        style={{ flexDirection: "row", alignItems: "center" }}
-                      >
-                        <Text
-                          style={[
-                            styles.btChange,
-                            heroItem.data.trend === "IMPROVING"
-                              ? styles.textSuccess
-                              : styles.textNeutral,
-                          ]}
-                        >
-                          {heroItem.data.change > 0 ? "+" : ""}
-                          {heroItem.data.change.toFixed(1)}%
-                        </Text>
-
-                        <MaterialCommunityIcons
-                          name={
-                            heroItem.data.trend === "IMPROVING"
-                              ? "trending-up"
-                              : "trending-down"
-                          }
-                          size={16}
-                          color={
-                            heroItem.data.trend === "IMPROVING"
-                              ? theme.colors.library.green[400]
-                              : theme.colors.library.red[400]
-                          }
-                          style={{ marginLeft: 4 }}
-                        />
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              {/* Right Col: Stacked Mini Cards */}
-              <View style={styles.bentoBottomRow}>
-                {secondaryKeys.map((key) => {
-                  const { data, config } = getItem(key);
-                  if (!data || !config) return null;
-                  const isImp = data.trend === "IMPROVING";
-                  const isWorsening = data.trend === "WORSENING";
-
+                {/* Dots */}
+                {currentPoints.map((coord, i) => {
                   return (
+                    <Circle
+                      key={`dot-${i}`}
+                      cx={coord.x}
+                      cy={coord.y}
+                      r="5"
+                      fill="white"
+                      stroke={theme.colors.library.orange[400]}
+                      strokeWidth="2.5"
+                    />
+                  );
+                })}
+              </G>
+
+              {/* Labels (Simplified) */}
+              {chartData.allDomains.map((domain, i) => {
+                const pos = POLAR_TO_CARTESIAN(
+                  CENTER,
+                  CENTER,
+                  RADIUS + 24, // More breathing room
+                  i * angleStep,
+                );
+                const config = METRIC_CONFIG[domain];
+                const isSelected = selectedMetric === domain;
+
+                // Determine text anchor based on horizontal position
+                type TextAnchor = "start" | "middle" | "end";
+                let anchor: TextAnchor = "middle";
+                if (pos.x < CENTER - 10) anchor = "end";
+                if (pos.x > CENTER + 10) anchor = "start";
+
+                return (
+                  <G
+                    key={i}
+                    onPress={() => {
+                      setSelectedMetric(domain);
+                      setModalVisible(true);
+                    }}
+                  >
+                    {/* Hit Area */}
+                    <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
+
+                    {/* Text Label */}
+                    <SvgText
+                      key={`text-${i}`}
+                      x={pos.x}
+                      y={pos.y}
+                      fill={
+                        isSelected ? config.color : theme.colors.text.default
+                      }
+                      fontSize={isSelected ? "11" : "10"}
+                      fontWeight={isSelected ? "800" : "600"}
+                      textAnchor={anchor}
+                      alignmentBaseline="middle"
+                    >
+                      {config.label.toUpperCase()}
+                    </SvgText>
+                  </G>
+                );
+              })}
+            </Svg>
+          </View>
+
+          {/* Tooltip */}
+          <AnimatedView
+            style={[styles.tooltipWrapper, { opacity: selectedMetric ? 1 : 0 }]}
+          >
+            {selectedMetric ? (
+              <View style={styles.tooltipSubtleCard}>
+                <MaterialCommunityIcons
+                  name="information-variant"
+                  size={16}
+                  color={theme.colors.library.orange[400]}
+                  style={{ marginTop: 1 }}
+                />
+                <Text style={styles.tooltipSubtleText}>
+                  {METRIC_CONFIG[selectedMetric].description}
+                </Text>
+              </View>
+            ) : (
+              // Placeholder height
+              <View style={styles.tooltipPlaceholder} />
+            )}
+          </AnimatedView>
+
+          {/* Weekly Breakthroughs */}
+          <View style={styles.breakthroughContainer}>
+            <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
+
+            {(() => {
+              // 1. Sort & Top 3
+              const sortedKeys = domainBreakthroughs
+                .sort((a, b) => {
+                  const scoreA = weeklyBreakthroughs[a]?.current || 0;
+                  const scoreB = weeklyBreakthroughs[b]?.current || 0;
+                  return scoreB - scoreA;
+                })
+                .slice(0, 3);
+
+              if (sortedKeys.length === 0) return null;
+
+              const topKey = sortedKeys[0];
+              const secondaryKeys = sortedKeys.slice(1);
+
+              // Helper to get config & data
+              const getItem = (key: keyof typeof weeklyBreakthroughs) => {
+                const data = weeklyBreakthroughs[key];
+                const domain = (
+                  Object.keys(METRIC_CONFIG) as ClinicalDomain[]
+                ).find((d) => METRIC_CONFIG[d].profileKey === key);
+                const config = domain ? METRIC_CONFIG[domain] : null;
+                return { data, config };
+              };
+
+              const heroItem = getItem(topKey);
+
+              return (
+                <View style={styles.heroChartContainer}>
+                  {/* Left Col: Hero Card */}
+                  {heroItem.data && heroItem.config && (
                     <View
-                      key={key}
                       style={[
                         styles.miniCard,
+                        styles.heroCard,
                         {
-                          backgroundColor: `${config.color}08`,
-                          borderColor: `${config.color}20`,
                           borderWidth: 1,
+                          borderColor: theme.colors.library.gray[100],
                         },
                       ]}
                     >
-                      <View style={styles.miniContent}>
-                        {/* Header Row: Title Left, Icon Right */}
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            // marginBottom: 4, // Removed to fix alignment
-                          }}
-                        >
-                          <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
-                            {config.label}
-                          </Text>
-                          <MaterialCommunityIcons
-                            name={config.icon as any}
-                            size={14}
-                            color={config.color}
-                          />
-                        </View>
-
-                        {/* Middle: Score */}
-                        <Text style={styles.miniValue}>{data.current}</Text>
-
-                        {/* Bottom: Change & Icon */}
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            marginTop: "auto",
-                          }}
-                        >
-                          {/* Change & Icon (Only if non-zero) */}
-                          {data.change !== 0 && (
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                              }}
+                      <View style={styles.heroHeader}>
+                        <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                          {heroItem.config.label}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name={heroItem.config.icon as any}
+                          size={18}
+                          color={heroItem.config.color}
+                        />
+                      </View>
+                      <Text style={styles.heroValue}>
+                        {Math.round(heroItem.data.current)}
+                      </Text>
+                      <View style={styles.btChangeRow}>
+                        {heroItem.data.change !== 0 && (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.btChange,
+                                heroItem.data.trend === "IMPROVING"
+                                  ? styles.textSuccess
+                                  : styles.textNeutral,
+                              ]}
                             >
-                              <Text
-                                style={[
-                                  styles.btChange,
-                                  isImp
-                                    ? styles.textSuccess
-                                    : styles.textNeutral,
-                                  { fontSize: 11, fontWeight: "700" },
-                                ]}
-                              >
-                                {data.change.toFixed(1)}%
-                              </Text>
+                              {heroItem.data.change > 0 ? "+" : ""}
+                              {heroItem.data.change.toFixed(1)}%
+                            </Text>
 
-                              <MaterialCommunityIcons
-                                name={isImp ? "trending-up" : "trending-down"}
-                                size={14}
-                                color={
-                                  isImp
-                                    ? theme.colors.library.green[400]
-                                    : theme.colors.library.red[400]
-                                }
-                                style={{ marginLeft: 2 }}
-                              />
-                            </View>
-                          )}
-                        </View>
+                            <MaterialCommunityIcons
+                              name={
+                                heroItem.data.trend === "IMPROVING"
+                                  ? "trending-up"
+                                  : "trending-down"
+                              }
+                              size={16}
+                              color={
+                                heroItem.data.trend === "IMPROVING"
+                                  ? theme.colors.library.green[400]
+                                  : theme.colors.library.red[400]
+                              }
+                              style={{ marginLeft: 4 }}
+                            />
+                          </View>
+                        )}
                       </View>
                     </View>
-                  );
-                })}
-              </View>
-            </View>
-          );
-        })()}
-      </View>
+                  )}
 
-      {/* Dimension Detail Modal */}
-      <DimensionDetailModal
-        visible={modalVisible}
-        domain={selectedMetric}
-        currentScore={
-          selectedMetric && weeklyBreakthroughs
-            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                ?.current || 0
-            : 0
-        }
-        change={
-          selectedMetric && weeklyBreakthroughs
-            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                ?.change || 0
-            : 0
-        }
-        trend={
-          selectedMetric && weeklyBreakthroughs
-            ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                ?.trend || "STABLE"
-            : "STABLE"
-        }
-        onClose={() => {
-          setModalVisible(false);
-          setSelectedMetric(null);
-        }}
-      />
-    </LinearGradient>
+                  {/* Bottom Row: 2 Mini Cards Side-by-Side */}
+                  <View style={{ flexDirection: "row", gap: 12 }}>
+                    {secondaryKeys.map((key, i) => {
+                      const { data, config } = getItem(key);
+                      if (!data || !config) return null;
+                      const isImp = data.trend === "IMPROVING";
+
+                      return (
+                        <View
+                          key={key}
+                          style={[
+                            styles.miniCard,
+                            {
+                              // Override defaults for Grid layout
+                              borderWidth: 1,
+                              borderColor: theme.colors.library.gray[100],
+                              flex: 1,
+                              padding: 12,
+                              // Height is fixed by miniCard style (110) or auto
+                              // Let's ensure they match
+                            },
+                          ]}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              height: "100%",
+                            }}
+                          >
+                            <View>
+                              <Text
+                                style={[styles.cardTitle, { marginBottom: 0 }]}
+                              >
+                                {config.label}
+                              </Text>
+
+                              {/* Change Trend */}
+                              {data.change !== 0 && (
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.btChange,
+                                      isImp
+                                        ? styles.textSuccess
+                                        : styles.textNeutral,
+                                      { fontSize: 11, fontWeight: "700" },
+                                    ]}
+                                  >
+                                    {data.change > 0 ? "+" : ""}
+                                    {data.change.toFixed(1)}%
+                                  </Text>
+                                  <MaterialCommunityIcons
+                                    name={
+                                      isImp ? "trending-up" : "trending-down"
+                                    }
+                                    size={14}
+                                    color={
+                                      isImp
+                                        ? theme.colors.library.green[400]
+                                        : theme.colors.library.red[400]
+                                    }
+                                    style={{ marginLeft: 2 }}
+                                  />
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Score */}
+                            <Text style={styles.miniValue}>
+                              {Math.round(data.current)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })()}
+          </View>
+        </View>
+
+        {/* Dimension Detail Modal */}
+        <DimensionDetailModal
+          visible={modalVisible}
+          domain={selectedMetric}
+          currentScore={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.current || 0
+              : 0
+          }
+          change={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.change || 0
+              : 0
+          }
+          trend={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.trend || "STABLE"
+              : "STABLE"
+          }
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedMetric(null);
+          }}
+        />
+      </View>
+    </Animated.View>
   );
 };
 
@@ -747,13 +818,30 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     marginVertical: 12,
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 4,
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
+    borderColor: theme.colors.library.gray[200],
+    // Soft SaaS Shadow
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  contentPanel: {
+    // No background color needed (already on white)
+    marginTop: 12,
+    paddingHorizontal: 8, // Less padding, let chart breathe
+  },
+
+  btChangeRow: {
+    marginTop: "auto",
+    paddingTop: 12,
+  },
+  miniValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text.title,
   },
   card: {
     backgroundColor: "white",
@@ -761,22 +849,62 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     padding: 20,
   },
+  // Decorative Elements (White transparent overlays)
+
   header: {
+    marginBottom: 20,
+    zIndex: 1,
+  },
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#1E293B",
-    letterSpacing: 1,
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.library.blue[100], // Light Blue
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: theme.colors.library.blue[200],
   },
-  subtitle: { fontSize: 13, color: "#64748B", marginTop: 2 },
-  iconBtn: {
-    padding: 8,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 12,
+  chipText: {
+    color: theme.colors.library.blue[600],
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  textContainer: {
+    gap: 4,
+  },
+  bigTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: theme.colors.text.title, // Dark
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: theme.colors.text.default, // Gray
+    lineHeight: 20,
+  },
+  refreshBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F8FAFC", // Soft Gray (Slate-50)
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.library.gray[200],
+  },
+  refreshBtnActive: {
+    backgroundColor: theme.colors.library.gray[100],
+    borderColor: theme.colors.library.blue[200],
   },
   chartContainer: {
     alignItems: "center",
@@ -860,12 +988,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     height: "100%",
   },
-  miniValue: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#1E293B",
-    marginTop: 4,
-  },
+
   tooltipWrapper: {
     marginBottom: 20,
     minHeight: 50,
@@ -912,11 +1035,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  btChangeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
+
   btChange: {
     fontSize: 11,
     fontWeight: "700",
@@ -924,6 +1043,38 @@ const styles = StyleSheet.create({
   textSuccess: { color: theme.colors.library.green[400] },
   textError: { color: theme.colors.library.red[400] },
   textNeutral: { color: theme.colors.text.default },
+
+  // Decorative Bubbles
+  decorBubble1: {
+    position: "absolute",
+    top: -40,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: theme.colors.library.purple[100],
+    opacity: 0.5,
+  },
+  decorBubble2: {
+    position: "absolute",
+    top: 60,
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: theme.colors.library.orange[100],
+    opacity: 0.4,
+  },
+  decorBubble3: {
+    position: "absolute",
+    bottom: -20,
+    right: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.library.blue[100],
+    opacity: 0.3,
+  },
 });
 
 export default ClinicalStatsWidget;

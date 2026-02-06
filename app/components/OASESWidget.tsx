@@ -11,20 +11,23 @@ interface Props {
   onPress: () => void;
   dayNumber?: number;
   totalDays?: number;
+  totalRemaining?: number;
   style?: any;
 }
+
+const TOTAL_QUESTIONS = 100; // OASES assessment total
 
 const OASESWidget: React.FC<Props> = ({
   onPress,
   dayNumber = 1,
   totalDays = 7,
+  totalRemaining = 100,
   style,
 }) => {
-  // Calculate percentage
-  const safeTotal = totalDays > 0 ? totalDays : 1;
-  const safeCurrent = Math.min(dayNumber, safeTotal);
+  // Calculate progress based on questions answered
+  const questionsAnswered = TOTAL_QUESTIONS - totalRemaining;
   const progressPercentage = Math.min(
-    Math.max((safeCurrent / safeTotal) * 100, 0),
+    Math.max((questionsAnswered / TOTAL_QUESTIONS) * 100, 0),
     100,
   );
 
@@ -57,8 +60,8 @@ const OASESWidget: React.FC<Props> = ({
             <View style={styles.textContainer}>
               <Text style={styles.title}>Unlock Your Profile</Text>
               <Text style={styles.subtitle}>
-                Step {safeCurrent} of {safeTotal} • Measuring the impact of
-                stuttering on your life.
+                {totalRemaining} question{totalRemaining !== 1 ? "s" : ""}{" "}
+                remaining • Answer at your own pace.
               </Text>
             </View>
 

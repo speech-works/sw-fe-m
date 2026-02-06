@@ -168,7 +168,9 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>YOUR STATUS</Text>
                 <View style={styles.statusRow}>
-                  <Text style={styles.scoreValue}>{currentScore}</Text>
+                  <Text style={styles.scoreValue}>
+                    {Math.round(currentScore)}
+                  </Text>
                   <View
                     style={[
                       styles.trendBadge,
