@@ -235,7 +235,7 @@ const ClinicalStatsWidget = () => {
   const CHART_WIDTH = width - 48; // Padding 24 * 2
   const SIZE = 220;
   const CENTER = SIZE / 2;
-  const RADIUS = SIZE / 2 - 40; // Reduced to fit labels inside white panel
+  const RADIUS = SIZE / 2 - 45; // Slightly more padding for labels
 
   // Error State
   if (error) {
@@ -434,9 +434,10 @@ const ClinicalStatsWidget = () => {
                   key={`grid-${i}`}
                   d={pathD}
                   stroke={theme.colors.library.gray[200]}
-                  strokeWidth="0.8"
-                  strokeDasharray="4,4"
+                  strokeWidth="0.5" // Thinner grid
+                  strokeDasharray="4,2" // Tighter dash
                   fill="none"
+                  opacity={0.6} // Subtler
                 />
               ))}
 
@@ -455,9 +456,9 @@ const ClinicalStatsWidget = () => {
                     y1={CENTER}
                     x2={end.x}
                     y2={end.y}
-                    stroke={theme.colors.library.gray[300]}
+                    stroke={theme.colors.library.gray[200]} // Lighter axis
                     strokeWidth="1"
-                    strokeDasharray="4,4"
+                    strokeDasharray="2,2" // Tighter dash
                   />
                 );
               })}
@@ -490,7 +491,7 @@ const ClinicalStatsWidget = () => {
                   fill="none"
                   stroke={theme.colors.library.orange[300]}
                   strokeWidth="12"
-                  strokeOpacity={0.15}
+                  strokeOpacity={0.1} // Reduced glow opacity
                 />
 
                 {/* 2. FILL Path */}
@@ -498,13 +499,14 @@ const ClinicalStatsWidget = () => {
                   d={currentPathD}
                   fill="url(#radarGrad)"
                   stroke="none"
+                  opacity={0.9}
                 />
                 {/* 3. STROKE Path */}
                 <Path
                   d={currentPathD}
                   fill="none"
                   stroke={theme.colors.library.orange[400]} // Darker orange stroke
-                  strokeWidth="3"
+                  strokeWidth="2.5" // Slightly thinner stroke
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -516,10 +518,10 @@ const ClinicalStatsWidget = () => {
                       key={`dot-${i}`}
                       cx={coord.x}
                       cy={coord.y}
-                      r="5"
+                      r="4" // Smaller dots
                       fill="white"
                       stroke={theme.colors.library.orange[400]}
-                      strokeWidth="2.5"
+                      strokeWidth="2" // Thinner dot stroke
                     />
                   );
                 })}
@@ -530,7 +532,7 @@ const ClinicalStatsWidget = () => {
                 const pos = POLAR_TO_CARTESIAN(
                   CENTER,
                   CENTER,
-                  RADIUS + 24, // More breathing room
+                  RADIUS + 28, // More breathing room
                   i * angleStep,
                 );
                 const config = METRIC_CONFIG[domain];
