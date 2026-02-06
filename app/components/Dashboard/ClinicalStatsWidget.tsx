@@ -368,9 +368,9 @@ const ClinicalStatsWidget = () => {
               <MaterialCommunityIcons
                 name="chart-donut"
                 size={12}
-                color={theme.colors.library.blue[500]}
+                color={theme.colors.library.orange[500]}
               />
-              <Text style={styles.chipText}>Clinical Assessment</Text>
+              <Text style={styles.chipText}>Tracking</Text>
             </View>
 
             <TouchableOpacity
@@ -385,7 +385,7 @@ const ClinicalStatsWidget = () => {
               <Animated.View style={refreshIconStyle}>
                 <MaterialCommunityIcons
                   name="sync"
-                  size={16}
+                  size={14}
                   color={
                     isRefreshing
                       ? theme.colors.library.blue[500]
@@ -393,6 +393,7 @@ const ClinicalStatsWidget = () => {
                   }
                 />
               </Animated.View>
+              <Text style={styles.refreshText}>Refresh</Text>
             </TouchableOpacity>
           </View>
 
@@ -433,7 +434,8 @@ const ClinicalStatsWidget = () => {
                   key={`grid-${i}`}
                   d={pathD}
                   stroke={theme.colors.library.gray[200]}
-                  strokeWidth="1.5"
+                  strokeWidth="0.8"
+                  strokeDasharray="4,4"
                   fill="none"
                 />
               ))}
@@ -455,7 +457,7 @@ const ClinicalStatsWidget = () => {
                     y2={end.y}
                     stroke={theme.colors.library.gray[300]}
                     strokeWidth="1"
-                    strokeDasharray="3,3"
+                    strokeDasharray="4,4"
                   />
                 );
               })}
@@ -709,9 +711,8 @@ const ClinicalStatsWidget = () => {
                               borderWidth: 1,
                               borderColor: theme.colors.library.gray[100],
                               flex: 1,
+                              height: 100, // Fixed height for alignment
                               padding: 12,
-                              // Height is fixed by miniCard style (110) or auto
-                              // Let's ensure they match
                             },
                           ]}
                         >
@@ -723,11 +724,28 @@ const ClinicalStatsWidget = () => {
                             }}
                           >
                             <View>
-                              <Text
-                                style={[styles.cardTitle, { marginBottom: 0 }]}
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  width: "100%",
+                                }}
                               >
-                                {config.label}
-                              </Text>
+                                <Text
+                                  style={[
+                                    styles.cardTitle,
+                                    { marginBottom: 0 },
+                                  ]}
+                                >
+                                  {config.label}
+                                </Text>
+                                <MaterialCommunityIcons
+                                  name={config.icon as any}
+                                  size={16}
+                                  color={config.color}
+                                />
+                              </View>
 
                               {/* Change Trend */}
                               {data.change !== 0 && (
@@ -819,6 +837,7 @@ const styles = StyleSheet.create({
     padding: 24,
     marginVertical: 12,
     backgroundColor: "white",
+    overflow: "hidden", // Clip bubbles
     borderWidth: 1,
     borderColor: theme.colors.library.gray[200],
     // Soft SaaS Shadow
@@ -864,17 +883,17 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.library.blue[100], // Light Blue
+    backgroundColor: theme.colors.library.orange[100], // Orange Theme
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: theme.colors.library.blue[200],
+    borderColor: theme.colors.library.orange[200],
   },
   chipText: {
-    color: theme.colors.library.blue[600],
+    color: theme.colors.library.orange[400],
     fontSize: 12,
     fontWeight: "700",
   },
@@ -893,18 +912,33 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F8FAFC", // Soft Gray (Slate-50)
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8, // More "tech" look than fully round pill
     borderWidth: 1,
-    borderColor: theme.colors.library.gray[200],
+    borderColor: "#E2E8F0", // Slate 200 - subtle border
+    gap: 6,
+    // Subtle shadow for lift
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   refreshBtnActive: {
-    backgroundColor: theme.colors.library.gray[100],
-    borderColor: theme.colors.library.blue[200],
+    backgroundColor: "#F1F5F9", // Slate 100
+    borderColor: "#CBD5E1", // Slate 300
+    transform: [{ scale: 0.98 }], // Micro-interaction squeeze
+  },
+  refreshText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#475569", // Slate 600 - crisp text
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
   },
   chartContainer: {
     alignItems: "center",
@@ -966,7 +1000,7 @@ const styles = StyleSheet.create({
   heroValue: {
     fontSize: 36, // Larger for Hero
     fontWeight: "800",
-    color: "#1E293B",
+    color: theme.colors.text.title,
     letterSpacing: -1,
     marginTop: 8,
   },
