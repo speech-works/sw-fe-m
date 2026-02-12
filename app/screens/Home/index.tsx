@@ -34,6 +34,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useMoodCheckStore } from "../../stores/mood";
 import { useOasesStore } from "../../stores/oases";
 
+import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
@@ -53,6 +54,32 @@ const Home = () => {
     totalDays: number;
     totalRemaining: number;
   } | null>(null);
+
+  // Resume Modal State
+  const [showResumeModal, setShowResumeModal] = useState(false);
+
+  // Resume Handler
+  const handleResumeOnboarding = () => {
+    setShowResumeModal(false);
+    emit(EVENT_NAMES.START_ONBOARDING);
+    // OnboardingWelcome will auto-redirect to current question
+  };
+
+  // Start Over Handler
+  const handleStartOverOnboarding = async () => {
+    setShowResumeModal(false);
+    try {
+      const flow = await getActiveOnboardingFlow();
+      const state = useOnboardingStore.getState();
+      state.startFresh(flow); // Resets currentScreen to 1
+      emit(EVENT_NAMES.START_ONBOARDING);
+      // OnboardingWelcome is screen 1 if no progress, but here we explicitly go to Q1?
+      // Actually OnboardingWelcome logic: if !hasProgress -> Show Welcome UI with Start button.
+      // So user will see Welcome screen. That is acceptable flow for Start Over.
+    } catch (err) {
+      console.error("Failed to restart onboarding flow:", err);
+    }
+  };
 
   // --- OASES Rapid Collection Auto-Start ---
   React.useEffect(() => {
@@ -222,10 +249,18 @@ const Home = () => {
                       onPress={async () => {
                         try {
                           const state = useOnboardingStore.getState();
-                          if (state.flow && state.currentScreen > 1) {
-                            emit(EVENT_NAMES.START_ONBOARDING);
+                          // Check for valid progress to resume
+                          if (
+                            state.flow &&
+                            (state.currentScreen > 1 ||
+                              Object.keys(state.answers).length > 0)
+                          ) {
+                            // Show modal on Dashboard instead of navigating immediately
+                            setShowResumeModal(true);
                             return;
                           }
+
+                          // No progress? Start fresh immediately
                           const flow = await getActiveOnboardingFlow();
                           state.startFresh(flow);
                           emit(EVENT_NAMES.START_ONBOARDING);
@@ -312,6 +347,14 @@ const Home = () => {
 
         <ClinicalStatsWidget />
       </ScrollView>
+
+      {/* Resume Modal Overlay */}
+      <OnboardingResumeModal
+        visible={showResumeModal}
+        onResume={handleResumeOnboarding}
+        onStartOver={handleStartOverOnboarding}
+        onDismiss={() => setShowResumeModal(false)}
+      />
     </ScreenView>
   );
 };

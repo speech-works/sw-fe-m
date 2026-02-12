@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import ScreenView from "../../components/ScreenView";
 import Button from "../../components/Button";
@@ -12,23 +12,17 @@ import {
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { useOnboardingStore } from "../../stores/onboarding";
 
-// Note: Removed useEventStore/emit because MainNavigator already mounted this stack.
-// We just need to navigate within the stack now.
-
 const OnboardingWelcome: React.FC = () => {
   const navigation =
     useNavigation<
       OnboardingStackNavigationProp<keyof OnboardingStackParamList>
     >();
-  const startFresh = useOnboardingStore((s) => s.startFresh);
+  const { startFresh } = useOnboardingStore();
 
   const handleStart = async () => {
     try {
       const fetched = await getActiveOnboardingFlow();
-
-      // Use startFresh to explicitly ensure we are at Screen 1
       startFresh(fetched);
-
       navigation.navigate("OnboardingQuestion", { screenNumber: 1 });
     } catch (err) {
       console.error("Failed to load onboarding flow:", err);

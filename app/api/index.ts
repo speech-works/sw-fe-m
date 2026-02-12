@@ -72,3 +72,7 @@ export type {
   CombinedView,
   UserOverallStateAggregate,
 } from "./overallState/types";
+
+// Guided Activities API (for pack modules)
+export { getGuidedActivity } from "./guidedActivities";
+export type { GuidedActivity } from "./guidedActivities";

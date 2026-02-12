@@ -30,3 +30,11 @@ export interface PracticeActivity {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Request interface for completing an activity with optional vitals
+export interface CompleteActivityRequest {
+  userId: string;
+  effortScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
+  autonomyScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
+  accuracyScore?: number; // 20-100, only for TECHNIQUE_DRILL
+}

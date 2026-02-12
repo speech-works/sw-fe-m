@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Linking,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -15,22 +17,31 @@ import {
   TextBlockContent,
   VideoBlockContent,
   AudioBlockContent,
-  ActivityBlockContent,
-  ActivityType,
+  ReferenceBlockContent,
 } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SimpleMarkdown } from "./SimpleMarkdown";
 import { LinearGradient } from "expo-linear-gradient";
+import { getGuidedActivity } from "../../api";
+import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
+  packId?: string;
+  moduleId?: string;
 }
 
 const { width } = Dimensions.get("window");
 
-export const ContentRenderer: React.FC<ContentRendererProps> = ({ block }) => {
+export const ContentRenderer: React.FC<ContentRendererProps> = ({
+  block,
+  packId,
+  moduleId,
+}) => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
+
   switch (block.type) {
     case ContentBlockType.TEXT: {
       const textContent = block.content as TextBlockContent;
@@ -74,8 +85,35 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({ block }) => {
     }
 
     case ContentBlockType.ACTIVITY: {
-      const activityContent = block.content as ActivityBlockContent;
-      // Basic Card Implementation
+      const content = block.content as ReferenceBlockContent;
+
+      const handleStartActivity = async () => {
+        if (!packId || !moduleId) {
+          Alert.alert("Error", "Pack context missing");
+          return;
+        }
+
+        try {
+          setLoading(true);
+          const activity = await getGuidedActivity(content.refId);
+
+          navigateToPackActivity(navigation, activity, {
+            blockId: block.id,
+            moduleId,
+            packId,
+          });
+        } catch (error) {
+          console.error("Failed to load activity:", error);
+          Alert.alert(
+            "Error",
+            "Could not load practice activity. Please try again.",
+            [{ text: "OK", style: "cancel" }],
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
       return (
         <View style={styles.activityCard}>
           <LinearGradient
@@ -97,45 +135,36 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({ block }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.activityLabel}>PRACTICE ACTIVITY</Text>
-              <Text style={styles.activityTitle}>{activityContent.title}</Text>
+              <Text style={styles.activityTitle}>
+                {content.titleOverride || "Practice Activity"}
+              </Text>
             </View>
           </View>
 
           <Text style={styles.activityInstructions}>
-            {activityContent.instructions ||
+            {content.descriptionOverride ||
               "Complete this activity to move forward."}
           </Text>
 
           <TouchableOpacity
-            style={styles.startActivityButton}
-            onPress={() => {
-              if (
-                activityContent.activityType === ActivityType.EXPOSURE_PRACTICE
-              ) {
-                try {
-                  // @ts-ignore - Navigation typing integration pending
-                  navigation.navigate("SCChat", {
-                    sc: {
-                      name: activityContent.title,
-                      practiceData: activityContent.configuration,
-                    },
-                    practiceActivityId: "guided_" + block.id,
-                  });
-                } catch (e) {
-                  console.error("Navigation failed", e);
-                  alert("Unable to start activity");
-                }
-              } else {
-                alert("This activity type is coming soon!");
-              }
-            }}
+            style={[styles.startActivityButton, loading && { opacity: 0.6 }]}
+            onPress={handleStartActivity}
+            disabled={loading}
           >
-            <Text style={styles.startActivityButtonText}>Start Practice</Text>
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={16}
-              color="white"
-            />
+            {loading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <>
+                <Text style={styles.startActivityButtonText}>
+                  Start Practice
+                </Text>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={16}
+                  color="white"
+                />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       );

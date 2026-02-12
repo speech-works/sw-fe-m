@@ -18,13 +18,11 @@ export default function OnboardingStackNavigator() {
   const currentScreen = useOnboardingStore((s) => s.currentScreen);
   const flow = useOnboardingStore((s) => s.flow);
 
-  // LOGIC FIX: Determine start screen
-  // If we have a flow and are past screen 1, start at Question.
-  // Otherwise, start at Welcome.
-  const hasProgress = flow && currentScreen > 1;
-  const initialRouteName = hasProgress
-    ? "OnboardingQuestion"
-    : "OnboardingWelcome";
+  // LOGIC FIX: Dynamic initial route
+  // If we have progress (screen > 1), start directly at the question.
+  // Otherwise start at Welcome.
+  const initialRouteName =
+    currentScreen > 1 ? "OnboardingQuestion" : "OnboardingWelcome";
 
   return (
     <Stack.Navigator

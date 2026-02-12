@@ -49,33 +49,22 @@ export type AudioBlockContent = {
 };
 
 export type ReferenceBlockContent = {
-  refId: string;
+  refId: string; // References GuidedActivity, Form, or Simulation ID
   titleOverride?: string;
   descriptionOverride?: string;
+
+  // Hydrated fields (injected by backend service, may be present in API response)
+  activityType?: string;
+  intent?: string;
+  emotionalLoad?: number;
+  configuration?: any;
 };
-
-export enum ActivityType {
-  COGNITIVE_PRACTICE = "COGNITIVE_PRACTICE",
-  EXPOSURE_PRACTICE = "EXPOSURE_PRACTICE",
-  FUN_PRACTICE = "FUN_PRACTICE",
-  READING_PRACTICE = "READING_PRACTICE",
-}
-
-export interface ActivityBlockContent {
-  title: string;
-  activityType: ActivityType;
-  intent: string;
-  emotionalLoad: number;
-  instructions: string;
-  configuration: any;
-}
 
 export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | AudioBlockContent
-  | ReferenceBlockContent
-  | ActivityBlockContent;
+  | ReferenceBlockContent;
 
 export interface ModuleContentBlock {
   id: string;

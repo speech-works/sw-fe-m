@@ -54,7 +54,7 @@ const PackModuleScreen = () => {
     const initModule = async () => {
       try {
         startModule(packId, initialModule.id).catch((err) =>
-          console.log("Failed to mark start (non-fatal)", err)
+          console.log("Failed to mark start (non-fatal)", err),
         );
 
         if (initialModule.blocks && initialModule.blocks.length > 0) {
@@ -70,7 +70,7 @@ const PackModuleScreen = () => {
         } catch (apiError: any) {
           console.warn(
             "getModule failed (possibly 404), falling back to getPack",
-            apiError.message
+            apiError.message,
           );
           const packData: Pack = await getPack(packId);
           fullModule = packData.modules.find((m) => m.id === initialModule.id);
@@ -127,7 +127,7 @@ const PackModuleScreen = () => {
       try {
         const packData: Pack = await getPack(packId);
         const nextMod = packData.modules.find(
-          (m) => m.orderIndex === module.orderIndex + 1
+          (m) => m.orderIndex === module.orderIndex + 1,
         );
         if (nextMod) {
           setNextModuleId(nextMod.id);
@@ -302,6 +302,8 @@ const PackModuleScreen = () => {
               <ContentRenderer
                 key={currentBlock?.id || currentBlockIndex}
                 block={currentBlock}
+                packId={packId}
+                moduleId={module.id}
               />
             </View>
           )}

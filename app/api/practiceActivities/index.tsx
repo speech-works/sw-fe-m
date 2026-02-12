@@ -21,7 +21,7 @@ export async function getAllPracticeActivitiesBySessionId({
         params: {
           includeContent,
         },
-      }
+      },
     );
     console.log("getAllPracticeActivitiesBySessionId", { response });
     return response.data;
@@ -42,13 +42,13 @@ export async function getCurrentPracticeActivityForSession({
         params: {
           includeContent,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
     console.error(
       "Error getting current practice activity for session:",
-      error
+      error,
     );
     throw error;
   }
@@ -99,7 +99,7 @@ export async function startPracticeActivity({
   try {
     const response = await axiosClient.post(
       `/practice-activities/${id}/start`,
-      { userId }
+      { userId },
     );
     return response.data;
   } catch (error) {
@@ -127,11 +127,22 @@ export async function startPracticeActivity({
 export async function completePracticeActivity({
   id,
   userId,
-}: UpdateActivityReq): Promise<PracticeActivity> {
+  vitals,
+}: UpdateActivityReq & {
+  vitals?: {
+    effortScore?: number;
+    autonomyScore?: number;
+    accuracyScore?: number;
+  };
+}): Promise<PracticeActivity> {
   try {
+    const requestBody = {
+      userId,
+      ...vitals, // Spread vitals if provided
+    };
     const response = await axiosClient.post(
       `/practice-activities/${id}/complete`,
-      { userId }
+      requestBody,
     );
     return response.data;
   } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
 import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
@@ -30,6 +30,12 @@ import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice"
 import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
 import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
+import {
+  shouldCollectVitals,
+  shouldCollectAccuracy,
+  validateVitals,
+} from "../../../../../../utils/vitals";
 
 const Breathing = () => {
   const navigation = useNavigation();
@@ -39,10 +45,13 @@ const Breathing = () => {
   // State to track elapsed seconds for the session
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
-    null
+    null,
   );
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [showAccuracy, setShowAccuracy] = useState(false);
+  const [currentActivity, setCurrentActivity] = useState<any>(null);
 
   const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
 
@@ -54,7 +63,7 @@ const Breathing = () => {
   const { practiceSession } = useSessionStore();
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   const markActivityStart = async () => {
@@ -81,6 +90,58 @@ const Breathing = () => {
     updateActivity(currentActivityId, {
       ...completedActivity,
     });
+    setCurrentActivity(completedActivity);
+  };
+
+  const handleVitalsSubmit = async (vitals: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    const validation = validateVitals(vitals);
+    if (!validation.valid) {
+      Alert.alert("Invalid Input", validation.error);
+      return;
+    }
+
+    try {
+      setShowVitalsModal(false);
+      if (!currentActivityId || !practiceSession) return;
+
+      const completedActivity = await completePracticeActivity({
+        id: currentActivityId,
+        userId: practiceSession.user.id,
+        vitals,
+      });
+      updateActivity(currentActivityId, completedActivity);
+      setIsDone(true);
+    } catch (error) {
+      console.error("Failed to complete activity:", error);
+      Alert.alert(
+        "Completion Failed",
+        "Could not save your progress. Please try again.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Retry", onPress: () => handleVitalsSubmit(vitals) },
+        ],
+      );
+    }
+  };
+
+  const handleVitalsSkip = async () => {
+    try {
+      setShowVitalsModal(false);
+      if (!currentActivityId || !practiceSession) return;
+
+      await completePracticeActivity({
+        id: currentActivityId,
+        userId: practiceSession.user.id,
+      });
+      setIsDone(true);
+    } catch (error) {
+      console.error("Failed to complete activity:", error);
+      Alert.alert("Error", "Could not save your progress. Please try again.");
+    }
   };
 
   // ─── On mount: load the music, then immediately play it (because mute === false) ────
@@ -137,7 +198,7 @@ const Breathing = () => {
   useEffect(() => {
     const fetchCP = async () => {
       const cp = await getCognitivePracticeByType(
-        CognitivePracticeType.GUIDED_BREATHING
+        CognitivePracticeType.GUIDED_BREATHING,
       );
       setCognitivePracticeId(cp[0]?.id || null);
     };
@@ -194,7 +255,16 @@ const Breathing = () => {
               setIsLoading(true);
               try {
                 await markActivityDone();
-                setIsDone(true);
+                // Check if vitals should be collected
+                if (
+                  currentActivity &&
+                  shouldCollectVitals(currentActivity.contentType)
+                ) {
+                  setShowAccuracy(shouldCollectAccuracy(currentActivity));
+                  setShowVitalsModal(true);
+                } else {
+                  setIsDone(true);
+                }
               } finally {
                 setIsLoading(false);
               }
@@ -284,6 +354,14 @@ const Breathing = () => {
           </View>
         </CustomScrollView>
       </View>
+
+      {/* Vitals Feedback Modal */}
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSubmit={handleVitalsSubmit}
+        onSkip={handleVitalsSkip}
+        showAccuracy={showAccuracy}
+      />
     </ScreenView>
   );
 };

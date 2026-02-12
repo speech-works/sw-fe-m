@@ -91,6 +91,7 @@ export enum CognitivePracticeType {
   POSITIVE_AFFIRMATIONS = "POSITIVE_AFFIRMATIONS",
   GUIDED_MEDITATION = "GUIDED_MEDITATION",
   REFRAMING_THOUGHTS = "REFRAMING_THOUGHTS",
+  REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
 }
 
 export interface GuidedBreathingData {
@@ -129,6 +130,7 @@ export interface CognitivePractice {
   positiveAffirmationsData?: PositiveAffirmationsData;
   guidedMeditationData?: GuidedMeditationData;
   reframingThoughtsData?: ReframingThoughtsData;
+  realLifeChallengeData?: RealLifeChallengeData; // For REAL_LIFE_CHALLENGE type
 }
 
 //////////// Exposure Practice
@@ -138,6 +140,7 @@ export enum ExposurePracticeType {
   INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
   PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
   SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE_SIMULATION",
+  REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
   // Add other exposure types as needed
@@ -181,6 +184,16 @@ export interface FixedRolePlayData {
   scenario: FixedRolePlayScenario;
 }
 
+// Real-Life Challenge data (for pack-based activities)
+export interface RealLifeChallengeData {
+  category:
+    | "TECHNIQUE_DRILL"
+    | "SOCIAL_DRILL"
+    | "MINDFULNESS_DRILL"
+    | "INTROSPECTION_DRILL";
+  // Additional fields can be added as needed
+}
+
 export interface ExposurePractice {
   id: string;
   type: ExposurePracticeType;
@@ -188,6 +201,7 @@ export interface ExposurePractice {
   description: string;
   difficulty: DifficultyLevel;
   practiceData?: FixedRolePlayData;
+  realLifeChallengeData?: RealLifeChallengeData; // For REAL_LIFE_CHALLENGE type
 }
 
 // Reading Practice

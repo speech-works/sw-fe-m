@@ -161,7 +161,7 @@ const OnboardingQuestionScreen: React.FC = () => {
       return;
     }
 
-    // nextScreen(); // Removed: logic is now driven by route param + useEffect sync
+    nextScreen(); // Sync with store so "Resume" works later
 
     // Use push to add a new screen instance
     (navigation as any).push("OnboardingQuestion", {
