@@ -188,60 +188,64 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       return (
         <View style={styles.activityCard}>
-          <LinearGradient
-            colors={[theme.colors.background.light, "#FDF2F8"]}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.activityHeader}>
-            <View
-              style={[
-                styles.activityIconBox,
-                { backgroundColor: theme.colors.library.purple[100] },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="lightning-bolt"
-                size={24}
-                color={theme.colors.library.purple[500]}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.activityLabel}>PRACTICE ACTIVITY</Text>
-              <Text style={styles.activityTitle}>
-                {content.titleOverride || "Practice Activity"}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.activityInstructions}>
-            {content.descriptionOverride ||
-              "Complete this activity to move forward."}
-          </Text>
-
           <TouchableOpacity
-            style={[styles.startActivityButton, loading && { opacity: 0.6 }]}
+            activeOpacity={0.9}
             onPress={handleStartActivity}
             disabled={loading}
           >
             <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.red[400],
-              ]}
+              colors={["#F97316", "#EA580C"]} // Orange 500 -> Orange 600
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.startActivityGradient}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
             >
-              {loading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.startActivityButtonText}>
-                    Start Practice
+              {/* Decorative Bubbles */}
+              <View style={styles.bubbleTopRight} />
+              <View style={styles.bubbleBottomLeft} />
+
+              <View style={styles.cardContent}>
+                {/* Header with Chip */}
+                <View style={styles.chip}>
+                  <MaterialCommunityIcons
+                    name="lightning-bolt"
+                    size={14}
+                    color="white"
+                  />
+                  <Text style={styles.chipText}>PRACTICE ACTIVITY</Text>
+                </View>
+
+                {/* Title and Description */}
+                <View style={styles.textContainer}>
+                  <Text style={styles.activityTitle}>
+                    {content.titleOverride || "Practice Activity"}
                   </Text>
-                  <MaterialCommunityIcons name="play" size={20} color="white" />
-                </>
-              )}
+                  <Text style={styles.activityInstructions}>
+                    {content.descriptionOverride ||
+                      "Complete this activity to move forward."}
+                  </Text>
+                </View>
+
+                {/* Action Button */}
+                <View style={styles.actionButton}>
+                  {loading ? (
+                    <ActivityIndicator
+                      color={theme.colors.library.orange[600]}
+                      size="small"
+                    />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons
+                        name="play"
+                        size={16}
+                        color={theme.colors.library.orange[600]}
+                      />
+                      <Text style={styles.actionButtonText}>
+                        Start Practice
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </View>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -312,66 +316,97 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
+  // New Activity Card Styles
   activityCard: {
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
     marginBottom: 24,
-    padding: 24,
-    backgroundColor: "white",
+    borderRadius: 24,
     ...parseShadowStyle(theme.shadow.elevation2),
+    // Shadow color to match the gradient
+    shadowColor: "#EA580C",
+    shadowOpacity: 0.25,
+    backgroundColor: "white", // Fallback
   },
-  activityHeader: {
+  cardGradient: {
+    borderRadius: 24,
+    padding: 24,
+    minHeight: 220,
+    position: "relative",
+    overflow: "hidden",
+    justifyContent: "space-between",
+  },
+  // Decorative Bubbles
+  bubbleTopRight: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -20,
+    left: -20,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  cardContent: {
+    zIndex: 1,
+    gap: 16,
+    height: "100%",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  chip: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    gap: 16,
-  },
-  activityIconBox: {
-    width: 56,
-    height: 56,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.colors.library.purple[100],
+    gap: 6,
   },
-  activityLabel: {
+  chipText: {
+    color: "white",
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.text.disabled,
-    letterSpacing: 1.5,
-    marginBottom: 6,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
+  textContainer: {
+    gap: 8,
+    marginVertical: 12,
+  },
   activityTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: theme.colors.text.title,
+    color: "white",
     letterSpacing: -0.5,
+    lineHeight: 28,
   },
   activityInstructions: {
     fontSize: 15,
-    color: theme.colors.text.default,
-    lineHeight: 24,
-    marginBottom: 28,
+    color: "rgba(255, 255, 255, 0.9)",
+    lineHeight: 22,
+    maxWidth: "95%",
   },
-  startActivityButton: {
-    borderRadius: 16,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  startActivityGradient: {
+  actionButton: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 16,
-    gap: 10,
+    backgroundColor: "white",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    alignSelf: "flex-start",
   },
-  startActivityButtonText: {
-    color: "white",
-    fontWeight: "600",
+  actionButtonText: {
+    color: theme.colors.library.orange[600],
+    fontWeight: "700",
     fontSize: 15,
-    letterSpacing: 0.3,
   },
 });
