@@ -65,7 +65,7 @@ const SmartRecommendationCard = () => {
   useFocusEffect(
     useCallback(() => {
       fetchRecommendations();
-    }, [fetchRecommendations])
+    }, [fetchRecommendations]),
   );
 
   const handleFindNext = async () => {
@@ -83,21 +83,89 @@ const SmartRecommendationCard = () => {
 
   if (error) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <MaterialCommunityIcons
-          name="alert-circle-outline"
-          size={48}
-          color={theme.colors.library.red[400]}
-        />
-        <Text
-          style={{
-            ...styles.progressText,
-            color: theme.colors.text.default,
-            marginTop: 12,
-          }}
+      <View style={styles.container}>
+        <LinearGradient
+          colors={["#FEF2F2", "#FFE4E6"]} // Soft Red/Rose gradient
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.gradient,
+            { justifyContent: "center", alignItems: "center", minHeight: 240 },
+          ]}
         >
-          Unable to load recommendation
-        </Text>
+          <View
+            style={[
+              styles.iconBox,
+              {
+                backgroundColor: "rgba(244, 63, 94, 0.1)", // Rose-500 optimized
+                marginBottom: 16,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="refresh"
+              size={32}
+              color={theme.colors.library.red[400]}
+            />
+          </View>
+
+          <Text
+            style={[
+              styles.packTitle,
+              {
+                color: theme.colors.text.title,
+                textAlign: "center",
+                marginBottom: 8,
+              },
+            ]}
+          >
+            Unable to load
+          </Text>
+          <Text
+            style={[
+              styles.packSubtitle,
+              {
+                color: theme.colors.text.disabled,
+                textAlign: "center",
+                marginBottom: 24,
+                maxWidth: "70%",
+              },
+            ]}
+          >
+            We couldn't load your recommendation at this time.
+          </Text>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: theme.colors.library.red[400],
+              paddingHorizontal: 28,
+              paddingVertical: 14,
+              borderRadius: 30,
+              shadowColor: theme.colors.library.red[400],
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              elevation: 4,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+            }}
+            onPress={handleFindNext}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="refresh" size={20} color="white" />
+            <Text
+              style={{
+                color: "white",
+                fontWeight: "700",
+                fontSize: 15,
+                letterSpacing: 0.5,
+              }}
+            >
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </LinearGradient>
       </View>
     );
   }
@@ -138,7 +206,7 @@ const SmartRecommendationCard = () => {
   // Get Next/Current Module
   // Sort modules by orderIndex just in case
   const sortedModules = [...modules].sort(
-    (a, b) => a.orderIndex - b.orderIndex
+    (a, b) => a.orderIndex - b.orderIndex,
   );
 
   // Find the first module that is NOT completed
@@ -275,7 +343,20 @@ const SmartRecommendationCard = () => {
                 {isRefreshing ? (
                   <ActivityIndicator size="small" color="#EA580C" />
                 ) : (
-                  <Text style={styles.creamCardButtonText}>Find Next</Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={20}
+                      color="#EA580C"
+                    />
+                    <Text style={styles.creamCardButtonText}>Find Next</Text>
+                  </View>
                 )}
               </TouchableOpacity>
             </View>
@@ -302,9 +383,22 @@ const SmartRecommendationCard = () => {
                   activeOpacity={0.8}
                   onPress={handlePress}
                 >
-                  <Text style={styles.creamCardButtonText}>
-                    {actionButtonText}
-                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={20}
+                      color="#EA580C"
+                    />
+                    <Text style={styles.creamCardButtonText}>
+                      {actionButtonText}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             )
@@ -357,7 +451,7 @@ const SmartRecommendationCard = () => {
                 <MaterialCommunityIcons
                   name="play"
                   color="#FFF"
-                  size={16}
+                  size={24}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.premiumButtonTextPrimary}>

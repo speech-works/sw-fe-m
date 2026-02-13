@@ -28,6 +28,8 @@ import {
 } from "../../../api/packs";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
+
 type PackModuleScreenRouteProp = RouteProp<
   { params: { module: PackModule; packId: string } },
   "params"
@@ -36,7 +38,7 @@ type PackModuleScreenRouteProp = RouteProp<
 const { width } = Dimensions.get("window");
 
 const PackModuleScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AcademyStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
   const { module: initialModule, packId } = route.params;
 
@@ -183,8 +185,8 @@ const PackModuleScreen = () => {
           <View style={styles.successIconContainer}>
             <LinearGradient
               colors={[
+                theme.colors.library.orange[200],
                 theme.colors.library.orange[100],
-                theme.colors.library.orange[50],
               ]}
               style={styles.iconGradient}
             />
@@ -216,14 +218,10 @@ const PackModuleScreen = () => {
                   end={{ x: 1, y: 1 }}
                   style={styles.successGradientButton}
                 >
+                  <MaterialCommunityIcons name="play" size={20} color="white" />
                   <Text style={styles.successPrimaryButtonText}>
                     Start Next Module
                   </Text>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={20}
-                    color="white"
-                  />
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -248,135 +246,159 @@ const PackModuleScreen = () => {
   const isFirstBlock = currentBlockIndex === 0;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.safeArea}>
+      <LinearGradient
+        colors={["#FFF7ED", "#FFF", "#FFF"]} // Peach -> White -> White
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <MaterialCommunityIcons
-            name="close"
-            size={24}
-            color={theme.colors.text.title}
-          />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerSubtitle}>Module {module.orderIndex}</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {module.title}
-          </Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <Animated.View
-          style={[
-            styles.progressBar,
-            {
-              width: progressAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ["0%", "100%"],
-              }),
-            },
-          ]}
-        />
-      </View>
-
-      {/* Wizard Content */}
-      <View style={styles.contentWrapper}>
-        <ScrollView contentContainerStyle={styles.contentContainer}>
-          {blocks.length === 0 ? (
-            <Text style={styles.emptyText}>
-              No content available for this module.
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={28}
+              color={theme.colors.text.title}
+            />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerSubtitle}>
+              MODULE {module.orderIndex}
             </Text>
-          ) : (
-            <View style={styles.stepContainer}>
-              <Text style={styles.stepIndicator}>
-                Step {currentBlockIndex + 1} of {blocks.length}
-              </Text>
-              <ContentRenderer
-                key={currentBlock?.id || currentBlockIndex}
-                block={currentBlock}
-                packId={packId}
-                moduleId={module.id}
-              />
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Footer Actions */}
-        <View style={styles.footer}>
-          {/* Back Button (Hidden on first step) */}
-          <View style={{ flex: 1, opacity: isFirstBlock ? 0 : 1 }}>
-            <TouchableOpacity
-              style={styles.navButtonSecondary}
-              onPress={handleBack}
-              disabled={isFirstBlock}
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={20}
-                color={theme.colors.text.default}
-              />
-              <Text style={styles.navButtonTextSecondary}>Back</Text>
-            </TouchableOpacity>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {module.title.replace(/^Module \d+:\s*/, "")}
+            </Text>
           </View>
+          <View style={{ width: 40 }} />
+        </View>
 
-          {/* Next or Complete Button */}
-          <View style={{ flex: 1.5 }}>
-            {isLastBlock ? (
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={handleComplete}
-                disabled={isCompleting}
-              >
-                <LinearGradient
-                  colors={[
-                    theme.colors.actionPrimary.default,
-                    theme.colors.actionPrimary.default,
-                  ]}
-                  style={styles.gradientButton}
-                >
-                  {isCompleting ? (
-                    <ActivityIndicator color="white" size="small" />
-                  ) : (
-                    <>
-                      <Text style={styles.completeButtonText}>Complete</Text>
-                      <MaterialCommunityIcons
-                        name="check"
-                        size={18}
-                        color="white"
-                      />
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Wizard Content */}
+        <View style={styles.contentWrapper}>
+          <ScrollView contentContainerStyle={styles.contentContainer}>
+            {blocks.length === 0 ? (
+              <Text style={styles.emptyText}>
+                No content available for this module.
+              </Text>
             ) : (
-              <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-                <Text style={styles.nextButtonText}>Next</Text>
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={20}
-                  color="white"
+              <View style={styles.stepContainer}>
+                <Text style={styles.stepIndicator}>
+                  Step {currentBlockIndex + 1} of {blocks.length}
+                </Text>
+                <ContentRenderer
+                  key={currentBlock?.id || currentBlockIndex}
+                  block={currentBlock}
+                  packId={packId}
+                  moduleId={module.id}
                 />
-              </TouchableOpacity>
+              </View>
             )}
+          </ScrollView>
+
+          {/* Footer Actions */}
+          <View style={styles.footer}>
+            {/* Back Button (Hidden on first step) */}
+            <View style={{ flex: 1, opacity: isFirstBlock ? 0 : 1 }}>
+              <TouchableOpacity
+                style={styles.navButtonSecondary}
+                onPress={handleBack}
+                disabled={isFirstBlock}
+              >
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={24}
+                  color={theme.colors.text.default}
+                />
+                <Text style={styles.navButtonTextSecondary}>Back</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flex: 1.5 }}>
+              {isLastBlock ? (
+                <TouchableOpacity
+                  style={styles.completeButton}
+                  onPress={handleComplete}
+                  disabled={isCompleting}
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.library.orange[400],
+                      theme.colors.library.red[400],
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    {isCompleting ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={20}
+                          color="white"
+                        />
+                        <Text style={styles.completeButtonText}>Complete</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.nextButton}
+                  onPress={handleNext}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[
+                      theme.colors.library.orange[400],
+                      theme.colors.library.red[400],
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={20}
+                      color="white"
+                    />
+                    <Text style={styles.nextButtonText}>Next</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background.light,
+    backgroundColor: "#FFFFFF", // Fallback
   },
   centerContent: {
     justifyContent: "center",
@@ -386,47 +408,60 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: theme.colors.text.default,
   },
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.subtle,
-    backgroundColor: theme.colors.background.light,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    // Removed solid border and background for cleaner look
+    backgroundColor: "transparent",
+    zIndex: 10,
   },
   backButton: {
     width: 40,
     height: 40,
+    borderRadius: 12,
     justifyContent: "center",
-    alignItems: "flex-start",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: theme.colors.text.subtle,
-    fontWeight: "600",
+    ...parseTextStyle(theme.typography.Body),
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    color: theme.colors.text.disabled,
+    fontWeight: "700",
+    marginBottom: 2,
+    textAlign: "center",
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     textAlign: "center",
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
+  // Progress
   progressContainer: {
-    height: 4,
-    backgroundColor: theme.colors.border.subtle,
+    height: 6,
+    backgroundColor: "rgba(0,0,0,0.05)",
     width: "100%",
+    overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: theme.colors.library.orange[400], // Softer orange
+    borderRadius: 3,
   },
+  // Content
   contentWrapper: {
     flex: 1,
     justifyContent: "space-between",
@@ -436,33 +471,40 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   stepContainer: {
-    gap: 16,
+    gap: 24,
   },
   stepIndicator: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.text.subtle,
+    color: theme.colors.text.disabled,
     marginBottom: 8,
+    textAlign: "center",
+    opacity: 0.8,
   },
   emptyText: {
     textAlign: "center",
     color: theme.colors.text.disabled,
-    marginTop: 20,
+    marginTop: 40,
+    ...parseTextStyle(theme.typography.Body),
   },
+  // Footer
   footer: {
     padding: 24,
+    paddingBottom: 40, // More bottom padding for safe area visually
+    // Glassmorphism effect for footer
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border.subtle,
+    borderTopColor: "rgba(0,0,0,0.03)",
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    backgroundColor: theme.colors.background.light,
   },
   navButtonSecondary: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    gap: 4,
+    gap: 8,
+    paddingVertical: 12,
   },
   navButtonTextSecondary: {
     ...parseTextStyle(theme.typography.Button),
@@ -470,34 +512,33 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   nextButton: {
-    backgroundColor: theme.colors.text.title, // Dark button
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...parseStyleShadow(theme.shadow.elevation2),
   },
   nextButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: "white",
     fontWeight: "600",
+    fontSize: 16,
   },
   completeButton: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
+    ...parseStyleShadow(theme.shadow.elevation2),
   },
   gradientButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 8,
   },
   completeButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: "white",
     fontWeight: "700",
+    fontSize: 16,
   },
   // Success Screen Styles
   successContainer: {
@@ -511,40 +552,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   successIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 40,
     position: "relative",
+    ...parseStyleShadow(theme.shadow.elevation2),
+    backgroundColor: "#FFF",
   },
   iconGradient: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 60,
-    opacity: 0.5,
+    borderRadius: 70,
+    opacity: 0.1,
   },
   successTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 28,
+    fontSize: 32,
     textAlign: "center",
     color: theme.colors.text.title,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   successSubtitle: {
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
     color: theme.colors.text.default,
-    marginBottom: 48,
+    marginBottom: 56,
     paddingHorizontal: 16,
     opacity: 0.8,
+    lineHeight: 26,
   },
   successActionContainer: {
     width: "100%",
-    gap: 16,
+    gap: 20,
   },
   successPrimaryButton: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
@@ -552,8 +596,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    gap: 8,
+    paddingVertical: 20,
+    gap: 10,
   },
   successPrimaryButtonText: {
     ...parseTextStyle(theme.typography.Button),

@@ -25,6 +25,7 @@ import { SimpleMarkdown } from "./SimpleMarkdown";
 import { LinearGradient } from "expo-linear-gradient";
 import { getGuidedActivity } from "../../api";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
+import { parseShadowStyle } from "../../util/functions/parseStyles";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
@@ -222,20 +223,26 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             onPress={handleStartActivity}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <>
-                <Text style={styles.startActivityButtonText}>
-                  Start Practice
-                </Text>
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={16}
-                  color="white"
-                />
-              </>
-            )}
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.red[400],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.startActivityGradient}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.startActivityButtonText}>
+                    Start Practice
+                  </Text>
+                  <MaterialCommunityIcons name="play" size={20} color="white" />
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       );
@@ -249,105 +256,122 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
 const styles = StyleSheet.create({
   textBlock: {
-    marginBottom: 16,
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
   text: {
     fontSize: 16,
     color: theme.colors.text.default,
-    lineHeight: 24,
+    lineHeight: 26,
+    letterSpacing: 0.2,
   },
   mediaContainer: {
-    marginBottom: 16,
-    borderRadius: 12,
+    marginBottom: 24,
+    borderRadius: 20,
     overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "#F1F5F9",
   },
   videoPlaceholder: {
     width: "100%",
-    height: 200,
+    height: 220,
     backgroundColor: "#1E293B",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   mediaText: {
     color: "white",
     fontWeight: "600",
+    opacity: 0.9,
   },
   audioContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.background.default,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 12,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 24,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   audioText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: theme.colors.text.title,
   },
   playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: theme.colors.actionPrimary.default,
     justifyContent: "center",
     alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   activityCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    marginBottom: 16,
-    padding: 20,
+    borderColor: "rgba(0,0,0,0.03)",
+    marginBottom: 24,
+    padding: 24,
     backgroundColor: "white",
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   activityHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
     gap: 16,
   },
   activityIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: theme.colors.library.purple[100],
   },
   activityLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     color: theme.colors.text.disabled,
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: "uppercase",
   },
   activityTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.text.title,
+    letterSpacing: -0.5,
   },
   activityInstructions: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.text.default,
-    lineHeight: 22,
-    marginBottom: 20,
+    lineHeight: 24,
+    marginBottom: 28,
   },
   startActivityButton: {
+    borderRadius: 16,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  startActivityGradient: {
     flexDirection: "row",
-    backgroundColor: theme.colors.text.title,
-    paddingVertical: 14,
-    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    paddingVertical: 16,
+    gap: 10,
   },
   startActivityButtonText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 15,
+    letterSpacing: 0.3,
   },
 });
