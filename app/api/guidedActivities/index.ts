@@ -1,4 +1,4 @@
-import { axiosClient } from "../axiosClient";
+import axiosClient from "../axiosClient";
 import {
   ExposurePractice,
   CognitivePractice,
@@ -24,6 +24,7 @@ export interface GuidedActivity {
 export const getGuidedActivity = async (
   id: string,
 ): Promise<GuidedActivity> => {
+  console.log("Fetching guided activity:", id);
   const response = await axiosClient.get(`/guided-activities/${id}`);
   return response.data;
 };

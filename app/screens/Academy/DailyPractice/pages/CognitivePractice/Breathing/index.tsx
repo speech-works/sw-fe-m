@@ -4,7 +4,7 @@ import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   parseTextStyle,
   parseShadowStyle,
@@ -36,6 +36,7 @@ import {
   shouldCollectAccuracy,
   validateVitals,
 } from "../../../../../../utils/vitals";
+import { useUserStore } from "../../../../../../stores/user";
 
 const Breathing = () => {
   const navigation = useNavigation();
@@ -61,36 +62,37 @@ const Breathing = () => {
 
   const { addActivity, updateActivity } = useActivityStore();
   const { practiceSession } = useSessionStore();
+  const { user } = useUserStore();
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
 
-  const markActivityStart = async () => {
-    if (!practiceSession || !cognitivePracticeId) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
-      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-      contentId: cognitivePracticeId,
-    });
-    const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
-      userId: practiceSession.user.id,
-    });
-    addActivity(startedActivity);
-    setCurrentActivityId(newActivity.id);
-  };
-
   const markActivityDone = async () => {
-    if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
-    const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
-      userId: practiceSession.user.id,
-    });
-    updateActivity(currentActivityId, {
-      ...completedActivity,
-    });
-    setCurrentActivity(completedActivity);
+    // Get userId from session or user store
+    const userId = practiceSession?.user?.id || user?.id;
+
+    if (!userId || !cognitivePracticeId || !currentActivityId) {
+      // Changed apiContentId to cognitivePracticeId to match original logic
+      console.warn(
+        "Cannot complete activity: Missing userId, contentId, or currentActivityId",
+      );
+      return;
+    }
+
+    try {
+      const completedActivity = await completePracticeActivity({
+        id: currentActivityId, // The ID of the started activity instance
+        userId: userId,
+      });
+      updateActivity(currentActivityId, {
+        ...completedActivity,
+      });
+      setCurrentActivity(completedActivity);
+      // We can optionally dispatch an event or update unrelated state here
+    } catch (err) {
+      console.error("Failed to complete activity:", err);
+    }
   };
 
   const handleVitalsSubmit = async (vitals: {
@@ -106,15 +108,20 @@ const Breathing = () => {
 
     try {
       setShowVitalsModal(false);
-      if (!currentActivityId || !practiceSession) return;
+      const userId = practiceSession?.user?.id || user?.id;
+      if (!currentActivityId || !userId) return;
 
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
-        userId: practiceSession.user.id,
+        userId,
         vitals,
       });
       updateActivity(currentActivityId, completedActivity);
-      setIsDone(true);
+      if (packContext) {
+        navigation.goBack();
+      } else {
+        setIsDone(true);
+      }
     } catch (error) {
       console.error("Failed to complete activity:", error);
       Alert.alert(
@@ -131,13 +138,18 @@ const Breathing = () => {
   const handleVitalsSkip = async () => {
     try {
       setShowVitalsModal(false);
-      if (!currentActivityId || !practiceSession) return;
+      const userId = practiceSession?.user?.id || user?.id;
+      if (!currentActivityId || !userId) return;
 
       await completePracticeActivity({
         id: currentActivityId,
-        userId: practiceSession.user.id,
+        userId,
       });
-      setIsDone(true);
+      if (packContext) {
+        navigation.goBack();
+      } else {
+        setIsDone(true);
+      }
     } catch (error) {
       console.error("Failed to complete activity:", error);
       Alert.alert("Error", "Could not save your progress. Please try again.");
@@ -195,20 +207,110 @@ const Breathing = () => {
     };
   }, [stopBackground]);
 
+  // Use route params if available
+  const route = useRoute<any>();
+  const passedActivity = route.params?.guidedActivity;
+  const packContext = route.params?.packContext;
+
+  // Track the actual ID to be used for API creation separately from UI ID
+  const [apiContentId, setApiContentId] = useState<string | null>(null);
+
+  console.log("Breathing Screen Render - Params:", {
+    hasPassedActivity: !!passedActivity,
+    passedActivityId: passedActivity?.id,
+    packContext,
+    apiContentId,
+  });
+
   useEffect(() => {
+    console.log("Breathing Screen - useEffect triggered");
     const fetchCP = async () => {
+      // Always fetch default to get a VALID backend ID (since hydration might have wrapper ID)
       const cp = await getCognitivePracticeByType(
         CognitivePracticeType.GUIDED_BREATHING,
       );
-      setCognitivePracticeId(cp[0]?.id || null);
+      const defaultId = cp[0]?.id || null;
+      console.log("Breathing Screen - Fetched default ID:", defaultId);
+
+      if (passedActivity) {
+        console.log("Breathing Screen - Using passed activity mode");
+        // Use passed configuration for UI
+        // But use DEFAULT ID for API tracking if passed ID looks synthetic (or just always use default for this generic screen)
+        // Since backend says "2222..." is wrapper and "1111..." is correct, and "1111..." is likely the default one.
+        setCognitivePracticeId(passedActivity.id); // Used for UI key? (Actually used for nothing in UI rendering here besides check)
+
+        // Use the valid backend ID for creation
+        setApiContentId(defaultId);
+        return;
+      }
+
+      // Standalone mode
+      setCognitivePracticeId(defaultId);
+      setApiContentId(defaultId);
     };
     fetchCP();
-  }, []);
+  }, [passedActivity]);
 
   // Calculate elapsed minutes and remaining seconds for display
   const displayMinutes = Math.floor(elapsedSeconds / 60);
   const displaySeconds = elapsedSeconds % 60;
   const totalDisplayMinutes = totalSessionDurationInSeconds / 60;
+
+  const markActivityStart = async () => {
+    console.log("Breathing Screen - markActivityStart", {
+      apiContentId,
+      hasPracticeSession: !!practiceSession,
+      packContext,
+    });
+
+    // We need apiContentId check, and EITHER session OR packContext
+    if (!apiContentId) {
+      console.error("Breathing Screen - Missing apiContentId");
+      return;
+    }
+    if (!practiceSession && !packContext) {
+      console.error("Breathing Screen - Missing both session and pack context");
+      return;
+    }
+
+    try {
+      const payload: any = {
+        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+        contentId: apiContentId, // Use the VALID ID (1111...)
+      };
+
+      if (packContext) {
+        console.log("Breathing Screen - Using Pack Context");
+        payload.packId = packContext.packId;
+        payload.moduleId = packContext.moduleId;
+      } else if (practiceSession) {
+        console.log("Breathing Screen - Using Session Context");
+        payload.sessionId = practiceSession.id;
+      }
+
+      console.log("Starting activity with payload (FINAL):", payload);
+
+      const newActivity = await createPracticeActivity(payload);
+
+      const userId = practiceSession?.user?.id || user?.id;
+
+      if (!userId) {
+        console.error("Breathing Screen - Missing user ID");
+        return;
+      }
+
+      const startedActivity = await startPracticeActivity({
+        id: newActivity.id,
+        userId,
+      });
+      addActivity(startedActivity);
+      setCurrentActivity(startedActivity); // Set current activity
+      setCurrentActivityId(newActivity.id);
+    } catch (error) {
+      console.error("Failed to start activity:", error);
+      Alert.alert("Error", "Failed to start activity. Please try again.");
+    }
+  };
 
   if (currentActivityId && !isDone) {
     return (
@@ -254,7 +356,6 @@ const Breathing = () => {
             onPress={async () => {
               setIsLoading(true);
               try {
-                await markActivityDone();
                 // Check if vitals should be collected
                 if (
                   currentActivity &&
@@ -263,7 +364,12 @@ const Breathing = () => {
                   setShowAccuracy(shouldCollectAccuracy(currentActivity));
                   setShowVitalsModal(true);
                 } else {
-                  setIsDone(true);
+                  await markActivityDone();
+                  if (packContext) {
+                    navigation.goBack();
+                  } else {
+                    setIsDone(true);
+                  }
                 }
               } finally {
                 setIsLoading(false);
@@ -272,6 +378,14 @@ const Breathing = () => {
             disabled={isLoading}
           />
         </View>
+
+        {/* Vitals Feedback Modal */}
+        <VitalsFeedbackModal
+          visible={showVitalsModal}
+          onSubmit={handleVitalsSubmit}
+          onSkip={handleVitalsSkip}
+          showAccuracy={showAccuracy}
+        />
       </View>
     );
   }

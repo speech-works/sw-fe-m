@@ -12,6 +12,9 @@ export type AcademyStackParamList = {
   Progress: undefined;
   PaymentStack: undefined;
   PackModule: { module: PackModule; packId: string };
+  Breathing: { guidedActivity?: any; packContext?: any } | undefined;
+  Meditation: { guidedActivity?: any; packContext?: any } | undefined;
+  Reframe: { guidedActivity?: any; packContext?: any } | undefined;
   MoodCheckStack:
     | { screen: "FollowUpStack"; params: { mood: MoodType } }
     | { screen: "CheckIn" };

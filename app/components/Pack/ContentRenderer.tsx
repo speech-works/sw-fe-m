@@ -88,6 +88,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const content = block.content as ReferenceBlockContent;
 
       const handleStartActivity = async () => {
+        // console.log("Full Content Block:", JSON.stringify(content, null, 2));
         if (!packId || !moduleId) {
           Alert.alert("Error", "Pack context missing");
           return;
@@ -95,20 +96,90 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
         try {
           setLoading(true);
-          const activity = await getGuidedActivity(content.refId);
+          let activity: any; // GuidedActivity
+
+          // OPTIMIZATION: Check if content is already hydrated
+          if (content.activityType && content.configuration) {
+            console.log("Using hydrated activity data");
+
+            // Helper to infer type if missing
+            const inferType = (config: any, category: string) => {
+              if (config.type) return config.type;
+
+              if (category === "COGNITIVE_PRACTICE") {
+                if (config.affirmations) return "POSITIVE_AFFIRMATIONS";
+                if (config.scenarios) return "REFRAMING_THOUGHTS";
+                if (config.audioUrlKey || config.bgMusicUrl)
+                  return "GUIDED_MEDITATION";
+                if (config.tips && config.durationMinutes)
+                  return "GUIDED_BREATHING";
+                if (config.realLifeChallengeData) return "REAL_LIFE_CHALLENGE";
+              }
+              // Add other categories if needed (Exposure, Fun, etc)
+              return undefined;
+            };
+
+            const inferredType = inferType(
+              content.configuration,
+              content.activityType!,
+            );
+            const configWithType = {
+              ...content.configuration,
+              type: inferredType,
+            };
+
+            // Construct GuidedActivity from hydrated fields
+            activity = {
+              id: content.refId,
+              contentType: content.activityType,
+              createdAt: new Date().toISOString(), // Serializable date
+              updatedAt: new Date().toISOString(), // Serializable date
+              // Map configuration to specific practice type field
+              cognitivePractice:
+                content.activityType === "COGNITIVE_PRACTICE"
+                  ? configWithType
+                  : undefined,
+              exposurePractice:
+                content.activityType === "EXPOSURE_PRACTICE"
+                  ? configWithType
+                  : undefined,
+              funPractice:
+                content.activityType === "FUN_PRACTICE"
+                  ? configWithType
+                  : undefined,
+              readingPractice:
+                content.activityType === "READING_PRACTICE"
+                  ? configWithType
+                  : undefined,
+            };
+          } else {
+            // Fallback to fetching
+            console.log("Fetching activity from API");
+            activity = await getGuidedActivity(content.refId);
+          }
 
           navigateToPackActivity(navigation, activity, {
             blockId: block.id,
             moduleId,
             packId,
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to load activity:", error);
-          Alert.alert(
-            "Error",
-            "Could not load practice activity. Please try again.",
-            [{ text: "OK", style: "cancel" }],
-          );
+          if (error.response) {
+            console.error("Error status:", error.response.status);
+            console.error("Error data:", error.response.data);
+            Alert.alert(
+              "Error",
+              `Could not load practice activity (${error.response.status}).\n${JSON.stringify(error.response.data)}\nPlease try again.`,
+              [{ text: "OK", style: "cancel" }],
+            );
+          } else {
+            Alert.alert(
+              "Error",
+              "Could not load practice activity. Please try again.",
+              [{ text: "OK", style: "cancel" }],
+            );
+          }
         } finally {
           setLoading(false);
         }

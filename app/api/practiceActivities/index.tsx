@@ -55,7 +55,9 @@ export async function getCurrentPracticeActivityForSession({
 }
 
 interface CreateActivityReq {
-  sessionId: string;
+  sessionId?: string; // Optional (if pack context provided)
+  packId?: string;
+  moduleId?: string;
   contentType: PracticeActivityContentType;
   contentId: string;
 }
@@ -63,20 +65,37 @@ interface CreateActivityReq {
 // Create a new practice activity
 export async function createPracticeActivity({
   sessionId,
+  packId,
+  moduleId,
   contentId,
   contentType,
 }: CreateActivityReq): Promise<PracticeActivity> {
   try {
     console.log("createPracticeActivity called with:", {
       sessionId,
+      packId,
+      moduleId,
       contentId,
       contentType,
     });
-    const response = await axiosClient.post("/practice-activities", {
-      sessionId,
+
+    // Validate: Either sessionId OR (packId + moduleId) is required
+    if (!sessionId && (!packId || !moduleId)) {
+      throw new Error(
+        "Missing context: require sessionId OR (packId + moduleId)",
+      );
+    }
+
+    const payload: any = {
       contentId,
       contentType,
-    });
+    };
+
+    if (sessionId) payload.sessionId = sessionId;
+    if (packId) payload.packId = packId;
+    if (moduleId) payload.moduleId = moduleId;
+
+    const response = await axiosClient.post("/practice-activities", payload);
     console.log("createPracticeActivity response:", response.data);
     return response.data;
   } catch (error) {
