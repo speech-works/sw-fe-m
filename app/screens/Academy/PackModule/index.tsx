@@ -415,7 +415,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    // Removed solid border and background for cleaner look
     backgroundColor: "transparent",
     zIndex: 10,
   },
@@ -437,6 +436,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     ...parseTextStyle(theme.typography.Body),
+    fontSize: 10,
     textTransform: "uppercase",
     color: theme.colors.text.disabled,
     fontWeight: "700",
@@ -445,6 +445,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 15,
     textAlign: "center",
     color: theme.colors.text.title,
     fontWeight: "600",
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: "100%",
-    backgroundColor: theme.colors.library.orange[400], // Softer orange
+    backgroundColor: theme.colors.library.orange[400],
     borderRadius: 3,
   },
   // Content
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 24,
-    paddingBottom: 48,
+    paddingBottom: 24, // Keep reduced bottom padding
   },
   stepContainer: {
     gap: 24,
@@ -489,30 +490,33 @@ const styles = StyleSheet.create({
   },
   // Footer
   footer: {
-    padding: 24,
-    paddingBottom: 40, // More bottom padding for safe area visually
-    // Glassmorphism effect for footer
-    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.03)",
+    borderTopColor: "rgba(0,0,0,0.05)",
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   navButtonSecondary: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 8,
+    justifyContent: "center",
+    gap: 6,
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
   navButtonTextSecondary: {
     ...parseTextStyle(theme.typography.Button),
     color: theme.colors.text.default,
     fontWeight: "600",
+    fontSize: 15,
   },
   nextButton: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
@@ -520,10 +524,10 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Button),
     color: "white",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
   },
   completeButton: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
@@ -531,14 +535,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
     gap: 8,
   },
   completeButtonText: {
     ...parseTextStyle(theme.typography.Button),
     color: "white",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: 15,
   },
   // Success Screen Styles
   successContainer: {
@@ -552,43 +556,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   successIconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 32,
     position: "relative",
     ...parseStyleShadow(theme.shadow.elevation2),
     backgroundColor: "#FFF",
   },
   iconGradient: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 70,
+    borderRadius: 60,
     opacity: 0.1,
   },
   successTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 32,
+    fontSize: 28,
     textAlign: "center",
     color: theme.colors.text.title,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   successSubtitle: {
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
     color: theme.colors.text.default,
-    marginBottom: 56,
+    marginBottom: 48,
     paddingHorizontal: 16,
     opacity: 0.8,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   successActionContainer: {
     width: "100%",
-    gap: 20,
+    gap: 16,
   },
   successPrimaryButton: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
@@ -596,22 +600,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    gap: 10,
+    paddingVertical: 16,
+    gap: 8,
   },
   successPrimaryButtonText: {
     ...parseTextStyle(theme.typography.Button),
-    fontSize: 18,
+    fontSize: 16,
     color: "white",
-    fontWeight: "700",
+    fontWeight: "600",
   },
   successSecondaryButton: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     alignItems: "center",
   },
   successSecondaryButtonText: {
     ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.disabled,
+    color: theme.colors.text.default,
     fontWeight: "600",
   },
 });
