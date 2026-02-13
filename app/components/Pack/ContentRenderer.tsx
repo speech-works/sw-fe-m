@@ -26,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getGuidedActivity } from "../../api";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
+import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
@@ -78,9 +79,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             color={theme.colors.actionPrimary.default}
           />
           <Text style={styles.audioText}>Audio Track</Text>
-          <TouchableOpacity style={styles.playButton}>
+          <TactileTouchableOpacity style={styles.playButton}>
             <MaterialCommunityIcons name="play" size={20} color="white" />
-          </TouchableOpacity>
+          </TactileTouchableOpacity>
         </View>
       );
     }
@@ -188,8 +189,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       return (
         <View style={styles.activityCard}>
-          <TouchableOpacity
+          <TactileTouchableOpacity
             activeOpacity={0.9}
+            hapticFeedback={true}
             onPress={handleStartActivity}
             disabled={loading}
           >
@@ -247,7 +249,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 </View>
               </View>
             </LinearGradient>
-          </TouchableOpacity>
+          </TactileTouchableOpacity>
         </View>
       );
     }

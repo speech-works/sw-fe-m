@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Text,
-  TouchableOpacity,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -14,6 +13,7 @@ import {
 } from "../util/functions/parseStyles";
 import { theme } from "../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { TactileTouchableOpacity } from "./TactileTouchableOpacity";
 
 /**
  * @typedef {'ghost' | 'normal'} ButtonVariant
@@ -152,7 +152,7 @@ const Button: React.FC<ButtonProps> = ({
   // applied and is made redundant by the `gap: 12` in `styles.buttonBase`.
 
   return (
-    <TouchableOpacity
+    <TactileTouchableOpacity
       style={getButtonStyles()}
       onPress={onPress}
       activeOpacity={0.7}
@@ -171,7 +171,7 @@ const Button: React.FC<ButtonProps> = ({
       {!loading && rightIcon ? (
         <Icon name={rightIcon} size={20} color={iconColor} />
       ) : null}
-    </TouchableOpacity>
+    </TactileTouchableOpacity>
   );
 };
 

@@ -20,6 +20,7 @@ import {
 } from "../../../util/functions/parseStyles";
 import { PackModule, Pack } from "../../../api/packs/types";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
+import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
 import {
   completeModule,
   getModule,
@@ -205,7 +206,7 @@ const PackModuleScreen = () => {
 
           <View style={styles.successActionContainer}>
             {nextModuleId && (
-              <TouchableOpacity
+              <TactileTouchableOpacity
                 style={styles.successPrimaryButton}
                 onPress={handleNextModule}
               >
@@ -223,17 +224,17 @@ const PackModuleScreen = () => {
                     Start Next Module
                   </Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </TactileTouchableOpacity>
             )}
 
-            <TouchableOpacity
+            <TactileTouchableOpacity
               style={styles.successSecondaryButton}
               onPress={() => navigation.goBack()}
             >
               <Text style={styles.successSecondaryButtonText}>
                 Back to Dashboard
               </Text>
-            </TouchableOpacity>
+            </TactileTouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
@@ -257,7 +258,7 @@ const PackModuleScreen = () => {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
+          <TactileTouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -266,7 +267,7 @@ const PackModuleScreen = () => {
               size={28}
               color={theme.colors.text.title}
             />
-          </TouchableOpacity>
+          </TactileTouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerSubtitle}>
               MODULE {module.orderIndex}
@@ -319,7 +320,7 @@ const PackModuleScreen = () => {
           <View style={styles.footer}>
             {/* Back Button (Hidden on first step) */}
             <View style={{ flex: 1, opacity: isFirstBlock ? 0 : 1 }}>
-              <TouchableOpacity
+              <TactileTouchableOpacity
                 style={styles.navButtonSecondary}
                 onPress={handleBack}
                 disabled={isFirstBlock}
@@ -330,12 +331,12 @@ const PackModuleScreen = () => {
                   color={theme.colors.text.default}
                 />
                 <Text style={styles.navButtonTextSecondary}>Back</Text>
-              </TouchableOpacity>
+              </TactileTouchableOpacity>
             </View>
 
             <View style={{ flex: 1.5 }}>
               {isLastBlock ? (
-                <TouchableOpacity
+                <TactileTouchableOpacity
                   style={styles.completeButton}
                   onPress={handleComplete}
                   disabled={isCompleting}
@@ -362,9 +363,9 @@ const PackModuleScreen = () => {
                       </>
                     )}
                   </LinearGradient>
-                </TouchableOpacity>
+                </TactileTouchableOpacity>
               ) : (
-                <TouchableOpacity
+                <TactileTouchableOpacity
                   style={styles.nextButton}
                   onPress={handleNext}
                   activeOpacity={0.8}
@@ -385,7 +386,7 @@ const PackModuleScreen = () => {
                     />
                     <Text style={styles.nextButtonText}>Next</Text>
                   </LinearGradient>
-                </TouchableOpacity>
+                </TactileTouchableOpacity>
               )}
             </View>
           </View>
