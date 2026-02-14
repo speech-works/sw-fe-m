@@ -84,6 +84,8 @@ const Breathing = () => {
       const completedActivity = await completePracticeActivity({
         id: currentActivityId, // The ID of the started activity instance
         userId: userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
       updateActivity(currentActivityId, {
         ...completedActivity,
@@ -115,6 +117,8 @@ const Breathing = () => {
         id: currentActivityId,
         userId,
         vitals,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
       updateActivity(currentActivityId, completedActivity);
       if (packContext) {
@@ -144,6 +148,8 @@ const Breathing = () => {
       await completePracticeActivity({
         id: currentActivityId,
         userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
       if (packContext) {
         navigation.goBack();

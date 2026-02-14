@@ -130,7 +130,7 @@ export interface CognitivePractice {
   positiveAffirmationsData?: PositiveAffirmationsData;
   guidedMeditationData?: GuidedMeditationData;
   reframingThoughtsData?: ReframingThoughtsData;
-  realLifeChallengeData?: RealLifeChallengeData; // For REAL_LIFE_CHALLENGE type
+  realLifeChallengeData?: CognitiveRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 
 //////////// Exposure Practice
@@ -185,14 +185,39 @@ export interface FixedRolePlayData {
 }
 
 // Real-Life Challenge data (for pack-based activities)
-export interface RealLifeChallengeData {
-  category:
-    | "TECHNIQUE_DRILL"
-    | "SOCIAL_DRILL"
-    | "MINDFULNESS_DRILL"
-    | "INTROSPECTION_DRILL";
-  // Additional fields can be added as needed
+// Real-Life Challenge data (for pack-based activities)
+export enum ExposureRealLifeCategory {
+  SOCIAL_DRILL = "SOCIAL_DRILL",
+  TECHNIQUE_DRILL = "TECHNIQUE_DRILL",
 }
+
+export interface ExposureRealLifeData {
+  category: ExposureRealLifeCategory;
+  instructions: string;
+  encouragement: string;
+  completionCriteria: string;
+  completionPlaceholder: string;
+  xpReward?: number;
+  durationMinutes?: number;
+}
+
+export enum CognitiveRealLifeCategory {
+  MINDFULNESS_DRILL = "MINDFULNESS_DRILL",
+  INTROSPECTION_DRILL = "INTROSPECTION_DRILL",
+}
+
+export interface CognitiveRealLifeData {
+  category: CognitiveRealLifeCategory;
+  instructions: string;
+  encouragement: string;
+  completionPlaceholder: string;
+  xpReward?: number;
+  durationMinutes?: number;
+}
+
+export type RealLifeChallengeData =
+  | ExposureRealLifeData
+  | CognitiveRealLifeData;
 
 export interface ExposurePractice {
   id: string;
@@ -201,7 +226,7 @@ export interface ExposurePractice {
   description: string;
   difficulty: DifficultyLevel;
   practiceData?: FixedRolePlayData;
-  realLifeChallengeData?: RealLifeChallengeData; // For REAL_LIFE_CHALLENGE type
+  realLifeChallengeData?: ExposureRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 
 // Reading Practice

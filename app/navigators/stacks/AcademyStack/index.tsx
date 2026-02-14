@@ -12,6 +12,7 @@ import PackModuleScreen from "../../../screens/Academy/PackModule";
 import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
+import RealLifeChallenge from "../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 
@@ -28,6 +29,7 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="Breathing" component={Breathing} />
       <Stack.Screen name="Meditation" component={Meditation} />
       <Stack.Screen name="Reframe" component={Reframe} />
+      <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
       <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
     </Stack.Navigator>
   );

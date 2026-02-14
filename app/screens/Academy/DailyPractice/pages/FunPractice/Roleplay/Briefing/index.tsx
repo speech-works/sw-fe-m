@@ -39,6 +39,7 @@ const Briefing = () => {
       title,
       roleplay,
       selectedRoleName,
+      packContext: route.params.packContext,
     });
   };
 

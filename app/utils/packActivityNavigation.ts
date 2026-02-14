@@ -70,6 +70,12 @@ const navigateToCognitive = (
       // TODO: Add affirmations screen navigation
       console.warn("POSITIVE_AFFIRMATIONS screen not yet implemented");
       break;
+    case CognitivePracticeType.REAL_LIFE_CHALLENGE:
+      nav.navigate("RealLifeChallenge", {
+        guidedActivity: activity,
+        packContext: ctx,
+      });
+      break;
     default:
       console.warn("Unknown cognitive practice type:", cognitivePractice.type);
   }
@@ -110,6 +116,12 @@ const navigateToExposure = (
       break;
     case ExposurePracticeType.PHONE_CALL_SIMULATION:
       nav.navigate("PhoneCall", { guidedActivity: activity, packContext: ctx });
+      break;
+    case ExposurePracticeType.REAL_LIFE_CHALLENGE:
+      nav.navigate("RealLifeChallenge", {
+        guidedActivity: activity,
+        packContext: ctx,
+      });
       break;
     default:
       console.warn("Unknown exposure practice type:", exposurePractice.type);

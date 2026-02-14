@@ -46,7 +46,7 @@ const Chat = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<SCEDPStackParamList, "SCChat">>();
 
-  const { sc, practiceActivityId } = route.params;
+  const { sc, practiceActivityId, packContext } = route.params as any;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -137,10 +137,17 @@ const Chat = () => {
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    // Fallback for user id
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId: userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, {
       ...completedActivity,
@@ -380,7 +387,7 @@ const Chat = () => {
                   <View style={styles.suggestionTextContainer}>
                     {renderOptionText(
                       option.userLine,
-                      option.id === selectedOptionId
+                      option.id === selectedOptionId,
                     )}
                   </View>
                 </TouchableOpacity>

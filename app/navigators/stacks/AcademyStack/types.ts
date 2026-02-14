@@ -15,6 +15,7 @@ export type AcademyStackParamList = {
   Breathing: { guidedActivity?: any; packContext?: any } | undefined;
   Meditation: { guidedActivity?: any; packContext?: any } | undefined;
   Reframe: { guidedActivity?: any; packContext?: any } | undefined;
+  RealLifeChallenge: { guidedActivity?: any; packContext?: any } | undefined;
   MoodCheckStack:
     | { screen: "FollowUpStack"; params: { mood: MoodType } }
     | { screen: "CheckIn" };

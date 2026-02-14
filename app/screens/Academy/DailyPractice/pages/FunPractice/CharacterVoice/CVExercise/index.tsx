@@ -36,7 +36,7 @@ const CVExercise = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
-  const { id, name, cvData } = route.params;
+  const { id, name, cvData, packContext } = route.params;
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
@@ -50,7 +50,7 @@ const CVExercise = () => {
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   const toggleIndex = () => {
@@ -60,28 +60,28 @@ const CVExercise = () => {
   };
 
   const markActivityStart = async () => {
-    console.log("markActivityStart 1", { practiceSession });
-
-    if (!practiceSession || !practiceSession.user) {
-      console.error("❌ practiceSession or practiceSession.user is undefined.");
+    // If not in a pack and no session, we can't track
+    if (!packContext && !practiceSession) {
+      console.error("❌ practiceSession or packContext is undefined.");
       return;
     }
 
     try {
+      const sessionId = packContext ? "pack-session" : practiceSession!.id;
+      const userId = packContext ? "user" : practiceSession!.user.id;
+
       const newActivity = await createPracticeActivity({
-        sessionId: practiceSession.id,
+        sessionId,
         contentType: PracticeActivityContentType.FUN_PRACTICE,
         contentId: id,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
-      console.log("markActivityStart 2", { newActivity });
 
-      // Add a log here to confirm code execution
-      console.log("Attempting to start practice activity...");
       const startedActivity = await startPracticeActivity({
         id: newActivity.id,
-        userId: practiceSession.user.id,
+        userId,
       });
-      console.log("markActivityStart 3", { startedActivity });
 
       addActivity({
         ...startedActivity,
@@ -89,20 +89,28 @@ const CVExercise = () => {
       setCurrentActivityId(newActivity.id);
     } catch (error) {
       console.error("❌ Failed to start activity:", error);
-      // You can also trigger a user-facing toast here
-      // triggerToast("error", "Failed to start", "Please try again.");
     }
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, {
       ...completedActivity,
     });
+
+    if (packContext) {
+      navigation.goBack();
+    }
   };
 
   const onDonePress = async () => {

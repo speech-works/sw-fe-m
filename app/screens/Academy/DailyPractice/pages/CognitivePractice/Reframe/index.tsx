@@ -13,7 +13,7 @@ import {
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../Theme/tokens";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
@@ -45,27 +45,31 @@ import { LinearGradient } from "expo-linear-gradient";
 import RainOverlay from "./components/RainOverlay";
 
 const Reframe = () => {
+  const route = useRoute();
+  const params = route.params as any; // or specific type if available
+  const packContext = params?.packContext;
+
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
   const academyNav =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
-    null
+    null,
   );
   const { addActivity, updateActivity } = useActivityStore();
   const { practiceSession } = useSessionStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
   const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
-    []
+    [],
   );
   const [selectedScenarioIndex, setSelectedScenarioIndex] = useState<number>(0);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
-    null
+    null,
   );
   const [isDone, setIsDone] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   const onBackPress = () => {
@@ -75,7 +79,7 @@ const Reframe = () => {
   const toggleIndex = () => {
     if (scenarios && scenarios.length > 0) {
       setSelectedScenarioIndex(
-        (prevIndex) => (prevIndex + 1) % scenarios.length
+        (prevIndex) => (prevIndex + 1) % scenarios.length,
       );
       setSelectedReframe(null);
       setWrittenReframe("");
@@ -83,15 +87,34 @@ const Reframe = () => {
   };
 
   const markActivityStart = async () => {
-    if (!practiceSession || !cognitivePracticeId) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
+    if ((!practiceSession && !packContext) || !cognitivePracticeId) return;
+
+    const payload: any = {
       contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
       contentId: cognitivePracticeId,
-    });
+    };
+
+    if (packContext) {
+      payload.packId = packContext.packId;
+      payload.moduleId = packContext.moduleId;
+    } else if (practiceSession) {
+      payload.sessionId = practiceSession.id;
+    }
+
+    const newActivity = await createPracticeActivity(payload);
+
+    // Fallback to user from store if session is missing (e.g. in pack mode)
+    // Note: ensure user is available in store
+    const userId = practiceSession?.user?.id; // We might need to get user from useUserStore if practiceSession is null
+
+    if (!userId) {
+      console.error("Missing userId for activity start");
+      return;
+    }
+
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
-      userId: practiceSession.user.id,
+      userId: userId,
     });
     addActivity(startedActivity);
     setCurrentActivityId(newActivity.id);
@@ -99,9 +122,14 @@ const Reframe = () => {
 
   const markActivityDone = async () => {
     if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
+    const userId = practiceSession?.user?.id;
+    if (!userId) return;
+
     const completedActivity = await completePracticeActivity({
       id: currentActivityId,
-      userId: practiceSession.user.id,
+      userId: userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(currentActivityId, {
       ...completedActivity,
@@ -112,7 +140,7 @@ const Reframe = () => {
   useEffect(() => {
     const fetchScenarios = async () => {
       const rs = await getCognitivePracticeByType(
-        CognitivePracticeType.REFRAMING_THOUGHTS
+        CognitivePracticeType.REFRAMING_THOUGHTS,
       );
       setScenarios(rs[0].reframingThoughtsData?.scenarios || []);
       setCognitivePracticeId(rs[0]?.id || null);
@@ -258,7 +286,12 @@ const Reframe = () => {
                     text="Submit Reframe"
                     onPress={async () => {
                       await markActivityDone();
-                      setIsDone(true);
+                      await markActivityDone();
+                      if (packContext) {
+                        navigation.goBack();
+                      } else {
+                        setIsDone(true);
+                      }
                     }}
                     style={{ marginTop: 24 }}
                   />

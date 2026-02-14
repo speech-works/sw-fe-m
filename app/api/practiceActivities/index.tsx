@@ -107,6 +107,8 @@ export async function createPracticeActivity({
 interface UpdateActivityReq {
   id: string;
   userId: string;
+  packId?: string;
+  moduleId?: string;
 }
 
 // Start a practice activity (update its startedAt timestamp)
@@ -146,6 +148,8 @@ export async function startPracticeActivity({
 export async function completePracticeActivity({
   id,
   userId,
+  packId,
+  moduleId,
   vitals,
 }: UpdateActivityReq & {
   vitals?: {
@@ -155,10 +159,14 @@ export async function completePracticeActivity({
   };
 }): Promise<PracticeActivity> {
   try {
-    const requestBody = {
+    const requestBody: any = {
       userId,
       ...vitals, // Spread vitals if provided
     };
+
+    if (packId) requestBody.packId = packId;
+    if (moduleId) requestBody.moduleId = moduleId;
+
     const response = await axiosClient.post(
       `/practice-activities/${id}/complete`,
       requestBody,

@@ -33,21 +33,28 @@ const Briefing = () => {
   const navigation =
     useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();
   const route = useRoute<RouteProp<SCEDPStackParamList, "SCBriefing">>();
-  const { sc } = route.params;
+  const { sc, packContext } = route.params as any;
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   const markActivityStart = async () => {
-    if (!practiceSession) return;
+    // If we are not in a pack and have no session, abort.
+    if (!packContext && !practiceSession) return;
+
+    const sessionId = packContext ? "pack-session" : practiceSession!.id;
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
+      sessionId,
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
       contentId: sc.id,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
-      userId: practiceSession.user.id,
+      userId: userId,
     });
     addActivity({
       ...startedActivity,
@@ -61,7 +68,8 @@ const Briefing = () => {
       navigation.navigate("SCChat", {
         sc,
         practiceActivityId: currentActivityId,
-      });
+        packContext,
+      } as any);
   }, [currentActivityId]);
 
   return (

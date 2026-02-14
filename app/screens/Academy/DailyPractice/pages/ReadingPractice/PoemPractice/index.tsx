@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from "@react-navigation/native";
 
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
@@ -76,7 +80,7 @@ const PoemPractice = () => {
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -99,7 +103,7 @@ const PoemPractice = () => {
   // Persistent Tool Hooks
   // Mute logic if tool is NOT selected
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME
+    selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
@@ -111,7 +115,7 @@ const PoemPractice = () => {
       return () => {
         setTabBarVisible(true);
       };
-    }, [setTabBarVisible])
+    }, [setTabBarVisible]),
   );
 
   // --- Data Fetching ---
@@ -144,26 +148,42 @@ const PoemPractice = () => {
     }
   };
 
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+
   const markActivityStart = async () => {
-    if (!practiceSession) return;
+    // If not in a pack and no session, we can't track
+    if (!packContext && !practiceSession) return;
+
+    const sessionId = packContext ? "pack-session" : practiceSession!.id;
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
+      sessionId,
       contentType: PracticeActivityContentType.READING_PRACTICE,
       contentId: allPoems[selectedIndex]?.id,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
-      userId: practiceSession.user.id,
+      userId,
     });
     addActivity({ ...startedActivity });
     setCurrentActivityId(newActivity.id);
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, { ...completedActivity });
   };
@@ -176,6 +196,10 @@ const PoemPractice = () => {
       activityId: currentActivityId,
     });
     setPracticeComplete(true);
+
+    if (packContext) {
+      navigation.goBack();
+    }
   };
 
   const handleToolSelect = (toolName: string) => {
@@ -514,7 +538,7 @@ const PoemPractice = () => {
                     style={[styles.dockItem, isActive && styles.dockItemActive]}
                     onPress={() => {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                       handleToolSelect(tool.id);
                     }}

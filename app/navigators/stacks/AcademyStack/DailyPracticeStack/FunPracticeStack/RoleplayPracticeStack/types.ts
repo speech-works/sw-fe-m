@@ -9,17 +9,19 @@ export type RoleplayFDPStackParamList = {
     title: string;
     description: string;
     roleplay: RolePlayData;
+    packContext?: { packId: string; moduleId: string };
   };
   RoleplayChat: {
     id: string;
     title: string;
     roleplay: RolePlayData;
     selectedRoleName: string;
+    packContext?: { packId: string; moduleId: string };
   };
 };
 export type RoleplayFDPStackNavigationProp<
-  T extends keyof RoleplayFDPStackParamList
+  T extends keyof RoleplayFDPStackParamList,
 > = NativeStackNavigationProp<RoleplayFDPStackParamList, T>;
 export type RoleplayFDPStackRouteProp<
-  T extends keyof RoleplayFDPStackParamList
+  T extends keyof RoleplayFDPStackParamList,
 > = RouteProp<RoleplayFDPStackParamList, T>;

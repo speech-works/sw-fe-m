@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState, useRef } from "react";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from "@react-navigation/native";
 import {
   RDPStackNavigationProp,
   RDPStackParamList,
@@ -46,7 +50,7 @@ export const useQuotePractice = () => {
   // We'll just stick to single page for quotes for now.
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -71,7 +75,7 @@ export const useQuotePractice = () => {
       return () => {
         setTabBarVisible(true);
       };
-    }, [setTabBarVisible])
+    }, [setTabBarVisible]),
   );
 
   // Fetch Quotes
@@ -94,30 +98,38 @@ export const useQuotePractice = () => {
 
   const onBackPress = () => navigation.goBack();
 
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+
   const markActivityStart = async () => {
-    if (!user) {
-      console.error("[useQuotePractice] ❌ No user found!");
+    if (!packContext && !practiceSession) {
+      console.error("[useQuotePractice] ❌ No user/session found!");
       return;
     }
 
     try {
       // Create session if it doesn't exist
       let sessionToUse = practiceSession;
-      if (!sessionToUse) {
+      if (!packContext && !sessionToUse && user) {
         const newSession = await createSession({ userId: user.id });
         setSession(newSession);
         sessionToUse = newSession;
       }
 
+      const sessionId = packContext ? "pack-session" : sessionToUse!.id;
+      const userId = packContext ? "user" : sessionToUse!.user.id;
+
       const newActivity = await createPracticeActivity({
-        sessionId: sessionToUse.id,
+        sessionId,
         contentType: PracticeActivityContentType.READING_PRACTICE,
         contentId: allQuotes[selectedIndex]?.id,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
 
       const startedActivity = await startPracticeActivity({
         id: newActivity.id,
-        userId: sessionToUse.user.id,
+        userId,
       });
 
       addActivity({ ...startedActivity });
@@ -129,10 +141,16 @@ export const useQuotePractice = () => {
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, { ...completedActivity });
   };
@@ -146,6 +164,10 @@ export const useQuotePractice = () => {
         activityId: currentActivityId,
       });
       setPracticeComplete(true);
+
+      if (packContext) {
+        navigation.goBack();
+      }
     } catch (error) {
       console.error("❌ Failed to complete activity:", error);
     }

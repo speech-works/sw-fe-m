@@ -56,7 +56,7 @@ const Chat = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
-  const { title, roleplay, selectedRoleName, id } = route.params;
+  const { title, roleplay, selectedRoleName, id, packContext } = route.params;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -68,14 +68,14 @@ const Chat = () => {
   const selectedRole = useMemo(
     () =>
       roleplay.scenario.availableRoles.find(
-        (role) => role.roleName === selectedRoleName
+        (role) => role.roleName === selectedRoleName,
       ),
-    [roleplay.scenario.availableRoles, selectedRoleName]
+    [roleplay.scenario.availableRoles, selectedRoleName],
   );
 
   const stage = useMemo(
     () => roleplay.stages.find((s) => s.userRole === selectedRoleName),
-    [roleplay.stages, selectedRoleName]
+    [roleplay.stages, selectedRoleName],
   );
 
   const character = useMemo(() => stage?.userCharacter, [stage]);
@@ -90,12 +90,12 @@ const Chat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [currentOptions, setCurrentOptions] = useState<RolePlayNodeOption[]>(
-    []
+    [],
   );
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -171,15 +171,21 @@ const Chat = () => {
   };
 
   const markActivityStart = async () => {
-    if (!practiceSession) return;
+    if (!practiceSession && !packContext) return;
+
+    const sessionId = packContext ? "pack-session" : practiceSession!.id;
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
+      sessionId,
       contentType: PracticeActivityContentType.FUN_PRACTICE,
       contentId: id,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
-      userId: practiceSession.user.id,
+      userId,
     });
     addActivity({
       ...startedActivity,
@@ -188,10 +194,16 @@ const Chat = () => {
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, {
       ...completedActivity,

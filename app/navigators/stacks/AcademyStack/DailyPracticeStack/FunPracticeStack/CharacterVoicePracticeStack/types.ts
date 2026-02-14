@@ -8,11 +8,12 @@ export type CharacterVoiceFDPStackParamList = {
     id: string;
     name: string;
     cvData: CharacterVoiceData;
+    packContext?: { packId: string; moduleId: string };
   };
 };
 export type CharacterVoiceFDPStackNavigationProp<
-  T extends keyof CharacterVoiceFDPStackParamList
+  T extends keyof CharacterVoiceFDPStackParamList,
 > = NativeStackNavigationProp<CharacterVoiceFDPStackParamList, T>;
 export type CharacterVoiceFDPStackRouteProp<
-  T extends keyof CharacterVoiceFDPStackParamList
+  T extends keyof CharacterVoiceFDPStackParamList,
 > = RouteProp<CharacterVoiceFDPStackParamList, T>;

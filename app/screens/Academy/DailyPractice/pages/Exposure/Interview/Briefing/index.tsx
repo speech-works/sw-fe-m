@@ -36,21 +36,28 @@ const Briefing = () => {
     >();
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
-  const { interview } = route.params;
+  const { interview, packContext } = route.params as any; // Cast to any to avoid type issues if packContext is missing from types
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   const markActivityStart = async () => {
-    if (!practiceSession) return;
+    // If we are not in a pack and have no session, abort.
+    if (!packContext && !practiceSession) return;
+
+    const sessionId = packContext ? "pack-session" : practiceSession!.id;
+    const userId = packContext ? "user" : practiceSession!.user.id; // Backend should handle user from token if passed "user" or similar, or we rely on sessionStore if available
+
     const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
+      sessionId,
       contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
       contentId: interview.id,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     const startedActivity = await startPracticeActivity({
       id: newActivity.id,
-      userId: practiceSession.user.id,
+      userId: userId,
     });
     addActivity({
       ...startedActivity,
@@ -64,7 +71,8 @@ const Briefing = () => {
       navigation.navigate("InterviewChat", {
         interview,
         practiceActivityId: currentActivityId,
-      });
+        packContext,
+      } as any);
   }, [currentActivityId]);
 
   return (

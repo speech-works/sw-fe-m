@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
@@ -76,7 +76,7 @@ const Twister = () => {
 
   // --- Tools Hooks ---
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME
+    selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
@@ -135,7 +135,7 @@ const Twister = () => {
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
   const [isStarting, setIsStarting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -190,21 +190,32 @@ const Twister = () => {
     }
   };
 
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+
   const markActivityStart = async () => {
-    if (!practiceSession) return;
+    // If not in a pack and no session, we can't track
+    if (!packContext && !practiceSession) return;
+
     if (!twisters || twisters.length === 0) {
       console.warn("Cannot start activity: Tongue twisters not yet loaded.");
       return;
     }
     try {
+      const sessionId = packContext ? "pack-session" : practiceSession!.id;
+      const userId = packContext ? "user" : practiceSession!.user.id;
+
       const newActivity = await createPracticeActivity({
-        sessionId: practiceSession.id,
+        sessionId,
         contentType: PracticeActivityContentType.FUN_PRACTICE,
         contentId: twisters[currentIndex].id,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
+
       const startedActivity = await startPracticeActivity({
         id: newActivity.id,
-        userId: practiceSession.user.id,
+        userId,
       });
       addActivity({
         ...startedActivity,
@@ -217,15 +228,25 @@ const Twister = () => {
   };
 
   const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    const userId = packContext ? "user" : practiceSession!.user.id;
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, {
       ...completedActivity,
       funPractice: twisters[currentIndex],
     });
+
+    if (packContext) {
+      navigation.goBack();
+    }
   };
 
   const onDonePress = async () => {
@@ -507,7 +528,7 @@ const Twister = () => {
                     style={[styles.dockItem, isActive && styles.dockItemActive]}
                     onPress={() => {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                       handleToolSelect(tool.id);
                     }}
@@ -545,8 +566,8 @@ const Twister = () => {
             {activeToolSheet === ToolType.CHORUS
               ? "Guide Settings"
               : activeToolSheet === ToolType.DAF
-              ? "DAF Settings"
-              : "Metronome Settings"}
+                ? "DAF Settings"
+                : "Metronome Settings"}
           </Text>
           {renderToolSheetContent()}
         </ScrollView>

@@ -53,19 +53,23 @@ const Meditation = () => {
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    null,
   );
 
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
+  // Use existing route but cast params to any for packContext
+  const params = route.params as any;
+  const packContext = params?.packContext;
+
   // All fetched meditation scenarios
   const [meditationScenarios, setMeditationScenarios] = useState<
     CognitivePractice[]
   >([]);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
-    null
+    null,
   );
 
   // Which scenario is currently selected
@@ -96,7 +100,7 @@ const Meditation = () => {
   useEffect(() => {
     const fetchScenarios = async () => {
       const ms = await getCognitivePracticeByType(
-        CognitivePracticeType.GUIDED_MEDITATION
+        CognitivePracticeType.GUIDED_MEDITATION,
       );
       setMeditationScenarios(ms);
     };
@@ -193,19 +197,37 @@ const Meditation = () => {
   }, [isPlaying, mute, toggleBackground]);
 
   const markActivityStart = async () => {
-    if (!practiceSession || !cognitivePracticeId || selectedIndex === null)
+    if (
+      (!practiceSession && !packContext) ||
+      !cognitivePracticeId ||
+      selectedIndex === null
+    )
       return;
 
     try {
-      const newActivity = await createPracticeActivity({
-        sessionId: practiceSession.id,
+      const payload: any = {
         contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
         contentId: cognitivePracticeId,
-      });
+      };
+
+      if (packContext) {
+        payload.packId = packContext.packId;
+        payload.moduleId = packContext.moduleId;
+      } else if (practiceSession) {
+        payload.sessionId = practiceSession.id;
+      }
+
+      const newActivity = await createPracticeActivity(payload);
+
+      const userId = practiceSession?.user?.id;
+      if (!userId) {
+        console.error("Missing userId for activity start");
+        return;
+      }
 
       const startedActivity = await startPracticeActivity({
         id: newActivity.id,
-        userId: practiceSession.user.id,
+        userId: userId,
       });
 
       addActivity({
@@ -221,17 +243,22 @@ const Meditation = () => {
 
   const markActivityComplete = async () => {
     if (
-      !practiceSession ||
+      (!practiceSession && !packContext) ||
       !currentActivityId ||
       !doesActivityExist(currentActivityId) ||
       selectedIndex === null
     )
       return;
 
+    const userId = practiceSession?.user?.id;
+    if (!userId) return;
+
     try {
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
-        userId: practiceSession.user.id,
+        userId: userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
       });
 
       updateActivity(currentActivityId, {
@@ -285,7 +312,11 @@ const Meditation = () => {
   const handleComplete = async () => {
     setIsPlaying(false);
     await markActivityComplete();
-    setIsDone(true);
+    if (packContext) {
+      navigation.goBack();
+    } else {
+      setIsDone(true);
+    }
   };
 
   const displayMinutes = Math.floor(progress / 60);

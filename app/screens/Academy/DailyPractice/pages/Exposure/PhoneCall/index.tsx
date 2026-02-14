@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   PhoneCallEDPStackNavigationProp,
   PhoneCallEDPStackParamList,
@@ -26,20 +26,98 @@ import { triggerToast } from "../../../../../../util/functions/toast";
 import axios from "axios";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/ringback-tone.wav");
 
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
+import {
+  createPracticeActivity,
+  startPracticeActivity,
+  completePracticeActivity,
+} from "../../../../../../api";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+
 const PhoneCall = () => {
   const navigation =
     useNavigation<
       PhoneCallEDPStackNavigationProp<keyof PhoneCallEDPStackParamList>
     >();
   const { user } = useUserStore();
+  const { practiceSession } = useSessionStore();
+  const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
+
+  // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
+  const routeParams = useRoute().params as any;
+  const packContext = routeParams?.packContext;
 
   const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
   // State for the currently selected scenario, initialized with the first item
   const [selectedScenario, setSelectedScenario] = useState<PhoneCallScenario>();
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    null,
+  );
 
   // State for bottom sheet visibility
   const [isModalVisible, setIsModalVisible] = useState(false);
   const closeModal = () => setIsModalVisible(false);
+
+  const markActivityStart = async () => {
+    if (!selectedScenario) return;
+    // If not in a pack and no session, we can't track
+    if (!packContext && !practiceSession) return;
+
+    try {
+      const sessionId = packContext ? "pack-session" : practiceSession!.id;
+      const userId = packContext ? "user" : practiceSession!.user.id;
+
+      const newActivity = await createPracticeActivity({
+        sessionId,
+        contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+        contentId: selectedScenario.id,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
+      });
+
+      const startedActivity = await startPracticeActivity({
+        id: newActivity.id,
+        userId,
+      });
+
+      addActivity({
+        ...startedActivity,
+      });
+      setCurrentActivityId(newActivity.id);
+    } catch (error) {
+      console.error("Failed to start phone call activity", error);
+    }
+  };
+
+  const markActivityComplete = async () => {
+    if (!currentActivityId) return;
+    // Fallback for user id
+    const userId = packContext ? "user" : practiceSession?.user.id;
+
+    if (!userId) return;
+
+    try {
+      const completedActivity = await completePracticeActivity({
+        id: currentActivityId,
+        userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
+      });
+
+      updateActivity(currentActivityId, {
+        ...completedActivity,
+      });
+
+      // If in pack, maybe auto-navigate back?
+      // For now, we leave the user on the screen or let them end the call manually
+      if (packContext) {
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error("Failed to complete phone call activity", error);
+    }
+  };
 
   useEffect(() => {
     const fetchScenarios = async () => {
@@ -119,8 +197,8 @@ const PhoneCall = () => {
                 selectedScenario?.agent.designation || "Assistant"
               }
               ringtoneAsset={RINGING_SOUND_FILE}
-              // We will add new props for styling later if needed,
-              // but for now CallingWidget needs to be refactored to fit this container
+              onCallStart={markActivityStart}
+              onCallEnd={markActivityComplete}
             />
           )}
         </View>

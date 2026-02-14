@@ -95,6 +95,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         }
 
         try {
+          console.log("handleStartActivity triggered for block:", block.id);
           setLoading(true);
           let activity: any; // GuidedActivity
 
@@ -113,12 +114,21 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                   return "GUIDED_MEDITATION";
                 if (config.tips && config.durationMinutes)
                   return "GUIDED_BREATHING";
-                if (config.realLifeChallengeData) return "REAL_LIFE_CHALLENGE";
+                if (config.instructions) return "REAL_LIFE_CHALLENGE";
+              }
+              if (category === "EXPOSURE_PRACTICE") {
+                if (config.instructions) return "REAL_LIFE_CHALLENGE";
               }
               // Add other categories if needed (Exposure, Fun, etc)
               return undefined;
             };
 
+            console.log(
+              "Inferring type for config:",
+              content.configuration,
+              "category:",
+              content.activityType,
+            );
             const inferredType = inferType(
               content.configuration,
               content.activityType!,
@@ -126,6 +136,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             const configWithType = {
               ...content.configuration,
               type: inferredType,
+              id: content.refId,
             };
 
             // Construct GuidedActivity from hydrated fields
@@ -137,11 +148,21 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
               // Map configuration to specific practice type field
               cognitivePractice:
                 content.activityType === "COGNITIVE_PRACTICE"
-                  ? configWithType
+                  ? inferredType === "REAL_LIFE_CHALLENGE"
+                    ? {
+                        ...configWithType,
+                        realLifeChallengeData: configWithType,
+                      }
+                    : configWithType
                   : undefined,
               exposurePractice:
                 content.activityType === "EXPOSURE_PRACTICE"
-                  ? configWithType
+                  ? inferredType === "REAL_LIFE_CHALLENGE"
+                    ? {
+                        ...configWithType,
+                        realLifeChallengeData: configWithType,
+                      }
+                    : configWithType
                   : undefined,
               funPractice:
                 content.activityType === "FUN_PRACTICE"
@@ -186,46 +207,46 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       };
 
       return (
-        <View style={styles.activityCard}>
-          <TactileTouchableOpacity
-            activeOpacity={0.9}
-            hapticFeedback={true}
-            onPress={handleStartActivity}
-            disabled={loading}
+        <TactileTouchableOpacity
+          style={styles.activityCard}
+          onPress={handleStartActivity}
+          disabled={loading}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={["#F97316", "#EA580C"]} // Orange 500 -> Orange 600
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardGradient}
           >
-            <LinearGradient
-              colors={["#F97316", "#EA580C"]} // Orange 500 -> Orange 600
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardGradient}
-            >
-              {/* Decorative Bubbles */}
-              <View style={styles.bubbleTopRight} />
-              <View style={styles.bubbleBottomLeft} />
+            {/* Decorative Bubbles */}
+            <View style={styles.bubbleTopRight} />
+            <View style={styles.bubbleBottomLeft} />
 
-              <View style={styles.cardContent}>
-                {/* Header with Chip */}
-                <View style={styles.chip}>
-                  <MaterialCommunityIcons
-                    name="lightning-bolt"
-                    size={14}
-                    color="white"
-                  />
-                  <Text style={styles.chipText}>PRACTICE ACTIVITY</Text>
-                </View>
+            <View style={styles.cardContent}>
+              {/* Header with Chip */}
+              <View style={styles.chip}>
+                <MaterialCommunityIcons
+                  name="lightning-bolt"
+                  size={14}
+                  color="white"
+                />
+                <Text style={styles.chipText}>PRACTICE ACTIVITY</Text>
+              </View>
 
-                {/* Title and Description */}
-                <View style={styles.textContainer}>
-                  <Text style={styles.activityTitle}>
-                    {content.titleOverride || "Practice Activity"}
-                  </Text>
-                  <Text style={styles.activityInstructions}>
-                    {content.descriptionOverride ||
-                      "Complete this activity to move forward."}
-                  </Text>
-                </View>
+              {/* Title and Description */}
+              <View style={styles.textContainer}>
+                <Text style={styles.activityTitle}>
+                  {content.titleOverride || "Practice Activity"}
+                </Text>
+                <Text style={styles.activityInstructions}>
+                  {content.descriptionOverride ||
+                    "Complete this activity to move forward."}
+                </Text>
+              </View>
 
-                {/* Action Button */}
+              {/* Action Button */}
+              <View style={styles.actionButtonContainer}>
                 <View style={styles.actionButton}>
                   {loading ? (
                     <ActivityIndicator
@@ -236,7 +257,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                     <>
                       <MaterialCommunityIcons
                         name="play"
-                        size={16}
+                        size={20}
                         color={theme.colors.library.orange[600]}
                       />
                       <Text style={styles.actionButtonText}>
@@ -246,9 +267,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                   )}
                 </View>
               </View>
-            </LinearGradient>
-          </TactileTouchableOpacity>
-        </View>
+            </View>
+          </LinearGradient>
+        </TactileTouchableOpacity>
       );
     }
 
@@ -381,16 +402,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: "95%",
   },
+  actionButtonContainer: {
+    alignSelf: "flex-start",
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "white",
+  },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 24,
     gap: 8,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    alignSelf: "flex-start",
   },
   actionButtonText: {
     color: theme.colors.library.orange[600],
