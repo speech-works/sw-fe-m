@@ -34,6 +34,8 @@ export enum ContentBlockType {
 
 export type TextBlockContent = {
   markdown: string;
+  titleOverride?: string;
+  descriptionOverride?: string;
 };
 
 export type VideoBlockContent = {
@@ -41,11 +43,15 @@ export type VideoBlockContent = {
   videoId: string;
   durationSeconds?: number;
   thumbnailUrl?: string;
+  titleOverride?: string;
+  descriptionOverride?: string;
 };
 
 export type AudioBlockContent = {
   fileUrl: string;
   durationSeconds?: number;
+  titleOverride?: string;
+  descriptionOverride?: string;
 };
 
 export type ReferenceBlockContent = {

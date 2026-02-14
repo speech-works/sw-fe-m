@@ -27,6 +27,7 @@ import { getGuidedActivity } from "../../api";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
+import { VideoPlayer } from "../VideoPlayer";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
@@ -54,18 +55,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       );
     }
     case ContentBlockType.VIDEO: {
-      // Placeholder for Video - in real app use expo-video or WebView
       const videoContent = block.content as VideoBlockContent;
       return (
         <View style={styles.mediaContainer}>
-          <View style={styles.videoPlaceholder}>
-            <MaterialCommunityIcons
-              name="play-circle"
-              size={48}
-              color="white"
-            />
-            <Text style={styles.mediaText}>Video: {videoContent.videoId}</Text>
-          </View>
+          <VideoPlayer
+            uri={videoContent.videoId}
+            poster={videoContent.thumbnailUrl}
+            title={block.content.titleOverride || "Video Lesson"}
+            style={{ width: "100%" }}
+          />
         </View>
       );
     }
@@ -278,19 +276,7 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
     backgroundColor: "#F1F5F9",
   },
-  videoPlaceholder: {
-    width: "100%",
-    height: 220,
-    backgroundColor: "#1E293B",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  mediaText: {
-    color: "white",
-    fontWeight: "600",
-    opacity: 0.9,
-  },
+
   audioContainer: {
     flexDirection: "row",
     alignItems: "center",

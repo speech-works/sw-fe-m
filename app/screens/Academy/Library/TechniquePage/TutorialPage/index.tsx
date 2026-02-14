@@ -11,7 +11,7 @@ import {
   Easing,
   Platform,
 } from "react-native";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import {
@@ -24,7 +24,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import Button from "../../../../../components/Button";
 import Video from "react-native-video";
 import Slider from "@react-native-community/slider";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import {
   LibStackNavigationProp,
   LibStackParamList,
@@ -222,6 +222,14 @@ const TutorialPage = ({
       if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
     };
   }, [techniqueId, user?.isPaid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setPaused(true);
+      };
+    }, []),
+  );
 
   // Slider
   const onSlidingStart = () => {
