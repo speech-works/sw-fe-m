@@ -204,8 +204,12 @@ const RealLifeChallenge = () => {
       >
         <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
       </TactileTouchableOpacity>
-      <Text style={styles.headerTitle}>Real Life Challenge</Text>
-      <View style={{ width: 32 }} />
+      <View style={styles.headerTitleContainer}>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {title}
+        </Text>
+      </View>
+      <View style={{ width: 36 }} />
     </View>
   );
 
@@ -215,21 +219,8 @@ const RealLifeChallenge = () => {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
-      <View style={styles.heroSection}>
-        {/* Large Hero Watermark */}
-        <View style={styles.heroWatermarkContainer} pointerEvents="none">
-          <Icon
-            name="mountain"
-            size={220}
-            color={theme.colors.library.orange[600]}
-            style={styles.heroWatermark}
-          />
-        </View>
-
-        <View style={styles.heroTextContainer}>
-          <Text style={styles.titleText}>{title}</Text>
-          <Text style={styles.subtitleText}>{description}</Text>
-        </View>
+      <View style={styles.compactHero}>
+        <Text style={styles.compactSubtitleText}>{description}</Text>
       </View>
 
       <View style={styles.bentoGrid}>
@@ -336,7 +327,27 @@ const RealLifeChallenge = () => {
         </View>
       </View>
 
-      <View style={styles.footerSpacer} />
+      {/* Start Button Integrated in Scroll */}
+      <View style={styles.startActionContainer}>
+        <TactileTouchableOpacity
+          style={styles.primaryButton}
+          onPress={handleStart}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={[
+              theme.colors.library.orange[400],
+              theme.colors.library.orange[500],
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.buttonGradient}
+          >
+            <Icon name="play" size={16} color="#FFF" />
+            <Text style={styles.primaryButtonText}>Start Practice</Text>
+          </LinearGradient>
+        </TactileTouchableOpacity>
+      </View>
     </ScrollView>
   );
 
@@ -435,45 +446,25 @@ const RealLifeChallenge = () => {
 
   return (
     <View style={styles.mainContainer}>
+      {/* Premium 3-Stop Gradient Background */}
       <LinearGradient
-        colors={["#FFF7ED", "#FFF"]}
+        colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
+        locations={[0, 0.4, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Ambient Decorations */}
+      {/* Dynamic Ambient Decorations */}
       <View style={styles.ambientContainer} pointerEvents="none">
         <View style={[styles.ambientBubble, styles.bubble1]} />
         <View style={[styles.ambientBubble, styles.bubble2]} />
         <View style={[styles.ambientBubble, styles.bubble3]} />
       </View>
 
+      {renderHeader()}
       {currentStep === ChallengeStep.START && renderStartScreen()}
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
       {currentStep === ChallengeStep.SUMMARY && renderSummaryScreen()}
-
-      {currentStep === ChallengeStep.START && (
-        <View style={styles.anchoredFooter}>
-          <TactileTouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleStart}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.buttonGradient}
-            >
-              <Icon name="play" size={16} color="#FFF" />
-              <Text style={styles.primaryButtonText}>Start Practice</Text>
-            </LinearGradient>
-          </TactileTouchableOpacity>
-        </View>
-      )}
     </View>
   );
 };
@@ -484,36 +475,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFF",
   },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
   ambientContainer: {
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
   ambientBubble: {
     position: "absolute",
-    borderRadius: 200,
-    filter: "blur(60px)",
-    opacity: 0.4,
+    borderRadius: 300,
+    filter: "blur(80px)", // Softer, larger blur
+    opacity: 0.5,
   },
   bubble1: {
-    width: 300,
-    height: 300,
-    top: -50,
-    right: -100,
-    backgroundColor: "#FFEDD5", // Orange 100
+    width: 400,
+    height: 400,
+    top: -100,
+    right: -120,
+    backgroundColor: "#FFE4E6", // Rose 100
   },
   bubble2: {
-    width: 250,
-    height: 250,
-    bottom: 100,
-    left: -80,
+    width: 350,
+    height: 350,
+    bottom: 50,
+    left: -100,
     backgroundColor: "#E0F2FE", // Sky 100
   },
   bubble3: {
-    width: 200,
-    height: 200,
-    top: "40%",
-    right: -50,
-    backgroundColor: "#F0FDF4", // Green 100
+    width: 300,
+    height: 300,
+    top: "35%",
+    right: -80,
+    backgroundColor: "#DCFCE7", // Green 100
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 12 : 24,
+    paddingBottom: 12,
+    zIndex: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
 
   // Scroll Area
@@ -521,49 +549,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 40, // Move title closer to top
-    paddingBottom: 120, // Space for anchored footer
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
 
-  // Hero Section
-  heroSection: {
-    alignItems: "center",
-    marginBottom: 32,
-    marginTop: 20, // Reduced top margin
-    position: "relative",
+  // Compact Hero
+  compactHero: {
+    marginBottom: 20,
+    width: "100%",
+    paddingHorizontal: 4,
   },
-  heroWatermarkContainer: {
-    position: "absolute",
-    top: -60, // Shift watermark up
-    right: -80,
-    zIndex: -1,
-    transform: [{ rotate: "15deg" }],
-  },
-  heroWatermark: {
-    opacity: 0.05,
-  },
-  heroTextContainer: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginTop: 40, // Reduced margin since icon is gone
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 12,
-    letterSpacing: -0.8,
-  },
-  subtitleText: {
+  compactSubtitleText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+    lineHeight: 22,
+    opacity: 0.85,
     textAlign: "center",
-    lineHeight: 24,
-    opacity: 0.6,
   },
 
-  // Bento Grid
+  // Bento Grid (Glass Edition)
   bentoGrid: {
     gap: 16,
   },
@@ -572,136 +577,94 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bentoCard: {
-    borderRadius: 28,
+    borderRadius: 32,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-    // Removed backgroundColor: "#FFF" to prevent white bleed
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)", // Glass effect
     position: "relative",
   },
+  startActionContainer: {
+    marginTop: 24,
+    width: "100%",
+  },
+
   halfBento: {
     flex: 1,
-    minHeight: 140,
+    minHeight: 150,
   },
   fullBento: {
     width: "100%",
-    minHeight: 120,
+    minHeight: 140,
   },
-  cardWatermarkContainer: {
-    position: "absolute",
-    right: -15,
-    bottom: -15,
-    transform: [{ rotate: "-15deg" }],
-    zIndex: 0,
-  },
-  cardWatermark: {
-    opacity: 0.1,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-    zIndex: 1,
-  },
-  cardLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    opacity: 0.7,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  cardLabelInline: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-  },
-  cardValue: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "800",
-    marginTop: 4,
-    zIndex: 1,
+  cardGradient: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "flex-end",
   },
 
-  // Focus Pills
+  // Artifact Watermarks
+  cardWatermarkContainer: {
+    position: "absolute",
+    right: -10,
+    bottom: -15,
+    opacity: 0.15,
+  },
+  cardWatermark: {
+    transform: [{ rotate: "-15deg" }],
+  },
+
+  cardHeader: {
+    marginBottom: 6,
+  },
+  cardLabel: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    opacity: 0.8,
+  },
+  cardLabelInline: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    color: theme.colors.text.title,
+    opacity: 0.6,
+    marginBottom: 12,
+  },
+  cardValue: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+  },
+
+  // Pillars / Focus
   focusPills: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-    zIndex: 1,
+    gap: 10,
   },
   pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
   },
   pillText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-
-  // Anchored Footer
-  anchoredFooter: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-  },
-  footerSpacer: {
-    height: 40,
-  },
-
-  // Header
-  header: {
-    position: "absolute",
-    top: 50,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontSize: 16,
+    ...parseTextStyle(theme.typography.BodySmall),
     fontWeight: "700",
+    color: theme.colors.text.title,
   },
 
-  // Instructions
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 100,
-  },
+  // Instructions Step
   stepHeader: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
-    marginBottom: 16,
-    letterSpacing: -0.5,
+    marginBottom: 8,
+    fontWeight: "800",
   },
   stepSubHeader: {
     ...parseTextStyle(theme.typography.Body),
@@ -711,42 +674,37 @@ const styles = StyleSheet.create({
   },
   instructionCard: {
     borderRadius: 24,
+    overflow: "hidden",
     marginBottom: 24,
-  },
-  cardGradient: {
-    borderRadius: 24,
-    padding: 24,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
   instructionText: {
-    ...parseTextStyle(theme.typography.Heading3), // Large readable text
+    ...parseTextStyle(theme.typography.Body),
+    padding: 24,
     color: theme.colors.text.default,
-    lineHeight: 32,
-    fontWeight: "500",
+    lineHeight: 26,
   },
   encouragementContainer: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
     backgroundColor: theme.colors.library.orange[100],
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.library.orange[100],
+    borderRadius: 20,
+    alignItems: "center",
+    gap: 12,
   },
   tipIcon: {
     marginTop: 2,
   },
   encouragementText: {
-    flex: 1,
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.library.orange[800],
+    flex: 1,
+    fontWeight: "600",
     fontStyle: "italic",
-    lineHeight: 20,
   },
 
-  // Reflection
+  // Reflection/Final Steps
   textArea: {
     backgroundColor: "#fff",
     borderWidth: 1,
@@ -766,27 +724,27 @@ const styles = StyleSheet.create({
 
   // Buttons & Footer
   footer: {
-    paddingBottom: 40,
-    paddingTop: 20,
-    width: "100%",
+    marginTop: "auto",
+    paddingBottom: 24,
   },
   primaryButton: {
     width: "100%",
-    height: 56,
-    borderRadius: 28,
+    height: 58,
+    borderRadius: 24,
+    overflow: "hidden",
   },
   buttonGradient: {
     flex: 1,
-    borderRadius: 28,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
   },
   primaryButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
+    ...parseTextStyle(theme.typography.Button),
     color: "#FFF",
     fontSize: 18,
+    fontWeight: "800",
   },
   // Summary Step
   contentContainerCentered: {
