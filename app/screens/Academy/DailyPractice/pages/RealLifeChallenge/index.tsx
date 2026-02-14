@@ -2,20 +2,15 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
-  Alert,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import ScreenView from "../../../../../components/ScreenView";
-import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import Button from "../../../../../components/Button";
 import { theme } from "../../../../../Theme/tokens";
 import {
@@ -33,6 +28,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../stores/session";
 import { useActivityStore } from "../../../../../stores/activity";
+import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
   START = 0,
@@ -214,133 +210,178 @@ const RealLifeChallenge = () => {
   );
 
   const renderStartScreen = () => (
-    <View style={styles.contentContainer}>
+    <ScrollView
+      style={styles.scrollView}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.heroSection}>
-        <View style={styles.iconCircle}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEDD5"]}
-            style={StyleSheet.absoluteFill}
-          />
+        {/* Large Hero Watermark */}
+        <View style={styles.heroWatermarkContainer} pointerEvents="none">
           <Icon
             name="mountain"
-            size={48}
+            size={220}
             color={theme.colors.library.orange[600]}
+            style={styles.heroWatermark}
           />
         </View>
-        <Text style={styles.titleText}>{title}</Text>
-        <Text style={styles.subtitleText}>{description}</Text>
+
+        <View style={styles.heroTextContainer}>
+          <Text style={styles.titleText}>{title}</Text>
+          <Text style={styles.subtitleText}>{description}</Text>
+        </View>
       </View>
 
-      <View style={styles.cardContainer}>
-        <LinearGradient colors={["#FFFFFF", "#FFF7ED"]} style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBg}>
-              <Icon
-                name="clock"
-                size={14}
-                color={theme.colors.library.orange[600]}
-              />
-            </View>
-            <Text style={styles.infoText}>
-              {challengeData.durationMinutes
-                ? `${challengeData.durationMinutes} min activity`
-                : "Self-paced"}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBg}>
-              <Icon
-                name="star"
-                size={14}
-                color={theme.colors.library.orange[600]}
-              />
-            </View>
-            <Text style={styles.infoText}>
-              +{challengeData.xpReward || 50} XP Reward
-            </Text>
-          </View>
-        </LinearGradient>
-      </View>
+      <View style={styles.bentoGrid}>
+        {/* Row 1: Time & Reward */}
+        <View style={styles.bentoRow}>
+          <View style={[styles.bentoCard, styles.halfBento]}>
+            <LinearGradient
+              colors={["#E0F2FE", "#F0F9FF"]}
+              style={styles.cardGradient}
+            >
+              {/* Card Watermark */}
+              <View style={styles.cardWatermarkContainer} pointerEvents="none">
+                <Icon
+                  name="clock"
+                  size={80}
+                  color="#0284C7"
+                  style={styles.cardWatermark}
+                />
+              </View>
 
-      <View style={styles.footer}>
-        <TactileTouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleStart}
-          activeOpacity={0.9}
-          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-        >
+              <View style={styles.cardHeader}>
+                <Text style={[styles.cardLabel, { color: "#0369A1" }]}>
+                  Duration
+                </Text>
+              </View>
+              <Text style={styles.cardValue}>
+                {challengeData.durationMinutes
+                  ? `${challengeData.durationMinutes} min`
+                  : "Self-paced"}
+              </Text>
+            </LinearGradient>
+          </View>
+
+          <View style={[styles.bentoCard, styles.halfBento]}>
+            <LinearGradient
+              colors={["#FFF7ED", "#FFFAF0"]}
+              style={styles.cardGradient}
+            >
+              {/* Card Watermark */}
+              <View style={styles.cardWatermarkContainer} pointerEvents="none">
+                <Icon
+                  name="star"
+                  size={80}
+                  color="#EA580C"
+                  style={styles.cardWatermark}
+                />
+              </View>
+
+              <View style={styles.cardHeader}>
+                <Text style={[styles.cardLabel, { color: "#9A3412" }]}>
+                  Reward
+                </Text>
+              </View>
+              <Text style={styles.cardValue}>
+                +{challengeData.xpReward || 50} XP
+              </Text>
+            </LinearGradient>
+          </View>
+        </View>
+
+        {/* Row 2: Focus Areas (Full Width Bento) */}
+        <View style={[styles.bentoCard, styles.fullBento]}>
           <LinearGradient
-            colors={[
-              theme.colors.library.orange[400],
-              theme.colors.library.orange[500],
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.buttonGradient}
+            colors={["#F0FDF4", "#F6FFFA"]}
+            style={styles.cardGradient}
           >
-            <Icon name="play" size={16} color="#FFF" />
-            <Text style={styles.primaryButtonText}>Start Practice</Text>
+            {/* Card Watermark */}
+            <View style={styles.cardWatermarkContainer} pointerEvents="none">
+              <Icon
+                name="bullseye"
+                size={100}
+                color="#16A34A"
+                style={[styles.cardWatermark, { right: -10, bottom: -20 }]}
+              />
+            </View>
+
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardLabelInline}>Key Practice Focus</Text>
+            </View>
+            <View style={styles.focusPills}>
+              {[
+                {
+                  label: "Social Navigation",
+                  color: "rgba(220, 252, 231, 0.6)",
+                },
+                { label: "Cognitive Flex", color: "rgba(220, 252, 231, 0.6)" },
+                { label: "Real Success", color: "rgba(220, 252, 231, 0.6)" },
+              ].map((pill, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.pill,
+                    {
+                      backgroundColor: pill.color,
+                      borderColor: "rgba(22, 163, 74, 0.1)",
+                    },
+                  ]}
+                >
+                  <Text style={styles.pillText}>{pill.label}</Text>
+                </View>
+              ))}
+            </View>
           </LinearGradient>
-        </TactileTouchableOpacity>
+        </View>
       </View>
-    </View>
+
+      <View style={styles.footerSpacer} />
+    </ScrollView>
   );
 
   const renderInstructionScreen = () => (
     <View style={styles.contentContainer}>
-      <Text style={styles.stepHeader}>Instructions</Text>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.instructionCard}>
-          <LinearGradient
-            colors={["#FFFFFF", "#FAFAFA"]}
-            style={styles.cardGradient}
-          >
-            <Text style={styles.instructionText}>
-              {challengeData.instructions}
-            </Text>
-          </LinearGradient>
-        </View>
+      <Text style={styles.stepHeader}>Step 1: The Challenge</Text>
+      <Text style={styles.stepSubHeader}>Here's what you'll be doing</Text>
 
-        {challengeData.encouragement && (
-          <View style={styles.encouragementContainer}>
-            <View style={styles.tipIcon}>
-              <Icon
-                name="lightbulb"
-                size={16}
-                color={theme.colors.library.orange[600]}
-              />
-            </View>
-            <Text style={styles.encouragementText}>
-              {challengeData.encouragement}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+      <View style={styles.instructionCard}>
+        <LinearGradient
+          colors={["#FFF", "#F9FAFB"]}
+          style={styles.cardGradient}
+        >
+          <Text style={styles.instructionText}>
+            {challengeData.instructions}
+          </Text>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.encouragementContainer}>
+        <Icon
+          name="lightbulb"
+          size={18}
+          color={theme.colors.library.orange[600]}
+          style={styles.tipIcon}
+        />
+        <Text style={styles.encouragementText}>
+          {challengeData.encouragement}
+        </Text>
+      </View>
 
       <View style={styles.footer}>
         <TactileTouchableOpacity
           style={styles.primaryButton}
           onPress={handleInstructionsComplete}
           activeOpacity={0.9}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <LinearGradient
             colors={[
               theme.colors.library.orange[400],
               theme.colors.library.orange[500],
             ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.primaryButtonText}>
-              I've Completed This Step
-            </Text>
+            <Text style={styles.primaryButtonText}>Got it</Text>
           </LinearGradient>
         </TactileTouchableOpacity>
       </View>
@@ -350,148 +391,296 @@ const RealLifeChallenge = () => {
   const renderReflectionScreen = () => (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+      style={styles.contentContainer}
     >
-      <View style={styles.contentContainer}>
-        <Text style={styles.stepHeader}>Reflection</Text>
-        <Text style={styles.stepSubHeader}>{completionPrompt}</Text>
+      <Text style={styles.stepHeader}>Step 2: Reflection</Text>
+      <Text style={styles.stepSubHeader}>{completionPrompt}</Text>
 
-        <TextInput
-          style={styles.textArea}
-          placeholder={challengeData.completionPlaceholder}
-          placeholderTextColor={theme.colors.text.disabled}
-          multiline
-          value={reflectionText}
-          onChangeText={setReflectionText}
-          textAlignVertical="top"
-        />
-
-        <View style={styles.footer}>
-          <TactileTouchableOpacity
-            style={[
-              styles.primaryButton,
-              !reflectionText.trim() && styles.buttonDisabled,
-            ]}
-            onPress={handleReflectionComplete}
-            disabled={!reflectionText.trim()}
-            activeOpacity={0.9}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <LinearGradient
-              colors={
-                !reflectionText.trim()
-                  ? ["#E2E8F0", "#CBD5E1"]
-                  : [
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.buttonGradient}
-            >
-              <Text
-                style={[
-                  styles.primaryButtonText,
-                  !reflectionText.trim() && { color: "#94A3B8" },
-                ]}
-              >
-                Complete Practice
-              </Text>
-            </LinearGradient>
-          </TactileTouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
-  );
-
-  const renderSummaryScreen = () => (
-    <View style={styles.contentContainerCentered}>
-      <ConfettiAnimation />
-
-      <View style={styles.checkmarkContainer}>
-        <LinearGradient
-          colors={["#10B981", "#059669"]}
-          style={styles.checkmarkCircle}
-        >
-          <Icon name="check" size={60} color="#FFFFFF" />
-        </LinearGradient>
-      </View>
-
-      <View style={styles.textContainer}>
-        <Text style={styles.summaryTitle}>Well done!</Text>
-        <Text style={styles.summaryText}>
-          You've completed the challenge. Keep up the momentum!
-        </Text>
-      </View>
-
-      <View style={styles.xpTag}>
-        <Icon name="star" size={14} color={theme.colors.library.orange[600]} />
-        <Text style={styles.xpTagText}>
-          +{challengeData.xpReward || 50} XP Earned
-        </Text>
-      </View>
+      <TextInput
+        style={styles.textArea}
+        placeholder={challengeData.completionPlaceholder || "How did it go?"}
+        multiline
+        value={reflectionText}
+        onChangeText={setReflectionText}
+        placeholderTextColor="rgba(0,0,0,0.3)"
+      />
 
       <View style={styles.footer}>
         <TactileTouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleDone}
+          style={[
+            styles.primaryButton,
+            !reflectionText.trim() && styles.buttonDisabled,
+          ]}
+          onPress={handleReflectionComplete}
+          disabled={!reflectionText.trim()}
           activeOpacity={0.9}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <LinearGradient
             colors={[
               theme.colors.library.orange[400],
               theme.colors.library.orange[500],
             ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.primaryButtonText}>Done</Text>
+            <Text style={styles.primaryButtonText}>Complete Challenge</Text>
           </LinearGradient>
         </TactileTouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
+  );
+
+  const renderSummaryScreen = () => (
+    <DonePractice practiceName="real-life challenge" />
   );
 
   return (
     <View style={styles.mainContainer}>
       <LinearGradient
-        colors={["#FFF7ED", "#FFF"]} // Orange-50 to White
-        style={styles.gradientBackground}
+        colors={["#FFF7ED", "#FFF"]}
+        style={StyleSheet.absoluteFill}
       />
-      {/* Could add a custom back button header here if needed */}
+
+      {/* Ambient Decorations */}
+      <View style={styles.ambientContainer} pointerEvents="none">
+        <View style={[styles.ambientBubble, styles.bubble1]} />
+        <View style={[styles.ambientBubble, styles.bubble2]} />
+        <View style={[styles.ambientBubble, styles.bubble3]} />
+      </View>
 
       {currentStep === ChallengeStep.START && renderStartScreen()}
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
       {currentStep === ChallengeStep.SUMMARY && renderSummaryScreen()}
+
+      {currentStep === ChallengeStep.START && (
+        <View style={styles.anchoredFooter}>
+          <TactileTouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleStart}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.buttonGradient}
+            >
+              <Icon name="play" size={16} color="#FFF" />
+              <Text style={styles.primaryButtonText}>Start Practice</Text>
+            </LinearGradient>
+          </TactileTouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // Main Layout
   mainContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background.default,
+    backgroundColor: "#FFF",
   },
+  ambientContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  ambientBubble: {
+    position: "absolute",
+    borderRadius: 200,
+    filter: "blur(60px)",
+    opacity: 0.4,
+  },
+  bubble1: {
+    width: 300,
+    height: 300,
+    top: -50,
+    right: -100,
+    backgroundColor: "#FFEDD5", // Orange 100
+  },
+  bubble2: {
+    width: 250,
+    height: 250,
+    bottom: 100,
+    left: -80,
+    backgroundColor: "#E0F2FE", // Sky 100
+  },
+  bubble3: {
+    width: 200,
+    height: 200,
+    top: "40%",
+    right: -50,
+    backgroundColor: "#F0FDF4", // Green 100
+  },
+
+  // Scroll Area
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 40, // Move title closer to top
+    paddingBottom: 120, // Space for anchored footer
+  },
+
+  // Hero Section
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 32,
+    marginTop: 20, // Reduced top margin
+    position: "relative",
+  },
+  heroWatermarkContainer: {
+    position: "absolute",
+    top: -60, // Shift watermark up
+    right: -80,
+    zIndex: -1,
+    transform: [{ rotate: "15deg" }],
+  },
+  heroWatermark: {
+    opacity: 0.05,
+  },
+  heroTextContainer: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: 40, // Reduced margin since icon is gone
+  },
+  titleText: {
+    ...parseTextStyle(theme.typography.Heading1),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 12,
+    letterSpacing: -0.8,
+  },
+  subtitleText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 24,
+    opacity: 0.6,
+  },
+
+  // Bento Grid
+  bentoGrid: {
+    gap: 16,
+  },
+  bentoRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  bentoCard: {
+    borderRadius: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    // Removed backgroundColor: "#FFF" to prevent white bleed
+    position: "relative",
+  },
+  halfBento: {
+    flex: 1,
+    minHeight: 140,
+  },
+  fullBento: {
+    width: "100%",
+    minHeight: 120,
+  },
+  cardWatermarkContainer: {
+    position: "absolute",
+    right: -15,
+    bottom: -15,
+    transform: [{ rotate: "-15deg" }],
+    zIndex: 0,
+  },
+  cardWatermark: {
+    opacity: 0.1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+    zIndex: 1,
+  },
+  cardLabel: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    opacity: 0.7,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  cardLabelInline: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+    fontWeight: "700",
+  },
+  cardValue: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+    marginTop: 4,
+    zIndex: 1,
+  },
+
+  // Focus Pills
+  focusPills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+    zIndex: 1,
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  pillText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+
+  // Anchored Footer
+  anchoredFooter: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+  },
+  footerSpacer: {
+    height: 40,
+  },
+
+  // Header
   header: {
+    position: "absolute",
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginTop: 50, // Space for status bar
-    marginBottom: 10,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
@@ -499,105 +688,28 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
     fontSize: 16,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
-  contentContainerCentered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 40,
-  },
-
-  // Hero Section (Start Screen)
-  heroSection: {
-    alignItems: "center",
-    marginVertical: 32,
-  },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: theme.colors.library.orange[200],
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 280,
-  },
-
-  // Info Card
-  cardContainer: {
-    ...parseShadowStyle(theme.shadow.elevation1),
-    alignItems: "center",
-  },
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  infoIconBg: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.library.orange[100],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  infoText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "600",
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: theme.colors.library.gray[200],
-    marginHorizontal: 16,
+    fontWeight: "700",
   },
 
   // Instructions
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 100,
+  },
   stepHeader: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
     marginBottom: 16,
+    letterSpacing: -0.5,
   },
   stepSubHeader: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     marginBottom: 24,
-  },
-  scrollView: {
-    flex: 1,
+    opacity: 0.7,
   },
   instructionCard: {
-    ...parseShadowStyle(theme.shadow.elevation1),
     borderRadius: 24,
     marginBottom: 24,
   },
@@ -645,10 +757,46 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     marginBottom: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
 
-  // Summary
+  textContainer: {
+    alignItems: "center",
+    gap: 12,
+  },
+
+  // Buttons & Footer
+  footer: {
+    paddingBottom: 40,
+    paddingTop: 20,
+    width: "100%",
+  },
+  primaryButton: {
+    width: "100%",
+    height: 56,
+    borderRadius: 28,
+  },
+  buttonGradient: {
+    flex: 1,
+    borderRadius: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  primaryButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontSize: 18,
+  },
+  // Summary Step
+  contentContainerCentered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 40,
+    zIndex: 5,
+  },
   checkmarkContainer: {
     padding: 24,
     justifyContent: "center",
@@ -663,10 +811,10 @@ const styles = StyleSheet.create({
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowRadius: 12,
     elevation: 8,
   },
-  textContainer: {
+  textContainerSummary: {
     alignItems: "center",
     gap: 12,
   },
@@ -674,16 +822,14 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
     textAlign: "center",
-    fontSize: 32,
     letterSpacing: -0.5,
   },
   summaryText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
-    maxWidth: 300,
     lineHeight: 24,
-    opacity: 0.8,
+    opacity: 0.7,
   },
   xpTag: {
     flexDirection: "row",
@@ -694,40 +840,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.library.orange[100],
-    marginTop: 20,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   xpTagText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.orange[700],
+    color: theme.colors.library.orange[800],
     fontWeight: "700",
-    textTransform: "uppercase",
-  },
-
-  // Buttons & Footer
-  footer: {
-    paddingBottom: 40,
-    paddingTop: 20,
-    width: "100%",
-  },
-  primaryButton: {
-    width: "100%",
-    height: 56,
-    borderRadius: 28,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  buttonGradient: {
-    flex: 1,
-    borderRadius: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  primaryButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontSize: 18,
   },
   buttonDisabled: {
     opacity: 0.5,
