@@ -23,8 +23,6 @@ import {
   startPracticeActivity,
   createPracticeActivity,
   createPracticeActivityFromPack,
-  createSession,
-  ensureActiveSession,
 } from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
@@ -36,7 +34,8 @@ export const useQuotePractice = () => {
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, hasHydrated, setSession } = useSessionStore();
+  const { practiceSession, hasHydrated, setSession, ensureActiveSession } =
+    useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);

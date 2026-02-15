@@ -28,14 +28,11 @@ import {
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../../stores/user";
-import {
-  createSession,
-  ensureActiveSession,
-} from "../../../../../../../api/practiceSessions";
 
 const Briefing = () => {
   const { user } = useUserStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { addActivity } = useActivityStore();
   const navigation =
     useNavigation<

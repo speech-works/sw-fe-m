@@ -39,7 +39,6 @@ import {
   createPracticeActivity,
   createPracticeActivityFromPack,
 } from "../../../../../../api";
-import { ensureActiveSession } from "../../../../../../api/practiceSessions";
 import {
   completePracticeActivity,
   startPracticeActivity,
@@ -64,7 +63,8 @@ const Reframe = () => {
     null,
   );
   const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { user } = useUserStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");

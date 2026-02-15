@@ -70,8 +70,7 @@ const PoemPractice = () => {
   const navigation = useNavigation();
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
+  const { practiceSession, ensureActiveSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);

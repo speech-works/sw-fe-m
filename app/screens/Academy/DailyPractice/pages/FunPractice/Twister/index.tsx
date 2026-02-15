@@ -41,10 +41,6 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
-import {
-  createSession,
-  ensureActiveSession,
-} from "../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
@@ -69,7 +65,8 @@ const Twister = () => {
   const route = useRoute();
   const packContext = (route.params as any)?.packContext;
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { user } = useUserStore();
   const {
     voiceRecordingUri,

@@ -40,15 +40,11 @@ import {
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useUserStore } from "../../../../../../../stores/user";
-import {
-  createSession,
-  ensureActiveSession,
-} from "../../../../../../../api/practiceSessions";
+
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { LinearGradient } from "expo-linear-gradient";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
-import { Dimensions } from "react-native";
 
 // Define the message structure
 interface ChatMessage {
@@ -64,7 +60,8 @@ const Chat = () => {
   const { title, roleplay, selectedRoleName, id, packContext } = route.params;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
 
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =

@@ -30,10 +30,7 @@ import { PracticeActivityContentType } from "../../../../../api/practiceActiviti
 import { useSessionStore } from "../../../../../stores/session";
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
-import {
-  createSession,
-  ensureActiveSession,
-} from "../../../../../api/practiceSessions";
+import { createSession } from "../../../../../api/practiceSessions";
 import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
@@ -57,8 +54,9 @@ const RealLifeChallenge = () => {
   const params = route.params as RealLifeChallengeParams;
   const { practiceActivity, packContext } = params || {};
   const { user } = useUserStore();
-  const { practiceSession, setSession } = useSessionStore();
-  const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
+  const { addActivity, updateActivity } = useActivityStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     practiceActivity?.id || null,
   );

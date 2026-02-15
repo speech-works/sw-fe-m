@@ -35,10 +35,6 @@ import {
   completePracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import {
-  createSession,
-  ensureActiveSession,
-} from "../../../../../../api/practiceSessions";
 
 const PhoneCall = () => {
   const navigation =
@@ -46,7 +42,8 @@ const PhoneCall = () => {
       PhoneCallEDPStackNavigationProp<keyof PhoneCallEDPStackParamList>
     >();
   const { user } = useUserStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
