@@ -10,6 +10,7 @@ import {
 import React, { useState } from "react";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Button from "../../../../../components/Button";
 import { theme } from "../../../../../Theme/tokens";
@@ -238,10 +239,17 @@ const RealLifeChallenge = () => {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   // --- Render Steps ---
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View
+      style={[
+        styles.header,
+        { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0) },
+      ]}
+    >
       <TactileTouchableOpacity
         onPress={handleBack}
         style={styles.backButton}
@@ -529,6 +537,10 @@ const RealLifeChallenge = () => {
     />
   );
 
+  if (currentStep === ChallengeStep.SUMMARY) {
+    return renderSummaryScreen();
+  }
+
   return (
     <View style={styles.mainContainer}>
       {/* Premium 3-Stop Gradient Background */}
@@ -549,7 +561,6 @@ const RealLifeChallenge = () => {
       {currentStep === ChallengeStep.START && renderStartScreen()}
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
-      {currentStep === ChallengeStep.SUMMARY && renderSummaryScreen()}
     </View>
   );
 };
@@ -603,7 +614,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 12 : 24,
+    // paddingTop handled dynamically via insets
     paddingBottom: 12,
     zIndex: 20,
   },
