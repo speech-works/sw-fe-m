@@ -21,8 +21,10 @@ import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
 import {
   completePracticeActivity,
   startPracticeActivity,
-} from "../../../../../../api/practiceActivities";
-import { createPracticeActivity, createSession } from "../../../../../../api";
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  createSession,
+} from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
@@ -49,8 +51,12 @@ export const useQuotePractice = () => {
   // Quotes don't usually need pagination, but if we want to be consistent:
   // We'll just stick to single page for quotes for now.
 
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+  const initialActivity = (route.params as any)?.practiceActivity;
+
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    initialActivity?.id || null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -98,11 +104,10 @@ export const useQuotePractice = () => {
 
   const onBackPress = () => navigation.goBack();
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
-
   const markActivityStart = async () => {
-    if (!packContext && !practiceSession) {
+    const isPackContext = packContext?.packId;
+
+    if (!isPackContext && !practiceSession && !user) {
       console.error("[useQuotePractice] ❌ No user/session found!");
       return;
     }
@@ -110,30 +115,57 @@ export const useQuotePractice = () => {
     try {
       // Create session if it doesn't exist
       let sessionToUse = practiceSession;
-      if (!packContext && !sessionToUse && user) {
+      if (!isPackContext && !sessionToUse && user) {
         const newSession = await createSession({ userId: user.id });
         setSession(newSession);
         sessionToUse = newSession;
       }
 
-      const sessionId = packContext ? "pack-session" : sessionToUse!.id;
-      const userId = packContext ? "user" : sessionToUse!.user.id;
+      if (!isPackContext && !sessionToUse) return;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType: PracticeActivityContentType.READING_PRACTICE,
-        contentId: allQuotes[selectedIndex]?.id,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+
+      if (!userId) {
+        console.error("Missing userId");
+        return;
+      }
+
+      let activityIdToStart = currentActivityId;
+
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("useQuotePractice - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.READING_PRACTICE,
+            contentId: allQuotes[selectedIndex]?.id,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionId)
+            throw new Error("No session ID for standalone activity");
+          console.log(
+            "useQuotePractice - Creating Activity via POST (Standalone)",
+          );
+          const newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.READING_PRACTICE,
+            contentId: allQuotes[selectedIndex]?.id,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
 
       addActivity({ ...startedActivity });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("[useQuotePractice] ❌ Error in markActivityStart:", error);
       throw error;

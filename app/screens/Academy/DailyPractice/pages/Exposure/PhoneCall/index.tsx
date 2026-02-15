@@ -30,10 +30,12 @@ import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import {
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
   completePracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { createSession } from "../../../../../../api/practiceSessions";
 
 const PhoneCall = () => {
   const navigation =
@@ -41,7 +43,7 @@ const PhoneCall = () => {
       PhoneCallEDPStackNavigationProp<keyof PhoneCallEDPStackParamList>
     >();
   const { user } = useUserStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession } = useSessionStore();
   const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
@@ -52,7 +54,7 @@ const PhoneCall = () => {
   // State for the currently selected scenario, initialized with the first item
   const [selectedScenario, setSelectedScenario] = useState<PhoneCallScenario>();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    routeParams?.practiceActivity?.id || null,
   );
 
   // State for bottom sheet visibility
@@ -61,30 +63,67 @@ const PhoneCall = () => {
 
   const markActivityStart = async () => {
     if (!selectedScenario) return;
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
     // If not in a pack and no session, we can't track
-    if (!packContext && !practiceSession) return;
+    if (!isPackContext && !sessionToUse) return;
 
     try {
-      const sessionId = packContext ? "pack-session" : practiceSession!.id;
-      const userId = packContext ? "user" : practiceSession!.user.id;
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-        contentId: selectedScenario.id,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      if (!userId) {
+        console.error("Missing userId");
+        return;
+      }
+
+      let activityIdToStart = currentActivityId;
+
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("PhoneCall - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+            contentId: selectedScenario.id,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionId)
+            throw new Error("No session ID for standalone activity");
+          console.log("PhoneCall - Creating Activity via POST (Standalone)");
+          const newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+            contentId: selectedScenario.id,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
 
       addActivity({
         ...startedActivity,
       });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("Failed to start phone call activity", error);
     }

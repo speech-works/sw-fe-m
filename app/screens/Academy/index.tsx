@@ -100,11 +100,6 @@ const Academy = () => {
     user?.hasCompletedOnboarding,
   );
 
-  // --- NEW: Local State for Error Modal ---
-  const [errorModalVisible, setErrorModalVisible] = useState(false);
-  const [errorTitle, setErrorTitle] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  // ----------------------------------------
   const [practiceStats, setPracticeStats] = useState<any>(null); // Added state
   const [oasesProgress, setOasesProgress] = useState<{
     dayNumber: number;
@@ -174,29 +169,6 @@ const Academy = () => {
       console.error("Failed to create new session:", error);
     }
   };
-
-  // --- UPDATED: Listen for Modal Events ---
-  useEffect(() => {
-    if (!events || events.length === 0) return;
-
-    for (const event of events) {
-      if (event.name === EVENT_NAMES.SHOW_ERROR_MODAL) {
-        console.log("→ Error modal triggering via Event Store...");
-
-        // 1. Set the content
-        setErrorTitle(event.detail.modalTitle || "Something went wrong");
-        setErrorMessage(
-          event.detail.errorMessage || "An unexpected error occurred.",
-        );
-
-        // 2. Open the modal
-        setErrorModalVisible(true);
-
-        // 3. Clear the event so it doesn't fire again
-        clear(EVENT_NAMES.SHOW_ERROR_MODAL);
-      }
-    }
-  }, [events, clear]);
 
   useEffect(() => {
     if (!user) return;
@@ -302,21 +274,6 @@ const Academy = () => {
           <Tiles />
         </View>
       </CustomScrollView>
-
-      {/* ---  Error Modal Implementation --- */}
-      <BottomSheetModal
-        visible={errorModalVisible}
-        onClose={() => setErrorModalVisible(false)}
-        maxHeight="40%" // Adjust height preference
-      >
-        <BgPattern_404 />
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{errorTitle}</Text>
-          <Text style={styles.modalMessage}>{errorMessage}</Text>
-          <ErrorFace size={152} />
-        </View>
-      </BottomSheetModal>
-      {/* --------------------------------------- */}
     </ScreenView>
   );
 };

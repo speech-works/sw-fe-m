@@ -14,11 +14,22 @@ export {
 } from "./practiceSessions";
 export {
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
   completePracticeActivity,
   getAllPracticeActivitiesBySessionId,
   getCurrentPracticeActivityForSession,
+  getPracticeActivity,
 } from "./practiceActivities";
+export type { PracticeActivity } from "./practiceActivities/types";
+export { PracticeActivityContentType } from "./practiceActivities/types";
+export {
+  CognitivePracticeType,
+  ExposurePracticeType,
+  FunPracticeType,
+  ReadingPracticeType,
+} from "./dailyPractice/types";
+
 export {
   getDailyActivityStatsForTheWeek,
   getWeeklyMoodReport,
@@ -72,7 +83,3 @@ export type {
   CombinedView,
   UserOverallStateAggregate,
 } from "./overallState/types";
-
-// Guided Activities API (for pack modules)
-export { getGuidedActivity } from "./guidedActivities";
-export type { GuidedActivity } from "./guidedActivities";

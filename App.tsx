@@ -6,8 +6,9 @@ import FontLoader from "./app/util/components/FontLoader";
 import { NavigationContainer } from "@react-navigation/native";
 import MainNavigator from "./app/navigators/MainNavigator";
 import { AuthProvider } from "./app/contexts/AuthContext";
-import Toast from "react-native-toast-message";
-import toastConfig from "./app/util/config/toastConfig";
+import GlobalModal from "./app/components/GlobalModal";
+// import Toast from "react-native-toast-message";
+// import toastConfig from "./app/util/config/toastConfig";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
@@ -36,16 +37,16 @@ const App: React.FC = () => {
   useMoodCheckStore.getState().checkAndResetIfNeeded();
 
   const rescheduleAllActiveNotifications = useReminderStore(
-    (state) => state.rescheduleAllActiveNotifications
+    (state) => state.rescheduleAllActiveNotifications,
   );
 
   useEffect(() => {
     const checkToken = async () => {
       const accessToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
       );
       const refreshToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
       );
 
       // await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
@@ -99,7 +100,7 @@ const App: React.FC = () => {
     // and the persisted state is available.
     const unsubscribe = useReminderStore.persist.onFinishHydration(() => {
       console.log(
-        "Zustand store rehydrated. Attempting to reschedule notifications."
+        "Zustand store rehydrated. Attempting to reschedule notifications.",
       );
       rescheduleAllActiveNotifications();
     });
@@ -123,7 +124,7 @@ const App: React.FC = () => {
           <NavigationContainer>
             <MainNavigator />
           </NavigationContainer>
-          <Toast config={toastConfig} />
+          <GlobalModal />
         </SafeAreaView>
       </SafeAreaProvider>
     </AuthProvider>

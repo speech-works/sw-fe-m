@@ -18,7 +18,7 @@ export enum PracticeActivityContentType {
 
 export interface PracticeActivity {
   id: string;
-  session: PracticeSession;
+  session?: PracticeSession;
   status: "ONGOING" | "COMPLETED" | "ABORTED";
   contentType: PracticeActivityContentType;
   funPractice?: FunPractice;

@@ -134,6 +134,8 @@ const PackModuleScreen = () => {
         );
         if (nextMod) {
           setNextModuleId(nextMod.id);
+        } else {
+          console.log("No next module available..");
         }
       } catch (e) {
         console.warn("Failed to find next module", e);

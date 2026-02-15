@@ -1,10 +1,10 @@
-import { GuidedActivity } from "../api/guidedActivities";
 import {
+  PracticeActivity,
   CognitivePracticeType,
   ExposurePracticeType,
   FunPracticeType,
   ReadingPracticeType,
-} from "../api/dailyPractice/types";
+} from "../api";
 
 export interface PackContext {
   blockId: string;
@@ -14,11 +14,11 @@ export interface PackContext {
 
 /**
  * Navigates to the appropriate practice screen for a pack module activity.
- * Maps GuidedActivity → specific screen based on contentType and practice type.
+ * Maps PracticeActivity → specific screen based on contentType and practice type.
  */
 export const navigateToPackActivity = (
   navigation: any,
-  activity: GuidedActivity,
+  activity: PracticeActivity,
   packContext: PackContext,
 ): void => {
   const { contentType } = activity;
@@ -43,7 +43,7 @@ export const navigateToPackActivity = (
 
 const navigateToCognitive = (
   nav: any,
-  activity: GuidedActivity,
+  activity: PracticeActivity,
   ctx: PackContext,
 ) => {
   const { cognitivePractice } = activity;
@@ -55,16 +55,19 @@ const navigateToCognitive = (
 
   switch (cognitivePractice.type) {
     case CognitivePracticeType.GUIDED_BREATHING:
-      nav.navigate("Breathing", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("Breathing", {
+        practiceActivity: activity,
+        packContext: ctx,
+      });
       break;
     case CognitivePracticeType.GUIDED_MEDITATION:
       nav.navigate("Meditation", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case CognitivePracticeType.REFRAMING_THOUGHTS:
-      nav.navigate("Reframe", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("Reframe", { practiceActivity: activity, packContext: ctx });
       break;
     case CognitivePracticeType.POSITIVE_AFFIRMATIONS:
       // TODO: Add affirmations screen navigation
@@ -72,7 +75,7 @@ const navigateToCognitive = (
       break;
     case CognitivePracticeType.REAL_LIFE_CHALLENGE:
       nav.navigate("RealLifeChallenge", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
@@ -83,7 +86,7 @@ const navigateToCognitive = (
 
 const navigateToExposure = (
   nav: any,
-  activity: GuidedActivity,
+  activity: PracticeActivity,
   ctx: PackContext,
 ) => {
   const { exposurePractice } = activity;
@@ -100,7 +103,7 @@ const navigateToExposure = (
           name: exposurePractice.name,
           practiceData: exposurePractice.practiceData,
         },
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
@@ -110,16 +113,19 @@ const navigateToExposure = (
           name: exposurePractice.name,
           practiceData: exposurePractice.practiceData,
         },
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case ExposurePracticeType.PHONE_CALL_SIMULATION:
-      nav.navigate("PhoneCall", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("PhoneCall", {
+        practiceActivity: activity,
+        packContext: ctx,
+      });
       break;
     case ExposurePracticeType.REAL_LIFE_CHALLENGE:
       nav.navigate("RealLifeChallenge", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
@@ -130,7 +136,7 @@ const navigateToExposure = (
 
 const navigateToFun = (
   nav: any,
-  activity: GuidedActivity,
+  activity: PracticeActivity,
   ctx: PackContext,
 ) => {
   const { funPractice } = activity;
@@ -143,19 +149,19 @@ const navigateToFun = (
   switch (funPractice.type) {
     case FunPracticeType.TONGUE_TWISTER:
       nav.navigate("TongueTwister", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case FunPracticeType.ROLE_PLAY:
       nav.navigate("RoleplayChat", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case FunPracticeType.CHARACTER_VOICE:
       nav.navigate("CharacterVoice", {
-        guidedActivity: activity,
+        practiceActivity: activity,
         packContext: ctx,
       });
       break;
@@ -166,7 +172,7 @@ const navigateToFun = (
 
 const navigateToReading = (
   nav: any,
-  activity: GuidedActivity,
+  activity: PracticeActivity,
   ctx: PackContext,
 ) => {
   const { readingPractice } = activity;
@@ -178,13 +184,13 @@ const navigateToReading = (
 
   switch (readingPractice.type) {
     case ReadingPracticeType.POEM:
-      nav.navigate("Poem", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("Poem", { practiceActivity: activity, packContext: ctx });
       break;
     case ReadingPracticeType.STORY:
-      nav.navigate("Story", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("Story", { practiceActivity: activity, packContext: ctx });
       break;
     case ReadingPracticeType.QUOTE:
-      nav.navigate("Quote", { guidedActivity: activity, packContext: ctx });
+      nav.navigate("Quote", { practiceActivity: activity, packContext: ctx });
       break;
     default:
       console.warn("Unknown reading practice type:", readingPractice.type);

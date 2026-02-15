@@ -33,8 +33,13 @@ import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 import { MoodFUStackParamList } from "../../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
 
 import { useSessionStore } from "../../../../../../stores/session";
+import { useUserStore } from "../../../../../../stores/user";
 import { useActivityStore } from "../../../../../../stores/activity";
-import { createPracticeActivity } from "../../../../../../api";
+import {
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  createSession,
+} from "../../../../../../api";
 import {
   completePracticeActivity,
   startPracticeActivity,
@@ -44,6 +49,7 @@ import { MoodType } from "../../../../../../api/moodCheck/types";
 import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
+import { triggerToast } from "../../../../../../util/functions/toast";
 
 const Meditation = () => {
   const navigation = useNavigation();
@@ -51,7 +57,9 @@ const Meditation = () => {
     useRoute<RouteProp<MoodFUStackParamList, "MeditationPractice">>();
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
+  const { user } = useUserStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
@@ -63,6 +71,7 @@ const Meditation = () => {
   // Use existing route but cast params to any for packContext
   const params = route.params as any;
   const packContext = params?.packContext;
+  const practiceActivity = params?.practiceActivity;
 
   // All fetched meditation scenarios
   const [meditationScenarios, setMeditationScenarios] = useState<
@@ -71,6 +80,15 @@ const Meditation = () => {
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
     null,
   );
+
+  // Initialize from params for the new workflow
+  useEffect(() => {
+    if (practiceActivity?.id) {
+      setCurrentActivityId(practiceActivity.id);
+      // We don't have the full hydrated activity here yet (needs to be merged with scenario)
+      // but we have the ID for startPracticeActivity.
+    }
+  }, [practiceActivity]);
 
   // Which scenario is currently selected
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -197,63 +215,126 @@ const Meditation = () => {
   }, [isPlaying, mute, toggleBackground]);
 
   const markActivityStart = async () => {
-    if (
-      (!practiceSession && !packContext) ||
-      !cognitivePracticeId ||
-      selectedIndex === null
-    )
+    console.log("markActivityStart [Meditation] called", {
+      currentActivityId,
+      packContext,
+      practiceSession,
+      cognitivePracticeId,
+      selectedIndex,
+      user: user?.id,
+    });
+
+    const userId = user?.id || practiceSession?.user?.id;
+    if (!userId) {
+      console.error("Missing userId for activity start");
       return;
+    }
 
     try {
-      const payload: any = {
-        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-        contentId: cognitivePracticeId,
-      };
+      let activityIdToStart = currentActivityId;
 
-      if (packContext) {
-        payload.packId = packContext.packId;
-        payload.moduleId = packContext.moduleId;
-      } else if (practiceSession) {
-        payload.sessionId = practiceSession.id;
+      // New Workflow: If we don't have an instance ID, create one
+      if (!activityIdToStart) {
+        if (packContext?.packId) {
+          console.log("Meditation - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: cognitivePracticeId!,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          console.log("Meditation - Creating Activity via POST (Standalone)");
+          if (!cognitivePracticeId || selectedIndex === null) {
+            console.warn("Missing requirements for standalone start", {
+              cognitivePracticeId,
+              selectedIndex,
+            });
+            return;
+          }
+
+          let sessionToUse: any = practiceSession;
+          try {
+            sessionToUse = await ensureActiveSession(user!.id);
+          } catch (err) {
+            console.error("Failed to ensure active session", err);
+            return;
+          }
+
+          if (!sessionToUse) {
+            console.error("Missing session for standalone activity");
+            return;
+          }
+
+          const newActivity = await createPracticeActivity({
+            sessionId: sessionToUse.id,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: cognitivePracticeId,
+          });
+          activityIdToStart = newActivity.id;
+        }
       }
 
-      const newActivity = await createPracticeActivity(payload);
-
-      const userId = practiceSession?.user?.id;
-      if (!userId) {
-        console.error("Missing userId for activity start");
-        return;
-      }
-
+      console.log("Starting activity with ID:", activityIdToStart);
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId: userId,
       });
 
+      console.log("Activity STARTED:", startedActivity);
+
       addActivity({
         ...startedActivity,
-        cognitivePractice: meditationScenarios[selectedIndex],
+        cognitivePractice: meditationScenarios[selectedIndex!],
       });
 
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("Failed to start activity", e);
+      triggerToast(
+        "error",
+        "Failed to Start",
+        "We couldn't start this exercise. Please try again later.",
+      );
     }
   };
 
   const markActivityComplete = async () => {
+    console.log("markActivityComplete [Meditation] called", {
+      currentActivityId,
+      practiceSession: practiceSession?.id,
+      packContext,
+      selectedIndex,
+    });
+
     if (
       (!practiceSession && !packContext) ||
       !currentActivityId ||
       !doesActivityExist(currentActivityId) ||
       selectedIndex === null
-    )
+    ) {
+      console.warn("Missing requirements for completion", {
+        hasSession: !!practiceSession,
+        hasPackContext: !!packContext,
+        currentActivityId,
+        activityExists: currentActivityId
+          ? doesActivityExist(currentActivityId)
+          : false,
+        selectedIndex,
+      });
       return;
+    }
 
-    const userId = practiceSession?.user?.id;
-    if (!userId) return;
+    // Fix: Use user store ID if available, fallback to session ID
+    const userId = user?.id || practiceSession?.user?.id;
+    if (!userId) {
+      console.error("Missing userId for activity complete");
+      return;
+    }
 
     try {
+      console.log("Completing activity...", { id: currentActivityId, userId });
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
         userId: userId,
@@ -261,12 +342,19 @@ const Meditation = () => {
         moduleId: packContext?.moduleId,
       });
 
+      console.log("Activity COMPLETED:", completedActivity);
+
       updateActivity(currentActivityId, {
         ...completedActivity,
         cognitivePractice: meditationScenarios[selectedIndex],
       });
     } catch (e) {
       console.error("Failed to complete activity", e);
+      triggerToast(
+        "error",
+        "Save Failed",
+        "We couldn't save your progress. Please try again.",
+      );
     }
   };
 

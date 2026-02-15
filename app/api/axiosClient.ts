@@ -113,6 +113,11 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// function that resets the module-level variable "logoutEventDispatched"
+export const resetAuthInterceptor = () => {
+  logoutEventDispatched = false;
+};
+
 // Response Interceptor
 axiosClient.interceptors.response.use(
   (response) => {
@@ -180,6 +185,9 @@ axiosClient.interceptors.response.use(
         // ✅ Update React state too (AuthContext)
         const updateTokenFn = getUpdateTokenFn();
         if (updateTokenFn) updateTokenFn(newAccessToken);
+
+        // Reset the logout event flag because we successfully refreshed the token
+        logoutEventDispatched = false;
 
         axiosClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

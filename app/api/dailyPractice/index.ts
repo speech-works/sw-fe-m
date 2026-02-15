@@ -13,7 +13,7 @@ import {
 
 // get all fun practice by type
 export async function getFunPracticeByType(
-  type: FunPracticeType
+  type: FunPracticeType,
 ): Promise<FunPractice[]> {
   try {
     const response = await axiosClient.get("/fun-practice", {
@@ -23,14 +23,24 @@ export async function getFunPracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all fun practice by type:",
-      error
+      error,
     );
     throw error;
   }
 }
 
+export async function getFunPracticeById(id: string): Promise<FunPractice> {
+  try {
+    const response = await axiosClient.get(`/fun-practice/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting fun practice by ID:", error);
+    throw error;
+  }
+}
+
 export async function getCognitivePracticeByType(
-  type: CognitivePracticeType
+  type: CognitivePracticeType,
 ): Promise<CognitivePractice[]> {
   try {
     const response = await axiosClient.get("/cognitive-practice", {
@@ -38,16 +48,24 @@ export async function getCognitivePracticeByType(
     });
     return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with getting all cognitive practice by type:",
-      error
-    );
+    throw error;
+  }
+}
+
+export async function getCognitivePracticeById(
+  id: string,
+): Promise<CognitivePractice> {
+  try {
+    const response = await axiosClient.get(`/cognitive-practice/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting cognitive practice by ID:", error);
     throw error;
   }
 }
 
 export async function getExposurePracticeByType(
-  type: ExposurePracticeType
+  type: ExposurePracticeType,
 ): Promise<ExposurePractice[]> {
   try {
     const response = await axiosClient.get("/exposure-practice", {
@@ -62,14 +80,31 @@ export async function getExposurePracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all exposure practice by type:",
-      error
+      error,
     );
     throw error;
   }
 }
 
+export async function getExposurePracticeById(
+  id: string,
+): Promise<ExposurePractice> {
+  try {
+    const response = await axiosClient.get(`/exposure-practice/${id}`);
+    const practice = response.data;
+    return {
+      ...practice,
+      practiceData:
+        practice.interviewPracticeData || practice.socialChallengeData,
+    };
+  } catch (error) {
+    console.error("Error getting exposure practice by ID:", error);
+    throw error;
+  }
+}
+
 export async function getReadingPracticeByType(
-  type: ReadingPracticeType
+  type: ReadingPracticeType,
 ): Promise<ReadingPractice[]> {
   try {
     const response = await axiosClient.get("/reading-practice", {
@@ -79,8 +114,20 @@ export async function getReadingPracticeByType(
   } catch (error) {
     console.error(
       "There was a problem with getting all reading practice by type:",
-      error
+      error,
     );
+    throw error;
+  }
+}
+
+export async function getReadingPracticeById(
+  id: string,
+): Promise<ReadingPractice> {
+  try {
+    const response = await axiosClient.get(`/reading-practice/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting reading practice by ID:", error);
     throw error;
   }
 }
@@ -88,7 +135,7 @@ export async function getReadingPracticeByType(
 export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
   try {
     const response = await axiosClient.get(
-      "/exposure-practice/phone-call-scenarios"
+      "/exposure-practice/phone-call-scenarios",
     );
     const data = response.data;
     const mappedData = data.map((scenario: PhoneCallScenario) => ({
@@ -100,7 +147,7 @@ export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
   } catch (error) {
     console.error(
       "There was a problem with getting phone call scenarios:",
-      error
+      error,
     );
     throw error;
   }

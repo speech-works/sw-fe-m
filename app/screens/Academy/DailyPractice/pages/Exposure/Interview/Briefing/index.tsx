@@ -22,13 +22,17 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import { useSessionStore } from "../../../../../../../stores/session";
 import {
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
 } from "../../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
+import { useUserStore } from "../../../../../../../stores/user";
+import { createSession } from "../../../../../../../api/practiceSessions";
 
 const Briefing = () => {
-  const { practiceSession } = useSessionStore();
+  const { user } = useUserStore();
+  const { practiceSession, setSession } = useSessionStore();
   const { addActivity } = useActivityStore();
   const navigation =
     useNavigation<
@@ -36,33 +40,70 @@ const Briefing = () => {
     >();
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
-  const { interview, packContext } = route.params as any; // Cast to any to avoid type issues if packContext is missing from types
+  const { interview, packContext, practiceActivity } = route.params as any; // Cast to any to avoid type issues if packContext is missing from types
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    practiceActivity?.id || null,
   );
 
   const markActivityStart = async () => {
-    // If we are not in a pack and have no session, abort.
-    if (!packContext && !practiceSession) return;
+    const isPackContext = packContext?.packId;
 
-    const sessionId = packContext ? "pack-session" : practiceSession!.id;
-    const userId = packContext ? "user" : practiceSession!.user.id; // Backend should handle user from token if passed "user" or similar, or we rely on sessionStore if available
+    let sessionToUse = practiceSession;
 
-    const newActivity = await createPracticeActivity({
-      sessionId,
-      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      contentId: interview.id,
-      packId: packContext?.packId,
-      moduleId: packContext?.moduleId,
-    });
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
+    // If we are not in a pack and have no session (and creation failed), abort.
+    if (!isPackContext && !sessionToUse) return;
+
+    const sessionId = isPackContext ? undefined : sessionToUse!.id;
+    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+
+    if (!userId) {
+      console.error("Missing userId");
+      return;
+    }
+
+    let activityIdToStart = currentActivityId;
+
+    // If we don't have a unique activity ID yet, create one (Standalone mode)
+    if (!activityIdToStart) {
+      if (isPackContext) {
+        console.log("Interview - Creating Activity via POST (Pack)");
+        const newActivity = await createPracticeActivityFromPack({
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+          contentId: interview.id,
+        });
+        activityIdToStart = newActivity.id;
+      } else {
+        if (!sessionId)
+          throw new Error("No session ID for standalone activity");
+        console.log("Interview - Creating Activity via POST (Standalone)");
+        const newActivity = await createPracticeActivity({
+          sessionId,
+          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+          contentId: interview.id,
+        });
+        activityIdToStart = newActivity.id;
+      }
+    }
     const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
+      id: activityIdToStart,
       userId: userId,
     });
     addActivity({
       ...startedActivity,
     });
-    setCurrentActivityId(newActivity.id);
+    setCurrentActivityId(activityIdToStart);
   };
 
   useEffect(() => {

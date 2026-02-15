@@ -22,12 +22,15 @@ import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import { TactileTouchableOpacity } from "../../../../../components/TactileTouchableOpacity";
 import {
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
   completePracticeActivity,
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../stores/session";
 import { useActivityStore } from "../../../../../stores/activity";
+import { useUserStore } from "../../../../../stores/user";
+import { createSession } from "../../../../../api/practiceSessions";
 import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
@@ -37,8 +40,10 @@ enum ChallengeStep {
   SUMMARY = 3,
 }
 
+import { PracticeActivity } from "../../../../../api/practiceActivities/types";
+
 type RealLifeChallengeParams = {
-  guidedActivity?: any; // We can improve this type if we import GuidedActivity
+  practiceActivity?: PracticeActivity;
   packContext?: { packId: string; moduleId: string };
 };
 
@@ -47,18 +52,18 @@ const RealLifeChallenge = () => {
   const route =
     useRoute<RouteProp<AcademyStackParamList, "RealLifeChallenge">>();
   const params = route.params as RealLifeChallengeParams;
-  const { guidedActivity, packContext } = params || {};
-
-  const { practiceSession } = useSessionStore();
+  const { practiceActivity, packContext } = params || {};
+  const { user } = useUserStore();
+  const { practiceSession, setSession } = useSessionStore();
   const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    practiceActivity?.id || null,
   );
 
   // Extract data based on where it's stored (Cognitive or Exposure)
   const challengeData: RealLifeChallengeData | undefined =
-    guidedActivity?.cognitivePractice?.realLifeChallengeData ||
-    guidedActivity?.exposurePractice?.realLifeChallengeData;
+    practiceActivity?.cognitivePractice?.realLifeChallengeData ||
+    practiceActivity?.exposurePractice?.realLifeChallengeData;
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(
     ChallengeStep.START,
@@ -82,55 +87,96 @@ const RealLifeChallenge = () => {
 
   // title and description fallback
   const title =
-    guidedActivity.cognitivePractice?.name ||
-    guidedActivity.exposurePractice?.name ||
+    practiceActivity?.cognitivePractice?.name ||
+    practiceActivity?.exposurePractice?.name ||
     "Real Life Challenge";
   const description =
-    guidedActivity.cognitivePractice?.description ||
-    guidedActivity.exposurePractice?.description ||
+    practiceActivity?.cognitivePractice?.description ||
+    practiceActivity?.exposurePractice?.description ||
     "Complete this real-world task.";
 
   // --- Handlers ---
 
   const markActivityStart = async () => {
-    // If we're in a pack, we might not have a global practiceSession, which is fine.
+    // If we're in a pack, we might not have a global practiceSession.
     // However, if we are NOT in a pack, we absolutely need one.
-    if (!packContext && !practiceSession) return;
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
+    // If passed packContext but it was invalid/empty AND we failed to create session, abort.
+    if (!isPackContext && !sessionToUse) return;
 
     try {
-      const sessionId = packContext ? "pack-session" : practiceSession!.id;
-      const userId = packContext ? "user" : practiceSession!.user.id;
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
 
-      const contentId =
-        guidedActivity?.cognitivePractice?.id ||
-        guidedActivity?.exposurePractice?.id;
-
-      if (!contentId) {
-        console.error("Missing contentId for RealLifeChallenge");
+      if (!userId) {
+        console.error("Missing userId for activity start");
         return;
       }
 
-      const contentType = guidedActivity?.cognitivePractice
-        ? PracticeActivityContentType.COGNITIVE_PRACTICE
-        : PracticeActivityContentType.EXPOSURE_PRACTICE;
+      let activityIdToStart = currentActivityId;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType,
-        contentId,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        const contentId =
+          practiceActivity?.cognitivePractice?.id ||
+          practiceActivity?.exposurePractice?.id;
+
+        if (!contentId) {
+          console.error("Missing contentId for RealLifeChallenge");
+          return;
+        }
+
+        const contentType = practiceActivity?.cognitivePractice
+          ? PracticeActivityContentType.COGNITIVE_PRACTICE
+          : PracticeActivityContentType.EXPOSURE_PRACTICE;
+
+        if (isPackContext) {
+          console.log("RealLifeChallenge - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType,
+            contentId,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionToUse) {
+            throw new Error("No session for standalone activity");
+          }
+          console.log(
+            "RealLifeChallenge - Creating Activity via POST (Standalone)",
+          );
+          const newActivity = await createPracticeActivity({
+            sessionId: sessionToUse.id,
+            contentType,
+            contentId,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId: userId,
       });
 
       addActivity({
         ...startedActivity,
       });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (err) {
       console.error("Failed to start activity", err);
     }
@@ -176,7 +222,7 @@ const RealLifeChallenge = () => {
 
   const handleDone = () => {
     // If pack context exists, use standard pack navigation
-    if (packContext && guidedActivity) {
+    if (packContext && practiceActivity) {
       // Logic handled by wrapping parent usually, but here we can try to go back
       navigation.goBack();
     } else {

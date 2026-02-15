@@ -21,8 +21,10 @@ import {
 import {
   completePracticeActivity,
   startPracticeActivity,
-} from "../../../../../../api/practiceActivities";
-import { createPracticeActivity, createSession } from "../../../../../../api";
+  createPracticeActivity,
+  createSession,
+  createPracticeActivityFromPack,
+} from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
@@ -47,8 +49,12 @@ export const useStoryPractice = () => {
   const [highlightRange, setHighlightRange] = useState<[number, number]>([
     -1, 0,
   ]);
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+  const initialActivity = (route.params as any)?.practiceActivity;
+
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    initialActivity?.id || null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -112,11 +118,10 @@ export const useStoryPractice = () => {
 
   const onBackPress = () => navigation.goBack();
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
-
   const markActivityStart = async () => {
-    if (!packContext && !practiceSession) {
+    const isPackContext = packContext?.packId;
+
+    if (!isPackContext && !practiceSession && !user) {
       console.error("[useStoryPractice] ❌ No user/session found!");
       return;
     }
@@ -124,30 +129,57 @@ export const useStoryPractice = () => {
     try {
       // Create session if it doesn't exist
       let sessionToUse = practiceSession;
-      if (!packContext && !sessionToUse && user) {
+      if (!isPackContext && !sessionToUse && user) {
         const newSession = await createSession({ userId: user.id });
         setSession(newSession);
         sessionToUse = newSession;
       }
 
-      const sessionId = packContext ? "pack-session" : sessionToUse!.id;
-      const userId = packContext ? "user" : sessionToUse!.user.id;
+      if (!isPackContext && !sessionToUse) return;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType: PracticeActivityContentType.READING_PRACTICE,
-        contentId: allStories[selectedIndex]?.id,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+
+      if (!userId) {
+        console.error("Missing userId");
+        return;
+      }
+
+      let activityIdToStart = currentActivityId;
+
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("useStoryPractice - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.READING_PRACTICE,
+            contentId: allStories[selectedIndex]?.id,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionId)
+            throw new Error("No session ID for standalone activity");
+          console.log(
+            "useStoryPractice - Creating Activity via POST (Standalone)",
+          );
+          const newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.READING_PRACTICE,
+            contentId: allStories[selectedIndex]?.id,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
 
       addActivity({ ...startedActivity });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("[useStoryPractice] ❌ Error in markActivityStart:", error);
       throw error;

@@ -34,7 +34,12 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
-import { createPracticeActivity } from "../../../../../../api";
+import { useUserStore } from "../../../../../../stores/user";
+import {
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  createSession,
+} from "../../../../../../api";
 import {
   completePracticeActivity,
   startPracticeActivity,
@@ -43,11 +48,13 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import DonePractice from "../../../components/DonePractice";
 import { LinearGradient } from "expo-linear-gradient";
 import RainOverlay from "./components/RainOverlay";
+import { triggerToast } from "../../../../../../util/functions/toast";
 
 const Reframe = () => {
   const route = useRoute();
   const params = route.params as any; // or specific type if available
   const packContext = params?.packContext;
+  const practiceActivity = params?.practiceActivity;
 
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
@@ -57,7 +64,8 @@ const Reframe = () => {
     null,
   );
   const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession } = useSessionStore();
+  const { user } = useUserStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
   const [scenarios, setScenarios] = useState<ReframingThoughtScenarioData[]>(
@@ -87,53 +95,151 @@ const Reframe = () => {
   };
 
   const markActivityStart = async () => {
-    if ((!practiceSession && !packContext) || !cognitivePracticeId) return;
+    console.log("markActivityStart [Reframe] called", {
+      packContext,
+      practiceSession,
+      cognitivePracticeId,
+      user: user?.id,
+    });
 
-    const payload: any = {
-      contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-      contentId: cognitivePracticeId,
-    };
-
-    if (packContext) {
-      payload.packId = packContext.packId;
-      payload.moduleId = packContext.moduleId;
-    } else if (practiceSession) {
-      payload.sessionId = practiceSession.id;
-    }
-
-    const newActivity = await createPracticeActivity(payload);
-
-    // Fallback to user from store if session is missing (e.g. in pack mode)
-    // Note: ensure user is available in store
-    const userId = practiceSession?.user?.id; // We might need to get user from useUserStore if practiceSession is null
-
-    if (!userId) {
-      console.error("Missing userId for activity start");
+    if (!cognitivePracticeId) {
+      console.warn("Missing cognitivePracticeId in Reframe start");
       return;
     }
 
-    const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
-      userId: userId,
-    });
-    addActivity(startedActivity);
-    setCurrentActivityId(newActivity.id);
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        console.log("Creating new session for Reframe...");
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+        console.log("New session created:", sessionToUse.id);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        triggerToast(
+          "error",
+          "Session Error",
+          "We couldn't initialize your practice session. Please try again.",
+        );
+        return;
+      }
+    }
+
+    if (!sessionToUse && !isPackContext) {
+      console.warn("No session and no pack context for Reframe");
+      return;
+    }
+
+    try {
+      let activityIdToStart = currentActivityId || practiceActivity?.id;
+
+      // If we don't have a unique activity ID yet, create one
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("Reframe - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: cognitivePracticeId,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          console.log("Reframe - Creating Activity via POST (Standalone)");
+          if (!sessionToUse) {
+            console.error("Missing session for standalone activity");
+            return;
+          }
+          const newActivity = await createPracticeActivity({
+            sessionId: sessionToUse.id,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: cognitivePracticeId,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
+
+      // Fallback to user from store if session is missing (e.g. in pack mode)
+      // Note: ensure user is available in store
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id; // Corrected to use user?.id for packContext
+
+      if (!userId) {
+        console.error("Missing userId for activity start");
+        return;
+      }
+      const startedActivity = await startPracticeActivity({
+        id: activityIdToStart,
+        userId: userId,
+      });
+
+      console.log("Reframe Activity STARTED:", startedActivity);
+
+      addActivity(startedActivity);
+      setCurrentActivityId(activityIdToStart);
+    } catch (e) {
+      console.error("Failed to start activity", e);
+      triggerToast(
+        "error",
+        "Failed to Start",
+        "We couldn't start this exercise. Please try again later.",
+      );
+    }
   };
 
   const markActivityDone = async () => {
-    if (!practiceSession || !cognitivePracticeId || !currentActivityId) return;
-    const userId = practiceSession?.user?.id;
-    if (!userId) return;
+    console.log("markActivityDone [Reframe] called", {
+      cognitivePracticeId,
+      currentActivityId,
+      userId: user?.id || practiceSession?.user?.id,
+    });
 
-    const completedActivity = await completePracticeActivity({
-      id: currentActivityId,
-      userId: userId,
-      packId: packContext?.packId,
-      moduleId: packContext?.moduleId,
-    });
-    updateActivity(currentActivityId, {
-      ...completedActivity,
-    });
+    if (!cognitivePracticeId || !currentActivityId) {
+      console.warn("Missing IDs for Reframe completion");
+      return;
+    }
+
+    // Determine userId: try user store first (common), then session user
+    const userId = user?.id || practiceSession?.user?.id;
+    if (!userId) {
+      console.error("Missing userId for Reframe completion");
+      return;
+    }
+
+    // If NOT in pack context, we must have a session
+    const isPackContext = !!packContext?.packId;
+    if (!isPackContext && !practiceSession) {
+      console.warn("Missing session for non-pack Reframe completion");
+      return;
+    }
+
+    try {
+      console.log("Completing Reframe activity...", {
+        currentActivityId,
+        userId,
+      });
+      const completedActivity = await completePracticeActivity({
+        id: currentActivityId,
+        userId: userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
+      });
+
+      console.log("Reframe Activity COMPLETED:", completedActivity);
+
+      updateActivity(currentActivityId, {
+        ...completedActivity,
+      });
+    } catch (err) {
+      console.error("Failed to complete activity", err);
+      triggerToast(
+        "error",
+        "Save Failed",
+        "We couldn't save your progress. Please try again.",
+      );
+    }
   };
 
   // Fetch all reframe scenarios once on mount
@@ -285,7 +391,6 @@ const Reframe = () => {
                   <Button
                     text="Submit Reframe"
                     onPress={async () => {
-                      await markActivityDone();
                       await markActivityDone();
                       if (packContext) {
                         navigation.goBack();

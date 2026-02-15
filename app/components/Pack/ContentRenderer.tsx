@@ -23,9 +23,14 @@ import { theme } from "../../Theme/tokens";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SimpleMarkdown } from "./SimpleMarkdown";
 import { LinearGradient } from "expo-linear-gradient";
-import { getGuidedActivity } from "../../api";
+import {
+  createPracticeActivityFromPack,
+  PracticeActivityContentType,
+} from "../../api";
+
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
+import { triggerToast } from "../../util/functions/toast";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
 
@@ -88,7 +93,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const content = block.content as ReferenceBlockContent;
 
       const handleStartActivity = async () => {
-        // console.log("Full Content Block:", JSON.stringify(content, null, 2));
+        console.log("Full Content Block:", JSON.stringify(content, null, 2));
         if (!packId || !moduleId) {
           Alert.alert("Error", "Pack context missing");
           return;
@@ -97,87 +102,34 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         try {
           console.log("handleStartActivity triggered for block:", block.id);
           setLoading(true);
-          let activity: any; // GuidedActivity
 
-          // OPTIMIZATION: Check if content is already hydrated
-          if (content.activityType && content.configuration) {
-            console.log("Using hydrated activity data");
+          // Fallback if activityType is undefined (it might be content.contentType)
+          const contentType =
+            content.activityType || (content as any).contentType;
 
-            // Helper to infer type if missing
-            const inferType = (config: any, category: string) => {
-              if (config.type) return config.type;
-
-              if (category === "COGNITIVE_PRACTICE") {
-                if (config.affirmations) return "POSITIVE_AFFIRMATIONS";
-                if (config.scenarios) return "REFRAMING_THOUGHTS";
-                if (config.audioUrlKey || config.bgMusicUrl)
-                  return "GUIDED_MEDITATION";
-                if (config.tips && config.durationMinutes)
-                  return "GUIDED_BREATHING";
-                if (config.instructions) return "REAL_LIFE_CHALLENGE";
-              }
-              if (category === "EXPOSURE_PRACTICE") {
-                if (config.instructions) return "REAL_LIFE_CHALLENGE";
-              }
-              // Add other categories if needed (Exposure, Fun, etc)
-              return undefined;
-            };
-
-            console.log(
-              "Inferring type for config:",
-              content.configuration,
-              "category:",
-              content.activityType,
-            );
-            const inferredType = inferType(
-              content.configuration,
-              content.activityType!,
-            );
-            const configWithType = {
-              ...content.configuration,
-              type: inferredType,
-              id: content.refId,
-            };
-
-            // Construct GuidedActivity from hydrated fields
-            activity = {
-              id: content.refId,
-              contentType: content.activityType,
-              createdAt: new Date().toISOString(), // Serializable date
-              updatedAt: new Date().toISOString(), // Serializable date
-              // Map configuration to specific practice type field
-              cognitivePractice:
-                content.activityType === "COGNITIVE_PRACTICE"
-                  ? inferredType === "REAL_LIFE_CHALLENGE"
-                    ? {
-                        ...configWithType,
-                        realLifeChallengeData: configWithType,
-                      }
-                    : configWithType
-                  : undefined,
-              exposurePractice:
-                content.activityType === "EXPOSURE_PRACTICE"
-                  ? inferredType === "REAL_LIFE_CHALLENGE"
-                    ? {
-                        ...configWithType,
-                        realLifeChallengeData: configWithType,
-                      }
-                    : configWithType
-                  : undefined,
-              funPractice:
-                content.activityType === "FUN_PRACTICE"
-                  ? configWithType
-                  : undefined,
-              readingPractice:
-                content.activityType === "READING_PRACTICE"
-                  ? configWithType
-                  : undefined,
-            };
-          } else {
-            // Fallback to fetching
-            console.log("Fetching activity from API");
-            activity = await getGuidedActivity(content.refId);
+          if (!contentType) {
+            console.error("Missing contentType in block content", content);
+            throw new Error("Content type is missing");
           }
+
+          // NEW WORKFLOW: Always use POST /practice-activities to create a unique record
+          console.log(
+            ">> Pack: Creating activity via POST /practice-activities",
+            {
+              packId,
+              moduleId,
+              contentType,
+              contentId: content.refId,
+            },
+          );
+          const activity = await createPracticeActivityFromPack({
+            packId,
+            moduleId,
+            contentType: contentType as PracticeActivityContentType,
+
+            contentId: content.refId,
+          });
+          console.log("<< Pack: Activity created successfully", activity.id);
 
           navigateToPackActivity(navigation, activity, {
             blockId: block.id,
@@ -189,18 +141,13 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           if (error.response) {
             console.error("Error status:", error.response.status);
             console.error("Error data:", error.response.data);
-            Alert.alert(
-              "Error",
-              `Could not load practice activity (${error.response.status}).\n${JSON.stringify(error.response.data)}\nPlease try again.`,
-              [{ text: "OK", style: "cancel" }],
-            );
-          } else {
-            Alert.alert(
-              "Error",
-              "Could not load practice activity. Please try again.",
-              [{ text: "OK", style: "cancel" }],
-            );
           }
+
+          triggerToast(
+            "error",
+            "Something went wrong",
+            "We had trouble loading that activity. Please try again.",
+          );
         } finally {
           setLoading(false);
         }

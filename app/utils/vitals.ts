@@ -32,18 +32,6 @@ export const shouldCollectAccuracy = (activity: PracticeActivity): boolean => {
     );
   }
 
-  // Check COGNITIVE practice
-  if (
-    activity.contentType === "COGNITIVE_PRACTICE" &&
-    activity.cognitivePractice
-  ) {
-    return (
-      activity.cognitivePractice.type === "REAL_LIFE_CHALLENGE" &&
-      activity.cognitivePractice.realLifeChallengeData?.category ===
-        "TECHNIQUE_DRILL"
-    );
-  }
-
   return false;
 };
 
@@ -55,8 +43,11 @@ export const validateVitals = (vitals: {
   effortScore?: number;
   autonomyScore?: number;
   accuracyScore?: number;
-}): { valid: boolean; error?: string } => {
-  const validateScore = (score: number | undefined, name: string) => {
+}): { valid: true } | { valid: false; error: string } => {
+  const validateScore = (
+    score: number | undefined,
+    name: string,
+  ): { valid: true } | { valid: false; error: string } => {
     if (score !== undefined && (score < 20 || score > 100)) {
       return { valid: false, error: `${name} must be between 20-100` };
     }
@@ -70,5 +61,5 @@ export const validateVitals = (vitals: {
   ];
 
   const failed = checks.find((c) => !c.valid);
-  return failed || { valid: true };
+  return (failed as { valid: false; error: string }) || { valid: true };
 };

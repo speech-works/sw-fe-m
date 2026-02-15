@@ -47,6 +47,7 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../stores/user";
 import { useUIStore } from "../../../../../../stores/ui";
+import { createSession } from "../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -55,6 +56,7 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import {
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
   completePracticeActivity,
 } from "../../../../../../api/practiceActivities";
@@ -68,7 +70,8 @@ const PoemPractice = () => {
   const navigation = useNavigation();
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -79,8 +82,11 @@ const PoemPractice = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    (route.params as any).practiceActivity?.id || null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -148,29 +154,66 @@ const PoemPractice = () => {
     }
   };
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
-
   const markActivityStart = async () => {
     // If not in a pack and no session, we can't track
-    if (!packContext && !practiceSession) return;
+    const isPackContext = packContext?.packId;
 
-    const sessionId = packContext ? "pack-session" : practiceSession!.id;
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    let sessionToUse: any = practiceSession;
 
-    const newActivity = await createPracticeActivity({
-      sessionId,
-      contentType: PracticeActivityContentType.READING_PRACTICE,
-      contentId: allPoems[selectedIndex]?.id,
-      packId: packContext?.packId,
-      moduleId: packContext?.moduleId,
-    });
+    if (!isPackContext) {
+      if (!user?.id) {
+        console.error("Missing userId");
+        return;
+      }
+      try {
+        sessionToUse = await ensureActiveSession(user.id);
+      } catch (err) {
+        console.error("Failed to ensure active session", err);
+        return;
+      }
+    }
+
+    if (!isPackContext && !sessionToUse) return;
+
+    const sessionId = isPackContext ? undefined : sessionToUse!.id;
+    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+
+    if (!userId) {
+      console.error("Missing userId");
+      return;
+    }
+
+    let activityIdToStart = currentActivityId;
+
+    // If we don't have a unique activity ID yet, create one (Standalone mode)
+    if (!activityIdToStart) {
+      if (isPackContext) {
+        console.log("PoemPractice - Creating Activity via POST (Pack)");
+        const newActivity = await createPracticeActivityFromPack({
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          contentType: PracticeActivityContentType.READING_PRACTICE,
+          contentId: allPoems[selectedIndex]?.id,
+        });
+        activityIdToStart = newActivity.id;
+      } else {
+        if (!sessionId)
+          throw new Error("No session ID for standalone activity");
+        console.log("PoemPractice - Creating Activity via POST (Standalone)");
+        const newActivity = await createPracticeActivity({
+          sessionId,
+          contentType: PracticeActivityContentType.READING_PRACTICE,
+          contentId: allPoems[selectedIndex]?.id,
+        });
+        activityIdToStart = newActivity.id;
+      }
+    }
     const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
+      id: activityIdToStart,
       userId,
     });
     addActivity({ ...startedActivity });
-    setCurrentActivityId(newActivity.id);
+    setCurrentActivityId(activityIdToStart);
   };
 
   const markActivityComplete = async (activityId: string) => {

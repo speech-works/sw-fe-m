@@ -35,11 +35,13 @@ import { useActivityStore } from "../../../../../../stores/activity";
 import {
   completePracticeActivity,
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
+import { createSession } from "../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
@@ -61,8 +63,10 @@ const { width } = Dimensions.get("window");
 
 const Twister = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession } = useSessionStore();
   const { user } = useUserStore();
   const {
     voiceRecordingUri,
@@ -135,7 +139,7 @@ const Twister = () => {
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    (route.params as any).practiceActivity?.id || null,
   );
   const [isStarting, setIsStarting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -190,40 +194,78 @@ const Twister = () => {
     }
   };
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
-
   const markActivityStart = async () => {
     // If not in a pack and no session, we can't track
-    if (!packContext && !practiceSession) return;
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
+    if (!isPackContext && !sessionToUse) return;
 
     if (!twisters || twisters.length === 0) {
       console.warn("Cannot start activity: Tongue twisters not yet loaded.");
       return;
     }
     try {
-      const sessionId = packContext ? "pack-session" : practiceSession!.id;
-      const userId = packContext ? "user" : practiceSession!.user.id;
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType: PracticeActivityContentType.FUN_PRACTICE,
-        contentId: twisters[currentIndex].id,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      if (!userId) {
+        console.error("Missing userId");
+        return;
+      }
+
+      let activityIdToStart = currentActivityId;
+
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("Twister - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.FUN_PRACTICE,
+            contentId: twisters[currentIndex].id,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionId)
+            throw new Error("No session ID for standalone activity");
+          console.log("Twister - Creating Activity via POST (Standalone)");
+          const newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.FUN_PRACTICE,
+            contentId: twisters[currentIndex].id,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
+      console.log(
+        "<< Twister: Activity started successfully",
+        startedActivity.id,
+      );
       addActivity({
         ...startedActivity,
         funPractice: twisters[currentIndex],
       });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (e) {
-      console.error("Failed to start activity", e);
+      console.error("!! Twister: Failed to start activity", e);
     }
   };
 
@@ -233,12 +275,17 @@ const Twister = () => {
 
     const userId = packContext ? "user" : practiceSession!.user.id;
 
+    console.log(">> Twister: Completing activity", activityId);
     const completedActivity = await completePracticeActivity({
       id: activityId,
       userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
     });
+    console.log(
+      "<< Twister: Activity completed successfully",
+      completedActivity.id,
+    );
     updateActivity(activityId, {
       ...completedActivity,
       funPractice: twisters[currentIndex],
@@ -254,8 +301,15 @@ const Twister = () => {
       if (!currentActivityId) {
         throw new Error("Activity could not be started");
       }
+      console.log(
+        ">> Twister: User clicked Done, submitting recording and completing activity",
+      );
       await markActivityComplete(currentActivityId);
       if (voiceRecordingUri) {
+        console.log(
+          ">> Twister: Submitting voice recording for activity",
+          currentActivityId,
+        );
         await submitVoiceRecording({
           recordingSource: RecordingSourceType.ACTIVITY,
           activityId: currentActivityId,

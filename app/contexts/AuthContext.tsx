@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect } from "react";
 import { Text } from "react-native";
 import * as SecureStore from "expo-secure-store"; // or AsyncStorage
 import { logoutUser } from "../api";
+import { resetAuthInterceptor } from "../api/axiosClient";
 import { setUpdateTokenFn } from "../util/functions/authToken";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // On app startup, try loading token from SecureStore
     const loadToken = async () => {
       const storedToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
       );
       if (storedToken) {
         setToken(storedToken);
@@ -60,13 +61,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Save to SecureStore
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, newToken);
     setToken(newToken);
+
+    // Reset the interceptor state so that future 401s trigger logout events again
+    resetAuthInterceptor();
   };
 
   const logout = async () => {
     // Retrieve tokens for API logout
     const accessToken = token;
     const refreshToken = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
 
     if (accessToken && refreshToken) {
@@ -82,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear secure storage
     await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
     await SecureStore.deleteItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
     setToken(null);
   };

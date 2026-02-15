@@ -21,9 +21,11 @@ import { useSessionStore } from "../../../../../../../stores/session";
 import {
   completePracticeActivity,
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import { createSession } from "../../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { useUserStore } from "../../../../../../../stores/user";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
@@ -38,7 +40,7 @@ const CVExercise = () => {
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext } = route.params;
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -50,7 +52,7 @@ const CVExercise = () => {
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    (route.params as any).practiceActivity?.id || null,
   );
 
   const toggleIndex = () => {
@@ -61,32 +63,69 @@ const CVExercise = () => {
 
   const markActivityStart = async () => {
     // If not in a pack and no session, we can't track
-    if (!packContext && !practiceSession) {
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
+    if (!isPackContext && !sessionToUse) {
       console.error("❌ practiceSession or packContext is undefined.");
       return;
     }
 
     try {
-      const sessionId = packContext ? "pack-session" : practiceSession!.id;
-      const userId = packContext ? "user" : practiceSession!.user.id;
+      const sessionId = isPackContext ? undefined : sessionToUse!.id;
+      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
 
-      const newActivity = await createPracticeActivity({
-        sessionId,
-        contentType: PracticeActivityContentType.FUN_PRACTICE,
-        contentId: id,
-        packId: packContext?.packId,
-        moduleId: packContext?.moduleId,
-      });
+      if (!userId) {
+        console.error("Missing userId");
+        return;
+      }
+
+      let activityIdToStart = currentActivityId;
+
+      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      if (!activityIdToStart) {
+        if (isPackContext) {
+          console.log("CVExercise - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.FUN_PRACTICE,
+            contentId: id,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          if (!sessionId)
+            throw new Error("No session ID for standalone activity");
+          console.log("CVExercise - Creating Activity via POST (Standalone)");
+          const newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.FUN_PRACTICE,
+            contentId: id,
+          });
+          activityIdToStart = newActivity.id;
+        }
+      }
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
 
       addActivity({
         ...startedActivity,
       });
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("❌ Failed to start activity:", error);
     }

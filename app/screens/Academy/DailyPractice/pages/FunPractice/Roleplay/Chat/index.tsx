@@ -35,10 +35,12 @@ import { useActivityStore } from "../../../../../../../stores/activity";
 import {
   completePracticeActivity,
   createPracticeActivity,
+  createPracticeActivityFromPack,
   startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useUserStore } from "../../../../../../../stores/user";
+import { createSession } from "../../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { LinearGradient } from "expo-linear-gradient";
@@ -59,7 +61,7 @@ const Chat = () => {
   const { title, roleplay, selectedRoleName, id, packContext } = route.params;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession } = useSessionStore();
 
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
@@ -95,7 +97,7 @@ const Chat = () => {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    (route.params as any).practiceActivity?.id || null,
   );
 
   useEffect(() => {
@@ -171,26 +173,63 @@ const Chat = () => {
   };
 
   const markActivityStart = async () => {
-    if (!practiceSession && !packContext) return;
+    const isPackContext = packContext?.packId;
 
-    const sessionId = packContext ? "pack-session" : practiceSession!.id;
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    let sessionToUse = practiceSession;
 
-    const newActivity = await createPracticeActivity({
-      sessionId,
-      contentType: PracticeActivityContentType.FUN_PRACTICE,
-      contentId: id,
-      packId: packContext?.packId,
-      moduleId: packContext?.moduleId,
-    });
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await createSession({ userId: user.id });
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to create session", err);
+        return;
+      }
+    }
+
+    if (!sessionToUse && !isPackContext) return;
+
+    const sessionId = isPackContext ? undefined : sessionToUse!.id;
+    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+
+    if (!userId) {
+      console.error("Missing userId");
+      return;
+    }
+
+    let activityIdToStart = currentActivityId;
+
+    // If we don't have a unique activity ID yet, create one (Standalone mode)
+    if (!activityIdToStart) {
+      if (isPackContext) {
+        console.log("RoleplayChat - Creating Activity via POST (Pack)");
+        const newActivity = await createPracticeActivityFromPack({
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          contentType: PracticeActivityContentType.FUN_PRACTICE,
+          contentId: id,
+        });
+        activityIdToStart = newActivity.id;
+      } else {
+        if (!sessionId)
+          throw new Error("No session ID for standalone activity");
+        console.log("RoleplayChat - Creating Activity via POST (Standalone)");
+        const newActivity = await createPracticeActivity({
+          sessionId,
+          contentType: PracticeActivityContentType.FUN_PRACTICE,
+          contentId: id,
+        });
+        activityIdToStart = newActivity.id;
+      }
+    }
     const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
+      id: activityIdToStart,
       userId,
     });
     addActivity({
       ...startedActivity,
     });
-    setCurrentActivityId(newActivity.id);
+    setCurrentActivityId(activityIdToStart);
   };
 
   const markActivityComplete = async (activityId: string) => {

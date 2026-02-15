@@ -55,7 +55,7 @@ export type AudioBlockContent = {
 };
 
 export type ReferenceBlockContent = {
-  refId: string; // References GuidedActivity, Form, or Simulation ID
+  refId: string; // References PracticeActivity, Form, or Simulation ID
   titleOverride?: string;
   descriptionOverride?: string;
 

@@ -11,6 +11,7 @@ import {
 } from "../../../../../../util/functions/parseStyles";
 import { BreathingHalo } from "./components/BreathingHalo";
 import MasonryTips from "../../../components/MasonryTips";
+import { triggerToast } from "../../../../../../util/functions/toast";
 
 import ProgressBar from "../../../../../../components/ProgressBar";
 import Button from "../../../../../../components/Button";
@@ -21,7 +22,11 @@ import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import { createPracticeActivity } from "../../../../../../api";
+import {
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  createSession,
+} from "../../../../../../api";
 import {
   completePracticeActivity,
   startPracticeActivity,
@@ -61,7 +66,8 @@ const Breathing = () => {
     useBackgroundAudio();
 
   const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { user } = useUserStore();
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
@@ -104,7 +110,7 @@ const Breathing = () => {
   }) => {
     const validation = validateVitals(vitals);
     if (!validation.valid) {
-      Alert.alert("Invalid Input", validation.error);
+      triggerToast("error", "Invalid Input", validation.error);
       return;
     }
 
@@ -128,13 +134,10 @@ const Breathing = () => {
       }
     } catch (error) {
       console.error("Failed to complete activity:", error);
-      Alert.alert(
-        "Completion Failed",
-        "Could not save your progress. Please try again.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Retry", onPress: () => handleVitalsSubmit(vitals) },
-        ],
+      triggerToast(
+        "error",
+        "Save Failed",
+        "We couldn't save your progress. Please try again.",
       );
     }
   };
@@ -158,7 +161,11 @@ const Breathing = () => {
       }
     } catch (error) {
       console.error("Failed to complete activity:", error);
-      Alert.alert("Error", "Could not save your progress. Please try again.");
+      triggerToast(
+        "error",
+        "Save Failed",
+        "We couldn't save your progress. Please try again.",
+      );
     }
   };
 
@@ -215,7 +222,7 @@ const Breathing = () => {
 
   // Use route params if available
   const route = useRoute<any>();
-  const passedActivity = route.params?.guidedActivity;
+  const passedActivity = route.params?.practiceActivity;
   const packContext = route.params?.packContext;
 
   // Track the actual ID to be used for API creation separately from UI ID
@@ -240,13 +247,10 @@ const Breathing = () => {
 
       if (passedActivity) {
         console.log("Breathing Screen - Using passed activity mode");
-        // Use passed configuration for UI
-        // But use DEFAULT ID for API tracking if passed ID looks synthetic (or just always use default for this generic screen)
-        // Since backend says "2222..." is wrapper and "1111..." is correct, and "1111..." is likely the default one.
-        setCognitivePracticeId(passedActivity.id); // Used for UI key? (Actually used for nothing in UI rendering here besides check)
-
-        // Use the valid backend ID for creation
-        setApiContentId(defaultId);
+        // In the new workflow, passedActivity.id IS the unique instance ID
+        setCognitivePracticeId(passedActivity.id);
+        setCurrentActivityId(passedActivity.id);
+        setCurrentActivity(passedActivity);
         return;
       }
 
@@ -264,57 +268,84 @@ const Breathing = () => {
 
   const markActivityStart = async () => {
     console.log("Breathing Screen - markActivityStart", {
-      apiContentId,
+      currentActivityId,
       hasPracticeSession: !!practiceSession,
       packContext,
     });
 
-    // We need apiContentId check, and EITHER session OR packContext
-    if (!apiContentId) {
-      console.error("Breathing Screen - Missing apiContentId");
-      return;
-    }
-    if (!practiceSession && !packContext) {
-      console.error("Breathing Screen - Missing both session and pack context");
+    const userId = practiceSession?.user?.id || user?.id;
+    if (!userId) {
+      console.error("Breathing Screen - Missing user ID");
       return;
     }
 
     try {
-      const payload: any = {
-        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-        contentId: apiContentId, // Use the VALID ID (1111...)
-      };
+      let activityIdToStart = currentActivityId;
 
-      if (packContext) {
-        console.log("Breathing Screen - Using Pack Context");
-        payload.packId = packContext.packId;
-        payload.moduleId = packContext.moduleId;
-      } else if (practiceSession) {
-        console.log("Breathing Screen - Using Session Context");
-        payload.sessionId = practiceSession.id;
+      // If we don't have a unique activity ID yet, create one
+      if (!activityIdToStart) {
+        if (packContext?.packId) {
+          console.log("Breathing - Creating Activity via POST (Pack)");
+          const newActivity = await createPracticeActivityFromPack({
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: apiContentId || cognitivePracticeId!,
+          });
+          activityIdToStart = newActivity.id;
+        } else {
+          console.log("Breathing - Creating Activity via POST (Standalone)");
+          if (!apiContentId) {
+            console.error(
+              "Breathing Screen - Missing apiContentId for standalone creation",
+            );
+            return;
+          }
+
+          let sessionToUse: any = practiceSession;
+          try {
+            sessionToUse = await ensureActiveSession(user!.id);
+          } catch (err) {
+            console.error(
+              "Breathing Screen - Failed to ensure active session",
+              err,
+            );
+            return;
+          }
+
+          if (!sessionToUse) {
+            console.error(
+              "Breathing Screen - Missing session for standalone activity",
+            );
+            return;
+          }
+
+          const newActivity = await createPracticeActivity({
+            sessionId: sessionToUse.id,
+            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+            contentId: apiContentId,
+          });
+          activityIdToStart = newActivity.id;
+        }
       }
 
-      console.log("Starting activity with payload (FINAL):", payload);
-
-      const newActivity = await createPracticeActivity(payload);
-
-      const userId = practiceSession?.user?.id || user?.id;
-
-      if (!userId) {
-        console.error("Breathing Screen - Missing user ID");
-        return;
-      }
+      console.log("Starting activity with ID:", activityIdToStart);
 
       const startedActivity = await startPracticeActivity({
-        id: newActivity.id,
+        id: activityIdToStart,
         userId,
       });
+
       addActivity(startedActivity);
-      setCurrentActivity(startedActivity); // Set current activity
-      setCurrentActivityId(newActivity.id);
+      setCurrentActivity(startedActivity);
+      setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("Failed to start activity:", error);
-      Alert.alert("Error", "Failed to start activity. Please try again.");
+      triggerToast(
+        "error",
+        "Failed to Start",
+        "We couldn't start this exercise. Please try again later.",
+      );
     }
   };
 
