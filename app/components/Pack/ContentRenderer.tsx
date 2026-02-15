@@ -193,25 +193,31 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
               </View>
 
               {/* Action Button */}
+              {/* Action Button */}
               <View style={styles.actionButtonContainer}>
                 <View style={styles.actionButton}>
-                  {loading ? (
+                  {loading && (
                     <ActivityIndicator
                       color={theme.colors.library.orange[600]}
                       size="small"
+                      style={StyleSheet.absoluteFill}
                     />
-                  ) : (
-                    <>
-                      <MaterialCommunityIcons
-                        name="play"
-                        size={20}
-                        color={theme.colors.library.orange[600]}
-                      />
-                      <Text style={styles.actionButtonText}>
-                        Start Practice
-                      </Text>
-                    </>
                   )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      opacity: loading ? 0 : 1,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={20}
+                      color={theme.colors.library.orange[600]}
+                    />
+                    <Text style={styles.actionButtonText}>Start Practice</Text>
+                  </View>
                 </View>
               </View>
             </View>

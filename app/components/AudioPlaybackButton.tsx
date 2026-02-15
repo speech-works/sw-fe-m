@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
   StyleProp,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { Audio, AVPlaybackStatus } from "expo-av";
@@ -95,7 +96,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         console.error(`Playback Status Error: ${status.error}`);
         Alert.alert(
           "Audio Error",
-          `An error occurred during playback: ${status.error}`
+          `An error occurred during playback: ${status.error}`,
         );
         // Unload the problematic sound instance and nullify the ref
         if (soundInstanceRef.current) {
@@ -166,7 +167,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true }, // Attempt to play immediately after loading
-          onPlaybackStatusUpdate // Register status callback for ongoing updates
+          onPlaybackStatusUpdate, // Register status callback for ongoing updates
         );
 
         if (isMountedRef.current) {
@@ -179,7 +180,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
           newSound
             .unloadAsync()
             .catch((e) =>
-              console.error("Error unloading new sound on unmount:", e)
+              console.error("Error unloading new sound on unmount:", e),
             );
         }
       } catch (error) {
@@ -214,15 +215,19 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       disabled={isLoading} // Only disable during the initial load phase
       style={[styles.button, style]}
     >
-      {isLoading || isBuffering ? (
+      {/* Spinner Overlay */}
+      {(isLoading || isBuffering) && (
         <ActivityIndicator
           size="small"
           color={activeColor}
-          style={{ width: iconSize, height: iconSize }}
+          style={StyleSheet.absoluteFill}
         />
-      ) : (
-        <Icon name={iconName} size={iconSize} color={activeColor} />
       )}
+
+      {/* Icon (Invisible when loading) */}
+      <View style={{ opacity: isLoading || isBuffering ? 0 : 1 }}>
+        <Icon name={iconName} size={iconSize} color={activeColor} />
+      </View>
     </TouchableOpacity>
   );
 };

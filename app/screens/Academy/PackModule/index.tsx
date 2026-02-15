@@ -352,18 +352,28 @@ const PackModuleScreen = () => {
                     end={{ x: 1, y: 0 }}
                     style={styles.gradientButton}
                   >
-                    {isCompleting ? (
-                      <ActivityIndicator color="white" size="small" />
-                    ) : (
-                      <>
-                        <MaterialCommunityIcons
-                          name="check"
-                          size={20}
-                          color="white"
-                        />
-                        <Text style={styles.completeButtonText}>Complete</Text>
-                      </>
+                    {isCompleting && (
+                      <ActivityIndicator
+                        color="white"
+                        size="small"
+                        style={StyleSheet.absoluteFill}
+                      />
                     )}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        opacity: isCompleting ? 0 : 1,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={20}
+                        color="white"
+                      />
+                      <Text style={styles.completeButtonText}>Complete</Text>
+                    </View>
                   </LinearGradient>
                 </TactileTouchableOpacity>
               ) : (

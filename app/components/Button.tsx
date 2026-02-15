@@ -5,7 +5,8 @@ import {
   ViewStyle,
   TextStyle,
   Platform,
-  ActivityIndicator, // 1. --- Import ActivityIndicator ---
+  ActivityIndicator,
+  View, // 1. --- Import ActivityIndicator ---
 } from "react-native";
 import {
   parseShadowStyle,
@@ -158,19 +159,32 @@ const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
       disabled={isDisabled} // Use combined isDisabled check
     >
-      {/* 3. --- Render spinner OR leftIcon --- */}
-      {loading ? (
-        <ActivityIndicator size="small" color={iconColor} />
-      ) : leftIcon ? (
-        <Icon name={leftIcon} size={20} color={iconColor} />
-      ) : null}
+      {/* Overlay Spinner */}
+      {loading && (
+        <ActivityIndicator
+          size="small"
+          color={iconColor}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
 
-      <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
+      {/* Preserve Content Layout (Invisible when loading) */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          opacity: loading ? 0 : 1,
+        }}
+      >
+        {leftIcon ? <Icon name={leftIcon} size={20} color={iconColor} /> : null}
 
-      {/* Also hide rightIcon when loading for a cleaner look */}
-      {!loading && rightIcon ? (
-        <Icon name={rightIcon} size={20} color={iconColor} />
-      ) : null}
+        <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
+
+        {rightIcon ? (
+          <Icon name={rightIcon} size={20} color={iconColor} />
+        ) : null}
+      </View>
     </TactileTouchableOpacity>
   );
 };

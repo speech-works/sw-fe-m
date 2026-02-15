@@ -340,24 +340,28 @@ const SmartRecommendationCard = () => {
                 onPress={handleFindNext}
                 disabled={isRefreshing}
               >
-                {isRefreshing ? (
-                  <ActivityIndicator size="small" color="#EA580C" />
-                ) : (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="play"
-                      size={20}
-                      color="#EA580C"
-                    />
-                    <Text style={styles.creamCardButtonText}>Find Next</Text>
-                  </View>
+                {isRefreshing && (
+                  <ActivityIndicator
+                    size="small"
+                    color="#EA580C"
+                    style={StyleSheet.absoluteFill}
+                  />
                 )}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    opacity: isRefreshing ? 0 : 1,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="play"
+                    size={20}
+                    color="#EA580C"
+                  />
+                  <Text style={styles.creamCardButtonText}>Find Next</Text>
+                </View>
               </TouchableOpacity>
             </View>
           ) : (
