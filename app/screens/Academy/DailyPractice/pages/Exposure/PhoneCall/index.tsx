@@ -35,7 +35,10 @@ import {
   completePracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import { createSession } from "../../../../../../api/practiceSessions";
+import {
+  createSession,
+  ensureActiveSession,
+} from "../../../../../../api/practiceSessions";
 
 const PhoneCall = () => {
   const navigation =
@@ -69,10 +72,10 @@ const PhoneCall = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         return;
       }
     }

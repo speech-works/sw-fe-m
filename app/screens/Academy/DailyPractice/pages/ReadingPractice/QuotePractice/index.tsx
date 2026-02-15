@@ -55,7 +55,11 @@ const QuotePractice = () => {
     voiceRecordingUri,
     hasHydrated,
     highlightRange,
+    practiceSession,
   } = state;
+
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
 
   // --- VoiceHover Config State (Unused for quotes but kept for structure) ---
   const [vhRate, setVhRate] = useState(1.0);
@@ -65,7 +69,7 @@ const QuotePractice = () => {
 
   // --- Persistent Tool State (Hooks) ---
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME
+    selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
@@ -158,7 +162,12 @@ const QuotePractice = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice practiceName="quote practice" />;
+    return (
+      <DonePractice
+        practiceName="quote practice"
+        onDone={packContext ? () => navigation.goBack() : undefined}
+      />
+    );
   }
 
   // Pre-Practice (Tips) View
@@ -216,7 +225,7 @@ const QuotePractice = () => {
               } catch (error) {
                 console.error(
                   "[QuotePractice] ❌ Error in markActivityStart:",
-                  error
+                  error,
                 );
               } finally {
                 actions.setIsStarting(false);
@@ -389,7 +398,7 @@ const QuotePractice = () => {
                     style={[styles.dockItem, isActive && styles.dockItemActive]}
                     onPress={() => {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                       handleToolSelect(tool.id);
                     }}

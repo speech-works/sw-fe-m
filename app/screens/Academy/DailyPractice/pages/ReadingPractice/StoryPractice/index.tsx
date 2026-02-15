@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
@@ -38,7 +39,6 @@ import {
 import { readingTips } from "../data";
 import { useStoryPractice } from "./useStoryPractice";
 import { ToolType } from "../../../../../../api/tools/types";
-
 const { width } = Dimensions.get("window");
 
 const StoryPractice = () => {
@@ -60,6 +60,10 @@ const StoryPractice = () => {
     practiceSession,
   } = state;
 
+  const route = useRoute();
+  const packContext = (route.params as any)?.packContext;
+  const navigation = useNavigation<any>();
+
   // --- VoiceHover Config State ---
   const [vhRate, setVhRate] = useState(1.0);
   const [vhPrePause, setVhPrePause] = useState(200);
@@ -69,7 +73,7 @@ const StoryPractice = () => {
   // --- Persistent Tool State (Hooks) ---
   // Mute logic if tool is NOT selected. If selected, logic runs regardless of sheet visibility.
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME
+    selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
@@ -154,7 +158,12 @@ const StoryPractice = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice practiceName="story practice" />;
+    return (
+      <DonePractice
+        practiceName="story practice"
+        onDone={packContext ? () => navigation.goBack() : undefined}
+      />
+    );
   }
 
   // Pre-Practice (Tips) View
@@ -212,7 +221,7 @@ const StoryPractice = () => {
               } catch (error) {
                 console.error(
                   "[StoryPractice] ❌ Error in markActivityStart:",
-                  error
+                  error,
                 );
               } finally {
                 actions.setIsStarting(false);
@@ -388,7 +397,7 @@ const StoryPractice = () => {
                     disabled={currentPage >= pages.length - 1}
                     onPress={() =>
                       actions.setCurrentPage((p) =>
-                        Math.min(pages.length - 1, p + 1)
+                        Math.min(pages.length - 1, p + 1),
                       )
                     }
                     style={[
@@ -440,7 +449,7 @@ const StoryPractice = () => {
                     style={[styles.dockItem, isActive && styles.dockItemActive]}
                     onPress={() => {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                       handleToolSelect(tool.id);
                     }}

@@ -38,8 +38,8 @@ import { useUserStore } from "../../../../../../stores/user";
 import {
   createPracticeActivity,
   createPracticeActivityFromPack,
-  createSession,
 } from "../../../../../../api";
+import { ensureActiveSession } from "../../../../../../api/practiceSessions";
 import {
   completePracticeActivity,
   startPracticeActivity,
@@ -111,14 +111,15 @@ const Reframe = () => {
 
     let sessionToUse = practiceSession;
 
-    if (!isPackContext && !sessionToUse && user?.id) {
+    if (!isPackContext && !sessionToUse && user) {
       try {
-        console.log("Creating new session for Reframe...");
-        sessionToUse = await createSession({ userId: user.id });
-        setSession(sessionToUse);
-        console.log("New session created:", sessionToUse.id);
+        console.log("Ensuring active session for Reframe...");
+        const newSession = await ensureActiveSession(user.id);
+        setSession(newSession);
+        sessionToUse = newSession;
+        console.log("Active session ensured:", sessionToUse.id);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         triggerToast(
           "error",
           "Session Error",

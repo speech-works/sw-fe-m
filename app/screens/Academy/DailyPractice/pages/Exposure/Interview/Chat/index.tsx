@@ -199,7 +199,12 @@ const Chat = () => {
   );
 
   if (isDone) {
-    return <DonePractice practiceName="interview practice" />;
+    return (
+      <DonePractice
+        practiceName="interview practice"
+        onDone={packContext ? () => navigation.goBack() : undefined}
+      />
+    );
   }
 
   return (

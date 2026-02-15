@@ -23,6 +23,7 @@ import {
   startPracticeActivity,
   createPracticeActivity,
   createSession,
+  ensureActiveSession,
   createPracticeActivityFromPack,
 } from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
@@ -130,7 +131,7 @@ export const useStoryPractice = () => {
       // Create session if it doesn't exist
       let sessionToUse = practiceSession;
       if (!isPackContext && !sessionToUse && user) {
-        const newSession = await createSession({ userId: user.id });
+        const newSession = await ensureActiveSession(user.id);
         setSession(newSession);
         sessionToUse = newSession;
       }

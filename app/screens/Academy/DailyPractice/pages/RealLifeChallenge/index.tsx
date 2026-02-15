@@ -30,7 +30,10 @@ import { PracticeActivityContentType } from "../../../../../api/practiceActiviti
 import { useSessionStore } from "../../../../../stores/session";
 import { useActivityStore } from "../../../../../stores/activity";
 import { useUserStore } from "../../../../../stores/user";
-import { createSession } from "../../../../../api/practiceSessions";
+import {
+  createSession,
+  ensureActiveSession,
+} from "../../../../../api/practiceSessions";
 import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
@@ -106,10 +109,10 @@ const RealLifeChallenge = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         return;
       }
     }
@@ -223,7 +226,6 @@ const RealLifeChallenge = () => {
   const handleDone = () => {
     // If pack context exists, use standard pack navigation
     if (packContext && practiceActivity) {
-      // Logic handled by wrapping parent usually, but here we can try to go back
       navigation.goBack();
     } else {
       navigation.goBack();
@@ -487,7 +489,10 @@ const RealLifeChallenge = () => {
   );
 
   const renderSummaryScreen = () => (
-    <DonePractice practiceName="real-life challenge" />
+    <DonePractice
+      practiceName="real-life challenge"
+      onDone={packContext ? handleDone : undefined}
+    />
   );
 
   return (

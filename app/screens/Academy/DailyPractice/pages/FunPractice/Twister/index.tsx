@@ -41,7 +41,10 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
-import { createSession } from "../../../../../../api/practiceSessions";
+import {
+  createSession,
+  ensureActiveSession,
+} from "../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
@@ -202,10 +205,10 @@ const Twister = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         return;
       }
     }
@@ -352,7 +355,12 @@ const Twister = () => {
   // --- Main Render ---
 
   if (practiceComplete) {
-    return <DonePractice practiceName="tongue twister" />;
+    return (
+      <DonePractice
+        practiceName="tongue twister"
+        onDone={packContext ? () => navigation.goBack() : undefined}
+      />
+    );
   }
 
   // 1. Pre-Practice (Tips) View

@@ -40,7 +40,10 @@ import {
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useUserStore } from "../../../../../../../stores/user";
-import { createSession } from "../../../../../../../api/practiceSessions";
+import {
+  createSession,
+  ensureActiveSession,
+} from "../../../../../../../api/practiceSessions";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { LinearGradient } from "expo-linear-gradient";
@@ -179,10 +182,10 @@ const Chat = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         return;
       }
     }
@@ -270,7 +273,12 @@ const Chat = () => {
   const bottomPadding = 400; // Space for the dock
 
   if (isDone) {
-    return <DonePractice practiceName="roleplay" />;
+    return (
+      <DonePractice
+        practiceName="roleplay"
+        onDone={packContext ? () => navigation.goBack() : undefined}
+      />
+    );
   }
 
   // Common Elements

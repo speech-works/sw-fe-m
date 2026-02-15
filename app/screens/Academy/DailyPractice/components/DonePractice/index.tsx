@@ -22,9 +22,13 @@ const { width } = Dimensions.get("window");
 
 interface DonePracticeProps {
   practiceName?: string;
+  onDone?: () => void;
 }
 
-const DonePractice = ({ practiceName = "practice" }: DonePracticeProps) => {
+const DonePractice = ({
+  practiceName = "practice",
+  onDone,
+}: DonePracticeProps) => {
   const navigation = useNavigation<any>();
 
   return (
@@ -64,34 +68,60 @@ const DonePractice = ({ practiceName = "practice" }: DonePracticeProps) => {
 
         {/* Actions */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={styles.exploreButton}
-            activeOpacity={0.9}
-            onPress={() => {
-              navigation.navigate(ROUTE_NAMES.EXPLORE, {
-                screen: "Explore",
-              });
-            }}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.exploreGradient}
+          {onDone ? (
+            <TouchableOpacity
+              style={styles.exploreButton}
+              activeOpacity={0.9}
+              onPress={onDone}
             >
-              <Text style={styles.exploreText}>Explore More</Text>
-              {/* Compass Watermark */}
-              <Icon
-                name="compass"
-                size={80}
-                color="#FFF"
-                style={styles.exploreWatermark}
-              />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.exploreGradient}
+              >
+                <Text style={styles.exploreText}>Done</Text>
+                <Icon
+                  name="check"
+                  size={80}
+                  color="#FFF"
+                  style={styles.exploreWatermark}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.exploreButton}
+              activeOpacity={0.9}
+              onPress={() => {
+                navigation.navigate(ROUTE_NAMES.EXPLORE, {
+                  screen: "Explore",
+                });
+              }}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.exploreGradient}
+              >
+                <Text style={styles.exploreText}>Explore More</Text>
+                {/* Compass Watermark */}
+                <Icon
+                  name="compass"
+                  size={80}
+                  color="#FFF"
+                  style={styles.exploreWatermark}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.reminderWrapper}>
             <Reminder
