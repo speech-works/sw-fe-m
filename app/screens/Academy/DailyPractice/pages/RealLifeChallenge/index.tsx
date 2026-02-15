@@ -398,34 +398,70 @@ const RealLifeChallenge = () => {
   );
 
   const renderInstructionScreen = () => (
-    <View style={styles.contentContainer}>
-      <Text style={styles.stepHeader}>Step 1: The Challenge</Text>
-      <Text style={styles.stepSubHeader}>Here's what you'll be doing</Text>
+    <ScrollView
+      style={styles.scrollView}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.stepHeaderContainer}>
+        <View style={styles.stepIndicator}>
+          <Text style={styles.stepIndicatorText}>STEP 1</Text>
+        </View>
+        <Text style={styles.premiumStepHeader}>The Challenge</Text>
+        <Text style={styles.premiumStepSubHeader}>
+          Here's what you need to do
+        </Text>
+      </View>
 
-      <View style={styles.instructionCard}>
+      <View style={styles.premiumInstructionCard}>
         <LinearGradient
-          colors={["#FFF", "#F9FAFB"]}
-          style={styles.cardGradient}
+          colors={["rgba(255,255,255,0.8)", "rgba(255,255,255,0.4)"]}
+          style={styles.instructionCardGradient}
         >
-          <Text style={styles.instructionText}>
+          {/* Watermark Icon */}
+          <View
+            style={styles.instructionWatermarkContainer}
+            pointerEvents="none"
+          >
+            <Icon
+              name="clipboard-list"
+              size={120}
+              color={theme.colors.text.title}
+              style={styles.instructionWatermark}
+            />
+          </View>
+
+          <Text style={styles.premiumInstructionText}>
             {challengeData.instructions}
           </Text>
         </LinearGradient>
       </View>
 
-      <View style={styles.encouragementContainer}>
-        <Icon
-          name="lightbulb"
-          size={18}
-          color={theme.colors.library.orange[600]}
-          style={styles.tipIcon}
-        />
-        <Text style={styles.encouragementText}>
-          {challengeData.encouragement}
-        </Text>
+      <View style={styles.premiumTipCard}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFEDD5"]} // Orange-ish tint
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.tipGradient}
+        >
+          {/* Watermark Icon for Tip */}
+          <View style={styles.tipWatermarkContainer} pointerEvents="none">
+            <Icon
+              name="lightbulb"
+              size={80}
+              color={theme.colors.library.orange[500]}
+              style={styles.tipWatermark}
+            />
+          </View>
+
+          <Text style={styles.tipTitle}>PRO TIP</Text>
+          <Text style={styles.premiumTipText}>
+            {challengeData.encouragement}
+          </Text>
+        </LinearGradient>
       </View>
 
-      <View style={styles.footer}>
+      <View style={styles.actionContainer}>
         <TactileTouchableOpacity
           style={styles.primaryButton}
           onPress={handleInstructionsComplete}
@@ -438,11 +474,11 @@ const RealLifeChallenge = () => {
             ]}
             style={styles.buttonGradient}
           >
-            <Text style={styles.primaryButtonText}>Got it</Text>
+            <Text style={styles.primaryButtonText}>I'm Ready</Text>
           </LinearGradient>
         </TactileTouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 
   const renderReflectionScreen = () => (
@@ -599,7 +635,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 0,
     paddingBottom: 32,
   },
 
@@ -650,6 +686,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "flex-end",
+  },
+  instructionCardGradient: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
   },
 
   // Artifact Watermarks
@@ -798,12 +839,134 @@ const styles = StyleSheet.create({
   // Summary Step
   contentContainerCentered: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 40,
-    zIndex: 5,
+    alignItems: "center",
   },
+
+  // Header Spacer
+  headerSpacer: {
+    height: 0,
+  },
+
+  // Premium Step Header
+  stepHeaderContainer: {
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  stepIndicator: {
+    backgroundColor: theme.colors.library.orange[100],
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  stepIndicatorText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.library.orange[800],
+    fontWeight: "800",
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  premiumStepHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    fontWeight: "900", // Extra bold
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  premiumStepSubHeader: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    opacity: 0.7,
+    fontSize: 16,
+  },
+
+  // Premium Instruction Card
+  premiumInstructionCard: {
+    borderRadius: 32,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.6)", // Glass effect
+    minHeight: 200,
+    marginBottom: 20,
+    shadowColor: theme.colors.library.orange[200], // Subtle orange shadow
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  instructionWatermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    opacity: 0.05,
+    transform: [{ rotate: "-10deg" }],
+  },
+  instructionWatermark: {
+    // sizing handled in icon
+  },
+  premiumInstructionText: {
+    ...parseTextStyle(theme.typography.Heading3), // Larger text for instructions
+    color: theme.colors.text.title,
+    lineHeight: 32,
+    fontWeight: "600",
+  },
+
+  // Premium Tip Card
+  premiumTipCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255, 237, 213, 0.5)", // Orange-100ish
+  },
+  tipGradient: {
+    padding: 20,
+  },
+  tipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  tipTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "900",
+    color: theme.colors.library.orange[800],
+    textTransform: "uppercase",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    opacity: 0.8,
+  },
+  tipWatermarkContainer: {
+    position: "absolute",
+    right: -10,
+    bottom: -15,
+    opacity: 0.1,
+    transform: [{ rotate: "-15deg" }],
+  },
+  tipWatermark: {
+    // sizing in icon
+  },
+  premiumTipText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.library.orange[800],
+    opacity: 0.9,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+
+  // Action Container
+  actionContainer: {
+    marginBottom: 20,
+  },
+
   checkmarkContainer: {
     padding: 24,
     justifyContent: "center",
