@@ -38,6 +38,9 @@ interface ContentRendererProps {
   block: ModuleContentBlock;
   packId?: string;
   moduleId?: string;
+  isMandatory?: boolean;
+  isCompleted?: boolean;
+  onActivityCreated?: (blockId: string, activityId: string) => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -46,6 +49,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   block,
   packId,
   moduleId,
+  isMandatory,
+  isCompleted,
+  onActivityCreated,
 }) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
@@ -131,6 +137,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           });
           console.log("<< Pack: Activity created successfully", activity.id);
 
+          // Notify parent that activity was created
+          onActivityCreated?.(block.id, activity.id);
+
           navigateToPackActivity(navigation, activity, {
             blockId: block.id,
             moduleId,
@@ -157,11 +166,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         <TactileTouchableOpacity
           style={styles.activityCard}
           onPress={handleStartActivity}
-          disabled={loading}
-          activeOpacity={0.9}
+          disabled={loading || isCompleted}
+          activeOpacity={isCompleted ? 1 : 0.9}
         >
           <LinearGradient
-            colors={["#F97316", "#EA580C"]} // Orange 500 -> Orange 600
+            colors={
+              isCompleted
+                ? ["#10B981", "#059669"] // Green for completed
+                : ["#F97316", "#EA580C"] // Orange for active
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}
@@ -171,14 +184,35 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             <View style={styles.bubbleBottomLeft} />
 
             <View style={styles.cardContent}>
-              {/* Header with Chip */}
-              <View style={styles.chip}>
+              {/* Header with Badge */}
+              <View
+                style={[
+                  styles.chip,
+                  isCompleted
+                    ? styles.completedChip
+                    : isMandatory
+                      ? styles.recommendedChip
+                      : styles.optionalChip,
+                ]}
+              >
                 <MaterialCommunityIcons
-                  name="lightning-bolt"
+                  name={
+                    isCompleted
+                      ? "check-bold"
+                      : isMandatory
+                        ? "star"
+                        : "star-outline"
+                  }
                   size={14}
                   color="white"
                 />
-                <Text style={styles.chipText}>PRACTICE ACTIVITY</Text>
+                <Text style={styles.chipText}>
+                  {isCompleted
+                    ? "COMPLETED"
+                    : isMandatory
+                      ? "RECOMMENDED"
+                      : "OPTIONAL"}
+                </Text>
               </View>
 
               {/* Title and Description */}
@@ -192,34 +226,37 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 </Text>
               </View>
 
-              {/* Action Button */}
-              {/* Action Button */}
-              <View style={styles.actionButtonContainer}>
-                <View style={styles.actionButton}>
-                  {loading && (
-                    <ActivityIndicator
-                      color={theme.colors.library.orange[600]}
-                      size="small"
-                      style={StyleSheet.absoluteFill}
-                    />
-                  )}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                      opacity: loading ? 0 : 1,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="play"
-                      size={20}
-                      color={theme.colors.library.orange[600]}
-                    />
-                    <Text style={styles.actionButtonText}>Start Practice</Text>
+              {/* Action Button - Only show if not completed */}
+              {!isCompleted && (
+                <View style={styles.actionButtonContainer}>
+                  <View style={styles.actionButton}>
+                    {loading && (
+                      <ActivityIndicator
+                        color={theme.colors.library.orange[600]}
+                        size="small"
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        opacity: loading ? 0 : 1,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="play"
+                        size={20}
+                        color={theme.colors.library.orange[600]}
+                      />
+                      <Text style={styles.actionButtonText}>
+                        Start Practice
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
+              )}
             </View>
           </LinearGradient>
         </TactileTouchableOpacity>
@@ -330,6 +367,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
+  },
+  chipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  recommendedChip: {
+    backgroundColor: "rgba(251, 191, 36, 0.3)", // Amber with transparency
+  },
+  optionalChip: {
+    backgroundColor: "rgba(148, 163, 184, 0.3)", // Slate with transparency
+  },
+  completedChip: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)", // Use white transparency for better visibility on green
   },
   chipText: {
     color: "white",

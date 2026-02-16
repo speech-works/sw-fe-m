@@ -11,14 +11,20 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../../Theme/tokens";
 import {
   parseTextStyle,
   parseShadowStyle as parseStyleShadow,
 } from "../../../util/functions/parseStyles";
-import { PackModule, Pack } from "../../../api/packs/types";
+import { PackModule, Pack, ContentBlockType } from "../../../api/packs/types";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
 import {
@@ -28,6 +34,8 @@ import {
   getPack,
 } from "../../../api/packs";
 import { LinearGradient } from "expo-linear-gradient";
+import BottomSheetModal from "../../../components/BottomSheetModal";
+import { useActivityStore } from "../../../stores/activity";
 
 import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
 
@@ -42,13 +50,25 @@ const PackModuleScreen = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
   const { module: initialModule, packId } = route.params;
+  const { activities, isActivityCompleted } = useActivityStore();
 
   const [module, setModule] = useState<PackModule>(initialModule);
   const [loading, setLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   // Wizard State
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+
+  // Activity Completion Tracking
+  const [completedActivityBlocks, setCompletedActivityBlocks] = useState<
+    Set<string>
+  >(new Set());
+
+  // Persistent mapping of block IDs to activity instance IDs
+  const [blockToActivityMap, setBlockToActivityMap] = useState<
+    Map<string, string>
+  >(new Map());
 
   // Animation for progress bar
   const [progressAnim] = useState(new Animated.Value(0));
@@ -105,6 +125,67 @@ const PackModuleScreen = () => {
     }).start();
   }, [currentBlockIndex, module.blocks, progressAnim]);
 
+  // Load persistent block-to-activity mapping on mount
+  useEffect(() => {
+    const loadMapping = async () => {
+      try {
+        const key = `pack-${packId}-module-${module.id}-block-activity-map`;
+        const stored = await AsyncStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setBlockToActivityMap(new Map(Object.entries(parsed)));
+        }
+      } catch (error) {
+        console.error("Failed to load block-activity mapping:", error);
+      }
+    };
+    loadMapping();
+  }, [packId, module.id]);
+
+  // Save block-to-activity mapping whenever it changes
+  useEffect(() => {
+    const saveMapping = async () => {
+      try {
+        const key = `pack-${packId}-module-${module.id}-block-activity-map`;
+        const obj = Object.fromEntries(blockToActivityMap);
+        await AsyncStorage.setItem(key, JSON.stringify(obj));
+      } catch (error) {
+        console.error("Failed to save block-activity mapping:", error);
+      }
+    };
+    if (blockToActivityMap.size > 0) {
+      saveMapping();
+    }
+  }, [blockToActivityMap, packId, module.id]);
+
+  // Synchronize completed activity blocks with the activity store
+  useEffect(() => {
+    if (module.blocks && blockToActivityMap.size > 0) {
+      const completed = new Set<string>();
+      module.blocks.forEach((block) => {
+        if (block.type === ContentBlockType.ACTIVITY) {
+          const activityId = blockToActivityMap.get(block.id);
+          if (activityId && isActivityCompleted(activityId)) {
+            completed.add(block.id);
+          }
+        }
+      });
+
+      const currentIds = Array.from(completedActivityBlocks).sort().join(",");
+      const newIds = Array.from(completed).sort().join(",");
+
+      if (currentIds !== newIds) {
+        setCompletedActivityBlocks(completed);
+      }
+    }
+  }, [
+    activities,
+    module.blocks,
+    blockToActivityMap,
+    isActivityCompleted,
+    completedActivityBlocks,
+  ]);
+
   const handleNext = () => {
     if (module.blocks && currentBlockIndex < module.blocks.length - 1) {
       setCurrentBlockIndex((prev) => prev + 1);
@@ -116,6 +197,20 @@ const PackModuleScreen = () => {
       setCurrentBlockIndex((prev) => prev - 1);
     }
   };
+
+  // Callback for when an activity is created (called by ContentRenderer)
+  const handleActivityCreated = useCallback(
+    (blockId: string, activityId: string) => {
+      console.log(
+        "Activity created for block:",
+        blockId,
+        "with ID:",
+        activityId,
+      );
+      setBlockToActivityMap((prev) => new Map(prev).set(blockId, activityId));
+    },
+    [],
+  );
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
@@ -147,6 +242,30 @@ const PackModuleScreen = () => {
       alert("Failed to complete module. Please try again.");
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleFooterAction = () => {
+    const currentBlock = blocks[currentBlockIndex];
+    const isActivityBlock = currentBlock?.type === ContentBlockType.ACTIVITY;
+    const isActivityCompleted = completedActivityBlocks.has(
+      currentBlock?.id || "",
+    );
+
+    // Check if skipping a mandatory activity
+    if (isActivityBlock && !isActivityCompleted && module.isMandatory) {
+      setShowSkipConfirmation(true);
+      return;
+    }
+
+    proceedToNext();
+  };
+
+  const proceedToNext = () => {
+    if (isLastBlock) {
+      handleComplete();
+    } else {
+      handleNext();
     }
   };
 
@@ -313,6 +432,11 @@ const PackModuleScreen = () => {
                   block={currentBlock}
                   packId={packId}
                   moduleId={module.id}
+                  isMandatory={module.isMandatory}
+                  isCompleted={completedActivityBlocks.has(
+                    currentBlock?.id || "",
+                  )}
+                  onActivityCreated={handleActivityCreated}
                 />
               </View>
             )}
@@ -337,73 +461,172 @@ const PackModuleScreen = () => {
             </View>
 
             <View style={{ flex: 1.5 }}>
-              {isLastBlock ? (
-                <TactileTouchableOpacity
-                  style={styles.completeButton}
-                  onPress={handleComplete}
-                  disabled={isCompleting}
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.red[400],
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    {isCompleting && (
-                      <ActivityIndicator
-                        color="white"
-                        size="small"
-                        style={StyleSheet.absoluteFill}
-                      />
-                    )}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                        opacity: isCompleting ? 0 : 1,
-                      }}
+              {(() => {
+                const isActivityBlock =
+                  currentBlock?.type === ContentBlockType.ACTIVITY;
+                const isActivityCompleted = completedActivityBlocks.has(
+                  currentBlock?.id || "",
+                );
+
+                // Check activity completion FIRST, before checking if it's the last block
+                if (isActivityBlock && !isActivityCompleted) {
+                  return (
+                    <TactileTouchableOpacity
+                      style={styles.skipButton}
+                      onPress={handleFooterAction}
+                      activeOpacity={0.7}
                     >
-                      <MaterialCommunityIcons
-                        name="check"
-                        size={20}
-                        color="white"
-                      />
-                      <Text style={styles.completeButtonText}>Complete</Text>
-                    </View>
-                  </LinearGradient>
-                </TactileTouchableOpacity>
-              ) : (
-                <TactileTouchableOpacity
-                  style={styles.nextButton}
-                  onPress={handleNext}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.red[400],
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
-                  >
-                    <MaterialCommunityIcons
-                      name="play"
-                      size={20}
-                      color="white"
-                    />
-                    <Text style={styles.nextButtonText}>Next</Text>
-                  </LinearGradient>
-                </TactileTouchableOpacity>
-              )}
+                      <View style={styles.skipButtonContent}>
+                        <Text style={styles.skipButtonText}>Skip</Text>
+                        {/* Watermark */}
+                        <MaterialCommunityIcons
+                          name="chevron-double-right"
+                          size={56}
+                          color={theme.colors.text.default}
+                          style={styles.skipButtonWatermark}
+                        />
+                      </View>
+                    </TactileTouchableOpacity>
+                  );
+                } else if (isLastBlock) {
+                  return (
+                    <TactileTouchableOpacity
+                      style={styles.completeButton}
+                      onPress={handleFooterAction}
+                      disabled={isCompleting}
+                    >
+                      <LinearGradient
+                        colors={[
+                          theme.colors.library.orange[400],
+                          theme.colors.library.red[400],
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradientButton}
+                      >
+                        {isCompleting && (
+                          <ActivityIndicator
+                            color="white"
+                            size="small"
+                            style={StyleSheet.absoluteFill}
+                          />
+                        )}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            opacity: isCompleting ? 0 : 1,
+                          }}
+                        >
+                          <MaterialCommunityIcons
+                            name="check"
+                            size={20}
+                            color="white"
+                          />
+                          <Text style={styles.completeButtonText}>
+                            Complete
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TactileTouchableOpacity>
+                  );
+                } else {
+                  return (
+                    <TactileTouchableOpacity
+                      style={styles.nextButton}
+                      onPress={handleFooterAction}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={[
+                          theme.colors.library.orange[400],
+                          theme.colors.library.red[400],
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradientButton}
+                      >
+                        <MaterialCommunityIcons
+                          name="play"
+                          size={20}
+                          color="white"
+                        />
+                        <Text style={styles.nextButtonText}>Next</Text>
+                      </LinearGradient>
+                    </TactileTouchableOpacity>
+                  );
+                }
+              })()}
             </View>
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Skip Confirmation Bottom Sheet */}
+      <BottomSheetModal
+        visible={showSkipConfirmation}
+        onClose={() => setShowSkipConfirmation(false)}
+      >
+        <LinearGradient
+          colors={["#FFF7ED", "#FFEDD5"]}
+          style={styles.skipModalContainer}
+        >
+          {/* Watermark */}
+          <View style={styles.skipModalWatermark} pointerEvents="none">
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={180}
+              color={theme.colors.library.orange[200]}
+              style={{ opacity: 0.15, transform: [{ rotate: "15deg" }] }}
+            />
+          </View>
+
+          {/* Title */}
+          <Text style={styles.skipModalTitle}>Skip Recommended Activity?</Text>
+
+          {/* Description */}
+          <Text style={styles.skipModalDesc}>
+            This exercise is recommended for your progress. Skipping this
+            activity may affect the accuracy of your insights.
+          </Text>
+
+          {/* Actions */}
+          <View style={styles.skipModalActions}>
+            <TactileTouchableOpacity
+              style={styles.skipModalPrimaryButton}
+              onPress={() => {
+                setShowSkipConfirmation(false);
+                // Defer to next frame so the modal close doesn't collide
+                setTimeout(() => proceedToNext(), 350);
+              }}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={[
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.skipModalButtonGradient}
+              >
+                <Text style={styles.skipModalPrimaryButtonText}>
+                  Skip Anyway
+                </Text>
+              </LinearGradient>
+            </TactileTouchableOpacity>
+
+            <TactileTouchableOpacity
+              style={styles.skipModalSecondaryButton}
+              onPress={() => setShowSkipConfirmation(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.skipModalSecondaryButtonText}>Go Back</Text>
+            </TactileTouchableOpacity>
+          </View>
+        </LinearGradient>
+      </BottomSheetModal>
     </View>
   );
 };
@@ -539,6 +762,35 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
   },
+  skipButton: {
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#FFF",
+    ...parseStyleShadow(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  skipButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    gap: 8,
+  },
+  skipButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: theme.colors.text.default,
+    fontWeight: "600",
+    fontSize: 15,
+    zIndex: 2,
+  },
+  skipButtonWatermark: {
+    position: "absolute",
+    right: -8,
+    bottom: -8,
+    opacity: 0.06,
+    transform: [{ rotate: "15deg" }],
+  },
   completeButton: {
     borderRadius: 14,
     overflow: "hidden",
@@ -630,6 +882,78 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Button),
     color: theme.colors.text.default,
     fontWeight: "600",
+  },
+  // Skip Confirmation Modal
+  skipModalContainer: {
+    padding: 32,
+    alignItems: "center",
+    paddingBottom: 48,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  skipModalWatermark: {
+    position: "absolute",
+    left: -50,
+    top: -30,
+    zIndex: 0,
+  },
+  skipModalTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#111827",
+    textAlign: "center",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 16,
+    zIndex: 1,
+  },
+  skipModalDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#4B5563",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+    zIndex: 1,
+  },
+  skipModalActions: {
+    width: "100%",
+    gap: 12,
+    zIndex: 1,
+  },
+  skipModalPrimaryButton: {
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    ...parseStyleShadow(theme.shadow.elevation2),
+  },
+  skipModalButtonGradient: {
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipModalPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  skipModalSecondaryButton: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseStyleShadow(theme.shadow.elevation1),
+  },
+  skipModalSecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: theme.colors.text.default,
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
 
