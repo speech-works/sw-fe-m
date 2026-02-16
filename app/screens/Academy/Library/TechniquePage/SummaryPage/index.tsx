@@ -58,7 +58,7 @@ const SummaryPage = () => {
   };
 
   const correctCount = finalAnswers.filter(
-    (item) => item.yourAnswer.isCorrect
+    (item) => item.yourAnswer.isCorrect,
   ).length;
   const totalCount = finalAnswers.length;
   const scorePercentage = Math.round((correctCount / totalCount) * 100);
@@ -90,8 +90,8 @@ const SummaryPage = () => {
               {scorePercentage >= 80
                 ? "Excellent work!"
                 : scorePercentage >= 60
-                ? "Great effort!"
-                : "Keep practicing!"}
+                  ? "Great effort!"
+                  : "Keep practicing!"}
             </Text>
           </View>
 
@@ -215,12 +215,12 @@ const SummaryPage = () => {
             <Text style={styles.sectionTitle}>Review Your Answers</Text>
             {finalAnswers.map((item, index) => {
               const isCorrect = item.yourAnswer.isCorrect;
-              const yourAnswerText = item.yourAnswer.optionText;
+              const yourAnswerText = item.yourAnswer.text;
               const correctAnswer = item.question.options.find(
-                (opt) => opt.isCorrect
+                (opt) => opt.isCorrect,
               );
-              const correctAnswerText = correctAnswer?.optionText;
-              const questionText = item.question.questionText;
+              const correctAnswerText = correctAnswer?.text;
+              const questionText = item.question.text;
               const explanation = correctAnswer?.explanation;
 
               const rotate = rotationAnim[item.question.id].interpolate({

@@ -71,13 +71,13 @@ export interface Technique {
 
 export interface QuizQuestion {
   id: string;
-  questionText: string;
+  text: string;
   options: Array<QuizQuestionOption>;
   technique: Technique;
 }
 
 export interface QuizQuestionOption {
-  optionText: string;
+  text: string;
   isCorrect: boolean;
   explanation?: string;
 }

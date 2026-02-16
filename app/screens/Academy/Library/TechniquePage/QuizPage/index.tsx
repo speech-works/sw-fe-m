@@ -158,7 +158,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
               </View>
               <Text style={styles.quizTitle}>Assessment Question</Text>
             </View>
-            <Text style={styles.qText}>{currentQuestion.questionText}</Text>
+            <Text style={styles.qText}>{currentQuestion.text}</Text>
           </View>
 
           {/* Answer Options */}
@@ -194,7 +194,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
                         isSelected && styles.ansTextSelected,
                       ]}
                     >
-                      {opt.optionText}
+                      {opt.text}
                     </Text>
                   </View>
                 </TouchableOpacity>
