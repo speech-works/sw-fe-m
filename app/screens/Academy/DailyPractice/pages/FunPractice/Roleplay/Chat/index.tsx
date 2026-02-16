@@ -279,12 +279,17 @@ const Chat = () => {
         practiceName="roleplay"
         onDone={
           packContext
-            ? () =>
-                navigation.navigate("PackModule", {
-                  packId: packContext.packId,
-                  moduleId: packContext.moduleId,
-                  initialBlockIndex: packContext.blockIndex,
-                })
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
             : undefined
         }
       />

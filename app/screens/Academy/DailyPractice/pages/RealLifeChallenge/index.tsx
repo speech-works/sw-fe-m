@@ -223,15 +223,19 @@ const RealLifeChallenge = () => {
   };
 
   const handleDone = () => {
-    // If pack context exists, use standard pack navigation
+    // If pack context exists
     if (packContext && practiceActivity) {
-      // Navigate explicitly to PackModule to preserve state
-      // @ts-ignore - AcademyStack param types might not be perfectly inferred here
-      navigation.navigate("PackModule", {
-        packId: packContext.packId,
-        moduleId: packContext.moduleId,
-        initialBlockIndex: packContext.blockIndex,
-      });
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        // Fallback if we can't pop (shouldn't happen in normal flow but good safety)
+        // @ts-ignore
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
+      }
     } else {
       navigation.goBack();
     }

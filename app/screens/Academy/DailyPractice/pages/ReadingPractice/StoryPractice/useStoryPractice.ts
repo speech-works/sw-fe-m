@@ -211,7 +211,9 @@ export const useStoryPractice = () => {
       });
       setPracticeComplete(true);
 
-      if (packContext) {
+      if (packContext && navigation.canGoBack()) {
+        navigation.goBack();
+      } else if (packContext) {
         navigation.navigate("PackModule", {
           packId: packContext.packId,
           moduleId: packContext.moduleId,

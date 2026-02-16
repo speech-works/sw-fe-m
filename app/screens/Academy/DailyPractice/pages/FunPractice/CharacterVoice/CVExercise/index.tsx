@@ -147,7 +147,9 @@ const CVExercise = () => {
       ...completedActivity,
     });
 
-    if (packContext) {
+    if (packContext && navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (packContext) {
       navigation.navigate("PackModule", {
         packId: packContext.packId,
         moduleId: packContext.moduleId,
@@ -200,12 +202,17 @@ const CVExercise = () => {
         practiceName="character voice exercise"
         onDone={
           packContext
-            ? () =>
-                navigation.navigate("PackModule", {
-                  packId: packContext.packId,
-                  moduleId: packContext.moduleId,
-                  initialBlockIndex: packContext.blockIndex,
-                })
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
             : undefined
         }
       />

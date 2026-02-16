@@ -297,7 +297,9 @@ const Twister = () => {
       funPractice: twisters[currentIndex],
     });
 
-    if (packContext) {
+    if (packContext && navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (packContext) {
       navigation.navigate("PackModule", {
         packId: packContext.packId,
         moduleId: packContext.moduleId,
@@ -367,12 +369,17 @@ const Twister = () => {
         practiceName="tongue twister"
         onDone={
           packContext
-            ? () =>
-                navigation.navigate("PackModule", {
-                  packId: packContext.packId,
-                  moduleId: packContext.moduleId,
-                  initialBlockIndex: packContext.blockIndex,
-                })
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
             : undefined
         }
       />

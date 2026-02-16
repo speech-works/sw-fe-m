@@ -238,11 +238,15 @@ const Reframe = () => {
 
       if (packContext) {
         // Use academyNav to navigate to PackModule as it is in the parent stack
-        academyNav.navigate("PackModule", {
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          initialBlockIndex: packContext.blockIndex,
-        });
+        if (academyNav.canGoBack()) {
+          academyNav.goBack();
+        } else {
+          academyNav.navigate("PackModule", {
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            initialBlockIndex: packContext.blockIndex,
+          });
+        }
       } else {
         setIsDone(true);
       }

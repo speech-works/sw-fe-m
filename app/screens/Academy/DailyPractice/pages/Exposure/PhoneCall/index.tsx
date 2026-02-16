@@ -151,7 +151,9 @@ const PhoneCall = () => {
 
       // If in pack, maybe auto-navigate back?
       // For now, we leave the user on the screen or let them end the call manually
-      if (packContext) {
+      if (packContext && navigation.canGoBack()) {
+        navigation.goBack();
+      } else if (packContext) {
         navigation.navigate("PackModule", {
           packId: packContext.packId,
           moduleId: packContext.moduleId,

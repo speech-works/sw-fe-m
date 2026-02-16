@@ -403,11 +403,15 @@ const Meditation = () => {
     setIsPlaying(false);
     await markActivityComplete();
     if (packContext) {
-      navigation.navigate("PackModule", {
-        packId: packContext.packId,
-        moduleId: packContext.moduleId,
-        initialBlockIndex: packContext.blockIndex,
-      } as any);
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        } as any);
+      }
     } else {
       setIsDone(true);
     }
