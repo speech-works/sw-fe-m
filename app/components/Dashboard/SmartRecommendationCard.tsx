@@ -277,7 +277,7 @@ const SmartRecommendationCard = () => {
             onPress={handlePress}
             activeOpacity={0.8}
           >
-            <View>
+            <View style={styles.headerTextContainer}>
               {tags && tags.length > 0 && (
                 <View style={styles.chip}>
                   <MaterialCommunityIcons name="fire" size={14} color="white" />
@@ -534,10 +534,9 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: 20,
     zIndex: 1,
+    position: "relative",
   },
   chip: {
     flexDirection: "row",
@@ -571,6 +570,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     justifyContent: "center",
     alignItems: "center",
+    position: "absolute",
+    top: 0,
+    right: 0,
   },
   progressSection: {
     marginBottom: 24,
@@ -726,6 +728,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  headerTextContainer: {
+    width: "100%",
+    paddingRight: 72,
   },
 });
 
