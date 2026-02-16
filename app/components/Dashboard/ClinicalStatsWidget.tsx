@@ -485,6 +485,16 @@ const ClinicalStatsWidget = () => {
                   </>
                 )}
 
+                {/* Average Baseline Chart (Grey) */}
+                <Path
+                  d={makeSmoothCurve(getPoints(chartData.baselineData), 0.45)}
+                  fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
+                  stroke={theme.colors.library.gray[400]}
+                  strokeWidth="2"
+                  strokeDasharray="4,4"
+                  opacity={0.8}
+                />
+
                 {/* 1. GLOW Effect */}
                 <AnimatedPath
                   d={currentPathD}
