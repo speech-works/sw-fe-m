@@ -66,8 +66,13 @@ import { toPascalCase } from "../../../../../../util/functions/strings";
 
 const { width } = Dimensions.get("window");
 
+import {
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+
 const PoemPractice = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, ensureActiveSession } = useSessionStore();
@@ -81,11 +86,11 @@ const PoemPractice = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pages, setPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
+  const route = useRoute<RDPStackRouteProp<"PoemPractice">>();
+  const packContext = route.params?.packContext;
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    (route.params as any).practiceActivity?.id || null,
+    route.params?.practiceActivity?.id || null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -240,7 +245,11 @@ const PoemPractice = () => {
     setPracticeComplete(true);
 
     if (packContext) {
-      navigation.goBack();
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      });
     }
   };
 
@@ -321,7 +330,21 @@ const PoemPractice = () => {
 
   // --- View: Done Practice ---
   if (practiceComplete) {
-    return <DonePractice practiceName="poem practice" />;
+    return (
+      <DonePractice
+        practiceName="poem practice"
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
+      />
+    );
   }
 
   // --- View: Pre-Practice (Tips) ---

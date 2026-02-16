@@ -13,6 +13,22 @@ import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePra
 import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
 import RealLifeChallenge from "../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
+// Exposure: Briefing + Chat screens for pack navigation
+import SCBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Briefing";
+import SCChat from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat";
+import InterviewBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Briefing";
+import InterviewChat from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Chat";
+import PhoneCall from "../../../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
+// Fun practice screens for pack navigation
+import TongueTwister from "../../../screens/Academy/DailyPractice/pages/FunPractice/Twister";
+import RoleplayBriefing from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
+import PackBriefingWrapper from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/PackBriefingWrapper";
+import RoleplayChat from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat";
+import CVExercise from "../../../screens/Academy/DailyPractice/pages/FunPractice/CharacterVoice/CVExercise";
+// Reading practice screens for pack navigation
+import PoemPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
+import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
+import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 
@@ -30,6 +46,25 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="Meditation" component={Meditation} />
       <Stack.Screen name="Reframe" component={Reframe} />
       <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
+      {/* Exposure screens for pack navigation */}
+      <Stack.Screen name="SCBriefing" component={SCBriefing} />
+      <Stack.Screen name="SCChat" component={SCChat} />
+      <Stack.Screen name="InterviewBriefing" component={InterviewBriefing} />
+      <Stack.Screen name="InterviewChat" component={InterviewChat} />
+      <Stack.Screen name="PhoneCall" component={PhoneCall} />
+      {/* Fun practice screens for pack navigation */}
+      <Stack.Screen name="TongueTwister" component={TongueTwister} />
+      <Stack.Screen name="RoleplayBriefing" component={RoleplayBriefing} />
+      <Stack.Screen
+        name="RoleplayPackBriefing"
+        component={PackBriefingWrapper}
+      />
+      <Stack.Screen name="RoleplayChat" component={RoleplayChat} />
+      <Stack.Screen name="CVExercise" component={CVExercise} />
+      {/* Reading practice screens for pack navigation */}
+      <Stack.Screen name="Poem" component={PoemPractice} />
+      <Stack.Screen name="Story" component={StoryPractice} />
+      <Stack.Screen name="Quote" component={QuotePractice} />
       <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
     </Stack.Navigator>
   );

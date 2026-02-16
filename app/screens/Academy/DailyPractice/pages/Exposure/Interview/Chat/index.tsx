@@ -42,12 +42,16 @@ interface ChatMessage {
   text: string;
 }
 
-const Chat = () => {
-  const navigation = useNavigation();
-  const route =
-    useRoute<RouteProp<InterviewEDPStackParamList, "InterviewChat">>();
+import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+import { InterviewEDPStackRouteProp } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 
-  const { interview, practiceActivityId, packContext } = route.params as any;
+const Chat = () => {
+  const navigation =
+    useNavigation<AcademyStackNavigationProp<"InterviewChat">>();
+  const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
+
+  const { interview, practiceActivityId, packContext } = route.params;
+  const data = interview.practiceData || interview.interviewPracticeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -64,7 +68,7 @@ const Chat = () => {
     FixedRolePlayNodeOption[]
   >([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false); // To track if the initial node has been processed
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Enable LayoutAnimation on Android for smooth transitions
   useEffect(() => {
@@ -75,25 +79,23 @@ const Chat = () => {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
-
-  // Effect to initialize the chat with the first NPC message
   useEffect(() => {
     if (
       interview &&
-      interview.practiceData?.stage.initialNodeId &&
+      data?.stage.initialNodeId &&
       !hasInitialized &&
-      interview.practiceData?.stage.dialogues
+      data?.stage.dialogues
     ) {
-      setCurrentNodeId(interview.practiceData.stage.initialNodeId);
+      setCurrentNodeId(data.stage.initialNodeId);
       setHasInitialized(true);
     }
-  }, [interview, hasInitialized]);
+  }, [interview, data, hasInitialized]);
 
   // Effect to update messages and options when currentNodeId changes
   useEffect(() => {
-    if (currentNodeId && interview.practiceData?.stage.dialogues) {
+    if (currentNodeId && data?.stage.dialogues) {
       const node: FixedRolePlayNode | undefined =
-        interview.practiceData.stage.dialogues[currentNodeId];
+        data.stage.dialogues[currentNodeId];
       if (node) {
         // Add NPC's line to messages
         setMessages((prevMessages) => [
@@ -125,7 +127,7 @@ const Chat = () => {
       // If currentNodeId becomes null after initialization, it means the conversation has ended
       setCurrentOptions([]);
     }
-  }, [currentNodeId, interview.practiceData, hasInitialized]);
+  }, [currentNodeId, data, hasInitialized]);
 
   // Effect to scroll to the bottom of the chat when messages update
   useEffect(() => {
@@ -138,7 +140,7 @@ const Chat = () => {
 
   // Handles the selection of a user response option
   const handleSelectOption = (option: FixedRolePlayNodeOption) => {
-    if (!interview.practiceData?.stage.initialNodeId) return; // Ensure dialogues exist
+    if (!data?.stage.initialNodeId) return; // Ensure dialogues exist
 
     // Add user's selected line to messages
     setMessages((prevMessages) => [
@@ -202,7 +204,16 @@ const Chat = () => {
     return (
       <DonePractice
         practiceName="interview practice"
-        onDone={packContext ? () => navigation.goBack() : undefined}
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
       />
     );
   }

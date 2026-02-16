@@ -42,11 +42,14 @@ interface ChatMessage {
   text: string;
 }
 
-const Chat = () => {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<SCEDPStackParamList, "SCChat">>();
+import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+import { SCEDPStackRouteProp } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 
-  const { sc, practiceActivityId, packContext } = route.params as any;
+const Chat = () => {
+  const navigation = useNavigation<AcademyStackNavigationProp<"SCChat">>();
+  const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
+  const { sc, practiceActivityId, packContext } = route.params;
+  const data = sc.practiceData || sc.socialChallengeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -74,25 +77,23 @@ const Chat = () => {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
-
-  // Effect to initialize the chat with the first NPC message
   useEffect(() => {
     if (
       sc &&
-      sc.practiceData?.stage.initialNodeId &&
+      data?.stage.initialNodeId &&
       !hasInitialized &&
-      sc.practiceData?.stage.dialogues
+      data?.stage.dialogues
     ) {
-      setCurrentNodeId(sc.practiceData.stage.initialNodeId);
+      setCurrentNodeId(data.stage.initialNodeId);
       setHasInitialized(true);
     }
-  }, [sc, hasInitialized]);
+  }, [sc, data, hasInitialized]);
 
   // Effect to update messages and options when currentNodeId changes
   useEffect(() => {
-    if (currentNodeId && sc.practiceData?.stage.dialogues) {
+    if (currentNodeId && data?.stage.dialogues) {
       const node: FixedRolePlayNode | undefined =
-        sc.practiceData.stage.dialogues[currentNodeId];
+        data.stage.dialogues[currentNodeId];
       if (node) {
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -110,7 +111,7 @@ const Chat = () => {
     } else if (currentNodeId === null && hasInitialized) {
       setCurrentOptions([]);
     }
-  }, [currentNodeId, sc.practiceData, hasInitialized]);
+  }, [currentNodeId, data, hasInitialized]);
 
   // Effect to scroll to the bottom of the chat when messages update
   useEffect(() => {
@@ -122,7 +123,7 @@ const Chat = () => {
   }, [messages]);
 
   const handleSelectOption = (option: FixedRolePlayNodeOption) => {
-    if (!sc.practiceData?.stage.initialNodeId) return;
+    if (!data?.stage.initialNodeId) return;
 
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -300,7 +301,21 @@ const Chat = () => {
   );
 
   if (isDone) {
-    return <DonePractice practiceName="social challenge" />;
+    return (
+      <DonePractice
+        practiceName="social challenge"
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
+      />
+    );
   }
 
   return (

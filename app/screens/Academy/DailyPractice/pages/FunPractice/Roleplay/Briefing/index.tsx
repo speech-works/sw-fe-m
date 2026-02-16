@@ -21,6 +21,7 @@ import {
 } from "../../../../../../../util/functions/parseStyles";
 
 const Briefing = () => {
+  console.log("RoleplayBriefing MOUNTED");
   const navigation =
     useNavigation<
       RoleplayFDPStackNavigationProp<keyof RoleplayFDPStackParamList>
@@ -28,6 +29,7 @@ const Briefing = () => {
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
   const { title, description, roleplay, id } = route.params;
+  console.log("Briefing Params:", JSON.stringify(route.params, null, 2));
   const scenarioDescription = roleplay.scenario.scenarioDetails;
   const tips = roleplay.scenario.tips;
   const roles = roleplay.scenario.availableRoles;

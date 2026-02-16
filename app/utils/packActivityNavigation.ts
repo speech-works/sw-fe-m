@@ -10,6 +10,7 @@ export interface PackContext {
   blockId: string;
   moduleId: string;
   packId: string;
+  blockIndex?: number;
 }
 
 /**
@@ -98,21 +99,15 @@ const navigateToExposure = (
 
   switch (exposurePractice.type) {
     case ExposurePracticeType.SOCIAL_CHALLENGE_SIMULATION:
-      nav.navigate("SCChat", {
-        sc: {
-          name: exposurePractice.name,
-          practiceData: exposurePractice.practiceData,
-        },
+      nav.navigate("SCBriefing", {
+        sc: exposurePractice,
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case ExposurePracticeType.INTERVIEW_SIMULATION:
-      nav.navigate("InterviewChat", {
-        interview: {
-          name: exposurePractice.name,
-          practiceData: exposurePractice.practiceData,
-        },
+      nav.navigate("InterviewBriefing", {
+        interview: exposurePractice,
         practiceActivity: activity,
         packContext: ctx,
       });
@@ -154,13 +149,22 @@ const navigateToFun = (
       });
       break;
     case FunPracticeType.ROLE_PLAY:
-      nav.navigate("RoleplayChat", {
+      console.log("Navigating to ROLE_PLAY briefing (RoleplayPackBriefing)");
+      if (!funPractice.rolePlayData) {
+        console.warn("No rolePlayData for FunPractice ROLE_PLAY");
+        return;
+      }
+      nav.navigate("RoleplayPackBriefing", {
+        id: funPractice.id,
+        title: funPractice.name,
+        description: funPractice.description,
+        roleplay: funPractice.rolePlayData,
         practiceActivity: activity,
         packContext: ctx,
       });
       break;
     case FunPracticeType.CHARACTER_VOICE:
-      nav.navigate("CharacterVoice", {
+      nav.navigate("CVExercise", {
         practiceActivity: activity,
         packContext: ctx,
       });

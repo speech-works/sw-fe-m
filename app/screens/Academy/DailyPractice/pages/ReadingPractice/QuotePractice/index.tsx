@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
@@ -39,9 +39,14 @@ import { useQuotePractice } from "./useQuotePractice";
 
 const { width } = Dimensions.get("window");
 
+import {
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+
 const QuotePractice = () => {
   const { state, actions } = useQuotePractice();
-  const navigation = useNavigation();
+  const navigation = useNavigation<RDPStackNavigationProp<"QuotePractice">>();
 
   /* State Destructuring */
   const {
@@ -55,11 +60,10 @@ const QuotePractice = () => {
     voiceRecordingUri,
     hasHydrated,
     highlightRange,
-    practiceSession,
   } = state;
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
+  const route = useRoute<RDPStackRouteProp<"QuotePractice">>();
+  const packContext = route.params?.packContext;
 
   // --- VoiceHover Config State (Unused for quotes but kept for structure) ---
   const [vhRate, setVhRate] = useState(1.0);
@@ -165,7 +169,16 @@ const QuotePractice = () => {
     return (
       <DonePractice
         practiceName="quote practice"
-        onDone={packContext ? () => navigation.goBack() : undefined}
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
       />
     );
   }

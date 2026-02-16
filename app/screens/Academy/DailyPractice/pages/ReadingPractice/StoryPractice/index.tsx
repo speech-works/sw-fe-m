@@ -41,6 +41,11 @@ import { useStoryPractice } from "./useStoryPractice";
 import { ToolType } from "../../../../../../api/tools/types";
 const { width } = Dimensions.get("window");
 
+import {
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+
 const StoryPractice = () => {
   const { state, actions } = useStoryPractice();
   /* State Destructuring */
@@ -60,9 +65,9 @@ const StoryPractice = () => {
     practiceSession,
   } = state;
 
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
-  const navigation = useNavigation<any>();
+  const route = useRoute<RDPStackRouteProp<"StoryPractice">>();
+  const packContext = route.params?.packContext;
+  const navigation = useNavigation<RDPStackNavigationProp<"StoryPractice">>();
 
   // --- VoiceHover Config State ---
   const [vhRate, setVhRate] = useState(1.0);
@@ -161,7 +166,16 @@ const StoryPractice = () => {
     return (
       <DonePractice
         practiceName="story practice"
-        onDone={packContext ? () => navigation.goBack() : undefined}
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
       />
     );
   }

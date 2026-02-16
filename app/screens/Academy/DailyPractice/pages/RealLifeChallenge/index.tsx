@@ -45,7 +45,7 @@ import { PracticeActivity } from "../../../../../api/practiceActivities/types";
 
 type RealLifeChallengeParams = {
   practiceActivity?: PracticeActivity;
-  packContext?: { packId: string; moduleId: string };
+  packContext?: { packId: string; moduleId: string; blockIndex?: number };
 };
 
 const RealLifeChallenge = () => {
@@ -225,7 +225,13 @@ const RealLifeChallenge = () => {
   const handleDone = () => {
     // If pack context exists, use standard pack navigation
     if (packContext && practiceActivity) {
-      navigation.goBack();
+      // Navigate explicitly to PackModule to preserve state
+      // @ts-ignore - AcademyStack param types might not be perfectly inferred here
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      });
     } else {
       navigation.goBack();
     }

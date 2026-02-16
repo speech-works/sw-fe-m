@@ -148,7 +148,11 @@ const CVExercise = () => {
     });
 
     if (packContext) {
-      navigation.goBack();
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      });
     }
   };
 
@@ -191,7 +195,21 @@ const CVExercise = () => {
   const bottomPadding = 400; // Space for the dock
 
   if (isDone) {
-    return <DonePractice practiceName="character voice exercise" />;
+    return (
+      <DonePractice
+        practiceName="character voice exercise"
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
+      />
+    );
   }
 
   // 1. Pre-Practice (Tips) View

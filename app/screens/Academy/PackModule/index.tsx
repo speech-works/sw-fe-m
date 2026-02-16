@@ -40,7 +40,14 @@ import { useActivityStore } from "../../../stores/activity";
 import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
 
 type PackModuleScreenRouteProp = RouteProp<
-  { params: { module: PackModule; packId: string } },
+  {
+    params: {
+      module?: PackModule;
+      packId: string;
+      moduleId?: string;
+      initialBlockIndex?: number;
+    };
+  },
   "params"
 >;
 
@@ -49,16 +56,31 @@ const { width } = Dimensions.get("window");
 const PackModuleScreen = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
-  const { module: initialModule, packId } = route.params;
+  const {
+    module: initialModule,
+    packId,
+    moduleId: initialModuleId,
+    initialBlockIndex,
+  } = route.params;
   const { activities, isActivityCompleted } = useActivityStore();
 
-  const [module, setModule] = useState<PackModule>(initialModule);
+  // If we have initialModule, use it. If not, use undefined (will fetch).
+  const [module, setModule] = useState<PackModule | undefined>(initialModule);
   const [loading, setLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
-  // Wizard State
-  const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+  // Wizard State - Initialize with passed index or 0
+  const [currentBlockIndex, setCurrentBlockIndex] = useState(
+    initialBlockIndex || 0,
+  );
+
+  // Update currentBlockIndex if initialBlockIndex changes (e.g. from back navigation)
+  useEffect(() => {
+    if (initialBlockIndex !== undefined) {
+      setCurrentBlockIndex(initialBlockIndex);
+    }
+  }, [initialBlockIndex]);
 
   // Activity Completion Tracking
   const [completedActivityBlocks, setCompletedActivityBlocks] = useState<
@@ -70,17 +92,68 @@ const PackModuleScreen = () => {
     Map<string, string>
   >(new Map());
 
+  // Force refresh from store on focus, and potentially re-fetch if needed
+  useFocusEffect(
+    useCallback(() => {
+      console.log("[PackModule] Screen focused. Refreshing activity status.");
+
+      // Re-calculate completed blocks from the current store state
+      if (module?.blocks && blockToActivityMap.size > 0) {
+        const completed = new Set<string>();
+        module.blocks.forEach((block) => {
+          if (block.type === ContentBlockType.ACTIVITY) {
+            const activityId = blockToActivityMap.get(block.id);
+            const isComp = activityId ? isActivityCompleted(activityId) : false;
+
+            console.log(`[PackModule Debug] Block ${block.id}`, {
+              activityId,
+              storeSaysCompleted: isComp,
+              inCompletedSet: completedActivityBlocks.has(block.id),
+            });
+
+            // Check store
+            if (activityId && isActivityCompleted(activityId)) {
+              completed.add(block.id);
+            }
+          }
+        });
+
+        // Update state if different
+        setCompletedActivityBlocks((prev) => {
+          const prevIds = Array.from(prev).sort().join(",");
+          const newIds = Array.from(completed).sort().join(",");
+          console.log(
+            "[PackModule Debug] Updating completed blocks?",
+            prevIds !== newIds,
+            newIds,
+          );
+          return prevIds !== newIds ? completed : prev;
+        });
+      }
+    }, [module, blockToActivityMap, isActivityCompleted]),
+  );
+
   // Animation for progress bar
   const [progressAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
     const initModule = async () => {
       try {
-        startModule(packId, initialModule.id).catch((err) =>
+        const targetModuleId = initialModule?.id || initialModuleId;
+        if (!targetModuleId) {
+          console.error("No module ID provided");
+          return;
+        }
+
+        startModule(packId, targetModuleId).catch((err) =>
           console.log("Failed to mark start (non-fatal)", err),
         );
 
-        if (initialModule.blocks && initialModule.blocks.length > 0) {
+        if (
+          initialModule &&
+          initialModule.blocks &&
+          initialModule.blocks.length > 0
+        ) {
           setModule(initialModule);
           setLoading(false);
           return;
@@ -89,14 +162,14 @@ const PackModuleScreen = () => {
         console.log("Fetching module full content...");
         let fullModule;
         try {
-          fullModule = await getModule(packId, initialModule.id);
+          fullModule = await getModule(packId, targetModuleId);
         } catch (apiError: any) {
           console.warn(
             "getModule failed (possibly 404), falling back to getPack",
             apiError.message,
           );
           const packData: Pack = await getPack(packId);
-          fullModule = packData.modules.find((m) => m.id === initialModule.id);
+          fullModule = packData.modules.find((m) => m.id === targetModuleId);
         }
 
         if (fullModule) {
@@ -112,21 +185,22 @@ const PackModuleScreen = () => {
     };
 
     initModule();
-  }, [packId, initialModule]);
+  }, [packId, initialModule, initialModuleId]);
 
   // Update progress bar when index changes
   useEffect(() => {
-    const total = module.blocks?.length || 1;
+    const total = module?.blocks?.length || 1;
     const progress = (currentBlockIndex + 1) / total;
     Animated.timing(progressAnim, {
       toValue: progress,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [currentBlockIndex, module.blocks, progressAnim]);
+  }, [currentBlockIndex, module?.blocks, progressAnim]);
 
   // Load persistent block-to-activity mapping on mount
   useEffect(() => {
+    if (!module) return;
     const loadMapping = async () => {
       try {
         const key = `pack-${packId}-module-${module.id}-block-activity-map`;
@@ -140,10 +214,11 @@ const PackModuleScreen = () => {
       }
     };
     loadMapping();
-  }, [packId, module.id]);
+  }, [packId, module?.id]);
 
   // Save block-to-activity mapping whenever it changes
   useEffect(() => {
+    if (!module) return;
     const saveMapping = async () => {
       try {
         const key = `pack-${packId}-module-${module.id}-block-activity-map`;
@@ -156,16 +231,20 @@ const PackModuleScreen = () => {
     if (blockToActivityMap.size > 0) {
       saveMapping();
     }
-  }, [blockToActivityMap, packId, module.id]);
+  }, [blockToActivityMap, packId, module?.id]);
 
   // Synchronize completed activity blocks with the activity store
   useEffect(() => {
-    if (module.blocks && blockToActivityMap.size > 0) {
+    if (module?.blocks && blockToActivityMap.size > 0) {
       const completed = new Set<string>();
       module.blocks.forEach((block) => {
         if (block.type === ContentBlockType.ACTIVITY) {
           const activityId = blockToActivityMap.get(block.id);
-          if (activityId && isActivityCompleted(activityId)) {
+          const isCompleted = activityId
+            ? isActivityCompleted(activityId)
+            : false;
+
+          if (isCompleted) {
             completed.add(block.id);
           }
         }
@@ -180,14 +259,14 @@ const PackModuleScreen = () => {
     }
   }, [
     activities,
-    module.blocks,
+    module?.blocks,
     blockToActivityMap,
     isActivityCompleted,
     completedActivityBlocks,
   ]);
 
   const handleNext = () => {
-    if (module.blocks && currentBlockIndex < module.blocks.length - 1) {
+    if (module?.blocks && currentBlockIndex < module.blocks.length - 1) {
       setCurrentBlockIndex((prev) => prev + 1);
     }
   };
@@ -217,6 +296,7 @@ const PackModuleScreen = () => {
   const [nextModuleId, setNextModuleId] = useState<string | null>(null);
 
   const handleComplete = async () => {
+    if (!module) return;
     try {
       setIsCompleting(true);
       await completeModule(packId, module.id);
@@ -253,7 +333,7 @@ const PackModuleScreen = () => {
     );
 
     // Check if skipping a mandatory activity
-    if (isActivityBlock && !isActivityCompleted && module.isMandatory) {
+    if (isActivityBlock && !isActivityCompleted && module?.isMandatory) {
       setShowSkipConfirmation(true);
       return;
     }
@@ -362,10 +442,26 @@ const PackModuleScreen = () => {
     );
   }
 
-  const blocks = module.blocks || [];
+  const blocks = module?.blocks || [];
   const currentBlock = blocks[currentBlockIndex];
   const isLastBlock = currentBlockIndex >= blocks.length - 1;
   const isFirstBlock = currentBlockIndex === 0;
+
+  if (!module) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.centerContent]}>
+        <Text style={styles.emptyText}>Module not found.</Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 20 }}
+        >
+          <Text style={{ color: theme.colors.actionPrimary.default }}>
+            Go Back
+          </Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.safeArea}>
@@ -437,6 +533,7 @@ const PackModuleScreen = () => {
                     currentBlock?.id || "",
                   )}
                   onActivityCreated={handleActivityCreated}
+                  blockIndex={currentBlockIndex}
                 />
               </View>
             )}

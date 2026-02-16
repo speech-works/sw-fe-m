@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   PhoneCallEDPStackNavigationProp,
   PhoneCallEDPStackParamList,
+  PhoneCallEDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
 import ScreenView from "../../../../../../components/ScreenView";
 import CustomScrollView, {
@@ -47,14 +48,14 @@ const PhoneCall = () => {
   const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
-  const routeParams = useRoute().params as any;
-  const packContext = routeParams?.packContext;
+  const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
+  const { packContext, practiceActivity } = route.params || {};
 
   const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
   // State for the currently selected scenario, initialized with the first item
   const [selectedScenario, setSelectedScenario] = useState<PhoneCallScenario>();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    routeParams?.practiceActivity?.id || null,
+    practiceActivity?.id || null,
   );
 
   // State for bottom sheet visibility
@@ -151,7 +152,11 @@ const PhoneCall = () => {
       // If in pack, maybe auto-navigate back?
       // For now, we leave the user on the screen or let them end the call manually
       if (packContext) {
-        navigation.goBack();
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
       }
     } catch (error) {
       console.error("Failed to complete phone call activity", error);

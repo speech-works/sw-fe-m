@@ -6,10 +6,12 @@ export type SCEDPStackParamList = {
   SCList: undefined;
   SCBriefing: {
     sc: ExposurePractice;
+    packContext?: { packId: string; moduleId: string; blockIndex?: number };
   };
   SCChat: {
     sc: ExposurePractice;
     practiceActivityId: string;
+    packContext?: { packId: string; moduleId: string; blockIndex?: number };
   };
 };
 export type SCEDPStackNavigationProp<T extends keyof SCEDPStackParamList> =

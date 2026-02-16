@@ -1,5 +1,6 @@
+import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RouteProp } from "@react-navigation/native";
+import { AcademyStackParamList } from "../../types";
 
 export type FDPStackParamList = {
   FunPractice: undefined;
@@ -8,7 +9,10 @@ export type FDPStackParamList = {
   CharacterVoicePracticeStack: undefined;
 };
 export type FDPStackNavigationProp<T extends keyof FDPStackParamList> =
-  NativeStackNavigationProp<FDPStackParamList, T>;
+  CompositeNavigationProp<
+    NativeStackNavigationProp<FDPStackParamList, T>,
+    NativeStackNavigationProp<AcademyStackParamList>
+  >;
 export type FDPStackRouteProp<T extends keyof FDPStackParamList> = RouteProp<
   FDPStackParamList,
   T

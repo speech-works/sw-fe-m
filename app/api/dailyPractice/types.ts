@@ -226,6 +226,8 @@ export interface ExposurePractice {
   description: string;
   difficulty: DifficultyLevel;
   practiceData?: FixedRolePlayData;
+  socialChallengeData?: FixedRolePlayData;
+  interviewPracticeData?: FixedRolePlayData;
   realLifeChallengeData?: ExposureRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 

@@ -40,6 +40,7 @@ interface ContentRendererProps {
   moduleId?: string;
   isMandatory?: boolean;
   isCompleted?: boolean;
+  blockIndex?: number;
   onActivityCreated?: (blockId: string, activityId: string) => void;
 }
 
@@ -51,6 +52,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   moduleId,
   isMandatory,
   isCompleted,
+  blockIndex,
   onActivityCreated,
 }) => {
   const navigation = useNavigation();
@@ -144,6 +146,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             blockId: block.id,
             moduleId,
             packId,
+            blockIndex, // Passed from parent
           });
         } catch (error: any) {
           console.error("Failed to load activity:", error);

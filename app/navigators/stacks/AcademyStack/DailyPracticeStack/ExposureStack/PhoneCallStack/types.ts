@@ -1,12 +1,19 @@
+import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RouteProp } from "@react-navigation/native";
+import { AcademyStackParamList } from "../../../types";
 
 export type PhoneCallEDPStackParamList = {
-  PhoneCallScreen: undefined;
+  PhoneCallScreen: {
+    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    practiceActivity?: any;
+  };
 };
 export type PhoneCallEDPStackNavigationProp<
-  T extends keyof PhoneCallEDPStackParamList
-> = NativeStackNavigationProp<PhoneCallEDPStackParamList, T>;
+  T extends keyof PhoneCallEDPStackParamList,
+> = CompositeNavigationProp<
+  NativeStackNavigationProp<PhoneCallEDPStackParamList, T>,
+  NativeStackNavigationProp<AcademyStackParamList>
+>;
 export type PhoneCallEDPStackRouteProp<
-  T extends keyof PhoneCallEDPStackParamList
+  T extends keyof PhoneCallEDPStackParamList,
 > = RouteProp<PhoneCallEDPStackParamList, T>;

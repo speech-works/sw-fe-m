@@ -4,7 +4,11 @@ import ScreenView from "../../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import {
   parseTextStyle,
   parseShadowStyle,
@@ -43,8 +47,11 @@ import {
 } from "../../../../../../utils/vitals";
 import { useUserStore } from "../../../../../../stores/user";
 
+import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+
 const Breathing = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AcademyStackNavigationProp<"Breathing">>();
 
   // single “mute” state that mutes both breath sounds + background
   const [mute, setMute] = useState(false);
@@ -119,6 +126,9 @@ const Breathing = () => {
       const userId = practiceSession?.user?.id || user?.id;
       if (!currentActivityId || !userId) return;
 
+      // Stop audio before navigating
+      await stopBackground();
+
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
         userId,
@@ -127,8 +137,14 @@ const Breathing = () => {
         moduleId: packContext?.moduleId,
       });
       updateActivity(currentActivityId, completedActivity);
-      if (packContext) {
+      if (packContext && navigation.canGoBack()) {
         navigation.goBack();
+      } else if (packContext) {
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
       } else {
         setIsDone(true);
       }
@@ -148,14 +164,23 @@ const Breathing = () => {
       const userId = practiceSession?.user?.id || user?.id;
       if (!currentActivityId || !userId) return;
 
+      // Stop audio before navigating
+      await stopBackground();
+
       await completePracticeActivity({
         id: currentActivityId,
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
       });
-      if (packContext) {
+      if (packContext && navigation.canGoBack()) {
         navigation.goBack();
+      } else if (packContext) {
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
       } else {
         setIsDone(true);
       }
@@ -213,15 +238,24 @@ const Breathing = () => {
     return () => clearInterval(interval);
   }, [isDone, currentActivityId]); // Add currentActivityId to dependency array
 
-  // ─── When unmounting, fully stop & unload the background track ───────────────────
+  // ─── When unmounting or blurring, fully stop & unload the background track ───────────────────
   useEffect(() => {
     return () => {
       stopBackground();
     };
   }, [stopBackground]);
 
+  // Ensure audio stops when leaving screen
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        stopBackground();
+      };
+    }, [stopBackground]),
+  );
+
   // Use route params if available
-  const route = useRoute<any>();
+  const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
   const passedActivity = route.params?.practiceActivity;
   const packContext = route.params?.packContext;
 
@@ -401,9 +435,22 @@ const Breathing = () => {
                   setShowAccuracy(shouldCollectAccuracy(currentActivity));
                   setShowVitalsModal(true);
                 } else {
+                  console.log(
+                    "[Breathing Debug] Marking activity done via manual completion",
+                  );
                   await markActivityDone();
-                  if (packContext) {
+
+                  // Stop audio before navigating
+                  await stopBackground();
+
+                  if (packContext && navigation.canGoBack()) {
                     navigation.goBack();
+                  } else if (packContext) {
+                    navigation.navigate("PackModule", {
+                      packId: packContext.packId,
+                      moduleId: packContext.moduleId,
+                      initialBlockIndex: packContext.blockIndex,
+                    });
                   } else {
                     setIsDone(true);
                   }

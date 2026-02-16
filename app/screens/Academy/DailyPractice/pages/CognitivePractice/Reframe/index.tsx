@@ -49,11 +49,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import RainOverlay from "./components/RainOverlay";
 import { triggerToast } from "../../../../../../util/functions/toast";
 
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+
 const Reframe = () => {
-  const route = useRoute();
-  const params = route.params as any; // or specific type if available
-  const packContext = params?.packContext;
-  const practiceActivity = params?.practiceActivity;
+  const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
+  const { packContext, practiceActivity } = route.params || {};
 
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
@@ -111,7 +111,9 @@ const Reframe = () => {
 
     let sessionToUse = practiceSession;
 
-    if (!isPackContext && !sessionToUse && user) {
+    if (isPackContext && packContext) {
+      console.warn("Reframe: active session check skipped for pack context");
+    } else if (!isPackContext && !sessionToUse && user) {
       try {
         console.log("Ensuring active session for Reframe...");
         const newSession = await ensureActiveSession(user.id);
@@ -233,6 +235,17 @@ const Reframe = () => {
       updateActivity(currentActivityId, {
         ...completedActivity,
       });
+
+      if (packContext) {
+        // Use academyNav to navigate to PackModule as it is in the parent stack
+        academyNav.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
+      } else {
+        setIsDone(true);
+      }
     } catch (err) {
       console.error("Failed to complete activity", err);
       triggerToast(
@@ -393,11 +406,7 @@ const Reframe = () => {
                     text="Submit Reframe"
                     onPress={async () => {
                       await markActivityDone();
-                      if (packContext) {
-                        navigation.goBack();
-                      } else {
-                        setIsDone(true);
-                      }
+                      // Navigation handled in markActivityDone
                     }}
                     style={{ marginTop: 24 }}
                   />

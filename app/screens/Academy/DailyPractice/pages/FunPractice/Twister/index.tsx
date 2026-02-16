@@ -60,10 +60,16 @@ import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverCo
 
 const { width } = Dimensions.get("window");
 
+import {
+  TwisterFDPStackNavigationProp,
+  TwisterFDPStackRouteProp,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
+
 const Twister = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const packContext = (route.params as any)?.packContext;
+  const navigation =
+    useNavigation<TwisterFDPStackNavigationProp<"TwisterExercise">>();
+  const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
+  const { packContext } = route.params || {};
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
@@ -139,7 +145,7 @@ const Twister = () => {
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    (route.params as any).practiceActivity?.id || null,
+    route.params?.practiceActivity?.id || null,
   );
   const [isStarting, setIsStarting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -292,7 +298,11 @@ const Twister = () => {
     });
 
     if (packContext) {
-      navigation.goBack();
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      });
     }
   };
 
@@ -355,7 +365,16 @@ const Twister = () => {
     return (
       <DonePractice
         practiceName="tongue twister"
-        onDone={packContext ? () => navigation.goBack() : undefined}
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
       />
     );
   }

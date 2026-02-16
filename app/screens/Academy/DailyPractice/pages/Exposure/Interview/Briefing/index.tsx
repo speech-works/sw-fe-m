@@ -45,6 +45,8 @@ const Briefing = () => {
     practiceActivity?.id || null,
   );
 
+  const data = interview.practiceData || interview.interviewPracticeData;
+
   const markActivityStart = async () => {
     const isPackContext = packContext?.packId;
 
@@ -104,17 +106,13 @@ const Briefing = () => {
       ...startedActivity,
     });
     setCurrentActivityId(activityIdToStart);
-  };
 
-  useEffect(() => {
-    console.log("Begin Interview", { currentActivityId });
-    currentActivityId &&
-      navigation.navigate("InterviewChat", {
-        interview,
-        practiceActivityId: currentActivityId,
-        packContext,
-      } as any);
-  }, [currentActivityId]);
+    navigation.navigate("InterviewChat", {
+      interview,
+      practiceActivityId: activityIdToStart,
+      packContext,
+    } as any);
+  };
 
   return (
     <ScreenView style={styles.screenView}>
@@ -146,8 +144,7 @@ const Briefing = () => {
             <View style={styles.watermarkIconContainer}>
               <Icon
                 name={
-                  interview.practiceData?.scenario.availableRole
-                    .fontAwesomeIcon || "user-tie"
+                  data?.scenario.availableRole.fontAwesomeIcon || "user-tie"
                 }
                 size={120}
                 color="#EA580C"
@@ -169,7 +166,7 @@ const Briefing = () => {
                   <Text style={styles.sectionTitle}>The Scenario</Text>
                 </View>
                 <Text style={styles.scenarioText}>
-                  {interview.practiceData?.scenario.scenarioDetails ||
+                  {data?.scenario.scenarioDetails ||
                     "Prepare for your simulated interview session."}
                 </Text>
               </View>
@@ -194,9 +191,7 @@ const Briefing = () => {
             </View>
 
             {/* Masonry Tips Grid */}
-            <MasonryTips
-              tips={interview.practiceData?.stage.userCharacter || []}
-            />
+            <MasonryTips tips={data?.stage.userCharacter || []} />
           </View>
 
           <TouchableOpacity

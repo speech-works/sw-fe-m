@@ -198,7 +198,11 @@ export const useQuotePractice = () => {
       setPracticeComplete(true);
 
       if (packContext) {
-        navigation.goBack();
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
       }
     } catch (error) {
       console.error("❌ Failed to complete activity:", error);

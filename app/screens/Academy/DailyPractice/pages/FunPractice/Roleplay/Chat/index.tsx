@@ -53,8 +53,12 @@ interface ChatMessage {
   text: string;
 }
 
+import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+
 const Chat = () => {
-  const navigation = useNavigation();
+  console.log("RoleplayChat MOUNTED");
+  const navigation =
+    useNavigation<AcademyStackNavigationProp<"RoleplayChat">>();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
   const { title, roleplay, selectedRoleName, id, packContext } = route.params;
@@ -273,7 +277,16 @@ const Chat = () => {
     return (
       <DonePractice
         practiceName="roleplay"
-        onDone={packContext ? () => navigation.goBack() : undefined}
+        onDone={
+          packContext
+            ? () =>
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                })
+            : undefined
+        }
       />
     );
   }

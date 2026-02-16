@@ -51,10 +51,14 @@ import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
 import { triggerToast } from "../../../../../../util/functions/toast";
 
+import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
+
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+
 const Meditation = () => {
-  const navigation = useNavigation();
-  const route =
-    useRoute<RouteProp<MoodFUStackParamList, "MeditationPractice">>();
+  const navigation = useNavigation<AcademyStackNavigationProp<"Meditation">>();
+  // Use CDPStackRouteProp for MeditationPractice
+  const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, setSession, ensureActiveSession } =
@@ -68,10 +72,8 @@ const Meditation = () => {
   const [mute, setMute] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
-  // Use existing route but cast params to any for packContext
-  const params = route.params as any;
-  const packContext = params?.packContext;
-  const practiceActivity = params?.practiceActivity;
+  // Use existing route params
+  const { packContext, practiceActivity } = route.params || {};
 
   // All fetched meditation scenarios
   const [meditationScenarios, setMeditationScenarios] = useState<
@@ -401,7 +403,11 @@ const Meditation = () => {
     setIsPlaying(false);
     await markActivityComplete();
     if (packContext) {
-      navigation.goBack();
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      } as any);
     } else {
       setIsDone(true);
     }

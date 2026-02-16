@@ -42,6 +42,10 @@ const Briefing = () => {
     practiceActivity?.id || null,
   );
 
+  const data = sc.practiceData || sc.socialChallengeData;
+
+  // ...
+
   const markActivityStart = async () => {
     const isPackContext = packContext?.packId;
 
@@ -103,17 +107,13 @@ const Briefing = () => {
       ...startedActivity,
     });
     setCurrentActivityId(activityIdToStart);
-  };
 
-  useEffect(() => {
-    console.log("Begin Challenge", { currentActivityId });
-    currentActivityId &&
-      navigation.navigate("SCChat", {
-        sc,
-        practiceActivityId: currentActivityId,
-        packContext,
-      } as any);
-  }, [currentActivityId]);
+    navigation.navigate("SCChat", {
+      sc,
+      practiceActivityId: activityIdToStart,
+      packContext,
+    } as any);
+  };
 
   return (
     <ScreenView style={styles.screenView}>
@@ -145,8 +145,7 @@ const Briefing = () => {
             <View style={styles.watermarkIconContainer}>
               <Icon
                 name={
-                  sc.practiceData?.scenario.availableRole.fontAwesomeIcon ||
-                  "user-tie"
+                  data?.scenario?.availableRole?.fontAwesomeIcon || "user-tie"
                 }
                 size={120}
                 color="#EA580C"
@@ -166,7 +165,7 @@ const Briefing = () => {
                   <Text style={styles.sectionTitle}>The Scenario</Text>
                 </View>
                 <Text style={styles.scenarioText}>
-                  {sc.practiceData?.scenario.scenarioDetails ||
+                  {data?.scenario?.scenarioDetails ||
                     "Navigate this social situation with confidence."}
                 </Text>
               </View>
@@ -191,7 +190,7 @@ const Briefing = () => {
             </View>
 
             {/* Masonry Tips Grid */}
-            <MasonryTips tips={sc.practiceData?.stage.userCharacter || []} />
+            <MasonryTips tips={data?.stage?.userCharacter || []} />
           </View>
 
           <TouchableOpacity
