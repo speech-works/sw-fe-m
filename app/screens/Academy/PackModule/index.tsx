@@ -130,7 +130,7 @@ const PackModuleScreen = () => {
           return prevIds !== newIds ? completed : prev;
         });
       }
-    }, [module, blockToActivityMap, isActivityCompleted]),
+    }, [module, blockToActivityMap, isActivityCompleted, activities]), // Added activities to dependecy array
   );
 
   // Animation for progress bar

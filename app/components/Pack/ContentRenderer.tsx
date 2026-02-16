@@ -3,9 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
-  TouchableOpacity,
-  Linking,
   Dimensions,
   ActivityIndicator,
   Alert,
@@ -33,6 +30,7 @@ import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
+import { useActivityStore } from "../../stores/activity";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
@@ -138,9 +136,13 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             contentId: content.refId,
           });
           console.log("<< Pack: Activity created successfully", activity.id);
+          console.log("[ContentRenderer Debug] Created activity:", activity);
 
           // Notify parent that activity was created
           onActivityCreated?.(block.id, activity.id);
+
+          // Add to store so completion updates work
+          useActivityStore.getState().addActivity(activity);
 
           navigateToPackActivity(navigation, activity, {
             blockId: block.id,

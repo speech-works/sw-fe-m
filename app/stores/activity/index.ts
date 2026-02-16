@@ -10,7 +10,7 @@ interface PracticeActivityState {
   addActivity: (activity: PracticeActivity) => void;
   updateActivity: (
     activityId: string,
-    activityUpdates: Partial<PracticeActivity>
+    activityUpdates: Partial<PracticeActivity>,
   ) => void;
   clearActivities: () => void;
   doesActivityExist: (activityId: string) => boolean;
@@ -26,11 +26,11 @@ export const useActivityStore = create<PracticeActivityState>()(
         set((state) => {
           // Check if the activity already exists to avoid duplicates
           const existingActivity = state.activities.find(
-            (a) => a.id === activity.id
+            (a) => a.id === activity.id,
           );
           if (existingActivity) {
             console.log(
-              `Activity with ID ${activity.id} already exists. Not adding duplicate.`
+              `Activity with ID ${activity.id} already exists. Not adding duplicate.`,
             );
             return state;
           }
@@ -44,7 +44,7 @@ export const useActivityStore = create<PracticeActivityState>()(
           const updatedActivities = state.activities.map((activity) =>
             activity.id === activityId
               ? { ...activity, ...activityUpdates }
-              : activity
+              : activity,
           );
           console.log("Updating activity in zustand store", {
             activityId,
@@ -62,7 +62,7 @@ export const useActivityStore = create<PracticeActivityState>()(
 
       doesActivityExist: (activityId) => {
         const exists = get().activities.some(
-          (activity) => activity.id === activityId
+          (activity) => activity.id === activityId,
         );
         console.log(`Checking if activity ${activityId} exists: ${exists}`);
         return exists;
@@ -73,7 +73,7 @@ export const useActivityStore = create<PracticeActivityState>()(
         // An activity is considered completed if its 'completedAt' property is not null or undefined.
         const isCompleted = activity ? !!activity.completedAt : false;
         console.log(
-          `Checking if activity ${activityId} is completed (based on completedAt): ${isCompleted}`
+          `Checking if activity ${activityId} is completed (based on completedAt): ${isCompleted}`,
         );
         return isCompleted;
       },
@@ -85,13 +85,13 @@ export const useActivityStore = create<PracticeActivityState>()(
         if (state && state.activities) {
           // Apply recursive date parsing to each activity object loaded from storage
           state.activities = state.activities.map(
-            (activity) => reviveDatesInObject(activity) as PracticeActivity // Cast to PracticeActivity
+            (activity) => reviveDatesInObject(activity) as PracticeActivity, // Cast to PracticeActivity
           );
           console.log("Rehydrated activities with dates revived", {
             rehydratedActivities: state.activities,
           });
         }
       },
-    }
-  )
+    },
+  ),
 );

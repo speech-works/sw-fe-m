@@ -94,12 +94,21 @@ const Breathing = () => {
     }
 
     try {
+      console.log(
+        "[Breathing Debug] markActivityDone: Completing activity",
+        currentActivityId,
+      );
       const completedActivity = await completePracticeActivity({
         id: currentActivityId, // The ID of the started activity instance
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
       });
+
+      console.log(
+        "[Breathing Debug] markActivityDone: API success, updating store",
+        completedActivity,
+      );
       updateActivity(currentActivityId, {
         ...completedActivity,
       });
@@ -167,12 +176,23 @@ const Breathing = () => {
       // Stop audio before navigating
       await stopBackground();
 
-      await completePracticeActivity({
+      console.log(
+        "[Breathing Debug] handleVitalsSkip: Completing activity",
+        currentActivityId,
+      );
+      const completedActivity = await completePracticeActivity({
         id: currentActivityId,
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
       });
+
+      console.log(
+        "[Breathing Debug] handleVitalsSkip: API success, updating store",
+        completedActivity,
+      );
+      updateActivity(currentActivityId, completedActivity);
+
       if (packContext && navigation.canGoBack()) {
         navigation.goBack();
       } else if (packContext) {
