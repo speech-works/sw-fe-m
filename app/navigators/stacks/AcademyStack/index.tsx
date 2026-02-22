@@ -9,6 +9,7 @@ import MoodCheckStackNavigator from "./MoodCheckStack";
 import PDStackNavigator from "./ProgressDetailStack";
 import PaymentStackNavigator from "../PaymentStack";
 import PackModuleScreen from "../../../screens/Academy/PackModule";
+import PackFormScreen from "../../../screens/Academy/PackFormScreen";
 import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
@@ -42,6 +43,7 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="ProgressDetailStack" component={PDStackNavigator} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />
+      <Stack.Screen name="PackForm" component={PackFormScreen} />
       <Stack.Screen name="Breathing" component={Breathing} />
       <Stack.Screen name="Meditation" component={Meditation} />
       <Stack.Screen name="Reframe" component={Reframe} />

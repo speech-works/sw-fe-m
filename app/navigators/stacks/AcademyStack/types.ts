@@ -1,7 +1,7 @@
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
 import { MoodType } from "../../../api/moodCheck/types";
-import { PackModule } from "../../../api/packs/types";
+import { PackModule, FormConfiguration } from "../../../api/packs/types";
 
 export type AcademyStackParamList = {
   Academy: undefined;
@@ -16,6 +16,13 @@ export type AcademyStackParamList = {
     packId: string;
     moduleId?: string;
     initialBlockIndex?: number;
+  };
+  PackForm: {
+    configuration: FormConfiguration;
+    formId: string;
+    packId: string;
+    moduleId: string;
+    blockId: string;
   };
   Breathing: { guidedActivity?: any; packContext?: any } | undefined;
   Meditation: { guidedActivity?: any; packContext?: any } | undefined;

@@ -6,6 +6,7 @@ import BottomSheetModal from "./BottomSheetModal";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
+import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 
@@ -57,7 +58,11 @@ const GlobalModal = () => {
       onClose={() => setModalVisible(false)}
       maxHeight="45%"
     >
-      <BgPattern_404 />
+      {modalType === "error" ? (
+        <BgPattern_404 />
+      ) : (
+        <BgPattern_GradientSpheres />
+      )}
       <View style={styles.handle} />
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>{modalTitle}</Text>

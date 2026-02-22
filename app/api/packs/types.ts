@@ -56,8 +56,54 @@ export type AudioBlockContent = {
   descriptionOverride?: string;
 };
 
+// --- Form Block Types (hydrated by backend) ---
+
+export enum FormFieldType {
+  LIKERT_5 = "LIKERT_5",
+  LIKERT_7 = "LIKERT_7",
+  SLIDER = "SLIDER",
+  BOOLEAN_TOGGLE = "BOOLEAN_TOGGLE",
+  TEXT_INPUT = "TEXT_INPUT",
+  MULTIPLE_CHOICE = "MULTIPLE_CHOICE",
+}
+
+export interface FormField {
+  id: string;
+  type: FormFieldType;
+  label: string;
+  required?: boolean;
+  // LIKERT_5, LIKERT_7, SLIDER
+  minLabel?: string;
+  maxLabel?: string;
+  // LIKERT
+  ratingMax?: number;
+  // SLIDER
+  min?: number;
+  max?: number;
+  // TEXT_INPUT
+  placeholder?: string;
+  // MULTIPLE_CHOICE
+  options?: string[];
+}
+
+export interface FormConfiguration {
+  formKey: string;
+  title: string;
+  description: string;
+  fields: FormField[];
+}
+
+export type FormBlockContent = {
+  refId: string;
+  formId: string; // UUID — use this for POST /forms/:formId/submit
+  titleOverride?: string;
+  configuration: FormConfiguration;
+};
+
+// --- Reference Block (for ACTIVITY / SIMULATION) ---
+
 export type ReferenceBlockContent = {
-  refId: string; // References PracticeActivity, Form, or Simulation ID
+  refId: string; // References PracticeActivity or Simulation ID
   titleOverride?: string;
   descriptionOverride?: string;
 
@@ -72,6 +118,7 @@ export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
   | AudioBlockContent
+  | FormBlockContent
   | ReferenceBlockContent;
 
 export interface ModuleContentBlock {

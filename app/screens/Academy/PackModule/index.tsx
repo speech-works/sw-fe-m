@@ -82,8 +82,8 @@ const PackModuleScreen = () => {
     }
   }, [initialBlockIndex]);
 
-  // Activity Completion Tracking
-  const [completedActivityBlocks, setCompletedActivityBlocks] = useState<
+  // Interactive Block Completion Tracking (ACTIVITY + FORM)
+  const [completedInteractiveBlocks, setCompletedInteractiveBlocks] = useState<
     Set<string>
   >(new Set());
 
@@ -95,42 +95,63 @@ const PackModuleScreen = () => {
   // Force refresh from store on focus, and potentially re-fetch if needed
   useFocusEffect(
     useCallback(() => {
-      console.log("[PackModule] Screen focused. Refreshing activity status.");
+      console.log(
+        "[PackModule] Screen focused. Refreshing interactive block status.",
+      );
 
-      // Re-calculate completed blocks from the current store state
-      if (module?.blocks && blockToActivityMap.size > 0) {
+      const refreshInteractiveBlocks = async () => {
+        if (!module?.blocks) return;
         const completed = new Set<string>();
-        module.blocks.forEach((block) => {
-          if (block.type === ContentBlockType.ACTIVITY) {
-            const activityId = blockToActivityMap.get(block.id);
-            const isComp = activityId ? isActivityCompleted(activityId) : false;
 
-            console.log(`[PackModule Debug] Block ${block.id}`, {
-              activityId,
-              storeSaysCompleted: isComp,
-              inCompletedSet: completedActivityBlocks.has(block.id),
-            });
+        // Check ACTIVITY blocks via store
+        if (blockToActivityMap.size > 0) {
+          module.blocks.forEach((block) => {
+            if (block.type === ContentBlockType.ACTIVITY) {
+              const activityId = blockToActivityMap.get(block.id);
+              const isComp = activityId
+                ? isActivityCompleted(activityId)
+                : false;
 
-            // Check store
-            if (activityId && isActivityCompleted(activityId)) {
-              completed.add(block.id);
+              console.log(`[PackModule Debug] ACTIVITY Block ${block.id}`, {
+                activityId,
+                storeSaysCompleted: isComp,
+                inCompletedSet: completedInteractiveBlocks.has(block.id),
+              });
+
+              if (activityId && isActivityCompleted(activityId)) {
+                completed.add(block.id);
+              }
             }
+          });
+        }
+
+        // Check FORM blocks via AsyncStorage
+        const formBlocks = module.blocks.filter(
+          (b) => b.type === ContentBlockType.FORM,
+        );
+        for (const block of formBlocks) {
+          const key = `pack-${packId}-module-${module.id}-form-${block.id}`;
+          const val = await AsyncStorage.getItem(key);
+          if (val === "true") {
+            completed.add(block.id);
           }
-        });
+        }
 
         // Update state if different
-        setCompletedActivityBlocks((prev) => {
+        setCompletedInteractiveBlocks((prev) => {
           const prevIds = Array.from(prev).sort().join(",");
           const newIds = Array.from(completed).sort().join(",");
           console.log(
-            "[PackModule Debug] Updating completed blocks?",
+            "[PackModule Debug] Updating completed interactive blocks?",
             prevIds !== newIds,
             newIds,
           );
           return prevIds !== newIds ? completed : prev;
         });
-      }
-    }, [module, blockToActivityMap, isActivityCompleted, activities]), // Added activities to dependecy array
+      };
+
+      refreshInteractiveBlocks();
+    }, [module, blockToActivityMap, isActivityCompleted, activities, packId]),
   );
 
   // Animation for progress bar
@@ -259,7 +280,7 @@ const PackModuleScreen = () => {
     }
   }, [blockToActivityMap, packId, module?.id]);
 
-  // Synchronize completed activity blocks with the activity store
+  // Synchronize completed interactive blocks with the activity store
   useEffect(() => {
     if (module?.blocks && blockToActivityMap.size > 0) {
       const completed = new Set<string>();
@@ -276,20 +297,16 @@ const PackModuleScreen = () => {
         }
       });
 
-      const currentIds = Array.from(completedActivityBlocks).sort().join(",");
-      const newIds = Array.from(completed).sort().join(",");
-
-      if (currentIds !== newIds) {
-        setCompletedActivityBlocks(completed);
-      }
+      // Merge with existing (preserves FORM completions already in the set)
+      setCompletedInteractiveBlocks((prev) => {
+        const merged = new Set(prev);
+        completed.forEach((id) => merged.add(id));
+        const prevIds = Array.from(prev).sort().join(",");
+        const mergedIds = Array.from(merged).sort().join(",");
+        return prevIds !== mergedIds ? merged : prev;
+      });
     }
-  }, [
-    activities,
-    module?.blocks,
-    blockToActivityMap,
-    isActivityCompleted,
-    completedActivityBlocks,
-  ]);
+  }, [activities, module?.blocks, blockToActivityMap, isActivityCompleted]);
 
   const handleNext = () => {
     if (module?.blocks && currentBlockIndex < module.blocks.length - 1) {
@@ -316,6 +333,16 @@ const PackModuleScreen = () => {
     },
     [],
   );
+
+  // Callback for when a form is completed (called by ContentRenderer)
+  const handleFormCompleted = useCallback((blockId: string) => {
+    console.log("Form completed for block:", blockId);
+    setCompletedInteractiveBlocks((prev) => {
+      const next = new Set(prev);
+      next.add(blockId);
+      return next;
+    });
+  }, []);
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);
@@ -353,13 +380,15 @@ const PackModuleScreen = () => {
 
   const handleFooterAction = () => {
     const currentBlock = blocks[currentBlockIndex];
-    const isActivityBlock = currentBlock?.type === ContentBlockType.ACTIVITY;
-    const isActivityCompleted = completedActivityBlocks.has(
+    const isInteractiveBlock =
+      currentBlock?.type === ContentBlockType.ACTIVITY ||
+      currentBlock?.type === ContentBlockType.FORM;
+    const isBlockCompleted = completedInteractiveBlocks.has(
       currentBlock?.id || "",
     );
 
-    // Check if skipping a mandatory activity
-    if (isActivityBlock && !isActivityCompleted && module?.isMandatory) {
+    // Check if skipping a mandatory interactive block
+    if (isInteractiveBlock && !isBlockCompleted && module?.isMandatory) {
       setShowSkipConfirmation(true);
       return;
     }
@@ -555,10 +584,11 @@ const PackModuleScreen = () => {
                   packId={packId}
                   moduleId={module.id}
                   isMandatory={module.isMandatory}
-                  isCompleted={completedActivityBlocks.has(
+                  isCompleted={completedInteractiveBlocks.has(
                     currentBlock?.id || "",
                   )}
                   onActivityCreated={handleActivityCreated}
+                  onFormCompleted={handleFormCompleted}
                   blockIndex={currentBlockIndex}
                 />
               </View>
@@ -585,14 +615,15 @@ const PackModuleScreen = () => {
 
             <View style={{ flex: 1.5 }}>
               {(() => {
-                const isActivityBlock =
-                  currentBlock?.type === ContentBlockType.ACTIVITY;
-                const isActivityCompleted = completedActivityBlocks.has(
+                const isInteractiveBlock =
+                  currentBlock?.type === ContentBlockType.ACTIVITY ||
+                  currentBlock?.type === ContentBlockType.FORM;
+                const isBlockCompleted = completedInteractiveBlocks.has(
                   currentBlock?.id || "",
                 );
 
-                // Check activity completion FIRST, before checking if it's the last block
-                if (isActivityBlock && !isActivityCompleted) {
+                // Check interactive block completion FIRST, before checking if it's the last block
+                if (isInteractiveBlock && !isBlockCompleted) {
                   return (
                     <TactileTouchableOpacity
                       style={styles.skipButton}

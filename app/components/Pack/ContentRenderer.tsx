@@ -14,6 +14,7 @@ import {
   TextBlockContent,
   VideoBlockContent,
   AudioBlockContent,
+  FormBlockContent,
   ReferenceBlockContent,
 } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
@@ -40,6 +41,7 @@ interface ContentRendererProps {
   isCompleted?: boolean;
   blockIndex?: number;
   onActivityCreated?: (blockId: string, activityId: string) => void;
+  onFormCompleted?: (blockId: string) => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -52,6 +54,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   isCompleted,
   blockIndex,
   onActivityCreated,
+  onFormCompleted,
 }) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
@@ -83,7 +86,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             style={{ width: "100%" }}
             autoPlay={true}
             isLocked={videoContent.isLocked}
-            onPressGoPremium={() => navigation.navigate("PremiumModal" as any)}
+            onPressGoPremium={() =>
+              (navigation as any).navigate("PremiumModal")
+            }
           />
         </View>
       );
@@ -278,6 +283,102 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       );
     }
 
+    case ContentBlockType.FORM: {
+      const formContent = block.content as FormBlockContent;
+      const config = formContent.configuration;
+
+      const handleStartForm = () => {
+        if (!packId || !moduleId) {
+          Alert.alert("Error", "Pack context missing");
+          return;
+        }
+        (navigation as any).navigate("PackForm", {
+          configuration: config,
+          formId: formContent.formId,
+          packId,
+          moduleId,
+          blockId: block.id,
+        });
+      };
+
+      return (
+        <TactileTouchableOpacity
+          style={styles.formCard}
+          onPress={handleStartForm}
+          disabled={isCompleted}
+          activeOpacity={isCompleted ? 1 : 0.9}
+        >
+          <LinearGradient
+            colors={
+              isCompleted ? ["#10B981", "#059669"] : ["#6366F1", "#8B5CF6"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cardGradient}
+          >
+            <View style={styles.bubbleTopRight} />
+            <View style={styles.bubbleBottomLeft} />
+
+            <View style={styles.cardContent}>
+              <View
+                style={[
+                  styles.chip,
+                  isCompleted
+                    ? styles.completedChip
+                    : { backgroundColor: "rgba(255, 255, 255, 0.2)" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={isCompleted ? "check-bold" : "clipboard-text-outline"}
+                  size={14}
+                  color="white"
+                />
+                <Text style={styles.chipText}>
+                  {isCompleted ? "COMPLETED" : "REFLECTION"}
+                </Text>
+              </View>
+
+              <View style={styles.textContainer}>
+                <Text style={styles.activityTitle}>
+                  {formContent.titleOverride || config.title || "Reflection"}
+                </Text>
+                {config.description ? (
+                  <Text style={styles.activityInstructions}>
+                    {config.description}
+                  </Text>
+                ) : null}
+              </View>
+
+              {!isCompleted && (
+                <View style={styles.actionButtonContainer}>
+                  <View style={styles.actionButton}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="pencil-outline"
+                        size={20}
+                        color="#6366F1"
+                      />
+                      <Text
+                        style={[styles.actionButtonText, { color: "#6366F1" }]}
+                      >
+                        Start Reflection
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+        </TactileTouchableOpacity>
+      );
+    }
+
     // ... handle other types
     default:
       return <Text>Unsupported block type: {block.type}</Text>;
@@ -339,6 +440,14 @@ const styles = StyleSheet.create({
     shadowColor: "#EA580C",
     shadowOpacity: 0.25,
     backgroundColor: "white", // Fallback
+  },
+  formCard: {
+    marginBottom: 24,
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: "#6366F1",
+    shadowOpacity: 0.25,
+    backgroundColor: "white",
   },
   cardGradient: {
     borderRadius: 24,
