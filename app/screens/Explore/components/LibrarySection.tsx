@@ -1,10 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import React from "react";
 import { theme } from "../../../Theme/tokens";
 import {
@@ -14,8 +8,6 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-
-const { width } = Dimensions.get("window");
 
 const LibrarySection = () => {
   const navigation = useNavigation<any>();
@@ -28,7 +20,6 @@ const LibrarySection = () => {
         style={styles.cardContainer}
         onPress={() => navigation.navigate("LibraryStack")}
         activeOpacity={0.9}
-        shouldRasterizeIOS={true} // Performance optimization for shadows
       >
         <LinearGradient
           // Premium Purple-Pink-Orange Gradient

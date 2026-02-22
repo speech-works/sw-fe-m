@@ -39,12 +39,14 @@ export type TextBlockContent = {
 };
 
 export type VideoBlockContent = {
-  provider: "YOUTUBE" | "VIMEO" | "S3";
+  provider: "BUNNY" | "YOUTUBE" | "VIMEO" | "S3";
   videoId: string;
+  videoUrl?: string; // Hydrated by backend
   durationSeconds?: number;
   thumbnailUrl?: string;
   titleOverride?: string;
   descriptionOverride?: string;
+  isLocked?: boolean; // Hydrated by backend based on user premium status
 };
 
 export type AudioBlockContent = {

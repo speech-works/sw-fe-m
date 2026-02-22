@@ -10,11 +10,26 @@ import {
   Easing,
   ViewStyle,
   StyleProp,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Image,
+  Dimensions,
 } from "react-native";
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 import Video, { VideoRef } from "react-native-video";
 import { useFocusEffect } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import Button from "./Button";
+import SkeletonLoader from "./SkeletonLoader";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 
@@ -25,6 +40,11 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   title?: string;
   subtitle?: string;
+  isLocked?: boolean;
+  onPressGoPremium?: () => void;
+  hideControls?: boolean;
+  /** If known ahead of time, pass the aspect ratio to avoid any layout shift */
+  initialAspectRatio?: number;
 }
 
 const AUTO_HIDE_MS = 3000;
@@ -47,6 +67,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   autoPlay = false,
   title,
   subtitle,
+  isLocked = false,
+  onPressGoPremium,
+  hideControls = false,
+  initialAspectRatio,
 }) => {
   // Video State
   const videoRef = useRef<VideoRef>(null);
@@ -55,7 +79,37 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [videoAspectRatio, setVideoAspectRatio] = useState(16 / 9);
+  const [videoAspectRatio, setVideoAspectRatio] = useState(
+    initialAspectRatio || 16 / 9,
+  );
+  const [aspectRatioReady, setAspectRatioReady] =
+    useState(!!initialAspectRatio);
+
+  // Pre-measure poster/thumbnail to get correct aspect ratio BEFORE video loads
+  useEffect(() => {
+    if (initialAspectRatio) {
+      // Already have it, no need to measure
+      setAspectRatioReady(true);
+      return;
+    }
+    if (poster) {
+      Image.getSize(
+        poster,
+        (width, height) => {
+          if (width && height) {
+            setVideoAspectRatio(width / height);
+            setAspectRatioReady(true);
+          }
+        },
+        () => {
+          // If thumbnail fetch fails, just proceed with default 16:9
+          setAspectRatioReady(true);
+        },
+      );
+    } else {
+      setAspectRatioReady(true);
+    }
+  }, [poster, initialAspectRatio]);
 
   // Controls State
   const [seeking, setSeeking] = useState(false);
@@ -221,31 +275,71 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     outputRange: [0, 1],
   });
 
+  // Show a light skeleton placeholder until we know the correct aspect ratio
+  if (!aspectRatioReady) {
+    return (
+      <SkeletonLoader
+        width="100%"
+        height={380}
+        style={{
+          borderRadius: 16,
+          backgroundColor: theme.colors.background.default,
+        }}
+      />
+    );
+  }
+
+  const screenHeight = Dimensions.get("window").height;
+  const screenWidth = Dimensions.get("window").width;
+  const maxVideoHeight = screenHeight * 0.65;
+  // Compute height from full screen width, capped at maxHeight
+  const computedHeight = Math.min(
+    screenWidth / videoAspectRatio,
+    maxVideoHeight,
+  );
+
   return (
-    <View style={[styles.container, style]} onLayout={onContainerLayout}>
+    <View
+      style={[styles.container, { height: computedHeight }, style]}
+      onLayout={onContainerLayout}
+    >
       <Video
         ref={videoRef}
-        source={{ uri }}
-        style={[
-          styles.video,
-          { aspectRatio: videoAspectRatio, opacity: isVideoLoaded ? 1 : 0 },
-        ]}
-        resizeMode="contain"
-        paused={paused}
-        muted={muted}
+        source={{
+          uri,
+          type: uri.includes(".m3u8") ? "m3u8" : undefined,
+        }}
+        style={[styles.video, { opacity: isVideoLoaded ? 1 : 0 }]}
+        resizeMode="cover"
+        paused={isLocked ? false : paused}
+        muted={isLocked ? true : muted}
+        repeat={isLocked}
         poster={poster}
         posterResizeMode="cover"
         onLoad={(meta) => {
           setDuration(meta.duration);
           if (meta.naturalSize) {
-            setVideoAspectRatio(
-              meta.naturalSize.width / meta.naturalSize.height,
-            );
+            const newAspectRatio =
+              meta.naturalSize.width / meta.naturalSize.height;
+            if (Math.abs(newAspectRatio - videoAspectRatio) > 0.05) {
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
+            }
+            setVideoAspectRatio(newAspectRatio);
           }
           setIsVideoLoaded(true);
+
+          if (autoPlay && !isLocked) {
+            setPaused(false);
+          }
+        }}
+        onError={(e) => {
+          console.error("[VideoPlayer] Playback error:", e);
+          console.error("[VideoPlayer] URI was:", uri);
         }}
         onProgress={(data) => {
-          if (!seeking) setCurrentTime(data.currentTime);
+          if (!seeking && !isLocked) setCurrentTime(data.currentTime);
         }}
         onEnd={() => {
           setPaused(true);
@@ -293,8 +387,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         />
       </Animated.View>
 
+      {/* Locked Premium State Overlay */}
+      {isLocked && onPressGoPremium && (
+        <View style={styles.lockedOverlay}>
+          <Icon name="lock" size={48} color={theme.colors.text.onDark} />
+          <Text style={styles.lockedText}>
+            Unlock this tutorial with Premium
+          </Text>
+          <Button
+            text="Go Premium"
+            onPress={onPressGoPremium}
+            style={styles.premiumButton}
+          />
+        </View>
+      )}
+
       {/* Centered Play Button (when paused and controls visible) */}
-      {paused && isVideoLoaded && controlsVisible && (
+      {paused && isVideoLoaded && controlsVisible && !isLocked && (
         <View pointerEvents="none" style={styles.centerPlayButton}>
           <Icon name="play-circle" size={64} color="rgba(255,255,255,0.9)" />
         </View>
@@ -309,6 +418,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               transform: [{ translateY: metaTranslateY }],
               opacity: metaOpacity,
             },
+            isLocked && styles.videoMetaLocked,
           ]}
         >
           {title && <Text style={styles.videoMetaTitleText}>{title}</Text>}
@@ -317,91 +427,93 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
 
       {/* Controls */}
-      <Animated.View
-        style={[
-          styles.controlsContainer,
-          {
-            transform: [{ translateY: controlsTranslateY }],
-            opacity: controlsOpacity,
-          },
-        ]}
-        pointerEvents={controlsVisible ? "auto" : "none"}
-      >
-        {/* Row 1: Progress */}
-        <View style={styles.progressContainer}>
-          <Slider
-            style={{ flex: 1 }}
-            minimumValue={0}
-            maximumValue={Math.max(duration, 0.01)}
-            value={seeking ? tempSeekTime : currentTime}
-            minimumTrackTintColor={theme.colors.actionPrimary.default}
-            maximumTrackTintColor="#aaa"
-            thumbTintColor={theme.colors.actionPrimary.default}
-            onSlidingStart={onSlidingStart}
-            onValueChange={onSliderValueChange}
-            onSlidingComplete={onSlidingComplete}
-          />
-          <Text style={styles.timeText}>
-            {formatTime(seeking ? tempSeekTime : currentTime)} /{" "}
-            {formatTime(duration)}
-          </Text>
-        </View>
-
-        {/* Row 2: Buttons */}
-        <View style={styles.buttonsRow}>
-          {/* Restart */}
-          <TouchableOpacity
-            onPress={() => {
-              videoRef.current?.seek(0);
-              setCurrentTime(0);
-              startAutoHide();
-            }}
-            style={styles.fixedActionButton}
-          >
-            <Icon name="redo-alt" size={22} color="white" />
-          </TouchableOpacity>
-
-          {/* Back 10s */}
-          <TouchableOpacity
-            onPress={() => handleSkipTap("left")}
-            style={styles.fixedActionButton}
-          >
-            <Icon name="backward" size={22} color="white" />
-          </TouchableOpacity>
-
-          {/* Play/Pause */}
-          <TouchableOpacity onPress={onPressPlayPause}>
-            <Icon
-              name={paused ? "play-circle" : "pause-circle"}
-              size={52}
-              color="white"
+      {!isLocked && !hideControls && (
+        <Animated.View
+          style={[
+            styles.controlsContainer,
+            {
+              transform: [{ translateY: controlsTranslateY }],
+              opacity: controlsOpacity,
+            },
+          ]}
+          pointerEvents={controlsVisible ? "auto" : "none"}
+        >
+          {/* Row 1: Progress */}
+          <View style={styles.progressContainer}>
+            <Slider
+              style={{ flex: 1 }}
+              minimumValue={0}
+              maximumValue={Math.max(duration, 0.01)}
+              value={seeking ? tempSeekTime : currentTime}
+              minimumTrackTintColor={theme.colors.actionPrimary.default}
+              maximumTrackTintColor="#aaa"
+              thumbTintColor={theme.colors.actionPrimary.default}
+              onSlidingStart={onSlidingStart}
+              onValueChange={onSliderValueChange}
+              onSlidingComplete={onSlidingComplete}
             />
-          </TouchableOpacity>
+            <Text style={styles.timeText}>
+              {formatTime(seeking ? tempSeekTime : currentTime)} /{" "}
+              {formatTime(duration)}
+            </Text>
+          </View>
 
-          {/* Fwd 10s */}
-          <TouchableOpacity
-            onPress={() => handleSkipTap("right")}
-            style={styles.fixedActionButton}
-          >
-            <Icon name="forward" size={22} color="white" />
-          </TouchableOpacity>
+          {/* Row 2: Buttons */}
+          <View style={styles.buttonsRow}>
+            {/* Restart */}
+            <TouchableOpacity
+              onPress={() => {
+                videoRef.current?.seek(0);
+                setCurrentTime(0);
+                startAutoHide();
+              }}
+              style={styles.fixedActionButton}
+            >
+              <Icon name="redo-alt" size={22} color="white" />
+            </TouchableOpacity>
 
-          {/* Mute */}
-          <TouchableOpacity
-            onPress={() => {
-              setMuted(!muted);
-              startAutoHide();
-            }}
-            style={styles.fixedActionButton}
-          >
-            <Icon
-              name={muted ? "volume-mute" : "volume-up"}
-              size={22}
-              color="white"
-            />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+            {/* Back 10s */}
+            <TouchableOpacity
+              onPress={() => handleSkipTap("left")}
+              style={styles.fixedActionButton}
+            >
+              <Icon name="backward" size={22} color="white" />
+            </TouchableOpacity>
+
+            {/* Play/Pause */}
+            <TouchableOpacity onPress={onPressPlayPause}>
+              <Icon
+                name={paused ? "play-circle" : "pause-circle"}
+                size={52}
+                color="white"
+              />
+            </TouchableOpacity>
+
+            {/* Fwd 10s */}
+            <TouchableOpacity
+              onPress={() => handleSkipTap("right")}
+              style={styles.fixedActionButton}
+            >
+              <Icon name="forward" size={22} color="white" />
+            </TouchableOpacity>
+
+            {/* Mute */}
+            <TouchableOpacity
+              onPress={() => {
+                setMuted(!muted);
+                startAutoHide();
+              }}
+              style={styles.fixedActionButton}
+            >
+              <Icon
+                name={muted ? "volume-mute" : "volume-up"}
+                size={22}
+                color="white"
+              />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -413,9 +525,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
+    width: "100%",
+    minHeight: 220, // Strict fallback until aspect ratio propagates
   },
   video: {
     width: "100%",
+    height: "100%",
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
   loaderOverlay: {
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -427,6 +545,25 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 5,
   },
+  /* Locked Overlay */
+  lockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 200,
+  },
+  lockedText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.onDark,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  premiumButton: {
+    minWidth: 150,
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+
   // Meta Overlay
   videoMeta: {
     position: "absolute",
@@ -436,6 +573,9 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.6)",
     zIndex: 50,
+  },
+  videoMetaLocked: {
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
   videoMetaTitleText: {
     ...parseTextStyle(theme.typography.Body),

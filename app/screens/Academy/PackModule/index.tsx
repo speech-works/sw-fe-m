@@ -154,12 +154,26 @@ const PackModuleScreen = () => {
           initialModule.blocks &&
           initialModule.blocks.length > 0
         ) {
+          // Log video blocks to check if videoUrl is hydrated in the navigated data
+          console.log(
+            "[PackModule] Using initialModule from navigation params (shortcut path)",
+          );
+          initialModule.blocks.forEach((block: any, index: number) => {
+            if (block.type === ContentBlockType.VIDEO) {
+              console.log(`[PackModule] VIDEO block #${index}:`, {
+                videoId: block.content?.videoId,
+                videoUrl: block.content?.videoUrl || "❌ NOT HYDRATED",
+                thumbnailUrl: block.content?.thumbnailUrl || "❌ MISSING",
+                provider: block.content?.provider,
+              });
+            }
+          });
           setModule(initialModule);
           setLoading(false);
           return;
         }
 
-        console.log("Fetching module full content...");
+        console.log("Fetching module full content via getModule API...");
         let fullModule;
         try {
           fullModule = await getModule(packId, targetModuleId);
@@ -173,6 +187,18 @@ const PackModuleScreen = () => {
         }
 
         if (fullModule) {
+          // Log video blocks from the full API response
+          console.log("[PackModule] Using fullModule from API response");
+          fullModule.blocks?.forEach((block: any, index: number) => {
+            if (block.type === ContentBlockType.VIDEO) {
+              console.log(`[PackModule] VIDEO block #${index}:`, {
+                videoId: block.content?.videoId,
+                videoUrl: block.content?.videoUrl || "❌ NOT HYDRATED",
+                thumbnailUrl: block.content?.thumbnailUrl || "❌ MISSING",
+                provider: block.content?.provider,
+              });
+            }
+          });
           setModule(fullModule);
         } else {
           console.error("Module data is empty/not found even after fallback");

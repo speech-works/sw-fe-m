@@ -67,13 +67,23 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
     }
     case ContentBlockType.VIDEO: {
       const videoContent = block.content as VideoBlockContent;
+      const videoUri = videoContent.videoUrl || videoContent.videoId;
+      console.log(
+        "[ContentRenderer] Video URI:",
+        videoUri,
+        "| thumbnailUrl:",
+        videoContent.thumbnailUrl,
+      );
       return (
         <View style={styles.mediaContainer}>
           <VideoPlayer
-            uri={videoContent.videoId}
+            uri={videoUri}
             poster={videoContent.thumbnailUrl}
             title={block.content.titleOverride || "Video Lesson"}
             style={{ width: "100%" }}
+            autoPlay={true}
+            isLocked={videoContent.isLocked}
+            onPressGoPremium={() => navigation.navigate("PremiumModal" as any)}
           />
         </View>
       );
