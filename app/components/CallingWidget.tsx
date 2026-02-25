@@ -31,7 +31,10 @@ import {
 } from "@dr.pogodin/react-native-audio";
 
 import DeviceInfo from "react-native-device-info";
+import * as SecureStore from "expo-secure-store";
+import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";
+import { API_BASE_URL } from "../api/constants";
 
 // --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type Props = {
@@ -374,7 +377,7 @@ const CallingWidget: React.FC<Props> = ({
   const [turn, setTurn] = useState<"user" | "agent" | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
-    Platform.OS === "web" ? true : false
+    Platform.OS === "web" ? true : false,
   );
   const [showHeadsetPrompt, setShowHeadsetPrompt] = useState(false);
 
@@ -393,7 +396,7 @@ const CallingWidget: React.FC<Props> = ({
 
   const playSeq = useRef(0);
   const forcedStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
 
   // Web Audio Refs
@@ -428,7 +431,7 @@ const CallingWidget: React.FC<Props> = ({
   const recording = useRef<Audio.Recording | null>(null);
 
   const audioState = useRef<"IDLE" | "STARTING" | "STARTED" | "STOPPING">(
-    "IDLE"
+    "IDLE",
   );
 
   const isStopping = useRef(false);
@@ -530,6 +533,10 @@ const CallingWidget: React.FC<Props> = ({
   const checkHeadsetConnected = async (): Promise<boolean> => {
     if (Platform.OS === "web") return true;
     try {
+      // Simulators can't detect Mac-connected peripherals via DeviceInfo
+      const isEmulator = await DeviceInfo.isEmulator();
+      if (isEmulator) return true;
+
       const isConnected = await DeviceInfo.isHeadphonesConnected();
       return isConnected;
     } catch (e) {
@@ -540,7 +547,7 @@ const CallingWidget: React.FC<Props> = ({
 
   // --- ⬇️ MODIFIED: `updateHeadsetStatus` with prompt control ⬇️ ---
   const updateHeadsetStatus = async (
-    shouldShowPrompt = false
+    shouldShowPrompt = false,
   ): Promise<boolean> => {
     if (Platform.OS !== "web") {
       const connected = await checkHeadsetConnected();
@@ -637,13 +644,13 @@ const CallingWidget: React.FC<Props> = ({
       } catch (e) {
         console.warn(
           "[Audio] Error stopping sound during cleanup (might be unloaded):",
-          e
+          e,
         );
       }
       try {
         await soundToUnload.unloadAsync(); // Use unloadAsync
         console.log(
-          "[Audio] Sound object unloaded successfully during cleanup."
+          "[Audio] Sound object unloaded successfully during cleanup.",
         );
       } catch (e) {
         console.warn("[Audio] Error unloading sound during cleanup:", e);
@@ -706,8 +713,9 @@ const CallingWidget: React.FC<Props> = ({
       return;
     }
     if (ringIntervalRef.current) return;
-    const ctx = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    const ctx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
     ringAudioCtxRef.current = ctx;
     const gain = ctx.createGain();
     gain.gain.value = 0;
@@ -793,7 +801,7 @@ const CallingWidget: React.FC<Props> = ({
       } else if (ringtoneUri) {
         await sound.loadAsync(
           { uri: ringtoneUri },
-          { shouldPlay: true, isLooping: true }
+          { shouldPlay: true, isLooping: true },
         );
       } else {
         console.warn("No native ringtone asset or uri provided.");
@@ -845,8 +853,9 @@ const CallingWidget: React.FC<Props> = ({
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
         });
-        const ctx = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+        const ctx = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
         audioContext.current = ctx;
 
         // ... (Worklet adding logic is unchanged) ...
@@ -854,10 +863,10 @@ const CallingWidget: React.FC<Props> = ({
           [
             RESAMPLER_WORKLET_CODE.replace(
               /\$\{DEFAULT_SAMPLE_RATE\}/g,
-              String(DEFAULT_SAMPLE_RATE)
+              String(DEFAULT_SAMPLE_RATE),
             ),
           ],
-          { type: "application/javascript" }
+          { type: "application/javascript" },
         );
         const resamplerUrl = URL.createObjectURL(resamplerBlob);
         await ctx.audioWorklet.addModule(resamplerUrl);
@@ -886,11 +895,11 @@ const CallingWidget: React.FC<Props> = ({
             cmd: "init",
             playbackRate: 0.92,
             thresholdSamples: Math.floor(
-              (JITTER_BUFFER_MS / 1000) * ctx.sampleRate
+              (JITTER_BUFFER_MS / 1000) * ctx.sampleRate,
             ),
             fadeSamples: Math.max(
               1,
-              Math.floor((FADE_MS / 1000) * ctx.sampleRate)
+              Math.floor((FADE_MS / 1000) * ctx.sampleRate),
             ),
           });
         } catch (e) {
@@ -952,7 +961,7 @@ const CallingWidget: React.FC<Props> = ({
         preFilter.type = "lowpass";
         preFilter.frequency.value = Math.min(
           12000,
-          Math.max(6000, ctx.sampleRate / 2 - 1000)
+          Math.max(6000, ctx.sampleRate / 2 - 1000),
         );
         source.connect(preFilter);
         preFilter.connect(resampler);
@@ -972,9 +981,19 @@ const CallingWidget: React.FC<Props> = ({
       // --- Native Platform Logic ---
     } else {
       console.log(
-        "Starting audio capture with @dr.pogodin/react-native-audio..."
+        "Starting audio capture with @dr.pogodin/react-native-audio...",
       );
       try {
+        // Simulators can't reliably test native microphone via @dr.pogodin/react-native-audio
+        const isEmulator = await DeviceInfo.isEmulator();
+        if (isEmulator && Platform.OS === "ios") {
+          console.warn(
+            "Simulator detected: Bypassing native mic capture to prevent permission crash.",
+          );
+          // We still return true so the call can proceed, even if the user can't speak natively
+          return true;
+        }
+
         const { granted } = await Audio.requestPermissionsAsync();
         if (!granted) {
           setStatus("Microphone permission denied.");
@@ -995,7 +1014,7 @@ const CallingWidget: React.FC<Props> = ({
         }
 
         console.log(
-          "Creating new InputAudioStream with potentially smaller buffer..."
+          "Creating new InputAudioStream with potentially smaller buffer...",
         );
         const stream = new InputAudioStream(
           AUDIO_SOURCES.VOICE_RECOGNITION || AUDIO_SOURCES.MIC,
@@ -1003,7 +1022,7 @@ const CallingWidget: React.FC<Props> = ({
           CHANNEL_CONFIGS.MONO,
           AUDIO_FORMATS.PCM_16BIT,
           Math.max(2048, Math.floor(sampleRate * 0.1)),
-          true
+          true,
         );
 
         stream.addErrorListener((error) => {
@@ -1041,17 +1060,18 @@ const CallingWidget: React.FC<Props> = ({
   const startCall = async () => {
     if (audioState.current !== "IDLE") {
       console.warn(
-        `[State] Ignoring startCall, state is ${audioState.current}`
+        `[State] Ignoring startCall, state is ${audioState.current}`,
       );
       return;
     }
 
     if (Platform.OS !== "web") {
-      // Check headset *before* changing state to STARTING
-      const connected = await updateHeadsetStatus(true); // <-- Show prompt if disconnected
+      // Check headset but don't block — call proceeds via loudspeaker if no headset
+      const connected = await updateHeadsetStatus(true);
       if (!connected) {
-        console.log("Call blocked: No headset connected.");
-        return;
+        console.log(
+          "[Headset] No headset connected — proceeding via loudspeaker.",
+        );
       }
     }
 
@@ -1075,8 +1095,10 @@ const CallingWidget: React.FC<Props> = ({
     // --- END NEW UI State ---
 
     try {
+      const isEmulator =
+        Platform.OS === "ios" ? await DeviceInfo.isEmulator() : false;
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
+        allowsRecordingIOS: !isEmulator,
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
         interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
@@ -1102,7 +1124,7 @@ const CallingWidget: React.FC<Props> = ({
     const captureStarted = await startAudioCapture();
     if (!captureStarted) {
       console.error(
-        "[startCall] startAudioCapture FAILED. Aborting call start."
+        "[startCall] startAudioCapture FAILED. Aborting call start.",
       );
       setStatus("Mic setup failed"); // Update UI
       audioState.current = "IDLE";
@@ -1130,27 +1152,35 @@ const CallingWidget: React.FC<Props> = ({
       // --- END NEW Timer ---
 
       ws.current?.send(
-        JSON.stringify({ type: "join", userId, scenarioId: scenarioId })
+        JSON.stringify({ type: "join", userId, scenarioId: scenarioId }),
       );
     };
 
     ws.current.onmessage = async (msg) => {
+      if (isStopping.current) return;
       // (This logic is unchanged, but handleControlMessage is modified)
       try {
         if (typeof msg.data === "string") {
           let parsed;
           try {
             parsed = JSON.parse(msg.data);
+            console.log(`[WS MESSAGE REACHED FRONTEND] Type: ${parsed?.type}`);
+            if (parsed.type === "agent_speaking") {
+              setStatus("Agent is speaking...");
+              // setIsAgentSpeaking(true); // This state is not defined in the original code
+            } else if (parsed.type === "agent_listening") {
+              // This case is handled by handleControlMessage's 'turn: user'
+            }
             handleControlMessage(parsed);
           } catch (jsonError) {
             if (Platform.OS !== "web") {
               console.warn(
-                "[WS] Received string data on native, assuming base64 audio chunk - This part needs implementation if backend sends base64."
+                "[WS] Received string data on native, assuming base64 audio chunk - This part needs implementation if backend sends base64.",
               );
             } else {
               console.warn(
                 "[WS] Received non-JSON string data on web:",
-                msg.data.substring(0, 50) + "..."
+                msg.data.substring(0, 50) + "...",
               );
             }
           }
@@ -1159,7 +1189,7 @@ const CallingWidget: React.FC<Props> = ({
             handleAudioChunkFromServer(msg.data);
           } else {
             console.warn(
-              "[WS] Received unexpected binary data on native platform."
+              "[WS] Received unexpected binary data on native platform.",
             );
           }
         }
@@ -1314,6 +1344,7 @@ const CallingWidget: React.FC<Props> = ({
         break;
 
       case "play_stream": {
+        console.log("[WS] Received play_stream command.");
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
@@ -1329,10 +1360,21 @@ const CallingWidget: React.FC<Props> = ({
         }
         // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-        const urlToPlay = data.url;
-        if (!urlToPlay) {
+        const rawUrl = data.url;
+        if (!rawUrl) {
           console.warn("[Audio] play_stream missing url");
           break;
+        }
+        // Rewrite the stream URL's origin to match API_BASE_URL so the device
+        // can always reach it, even if the backend embeds a different internal IP.
+        const urlToPlay = rawUrl.replace(/^https?:\/\/[^/]+/, API_BASE_URL);
+        if (urlToPlay !== rawUrl) {
+          console.log(
+            "[Audio] play_stream URL rewritten:",
+            rawUrl,
+            "→",
+            urlToPlay,
+          );
         }
         const mySeq = ++playSeq.current;
         (async () => {
@@ -1367,9 +1409,20 @@ const CallingWidget: React.FC<Props> = ({
           const newSound = new Audio.Sound();
           let destroyed = false;
           try {
+            // Fetch auth token so the TTS stream endpoint can authenticate
+            const token = await SecureStore.getItemAsync(
+              SECURE_KEYS_NAME.SW_APP_JWT_KEY,
+            );
+            console.log("[Audio] Attempting to loadAsync from URL:", urlToPlay);
+
             await newSound.loadAsync(
-              { uri: urlToPlay },
-              { shouldPlay: false, progressUpdateIntervalMillis: 200 }
+              {
+                uri: urlToPlay,
+                headers: token
+                  ? { Authorization: `Bearer ${token}` }
+                  : undefined,
+              },
+              { shouldPlay: false, progressUpdateIntervalMillis: 200 },
             );
             if (
               mySeq !== playSeq.current ||
@@ -1382,6 +1435,7 @@ const CallingWidget: React.FC<Props> = ({
               playLock.current = false;
               return;
             }
+            console.log("[Audio] loadAsync completed successfully.");
             newSound.setOnPlaybackStatusUpdate(async (status) => {
               try {
                 if (mySeq !== playSeq.current) return;
@@ -1400,7 +1454,9 @@ const CallingWidget: React.FC<Props> = ({
                         await (newSound as any).setIsMutedAsync(false);
                       } catch {}
                     }
+                    console.log("[Audio] Calling playAsync() now...");
                     await newSound.playAsync();
+                    console.log("[Audio] playAsync() completed without error.");
                   } catch (e) {
                     console.error("[Audio] Error during playAsync:", e);
                     hasStartedPlaying.current = false;
@@ -1408,6 +1464,7 @@ const CallingWidget: React.FC<Props> = ({
                   }
                 }
                 if ((status as any).didJustFinish) {
+                  console.log("[Audio] playback didJustFinish");
                   if (mySeq === playSeq.current) {
                     try {
                       await newSound.unloadAsync();
@@ -1416,6 +1473,11 @@ const CallingWidget: React.FC<Props> = ({
                     setSound(null);
                     playLock.current = false;
                     hasStartedPlaying.current = false;
+                    setStatus("Agent finished speaking. Your turn.");
+                    setTurn("user");
+                    console.log(
+                      "[Audio] Transitioned turn back to user after natural playback finish.",
+                    );
                   }
                 }
               } catch (e) {
@@ -1482,7 +1544,7 @@ const CallingWidget: React.FC<Props> = ({
           }
         } else {
           console.log(
-            "[Audio] Interruption requested, but no sound ref was active."
+            "[Audio] Interruption requested, but no sound ref was active.",
           );
         }
         playLock.current = false;
@@ -1519,9 +1581,8 @@ const CallingWidget: React.FC<Props> = ({
 
   // --- ⬇️ MODIFIED: `canStartCall` now uses state ⬇️ ---
   // This check is now handled in the startCall button's `disabled` prop
-  const canStartCall =
-    Platform.OS === "web" ||
-    (headsetConnected && audioState.current === "IDLE");
+  // Headphones are recommended but not required — loudspeaker works too
+  const canStartCall = audioState.current === "IDLE";
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
   // We use the raw scenarioIcon from backend (FontAwesome) for the Orb
@@ -1544,7 +1605,7 @@ const CallingWidget: React.FC<Props> = ({
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     if (turn === "agent" || audioState.current === "STARTED") {
@@ -1623,8 +1684,8 @@ const CallingWidget: React.FC<Props> = ({
             {turn === "user"
               ? "Listening..."
               : isCalling
-              ? status
-              : "Ready to Connect"}
+                ? status
+                : "Ready to Connect"}
           </Text>
         </View>
       </View>
@@ -1640,7 +1701,7 @@ const CallingWidget: React.FC<Props> = ({
       >
         <View style={styles.promptOverlay}>
           <View style={styles.promptGlassBox}>
-            <Icon
+            <FAIcon
               name="headphones-alt"
               size={40}
               color={theme.colors.actionPrimary.default}

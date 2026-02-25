@@ -44,14 +44,16 @@ export async function loginUser({
 }: LoginProps): Promise<LoginResponse> {
   try {
     const response = await axiosClient.get(
-      `/auth/signin?provider=${provider}&redirectTo=${redirectTo}`
+      `/auth/signin?provider=${provider}&redirectTo=${redirectTo}`,
     );
     console.log("Login response:", response.data);
 
     const { url } = response.data;
     return { redirectUrl: url };
-  } catch (error) {
-    console.error("There was a problem during login:", error);
+  } catch (error: any) {
+    console.error("There was a problem during login:", error.message);
+    console.log("Axios Config URL:", error.config?.url);
+    console.log("Axios Base URL:", error.config?.baseURL);
     console.log({ error });
     throw error;
   }
@@ -70,8 +72,13 @@ export async function handleOAuthCallback(code: string) {
       appJwt: string;
       refreshToken: string;
     };
-  } catch (error) {
-    console.error("There was a problem during handleOAuthCallback:", error);
+  } catch (error: any) {
+    console.error(
+      "There was a problem during handleOAuthCallback:",
+      error.message,
+    );
+    console.log("Axios Config URL:", error.config?.url);
+    console.log("Backend Error Response Data:", error.response?.data);
     throw error;
   }
 }

@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import * as Device from "expo-device";
 
 // Android emulators need 10.0.2.2 to access host machine
 // iOS simulators can use the WiFi IP directly
@@ -7,7 +8,7 @@ const getApiBaseUrl = () => {
   const configuredUrl = Constants.expoConfig?.extra?.API_BASE_URL;
 
   // If running on Android emulator in development
-  if (Platform.OS === "android" && __DEV__) {
+  if (Platform.OS === "android" && __DEV__ && !Device.isDevice) {
     // Replace localhost or 192.168.x.x with 10.0.2.2 for Android emulator
     if (configuredUrl) {
       return configuredUrl
@@ -22,5 +23,5 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 console.log(
-  `[API] Using API_BASE_URL: ${API_BASE_URL} (Platform: ${Platform.OS}, Dev: ${__DEV__})`
+  `[API] Using API_BASE_URL: ${API_BASE_URL} (Platform: ${Platform.OS}, Dev: ${__DEV__})`,
 );

@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PracticeSession, createSession } from "../../api/practiceSessions";
+import {
+  PracticeSession,
+  createSession,
+  getAllSessionsOfUser,
+} from "../../api/practiceSessions";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
 import { isToday } from "date-fns";
@@ -56,10 +60,29 @@ export const useSessionStore = create<PracticeSessionState>()(
         }
 
         console.log(
-          "ensureActiveSession: Session is stale, missing, or completed. Creating new session for user:",
+          "ensureActiveSession: Session is stale, missing, or completed. Attempting to recover existing session or create a new one for user:",
           userId,
         );
         try {
+          // 1. First, check if there's already an ONGOING session on the backend
+          // This prevents the 400 Bad Request: "already has an ongoing session for today"
+          // if the local storage was wiped or lost sync.
+          const activeSessions = await getAllSessionsOfUser({
+            userId,
+            sessionStatus: "ONGOING",
+          });
+
+          if (activeSessions && activeSessions.length > 0) {
+            const existingSession = activeSessions[0];
+            set({ practiceSession: existingSession });
+            console.log(
+              "ensureActiveSession: Recovered existing active session from backend:",
+              existingSession.id,
+            );
+            return existingSession;
+          }
+
+          // 2. If no active session exists on the backend, create a new one
           const newSession = await createSession({ userId });
           set({ practiceSession: newSession });
           console.log(
@@ -69,7 +92,7 @@ export const useSessionStore = create<PracticeSessionState>()(
           return newSession;
         } catch (error) {
           console.error(
-            "ensureActiveSession: Failed to create session:",
+            "ensureActiveSession: Failed to ensure session:",
             error,
           );
           throw error;

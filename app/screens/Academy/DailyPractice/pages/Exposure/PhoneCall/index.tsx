@@ -25,6 +25,7 @@ import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
 import { PhoneCallScenario } from "../../../../../../api/dailyPractice/types";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../../api/constants";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/ringback-tone.wav");
 
 import { useActivityStore } from "../../../../../../stores/activity";
@@ -83,7 +84,11 @@ const PhoneCall = () => {
 
     try {
       const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+      // Fallback: the recovered session from backend might only have a flat `userId` instead of a nested `user` object.
+      // Easiest and safest is to just use the global `user.id` state that we already confirmed exists.
+      const userId = isPackContext
+        ? user?.id
+        : user?.id || sessionToUse!.user?.id;
 
       if (!userId) {
         console.error("Missing userId");
@@ -231,22 +236,20 @@ const PhoneCall = () => {
 
         {/* Main Calling UI Place */}
         <View style={styles.mainContent}>
-          {user && (
-            <CallingWidget
-              key={selectedScenario?.id}
-              userId={user.id}
-              websocketUrl="ws://192.168.0.150:3000"
-              scenarioId={selectedScenario?.id}
-              scenarioIcon={selectedScenario?.icon || "robot"}
-              agentName={selectedScenario?.agent.name || "AI Agent"}
-              agentDesignation={
-                selectedScenario?.agent.designation || "Assistant"
-              }
-              ringtoneAsset={RINGING_SOUND_FILE}
-              onCallStart={markActivityStart}
-              onCallEnd={markActivityComplete}
-            />
-          )}
+          <CallingWidget
+            key={selectedScenario?.id}
+            userId={user?.id || ""}
+            websocketUrl={API_BASE_URL.replace(/^http/, "ws")}
+            scenarioId={selectedScenario?.id}
+            scenarioIcon={selectedScenario?.phoneCallData?.icon || "robot"}
+            agentName={selectedScenario?.phoneCallData?.agentName || "AI Agent"}
+            agentDesignation={
+              selectedScenario?.phoneCallData?.agentDesignation || "Assistant"
+            }
+            ringtoneAsset={RINGING_SOUND_FILE}
+            onCallStart={markActivityStart}
+            onCallEnd={markActivityComplete}
+          />
         </View>
       </View>
 
@@ -290,7 +293,7 @@ const PhoneCall = () => {
                   <View style={styles.scenarioIconContainer}>
                     <Icon
                       solid
-                      name={scenario.icon}
+                      name={scenario.phoneCallData?.icon || "robot"}
                       size={24}
                       color={theme.colors.actionPrimary.default}
                     />

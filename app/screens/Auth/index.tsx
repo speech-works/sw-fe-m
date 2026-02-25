@@ -124,15 +124,19 @@ const LoginScreen = () => {
         redirectUri,
         {
           preferEphemeralSession: true,
-        }
+        },
       );
 
       console.log("[Auth] 🔍 Auth session result:", result);
 
       if (result.type === "success" && result.url) {
         const params = new URLSearchParams(result.url.split("?")[1]);
-        const code = params.get("code");
+        let code = params.get("code");
         if (!code) throw new Error("No code returned from OAuth");
+
+        // Supabase/Google often appends a trailing '#' to the redirect URL
+        // which URLSearchParams captures. We must strip it or the code exchange fails.
+        code = code.replace(/#.*$/, "");
 
         const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
         setUser(user);
@@ -140,7 +144,7 @@ const LoginScreen = () => {
         await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
         await SecureStore.setItemAsync(
           SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-          refreshToken
+          refreshToken,
         );
 
         login(appJwt);

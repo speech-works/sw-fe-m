@@ -253,12 +253,13 @@ export interface ReadingPractice {
 export interface PhoneCallScenario {
   id: string;
   name: string;
-  icon: string;
   description: string;
   difficulty: DifficultyLevel;
   type: ExposurePracticeType.PHONE_CALL_SIMULATION;
-  agent: {
-    name: string;
-    designation: string;
+  phoneCallData?: {
+    agentName: string;
+    agentDesignation: string;
+    icon: string;
+    systemPrompt: string;
   };
 }
