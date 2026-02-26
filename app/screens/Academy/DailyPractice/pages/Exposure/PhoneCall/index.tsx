@@ -154,6 +154,9 @@ const PhoneCall = () => {
         ...completedActivity,
       });
 
+      // Clear the local activity ID state so starting another call creates a new one
+      setCurrentActivityId(null);
+
       // If in pack, maybe auto-navigate back?
       // For now, we leave the user on the screen or let them end the call manually
       if (packContext && navigation.canGoBack()) {
