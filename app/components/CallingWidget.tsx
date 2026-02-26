@@ -390,6 +390,11 @@ const CallingWidget: React.FC<Props> = ({
   const [suggestedResponses, setSuggestedResponses] = useState<string[]>([]);
   // --- ⬇️ ADDED: State for notification dot ⬇️ ---
   const [showNotificationDot, setShowNotificationDot] = useState(false);
+  // --- ⬇️ ADDED: Cost control state ⬇️ ---
+  const [idleWarningVisible, setIdleWarningVisible] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState<number | null>(null);
+  const [callEndReason, setCallEndReason] = useState<string | null>(null);
+  const [maxTurns, setMaxTurns] = useState<number | null>(null);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
@@ -449,6 +454,8 @@ const CallingWidget: React.FC<Props> = ({
   const scrollRef = useRef<ScrollView>(null);
   // --- ⬇️ ADDED: Ref to track current tips visibility for listener ⬇️ ---
   const showTipsRef = useRef(showTips);
+  const idleCountdownRef = useRef<NodeJS.Timeout | null>(null);
+  const callEndReasonRef = useRef<string | null>(null);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -919,6 +926,10 @@ const CallingWidget: React.FC<Props> = ({
             }
             setStatus("Agent finished speaking. Your turn.");
             setTurn("user");
+            // Notify backend that playback finished naturally
+            try {
+              ws.current?.send(JSON.stringify({ type: "playback_complete" }));
+            } catch {}
           }
         };
         if (pendingChunks.current.length > 0) {
@@ -1092,6 +1103,15 @@ const CallingWidget: React.FC<Props> = ({
     isMutedRef.current = false;
     setSuggestedResponses([]); // <-- ADDED: Clear suggestions
     setShowNotificationDot(false); // <-- ADDED: Clear notification dot
+    setIdleWarningVisible(false);
+    setIdleCountdown(null);
+    setCallEndReason(null);
+    callEndReasonRef.current = null;
+    setMaxTurns(null);
+    if (idleCountdownRef.current) {
+      clearInterval(idleCountdownRef.current);
+      idleCountdownRef.current = null;
+    }
     // --- END NEW UI State ---
 
     try {
@@ -1200,11 +1220,38 @@ const CallingWidget: React.FC<Props> = ({
 
     ws.current.onclose = (event) => {
       console.log(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+      // If the goodbye TTS is still playing, defer cleanup to didJustFinish
+      if (callEndReasonRef.current && soundRef.current) {
+        console.log(
+          "[WS] Socket closed but goodbye audio still playing — deferring cleanup to didJustFinish.",
+        );
+        // Detach WS handlers so nothing else fires
+        if (ws.current) {
+          ws.current.onmessage = null;
+          ws.current.onclose = null;
+          ws.current.onerror = null;
+        }
+        ws.current = null;
+        return;
+      }
       endCall();
     };
 
     ws.current.onerror = (err) => {
       console.error("WebSocket error:", err);
+      // If goodbye audio is playing, let it finish
+      if (callEndReasonRef.current && soundRef.current) {
+        console.log(
+          "[WS] Socket error but goodbye audio still playing — deferring cleanup.",
+        );
+        if (ws.current) {
+          ws.current.onmessage = null;
+          ws.current.onclose = null;
+          ws.current.onerror = null;
+        }
+        ws.current = null;
+        return;
+      }
       setStatus("Connection error");
       endCall();
     };
@@ -1230,10 +1277,24 @@ const CallingWidget: React.FC<Props> = ({
 
     stopRingTone();
     setIsCalling(false);
-    // setStatus("Call ended"); // This will be overridden by updateHeadsetStatus
     setTurn(null);
     onCallEnd?.();
-    setShowNotificationDot(false); // <-- ADDED: Clear dot on end call
+    setShowNotificationDot(false);
+    setIdleWarningVisible(false);
+    setIdleCountdown(null);
+    if (idleCountdownRef.current) {
+      clearInterval(idleCountdownRef.current);
+      idleCountdownRef.current = null;
+    }
+    // If the backend sent a call_ended reason, show the modal after cleanup
+    const endReason = callEndReasonRef.current;
+    if (endReason) {
+      // Keep callEndReason in state so the modal renders;
+      // do NOT clear it here — it's cleared when the user dismisses the modal.
+      console.log(
+        `[EndCall] Server-initiated disconnect, reason: ${endReason}`,
+      );
+    }
 
     try {
       if (ws.current) {
@@ -1313,6 +1374,10 @@ const CallingWidget: React.FC<Props> = ({
     switch (data.type) {
       case "deepgram_ready":
         setStatus("AI is ready");
+        if (data.maxTurns) {
+          setMaxTurns(data.maxTurns);
+          console.log(`[Cost Control] maxTurns set to ${data.maxTurns}`);
+        }
         break;
 
       case "turn":
@@ -1473,6 +1538,23 @@ const CallingWidget: React.FC<Props> = ({
                     setSound(null);
                     playLock.current = false;
                     hasStartedPlaying.current = false;
+                    // Notify backend that playback finished naturally (P0)
+                    try {
+                      ws.current?.send(
+                        JSON.stringify({ type: "playback_complete" }),
+                      );
+                      console.log("[WS] Sent playback_complete");
+                    } catch {}
+
+                    // If this was a server-initiated goodbye, trigger cleanup now
+                    if (callEndReasonRef.current) {
+                      console.log(
+                        `[Audio] Goodbye finished. Triggering deferred endCall (reason: ${callEndReasonRef.current}).`,
+                      );
+                      endCall();
+                      return;
+                    }
+
                     setStatus("Agent finished speaking. Your turn.");
                     setTurn("user");
                     console.log(
@@ -1551,6 +1633,50 @@ const CallingWidget: React.FC<Props> = ({
         hasStartedPlaying.current = false;
         setTurn("user");
         setStatus("Your turn to speak. (Interrupted)");
+        break;
+      }
+
+      case "idle_warning": {
+        console.log(
+          `[Cost Control] idle_warning received, timeout: ${data.timeout_seconds}s`,
+        );
+        setIdleWarningVisible(true);
+        setIdleCountdown(data.timeout_seconds || 10);
+        // Start a local countdown for UI display
+        if (idleCountdownRef.current) {
+          clearInterval(idleCountdownRef.current);
+        }
+        let remaining = data.timeout_seconds || 10;
+        idleCountdownRef.current = setInterval(() => {
+          remaining -= 1;
+          setIdleCountdown(remaining);
+          if (remaining <= 0) {
+            if (idleCountdownRef.current) {
+              clearInterval(idleCountdownRef.current);
+              idleCountdownRef.current = null;
+            }
+            setIdleWarningVisible(false);
+          }
+        }, 1000);
+        break;
+      }
+
+      case "call_ended": {
+        console.log(
+          `[Cost Control] call_ended received, reason: ${data.reason}`,
+        );
+        // Store reason in both state and ref so endCall (triggered by onclose)
+        // can access it even if state hasn't flushed yet.
+        setCallEndReason(data.reason);
+        callEndReasonRef.current = data.reason;
+        // Dismiss any active idle warning
+        setIdleWarningVisible(false);
+        if (idleCountdownRef.current) {
+          clearInterval(idleCountdownRef.current);
+          idleCountdownRef.current = null;
+        }
+        // Do NOT call endCall() or ws.close() here.
+        // The backend will close the socket; onclose will trigger endCall.
         break;
       }
 
@@ -1809,6 +1935,93 @@ const CallingWidget: React.FC<Props> = ({
           {showNotificationDot && <View style={styles.notificationDotModern} />}
         </View>
       </View>
+
+      {/* --- IDLE WARNING OVERLAY --- */}
+      <Modal
+        visible={idleWarningVisible}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+      >
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptGlassBox}>
+            <FAIcon
+              name="hourglass-half"
+              size={36}
+              color={theme.colors.actionPrimary.default}
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.promptTitle}>Are you still there?</Text>
+            <Text style={styles.promptText}>
+              {idleCountdown !== null && idleCountdown > 0
+                ? `Call will end in ${idleCountdown} seconds`
+                : "Ending call..."}
+            </Text>
+            <View style={styles.promptButtonRow}>
+              <TouchableOpacity
+                style={styles.promptButtonPrimary}
+                onPress={() => {
+                  setIdleWarningVisible(false);
+                  setIdleCountdown(null);
+                  if (idleCountdownRef.current) {
+                    clearInterval(idleCountdownRef.current);
+                    idleCountdownRef.current = null;
+                  }
+                  try {
+                    ws.current?.send(JSON.stringify({ type: "stay_online" }));
+                    console.log("[WS] Sent stay_online");
+                  } catch {}
+                }}
+              >
+                <Text style={styles.promptButtonTextPri}>I'm still here</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- CALL ENDED MODAL --- */}
+      <Modal
+        visible={callEndReason !== null && !isCalling}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+      >
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptGlassBox}>
+            <FAIcon
+              name={
+                callEndReason === "limit_reached" ? "trophy" : "phone-slash"
+              }
+              size={36}
+              color={theme.colors.actionPrimary.default}
+              solid
+              style={{ marginBottom: 16 }}
+            />
+            <Text style={styles.promptTitle}>
+              {callEndReason === "limit_reached"
+                ? "Great practice!"
+                : "Call ended"}
+            </Text>
+            <Text style={styles.promptText}>
+              {callEndReason === "limit_reached"
+                ? "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
+                : "The call was ended due to inactivity. You can start a new session anytime."}
+            </Text>
+            <View style={styles.promptButtonRow}>
+              <TouchableOpacity
+                style={styles.promptButtonPrimary}
+                onPress={() => {
+                  setCallEndReason(null);
+                  callEndReasonRef.current = null;
+                }}
+              >
+                <Text style={styles.promptButtonTextPri}>Got it</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
