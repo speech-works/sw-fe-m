@@ -71,7 +71,7 @@ module.exports = {
       [
         "react-native-permissions",
         {
-          iosPermissionKeys: ["Microphone", "Camera"],
+          iosPermissions: ["Microphone", "Camera"],
         },
       ],
       [

@@ -1220,10 +1220,12 @@ const CallingWidget: React.FC<Props> = ({
 
     ws.current.onclose = (event) => {
       console.log(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
-      // If the goodbye TTS is still playing, defer cleanup to didJustFinish
-      if (callEndReasonRef.current && soundRef.current) {
+      // If the goodbye TTS is still loading or playing, defer cleanup to didJustFinish.
+      // Check both soundRef (audio loaded & playing) and playLock (audio is loading via loadAsync).
+      const isAudioActive = soundRef.current || playLock.current;
+      if (callEndReasonRef.current && isAudioActive) {
         console.log(
-          "[WS] Socket closed but goodbye audio still playing — deferring cleanup to didJustFinish.",
+          "[WS] Socket closed but goodbye audio still active — deferring cleanup to didJustFinish.",
         );
         // Detach WS handlers so nothing else fires
         if (ws.current) {
@@ -1239,10 +1241,11 @@ const CallingWidget: React.FC<Props> = ({
 
     ws.current.onerror = (err) => {
       console.error("WebSocket error:", err);
-      // If goodbye audio is playing, let it finish
-      if (callEndReasonRef.current && soundRef.current) {
+      // If goodbye audio is loading or playing, let it finish
+      const isAudioActive = soundRef.current || playLock.current;
+      if (callEndReasonRef.current && isAudioActive) {
         console.log(
-          "[WS] Socket error but goodbye audio still playing — deferring cleanup.",
+          "[WS] Socket error but goodbye audio still active — deferring cleanup.",
         );
         if (ws.current) {
           ws.current.onmessage = null;
@@ -1392,6 +1395,15 @@ const CallingWidget: React.FC<Props> = ({
           isMicActive.current = true;
           setSuggestedResponses([]); // <-- ADDED: Clear old suggestions
           setShowNotificationDot(false); // <-- ADDED: Clear dot
+          // Dismiss idle warning if it's showing (user spoke or backend reset)
+          if (idleWarningVisible) {
+            setIdleWarningVisible(false);
+            setIdleCountdown(null);
+            if (idleCountdownRef.current) {
+              clearInterval(idleCountdownRef.current);
+              idleCountdownRef.current = null;
+            }
+          }
         }
         break;
 
@@ -1406,6 +1418,15 @@ const CallingWidget: React.FC<Props> = ({
       case "user_text":
         // This is text from the User
         setTranscript((prev) => [...prev, { speaker: "You", text: data.data }]);
+        // Dismiss idle warning — user spoke, backend will reset its timer
+        if (idleWarningVisible) {
+          setIdleWarningVisible(false);
+          setIdleCountdown(null);
+          if (idleCountdownRef.current) {
+            clearInterval(idleCountdownRef.current);
+            idleCountdownRef.current = null;
+          }
+        }
         break;
 
       case "play_stream": {
