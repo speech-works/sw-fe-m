@@ -2012,7 +2012,11 @@ const CallingWidget: React.FC<Props> = ({
           <View style={styles.promptGlassBox}>
             <FAIcon
               name={
-                callEndReason === "limit_reached" ? "trophy" : "phone-slash"
+                callEndReason === "limit_reached"
+                  ? "trophy"
+                  : callEndReason === "user_ended"
+                    ? "check-circle"
+                    : "phone-slash"
               }
               size={36}
               color={theme.colors.actionPrimary.default}
@@ -2022,12 +2026,16 @@ const CallingWidget: React.FC<Props> = ({
             <Text style={styles.promptTitle}>
               {callEndReason === "limit_reached"
                 ? "Great practice!"
-                : "Call ended"}
+                : callEndReason === "user_ended"
+                  ? "Call ended"
+                  : "Call ended"}
             </Text>
             <Text style={styles.promptText}>
               {callEndReason === "limit_reached"
                 ? "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
-                : "The call was ended due to inactivity. You can start a new session anytime."}
+                : callEndReason === "user_ended"
+                  ? "You've successfully ended the conversation. Great job practicing today!"
+                  : "The call was ended due to inactivity. You can start a new session anytime."}
             </Text>
             <View style={styles.promptButtonRow}>
               <TouchableOpacity
