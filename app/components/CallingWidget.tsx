@@ -1779,6 +1779,44 @@ const CallingWidget: React.FC<Props> = ({
       r3.stop();
     };
   }, [turn, audioState.current]);
+
+  // --- ⬇️ ADDED: Call Button Expansion & Slide Up Animation ⬇️ ---
+  const callBtnScale = useRef(new Animated.Value(1)).current;
+  const callBtnTranslateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isCalling) {
+      Animated.parallel([
+        Animated.spring(callBtnScale, {
+          toValue: 1.15, // Expand slightly
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.spring(callBtnTranslateY, {
+          toValue: -16, // Slide up
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.spring(callBtnScale, {
+          toValue: 1, // Reset size
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.spring(callBtnTranslateY, {
+          toValue: 0, // Reset position
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isCalling]);
   // --- ⬆️ END ADDED ⬆️ ---
 
   // --- ⬇️ MODIFIED: Render function updated ⬇️ ---
@@ -1949,20 +1987,31 @@ const CallingWidget: React.FC<Props> = ({
         </TouchableOpacity>
 
         {/* End / Start Call - Main Button */}
-        <TouchableOpacity
-          style={[
-            styles.mainCallButtonModern,
-            isCalling ? styles.endCallButton : styles.startCallButton,
-            // Removed disabled styling to encourage interaction
-          ]}
-          onPress={() => (isCalling ? endCall() : startCall())}
+        <Animated.View
+          style={{
+            transform: [
+              { scale: callBtnScale },
+              { translateY: callBtnTranslateY },
+            ],
+            zIndex: 10,
+          }}
         >
-          <Icon
-            name={isCalling ? "phone-off" : "phone-call"}
-            size={32}
-            color="#FFF"
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.mainCallButtonModern,
+              isCalling ? styles.endCallButton : styles.startCallButton,
+              isCalling && styles.activeCallButtonGlow, // Added glow when active
+            ]}
+            activeOpacity={0.8}
+            onPress={() => (isCalling ? endCall() : startCall())}
+          >
+            <Icon
+              name={isCalling ? "phone-off" : "phone-call"}
+              size={32}
+              color="#FFF"
+            />
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Tips / Suggestions */}
         <View style={{ position: "relative" }}>
@@ -2278,10 +2327,17 @@ const styles = StyleSheet.create({
   endCallButton: {
     backgroundColor: "#E11D48", // Rich Rose/Red
     shadowColor: "#E11D48",
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  activeCallButtonGlow: {
+    shadowColor: "#F43F5E",
+    shadowOpacity: 0.8,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
   },
   disabledButton: {
     backgroundColor: "rgba(255,255,255,0.1)", // Glassy disabled state
