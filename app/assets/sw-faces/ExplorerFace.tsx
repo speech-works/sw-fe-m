@@ -62,11 +62,12 @@ const ExcitedTouristMapFace = ({
   size = 48,
   width,
   height,
-  shouldAnimate = false, // Default OFF
-  loop = false,
-  repeatCount = 1,
+  shouldAnimate = false,
   ...props
 }: SvgIconProps) => {
+  const activeWidth = width || size;
+  const activeHeight = height || size;
+
   const progress = useSharedValue(0);
   const blink = useSharedValue(1);
 
@@ -75,22 +76,19 @@ const ExcitedTouristMapFace = ({
       progress.value = withRepeat(
         withSequence(
           withTiming(0, { duration: 50 }),
-          withTiming(1, {
-            duration: 2000,
-            easing: Easing.bezier(0.45, 0, 0.55, 1),
-          }), // Snappier orbit
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
           withTiming(0, { duration: 600 }),
         ),
-        loop ? -1 : repeatCount,
+        -1,
         false,
       );
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
@@ -99,165 +97,97 @@ const ExcitedTouristMapFace = ({
       progress.value = withTiming(0);
       blink.value = 1;
     }
-  }, [shouldAnimate, loop, repeatCount]);
+  }, [shouldAnimate]);
 
-  // --- Animation Physics Constants ---
   const P_LIFT = 0.15;
   const P_ORBIT = 0.85;
 
-  // --- GLASSES ANIMATION ---
-  const glassesAnimatedProps = useAnimatedProps(() => {
-    let scale = 1;
-    let translateX = 0;
-    let translateY = 0;
+  const glassesT = useDerivedValue(() => {
     const val = progress.value;
-
+    let s = 1,
+      tx = 0,
+      ty = 0;
     if (val < P_LIFT) {
-      // Lift Phase
       const t = val / P_LIFT;
-      scale = 1 + t * 0.2;
-      translateY = -t * 5;
+      s = 1 + t * 0.2;
+      ty = -t * 5;
     } else if (val < P_ORBIT) {
-      // Orbit Phase
       const t = (val - P_LIFT) / (P_ORBIT - P_LIFT);
       const angle = t * Math.PI * 2;
       const R = 30;
-      translateX = R * Math.sin(angle);
+      tx = R * Math.sin(angle);
       const Z = R * Math.cos(angle);
-      translateY = -5; // stay lifted
-      scale = 1.2 + (Z / R) * 0.4;
+      ty = -5;
+      s = 1.2 + (Z / R) * 0.4;
     } else {
-      // Land Phase
       const t = (val - P_ORBIT) / (1 - P_ORBIT);
-      scale = 1.2 - t * 0.2;
-      translateY = -5 + t * 5;
+      s = 1.2 - t * 0.2;
+      ty = -5 + t * 5;
     }
-
-    return {
-      transform: [
-        { translateX: 24 },
-        { translateY: 20 },
-        { translateX },
-        { translateY },
-        { scale },
-        { translateX: -24 },
-        { translateY: -20 },
-      ] as any,
-    };
+    return { s, tx, ty };
   });
 
-  // --- EYES TRACKING ANIMATION ---
-  const eyesAnimatedProps = useAnimatedProps(() => {
+  const eyeT = useDerivedValue(() => {
     const val = progress.value;
-    let cxOffset = 0;
-    let cyOffset = 0;
-
-    // Default centers: Left(15, 23.5), Right(33, 23.5)
-    // We offset from there.
-
+    let ox = 0,
+      oy = 0;
     if (val < P_LIFT) {
-      // Look up slightly as glasses lift
-      const t = val / P_LIFT;
-      cyOffset = -2 * t;
+      oy = -2 * (val / P_LIFT);
     } else if (val < P_ORBIT) {
-      // Track the glasses
       const t = (val - P_LIFT) / (P_ORBIT - P_LIFT);
       const angle = t * Math.PI * 2;
-
-      // Orbit Logic re-used to find direction
-      // Radius of eye movement
-      const R_EYE = 3;
-
-      // Glasses X = R*sin(angle). Front(0) -> Right(90) -> Back(180) -> Left(270) -> Front(360)
-      // If angle=0 (Front, Z=High), we look straight? No, at angle 0 the glasses are "Front".
-      // Actually in my math above:
-      // t=0 -> angle=0 -> sin(0)=0 (Center X), cos(0)=1 (Front Z).
-      // So glasses start at Front Center.
-      // Eye tracking:
-
-      cxOffset = R_EYE * Math.sin(angle);
-      // Z is depth. Y movement depends on if glasses go up/down?
-      // They stay at Y=-5 (lifted).
-      // But visually if something goes "behind" you, you might look Up or Sideways.
-      // Let's implement full circular tracking in 2D projection.
-      // If it goes Right (X+), eyes go Right.
-      // If it goes Back (Z-), eyes go... Up? Or just smaller?
-      // In 2D cartoon logic, "Around the head" usually means Right -> Up/Back -> Left -> Front.
-
-      // Let's make y follow cos(angle) inverted?
-      // When angle=0 (Front), cos=1. Eyes Center.
-      // When angle=90 (Right), cos=0. Eyes Right.
-      // When angle=180 (Back), cos=-1. Eyes look "back"?? Usually displayed as looking Up or Down.
-      // Let's try circular path.
-      cyOffset = -R_EYE * Math.cos(angle);
-      // At 0(Front): Y = -3 (Look Up? No.)
-      // We want at Front(0) -> Y=0.
-      // Let's fix phase.
-      // We want (0,0) at t=0.
-      // Correct orbit visual:
-      cyOffset = -2 - 1 * Math.cos(angle);
-      // This is tricky without 3D eyes.
-
-      // Simplified:
-      // X follows sin(angle).
-      // Y follows -cos(angle) (Look up when it's behind).
-      cyOffset = -2 + -3 * Math.cos(angle);
-      // Front(cos=1) -> -5 (Look way up? No).
-
-      // Let's try normalized tracking vector.
-      // Glasses pos: (sin, cos).
-      cxOffset = 2.5 * Math.sin(angle);
-      cyOffset = -2.5 * Math.cos(angle);
-      // t=0 (Front): x=0, y=-2.5 (Looking Up at lifting glasses).
-      // t=0.25 (Right): x=2.5, y=0.
-      // t=0.5 (Back): x=0, y=2.5 (Looking Down? No, looking "up/over" head).
-      // Let's just do a circle.
-
-      // Modify for "Surprised" - maybe pupils shrink?
+      ox = 2.5 * Math.sin(angle);
+      oy = -2.5 * Math.cos(angle);
     } else {
-      // Land Phase - return to center
-      const t = (val - P_ORBIT) / (1 - P_ORBIT); // 0->1
-      // Anim from (0,-2.5) to (0,0)
-      cxOffset = 0;
-      cyOffset = -2.5 * (1 - t);
+      const t = (val - P_ORBIT) / (1 - P_ORBIT);
+      oy = -2.5 * (1 - t);
     }
-
-    return {
-      transform: [{ translateX: cxOffset }, { translateY: cyOffset }] as any,
-    };
+    return { ox, oy };
   });
 
-  const blinkProps = useAnimatedProps(() => ({
+  const zPos = useDerivedValue(() => {
+    if (progress.value < P_LIFT || progress.value >= P_ORBIT) return 1;
+    const t = (progress.value - P_LIFT) / (P_ORBIT - P_LIFT);
+    return Math.cos(t * Math.PI * 2) > 0 ? 1 : -1;
+  });
+
+  const glassesProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 24 },
+      { translateY: 20 },
+      { translateX: glassesT.value.tx },
+      { translateY: glassesT.value.ty },
+      { scale: glassesT.value.s },
+      { translateX: -24 },
+      { translateY: -20 },
+    ] as any,
+  }));
+
+  const eyeWhiteProps = useAnimatedProps(() => ({
     transform: [{ scaleY: blink.value }] as any,
     originY: 23.5,
   }));
 
-  // Z-Index derived value for opacity toggle
-  const zIndexVal = useDerivedValue(() => {
-    const val = progress.value;
-    if (val < P_LIFT || val >= P_ORBIT) return 1;
-    const t = (val - P_LIFT) / (P_ORBIT - P_LIFT);
-    const angle = t * Math.PI * 2;
-    return Math.cos(angle) > 0 ? 1 : -1;
-  });
-
-  const frontOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value > 0 ? 1 : 0,
+  const eyePupilProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: eyeT.value.ox },
+      { translateY: eyeT.value.oy },
+    ] as any,
   }));
 
-  const backOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value < 0 ? 1 : 0,
+  const frontOpacity = useAnimatedProps(() => ({
+    opacity: zPos.value > 0 ? 1 : 0,
   }));
-
-  const activeWidth = width || size;
-  const activeHeight = height || size;
+  const backOpacity = useAnimatedProps(() => ({
+    opacity: zPos.value < 0 ? 1 : 0,
+  }));
 
   return (
     <View
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -268,85 +198,51 @@ const ExcitedTouristMapFace = ({
         fill="none"
         {...props}
       >
-        <G>
-          {/* Background - Deep Ocean */}
-          <Path fill="#01579B" d="M0 0h48v48H0z" />
-
-          {/* DETAILED WORLD MAP BACKGROUND */}
-          <G fill="#4CAF50" opacity="0.9">
-            <Path d="M2 2 L 12 0 L 18 5 L 14 12 L 8 15 L 2 12 Z" />
-            <Path d="M22 1 L 26 0 L 28 4 L 24 6 Z" />
-            <Path d="M30 5 L 35 2 L 45 4 L 48 12 L 40 18 L 32 15 Z" />
-            <Path d="M42 22 L 48 24 L 46 35 L 40 38 L 38 30 Z" />
-            <Path d="M4 35 L 12 38 L 10 48 H 2 Z" />
-            <Path d="M38 42 L 44 40 L 46 45 L 42 48 H 36 Z" />
-          </G>
-
-          {/* GRID LINES */}
-          <Path
-            d="M0 24 H 48 M 24 0 V 48"
-            stroke="#FFFFFF"
-            strokeWidth="0.2"
-            opacity="0.3"
-          />
-
-          {/* DROPPED FACE STRUCTURE */}
-          <G transform="translate(0, 6)">
-            {/* Shadow - Vector approximation */}
-            <Path
-              fill="black"
-              opacity={0.25}
-              transform="translate(4, 4)"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-            {/* 1. GLASSES BEHIND */}
-            <AnimatedG animatedProps={glassesAnimatedProps}>
-              <AnimatedG animatedProps={backOpacityProps}>
-                <GlassesGroup />
-              </AnimatedG>
-            </AnimatedG>
-
-            {/* 2. FACE SKIN */}
-            <Path
-              fill="#FFE0B2"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-
-            {/* --- EXCITED EYES (White Sclera + Animated Pupils) --- */}
-            {/* Eyes Container */}
-            <AnimatedG animatedProps={blinkProps}>
-              {/* Left Eye White */}
-              <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
-              {/* Left Pupil */}
-              <AnimatedG animatedProps={eyesAnimatedProps}>
-                <Circle cx="15" cy="23.5" r="2.5" fill="#1A1A1A" />
-                <Circle cx="16" cy="22.5" r="0.8" fill="#FFF" />
-              </AnimatedG>
-
-              {/* Right Eye White */}
-              <Circle cx="33" cy="23.5" r="5" fill="#FFF" />
-              {/* Right Pupil */}
-              <AnimatedG animatedProps={eyesAnimatedProps}>
-                <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
-                <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
-              </AnimatedG>
-            </AnimatedG>
-
-            {/* 3. GLASSES FRONT */}
-            <AnimatedG animatedProps={glassesAnimatedProps}>
-              <AnimatedG animatedProps={frontOpacityProps}>
-                <GlassesGroup />
-              </AnimatedG>
-            </AnimatedG>
-          </G>
-
-          {/* TOP FOG / CLOUDS */}
-          <Path
-            d="M0 0 Q 12 8, 24 0 T 48 0 V 6 Q 24 12, 0 6 Z"
-            fill="#FFFFFF"
-            opacity="0.4"
-          />
+        <Path fill="#01579B" d="M0 0h48v48H0z" />
+        <G fill="#4CAF50" opacity="0.9">
+          <Path d="M2 2l10-2l6 5l-4 7l-6 3l-6-3zM22 1l4-1l2 4l-4 2zM30 5l5-3l10 2l3 8l-8 6l-8-3zM42 22l6 2l-2 11l-6 3l-2-8zM4 35l8 3l-2 10H2V35zM38 42l6-2l2 5l-4 3H36l2-6z" />
         </G>
+        <Path
+          d="M0 24h48M24 0v48"
+          stroke="#FFF"
+          strokeWidth="0.2"
+          opacity="0.3"
+        />
+        <G transform="translate(0, 6)">
+          <Path
+            fill="black"
+            opacity={0.25}
+            transform="translate(1, 1)"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          <AnimatedG animatedProps={glassesProps}>
+            <AnimatedG animatedProps={backOpacity}>
+              <GlassesGroup />
+            </AnimatedG>
+          </AnimatedG>
+          <Path
+            fill="#FFE0B2"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          <AnimatedG animatedProps={eyeWhiteProps}>
+            <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
+            <AnimatedG animatedProps={eyePupilProps}>
+              <Circle cx="15" cy="23.5" r="2.5" fill="#1A1A1A" />
+              <Circle cx="16" cy="22.5" r="0.8" fill="#FFF" />
+            </AnimatedG>
+            <Circle cx="33" cy="23.5" r="5" fill="#FFF" />
+            <AnimatedG animatedProps={eyePupilProps}>
+              <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
+              <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
+            </AnimatedG>
+          </AnimatedG>
+          <AnimatedG animatedProps={glassesProps}>
+            <AnimatedG animatedProps={frontOpacity}>
+              <GlassesGroup />
+            </AnimatedG>
+          </AnimatedG>
+        </G>
+        <Path d="M0 0q12 8 24 0t24 0v6q-24 6-48 0z" fill="#FFF" opacity="0.4" />
       </Svg>
     </View>
   );

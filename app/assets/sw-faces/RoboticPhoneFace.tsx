@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
@@ -16,26 +17,22 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const RobotoicPhoneFace = ({
   size = 48,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgProps & {
   size?: number | string;
   shouldAnimate?: boolean;
-  loop?: boolean;
-  repeatCount?: number;
 }) => {
   const rotation = useSharedValue(0);
   const pulse = useSharedValue(1);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       rotation.value = withRepeat(
         withSequence(
-          withTiming(90, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(90, { duration: 1000, easing: Easing.out(Easing.exp) }),
           withDelay(
             500,
-            withTiming(0, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+            withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) }),
           ),
           withDelay(2000, withTiming(45, { duration: 600 })),
           withTiming(0, { duration: 500 }),
@@ -47,9 +44,9 @@ const RobotoicPhoneFace = ({
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(1.5, { duration: 200 }),
+            withTiming(1.5, { duration: 150 }),
           ),
-          withTiming(1, { duration: 200 }),
+          withTiming(1, { duration: 150 }),
         ),
         -1,
         false,
@@ -60,14 +57,16 @@ const RobotoicPhoneFace = ({
     }
   }, [shouldAnimate]);
 
+  const rotDeg = useDerivedValue(() => `${rotation.value}deg`);
+  const pulseS = useDerivedValue(() => pulse.value);
+
   const dialProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
+    transform: [{ rotate: rotDeg.value }] as any,
     originX: 24,
     originY: 26,
   }));
-
   const holeProps = useAnimatedProps(() => ({
-    transform: [{ scale: pulse.value }],
+    transform: [{ scale: pulseS.value }] as any,
     originX: 24,
     originY: 26,
   }));
@@ -75,28 +74,22 @@ const RobotoicPhoneFace = ({
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
       <Defs>
-        <Mask id="mask_rotary">
+        <Mask id="robM">
           <Path
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
         </Mask>
       </Defs>
-
-      <G mask="url(#mask_rotary)">
-        {/* Background: Wallpaper Pattern */}
+      <G mask="url(#robM)">
         <Path
           fill="#F0E68C"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        {/* Face: Black Bakelite */}
-        <G>
-          <Path
-            fill="#212121"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-        </G>
-        {/* The Dial Mechanism */}
+        <Path
+          fill="#212121"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
         <AnimatedG animatedProps={dialProps}>
           <Circle
             cx="24"
@@ -107,18 +100,16 @@ const RobotoicPhoneFace = ({
             strokeWidth="1"
           />
           <Circle cx="24" cy="26" r="3" fill="#E0E0E0" />
-          {/* Finger Holes (Eyes/Mouth area) */}
           <AnimatedG animatedProps={holeProps}>
-            <Circle cx="24" cy="18" r="1.5" fill="#FFFFFF" />
-            <Circle cx="30" cy="20" r="1.5" fill="#FFFFFF" />
-            <Circle cx="18" cy="20" r="1.5" fill="#FFFFFF" />
-            <Circle cx="32" cy="26" r="1.5" fill="#FFFFFF" />
-            <Circle cx="16" cy="26" r="1.5" fill="#FFFFFF" />
+            <Circle cx="24" cy="18" r="1.5" fill="#FFF" />
+            <Circle cx="30" cy="20" r="1.5" fill="#FFF" />
+            <Circle cx="18" cy="20" r="1.5" fill="#FFF" />
+            <Circle cx="32" cy="26" r="1.5" fill="#FFF" />
+            <Circle cx="16" cy="26" r="1.5" fill="#FFF" />
           </AnimatedG>
         </AnimatedG>
-        {/* Coiled Cord */}
         <Path
-          d="M12 40 Q 8 44, 12 48 M 12 42 Q 16 46, 12 50"
+          d="M12 40q-4 4 0 8m0-6q4 4 0 8"
           stroke="#212121"
           strokeWidth="2"
           fill="none"

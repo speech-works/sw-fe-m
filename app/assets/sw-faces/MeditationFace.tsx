@@ -21,35 +21,28 @@ interface SvgIconProps extends SvgProps {
 }
 
 const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
-  const scale = useSharedValue(0.0);
-  const opacity = useSharedValue(0.6);
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    scale.value = withDelay(
+    progress.value = withDelay(
       delay,
       withRepeat(
-        withTiming(3, {
-          duration: 3500,
-          easing: Easing.bezier(0.25, 1, 0.5, 1),
-        }),
-        -1,
-        false,
-      ),
-    );
-    opacity.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(0, { duration: 3500, easing: Easing.linear }),
+        withSequence(
+          withTiming(1, { duration: 3500, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 0 }),
+        ),
         -1,
         false,
       ),
     );
 
     return () => {
-      cancelAnimation(scale);
-      cancelAnimation(opacity);
+      cancelAnimation(progress);
     };
-  }, [delay, scale, opacity]);
+  }, [delay, progress]);
+
+  const scale = useDerivedValue(() => progress.value * 3);
+  const opacity = useDerivedValue(() => 0.6 * (1 - progress.value));
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -99,7 +92,6 @@ const MeditationFace = ({
     typeof activeWidth === "number"
       ? activeWidth
       : parseInt(activeWidth as string, 10);
-  const parsedHeight = parsedWidth;
 
   return (
     <View
@@ -110,7 +102,6 @@ const MeditationFace = ({
         alignItems: "center",
       }}
     >
-      {/* Background Pulsing Rings */}
       <PulsingRing delay={0} size={parsedWidth} />
       <PulsingRing delay={1000} size={parsedWidth} />
       <PulsingRing delay={2000} size={parsedWidth} />
@@ -120,8 +111,7 @@ const MeditationFace = ({
         style={{
           width: activeWidth as any,
           height: activeHeight as any,
-          borderRadius:
-            (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+          borderRadius: (Number(activeWidth) || 48) / 2,
           overflow: "hidden",
         }}
       >
@@ -132,51 +122,43 @@ const MeditationFace = ({
           fill="none"
           {...props}
         >
-          <G>
-            {/* Background - Deep Indigo */}
-            <Path
-              fill="#3F51B5"
-              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-            />
-            {/* Face Shape - Skin Tone (a warm, light peach/beige) */}
-            <G>
-              <Path
-                fill="#FFDAB9" // Changed to a more neutral skin tone
-                d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-              />
-            </G>
+          <Path
+            fill="#3F51B5"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+          <Path
+            fill="#FFDAB9" // Changed to a more neutral skin tone
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
 
-            {/* Eyes (Straight, fully closed lines) */}
-            <Line
-              stroke="#607D8B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              x1="15"
-              y1="24"
-              x2="21"
-              y2="24"
-            />
-            <Line
-              stroke="#607D8B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              x1="27"
-              y1="24"
-              x2="33"
-              y2="24"
-            />
+          <Line
+            stroke="#607D8B"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            x1="15"
+            y1="24"
+            x2="21"
+            y2="24"
+          />
+          <Line
+            stroke="#607D8B"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            x1="27"
+            y1="24"
+            x2="33"
+            y2="24"
+          />
 
-            {/* Mouth (Flat, neutral line) */}
-            <Line
-              stroke="#607D8B"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              x1="20"
-              y1="34"
-              x2="28"
-              y2="34"
-            />
-          </G>
+          <Line
+            stroke="#607D8B"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            x1="20"
+            y1="34"
+            x2="28"
+            y2="34"
+          />
         </Svg>
       </View>
     </View>

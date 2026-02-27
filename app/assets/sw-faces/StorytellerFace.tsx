@@ -10,6 +10,7 @@ import Animated, {
   withDelay,
   Easing,
   cancelAnimation,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -36,30 +37,50 @@ const StorytellerFace = ({
   const activeWidth = width || size;
   const activeHeight = height || size;
 
-  // Animation Values
-  const glassesRotation = useSharedValue(0);
   const scrollY = useSharedValue(0);
+  const blink = useSharedValue(1);
 
   React.useEffect(() => {
     if (!shouldAnimate) {
       scrollY.value = 0;
+      blink.value = 1;
       return;
     }
 
-    // 2. Chatbox Scrolling Text (Snappier flow)
+    // Snappier scrolling - linear is fine for continuous motion, but native thread is key
     scrollY.value = withRepeat(
-      withTiming(-12, { duration: 4500, easing: Easing.linear }),
+      withTiming(-12, { duration: 4000, easing: Easing.linear }),
       -1,
       false,
     );
 
-    return () => {
-      cancelAnimation(scrollY);
-    };
+    // High-velocity blink
+    blink.value = withRepeat(
+      withSequence(
+        withDelay(
+          3000,
+          withTiming(0, { duration: 100, easing: Easing.out(Easing.exp) }),
+        ),
+        withTiming(1, { duration: 100, easing: Easing.out(Easing.exp) }),
+      ),
+      -1,
+      false,
+    );
   }, [shouldAnimate]);
 
+  const offset = useDerivedValue(() => scrollY.value);
+  const eyeScale = useDerivedValue(() => blink.value);
+
   const scrollProps = useAnimatedProps(() => ({
-    transform: [{ translateY: scrollY.value }] as any,
+    transform: [{ translateY: offset.value }] as any,
+  }));
+
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [
+      { translateY: 24 },
+      { scaleY: eyeScale.value },
+      { translateY: -24 },
+    ] as any,
   }));
 
   return (
@@ -67,7 +88,7 @@ const StorytellerFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -78,124 +99,53 @@ const StorytellerFace = ({
         fill="none"
         {...props}
       >
-        <G>
-          {/* Background */}
-          <Path
-            fill="#80CBC4" /* Muted Teal/Turquoise */
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-
-          {/* Shadow - Vector approximation */}
-          <Path
-            fill="black"
-            opacity={0.25}
-            transform="translate(4, 4)"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-          {/* The Brand Face Shape */}
-          <Path
-            fill="#FFCCBC"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-
-          {/* Static Glasses (Combined again) */}
-          <G stroke="#BF360C" strokeWidth="4" fill="none" strokeLinecap="round">
-            {/* Left Frame */}
-            <Circle cx="16.8" cy="24" r="8" />
-            {/* Right Frame */}
-            <Circle cx="31.2" cy="24" r="8" />
-            {/* Bridge */}
-            <Path d="M24.8 24 L 23.2 24" />
-            {/* Arms - Full length again */}
-            <Path d="M10 24 L 7 24" />
-            <Path d="M38 24 L 41 24" />
-          </G>
-
-          {/* Eyes (Inside Glasses) */}
+        <Path
+          fill="#80CBC4"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24C37.255 48 48 37.255 48 24z"
+        />
+        <Path
+          fill="black"
+          opacity={0.25}
+          transform="translate(1, 1)"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <Path
+          fill="#FFCCBC"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <G stroke="#BF360C" strokeWidth="4" fill="none" strokeLinecap="round">
+          <Circle cx="16.8" cy="24" r="8" />
+          <Circle cx="31.2" cy="24" r="8" />
+          <Path d="M24.8 24 H 23.2" />
+        </G>
+        <AnimatedG animatedProps={eyeProps}>
           <Circle cx="16.8" cy="24" r="2.5" fill="#BF360C" />
           <Circle cx="31.2" cy="24" r="2.5" fill="#BF360C" />
-          {/* Highlights */}
           <Circle cx="17.5" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
           <Circle cx="31.9" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
-
-          {/* Speech Bubble Container */}
-          <G transform="translate(24, 38)">
-            {/* Main Bubble Shape */}
+        </AnimatedG>
+        <G transform="translate(24, 38)">
+          <Path
+            d="M-12-6h24v10h-12l-2 3-2-3h-8z"
+            fill="#FFF"
+            stroke="#BF360C"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <AnimatedG animatedProps={scrollProps}>
             <Path
-              d="M-12 -6 H 12 V 4 H 0 L -2 7 L -4 4 H -12 Z"
-              fill="#FFFFFF"
               stroke="#BF360C"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
+              strokeWidth="1"
+              strokeLinecap="round"
+              d="M-8 0h16M-6 3h12M-9 6h12M-5 9h10"
             />
-
-            {/* Scrolling Text Lines Masked */}
-            <G>
-              {/* Won't work easily with transform, using local coords */}
-              {/* 
-               Actually, SVG clipping is absolute. 
-               Let's just manual-mask or ensure lines are only drawn inside.
-               Simpler: Draw the lines inside the bubble area coordinates.
-               Bubble Top: -6, Bottom: 4. (Height 10). 
-               We need lines moving from 4 up to -18 (to loop).
-             */}
-              <AnimatedG animatedProps={scrollProps}>
-                {/* Block 1 */}
-                <Path
-                  stroke="#BF360C"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  d="M-8 0 L 8 0"
-                />
-                <Path
-                  stroke="#BF360C"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  d="M-6 3 L 6 3"
-                />
-                <Path
-                  stroke="#BF360C"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  d="M-9 6 L 3 6"
-                />
-                <Path
-                  stroke="#BF360C"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  d="M-5 9 L 5 9"
-                />
-
-                {/* Block 2 (Duplicate for seamless loop) - Shifted down by 12 units */}
-                <G transform="translate(0, 12)">
-                  <Path
-                    stroke="#BF360C"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    d="M-8 0 L 8 0"
-                  />
-                  <Path
-                    stroke="#BF360C"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    d="M-6 3 L 6 3"
-                  />
-                  <Path
-                    stroke="#BF360C"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    d="M-9 6 L 3 6"
-                  />
-                  <Path
-                    stroke="#BF360C"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    d="M-5 9 L 5 9"
-                  />
-                </G>
-              </AnimatedG>
-            </G>
-          </G>
+            <Path
+              stroke="#BF360C"
+              strokeWidth="1"
+              strokeLinecap="round"
+              d="M-8 12h16M-6 15h12M-9 18h12M-5 21h10"
+            />
+          </AnimatedG>
         </G>
       </Svg>
     </View>

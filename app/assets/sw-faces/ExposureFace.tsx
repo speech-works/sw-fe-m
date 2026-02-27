@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 import Animated, {
@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -27,8 +28,6 @@ const ExposureFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -36,15 +35,15 @@ const ExposureFace = ({
   const blink = useSharedValue(1);
   const flutter = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
@@ -63,13 +62,15 @@ const ExposureFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const flutS = useDerivedValue(() => 1 + flutter.value * 0.05);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 25,
   }));
-
-  const backgroundProps = useAnimatedProps(() => ({
-    transform: [{ scale: 1 + flutter.value * 0.05 }] as any,
+  const bgProps = useAnimatedProps(() => ({
+    transform: [{ scale: flutS.value }] as any,
     originX: 24,
     originY: 24,
   }));
@@ -79,7 +80,7 @@ const ExposureFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -92,7 +93,7 @@ const ExposureFace = ({
       >
         <Defs>
           <Mask
-            id="hero_mask"
+            id="expM"
             x="0"
             y="0"
             width="48"
@@ -105,42 +106,31 @@ const ExposureFace = ({
             />
           </Mask>
         </Defs>
-        <G mask="url(#hero_mask)">
-          {/* Background: Red 200 */}
+        <G mask="url(#expM)">
           <AnimatedPath
             fill="#FFBFBF"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-            animatedProps={backgroundProps}
+            animatedProps={bgProps}
           />
-          <G>
-            {/* Face: Orange 200 */}
-            <Path
-              fill="#FFDABF"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          {/* Superhero Eye  (Red 600) */}
+          <Path
+            fill="#FFDABF"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           <Path
             fill="#BF0000"
-            d="M4 24 C 4 18, 14 18, 24 24 C 34 18, 44 18, 44 24 L 42 30 C 38 34, 30 30, 24 30 C 18 30, 10 34, 6 30 Z"
+            d="M4 24C4 18 14 18 24 24s20-6 20 0l-2 6c-4 4-12 0-18 0s-14 4-18 0z"
           />
-
           <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes (White Sclera inside mask) */}
             <Circle cx="16.8" cy="25" r="2.5" fill="#FFF" />
             <Circle cx="31.2" cy="25" r="2.5" fill="#FFF" />
-            {/* Pupils (Black) */}
             <Circle cx="16.8" cy="25" r="1.5" fill="#111215" />
             <Circle cx="31.2" cy="25" r="1.5" fill="#111215" />
           </AnimatedG>
-
-          {/* Confident Grin (Gray 800) */}
           <Path
             stroke="#111215"
             strokeWidth="2.5"
             strokeLinecap="round"
-            d="M20 36 Q 26 38, 30 35"
+            d="M20 36q6 2 10-1"
             fill="none"
           />
         </G>

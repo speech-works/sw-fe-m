@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -38,35 +39,33 @@ const MovieFace = ({
   useEffect(() => {
     if (shouldAnimate) {
       sheenProgress.value = withRepeat(
-        withDelay(
-          1800, // Wait interval
-          withTiming(1, {
-            duration: 600,
-            easing: Easing.bezier(0.33, 1, 0.68, 1),
-          }), // Swipe across
+        withSequence(
+          withDelay(
+            1800,
+            withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+          ),
+          withTiming(0, { duration: 0 }),
         ),
         loop ? -1 : repeatCount,
-        false, // Start over (unidirectional)
+        false,
       );
     } else {
-      sheenProgress.value = withTiming(0);
+      sheenProgress.value = 0;
     }
   }, [shouldAnimate, loop, repeatCount]);
 
-  const glareProps = useAnimatedProps(() => {
-    // Translate across the width of the lens (10px) + buffer
-    const translateX = -5 + sheenProgress.value * 20; // -5 -> 15 (Travels 20px total)
-    return {
-      transform: [{ translateX }] as any,
-    };
-  });
+  const xPos = useDerivedValue(() => -5 + sheenProgress.value * 20);
+
+  const glareProps = useAnimatedProps(() => ({
+    transform: [{ translateX: xPos.value }] as any,
+  }));
 
   return (
     <View
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -77,77 +76,66 @@ const MovieFace = ({
         fill="none"
         {...props}
       >
-        <Defs>{/*  for Lenses to contain the sheen */}</Defs>
-        <G>
-          <Path
-            fill="#5200B7"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-          {/* Shadow - Vector approximation */}
-          <Path
-            fill="black"
-            opacity={0.25}
-            transform="translate(4, 4)"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-          {/* Face Shape */}
-          <Path
-            fill="#FFDABF"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-          <G transform="translate(0, -2)">
-            <Path fill="#FFF" d="M8 20 H 40 V 30 H 8 Z" />
+        <Path
+          fill="#5200B7"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <Path
+          fill="black"
+          opacity={0.25}
+          transform="translate(4, 4)"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <Path
+          fill="#FFDABF"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <G transform="translate(0, -2)">
+          <Path fill="#FFF" d="M8 20 H 40 V 30 H 8 Z" />
 
-            {/* Lenses Base Layer */}
-            <Rect
-              x="12"
-              y="22"
-              width="10"
-              height="6"
-              rx="1"
-              fill="#FF4040"
-              opacity="0.9"
-            />
-            <Rect
-              x="26"
-              y="22"
-              width="10"
-              height="6"
-              rx="1"
-              fill="#4047FF"
-              opacity="0.9"
-            />
-
-            {/* Sheen Layer - Masked to Lenses */}
-            <G>
-              {/* Left Lens Sheen */}
-              <AnimatedPath
-                animatedProps={glareProps}
-                fill="#FFF"
-                opacity="0.6"
-                d="M14 21 L 17 21 L 15 29 L 12 29 Z"
-              />
-              {/* Right Lens Sheen */}
-              <AnimatedPath
-                animatedProps={glareProps}
-                fill="#FFF"
-                opacity="0.6"
-                d="M28 21 L 31 21 L 29 29 L 26 29 Z"
-              />
-            </G>
-
-            <Path stroke="#FFF" strokeWidth="2" d="M8 22 L 4 20" />
-            <Path stroke="#FFF" strokeWidth="2" d="M40 22 L 44 20" />
-          </G>
-          <Circle
-            cx="24"
-            cy="36"
-            r="2.5"
-            stroke="#111215"
-            strokeWidth="2"
-            fill="none"
+          <Rect
+            x="12"
+            y="22"
+            width="10"
+            height="6"
+            rx="1"
+            fill="#FF4040"
+            opacity="0.9"
           />
+          <Rect
+            x="26"
+            y="22"
+            width="10"
+            height="6"
+            rx="1"
+            fill="#4047FF"
+            opacity="0.9"
+          />
+
+          <AnimatedPath
+            animatedProps={glareProps}
+            fill="#FFF"
+            opacity="0.6"
+            d="M14 21 L 17 21 L 15 29 L 12 29 Z"
+          />
+          <AnimatedPath
+            animatedProps={glareProps}
+            fill="#FFF"
+            opacity="0.6"
+            d="M28 21 L 31 21 L 29 29 L 26 29 Z"
+          />
+
+          <Path stroke="#FFF" strokeWidth="2" d="M8 22 L 4 20" />
+          <Path stroke="#FFF" strokeWidth="2" d="M40 22 L 44 20" />
         </G>
+        <Circle
+          cx="24"
+          cy="36"
+          r="2.5"
+          stroke="#111215"
+          strokeWidth="2"
+          fill="none"
+        />
       </Svg>
     </View>
   );

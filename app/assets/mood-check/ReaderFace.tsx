@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -28,9 +29,6 @@ const ReaderFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
-  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -41,33 +39,25 @@ const ReaderFace = ({
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(1, {
-            duration: 800,
-            easing: Easing.bezier(0.33, 1, 0.68, 1),
-          }), // Review L -> R
-          withTiming(0, {
-            duration: 800,
-            easing: Easing.bezier(0.33, 1, 0.68, 1),
-          }), // R -> L
+          withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 600, easing: Easing.out(Easing.exp) }),
         ),
-        loop ? -1 : repeatCount,
+        -1,
         false,
       );
     } else {
-      progress.value = withTiming(0);
+      progress.value = 0;
     }
-  }, [shouldAnimate, loop, repeatCount]);
+  }, [shouldAnimate]);
 
-  const leftPupilProps = useAnimatedProps(() => ({
-    cx: 16.8 + progress.value * 2, // 16.8 -> 18.8
-  }));
+  const lpX = useDerivedValue(() => 16.8 + progress.value * 2);
+  const rpX = useDerivedValue(() => 31.2 + progress.value * 2);
+  const tX = useDerivedValue(() => progress.value * 3);
 
-  const rightPupilProps = useAnimatedProps(() => ({
-    cx: 31.2 + progress.value * 2, // 31.2 -> 33.2
-  }));
-
-  const textLineProps = useAnimatedProps(() => ({
-    transform: [{ translateX: progress.value * 3 }] as any, // Shift lines slightly right
+  const lpProps = useAnimatedProps(() => ({ cx: lpX.value }));
+  const rpProps = useAnimatedProps(() => ({ cx: rpX.value }));
+  const textProps = useAnimatedProps(() => ({
+    transform: [{ translateX: tX.value }] as any,
   }));
 
   return (
@@ -75,7 +65,7 @@ const ReaderFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -86,79 +76,51 @@ const ReaderFace = ({
         fill="none"
         {...props}
       >
-        <G>
-          {/* Background - Study Green */}
-          <Path
-            fill={transparentBg ? "transparent" : "#66BB6A"}
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-
-          <G>
-            <Path
-              fill="#FFCCBC"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          {/* Eyes (Looking down at script) */}
-          <Path
-            fill="#fff"
-            d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-          />
-          <Path
-            fill="#fff"
-            d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-          />
-          {/* Animated Pupils */}
-          <AnimatedCircle
-            animatedProps={leftPupilProps}
-            cy="26"
-            r="2.5"
-            fill="#BF360C"
-          />
-          <AnimatedCircle
-            animatedProps={rightPupilProps}
-            cy="26"
-            r="2.5"
-            fill="#BF360C"
-          />
-
-          {/* Thick Reading Glasses (Added) */}
-          <G stroke="#1B5E20" strokeWidth="4" fill="none" strokeLinecap="round">
-            {/* Left Frame */}
-            <Circle cx="16.8" cy="24" r="8" />
-            {/* Right Frame */}
-            <Circle cx="31.2" cy="24" r="8" />
-            {/* Bridge */}
-            <Path d="M24.8 24 L 23.2 24" />
-            {/* Arms connecting to the side of head */}
-            <Path d="M8.8 24 L 4 24" />
-            <Path d="M39.2 24 L 44 24" />
-          </G>
-
-          {/* Script/Paper Prop */}
-          <Path fill="#FFF" d="M14 36 L 34 36 L 32 48 L 16 48 Z" />
-          {/* Text Lines on paper */}
-          <AnimatedPath
-            stroke="#1B5E20"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            d="M18 40 L 30 40"
-            animatedProps={textLineProps}
-          />
-          <AnimatedPath
-            stroke="#1B5E20"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            d="M18 44 L 28 44"
-            animatedProps={textLineProps}
-          />
-
-          {/* Hand holding paper (Thumb) */}
-          <Circle cx="32" cy="42" r="3" fill="#FFAB91" />
+        <Path
+          fill="#66BB6A"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <Path
+          fill="#FFCCBC"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+        <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
+        <AnimatedCircle
+          animatedProps={lpProps}
+          cy="26"
+          r="2.5"
+          fill="#BF360C"
+        />
+        <AnimatedCircle
+          animatedProps={rpProps}
+          cy="26"
+          r="2.5"
+          fill="#BF360C"
+        />
+        <G stroke="#1B5E20" strokeWidth="4" fill="none" strokeLinecap="round">
+          <Circle cx="16.8" cy="24" r="8" />
+          <Circle cx="31.2" cy="24" r="8" />
+          <Path d="M24.8 24h-1.6M8.8 24H4M39.2 24H44" />
         </G>
+        <Path fill="#FFF" d="M14 36h20l-2 12H16z" />
+        <AnimatedPath
+          stroke="#1B5E20"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          d="M18 40h12"
+          animatedProps={textProps}
+        />
+        <AnimatedPath
+          stroke="#1B5E20"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          d="M18 44h10"
+          animatedProps={textProps}
+        />
+        <Circle cx="32" cy="42" r="3" fill="#FFAB91" />
       </Svg>
     </View>
   );
 };
-export default ReaderFace;
+export default React.memo(ReaderFace);

@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,17 +29,14 @@ const AgentFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
   const glint = useSharedValue(0);
-  const wire = useSharedValue(0);
+  const wire = useSharedValue(1);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       glint.value = withRepeat(
         withSequence(
@@ -53,11 +51,8 @@ const AgentFace = ({
       );
       wire.value = withRepeat(
         withSequence(
-          withTiming(1.05, {
-            duration: 1000,
-            easing: Easing.inOut(Easing.sin),
-          }),
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1.05, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -68,13 +63,16 @@ const AgentFace = ({
     }
   }, [shouldAnimate]);
 
-  const glintProps = useAnimatedProps(() => ({
-    opacity: glint.value,
-    transform: [{ translateX: glint.value * 10 - 5 }] as any,
-  }));
+  const glintOp = useDerivedValue(() => glint.value);
+  const glintX = useDerivedValue(() => glint.value * 10 - 5);
+  const wireS = useDerivedValue(() => wire.value);
 
+  const glintProps = useAnimatedProps(() => ({
+    opacity: glintOp.value,
+    transform: [{ translateX: glintX.value }] as any,
+  }));
   const wireProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: wire.value }] as any,
+    transform: [{ scaleY: wireS.value }] as any,
     originY: 26,
   }));
 
@@ -83,7 +81,7 @@ const AgentFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -96,7 +94,7 @@ const AgentFace = ({
       >
         <Defs>
           <Mask
-            id="agent_mask"
+            id="agentM"
             x="0"
             y="0"
             width="48"
@@ -109,61 +107,43 @@ const AgentFace = ({
             />
           </Mask>
         </Defs>
-
-        <G mask="url(#agent_mask)">
-          {/* Background - Midnight Blue (Stealth) */}
+        <G mask="url(#agentM)">
           <Path
             fill="#263238"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-
-          {/* The Brand Face Shape */}
-          <G>
-            <Path
-              fill="#FFCCBC"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          {/* Sunglasses (Blacked out) */}
-          <G>
-            <Path fill="#000" d="M10 24 L 20 24 L 20 30 L 12 30 Z" />
-            <Path fill="#000" d="M28 24 L 38 24 L 36 30 L 28 30 Z" />
-            <Path stroke="#000" strokeWidth="2" d="M20 25 L 28 25" />
-            {/* Subtle Glint */}
-            <AnimatedPath
-              d="M12 24 L 16 24 L 14 30 L 10 30 Z"
-              fill="#fff"
-              animatedProps={glintProps}
-            />
-          </G>
-
-          {/* Neutral Mouth */}
+          <Path
+            fill="#FFCCBC"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          <Path fill="#000" d="M10 24h10v6h-8zM28 24h10l-2 6h-8z" />
+          <Path stroke="#000" strokeWidth="2" d="M20 25h8" />
+          <AnimatedPath
+            d="M12 24h4l-2 6h-4z"
+            fill="#FFF"
+            animatedProps={glintProps}
+          />
           <Path
             stroke="#000"
             strokeWidth="2"
             strokeLinecap="round"
-            d="M22 36 L 26 36"
+            d="M22 36h4"
           />
-
-          {/* Fedora Hat */}
-          <Path fill="#37474F" d="M14 -4 L 34 -4 L 36 8 L 12 8 Z" />
-          <Path fill="#000" d="M12 4 L 36 4 L 36 8 L 12 8 Z" />
+          <Path fill="#37474F" d="M14-4h20l2 12H12z" />
+          <Path fill="#000" d="M12 4h24v4H12z" />
           <Path
             stroke="#37474F"
             strokeWidth="4"
             strokeLinecap="round"
-            d="M4 8 Q 24 12, 44 8"
+            d="M4 8q20 4 40 0"
             fill="none"
           />
-
-          {/* Secret Service Earpiece */}
           <AnimatedPath
             stroke="#90A4AE"
             strokeWidth="1.5"
             strokeLinecap="round"
             fill="none"
-            d="M39 26 C 42 26, 44 30, 42 36 C 40 42, 44 44, 44 50"
+            d="M39 26c3 0 5 4 3 10s2 8 2 14"
             opacity="0.8"
             animatedProps={wireProps}
           />
@@ -173,5 +153,4 @@ const AgentFace = ({
     </View>
   );
 };
-
 export default React.memo(AgentFace);

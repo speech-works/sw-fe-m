@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -6,9 +6,10 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  useDerivedValue,
 } from "react-native-reanimated";
 
-import { View } from "react-native";
+import { Easing, View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,20 +29,18 @@ const KeyholeFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
   const flare = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       flare.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1500 }),
-          withTiming(0, { duration: 1500 }),
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
         true,
@@ -51,9 +50,12 @@ const KeyholeFace = ({
     }
   }, [shouldAnimate]);
 
+  const fOp = useDerivedValue(() => 0.6 + flare.value * 0.4);
+  const fSc = useDerivedValue(() => 1 + flare.value * 0.05);
+
   const flareProps = useAnimatedProps(() => ({
-    opacity: 0.6 + flare.value * 0.4,
-    transform: [{ scale: 1 + flare.value * 0.05 }] as any,
+    opacity: fOp.value,
+    transform: [{ scale: fSc.value }] as any,
     originX: 24,
     originY: 24,
   }));
@@ -63,7 +65,7 @@ const KeyholeFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -75,27 +77,25 @@ const KeyholeFace = ({
         {...props}
       >
         <Defs>
-          <Mask id="m">
+          <Mask id="keyM">
             <Path
               fill="#fff"
               d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
             />
           </Mask>
         </Defs>
-        <G mask="url(#m)">
+        <G mask="url(#keyM)">
           <Path
             fill="#212121"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-          <G>
-            <Path
-              fill="#424242"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
+          <Path
+            fill="#424242"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           <AnimatedG animatedProps={flareProps}>
             <Circle cx="24" cy="24" r="4" fill="#FDD835" />
-            <Path d="M22 26 L 20 34 H 28 L 26 26" fill="#FDD835" />
+            <Path d="M22 26l-2 8h8l-2-8z" fill="#FDD835" />
           </AnimatedG>
         </G>
       </Svg>

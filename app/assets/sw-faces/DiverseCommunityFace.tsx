@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View } from "react-native";
 import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 import Animated, {
@@ -10,10 +10,11 @@ import Animated, {
   Easing,
   withDelay,
   runOnJS,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle); // Keep AnimatedCircle if needed for other components, though not used in the provided snippet.
 
 type ProfessionalRole = "doctor" | "teacher" | "engineer" | "student";
 type BackgroundStyle = "ocean" | "sunset" | "sky" | "forest" | "city" | "space";
@@ -59,7 +60,7 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
   switch (type) {
     case "ocean":
       return (
-        <G opacity={1}>
+        <>
           {/* Sky Gradient / Background */}
           <Rect width="48" height="20" fill="#E0F2FE" opacity={0.3} />
           {/* Lighthouse on Rock (Left) */}
@@ -106,11 +107,11 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
             fill="#0C4A6E"
             opacity={0.9}
           />
-        </G>
+        </>
       );
     case "sunset":
       return (
-        <G opacity={1}>
+        <>
           {/* Sun in the valley - Setting */}
           <Circle cx="24" cy="20" r="8" fill="#F97316" opacity={0.9} />
           <Circle cx="24" cy="20" r="5" fill="#FDBA74" opacity={0.6} />
@@ -129,11 +130,11 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
             fill="#7C2D12"
             opacity={0.7}
           />
-        </G>
+        </>
       );
     case "sky":
       return (
-        <G opacity={1}>
+        <>
           {/* Rainbow Backdrop - Subtle */}
           <Path
             d="M0 48 Q 24 10, 48 48"
@@ -182,11 +183,11 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
             fill="#F8FAFC"
             opacity={0.8}
           />
-        </G>
+        </>
       );
     case "forest":
       return (
-        <G opacity={1}>
+        <>
           {/* Distant Mountain Peak - Rocky */}
           <Path d="M15 48 L 24 15 L 33 48" fill="#475569" opacity={0.6} />
           {/* Dense Tall Trees - Back Layer (Darkest) */}
@@ -201,11 +202,11 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
           <Path d="M38 48 L 44 12 L 50 48 Z" fill="#14532D" opacity={0.8} />
           {/* Moon/Sun filtering through top */}
           <Circle cx="24" cy="5" r="3" fill="#FEF9C3" opacity={0.5} />
-        </G>
+        </>
       );
     case "city":
       return (
-        <G opacity={1}>
+        <>
           {/* Moon - High up */}
           <Circle cx="8" cy="8" r="4" fill="#FEF08A" opacity={0.8} />
           {/* Arkham Style Skyscrapers - Tall, Ominous, Gothic */}
@@ -230,11 +231,11 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
           <Rect x="32" y="10" width="1" height="1" fill="#FDBA74" />
           <Rect x="34" y="12" width="1" height="1" fill="#FDBA74" />
           <Rect x="40" y="6" width="1" height="2" fill="#FDBA74" />
-        </G>
+        </>
       );
     case "space":
       return (
-        <G opacity={1}>
+        <>
           {/* Rocket Ship - Glossy White */}
           <Path d="M10 25 L 10 15 Q 12 10, 14 15 L 14 25 Z" fill="#F8FAFC" />
           <Path d="M8 25 L 10 20 L 10 25 Z" fill="#DC2626" />
@@ -264,7 +265,7 @@ const BackgroundOverlay = ({ type }: { type: BackgroundStyle }) => {
           <Circle cx="20" cy="5" r="0.8" fill="#FFF" />
           <Circle cx="45" cy="25" r="0.8" fill="#FFF" />
           <Circle cx="5" cy="40" r="0.8" fill="#FFF" />
-        </G>
+        </>
       );
     default:
       return null;
@@ -288,16 +289,14 @@ const FaceNode = ({
   shouldAnimate?: boolean;
 }) => {
   const blink = useSharedValue(1);
-  const helmetWiggle = useSharedValue(0);
-  const capFloat = useSharedValue(0);
-  const glassesTilt = useSharedValue(0);
+  const wiggle = useSharedValue(0); // For engineer helmet and doctor glasses tilt
+  const float = useSharedValue(0); // For student cap float
 
   React.useEffect(() => {
     if (!shouldAnimate) {
       blink.value = 1;
-      helmetWiggle.value = 0;
-      capFloat.value = 0;
-      glassesTilt.value = 0;
+      wiggle.value = 0;
+      float.value = 0;
       return;
     }
 
@@ -307,82 +306,61 @@ const FaceNode = ({
       withSequence(
         withDelay(
           blinkDuration,
-          withTiming(0.1, { duration: 150 }), // Close
+          withTiming(0.1, { duration: 120 }), // Close
         ),
-        withTiming(1, { duration: 150 }), // Open
+        withTiming(1, { duration: 120 }), // Open
       ),
       -1,
       false,
     );
 
-    // Engineer Helmet Wiggle
-    if (role === "engineer") {
-      helmetWiggle.value = withRepeat(
-        withSequence(
-          withTiming(-2, { duration: 200 }),
-          withTiming(2, { duration: 200 }),
-          withTiming(0, { duration: 200 }),
-          withDelay(2000, withTiming(0, { duration: 0 })),
-        ),
-        -1,
-        false,
-      );
-    }
+    // Wiggle animation for engineer helmet and doctor glasses
+    wiggle.value = withRepeat(
+      withSequence(
+        withTiming(-2, { duration: 250, easing: Easing.out(Easing.exp) }),
+        withTiming(2, { duration: 250, easing: Easing.out(Easing.exp) }),
+        withTiming(0, { duration: 250 }),
+        withDelay(2000, withTiming(0, { duration: 0 })), // Pause
+      ),
+      -1,
+      false,
+    );
 
-    // Student Cap Float
-    if (role === "student") {
-      capFloat.value = withRepeat(
-        withSequence(
-          withTiming(-1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
-        ),
-        -1,
-        true,
-      );
-    }
-
-    // Doctor Glasses Tilt
-    if (role === "doctor") {
-      glassesTilt.value = withRepeat(
-        withSequence(
-          withTiming(-2, { duration: 1000 }),
-          withTiming(2, { duration: 1000 }),
-        ),
-        -1,
-        true,
-      );
-    }
+    // Float animation for student cap
+    float.value = withRepeat(
+      withSequence(
+        withTiming(-1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      true,
+    );
   }, [shouldAnimate, role]);
+
+  const eyeScale = useDerivedValue(() => blink.value);
+  const wiggleRotate = useDerivedValue(() => wiggle.value);
+  const floatPos = useDerivedValue(() => float.value * -1.5); // Adjust float magnitude
 
   const eyeProps = useAnimatedProps(() => ({
     // Pivot around Y=24 for blinking
     transform: [
       { translateY: 24 },
-      { scaleY: blink.value },
+      { scaleY: eyeScale.value },
       { translateY: -24 },
     ] as any,
   }));
 
-  const helmetProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${helmetWiggle.value}deg` }] as any,
-    originX: 24,
-    originY: 24,
-  }));
-
-  const capProps = useAnimatedProps(() => ({
-    // Apply float. Base position is handled by static transform on parent or G if needed.
-    // Since cap has static translate(0, -2), we add float to translateY.
-    // Original static was translate(0, -2), so translateY should be related to that if we replace it?
-    // Actually, animatedProps transform overrides static transform on Animated components usually.
-    // We should include the static offset (-2) in the animated value or prop.
-    transform: [{ translateY: -2 + capFloat.value }] as any,
-  }));
-
-  const glassesProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${glassesTilt.value}deg` }] as any,
-    originX: 24,
-    originY: 24,
-  }));
+  const roleProps = useAnimatedProps(() => {
+    const transform: any[] = [];
+    if (role === "engineer") {
+      transform.push({ rotate: `${wiggleRotate.value}deg` });
+    } else if (role === "student") {
+      transform.push({ translateY: -2 + floatPos.value }); // -2 is the base offset for the cap
+    } else if (role === "doctor") {
+      transform.push({ rotate: `${wiggleRotate.value * 0.5}deg` }); // Less tilt for glasses
+    }
+    return { transform };
+  });
 
   return (
     <G transform={`translate(${x}, ${y}) scale(${scale})`}>
@@ -401,19 +379,22 @@ const FaceNode = ({
 
       {/* PROPS */}
       {role === "engineer" && (
-        <G transform="translate(0, -8)">
-          <AnimatedG animatedProps={helmetProps}>
-            <Path
-              fill="#FBBF24"
-              d="M3 18 Q 24.5 -6, 46 18 L 47 22 Q 24.5 17, 2 22 Z"
-            />
-            <Path
-              d="M20 5 Q 24.5 0, 29 5 L 29 18 Q 24.5 14, 20 18 Z"
-              fill="#D97706"
-              opacity="0.8"
-            />
-          </AnimatedG>
-        </G>
+        <AnimatedG
+          animatedProps={roleProps}
+          originX={24}
+          originY={24}
+          transform="translate(0, -8)"
+        >
+          <Path
+            fill="#FBBF24"
+            d="M3 18 Q 24.5 -6, 46 18 L 47 22 Q 24.5 17, 2 22 Z"
+          />
+          <Path
+            d="M20 5 Q 24.5 0, 29 5 L 29 18 Q 24.5 14, 20 18 Z"
+            fill="#D97706"
+            opacity="0.8"
+          />
+        </AnimatedG>
       )}
 
       {role === "doctor" && (
@@ -434,7 +415,7 @@ const FaceNode = ({
       )}
 
       {role === "student" && (
-        <AnimatedG animatedProps={capProps}>
+        <AnimatedG animatedProps={roleProps}>
           <Path fill="#1E293B" d="M2 11 L 24.5 1 L 47 11 L 24.5 21 Z" />
           <Path fill="#0F172A" d="M10 12 V 17 Q 24.5 21, 39 17 V 12 Z" />
         </AnimatedG>
@@ -451,7 +432,12 @@ const FaceNode = ({
       </AnimatedG>
 
       {role === "doctor" && (
-        <AnimatedG transform="translate(0.5, 0)" animatedProps={glassesProps}>
+        <AnimatedG
+          animatedProps={roleProps}
+          originX={24}
+          originY={24}
+          transform="translate(0.5, 0)"
+        >
           <Circle
             cx="15.5"
             cy="24"
@@ -509,62 +495,64 @@ const FaceNode = ({
   );
 };
 
-const FacesLayer = ({
-  roles,
-  shouldAnimate,
-}: {
-  roles: ProfessionalRole[];
-  shouldAnimate?: boolean;
-}) => {
-  const shadowId = "global_shadow";
-  return (
-    <G>
-      <FaceNode
-        faceColor="#5C3D2E"
-        role={roles[0]}
-        x={12}
-        y={8}
-        scale={0.5}
-        shadowId={shadowId}
-        shouldAnimate={shouldAnimate}
-      />
-      <FaceNode
-        faceColor="#A16207"
-        role={roles[1]}
-        x={0}
-        y={18}
-        scale={0.55}
-        shadowId={shadowId}
-        shouldAnimate={shouldAnimate}
-      />
-      <FaceNode
-        faceColor="#D97706"
-        role={roles[2]}
-        x={24}
-        y={18}
-        scale={0.55}
-        shadowId={shadowId}
-        shouldAnimate={shouldAnimate}
-      />
-      <FaceNode
-        faceColor="#FFDABF"
-        role={roles[3]}
-        x={10}
-        y={28}
-        scale={0.6}
-        shadowId={shadowId}
-        shouldAnimate={shouldAnimate}
-      />
-    </G>
-  );
-};
+const FacesLayer = React.memo(
+  ({
+    roles,
+    shouldAnimate,
+  }: {
+    roles: ProfessionalRole[];
+    shouldAnimate?: boolean;
+  }) => {
+    const shadowId = "global_shadow"; // shadowId is not used in FaceNode, can be removed or kept as a placeholder
+    return (
+      <G>
+        <FaceNode
+          faceColor="#5C3D2E"
+          role={roles[0]}
+          x={12}
+          y={8}
+          scale={0.5}
+          shadowId={shadowId}
+          shouldAnimate={shouldAnimate}
+        />
+        <FaceNode
+          faceColor="#A16207"
+          role={roles[1]}
+          x={0}
+          y={18}
+          scale={0.55}
+          shadowId={shadowId}
+          shouldAnimate={shouldAnimate}
+        />
+        <FaceNode
+          faceColor="#D97706"
+          role={roles[2]}
+          x={24}
+          y={18}
+          scale={0.55}
+          shadowId={shadowId}
+          shouldAnimate={shouldAnimate}
+        />
+        <FaceNode
+          faceColor="#FFDABF"
+          role={roles[3]}
+          x={10}
+          y={28}
+          scale={0.6}
+          shadowId={shadowId}
+          shouldAnimate={shouldAnimate}
+        />
+      </G>
+    );
+  },
+);
 
 const BackgroundLayer = ({ type }: { type: BackgroundStyle }) => {
   return (
-    <G>
+    <>
       <Rect width="48" height="48" fill={getBgColor(type)} />
       <BackgroundOverlay type={type} />
-    </G>
+    </>
   );
 };
 
@@ -591,20 +579,17 @@ const DiverseCommunityFace = ({
     if (!shouldAnimate) return;
 
     const interval = setInterval(() => {
-      // 1. Animate Slide (0 -> 48)
-      //    Vertical Slide UP
-      //    Current: 0 -> -48 (Moves UP out of view)
-      //    Next: 48 -> 0 (Moves UP into view from bottom)
+      // Animate Slide (0 -> 48)
       slideOffset.value = withTiming(
         48,
-        { duration: 1000, easing: Easing.bezier(0.33, 1, 0.68, 1) },
+        { duration: 800, easing: Easing.out(Easing.exp) },
         (finished) => {
           if (finished) {
             runOnJS(handleNextScene)();
           }
         },
       );
-    }, 4000); // 3s wait + 1s anim
+    }, 4000); // 3.2s wait + 0.8s anim
 
     return () => clearInterval(interval);
   }, [shouldAnimate]);
@@ -614,15 +599,14 @@ const DiverseCommunityFace = ({
     slideOffset.value = 0; // Reset
   };
 
-  const currentScene = SCENE_ORDER[activeIndex];
-  const nextScene = SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length];
+  const offset = useDerivedValue(() => slideOffset.value);
 
   const currentBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: -slideOffset.value }] as any,
+    transform: [{ translateY: -offset.value }] as any,
   }));
 
   const nextBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: 48 - slideOffset.value }] as any,
+    transform: [{ translateY: 48 - offset.value }] as any,
   }));
 
   return (
@@ -630,7 +614,7 @@ const DiverseCommunityFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 150) / 2,
+        borderRadius: (Number(activeWidth) || 150) / 2, // Ensure activeWidth is number for borderRadius
         overflow: "hidden",
       }}
     >
@@ -641,18 +625,18 @@ const DiverseCommunityFace = ({
         fill="none"
         {...props}
       >
-        <G>
-          {/* Background Vertical Slider */}
-          <AnimatedG animatedProps={currentBgStyle}>
-            <BackgroundLayer type={currentScene} />
-          </AnimatedG>
-          <AnimatedG animatedProps={nextBgStyle}>
-            <BackgroundLayer type={nextScene} />
-          </AnimatedG>
+        {/* Background Vertical Slider */}
+        <AnimatedG animatedProps={currentBgStyle}>
+          <BackgroundLayer type={SCENE_ORDER[activeIndex]} />
+        </AnimatedG>
+        <AnimatedG animatedProps={nextBgStyle}>
+          <BackgroundLayer
+            type={SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length]}
+          />
+        </AnimatedG>
 
-          {/* Static Faces on Top */}
-          <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />
-        </G>
+        {/* Static Faces on Top */}
+        <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />
       </Svg>
     </View>
   );

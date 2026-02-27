@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 import { View } from "react-native";
@@ -18,7 +19,7 @@ import Svg, {
   Rect,
   SvgProps,
 } from "react-native-svg";
-import React from "react";
+import React, { useEffect } from "react";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -36,8 +37,6 @@ const HeadphoneFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -45,15 +44,15 @@ const HeadphoneFace = ({
   const blink = useSharedValue(1);
   const float = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
@@ -72,15 +71,21 @@ const HeadphoneFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const fltY = useDerivedValue(() => float.value * -2);
+  const fltRot = useDerivedValue(() => `${10 + float.value * 2}deg`);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 28,
   }));
-
-  const thumbnailProps = useAnimatedProps(() => ({
+  const thumbProps = useAnimatedProps(() => ({
     transform: [
-      { translateY: float.value * -2 },
-      { rotate: `${10 + float.value * 2}deg` },
+      { translateX: 24 },
+      { translateY: 16 + fltY.value },
+      { rotate: fltRot.value },
+      { translateX: -24 },
+      { translateY: -16 },
     ] as any,
   }));
 
@@ -89,7 +94,7 @@ const HeadphoneFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -101,23 +106,16 @@ const HeadphoneFace = ({
         {...props}
       >
         <Defs>
-          <Mask id="mask_playlist_berry">
+          <Mask id="headM">
             <Circle cx="24" cy="24" r="24" fill="#fff" />
           </Mask>
         </Defs>
-
-        <G mask="url(#mask_playlist_berry)">
-          {/* Background: Deep Pink */}
+        <G mask="url(#headM)">
           <Circle cx="24" cy="24" r="24" fill="#AD1457" />
-
-          {/* Background Element: Stacked Video Thumbnails */}
-          <AnimatedG
-            animatedProps={thumbnailProps}
-            transform="translate(24, 16)"
-          >
+          <AnimatedG animatedProps={thumbProps}>
             <Rect
-              x="-18"
-              y="-10"
+              x="6"
+              y="6"
               width="36"
               height="20"
               rx="4"
@@ -126,8 +124,8 @@ const HeadphoneFace = ({
               transform="translate(0, -8) scale(0.9)"
             />
             <Rect
-              x="-18"
-              y="-10"
+              x="6"
+              y="6"
               width="36"
               height="20"
               rx="4"
@@ -135,28 +133,16 @@ const HeadphoneFace = ({
               opacity={0.7}
               transform="translate(0, -4) scale(0.95)"
             />
-            <Rect
-              x="-18"
-              y="-10"
-              width="36"
-              height="20"
-              rx="4"
-              fill="#F8BBD0"
-            />
-            {/* Play icon */}
-            <Path d="M-4 -4 L 6 0 L -4 4 Z" fill="#AD1457" />
+            <Rect x="6" y="6" width="36" height="20" rx="4" fill="#F8BBD0" />
+            <Path d="M20 12l10 4l-10 4z" fill="#AD1457" />
           </AnimatedG>
-
-          {/* Character */}
           <G transform="translate(0, 10)">
-            <G>
-              <Path
-                fill="#FFECB3"
-                d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-              />
-            </G>
             <Path
-              d="M7 20 C 15 8, 33 8, 41 20"
+              fill="#FFECB3"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+            <Path
+              d="M7 20q17-12 34 0"
               stroke="#F8BBD0"
               strokeWidth="4"
               strokeLinecap="round"
@@ -166,20 +152,15 @@ const HeadphoneFace = ({
             <Circle cx="41" cy="24" r="5" fill="#D81B60" />
             <AnimatedG animatedProps={eyeProps}>
               <Path
-                d="M14 28 Q 18 26, 22 28"
+                d="M14 28q4-2 8 0M26 28q4-2 8 0"
                 stroke="#3E2723"
                 strokeWidth="2.5"
                 strokeLinecap="round"
-              />
-              <Path
-                d="M26 28 Q 30 26, 34 28"
-                stroke="#3E2723"
-                strokeWidth="2.5"
-                strokeLinecap="round"
+                fill="none"
               />
             </AnimatedG>
             <Path
-              d="M20 35 Q 24 38, 28 35"
+              d="M20 35q4 3 8 0"
               stroke="#3E2723"
               strokeWidth="2.5"
               strokeLinecap="round"

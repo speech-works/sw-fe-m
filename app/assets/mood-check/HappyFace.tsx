@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, { G, Path, SvgProps } from "react-native-svg";
+import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -24,98 +25,82 @@ const HappyFace = ({
   size = 48,
   width,
   height,
-  shouldAnimate,
-  loop,
-  repeatCount,
+  shouldAnimate = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const bounce = useSharedValue(0);
+  const wiggle = useSharedValue(0);
+  const twinkle = useSharedValue(0);
 
-  const eyeScaleY = useSharedValue(1);
-  const bounceY = useSharedValue(0);
-  const wiggleRotate = useSharedValue(0);
-  const starTwinkle = useSharedValue(0);
-
-  React.useEffect(() => {
-    if (!shouldAnimate) {
-      eyeScaleY.value = withTiming(1);
-      bounceY.value = withTiming(0);
-      wiggleRotate.value = withTiming(0);
-      starTwinkle.value = withTiming(0);
-      return;
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 3000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      bounce.value = withRepeat(
+        withSequence(
+          withTiming(-6, { duration: 300, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 300, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+      wiggle.value = withRepeat(
+        withSequence(
+          withTiming(-3, { duration: 600, easing: Easing.out(Easing.exp) }),
+          withTiming(3, { duration: 600, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+      twinkle.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 500, easing: Easing.out(Easing.exp) }),
+          withTiming(0.5, { duration: 500, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      blink.value = 1;
+      bounce.value = 0;
+      wiggle.value = 0;
+      twinkle.value = 0;
     }
-
-    // 1. Blink Animation (Random interval)
-    const blinkDuration = Math.random() * 2000 + 3000;
-    eyeScaleY.value = withRepeat(
-      withSequence(
-        withDelay(blinkDuration, withTiming(0.1, { duration: 150 })),
-        withTiming(1, { duration: 150 }),
-      ),
-      -1,
-      false,
-    );
-
-    // 2. Happy Bounce (Snappier spring-like feel)
-    bounceY.value = withRepeat(
-      withSequence(
-        withTiming(-6, {
-          duration: 350,
-          easing: Easing.bezier(0.33, 1, 0.68, 1),
-        }),
-        withTiming(0, {
-          duration: 350,
-          easing: Easing.bezier(0.32, 0, 0.67, 0),
-        }),
-      ),
-      -1,
-      true,
-    );
-
-    // 3. Wiggle (Joyful head tilt)
-    wiggleRotate.value = withRepeat(
-      withSequence(
-        withTiming(-3, { duration: 800, easing: Easing.inOut(Easing.quad) }),
-        withTiming(3, { duration: 800, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-      true,
-    );
-
-    // 4. Twinkling Stars (Snappier pulse)
-    starTwinkle.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
-        withTiming(0.5, { duration: 600, easing: Easing.in(Easing.exp) }),
-      ),
-      -1,
-      true,
-    );
   }, [shouldAnimate]);
 
-  // Pivot around Y=24 roughly for eyes
-  const eyeAnimatedProps = useAnimatedProps(() => ({
+  const eyeScale = useDerivedValue(() => blink.value);
+  const faceY = useDerivedValue(() => bounce.value);
+  const faceRot = useDerivedValue(() => `${wiggle.value}deg`);
+  const starOp = useDerivedValue(() => 0.5 + 0.5 * twinkle.value);
+  const starS = useDerivedValue(() => 0.8 + 0.4 * twinkle.value);
+
+  const eyeProps = useAnimatedProps(() => ({
     transform: [
       { translateY: 24 },
-      { scaleY: eyeScaleY.value },
+      { scaleY: eyeScale.value },
       { translateY: -24 },
     ] as any,
   }));
-
-  // Face Bounce & Wiggle
-  const faceAnimatedProps = useAnimatedProps(() => ({
-    transform: [
-      { translateY: bounceY.value },
-      { rotate: `${wiggleRotate.value}deg` },
-    ] as any,
+  const faceProps = useAnimatedProps(() => ({
+    transform: [{ translateY: faceY.value }, { rotate: faceRot.value }] as any,
     originX: 24,
     originY: 24,
   }));
-
   const starProps = useAnimatedProps(() => ({
-    opacity: 0.5 + 0.5 * starTwinkle.value,
-    transform: [{ scale: 0.8 + 0.4 * starTwinkle.value }] as any,
+    opacity: starOp.value,
+    transform: [{ scale: starS.value }] as any,
     originX: 24,
     originY: 40,
   }));
@@ -125,7 +110,7 @@ const HappyFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -136,84 +121,46 @@ const HappyFace = ({
         fill="none"
         {...props}
       >
-        <G>
+        <Path
+          fill="#F9E7D9"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <AnimatedG animatedProps={faceProps}>
           <Path
-            fill="#F9E7D9"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            fill="#F7DFA9"
+            d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 60 0 60 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-60 0-60"
           />
-
-          {/* Animated Face Group (Bounce + Wiggle) */}
-          <AnimatedG animatedProps={faceAnimatedProps}>
+          <AnimatedG animatedProps={eyeProps}>
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
             <Path
-              fill="#F7DFA9"
-              d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 60 0 60 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-60 0-60"
-            />
-
-            {/* Animated Eyes Group */}
-            <AnimatedG animatedProps={eyeAnimatedProps}>
-              {/* Left Eye */}
-              <Path
-                fill="#fff"
-                d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-              />
-              {/* Right Eye */}
-              <Path
-                fill="#fff"
-                d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-              />
-              {/* Pupils */}
-              <Path
-                fill="#2E2E2E"
-                d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
-              />
-            </AnimatedG>
-
-            {/* Open Mouth Smile with Teeth (Position Tweaked) */}
-            <G>
-              {/* Mouth Interior (Dark) */}
-              <Path
-                fill="#5C4033"
-                d="M15 36 Q24 37 33 36 Q33 44 24 44 Q15 44 15 36 Z"
-              />
-              {/* Teeth (White) */}
-              <Path
-                fill="#FFFFFF"
-                d="M15 36 Q24 37 33 36 L32.5 39 Q24 40 15.5 39 Z"
-              />
-              {/* Mouth Outline */}
-              <Path
-                stroke="#3E2723"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-                d="M15 36 Q24 37 33 36 Q33 44 24 44 Q15 44 15 36 Z"
-              />
-            </G>
-          </AnimatedG>
-
-          {/* Twinkling Stars (Bottom Props) */}
-          <AnimatedG animatedProps={starProps}>
-            {/* Left Star */}
-            <Path
-              fill="#FFD700"
-              d="M 12 40 L 13 42 L 15 42 L 13.5 43.5 L 14 45.5 L 12 44 L 10 45.5 L 10.5 43.5 L 9 42 L 11 42 Z"
-            />
-            {/* Right Star */}
-            <Path
-              fill="#FFD700"
-              d="M 36 40 L 37 42 L 39 42 L 37.5 43.5 L 38 45.5 L 36 44 L 34 45.5 L 34.5 43.5 L 33 42 L 35 42 Z"
-            />
-            {/* Center Small Star */}
-            <Path
-              fill="#FFFACD"
-              d="M 24 42 L 24.5 43 L 25.5 43 L 24.8 43.8 L 25 44.8 L 24 44 L 23 44.8 L 23.2 43.8 L 22.5 43 L 23.5 43 Z"
+              fill="#2E2E2E"
+              d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
             />
           </AnimatedG>
-        </G>
+          <Path fill="#5C4033" d="M15 36q9 1 18 0q0 8-9 8t-9-8z" />
+          <Path fill="#FFF" d="M15 36q9 1 18 0l-0.5 3q-8.5 1-17 0z" />
+          <Path
+            stroke="#3E2723"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            d="M15 36q9 1 18 0q0 8-9 8t-9-8z"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={starProps}>
+          <Path
+            fill="#FFD700"
+            d="M12 40l1 2l2 0l-1.5 1.5l0.5 2l-2-1.5l-2 1.5l0.5-2l-1.5-1.5l2 0zM36 40l1 2l2 0l-1.5 1.5l0.5 2l-2-1.5l-2 1.5l0.5-2l-1.5-1.5l2 0z"
+          />
+          <Path
+            fill="#FFFACD"
+            d="M24 42l0.5 1l1 0l-0.7 0.8l0.2 1l-1-0.8l-1 0.8l0.2-1l-0.7-0.8l1 0z"
+          />
+        </AnimatedG>
       </Svg>
     </View>
   );
 };
-
-export default HappyFace;
+export default React.memo(HappyFace);

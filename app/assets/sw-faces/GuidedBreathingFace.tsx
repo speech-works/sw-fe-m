@@ -68,9 +68,9 @@ const GuidedBreathingFace = ({
       withSequence(
         withDelay(
           Math.random() * 2000 + 3000,
-          withTiming(0, { duration: 150 }),
+          withTiming(0, { duration: 150, easing: Easing.out(Easing.exp) }),
         ),
-        withTiming(1, { duration: 150 }),
+        withTiming(1, { duration: 150, easing: Easing.out(Easing.exp) }),
       ),
       -1,
       false,
@@ -80,44 +80,65 @@ const GuidedBreathingFace = ({
 
     switch (phase) {
       case "idle":
-        eyeTranslateY.value = withTiming(0, { duration: DURATION });
-        breathOpacity.value = withTiming(0, { duration: DURATION });
+        eyeTranslateY.value = withTiming(0, {
+          duration: DURATION,
+          easing: Easing.out(Easing.exp),
+        });
+        breathOpacity.value = withTiming(0, {
+          duration: DURATION,
+          easing: Easing.out(Easing.exp),
+        });
         break;
 
+      case "inhale":
         // Eyes: Lift
         eyeTranslateY.value = withTiming(-1.5, {
           duration: DURATION,
-          easing: Easing.bezier(0.33, 1, 0.68, 1),
+          easing: Easing.out(Easing.exp),
         });
         // Breath: Invisible
-        breathOpacity.value = withTiming(0, { duration: 200 });
+        breathOpacity.value = withTiming(0, {
+          duration: 200,
+          easing: Easing.out(Easing.exp),
+        });
         break;
 
       case "hold-in":
         // Eyes: Stay Lifted
-        eyeTranslateY.value = withTiming(-1.5, { duration: DURATION });
+        eyeTranslateY.value = withTiming(-1.5, {
+          duration: DURATION,
+          easing: Easing.out(Easing.exp),
+        });
         // Breath: Invisible
-        breathOpacity.value = withTiming(0, { duration: 200 });
+        breathOpacity.value = withTiming(0, {
+          duration: 200,
+          easing: Easing.out(Easing.exp),
+        });
         break;
 
       case "exhale":
         // Eyes: Relax
         eyeTranslateY.value = withTiming(0, {
           duration: DURATION,
-          easing: Easing.inOut(Easing.ease),
+          easing: Easing.out(Easing.exp),
         });
         // Breath: Visible (fade in then pulse/stay)
         breathOpacity.value = withSequence(
-          withTiming(1, { duration: 300 }),
-          // Optional: visual pulse could go here, but static visible is fine for now
+          withTiming(1, { duration: 300, easing: Easing.out(Easing.exp) }),
         );
         break;
 
       case "hold-out":
         // Eyes: Stay Relaxed
-        eyeTranslateY.value = withTiming(0, { duration: DURATION });
+        eyeTranslateY.value = withTiming(0, {
+          duration: DURATION,
+          easing: Easing.out(Easing.exp),
+        });
         // Breath: fade out
-        breathOpacity.value = withTiming(0, { duration: 300 });
+        breathOpacity.value = withTiming(0, {
+          duration: 300,
+          easing: Easing.out(Easing.exp),
+        });
         break;
     }
   }, [phase]);

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, { Defs, G, Mask, Path, SvgProps } from "react-native-svg";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,54 +29,53 @@ const CuriousFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
   const blink = useSharedValue(1);
-  const browWiggle = useSharedValue(0);
+  const brow = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
-      browWiggle.value = withRepeat(
+      brow.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
       );
     } else {
       blink.value = 1;
-      browWiggle.value = 0;
+      brow.value = 0;
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const lBrowY = useDerivedValue(() => brow.value * -1.5);
+  const rBrowY = useDerivedValue(() => brow.value * 1.5);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
-  const leftBrowProps = useAnimatedProps(() => ({
-    transform: [{ translateY: browWiggle.value * -1.5 }] as any,
+  const lBrowProps = useAnimatedProps(() => ({
+    transform: [{ translateY: lBrowY.value }] as any,
   }));
-
-  const rightBrowProps = useAnimatedProps(() => ({
-    transform: [{ translateY: browWiggle.value * 1.5 }] as any,
+  const rBrowProps = useAnimatedProps(() => ({
+    transform: [{ translateY: rBrowY.value }] as any,
   }));
 
   return (
@@ -83,7 +83,7 @@ const CuriousFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -96,7 +96,7 @@ const CuriousFace = ({
       >
         <Defs>
           <Mask
-            id="curious_mask"
+            id="curM"
             x="0"
             y="0"
             width="48"
@@ -109,62 +109,41 @@ const CuriousFace = ({
             />
           </Mask>
         </Defs>
-        <G mask="url(#curious_mask)">
-          {/* Background - Teal */}
+        <G mask="url(#curM)">
           <Path
             fill="#80CBC4"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-          <G>
-            {/* Face Shape - Light Teal/Grey */}
-            <Path
-              fill="#E0F2F1"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
+          <Path
+            fill="#E0F2F1"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes (White) */}
-            <Path
-              fill="#fff"
-              d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-            <Path
-              fill="#fff"
-              d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-            {/* Pupils (Dark) */}
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
             <Path
               fill="#4A4A4A"
-              d="M20 26 a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M34.4 26 a4 4 0 1 0 0-8 4 4 0 0 0 0 8"
+              d="M20 26a4 4 0 1 0 0-8 4 4 0 0 0 0 8M34.4 26a4 4 0 1 0 0-8 4 4 0 0 0 0 8"
             />
           </AnimatedG>
-
-          {/* Pursed Mouth "Hmm" */}
-          <Path
-            fill="#4A4A4A"
-            d="M24 34 m-3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
-          />
-
-          {/* Curious Eyebrows (one high, one low) */}
+          <Circle cx="24" cy="34" r="3" fill="#4A4A4A" />
           <AnimatedPath
             stroke="#4A4A4A"
             strokeWidth="2.5"
             strokeLinecap="round"
-            d="M12 16 Q 16.8 16, 21.6 16"
-            animatedProps={leftBrowProps}
+            d="M12 16q4.8 0 9.6 0"
+            animatedProps={lBrowProps}
           />
           <AnimatedPath
             stroke="#4A4A4A"
             strokeWidth="2.5"
             strokeLinecap="round"
-            d="M26.4 12 Q 31.2 8, 36 12"
-            animatedProps={rightBrowProps}
+            d="M26.4 12q4.8-4 9.6 0"
+            animatedProps={rBrowProps}
           />
         </G>
       </Svg>
     </View>
   );
 };
-
 export default React.memo(CuriousFace);

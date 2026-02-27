@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, { G, Mask, Path, SvgProps } from "react-native-svg";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -27,8 +28,6 @@ const Calm1 = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -36,26 +35,23 @@ const Calm1 = ({
   const blink = useSharedValue(1);
   const pulse = useSharedValue(1);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 4000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       pulse.value = withRepeat(
         withSequence(
-          withTiming(1.03, {
-            duration: 1500,
-            easing: Easing.inOut(Easing.sin),
-          }),
-          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1.03, { duration: 1500, easing: Easing.out(Easing.exp) }),
+          withTiming(1, { duration: 1500, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -66,13 +62,15 @@ const Calm1 = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const pulseS = useDerivedValue(() => pulse.value);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
   const pulseProps = useAnimatedProps(() => ({
-    transform: [{ scale: pulse.value }] as any,
+    transform: [{ scale: pulseS.value }] as any,
     originX: 24,
     originY: 24,
   }));
@@ -82,7 +80,7 @@ const Calm1 = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -93,51 +91,41 @@ const Calm1 = ({
         fill="none"
         {...props}
       >
-        <Mask
-          id="mask0_2132_4802"
-          x={0}
-          y={0}
-          width={48}
-          height={48}
-          maskUnits="userSpaceOnUse"
-          style={{ maskType: "luminance" }}
-        >
-          <Path
-            fill="#fff"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          ></Path>
-        </Mask>
-        <G mask="url(#mask0_2132_4802)">
+        <Defs>
+          <Mask
+            id="cal1M"
+            x="0"
+            y="0"
+            width="48"
+            height="48"
+            maskUnits="userSpaceOnUse"
+          >
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#cal1M)">
           <Path
             fill="#B8DCC2"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          ></Path>
+          />
           <AnimatedG animatedProps={pulseProps}>
-            <G>
-              <Path
-                fill="#E7E2CB"
-                d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-              ></Path>
-            </G>
+            <Path
+              fill="#E7E2CB"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
           </AnimatedG>
           <AnimatedG animatedProps={eyeProps}>
-            <Path
-              fill="#fff"
-              d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            ></Path>
-            <Path
-              fill="#fff"
-              d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            ></Path>
-            <Path
-              fill="#4A4A4A"
-              d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
-            ></Path>
+            <Circle cx="16.8" cy="24" r="7.2" fill="#fff" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#fff" />
+            <Circle cx="16.8" cy="24" r="4.32" fill="#4A4A4A" />
+            <Circle cx="31.2" cy="24" r="4.32" fill="#4A4A4A" />
           </AnimatedG>
         </G>
       </Svg>
     </View>
   );
 };
-
 export default React.memo(Calm1);

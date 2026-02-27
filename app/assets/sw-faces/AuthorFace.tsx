@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -6,9 +6,10 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  useDerivedValue,
 } from "react-native-reanimated";
 
-import { View } from "react-native";
+import { Easing, View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -29,8 +30,6 @@ const AuthorFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -39,23 +38,23 @@ const AuthorFace = ({
   const blink = useSharedValue(1);
   const wiggle = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       wiggle.value = withRepeat(
         withSequence(
-          withTiming(0.5, { duration: 1000 }),
-          withTiming(0, { duration: 1000 }),
+          withTiming(0.5, { duration: 800, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -66,13 +65,15 @@ const AuthorFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const wigY = useDerivedValue(() => wiggle.value);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
-  const mustacheProps = useAnimatedProps(() => ({
-    transform: [{ translateY: wiggle.value }] as any,
+  const musProps = useAnimatedProps(() => ({
+    transform: [{ translateY: wigY.value }] as any,
   }));
 
   return (
@@ -80,7 +81,7 @@ const AuthorFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -91,86 +92,47 @@ const AuthorFace = ({
         fill="none"
         {...props}
       >
-        <Defs>
-          <Mask
-            id="storyteller_mask_mustache"
-            x="0"
-            y="0"
-            width="48"
-            height="48"
-            maskUnits="userSpaceOnUse"
-          >
-            <Path
-              fill="#fff"
-              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-            />
-          </Mask>
-        </Defs>
-
-        <G mask="url(#storyteller_mask_mustache)">
-          {/* Background - Warm, muted yellow */}
-          <Path
-            fill="#558B2F" /* Warm Yellow */
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-
-          {/* The Brand Face Shape - Slightly darker, warmer skin tone */}
-          <G>
-            <Path
-              fill="#A1887F" /* Slightly darker, warmer face color */
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          <G stroke="#6D4C41" strokeWidth="4" fill="none" strokeLinecap="round">
-            {/* Left Frame */}
-            <Circle cx="16.8" cy="24" r="8" />
-            {/* Right Frame */}
-            <Circle cx="31.2" cy="24" r="8" />
-            {/* Bridge */}
-            <Path d="M24.8 24 L 23.2 24" />
-            {/* Arms connecting to the side of head */}
-            <Path d="M10 24 L 7 24" />
-            <Path d="M38 24 L 41 24" />
-          </G>
-
-          <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes (Engaged and friendly, within glasses) */}
-            <Circle cx="16.8" cy="24" r="2.5" fill="#6D4C41" />
-            <Circle cx="31.2" cy="24" r="2.5" fill="#6D4C41" />
-            {/* Small highlights for sparkle */}
-            <Circle cx="17.5" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
-            <Circle cx="31.9" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
-          </AnimatedG>
-
-          {/* Prop: Friendly Mustache (More manly and thick) */}
-          <AnimatedPath
-            d="M16 29 Q 20 35, 24 35 Q 28 35, 32 29"
-            stroke="#3E2723"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="#3E2723"
-            animatedProps={mustacheProps}
-          />
-
-          {/* NEW: Stubble Beard as a semi-transparent shape, fixed and contained within the face */}
-          <Path
-            d="M10 34 C 6 36, 6 48, 10 50 C 18 53, 30 53, 38 50 C 42 48, 42 36, 38 34 Z"
-            fill="#3E2723"
-            opacity="0.25"
-          />
-
-          {/* Overlay a few subtle dots for texture, moved to match the new beard shape */}
-          <G fill="#3E2723" opacity="0.35">
-            <Circle cx="13" cy="43" r="0.5" />
-            <Circle cx="17" cy="46" r="0.6" />
-            <Circle cx="24" cy="48" r="0.7" />
-            <Circle cx="31" cy="46" r="0.6" />
-            <Circle cx="35" cy="43" r="0.5" />
-            <Circle cx="15" cy="40" r="0.4" />
-            <Circle cx="33" cy="40" r="0.4" />
-          </G>
+        <Path
+          fill="#558B2F"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <Path
+          fill="#A1887F"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <G stroke="#6D4C41" strokeWidth="4" fill="none" strokeLinecap="round">
+          <Circle cx="16.8" cy="24" r="8" />
+          <Circle cx="31.2" cy="24" r="8" />
+          <Path d="M24.8 24H23.2M10 24H7M38 24h3" />
+        </G>
+        <AnimatedG animatedProps={eyeProps}>
+          <Circle cx="16.8" cy="24" r="2.5" fill="#6D4C41" />
+          <Circle cx="31.2" cy="24" r="2.5" fill="#6D4C41" />
+          <Circle cx="17.5" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
+          <Circle cx="31.9" cy="23" r="0.7" fill="#FFF" opacity="0.8" />
+        </AnimatedG>
+        <AnimatedPath
+          d="M16 29q4 6 8 6t8-6"
+          stroke="#3E2723"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="#3E2723"
+          animatedProps={musProps}
+        />
+        <Path
+          d="M10 34c-4 2-4 14 0 16c8 3 20 3 28 0c4-2 4-14 0-16z"
+          fill="#3E2723"
+          opacity="0.25"
+        />
+        <G fill="#3E2723" opacity="0.35">
+          <Circle cx="13" cy="43" r="0.5" />
+          <Circle cx="17" cy="46" r="0.6" />
+          <Circle cx="24" cy="48" r="0.7" />
+          <Circle cx="31" cy="46" r="0.6" />
+          <Circle cx="35" cy="43" r="0.5" />
+          <Circle cx="15" cy="40" r="0.4" />
+          <Circle cx="33" cy="40" r="0.4" />
         </G>
       </Svg>
     </View>

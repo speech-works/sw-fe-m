@@ -1,5 +1,5 @@
-import React from "react";
-import { View } from "react-native";
+import React, { useEffect } from "react";
+import { Easing, View } from "react-native";
 import Svg, {
   G,
   Circle,
@@ -16,6 +16,7 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -36,8 +37,6 @@ const TherapistFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   transparentBg,
   ...props
 }: SvgIconProps) => {
@@ -46,23 +45,23 @@ const TherapistFace = ({
   const blink = useSharedValue(1);
   const write = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0, { duration: 150 }),
+            withTiming(0, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       write.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 800 }),
-          withTiming(0, { duration: 800 }),
+          withTiming(1, { duration: 800, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -73,16 +72,16 @@ const TherapistFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const penX = useDerivedValue(() => write.value * 2);
+  const penY = useDerivedValue(() => write.value * -1);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }],
+    transform: [{ scaleY: blinkS.value }],
     originY: 26,
   }));
-
   const penProps = useAnimatedProps(() => ({
-    transform: [
-      { translateX: write.value * 2 },
-      { translateY: write.value * -1 },
-    ],
+    transform: [{ translateX: penX.value }, { translateY: penY.value }],
   }));
 
   return (
@@ -90,7 +89,7 @@ const TherapistFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -102,29 +101,26 @@ const TherapistFace = ({
         {...props}
       >
         <Defs>
-          <Mask id="clip_mask">
+          <Mask id="theM">
             <Path
               fill="#fff"
               d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
             />
           </Mask>
         </Defs>
-        <G clipPath="url(#clip_mask)">
-          {/* --- BASE FACE --- */}
+        <G clipPath="url(#theM)">
           {!transparentBg && (
             <Path
               fill="#BBDEFB"
               d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
             />
           )}
-          {/* Shadow - Vector approximation */}
           <Path
             fill="black"
             opacity={0.25}
             transform="translate(4, 4)"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
-          {/* Face Shape */}
           <Path
             fill="#F5F5F5"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
@@ -140,13 +136,7 @@ const TherapistFace = ({
             <Circle cx="40" cy="20" r="3" />
           </G>
           <Path
-            d="M12 19 Q 16 18, 20 19"
-            stroke="#F5F5F5"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <Path
-            d="M28 19 Q 32 18, 36 19"
+            d="M12 19q4-1 8 0M28 19q4-1 8 0"
             stroke="#F5F5F5"
             strokeWidth="3"
             strokeLinecap="round"
@@ -154,7 +144,7 @@ const TherapistFace = ({
           <G stroke="#3E2723" strokeWidth="2.5" fill="none">
             <Rect x="10" y="20" width="12" height="12" rx="3" />
             <Rect x="26" y="20" width="12" height="12" rx="3" />
-            <Path d="M22 26 L 26 26" strokeWidth="2" />
+            <Path d="M22 26h4" strokeWidth="2" />
           </G>
           <Rect
             x="11"
@@ -162,7 +152,7 @@ const TherapistFace = ({
             width="10"
             height="10"
             rx="2"
-            fill="#FFFFFF"
+            fill="#FFF"
             opacity="0.3"
           />
           <Rect
@@ -171,25 +161,24 @@ const TherapistFace = ({
             width="10"
             height="10"
             rx="2"
-            fill="#FFFFFF"
+            fill="#FFF"
             opacity="0.3"
           />
-
           <AnimatedG animatedProps={eyeProps}>
             <Circle cx="16" cy="26" r="1.5" fill="#3E2723" />
             <Circle cx="32" cy="26" r="1.5" fill="#3E2723" />
           </AnimatedG>
-
-          <Path d="M9 26 Q 7 24, 9 22" stroke="#E0E0E0" strokeWidth="1" />
-          <Path d="M39 26 Q 41 24, 39 22" stroke="#E0E0E0" strokeWidth="1" />
           <Path
-            d="M20 36 Q 24 38, 28 36"
+            d="M9 26q-2-2 0-4M39 26q2-2 0-4"
+            stroke="#E0E0E0"
+            strokeWidth="1"
+          />
+          <Path
+            d="M20 36q4 2 8 0"
             stroke="#3E2723"
             strokeWidth="1.5"
             strokeLinecap="round"
           />
-
-          {/* --- PROP: CLIPBOARD & PEN --- */}
           <G transform="translate(0, 3)">
             <Rect
               x="14"
@@ -199,14 +188,10 @@ const TherapistFace = ({
               rx="1"
               fill="#8D6E63"
               stroke="#5D4037"
-              strokeWidth="1"
+              strokeLinecap="round"
             />
-            {/* Paper */}
-            <Rect x="16" y="38" width="16" height="11" fill="#FFFFFF" />
-            {/* Text lines */}
-            <Path d="M18 41 H 30" stroke="#BDBDBD" strokeWidth="1" />
-            <Path d="M18 44 H 26" stroke="#BDBDBD" strokeWidth="1" />
-            {/* Clip mechanism */}
+            <Rect x="16" y="38" width="16" height="11" fill="#FFF" />
+            <Path d="M18 41h12M18 44h8" stroke="#BDBDBD" strokeWidth="1" />
             <Rect
               x="20"
               y="35"
@@ -215,9 +200,7 @@ const TherapistFace = ({
               rx="0.5"
               fill="#B0BEC5"
               stroke="#78909C"
-              strokeWidth="1"
             />
-            {/* Pen resting on side */}
             <AnimatedRect
               x="35"
               y="36"
@@ -226,7 +209,6 @@ const TherapistFace = ({
               rx="1"
               fill="#EF5350"
               stroke="#C62828"
-              strokeWidth="1"
               animatedProps={penProps}
             />
           </G>

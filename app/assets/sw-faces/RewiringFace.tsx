@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 import { View } from "react-native";
@@ -14,6 +15,7 @@ import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
@@ -29,25 +31,22 @@ const RewiringFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
   const blink = useSharedValue(1);
   const rotation = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0, { duration: 150 }),
+            withTiming(0, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
@@ -63,13 +62,16 @@ const RewiringFace = ({
     }
   }, [shouldAnimate]);
 
-  const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
-    originY: 24,
+  const blinkS = useDerivedValue(() => blink.value);
+  const rotDeg = useDerivedValue(() => `${rotation.value}deg`);
+
+  // eyeProps now only contains the transform, originY is handled per circle
+  const eyeTransformProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
   }));
 
   const spiralProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }] as any,
+    transform: [{ rotate: rotDeg.value }] as any,
     originX: 24,
     originY: 10,
   }));
@@ -79,7 +81,7 @@ const RewiringFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -92,7 +94,7 @@ const RewiringFace = ({
       >
         <Defs>
           <Mask
-            id="spiral_mask"
+            id="rewM"
             x="0"
             y="0"
             width="48"
@@ -105,44 +107,60 @@ const RewiringFace = ({
             />
           </Mask>
         </Defs>
-
-        <G mask="url(#spiral_mask)">
-          {/* Background - Overwhelming Red (kept as original) */}
+        <G mask="url(#rewM)">
           <Path
             fill="#C62828"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-          {/* Face Shape - Pale/Stressed White (kept as original) */}
-          <G>
-            <Path
-              fill="#F5F5F5"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes (Updated to Happy, Open, and Confident) */}
-            <Circle cx="17" cy="24" r="3" fill="#212121" />
-            <Circle cx="31" cy="24" r="3" fill="#212121" />
-            {/* Glints for sparkle in happy eyes */}
-            <Circle cx="18.2" cy="22.8" r="0.8" fill="#FFFFFF" />
-            <Circle cx="32.2" cy="22.8" r="0.8" fill="#FFFFFF" />
-          </AnimatedG>
-
-          {/* Mouth (Updated to a Broad, Confident Smile) */}
+          <Path
+            fill="#F5F5F5"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          {/* Flat SVG structure for eyes: animate each circle directly */}
+          <AnimatedCircle
+            cx="17"
+            cy="24"
+            r="3"
+            fill="#212121"
+            animatedProps={eyeTransformProps}
+            originY={24}
+          />
+          <AnimatedCircle
+            cx="31"
+            cy="24"
+            r="3"
+            fill="#212121"
+            animatedProps={eyeTransformProps}
+            originY={24}
+          />
+          <AnimatedCircle
+            cx="18.2"
+            cy="22.8"
+            r="0.8"
+            fill="#FFF"
+            animatedProps={eyeTransformProps}
+            originY={22.8}
+          />
+          <AnimatedCircle
+            cx="32.2"
+            cy="22.8"
+            r="0.8"
+            fill="#FFF"
+            animatedProps={eyeTransformProps}
+            originY={22.8}
+          />
           <Path
             stroke="#424242"
             strokeWidth="3"
             strokeLinecap="round"
-            d="M18 32 Q 24 37, 30 32"
+            d="M18 32q6 5 12 0"
             fill="none"
           />
-          {/* Worry Prop (Giant spiral on forehead - kept as original) */}
           <AnimatedPath
             stroke="#D32F2F"
             strokeWidth="2.5"
             fill="none"
-            d="M24 10 A 10 10 0 1 1 24 10.1 M24 15 A 5 5 0 1 1 24 15.1"
+            d="M24 10a10 10 0 1 1 0 .1M24 15a5 5 0 1 1 0 .1"
             animatedProps={spiralProps}
           />
         </G>

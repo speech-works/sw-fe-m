@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, { G, Path, SvgProps } from "react-native-svg";
+import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -26,8 +27,6 @@ const WarriorFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -38,65 +37,49 @@ const WarriorFace = ({
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(1, {
-            duration: 800,
-            easing: Easing.bezier(0.33, 1, 0.68, 1),
-          }), // Furrow
-          withTiming(0, {
-            duration: 800,
-            easing: Easing.bezier(0.33, 1, 0.68, 1),
-          }), // Relax
+          withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 600, easing: Easing.out(Easing.exp) }),
         ),
-        loop ? -1 : repeatCount,
+        -1,
         false,
       );
     } else {
-      progress.value = withTiming(0);
+      progress.value = 0;
     }
-  }, [shouldAnimate, loop, repeatCount]);
+  }, [shouldAnimate]);
+
+  const eyeY = useDerivedValue(() => progress.value * 2);
+  const upperRotate = useDerivedValue(() => (1 - progress.value) * 45);
+  const lowerRotate = useDerivedValue(() => (1 - progress.value) * -30);
 
   const eyebrowProps = useAnimatedProps(() => ({
-    transform: [{ translateY: progress.value * 2 }] as any, // Move down 2px
+    transform: [{ translateY: eyeY.value }] as any,
   }));
-
-  const upperKnotProps = useAnimatedProps(() => {
-    // Pivot at (42, 16)
-    // Relaxed (0) -> Drooped (+45deg)
-    // Tight (1) -> Normal (0deg)
-    const rotate = (1 - progress.value) * 45;
-    return {
-      transform: [
-        { translateX: 42 },
-        { translateY: 16 },
-        { rotate: `${rotate}deg` },
-        { translateX: -42 },
-        { translateY: -16 },
-      ] as any,
-    };
-  });
-
-  const lowerKnotProps = useAnimatedProps(() => {
-    // Pivot at (42, 18)
-    // Relaxed (0) -> Drooped/Open (-30deg)
-    // Tight (1) -> Normal (0deg)
-    const rotate = (1 - progress.value) * -30;
-    return {
-      transform: [
-        { translateX: 42 },
-        { translateY: 18 },
-        { rotate: `${rotate}deg` },
-        { translateX: -42 },
-        { translateY: -18 },
-      ] as any,
-    };
-  });
+  const upperKnotProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 42 },
+      { translateY: 16 },
+      { rotate: `${upperRotate.value}deg` },
+      { translateX: -42 },
+      { translateY: -16 },
+    ] as any,
+  }));
+  const lowerKnotProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 42 },
+      { translateY: 18 },
+      { rotate: `${lowerRotate.value}deg` },
+      { translateX: -42 },
+      { translateY: -18 },
+    ] as any,
+  }));
 
   return (
     <View
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -107,82 +90,41 @@ const WarriorFace = ({
         fill="none"
         {...props}
       >
-        <G>
-          {/* Background - Energetic Orange/Red */}
-          <Path
-            fill="#FF7043"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-          <G>
-            {/* Face Shape */}
-            <Path
-              fill="#FFCCBC"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          {/* Headband (Red) */}
-          <Path fill="#D32F2F" d="M5 14 L 44 14 L 44 20 L 5 20 Z" />
-          {/* Headband Knot/Ties */}
-          <AnimatedG animatedProps={upperKnotProps}>
-            <Path
-              stroke="#D32F2F"
-              strokeWidth="3"
-              fill="none"
-              d="M42 16 L 46 12"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={lowerKnotProps}>
-            <Path
-              stroke="#D32F2F"
-              strokeWidth="3"
-              fill="none"
-              d="M42 18 L 46 22"
-            />
-          </AnimatedG>
-
-          {/* Eyes (White) */}
-          <Path
-            fill="#fff"
-            d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-          />
-          <Path
-            fill="#fff"
-            d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-          />
-
-          {/* Pupils (Focused Center) */}
-          <Path
-            fill="#3E2723"
-            d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
-          />
-
-          {/* Determined Eyebrows (Angled Down) */}
-          <AnimatedG animatedProps={eyebrowProps}>
-            <Path
-              stroke="#3E2723"
-              strokeWidth="3"
-              strokeLinecap="round"
-              d="M12 13 L 20 16"
-            />
-            <Path
-              stroke="#3E2723"
-              strokeWidth="3"
-              strokeLinecap="round"
-              d="M36 13 L 28 16"
-            />
-          </AnimatedG>
-
-          {/* Serious Mouth */}
+        <Path
+          fill="#FF7043"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <Path
+          fill="#FFCCBC"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+        />
+        <Path fill="#D32F2F" d="M5 14h39v6H5z" />
+        <AnimatedG animatedProps={upperKnotProps}>
+          <Path stroke="#D32F2F" strokeWidth="3" d="M42 16l4-4" />
+        </AnimatedG>
+        <AnimatedG animatedProps={lowerKnotProps}>
+          <Path stroke="#D32F2F" strokeWidth="3" d="M42 18l4 4" />
+        </AnimatedG>
+        <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+        <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
+        <Circle cx="16.8" cy="24.32" r="4.32" fill="#3E2723" />
+        <Circle cx="31.2" cy="24.32" r="4.32" fill="#3E2723" />
+        <AnimatedG animatedProps={eyebrowProps}>
           <Path
             stroke="#3E2723"
             strokeWidth="3"
             strokeLinecap="round"
-            d="M20 34 L 28 34"
+            d="M12 13l8 3M36 13l-8 3"
           />
-        </G>
+        </AnimatedG>
+        <Path
+          stroke="#3E2723"
+          strokeWidth="3"
+          strokeLinecap="round"
+          d="M20 34h8"
+        />
       </Svg>
     </View>
   );
 };
-export default WarriorFace;
+export default React.memo(WarriorFace);

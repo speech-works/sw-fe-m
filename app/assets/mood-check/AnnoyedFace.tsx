@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,33 +29,30 @@ const AnnoyedFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
   const blink = useSharedValue(1);
   const droop = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       droop.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -65,13 +63,15 @@ const AnnoyedFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const lidY = useDerivedValue(() => droop.value * 1.2);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
   const lidProps = useAnimatedProps(() => ({
-    transform: [{ translateY: droop.value * 1.2 }] as any,
+    transform: [{ translateY: lidY.value }] as any,
   }));
 
   return (
@@ -79,7 +79,7 @@ const AnnoyedFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -92,7 +92,7 @@ const AnnoyedFace = ({
       >
         <Defs>
           <Mask
-            id="bored_mask"
+            id="boredM"
             x="0"
             y="0"
             width="48"
@@ -105,54 +105,34 @@ const AnnoyedFace = ({
             />
           </Mask>
         </Defs>
-        <G mask="url(#bored_mask)">
-          {/* Background - Dull Greige */}
+        <G mask="url(#boredM)">
           <Path
             fill="#A1887F"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-          <G>
-            {/* Face Shape - Pale Beige */}
-            <Path
-              fill="#EFEBE9"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
+          <Path
+            fill="#EFEBE9"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes (White) */}
-            <Path
-              fill="#fff"
-              d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-            <Path
-              fill="#fff"
-              d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-            {/* Pupils (Looking slightly right, half covered) */}
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
             <Circle cx="18" cy="24" r="3" fill="#5D4037" />
             <Circle cx="32.4" cy="24" r="3" fill="#5D4037" />
           </AnimatedG>
-
-          {/* Half-closed Eyelids (Flat lines covering top of eyes) */}
           <AnimatedG animatedProps={lidProps}>
-            <Path fill="#EFEBE9" d="M9 22 L 25 22 L 25 16 L 9 16 Z" />
-            <Path fill="#EFEBE9" d="M23 22 L 39 22 L 39 16 L 23 16 Z" />
-            <Path stroke="#5D4037" strokeWidth="2" d="M10 22 L 23.6 22" />
-            <Path stroke="#5D4037" strokeWidth="2" d="M24.4 22 L 38 22" />
+            <Path fill="#EFEBE9" d="M9 22h16v-6H9zM23 22h16v-6H23z" />
+            <Path stroke="#5D4037" strokeWidth="2" d="M10 22h13.6M24.4 22H38" />
           </AnimatedG>
-
-          {/* Flat Unimpressed Mouth */}
           <Path
             stroke="#5D4037"
             strokeWidth="2.5"
             strokeLinecap="round"
-            d="M20 34 L 28 34"
+            d="M20 34h8"
           />
         </G>
       </Svg>
     </View>
   );
 };
-
 export default React.memo(AnnoyedFace);

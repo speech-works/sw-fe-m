@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,32 +29,32 @@ const InspectorFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
   const blink = useSharedValue(1);
   const shimmer = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       shimmer.value = withRepeat(
         withSequence(
-          withDelay(2000, withTiming(1, { duration: 800 })),
+          withDelay(
+            2000,
+            withTiming(1, { duration: 800, easing: Easing.out(Easing.exp) }),
+          ),
           withTiming(0, { duration: 0 }),
         ),
         -1,
@@ -65,14 +66,17 @@ const InspectorFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const shimOp = useDerivedValue(() => 0.5 + shimmer.value * 0.3);
+  const shimW = useDerivedValue(() => 2 + shimmer.value * 1);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
-  const shimmerProps = useAnimatedProps(() => ({
-    opacity: 0.5 + shimmer.value * 0.3,
-    strokeWidth: 2 + shimmer.value * 1,
+  const shimProps = useAnimatedProps(() => ({
+    opacity: shimOp.value,
+    strokeWidth: shimW.value,
   }));
 
   return (
@@ -80,7 +84,7 @@ const InspectorFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -93,7 +97,7 @@ const InspectorFace = ({
       >
         <Defs>
           <Mask
-            id="inspector_mask"
+            id="inspM"
             x="0"
             y="0"
             width="48"
@@ -106,62 +110,45 @@ const InspectorFace = ({
             />
           </Mask>
         </Defs>
-        <G mask="url(#inspector_mask)">
-          {/* Background - Serious Grey/Blue */}
+        <G mask="url(#inspM)">
           <Path
             fill="#607D8B"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-          <G>
-            {/* Face Shape */}
-            <Path
-              fill="#CFD8DC"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
+          <Path
+            fill="#CFD8DC"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
           <AnimatedG animatedProps={eyeProps}>
-            {/* Left Eye (Normal size) */}
-            <Path
-              fill="#fff"
-              d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
             <Circle cx="16.8" cy="24" r="3" fill="#37474F" />
-
-            {/* Right Eye (MAGNIFIED inside the lens) */}
-            <Path fill="#fff" d="M30 34 a 10 10 0 1 0 0-20 10 10 0 0 0 0 20" />
+            <Path fill="#FFF" d="M30 34a10 10 0 1 0 0-20 10 10 0 0 0 0 20" />
             <Circle cx="30" cy="24" r="4.5" fill="#37474F" />
           </AnimatedG>
-
-          {/* Magnifying Glass Handle */}
           <Path
             stroke="#37474F"
             strokeWidth="3"
             strokeLinecap="round"
-            d="M36 36 L 42 42"
+            d="M36 36l6 6"
           />
-
-          {/* Magnifying Glass Lens Rim */}
           <AnimatedCircle
             cx="30"
             cy="24"
             r="11"
             stroke="#37474F"
             fill="#E0F7FA"
-            animatedProps={shimmerProps}
+            animatedProps={shimProps}
           />
-
-          {/* Scrutinizing Mouth */}
           <Path
             stroke="#37474F"
             strokeWidth="2.5"
             strokeLinecap="round"
-            d="M18 36 Q 22 38, 26 36"
+            d="M18 36q4 2 8 0"
+            fill="none"
           />
         </G>
       </Svg>
     </View>
   );
 };
-
 export default React.memo(InspectorFace);

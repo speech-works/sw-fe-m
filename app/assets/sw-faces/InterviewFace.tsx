@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -6,9 +6,10 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
+  useDerivedValue,
 } from "react-native-reanimated";
 
-import { View } from "react-native";
+import { Easing, View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -28,8 +29,6 @@ const InterviewFace = ({
   width,
   height,
   shouldAnimate = false,
-  loop = false,
-  repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -37,23 +36,23 @@ const InterviewFace = ({
   const blink = useSharedValue(1);
   const wiggle = useSharedValue(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0.1, { duration: 150 }),
+            withTiming(0.1, { duration: 120 }),
           ),
-          withTiming(1, { duration: 150 }),
+          withTiming(1, { duration: 120 }),
         ),
         -1,
         false,
       );
       wiggle.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1500 }),
-          withTiming(0, { duration: 1500 }),
+          withTiming(1, { duration: 1500, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 1500, easing: Easing.out(Easing.exp) }),
         ),
         -1,
         true,
@@ -64,13 +63,15 @@ const InterviewFace = ({
     }
   }, [shouldAnimate]);
 
+  const blinkS = useDerivedValue(() => blink.value);
+  const wigRot = useDerivedValue(() => `${wiggle.value}deg`);
+
   const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blink.value }] as any,
+    transform: [{ scaleY: blinkS.value }] as any,
     originY: 24,
   }));
-
   const tieProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${wiggle.value}deg` }] as any,
+    transform: [{ rotate: wigRot.value }] as any,
     originX: 24,
     originY: 38,
   }));
@@ -80,14 +81,20 @@ const InterviewFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
-      <Svg width={activeWidth} height={activeHeight}>
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
         <Defs>
           <Mask
-            id="senior_mask"
+            id="intM"
             x="0"
             y="0"
             width="48"
@@ -100,31 +107,21 @@ const InterviewFace = ({
             />
           </Mask>
         </Defs>
-        <G mask="url(#senior_mask)">
-          {/* Background: Professional Light Blue (Calm & Trustworthy) */}
+        <G mask="url(#intM)">
           <Path
             fill="#E3F2FD"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-
-          <G>
-            <Path
-              fill="#FFDABF"
-              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-            />
-          </G>
-
-          <Path d="M8 42 L 24 44 L 24 38 Z" fill="#FFFFFF" />
-          <Path d="M40 42 L 24 44 L 24 38 Z" fill="#FFFFFF" />
-
-          {/* Necktie (Distinguished Burgundy) */}
+          <Path
+            fill="#FFDABF"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          <Path d="M8 42l16 2V38zM40 42l-16 2V38z" fill="#FFF" />
           <AnimatedPath
-            d="M24 38 L 28 41 L 27 48 L 21 48 L 20 41 Z"
+            d="M24 38l4 3l-1 7H21l-1-7z"
             fill="#880E4F"
             animatedProps={tieProps}
           />
-
-          {/* Glasses (Grey Rims) */}
           <Circle
             cx="16.8"
             cy="24"
@@ -143,34 +140,22 @@ const InterviewFace = ({
             fill="#FFDABF"
             fillOpacity="0.5"
           />
-          <Path d="M22.3 24 L 25.7 24" stroke="#757575" strokeWidth="1.5" />
-
-          {/* Wrinkles/Experience lines */}
+          <Path d="M22.3 24h3.4" stroke="#757575" strokeWidth="1.5" />
           <Path
-            d="M13 26 Q 11 27, 13 28"
+            d="M13 26q-2 1 0 2M35 26q2 1 0 2"
             stroke="#D7CCC8"
             strokeWidth="1"
             fill="none"
           />
-          <Path
-            d="M35 26 Q 37 27, 35 28"
-            stroke="#D7CCC8"
-            strokeWidth="1"
-            fill="none"
-          />
-
           <AnimatedG animatedProps={eyeProps}>
-            {/* Eyes */}
             <Circle cx="16.8" cy="24" r="1.5" fill="#263238" />
             <Circle cx="31.2" cy="24" r="1.5" fill="#263238" />
           </AnimatedG>
-
-          {/* Mouth */}
           <Path
             stroke="#8D6E63"
             strokeWidth="1.5"
             strokeLinecap="round"
-            d="M20 34 Q 24 35, 28 34"
+            d="M20 34q4 1 8 0"
             fill="none"
           />
         </G>

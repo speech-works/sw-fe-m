@@ -20,6 +20,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  useDerivedValue,
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -38,101 +39,63 @@ const SadFace = ({
   size = 48,
   width,
   height,
-  shouldAnimate,
-  loop,
-  repeatCount,
+  shouldAnimate = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
-
-  const droopY = useSharedValue(0);
-  const scaleY = useSharedValue(1);
-  const tearLevel = useSharedValue(0); // 0 to 1 (filling up)
-  const mouthQuiver = useSharedValue(0);
-  const pulse = useSharedValue(0);
+  const tear = useSharedValue(0);
+  const quiver = useSharedValue(0);
   const rain = useSharedValue(0);
 
-  React.useEffect(() => {
-    if (!shouldAnimate) {
-      droopY.value = withTiming(0);
-      scaleY.value = withTiming(1);
-      tearLevel.value = withTiming(0);
-      mouthQuiver.value = withTiming(0);
-      return;
+  useEffect(() => {
+    if (shouldAnimate) {
+      tear.value = withRepeat(
+        withSequence(
+          withTiming(0.5, { duration: 1200, easing: Easing.out(Easing.exp) }),
+          withTiming(1, { duration: 1200, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+      rain.value = withRepeat(
+        withTiming(1, { duration: 600, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      quiver.value = withRepeat(
+        withSequence(
+          withTiming(0, { duration: 1500 }),
+          withTiming(1, { duration: 30 }),
+          withTiming(-1, { duration: 30 }),
+          withTiming(0, { duration: 30 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      tear.value = 0;
+      quiver.value = 0;
+      rain.value = 0;
     }
-
-    // FACE IS STATIC NOW (As requested)
-    droopY.value = withTiming(0);
-    scaleY.value = withTiming(1);
-
-    // Tear Animation (Faster Heave) - Using snappier easing
-    tearLevel.value = withRepeat(
-      withSequence(
-        withTiming(0.5, {
-          duration: 1500,
-          easing: Easing.bezier(0.33, 1, 0.68, 1),
-        }),
-        withTiming(1, {
-          duration: 1500,
-          easing: Easing.bezier(0.33, 1, 0.68, 1),
-        }),
-      ),
-      -1,
-      true,
-    );
-
-    // Blue Funk Pulse (Background Aura)
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 6000, easing: Easing.out(Easing.sin) }),
-      -1,
-      false,
-    );
-
-    // Rain Animation (Stormy) - Optimized timing
-    rain.value = withRepeat(
-      withTiming(1, { duration: 800, easing: Easing.linear }),
-      -1,
-      false,
-    );
-
-    // Mouth Quiver (Intermittent shivering)
-    mouthQuiver.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 2000 }),
-        withTiming(1, { duration: 40 }),
-        withTiming(-1, { duration: 40 }),
-        withTiming(1, { duration: 40 }),
-        withTiming(0, { duration: 40 }),
-      ),
-      -1,
-      true,
-    );
   }, [shouldAnimate]);
 
-  const faceProps = useAnimatedProps(() => ({
-    transform: [{ translateY: droopY.value }, { scaleY: scaleY.value }] as any,
-    originY: 24,
-  }));
+  const rainY = useDerivedValue(() => rain.value * 20);
+  const mouthX = useDerivedValue(() => quiver.value * 0.5);
+  const tY = useDerivedValue(() => 12 - 4 * tear.value);
+  const tOp = useDerivedValue(() => 0.9 * tear.value);
 
   const rainProps = useAnimatedProps(() => ({
-    transform: [{ translateY: rain.value * 20 }] as any,
+    transform: [{ translateY: rainY.value }] as any,
   }));
-
   const mouthProps = useAnimatedProps(() => ({
-    transform: [{ translateX: mouthQuiver.value * 0.5 }] as any,
+    transform: [{ translateX: mouthX.value }] as any,
     originX: 24,
     originY: 39,
   }));
-
-  const leftTearProps = useAnimatedProps(() => ({
-    transform: [{ translateY: 12 - 4 * tearLevel.value }] as any,
-    opacity: 0.9 * tearLevel.value,
-  }));
-
-  const rightTearProps = useAnimatedProps(() => ({
-    transform: [{ translateY: 12 - 4 * tearLevel.value }] as any,
-    opacity: 0.9 * tearLevel.value,
+  const tearProps = useAnimatedProps(() => ({
+    transform: [{ translateY: tY.value }] as any,
+    opacity: tOp.value,
   }));
 
   return (
@@ -140,7 +103,7 @@ const SadFace = ({
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
       }}
     >
@@ -152,18 +115,18 @@ const SadFace = ({
         {...props}
       >
         <Defs>
-          <LinearGradient id="tearGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <LinearGradient id="tearG" x1="0%" y1="0%" x2="0%" y2="100%">
             <Stop offset="0%" stopColor="#81D4FA" stopOpacity="0.9" />
             <Stop offset="100%" stopColor="#0288D1" stopOpacity="1" />
           </LinearGradient>
-          <Mask id="leftEyeMask">
+          <Mask id="LMask">
             <Circle cx="16.8" cy="24" r="7.2" fill="white" />
           </Mask>
-          <Mask id="rightEyeMask">
+          <Mask id="RMask">
             <Circle cx="31.2" cy="24" r="7.2" fill="white" />
           </Mask>
           <Pattern
-            id="rainPattern"
+            id="rainP"
             x="0"
             y="0"
             width="12"
@@ -171,98 +134,63 @@ const SadFace = ({
             patternUnits="userSpaceOnUse"
           >
             <Path
-              d="M 6 4 V 10"
-              stroke="#000000"
+              d="M6 4v6"
+              stroke="#000"
               strokeWidth="1.2"
               strokeLinecap="round"
               opacity="0.2"
             />
           </Pattern>
         </Defs>
-
-        <G>
-          <Path
-            fill="#E6E8FF"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-
-          {/* Rain (Optimized Pattern) */}
-          <AnimatedRect
-            x="0"
-            y="-20"
-            width="48"
-            height="88"
-            fill="url(#rainPattern)"
-            animatedProps={rainProps}
-          />
-
-          {/* Animated Sad Face */}
-          <AnimatedG animatedProps={faceProps}>
-            <G>
-              <Path
-                fill="#BEEDE8"
-                d="M7.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.199 2.766-33.199 0-2.767 0-2.767-38.736 0-38.736"
-              />
-            </G>
-            {/* Eyes (White) */}
-            <Path
-              fill="#FAFBFC"
-              d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-            <Path
-              fill="#FAFBFC"
-              d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-            />
-
-            {/* Left Eye Tear (Masked) */}
-            <G mask="url(#leftEyeMask)">
-              <AnimatedG animatedProps={leftTearProps}>
-                <Circle cx="16.8" cy="28" r="8" fill="url(#tearGradient)" />
-                {/* Glint */}
-                <Circle cx="15" cy="25" r="1.2" fill="white" opacity="0.4" />
-              </AnimatedG>
-            </G>
-
-            {/* Right Eye Tear (Masked) */}
-            <G mask="url(#rightEyeMask)">
-              <AnimatedG animatedProps={rightTearProps}>
-                <Circle cx="31.2" cy="28" r="8" fill="url(#tearGradient)" />
-                {/* Glint */}
-                <Circle cx="29.4" cy="25" r="1.2" fill="white" opacity="0.4" />
-              </AnimatedG>
-            </G>
-
-            {/* Pupils (now on top of tears) */}
-            <Path
-              fill="#5B5B5B"
-              d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
-            />
-
-            {/* Eyebrows */}
-            <Path
-              fill="#5B5B5B"
-              d="M23.298 12.913 11.707 16.02l.994 3.71 11.591-3.107z"
-            />
-            <Path
-              fill="#5B5B5B"
-              d="m36.292 16.019-11.591-3.106-.994 3.71 11.591 3.105z"
-            />
-
-            {/* Pursed Mouth (Quivering) */}
-            <AnimatedG animatedProps={mouthProps}>
-              <Path
-                d="M 22 39 Q 24 37 26 39"
-                stroke="#5B5B5B"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </AnimatedG>
+        <Path
+          fill="#E6E8FF"
+          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+        />
+        <AnimatedRect
+          x="0"
+          y="-20"
+          width="48"
+          height="88"
+          fill="url(#rainP)"
+          animatedProps={rainProps}
+        />
+        <Path
+          fill="#BEEDE8"
+          d="M7.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.199 2.766-33.199 0-2.767 0-2.767-38.736 0-38.736"
+        />
+        <Circle cx="16.8" cy="24" r="7.2" fill="#FAFBFC" />
+        <Circle cx="31.2" cy="24" r="7.2" fill="#FAFBFC" />
+        <G mask="url(#LMask)">
+          <AnimatedG animatedProps={tearProps}>
+            <Circle cx="16.8" cy="28" r="8" fill="url(#tearG)" />
+            <Circle cx="15" cy="25" r="1.2" fill="#FFF" opacity="0.4" />
           </AnimatedG>
         </G>
+        <G mask="url(#RMask)">
+          <AnimatedG animatedProps={tearProps}>
+            <Circle cx="31.2" cy="28" r="8" fill="url(#tearG)" />
+            <Circle cx="29.4" cy="25" r="1.2" fill="#FFF" opacity="0.4" />
+          </AnimatedG>
+        </G>
+        <Path
+          fill="#5B5B5B"
+          d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
+        />
+        <Path
+          fill="#5B5B5B"
+          d="M23.298 12.913L11.707 16.02l0.994 3.71 11.591-3.107zM36.292 16.019l-11.591-3.106-0.994 3.71 11.591 3.105z"
+        />
+        <AnimatedG animatedProps={mouthProps}>
+          <Path
+            d="M22 39q2-2 4 0"
+            stroke="#5B5B5B"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </AnimatedG>
       </Svg>
     </View>
   );
 };
-
-export default SadFace;
+export default React.memo(SadFace);
