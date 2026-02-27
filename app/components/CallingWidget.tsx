@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Animated, // <-- IMPORTED
   Modal, // <-- IMPORTED
+  Easing,
 } from "react-native";
 // Import icons
 import Icon from "react-native-vector-icons/Feather"; // For UI Controls
@@ -1736,32 +1737,47 @@ const CallingWidget: React.FC<Props> = ({
   // to ensure it matches the list and isn't generic.
   const orbIconName = scenarioIcon || "robot";
 
-  // --- ⬇️ ADDED: Animation for Visualizer ⬇️ ---
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // --- ⬇️ ADDED: Modernized Animation for Visualizer ⬇️ ---
+  const ripple1 = useRef(new Animated.Value(0)).current;
+  const ripple2 = useRef(new Animated.Value(0)).current;
+  const ripple3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+    const createRipple = (anim: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 3000,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    };
+
+    const r1 = createRipple(ripple1, 0);
+    const r2 = createRipple(ripple2, 1000);
+    const r3 = createRipple(ripple3, 2000);
 
     if (turn === "agent" || audioState.current === "STARTED") {
-      pulse.start();
+      r1.start();
+      r2.start();
+      r3.start();
     } else {
-      pulse.stop();
-      pulseAnim.setValue(1); // Reset
+      r1.stop();
+      r2.stop();
+      r3.stop();
+      ripple1.setValue(0);
+      ripple2.setValue(0);
+      ripple3.setValue(0);
     }
-    return () => pulse.stop();
+    return () => {
+      r1.stop();
+      r2.stop();
+      r3.stop();
+    };
   }, [turn, audioState.current]);
   // --- ⬆️ END ADDED ⬆️ ---
 
@@ -1793,35 +1809,53 @@ const CallingWidget: React.FC<Props> = ({
 
       {/* --- VISUALIZER AREA --- */}
       <View style={styles.visualizerContainer}>
-        {/* Outer Glow Halo */}
-        <Animated.View
-          style={[
-            styles.orbGlow,
-            {
-              transform: [{ scale: pulseAnim }],
-              opacity: turn === "agent" ? 0.6 : 0.2,
-            },
-          ]}
-        />
-        {/* Core Orb - Modernized with Gradient & Layered Icon */}
-        {/* Core Orb - Nested structure for Shadow + Clipping */}
+        {/* Animated Ripples */}
+        {[ripple1, ripple2, ripple3].map((anim, index) => (
+          <Animated.View
+            key={`ripple-${index}`}
+            style={[
+              styles.rippleRing,
+              {
+                transform: [
+                  {
+                    scale: anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 3], // Scales out from center
+                    }),
+                  },
+                ],
+                opacity: anim.interpolate({
+                  inputRange: [0, 0.2, 1],
+                  outputRange: [0, 0.4, 0], // Fades in quickly, then fades out slowly
+                }),
+              },
+            ]}
+          />
+        ))}
+
+        {/* Core Orb - Minimalist Glass Gem */}
         <View style={styles.orbWrapper}>
           <LinearGradient
-            colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.05)"]}
+            colors={["#1E1B4B", "#020617"]} // Deep, rich background inside
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.orbMask}
           >
-            {/* Background Reflection Icon */}
-            <FAIcon
-              name={orbIconName}
-              size={80}
-              color="rgba(255,255,255,0.1)"
-              solid
-              style={{ position: "absolute" }}
+            {/* Subtle inner reflection */}
+            <LinearGradient
+              colors={["rgba(167, 139, 250, 0.25)", "transparent"]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={styles.orbInnerGlow}
             />
             {/* Main Icon */}
-            <FAIcon name={orbIconName} size={48} color="#FFF" solid />
+            <FAIcon
+              name={orbIconName}
+              size={56}
+              color="#F8FAFC"
+              solid
+              style={styles.iconClean}
+            />
           </LinearGradient>
         </View>
 
@@ -2073,20 +2107,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    minHeight: 200, // Ensure strictly visible
+    minHeight: 280, // Ensure strictly visible
     maxHeight: 400,
   },
-  orbGlow: {
+  rippleRing: {
     position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110, // CIRCULAR
-    backgroundColor: theme.colors.actionPrimary.default,
-    opacity: 0.3, // Slightly more visible glow
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 50, // Softer, larger spread
+    width: 140,
+    height: 140,
+    borderRadius: 70, // CIRCULAR
+    borderWidth: 1.5,
+    borderColor: "rgba(167, 139, 250, 0.8)", // Violet-400 tint
+    backgroundColor: "rgba(167, 139, 250, 0.05)",
   },
   orbWrapper: {
     width: 140,
@@ -2097,12 +2128,12 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOpacity: 0.5,
-        shadowRadius: 25,
+        shadowOpacity: 0.6,
+        shadowRadius: 20,
         shadowOffset: { width: 0, height: 10 },
       },
       android: { elevation: 15 },
-      web: { boxShadow: `0 10px 40px rgba(0,0,0,0.5)` },
+      web: { boxShadow: `0 10px 30px rgba(0,0,0,0.5)` },
     }),
   },
   orbMask: {
@@ -2110,13 +2141,25 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70, // CIRCULAR
     overflow: "hidden", // CLIP CONTENT
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderWidth: 1,
+    borderColor: "rgba(167, 139, 250, 0.3)", // Subtle stroke
     alignItems: "center",
     justifyContent: "center",
   },
+  orbInnerGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  iconClean: {
+    textShadowColor: "rgba(167, 139, 250, 0.4)", // Subtle violet glow behind icon
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
   statusContainer: {
-    marginTop: 50,
+    marginTop: 60,
   },
   statusTextModern: {
     color: "rgba(255,255,255,0.9)", // Slightly softer white

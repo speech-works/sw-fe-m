@@ -347,9 +347,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButtonGlass: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.1)", // Glass effect
