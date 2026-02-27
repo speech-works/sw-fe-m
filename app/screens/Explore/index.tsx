@@ -35,6 +35,11 @@ const Explore = () => {
   const [errorMessage, setErrorMessage] = useState("");
   // ----------------------------------------
 
+  // --- NEW: Scroll State for pausing animations ---
+  const [isScrolling, setIsScrolling] = useState(false);
+  let scrollTimeout: NodeJS.Timeout | null = null;
+  // ----------------------------------------
+
   const syncSessionWithBackend = useCallback(async () => {
     if (!user) {
       if (practiceSession) {
@@ -84,7 +89,7 @@ const Explore = () => {
       if (event.name === EVENT_NAMES.SHOW_ERROR_MODAL) {
         setErrorTitle(event.detail.modalTitle || "Something went wrong");
         setErrorMessage(
-          event.detail.errorMessage || "An unexpected error occurred."
+          event.detail.errorMessage || "An unexpected error occurred.",
         );
         setErrorModalVisible(true);
         clear(EVENT_NAMES.SHOW_ERROR_MODAL);
@@ -118,6 +123,18 @@ const Explore = () => {
           refreshControl={refreshControl}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={() => setIsScrolling(true)}
+          onMomentumScrollBegin={() => setIsScrolling(true)}
+          onScrollEndDrag={(e: any) => {
+            // Check for momentum relying on velocity
+            const hasMomentum =
+              e.nativeEvent?.velocity &&
+              Math.abs(e.nativeEvent.velocity.y) > 0.1;
+            if (!hasMomentum) {
+              setIsScrolling(false);
+            }
+          }}
+          onMomentumScrollEnd={() => setIsScrolling(false)}
         >
           <View style={styles.header}>
             <Text style={styles.title}>Explore</Text>
@@ -131,7 +148,7 @@ const Explore = () => {
             <WorldExplorationGraph />
 
             {/* 4 Types of Practice Grid */}
-            <PracticeGrid />
+            <PracticeGrid isScrolling={isScrolling} />
 
             {/* Upgrade CTA */}
             <BuyPro />

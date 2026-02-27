@@ -7,11 +7,8 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { theme } from "../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import { useNavigation } from "@react-navigation/native";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
@@ -33,9 +30,10 @@ type RootStackParamList = {
   };
 };
 
-const PracticeGrid = () => {
+const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isFocused = useIsFocused();
   const { user } = useUserStore();
   const [stats, setStats] = useState<PracticeStatSummary[]>([]);
 
@@ -55,7 +53,9 @@ const PracticeGrid = () => {
       name: "Reading",
       subtitle: "Fluency",
       countLabel: `${getCount("READING_PRACTICE")} Done`,
-      icon: <ReaderFace size={64} shouldAnimate loop />,
+      icon: (
+        <ReaderFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
+      ),
       route: "ReadingPracticeStack",
       colors: ["#FFD8B5", "#FFAB76"],
       shadowColor: "#FFAB76",
@@ -64,7 +64,9 @@ const PracticeGrid = () => {
       name: "Fun",
       subtitle: "Expression",
       countLabel: `${getCount("FUN_PRACTICE")} Done`,
-      icon: <MovieFace size={64} shouldAnimate loop />,
+      icon: (
+        <MovieFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
+      ),
       route: "FunPracticeStack",
       colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
       shadowColor: "#98E6E6",
@@ -73,7 +75,13 @@ const PracticeGrid = () => {
       name: "Cognitive",
       subtitle: "Focus",
       countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
-      icon: <BreathingFace size={64} shouldAnimate loop />,
+      icon: (
+        <BreathingFace
+          size={64}
+          shouldAnimate={isFocused && !isScrolling}
+          loop
+        />
+      ),
       route: "CognitivePracticeStack",
       colors: ["#EBCBF5", "#D8A7F0"],
       shadowColor: "#D8A7F0",
@@ -82,7 +90,9 @@ const PracticeGrid = () => {
       name: "Exposure",
       subtitle: "Courage",
       countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
-      icon: <WarriorFace size={64} shouldAnimate loop />,
+      icon: (
+        <WarriorFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
+      ),
       route: "ExposureStack",
       colors: ["#FFC8C8", "#FF9E9E"],
       shadowColor: "#FF9E9E",
@@ -110,6 +120,7 @@ const PracticeGrid = () => {
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
                 shadowOffset: { width: 0, height: 4 },
+                backgroundColor: "#FFF",
               },
             ]}
           >

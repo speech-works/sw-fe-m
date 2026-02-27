@@ -19,6 +19,7 @@ interface SvgIconProps extends SvgProps {
   width?: number | string;
   height?: number | string;
   shouldAnimate?: boolean;
+  loop?: boolean;
 }
 
 const BreathingFace = ({

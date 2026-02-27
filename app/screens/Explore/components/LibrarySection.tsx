@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     ...parseShadowStyle(theme.shadow.elevation2),
     overflow: "hidden", // Clips the gradient and bubbles
+    backgroundColor: "#FFF",
   },
   gradient: {
     flex: 1,
