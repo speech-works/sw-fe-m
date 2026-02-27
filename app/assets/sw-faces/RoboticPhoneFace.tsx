@@ -1,17 +1,17 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 const RobotoicPhoneFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask id="mask_rotary">
@@ -20,7 +20,7 @@ const RobotoicPhoneFace = ({
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
       </Mask>
-      </Defs>
+    </Defs>
 
     <G mask="url(#mask_rotary)">
       {/* Background: Wallpaper Pattern */}
@@ -61,4 +61,4 @@ const RobotoicPhoneFace = ({
     </G>
   </Svg>
 );
-export default RobotoicPhoneFace;
+export default React.memo(RobotoicPhoneFace);

@@ -1,14 +1,14 @@
-import * as React from "react";
+import React, { useEffect, useRef } from "react";
 import { Animated, Easing } from "react-native";
 import Svg, {
+  Circle,
+  Defs,
+  G,
   Mask,
   Path,
-  G,
-  Defs,
+  Rect,
   SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -46,13 +46,15 @@ const FinishLineCoolFace = ({
           toValue: 1,
           duration: 150,
           easing: Easing.linear,
-          useNativeDriver: true }),
+          useNativeDriver: true,
+        }),
         Animated.timing(wiggle, {
           toValue: 0,
           duration: 150,
           easing: Easing.linear,
-          useNativeDriver: true }),
-      ])
+          useNativeDriver: true,
+        }),
+      ]),
     );
 
     animation.start();
@@ -70,7 +72,8 @@ const FinishLineCoolFace = ({
 
   const rightRotation = wiggle.interpolate({
     inputRange: [0, 1],
-    outputRange: ["-12deg", "0deg"] });
+    outputRange: ["-12deg", "0deg"],
+  });
 
   const flutterScale = wiggle.interpolate({
     inputRange: [0, 0.5, 1],
@@ -203,4 +206,4 @@ const FinishLineCoolFace = ({
   );
 };
 
-export default FinishLineCoolFace;
+export default React.memo(FinishLineCoolFace);

@@ -1,12 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -18,7 +11,10 @@ const InspectorFace = ({
   size = 48,
   width,
   height,
-  shouldAnimate, loop, repeatCount, ...props
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
@@ -102,4 +98,4 @@ const InspectorFace = ({
   );
 };
 
-export default InspectorFace;
+export default React.memo(InspectorFace);

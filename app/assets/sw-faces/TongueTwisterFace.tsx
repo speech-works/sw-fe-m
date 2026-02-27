@@ -1,14 +1,13 @@
-import * as React from "react-native";
+import * as React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
   Mask,
   Path,
-  G,
-  Defs,
   SvgProps,
-  Circle,
-  Path as SvgPath,
-  Line } from "react-native-svg";
-
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -16,7 +15,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const TongueTwisterFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const TongueTwisterFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -97,4 +102,4 @@ const TongueTwisterFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...pro
     </Svg>
   );
 };
-export default TongueTwisterFace;
+export default React.memo(TongueTwisterFace);

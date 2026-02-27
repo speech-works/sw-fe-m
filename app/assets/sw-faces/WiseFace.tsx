@@ -1,14 +1,13 @@
-import * as React from "react";
+import React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
   Mask,
   Path,
-  G,
-  Defs,
+  Pattern,
   SvgProps,
-  Circle,
-  Path as SvgPath,
-  Pattern } from "react-native-svg";
-
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -16,7 +15,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const WiseFace_RoadCaptain = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const WiseFace_RoadCaptain = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   // New bandana path: Wider at the start/end to show thickness wrapped around head, snug bottom curve.
   const bandanaPath = "M 4 22 C 4 10, 44 10, 44 22 Q 24 15, 4 22 Z";
   // New knot path: More defined knot shape on the right side with a small tail cue.
@@ -45,7 +50,7 @@ const WiseFace_RoadCaptain = ({ size = 48, shouldAnimate, loop, repeatCount, ...
           height="48"
           maskUnits="userSpaceOnUse"
         >
-          <SvgPath
+          <Path
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
@@ -99,7 +104,7 @@ const WiseFace_RoadCaptain = ({ size = 48, shouldAnimate, loop, repeatCount, ...
         <Path d="M28 26 L 35 26" stroke="#212121" strokeWidth="1" />
 
         {/* Prop: Epic Handlebar Mustache (Grey/White) */}
-        <SvgPath
+        <Path
           d="M24 35 Q 18 35, 14 31 Q 10 27, 14 37 Q 18 41, 24 37 Q 30 41, 34 37 Q 38 27, 34 31 Q 30 35, 24 35 Z"
           fill="#E0E0E0"
           stroke="#9E9E9E"
@@ -109,4 +114,4 @@ const WiseFace_RoadCaptain = ({ size = 48, shouldAnimate, loop, repeatCount, ...
     </Svg>
   );
 };
-export default WiseFace_RoadCaptain;
+export default React.memo(WiseFace_RoadCaptain);

@@ -1,13 +1,13 @@
-import * as React from "react-native";
+import * as React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
   Mask,
   Path,
-  G,
-  Defs,
   SvgProps,
-  Circle,
-  Line } from "react-native-svg";
-
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -15,7 +15,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const MaskedFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -77,7 +83,7 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
           strokeLinecap="round"
         />
 
-        {/* Steampunk Gas Mask (Full face, goggles, central filter) - NOW TRANSLUCENT */}
+        {/* Steampunk Gas  (Full face, goggles, central filter) - NOW TRANSLUCENT */}
         <Path
           fill="#6D4C41" // Dark leather base
           opacity="0.5" // ADDED OPACITY HERE for translucence
@@ -103,7 +109,7 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
         {/* Goggle lenses (Darker, slightly reflective) */}
         <Circle cx="17" cy="20" r="3.5" fill="#424242" opacity="0.8" />
         <Circle cx="31" cy="20" r="3.5" fill="#424242" opacity="0.8" />
-        {/* Central Air Filter (Brass/Copper) */}
+        {/* Central Air  (Brass/Copper) */}
         <Circle
           cx="24"
           cy="32"
@@ -112,7 +118,7 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
           stroke="#8D6E63"
           strokeWidth="2"
         />
-        {/* Filter grille lines */}
+        {/*  grille lines */}
         <Line
           x1="24"
           y1="24"
@@ -136,4 +142,4 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
     </Svg>
   );
 };
-export default MaskedFace;
+export default React.memo(MaskedFace);

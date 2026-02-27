@@ -1,13 +1,5 @@
-import * as React from "react";
-import Svg, {
-  ClipPath,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+import React from 'react';
+import Svg, { Circle, Defs, G, Mask, Path, Rect } from 'react-native-svg';
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -27,12 +19,12 @@ const TherapistFace = ({
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
       <Defs>
-        <ClipPath id="clip_mask">
+        <Mask id="clip_mask">
           <Path
             fill="#fff"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </ClipPath>
+        </Mask>
       </Defs>
       <G clipPath="url(#clip_mask)">
         {/* --- BASE FACE --- */}

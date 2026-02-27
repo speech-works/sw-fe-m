@@ -1,16 +1,17 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 const KeyholeFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask id="m">
@@ -36,4 +37,4 @@ const KeyholeFace = ({
     </G>
   </Svg>
 );
-export default KeyholeFace;
+export default React.memo(KeyholeFace);

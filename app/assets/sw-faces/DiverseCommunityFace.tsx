@@ -1,14 +1,6 @@
-import * as React from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
-import Svg, {
-  ClipPath,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle,
-  Rect,
-  Line } from "react-native-svg";
+import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -17,7 +9,8 @@ import Animated, {
   withTiming,
   Easing,
   withDelay,
-  runOnJS } from "react-native-reanimated";
+  runOnJS,
+} from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -282,7 +275,8 @@ const FaceNode = ({
   y,
   scale = 0.5,
   shadowId,
-  shouldAnimate }: {
+  shouldAnimate,
+}: {
   faceColor: string;
   role: ProfessionalRole;
   x: number;
@@ -311,12 +305,12 @@ const FaceNode = ({
       withSequence(
         withDelay(
           blinkDuration,
-          withTiming(0.1, { duration: 150 }) // Close
+          withTiming(0.1, { duration: 150 }), // Close
         ),
-        withTiming(1, { duration: 150 }) // Open
+        withTiming(1, { duration: 150 }), // Open
       ),
       -1,
-      false
+      false,
     );
 
     // Engineer Helmet Wiggle
@@ -326,10 +320,10 @@ const FaceNode = ({
           withTiming(-2, { duration: 200 }),
           withTiming(2, { duration: 200 }),
           withTiming(0, { duration: 200 }),
-          withDelay(2000, withTiming(0, { duration: 0 }))
+          withDelay(2000, withTiming(0, { duration: 0 })),
         ),
         -1,
-        false
+        false,
       );
     }
 
@@ -338,10 +332,10 @@ const FaceNode = ({
       capFloat.value = withRepeat(
         withSequence(
           withTiming(-1, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
-          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.quad) })
+          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.quad) }),
         ),
         -1,
-        true
+        true,
       );
     }
 
@@ -350,10 +344,10 @@ const FaceNode = ({
       glassesTilt.value = withRepeat(
         withSequence(
           withTiming(-2, { duration: 1000 }),
-          withTiming(2, { duration: 1000 })
+          withTiming(2, { duration: 1000 }),
         ),
         -1,
-        true
+        true,
       );
     }
   }, [shouldAnimate, role]);
@@ -364,12 +358,14 @@ const FaceNode = ({
       { translateY: 24 },
       { scaleY: blink.value },
       { translateY: -24 },
-    ] }));
+    ],
+  }));
 
   const helmetProps = useAnimatedProps(() => ({
     transform: [{ rotate: `${helmetWiggle.value}deg` }],
     originX: 24,
-    originY: 24 }));
+    originY: 24,
+  }));
 
   const capProps = useAnimatedProps(() => ({
     // Apply float. Base position is handled by static transform on parent or G if needed.
@@ -377,12 +373,14 @@ const FaceNode = ({
     // Original static was translate(0, -2), so translateY should be related to that if we replace it?
     // Actually, animatedProps transform overrides static transform on Animated components usually.
     // We should include the static offset (-2) in the animated value or prop.
-    transform: [{ translateY: -2 + capFloat.value }] }));
+    transform: [{ translateY: -2 + capFloat.value }],
+  }));
 
   const glassesProps = useAnimatedProps(() => ({
     transform: [{ rotate: `${glassesTilt.value}deg` }],
     originX: 24,
-    originY: 24 }));
+    originY: 24,
+  }));
 
   return (
     <G transform={`translate(${x}, ${y}) scale(${scale})`}>
@@ -511,7 +509,8 @@ const FaceNode = ({
 
 const FacesLayer = ({
   roles,
-  shouldAnimate }: {
+  shouldAnimate,
+}: {
   roles: ProfessionalRole[];
   shouldAnimate?: boolean;
 }) => {
@@ -598,7 +597,7 @@ const DiverseCommunityFace = ({
             // 2. On Finish: Update Index (JS) and Reset Offset (0) instantly
             runOnJS(handleNextScene)();
           }
-        }
+        },
       );
     }, 4500); // Wait 3s + 1.5s anim
 
@@ -614,39 +613,46 @@ const DiverseCommunityFace = ({
   const nextScene = SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length];
 
   const currentBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: -slideOffset.value }] }));
+    transform: [{ translateY: -slideOffset.value }],
+  }));
 
   const nextBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: 48 - slideOffset.value }] }));
+    transform: [{ translateY: 48 - slideOffset.value }],
+  }));
+
+  const activeWidth = size;
+  const activeHeight = size;
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
-      <Defs>
-        <ClipPath
-          id="global_mask"
-          x="0"
-          y="0"
-          width="48"
-          height="48"
-          maskUnits="userSpaceOnUse"
-        >
-          <Circle cx="24" cy="24" r="24" fill="#fff" />
-        </ClipPath>
-      </Defs>
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        overflow: "hidden",
+      }}
+    >
+      <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <G>
+          {/* Background Vertical Slider */}
+          <AnimatedG animatedProps={currentBgStyle}>
+            <BackgroundLayer type={currentScene} />
+          </AnimatedG>
+          <AnimatedG animatedProps={nextBgStyle}>
+            <BackgroundLayer type={nextScene} />
+          </AnimatedG>
 
-      <G clipPath="url(#global_mask)">
-        {/* Background Vertical Slider */}
-        <AnimatedG animatedProps={currentBgStyle}>
-          <BackgroundLayer type={currentScene} />
-        </AnimatedG>
-        <AnimatedG animatedProps={nextBgStyle}>
-          <BackgroundLayer type={nextScene} />
-        </AnimatedG>
-
-        {/* Static Faces on Top */}
-        <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />
-      </G>
-    </Svg>
+          {/* Static Faces on Top */}
+          <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />
+        </G>
+      </Svg>
+    </View>
   );
 };
 
@@ -657,7 +663,8 @@ const CommunityGallery = () => {
         flexDirection: "row",
         flexWrap: "wrap",
         gap: 10,
-        padding: 20 }}
+        padding: 20,
+      }}
     >
       {/* Variant 1: Ocean BG */}
       <DiverseCommunityFace

@@ -1,23 +1,31 @@
-import * as React from "react";
+import React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
   Mask,
   Path,
-  G,
-  Defs,
+  Rect,
   SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+} from "react-native-svg";
 const HeadphoneFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask id="mask_playlist_berry">
         <Circle cx="24" cy="24" r="24" fill="#fff" />
       </Mask>
-      </Defs>
+    </Defs>
 
     <G mask="url(#mask_playlist_berry)">
       {/* Background: Deep Pink */}
@@ -90,4 +98,4 @@ const HeadphoneFace = ({
     </G>
   </Svg>
 );
-export default HeadphoneFace;
+export default React.memo(HeadphoneFace);

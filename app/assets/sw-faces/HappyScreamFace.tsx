@@ -1,14 +1,13 @@
-import * as React from "react-native";
 import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
   Mask,
   Path,
-  G,
-  Defs,
   SvgProps,
-  Circle,
-  Path as SvgPath,
-  Line } from "react-native-svg";
-
+} from "react-native-svg";
+import * as React from "react";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -16,7 +15,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const HappyScreamFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const HappyScreamFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -116,4 +121,4 @@ const HappyScreamFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props
     </Svg>
   );
 };
-export default HappyScreamFace;
+export default React.memo(HappyScreamFace);

@@ -1,17 +1,25 @@
-import * as React from "react";
+import React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
   Mask,
   Path,
-  G,
-  Defs,
+  Rect,
   SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+} from "react-native-svg";
 const GamerFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask
@@ -78,4 +86,4 @@ const GamerFace = ({
     </G>
   </Svg>
 );
-export default GamerFace;
+export default React.memo(GamerFace);

@@ -1,11 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps } from "react-native-svg";
-
+import React from "react";
+import Svg, { G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -14,7 +8,14 @@ interface SvgIconProps extends SvgProps {
   height?: number | string;
 }
 
-const SvgIcon = ({ width = 48, height = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => (
+const SvgIcon = ({
+  width = 48,
+  height = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => (
   <Svg width={width} height={height} viewBox="0 0 48 48" fill="none" {...props}>
     <Mask
       id="mask0_2132_4899"
@@ -59,8 +60,7 @@ const SvgIcon = ({ width = 48, height = 48, shouldAnimate, loop, repeatCount, ..
         d="M16.8 36q7.2 4.8 14.4 0"
       />
     </G>
-    
   </Svg>
 );
 
-export default SvgIcon;
+export default React.memo(SvgIcon);

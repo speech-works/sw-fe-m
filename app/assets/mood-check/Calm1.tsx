@@ -1,11 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps } from "react-native-svg";
-
+import React from "react";
+import Svg, { G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -61,8 +55,7 @@ const SvgIcon = ({
         d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
       ></Path>
     </G>
-    
   </Svg>
 );
 
-export default SvgIcon;
+export default React.memo(SvgIcon);

@@ -1,12 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from 'react';
+import Svg, { Circle, Defs, G, Mask, Path } from 'react-native-svg';
 interface SvgIconProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -27,8 +20,7 @@ const AuthorFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
       {...props}
     >
       <Defs>
-        <Mask
-          id="storyteller_mask_mustache"
+        <Mask id="storyteller_mask_mustache"
           x="0"
           y="0"
           width="48"
@@ -108,4 +100,4 @@ const AuthorFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
     </Svg>
   );
 };
-export default AuthorFace;
+export default React.memo(AuthorFace);

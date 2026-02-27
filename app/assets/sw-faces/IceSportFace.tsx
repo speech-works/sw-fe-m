@@ -1,16 +1,17 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 const IceSportFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask id="goggle_mask" x="0" y="0" width="48" height="48">
@@ -108,4 +109,4 @@ const IceSportFace = ({
     </G>
   </Svg>
 );
-export default IceSportFace;
+export default React.memo(IceSportFace);

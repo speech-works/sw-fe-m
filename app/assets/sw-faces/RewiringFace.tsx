@@ -1,13 +1,5 @@
-import * as React from "react-native";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Path as SvgPath,
-  Circle } from "react-native-svg";
-
+import * as React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -15,7 +7,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const RewiringFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const RewiringFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -63,7 +61,7 @@ const RewiringFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }:
         <Circle cx="18.2" cy="22.8" r="0.8" fill="#FFFFFF" />
         <Circle cx="32.2" cy="22.8" r="0.8" fill="#FFFFFF" />
         {/* Mouth (Updated to a Broad, Confident Smile) */}
-        <SvgPath
+        <Path
           stroke="#424242"
           strokeWidth="3"
           strokeLinecap="round"
@@ -71,7 +69,7 @@ const RewiringFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }:
           fill="none"
         />
         {/* Worry Prop (Giant spiral on forehead - kept as original) */}
-        <SvgPath
+        <Path
           stroke="#D32F2F"
           strokeWidth="2.5"
           fill="none"
@@ -81,4 +79,4 @@ const RewiringFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }:
     </Svg>
   );
 };
-export default RewiringFace;
+export default React.memo(RewiringFace);

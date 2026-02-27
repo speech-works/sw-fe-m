@@ -1,12 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -14,7 +7,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const ErrorFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const ErrorFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -74,4 +73,4 @@ const ErrorFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: Sv
     </Svg>
   );
 };
-export default ErrorFace;
+export default React.memo(ErrorFace);

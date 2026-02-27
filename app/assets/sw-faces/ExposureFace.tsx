@@ -1,16 +1,17 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 const ExposureFace = ({
   size = 48,
-  shouldAnimate, loop, repeatCount, ...props
-}: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgProps & {
+  size?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+}) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
       <Mask
@@ -41,7 +42,7 @@ const ExposureFace = ({
         />
       </G>
 
-      {/* Superhero Eye Mask (Red 600) */}
+      {/* Superhero Eye  (Red 600) */}
       <Path
         fill="#BF0000"
         d="M4 24 C 4 18, 14 18, 24 24 C 34 18, 44 18, 44 24 L 42 30 C 38 34, 30 30, 24 30 C 18 30, 10 34, 6 30 Z"
@@ -65,4 +66,4 @@ const ExposureFace = ({
     </G>
   </Svg>
 );
-export default ExposureFace;
+export default React.memo(ExposureFace);

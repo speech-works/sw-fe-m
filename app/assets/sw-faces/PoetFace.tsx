@@ -1,13 +1,5 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle,
-  Path as SvgPath } from "react-native-svg";
-
+import React from "react";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -15,7 +7,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const PoetFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const PoetFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -85,7 +83,7 @@ const PoetFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: Svg
 
         {/* --- MOUTH: Quiet Satisfaction (Content/Serene) --- */}
         <G transform="translate(0, -3)">
-          <SvgPath
+          <Path
             d="M21 37 Q 24 38, 27 37"
             stroke="#212121"
             strokeWidth="2"
@@ -97,4 +95,4 @@ const PoetFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: Svg
     </Svg>
   );
 };
-export default PoetFace;
+export default React.memo(PoetFace);

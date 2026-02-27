@@ -1,16 +1,17 @@
 import React, { useEffect } from "react";
+import { View } from "react-native";
 import Svg, {
-  ClipPath,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Line,
   Circle,
+  Defs,
   Ellipse,
+  G,
+  Line,
   LinearGradient,
+  Path,
   RadialGradient,
-  Stop } from "react-native-svg";
+  Stop,
+  SvgProps,
+} from "react-native-svg";
 import Animated, {
   useSharedValue,
   withSequence,
@@ -19,7 +20,8 @@ import Animated, {
   withRepeat,
   Easing,
   cancelAnimation,
-  withDelay } from "react-native-reanimated";
+  withDelay,
+} from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
@@ -68,7 +70,8 @@ const GuidedBreathingFace = ({
         // Eyes: Lift
         eyeTranslateY.value = withTiming(-1.5, {
           duration: DURATION,
-          easing: Easing.out(Easing.quad) });
+          easing: Easing.out(Easing.quad),
+        });
         // Breath: Invisible
         breathOpacity.value = withTiming(0, { duration: 200 });
         break;
@@ -84,10 +87,11 @@ const GuidedBreathingFace = ({
         // Eyes: Relax
         eyeTranslateY.value = withTiming(0, {
           duration: DURATION,
-          easing: Easing.inOut(Easing.ease) });
+          easing: Easing.inOut(Easing.ease),
+        });
         // Breath: Visible (fade in then pulse/stay)
         breathOpacity.value = withSequence(
-          withTiming(1, { duration: 300 })
+          withTiming(1, { duration: 300 }),
           // Optional: visual pulse could go here, but static visible is fine for now
         );
         break;
@@ -103,150 +107,152 @@ const GuidedBreathingFace = ({
 
   const animatedGroupProps = useAnimatedProps(() => {
     return {
-      transform: [{ scale: scale.value }] };
+      transform: [{ scale: scale.value }],
+    };
   });
 
   const animatedBreathProps = useAnimatedProps(() => {
     return {
-      opacity: breathOpacity.value };
+      opacity: breathOpacity.value,
+    };
   });
 
   const animatedEyesProps = useAnimatedProps(() => {
     return {
-      transform: [{ translateY: eyeTranslateY.value }] };
+      transform: [{ translateY: eyeTranslateY.value }],
+    };
   });
 
   return (
-    <Svg
-      width={activeWidth}
-      height={activeHeight}
-      viewBox="0 0 48 48"
-      fill="none"
-      {...props}
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        overflow: "hidden",
+      }}
     >
-      <Defs>
-        <ClipPath id="release_mask">
-          <Path
-            fill="#fff"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-        </ClipPath>
-        <LinearGradient id="night_sky" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#0F172A" />
-          <Stop offset="0.5" stopColor="#1E293B" />
-          <Stop offset="1" stopColor="#334155" />
-        </LinearGradient>
-        <RadialGradient
-          id="moon_glow"
-          cx="24"
-          cy="22"
-          rx="18"
-          ry="18"
-          fx="24"
-          fy="22"
-          gradientUnits="userSpaceOnUse"
-        >
-          <Stop offset="0" stopColor="#FEF3C7" stopOpacity="0.4" />
-          <Stop offset="0.6" stopColor="#FEF3C7" stopOpacity="0.1" />
-          <Stop offset="1" stopColor="#FEF3C7" stopOpacity="0" />
-        </RadialGradient>
-      </Defs>
-
-      {/* Main Face Group - Scaling animation applied here */}
-      <AnimatedG
-        clipPath="url(#release_mask)"
-        origin="24, 24"
-        animatedProps={animatedGroupProps}
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
       >
-        {/* 1. SKY BACKGROUND - Using Path instead of Rect to ensure compatibility */}
-        <Path d="M0 0 H48 V48 H0 Z" fill="url(#night_sky)" />
+        <Defs>
+          <LinearGradient id="night_sky" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#0F172A" />
+            <Stop offset="0.5" stopColor="#1E293B" />
+            <Stop offset="1" stopColor="#334155" />
+          </LinearGradient>
+          <RadialGradient
+            id="moon_glow"
+            cx="24"
+            cy="22"
+            rx="18"
+            ry="18"
+            fx="24"
+            fy="22"
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0" stopColor="#FEF3C7" stopOpacity="0.4" />
+            <Stop offset="0.6" stopColor="#FEF3C7" stopOpacity="0.1" />
+            <Stop offset="1" stopColor="#FEF3C7" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
 
-        {/* 2. STARS (Static) */}
-        <Circle cx="10" cy="10" r="0.5" fill="#FFF" opacity="0.8" />
-        <Circle cx="38" cy="8" r="0.4" fill="#FFF" opacity="0.6" />
-        <Circle cx="4" cy="20" r="0.3" fill="#FFF" opacity="0.5" />
-        <Circle cx="44" cy="22" r="0.3" fill="#FFF" opacity="0.7" />
-        <Circle cx="16" cy="5" r="0.3" fill="#FFF" opacity="0.4" />
-        <Circle cx="30" cy="4" r="0.2" fill="#FFF" opacity="0.5" />
+        {/* Main Face Group - Scaling animation applied here */}
+        <AnimatedG origin="24, 24" animatedProps={animatedGroupProps}>
+          {/* 1. SKY BACKGROUND - Using Path instead of Rect to ensure compatibility */}
+          <Path d="M0 0 H48 V48 H0 Z" fill="url(#night_sky)" />
 
-        {/* 3. GLOWING MOON (Behind Face) */}
-        {/* Outer Glow */}
-        <Circle cx="24" cy="22" r="14" fill="url(#moon_glow)" />
-        {/* Moon Body */}
-        <Circle cx="24" cy="22" r="6" fill="#FEF3C7" opacity="0.9" />
+          {/* 2. STARS (Static) */}
+          <Circle cx="10" cy="10" r="0.5" fill="#FFF" opacity="0.8" />
+          <Circle cx="38" cy="8" r="0.4" fill="#FFF" opacity="0.6" />
+          <Circle cx="4" cy="20" r="0.3" fill="#FFF" opacity="0.5" />
+          <Circle cx="44" cy="22" r="0.3" fill="#FFF" opacity="0.7" />
+          <Circle cx="16" cy="5" r="0.3" fill="#FFF" opacity="0.4" />
+          <Circle cx="30" cy="4" r="0.2" fill="#FFF" opacity="0.5" />
 
-        {/* 4. FOREST SILHOUETTE (Bottom Horizon) */}
-        <Path
-          fill="#020617" // Very dark blue/black
-          d="M0 48 V 32 L 4 36 L 8 28 L 12 34 L 16 30 L 22 40 L 26 30 L 30 36 L 36 28 L 40 34 L 44 26 L 48 32 V 48 H 0 Z"
-          opacity="0.6"
-        />
-        <Path
-          fill="#0F172A" // Dark Slate
-          d="M0 48 V 40 Q 12 42, 24 41 Q 36 40, 48 38 V 48 H 0 Z"
-          opacity="0.8"
-        />
+          {/* 3. GLOWING MOON (Behind Face) */}
+          {/* Outer Glow */}
+          <Circle cx="24" cy="22" r="14" fill="url(#moon_glow)" />
+          {/* Moon Body */}
+          <Circle cx="24" cy="22" r="6" fill="#FEF3C7" opacity="0.9" />
 
-        {/* Shadow - Vector approximation (Slightly adjusted for new bg) */}
-        <Path
-          fill="black"
-          opacity={0.15}
-          transform="translate(4, 4)"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
-        {/* Face Shape - Light Terracotta (skin tone) */}
-        <Path
-          fill="#FFCCBC"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
-
-        {/* Eyes (Closed with a gentle upward curve of relief) - Bolder Stroke Color */}
-        <AnimatedG animatedProps={animatedEyesProps}>
+          {/* 4. FOREST SILHOUETTE (Bottom Horizon) */}
           <Path
-            stroke="#000000" // Black
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            d="M14 24 Q 18 23, 22 24"
-            fill="none"
+            fill="#020617" // Very dark blue/black
+            d="M0 48 V 32 L 4 36 L 8 28 L 12 34 L 16 30 L 22 40 L 26 30 L 30 36 L 36 28 L 40 34 L 44 26 L 48 32 V 48 H 0 Z"
+            opacity="0.6"
           />
           <Path
-            stroke="#000000" // Black
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            d="M26 24 Q 30 23, 34 24"
-            fill="none"
+            fill="#0F172A" // Dark Slate
+            d="M0 48 V 40 Q 12 42, 24 41 Q 36 40, 48 38 V 48 H 0 Z"
+            opacity="0.8"
           />
+
+          {/* Shadow - Vector approximation (Slightly adjusted for new bg) */}
+          <Path
+            fill="black"
+            opacity={0.15}
+            transform="translate(4, 4)"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          {/* Face Shape - Light Terracotta (skin tone) */}
+          <Path
+            fill="#FFCCBC"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+
+          {/* Eyes (Closed with a gentle upward curve of relief) - Bolder Stroke Color */}
+          <AnimatedG animatedProps={animatedEyesProps}>
+            <Path
+              stroke="#000000" // Black
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              d="M14 24 Q 18 23, 22 24"
+              fill="none"
+            />
+            <Path
+              stroke="#000000" // Black
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              d="M26 24 Q 30 23, 34 24"
+              fill="none"
+            />
+          </AnimatedG>
+
+          {/* Breath Visual: Stream of air blowing OUT (below mouth) */}
+          <AnimatedG animatedProps={animatedBreathProps}>
+            {/* Center Stream */}
+            <Path
+              d="M24 38 C 24 40, 24 43, 22 45"
+              stroke="#90A4AE" // Light Blue-Grey for air
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Left Stream */}
+            <Path
+              d="M21 38 C 20 40, 18 43, 16 44"
+              stroke="#90A4AE"
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Right Stream */}
+            <Path
+              d="M27 38 C 28 40, 30 43, 32 44"
+              stroke="#90A4AE"
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </AnimatedG>
         </AnimatedG>
-
-        {/* Breath Visual: Stream of air blowing OUT (below mouth) */}
-        <AnimatedG animatedProps={animatedBreathProps}>
-          {/* Center Stream */}
-          <Path
-            d="M24 38 C 24 40, 24 43, 22 45"
-            stroke="#90A4AE" // Light Blue-Grey for air
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-          {/* Left Stream */}
-          <Path
-            d="M21 38 C 20 40, 18 43, 16 44"
-            stroke="#90A4AE"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-          {/* Right Stream */}
-          <Path
-            d="M27 38 C 28 40, 30 43, 32 44"
-            stroke="#90A4AE"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </AnimatedG>
-      </AnimatedG>
-    </Svg>
+      </Svg>
+    </View>
   );
 };
 export default React.memo(GuidedBreathingFace);

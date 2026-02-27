@@ -1,13 +1,13 @@
-import * as React from "react";
+import React from "react";
 import Svg, {
-  Path,
-  G,
+  Circle,
   Defs,
+  G,
   Mask,
-  SvgProps,
+  Path,
   Rect,
-  Circle } from "react-native-svg";
-
+  SvgProps,
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -15,7 +15,13 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const ReportFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const ReportFace = ({
+  size = 48,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = size;
   const activeHeight = size;
 
@@ -31,7 +37,7 @@ const ReportFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
         <Mask id="circleMask">
           <Circle cx="24" cy="24" r="24" fill="#fff" />
         </Mask>
-        </Defs>
+      </Defs>
 
       {/* Base Background - Sunny Yellow */}
       <Circle cx="24" cy="24" r="24" fill="#FFF59D" />
@@ -126,4 +132,4 @@ const ReportFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
     </Svg>
   );
 };
-export default ReportFace;
+export default React.memo(ReportFace);

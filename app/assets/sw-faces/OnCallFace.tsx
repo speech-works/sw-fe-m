@@ -1,13 +1,13 @@
-import * as React from "react";
+import React from "react";
 import Svg, {
+  Circle,
+  Defs,
+  G,
   Mask,
   Path,
-  G,
-  Defs,
+  Rect,
   SvgProps,
-  Circle,
-  Rect } from "react-native-svg";
-
+} from "react-native-svg";
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
@@ -15,7 +15,15 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
 }
 
-const OnCallFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCount, ...props }: SvgIconProps) => {
+const OnCallFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate,
+  loop,
+  repeatCount,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
 
@@ -98,4 +106,4 @@ const OnCallFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCount
     </Svg>
   );
 };
-export default OnCallFace;
+export default React.memo(OnCallFace);

@@ -1,11 +1,6 @@
 import React, { useEffect } from "react";
-import Svg, {
-  ClipPath,
-  Path,
-  G,
-  Defs,
-  SvgProps,
-  Circle } from "react-native-svg";
+import { View } from "react-native";
+import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -14,7 +9,8 @@ import Animated, {
   withTiming,
   Easing,
   interpolate,
-  useDerivedValue } from "react-native-reanimated";
+  useDerivedValue,
+} from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -74,10 +70,10 @@ const ExcitedTouristMapFace = ({
         withSequence(
           withTiming(0, { duration: 100 }), // Initial delay
           withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.quad) }), // Orbit
-          withTiming(0, { duration: 1000 }) // Reset
+          withTiming(0, { duration: 1000 }), // Reset
         ),
         loop ? -1 : repeatCount,
-        false
+        false,
       );
     } else {
       progress.value = withTiming(0);
@@ -125,7 +121,8 @@ const ExcitedTouristMapFace = ({
         { scale },
         { translateX: -24 },
         { translateY: -20 },
-      ] };
+      ],
+    };
   });
 
   // --- EYES TRACKING ANIMATION ---
@@ -205,7 +202,8 @@ const ExcitedTouristMapFace = ({
     }
 
     return {
-      transform: [{ translateX: cxOffset }, { translateY: cyOffset }] };
+      transform: [{ translateX: cxOffset }, { translateY: cyOffset }],
+    };
   });
 
   // Z-Index derived value for opacity toggle
@@ -218,101 +216,113 @@ const ExcitedTouristMapFace = ({
   });
 
   const frontOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value > 0 ? 1 : 0 }));
+    opacity: zIndexVal.value > 0 ? 1 : 0,
+  }));
 
   const backOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value < 0 ? 1 : 0 }));
+    opacity: zIndexVal.value < 0 ? 1 : 0,
+  }));
+
+  const activeWidth = size;
+  const activeHeight = size;
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
-      <Defs>
-        <ClipPath id="m">
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        overflow: "hidden",
+      }}
+    >
+      <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <G>
+          {/* Background - Deep Ocean */}
+          <Path fill="#01579B" d="M0 0h48v48H0z" />
+
+          {/* DETAILED WORLD MAP BACKGROUND */}
+          <G fill="#4CAF50" opacity="0.9">
+            <Path d="M2 2 L 12 0 L 18 5 L 14 12 L 8 15 L 2 12 Z" />
+            <Path d="M22 1 L 26 0 L 28 4 L 24 6 Z" />
+            <Path d="M30 5 L 35 2 L 45 4 L 48 12 L 40 18 L 32 15 Z" />
+            <Path d="M42 22 L 48 24 L 46 35 L 40 38 L 38 30 Z" />
+            <Path d="M4 35 L 12 38 L 10 48 H 2 Z" />
+            <Path d="M38 42 L 44 40 L 46 45 L 42 48 H 36 Z" />
+          </G>
+
+          {/* GRID LINES */}
           <Path
-            fill="#fff"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-        </ClipPath>
-      </Defs>
-      <G clipPath="url(#m)">
-        {/* Background - Deep Ocean */}
-        <Path fill="#01579B" d="M0 0h48v48H0z" />
-
-        {/* DETAILED WORLD MAP BACKGROUND */}
-        <G fill="#4CAF50" opacity="0.9">
-          <Path d="M2 2 L 12 0 L 18 5 L 14 12 L 8 15 L 2 12 Z" />
-          <Path d="M22 1 L 26 0 L 28 4 L 24 6 Z" />
-          <Path d="M30 5 L 35 2 L 45 4 L 48 12 L 40 18 L 32 15 Z" />
-          <Path d="M42 22 L 48 24 L 46 35 L 40 38 L 38 30 Z" />
-          <Path d="M4 35 L 12 38 L 10 48 H 2 Z" />
-          <Path d="M38 42 L 44 40 L 46 45 L 42 48 H 36 Z" />
-        </G>
-
-        {/* GRID LINES */}
-        <Path
-          d="M0 24 H 48 M 24 0 V 48"
-          stroke="#FFFFFF"
-          strokeWidth="0.2"
-          opacity="0.3"
-        />
-
-        {/* DROPPED FACE STRUCTURE */}
-        <G transform="translate(0, 6)">
-          {/* Shadow - Vector approximation */}
-          <Path
-            fill="black"
-            opacity={0.25}
-            transform="translate(4, 4)"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-          {/* 1. GLASSES BEHIND */}
-          <AnimatedG animatedProps={glassesAnimatedProps}>
-            <AnimatedG animatedProps={backOpacityProps}>
-              <GlassesGroup />
-            </AnimatedG>
-          </AnimatedG>
-
-          {/* 2. FACE SKIN */}
-          <Path
-            fill="#FFE0B2"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            d="M0 24 H 48 M 24 0 V 48"
+            stroke="#FFFFFF"
+            strokeWidth="0.2"
+            opacity="0.3"
           />
 
-          {/* --- EXCITED EYES (White Sclera + Animated Pupils) --- */}
-          {/* Eyes Container */}
-          <G>
-            {/* Left Eye White */}
-            <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
-            {/* Left Pupil */}
-            <AnimatedG animatedProps={eyesAnimatedProps}>
-              <Circle cx="15" cy="23.5" r="2.5" fill="#1A1A1A" />
-              <Circle cx="16" cy="22.5" r="0.8" fill="#FFF" />
+          {/* DROPPED FACE STRUCTURE */}
+          <G transform="translate(0, 6)">
+            {/* Shadow - Vector approximation */}
+            <Path
+              fill="black"
+              opacity={0.25}
+              transform="translate(4, 4)"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+            {/* 1. GLASSES BEHIND */}
+            <AnimatedG animatedProps={glassesAnimatedProps}>
+              <AnimatedG animatedProps={backOpacityProps}>
+                <GlassesGroup />
+              </AnimatedG>
             </AnimatedG>
 
-            {/* Right Eye White */}
-            <Circle cx="33" cy="23.5" r="5" fill="#FFF" />
-            {/* Right Pupil */}
-            <AnimatedG animatedProps={eyesAnimatedProps}>
-              <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
-              <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
+            {/* 2. FACE SKIN */}
+            <Path
+              fill="#FFE0B2"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+
+            {/* --- EXCITED EYES (White Sclera + Animated Pupils) --- */}
+            {/* Eyes Container */}
+            <G>
+              {/* Left Eye White */}
+              <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
+              {/* Left Pupil */}
+              <AnimatedG animatedProps={eyesAnimatedProps}>
+                <Circle cx="15" cy="23.5" r="2.5" fill="#1A1A1A" />
+                <Circle cx="16" cy="22.5" r="0.8" fill="#FFF" />
+              </AnimatedG>
+
+              {/* Right Eye White */}
+              <Circle cx="33" cy="23.5" r="5" fill="#FFF" />
+              {/* Right Pupil */}
+              <AnimatedG animatedProps={eyesAnimatedProps}>
+                <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
+                <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
+              </AnimatedG>
+            </G>
+
+            {/* 3. GLASSES FRONT */}
+            <AnimatedG animatedProps={glassesAnimatedProps}>
+              <AnimatedG animatedProps={frontOpacityProps}>
+                <GlassesGroup />
+              </AnimatedG>
             </AnimatedG>
           </G>
 
-          {/* 3. GLASSES FRONT */}
-          <AnimatedG animatedProps={glassesAnimatedProps}>
-            <AnimatedG animatedProps={frontOpacityProps}>
-              <GlassesGroup />
-            </AnimatedG>
-          </AnimatedG>
+          {/* TOP FOG / CLOUDS */}
+          <Path
+            d="M0 0 Q 12 8, 24 0 T 48 0 V 6 Q 24 12, 0 6 Z"
+            fill="#FFFFFF"
+            opacity="0.4"
+          />
         </G>
-
-        {/* TOP FOG / CLOUDS */}
-        <Path
-          d="M0 0 Q 12 8, 24 0 T 48 0 V 6 Q 24 12, 0 6 Z"
-          fill="#FFFFFF"
-          opacity="0.4"
-        />
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 };
 
