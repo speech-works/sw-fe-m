@@ -82,14 +82,18 @@ const AngryFace = ({
       true,
     );
 
-    // Flame Animations (Synchronized Pulse)
-    const flameEasing = Easing.inOut(Easing.quad);
-    const pulseDuration = 900;
-
+    // Flame Animations (Synchronized Snappy Pulse)
+    const pulseDuration = 700;
     const pulseAnim = withRepeat(
       withSequence(
-        withTiming(1.1, { duration: pulseDuration, easing: flameEasing }),
-        withTiming(0.95, { duration: pulseDuration, easing: flameEasing }),
+        withTiming(1.15, {
+          duration: pulseDuration,
+          easing: Easing.out(Easing.quad),
+        }),
+        withTiming(0.9, {
+          duration: pulseDuration,
+          easing: Easing.in(Easing.quad),
+        }),
       ),
       -1,
       true,
@@ -101,28 +105,28 @@ const AngryFace = ({
   }, [shouldAnimate]);
 
   const upperJawProps = useAnimatedProps(() => ({
-    transform: [{ translateY: upperJawY.value }],
+    transform: [{ translateY: upperJawY.value }] as any,
   }));
 
   const lowerJawProps = useAnimatedProps(() => ({
-    transform: [{ translateY: lowerJawY.value }],
+    transform: [{ translateY: lowerJawY.value }] as any,
   }));
 
   // Pivot from Bottom Center
   const layer1Props = useAnimatedProps(() => ({
-    transform: [{ scaleY: flameLayer1ScaleY.value }],
+    transform: [{ scaleY: flameLayer1ScaleY.value }] as any,
     originX: 24,
     originY: 48,
   }));
 
   const layer2Props = useAnimatedProps(() => ({
-    transform: [{ scaleY: flameLayer2ScaleY.value }],
+    transform: [{ scaleY: flameLayer2ScaleY.value }] as any,
     originX: 24,
     originY: 48,
   }));
 
   const layer3Props = useAnimatedProps(() => ({
-    transform: [{ scaleY: flameLayer3ScaleY.value }],
+    transform: [{ scaleY: flameLayer3ScaleY.value }] as any,
     originX: 24,
     originY: 48,
   }));

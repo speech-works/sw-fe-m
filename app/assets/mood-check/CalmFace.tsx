@@ -51,9 +51,9 @@ const CalmFace = ({
       return;
     }
 
-    // 1. Wind Animation
+    // 1. Wind Animation (Faster continuous flow)
     windOffset.value = withRepeat(
-      withTiming(48, { duration: 3000, easing: Easing.linear }),
+      withTiming(48, { duration: 2000, easing: Easing.linear }),
       -1,
       false,
     );
@@ -74,7 +74,7 @@ const CalmFace = ({
   }));
 
   const haloProps = useAnimatedProps(() => ({
-    transform: [{ translateY: haloHover.value }],
+    transform: [{ translateY: haloHover.value }] as any,
   }));
 
   return (

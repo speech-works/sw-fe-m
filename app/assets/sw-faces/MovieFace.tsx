@@ -15,6 +15,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
@@ -22,21 +24,26 @@ interface SvgIconProps extends SvgProps {
 
 const MovieFace = ({
   size = 48,
+  width,
+  height,
   shouldAnimate = false,
   loop = false,
   repeatCount = 1,
   ...props
 }: SvgIconProps) => {
-  const activeWidth = typeof size === "number" ? size : size;
-  const activeHeight = typeof size === "number" ? size : size;
+  const activeWidth = width || size;
+  const activeHeight = height || size;
   const sheenProgress = useSharedValue(0);
 
   useEffect(() => {
     if (shouldAnimate) {
       sheenProgress.value = withRepeat(
         withDelay(
-          2500, // Wait interval
-          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.quad) }), // Swipe across
+          1800, // Wait interval
+          withTiming(1, {
+            duration: 600,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Swipe across
         ),
         loop ? -1 : repeatCount,
         false, // Start over (unidirectional)
@@ -50,7 +57,7 @@ const MovieFace = ({
     // Translate across the width of the lens (10px) + buffer
     const translateX = -5 + sheenProgress.value * 20; // -5 -> 15 (Travels 20px total)
     return {
-      transform: [{ translateX }],
+      transform: [{ translateX }] as any,
     };
   });
 

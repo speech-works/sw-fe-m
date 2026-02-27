@@ -20,6 +20,8 @@ interface SvgIconProps extends SvgProps {
   loop?: boolean;
   repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
 const StorytellerFace = ({
@@ -44,10 +46,9 @@ const StorytellerFace = ({
       return;
     }
 
-    // 2. Chatbox Scrolling Text
-    // Lines slide up endlessly. We reset cleanly by scrolling a full "block" height.
+    // 2. Chatbox Scrolling Text (Snappier flow)
     scrollY.value = withRepeat(
-      withTiming(-12, { duration: 6000, easing: Easing.linear }), // 6s duration
+      withTiming(-12, { duration: 4500, easing: Easing.linear }),
       -1,
       false,
     );
@@ -58,7 +59,7 @@ const StorytellerFace = ({
   }, [shouldAnimate]);
 
   const scrollProps = useAnimatedProps(() => ({
-    transform: [{ translateY: scrollY.value }],
+    transform: [{ translateY: scrollY.value }] as any,
   }));
 
   return (

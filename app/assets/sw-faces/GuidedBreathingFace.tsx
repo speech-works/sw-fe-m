@@ -24,9 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedLine = Animated.createAnimatedComponent(Line);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export type BreathingPhase =
   | "idle"
@@ -37,27 +35,47 @@ export type BreathingPhase =
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   phase?: BreathingPhase;
   shouldAnimate?: boolean;
 }
 
 const GuidedBreathingFace = ({
   size = 48,
+  width,
+  height,
   phase = "idle",
   shouldAnimate = true,
   ...props
 }: SvgIconProps) => {
-  const activeWidth = size;
-  const activeHeight = size;
+  const activeWidth = width || size;
+  const activeHeight = height || size;
 
   // Scale fixed at 1 (disabled zoom)
   const scale = useSharedValue(1);
   const breathOpacity = useSharedValue(0);
 
   const eyeTranslateY = useSharedValue(0);
+  const blink = useSharedValue(1);
 
   useEffect(() => {
-    if (!shouldAnimate) return;
+    if (!shouldAnimate) {
+      blink.value = 1;
+      return;
+    }
+    blink.value = withRepeat(
+      withSequence(
+        withDelay(
+          Math.random() * 2000 + 3000,
+          withTiming(0, { duration: 150 }),
+        ),
+        withTiming(1, { duration: 150 }),
+      ),
+      -1,
+      false,
+    );
+
     const DURATION = 500; // Standard transition duration
 
     switch (phase) {
@@ -66,11 +84,10 @@ const GuidedBreathingFace = ({
         breathOpacity.value = withTiming(0, { duration: DURATION });
         break;
 
-      case "inhale":
         // Eyes: Lift
         eyeTranslateY.value = withTiming(-1.5, {
           duration: DURATION,
-          easing: Easing.out(Easing.quad),
+          easing: Easing.bezier(0.33, 1, 0.68, 1),
         });
         // Breath: Invisible
         breathOpacity.value = withTiming(0, { duration: 200 });
@@ -107,7 +124,7 @@ const GuidedBreathingFace = ({
 
   const animatedGroupProps = useAnimatedProps(() => {
     return {
-      transform: [{ scale: scale.value }],
+      transform: [{ scale: scale.value }] as any,
     };
   });
 
@@ -119,7 +136,11 @@ const GuidedBreathingFace = ({
 
   const animatedEyesProps = useAnimatedProps(() => {
     return {
-      transform: [{ translateY: eyeTranslateY.value }],
+      transform: [
+        { translateY: eyeTranslateY.value },
+        { scaleY: blink.value },
+      ] as any,
+      originY: 24,
     };
   });
 

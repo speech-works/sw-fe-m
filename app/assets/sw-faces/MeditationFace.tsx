@@ -16,6 +16,8 @@ interface SvgIconProps extends SvgProps {
   loop?: boolean;
   repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
 const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
@@ -26,7 +28,10 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
     scale.value = withDelay(
       delay,
       withRepeat(
-        withTiming(3, { duration: 4000, easing: Easing.out(Easing.ease) }),
+        withTiming(3, {
+          duration: 3500,
+          easing: Easing.bezier(0.25, 1, 0.5, 1),
+        }),
         -1,
         false,
       ),
@@ -34,7 +39,7 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
     opacity.value = withDelay(
       delay,
       withRepeat(
-        withTiming(0, { duration: 4000, easing: Easing.out(Easing.ease) }),
+        withTiming(0, { duration: 3500, easing: Easing.linear }),
         -1,
         false,
       ),
@@ -48,7 +53,7 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ scale: scale.value }, { translateY: -size * 0.3 }], // Offset to forehead (approx 30% up)
+      transform: [{ scale: scale.value }, { translateY: -size * 0.3 }] as any, // Offset to forehead (approx 30% up)
       opacity: opacity.value,
     };
   });
@@ -80,14 +85,21 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
 
 const MeditationFace = ({
   size = 48,
+  width,
+  height,
   shouldAnimate,
   loop,
   repeatCount,
   ...props
 }: SvgIconProps) => {
-  const activeWidth =
-    typeof size === "number" ? size : parseInt(size as string, 10);
-  const activeHeight = activeWidth;
+  const activeWidth = width || size;
+  const activeHeight = height || size;
+
+  const parsedWidth =
+    typeof activeWidth === "number"
+      ? activeWidth
+      : parseInt(activeWidth as string, 10);
+  const parsedHeight = parsedWidth;
 
   return (
     <View
@@ -99,10 +111,10 @@ const MeditationFace = ({
       }}
     >
       {/* Background Pulsing Rings */}
-      <PulsingRing delay={0} size={activeWidth} />
-      <PulsingRing delay={1000} size={activeWidth} />
-      <PulsingRing delay={2000} size={activeWidth} />
-      <PulsingRing delay={3000} size={activeWidth} />
+      <PulsingRing delay={0} size={parsedWidth} />
+      <PulsingRing delay={1000} size={parsedWidth} />
+      <PulsingRing delay={2000} size={parsedWidth} />
+      <PulsingRing delay={3000} size={parsedWidth} />
 
       <View
         style={{

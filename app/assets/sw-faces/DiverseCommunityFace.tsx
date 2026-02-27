@@ -20,6 +20,8 @@ type BackgroundStyle = "ocean" | "sunset" | "sky" | "forest" | "city" | "space";
 
 interface CommunityProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   roles?: ProfessionalRole[]; // Pass 4 roles to shuffle
   bgType?: BackgroundStyle;
   shouldAnimate?: boolean;
@@ -358,11 +360,11 @@ const FaceNode = ({
       { translateY: 24 },
       { scaleY: blink.value },
       { translateY: -24 },
-    ],
+    ] as any,
   }));
 
   const helmetProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${helmetWiggle.value}deg` }],
+    transform: [{ rotate: `${helmetWiggle.value}deg` }] as any,
     originX: 24,
     originY: 24,
   }));
@@ -373,11 +375,11 @@ const FaceNode = ({
     // Original static was translate(0, -2), so translateY should be related to that if we replace it?
     // Actually, animatedProps transform overrides static transform on Animated components usually.
     // We should include the static offset (-2) in the animated value or prop.
-    transform: [{ translateY: -2 + capFloat.value }],
+    transform: [{ translateY: -2 + capFloat.value }] as any,
   }));
 
   const glassesProps = useAnimatedProps(() => ({
-    transform: [{ rotate: `${glassesTilt.value}deg` }],
+    transform: [{ rotate: `${glassesTilt.value}deg` }] as any,
     originX: 24,
     originY: 24,
   }));
@@ -568,11 +570,15 @@ const BackgroundLayer = ({ type }: { type: BackgroundStyle }) => {
 
 const DiverseCommunityFace = ({
   size = 150,
+  width,
+  height,
   roles = ["teacher", "doctor", "engineer", "student"],
   bgType = "city", // Initial BG
   shouldAnimate,
   ...props
 }: CommunityProps) => {
+  const activeWidth = width || size;
+  const activeHeight = height || size;
   // State
   const [activeIndex, setActiveIndex] = React.useState(() => {
     const idx = SCENE_ORDER.indexOf(bgType);
@@ -591,15 +597,14 @@ const DiverseCommunityFace = ({
       //    Next: 48 -> 0 (Moves UP into view from bottom)
       slideOffset.value = withTiming(
         48,
-        { duration: 1500, easing: Easing.out(Easing.quad) },
+        { duration: 1000, easing: Easing.bezier(0.33, 1, 0.68, 1) },
         (finished) => {
           if (finished) {
-            // 2. On Finish: Update Index (JS) and Reset Offset (0) instantly
             runOnJS(handleNextScene)();
           }
         },
       );
-    }, 4500); // Wait 3s + 1.5s anim
+    }, 4000); // 3s wait + 1s anim
 
     return () => clearInterval(interval);
   }, [shouldAnimate]);
@@ -613,28 +618,25 @@ const DiverseCommunityFace = ({
   const nextScene = SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length];
 
   const currentBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: -slideOffset.value }],
+    transform: [{ translateY: -slideOffset.value }] as any,
   }));
 
   const nextBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: 48 - slideOffset.value }],
+    transform: [{ translateY: 48 - slideOffset.value }] as any,
   }));
-
-  const activeWidth = size;
-  const activeHeight = size;
 
   return (
     <View
       style={{
         width: activeWidth as any,
         height: activeHeight as any,
-        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        borderRadius: (typeof activeWidth === "number" ? activeWidth : 150) / 2,
         overflow: "hidden",
       }}
     >
       <Svg
-        width={size}
-        height={size}
+        width={activeWidth}
+        height={activeHeight}
         viewBox="0 0 48 48"
         fill="none"
         {...props}

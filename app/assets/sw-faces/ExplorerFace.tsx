@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  withDelay,
   Easing,
   interpolate,
   useDerivedValue,
@@ -17,6 +18,8 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
@@ -57,26 +60,44 @@ const GlassesGroup = () => (
 
 const ExcitedTouristMapFace = ({
   size = 48,
+  width,
+  height,
   shouldAnimate = false, // Default OFF
   loop = false,
   repeatCount = 1,
   ...props
 }: SvgIconProps) => {
   const progress = useSharedValue(0);
+  const blink = useSharedValue(1);
 
   useEffect(() => {
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(0, { duration: 100 }), // Initial delay
-          withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.quad) }), // Orbit
-          withTiming(0, { duration: 1000 }), // Reset
+          withTiming(0, { duration: 50 }),
+          withTiming(1, {
+            duration: 2000,
+            easing: Easing.bezier(0.45, 0, 0.55, 1),
+          }), // Snappier orbit
+          withTiming(0, { duration: 600 }),
         ),
         loop ? -1 : repeatCount,
         false,
       );
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 3000,
+            withTiming(0.1, { duration: 150 }),
+          ),
+          withTiming(1, { duration: 150 }),
+        ),
+        -1,
+        false,
+      );
     } else {
       progress.value = withTiming(0);
+      blink.value = 1;
     }
   }, [shouldAnimate, loop, repeatCount]);
 
@@ -121,7 +142,7 @@ const ExcitedTouristMapFace = ({
         { scale },
         { translateX: -24 },
         { translateY: -20 },
-      ],
+      ] as any,
     };
   });
 
@@ -202,9 +223,14 @@ const ExcitedTouristMapFace = ({
     }
 
     return {
-      transform: [{ translateX: cxOffset }, { translateY: cyOffset }],
+      transform: [{ translateX: cxOffset }, { translateY: cyOffset }] as any,
     };
   });
+
+  const blinkProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blink.value }] as any,
+    originY: 23.5,
+  }));
 
   // Z-Index derived value for opacity toggle
   const zIndexVal = useDerivedValue(() => {
@@ -223,8 +249,8 @@ const ExcitedTouristMapFace = ({
     opacity: zIndexVal.value < 0 ? 1 : 0,
   }));
 
-  const activeWidth = size;
-  const activeHeight = size;
+  const activeWidth = width || size;
+  const activeHeight = height || size;
 
   return (
     <View
@@ -236,8 +262,8 @@ const ExcitedTouristMapFace = ({
       }}
     >
       <Svg
-        width={size}
-        height={size}
+        width={activeWidth}
+        height={activeHeight}
         viewBox="0 0 48 48"
         fill="none"
         {...props}
@@ -288,7 +314,7 @@ const ExcitedTouristMapFace = ({
 
             {/* --- EXCITED EYES (White Sclera + Animated Pupils) --- */}
             {/* Eyes Container */}
-            <G>
+            <AnimatedG animatedProps={blinkProps}>
               {/* Left Eye White */}
               <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
               {/* Left Pupil */}
@@ -304,7 +330,7 @@ const ExcitedTouristMapFace = ({
                 <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
                 <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
               </AnimatedG>
-            </G>
+            </AnimatedG>
 
             {/* 3. GLASSES FRONT */}
             <AnimatedG animatedProps={glassesAnimatedProps}>

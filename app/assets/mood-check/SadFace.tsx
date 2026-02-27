@@ -8,6 +8,8 @@ import Svg, {
   LinearGradient,
   Mask,
   Path,
+  Pattern,
+  Rect,
   Stop,
   SvgProps,
 } from "react-native-svg";
@@ -21,12 +23,15 @@ import Animated, {
 } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
 const SadFace = ({
@@ -47,6 +52,7 @@ const SadFace = ({
   const mouthQuiver = useSharedValue(0);
   const pulse = useSharedValue(0);
   const rain = useSharedValue(0);
+
   React.useEffect(() => {
     if (!shouldAnimate) {
       droopY.value = withTiming(0);
@@ -60,11 +66,17 @@ const SadFace = ({
     droopY.value = withTiming(0);
     scaleY.value = withTiming(1);
 
-    // Tear Animation (Faster Heave)
+    // Tear Animation (Faster Heave) - Using snappier easing
     tearLevel.value = withRepeat(
       withSequence(
-        withTiming(0.5, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.5, {
+          duration: 1500,
+          easing: Easing.bezier(0.33, 1, 0.68, 1),
+        }),
+        withTiming(1, {
+          duration: 1500,
+          easing: Easing.bezier(0.33, 1, 0.68, 1),
+        }),
       ),
       -1,
       true,
@@ -77,9 +89,9 @@ const SadFace = ({
       false,
     );
 
-    // Rain Animation (Stormy)
+    // Rain Animation (Stormy) - Optimized timing
     rain.value = withRepeat(
-      withTiming(1, { duration: 900, easing: Easing.linear }),
+      withTiming(1, { duration: 800, easing: Easing.linear }),
       -1,
       false,
     );
@@ -87,11 +99,11 @@ const SadFace = ({
     // Mouth Quiver (Intermittent shivering)
     mouthQuiver.value = withRepeat(
       withSequence(
-        withTiming(0, { duration: 2000 }), // Wait
-        withTiming(1, { duration: 50 }), // Shake R
-        withTiming(-1, { duration: 50 }), // Shake L
-        withTiming(1, { duration: 50 }), // Shake R
-        withTiming(0, { duration: 50 }), // Stop
+        withTiming(0, { duration: 2000 }),
+        withTiming(1, { duration: 40 }),
+        withTiming(-1, { duration: 40 }),
+        withTiming(1, { duration: 40 }),
+        withTiming(0, { duration: 40 }),
       ),
       -1,
       true,
@@ -99,92 +111,27 @@ const SadFace = ({
   }, [shouldAnimate]);
 
   const faceProps = useAnimatedProps(() => ({
-    transform: [{ translateY: droopY.value }, { scaleY: scaleY.value }],
-    originY: 24, // Pivot from center
-  }));
-
-  const pulseProps = useAnimatedProps(() => ({
-    transform: [{ scale: 1 + 0.4 * pulse.value }],
-    opacity: 0.3 * (1 - pulse.value), // Fade out
-    originX: 24,
+    transform: [{ translateY: droopY.value }, { scaleY: scaleY.value }] as any,
     originY: 24,
   }));
 
-  const rain1Props = useAnimatedProps(() => ({
-    transform: [{ translateY: (rain.value % 1) * 70 }, { rotate: "-15deg" }],
-    opacity: 0.3 * (1 - (rain.value % 1)),
-  }));
-
-  const rain2Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.5) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.5) % 1)),
-  }));
-
-  const rain3Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.15) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.15) % 1)),
-  }));
-
-  const rain4Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.7) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.7) % 1)),
-  }));
-
-  const rain5Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.35) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.35) % 1)),
-  }));
-
-  const rain6Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.85) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.85) % 1)),
-  }));
-
-  const rain7Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.25) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.25) % 1)),
-  }));
-
-  const rain8Props = useAnimatedProps(() => ({
-    transform: [
-      { translateY: ((rain.value + 0.6) % 1) * 70 },
-      { rotate: "-15deg" },
-    ],
-    opacity: 0.3 * (1 - ((rain.value + 0.6) % 1)),
+  const rainProps = useAnimatedProps(() => ({
+    transform: [{ translateY: rain.value * 20 }] as any,
   }));
 
   const mouthProps = useAnimatedProps(() => ({
-    transform: [{ translateX: mouthQuiver.value * 0.5 }], // Subtle shake
+    transform: [{ translateX: mouthQuiver.value * 0.5 }] as any,
     originX: 24,
     originY: 39,
   }));
 
   const leftTearProps = useAnimatedProps(() => ({
-    // Pools up from the bottom, stays strictly at the bottom
-    transform: [{ translateY: 12 - 4 * tearLevel.value }],
+    transform: [{ translateY: 12 - 4 * tearLevel.value }] as any,
     opacity: 0.9 * tearLevel.value,
   }));
 
   const rightTearProps = useAnimatedProps(() => ({
-    transform: [{ translateY: 12 - 4 * tearLevel.value }],
+    transform: [{ translateY: 12 - 4 * tearLevel.value }] as any,
     opacity: 0.9 * tearLevel.value,
   }));
 
@@ -215,6 +162,22 @@ const SadFace = ({
           <Mask id="rightEyeMask">
             <Circle cx="31.2" cy="24" r="7.2" fill="white" />
           </Mask>
+          <Pattern
+            id="rainPattern"
+            x="0"
+            y="0"
+            width="12"
+            height="20"
+            patternUnits="userSpaceOnUse"
+          >
+            <Path
+              d="M 6 4 V 10"
+              stroke="#000000"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              opacity="0.2"
+            />
+          </Pattern>
         </Defs>
 
         <G>
@@ -223,79 +186,15 @@ const SadFace = ({
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
 
-          {/* Rain (Stormy Black Drizzle) */}
-          <AnimatedG animatedProps={rain1Props}>
-            <Path
-              d="M 8 -10 V 5"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain2Props}>
-            <Path
-              d="M 14 -15 V 2"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain3Props}>
-            <Path
-              d="M 19 -8 V 7"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain4Props}>
-            <Path
-              d="M 25 -12 V 4"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain5Props}>
-            <Path
-              d="M 31 -6 V 8"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain6Props}>
-            <Path
-              d="M 36 -14 V 1"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain7Props}>
-            <Path
-              d="M 42 -9 V 6"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
-          <AnimatedG animatedProps={rain8Props}>
-            <Path
-              d="M 22 -18 V -2"
-              stroke="#000000"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </AnimatedG>
+          {/* Rain (Optimized Pattern) */}
+          <AnimatedRect
+            x="0"
+            y="-20"
+            width="48"
+            height="88"
+            fill="url(#rainPattern)"
+            animatedProps={rainProps}
+          />
 
           {/* Animated Sad Face */}
           <AnimatedG animatedProps={faceProps}>

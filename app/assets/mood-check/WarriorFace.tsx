@@ -14,6 +14,8 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
@@ -36,8 +38,14 @@ const WarriorFace = ({
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Furrow
-          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Relax
+          withTiming(1, {
+            duration: 800,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Furrow
+          withTiming(0, {
+            duration: 800,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Relax
         ),
         loop ? -1 : repeatCount,
         false,
@@ -48,7 +56,7 @@ const WarriorFace = ({
   }, [shouldAnimate, loop, repeatCount]);
 
   const eyebrowProps = useAnimatedProps(() => ({
-    transform: [{ translateY: progress.value * 2 }], // Move down 2px
+    transform: [{ translateY: progress.value * 2 }] as any, // Move down 2px
   }));
 
   const upperKnotProps = useAnimatedProps(() => {
@@ -63,7 +71,7 @@ const WarriorFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -42 },
         { translateY: -16 },
-      ],
+      ] as any,
     };
   });
 
@@ -79,7 +87,7 @@ const WarriorFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -42 },
         { translateY: -18 },
-      ],
+      ] as any,
     };
   });
 

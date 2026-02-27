@@ -1,40 +1,105 @@
 import React from "react";
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withDelay,
+} from "react-native-reanimated";
+
+import { View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
-const KeyholeFace = ({
-  size = 48,
-  shouldAnimate,
-  loop,
-  repeatCount,
-  ...props
-}: SvgProps & {
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
-}) => (
-  <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
-    <Defs>
-      <Mask id="m">
-        <Path
-          fill="#fff"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
-      </Mask>
-    </Defs>
-    <G mask="url(#m)">
-      <Path
-        fill="#212121"
-        d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-      />
-      <G>
-        <Path
-          fill="#424242"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
-      </G>
-      <Circle cx="24" cy="24" r="4" fill="#FDD835" />
-      <Path d="M22 26 L 20 34 H 28 L 26 26" fill="#FDD835" />
-    </G>
-  </Svg>
-);
+}
+
+const KeyholeFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  loop = false,
+  repeatCount = 1,
+  ...props
+}: SvgIconProps) => {
+  const activeWidth = width || size;
+  const activeHeight = height || size;
+  const flare = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (shouldAnimate) {
+      flare.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500 }),
+          withTiming(0, { duration: 1500 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      flare.value = 0;
+    }
+  }, [shouldAnimate]);
+
+  const flareProps = useAnimatedProps(() => ({
+    opacity: 0.6 + flare.value * 0.4,
+    transform: [{ scale: 1 + flare.value * 0.05 }] as any,
+    originX: 24,
+    originY: 24,
+  }));
+
+  return (
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
+        overflow: "hidden",
+      }}
+    >
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <Defs>
+          <Mask id="m">
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#m)">
+          <Path
+            fill="#212121"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+          <G>
+            <Path
+              fill="#424242"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+          </G>
+          <AnimatedG animatedProps={flareProps}>
+            <Circle cx="24" cy="24" r="4" fill="#FDD835" />
+            <Path d="M22 26 L 20 34 H 28 L 26 26" fill="#FDD835" />
+          </AnimatedG>
+        </G>
+      </Svg>
+    </View>
+  );
+};
 export default React.memo(KeyholeFace);

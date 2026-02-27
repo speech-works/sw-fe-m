@@ -15,6 +15,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
@@ -37,8 +39,14 @@ const BreathingFace = ({
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 4000, easing: Easing.out(Easing.quad) }), // Slow Exhale (4s)
-          withTiming(0, { duration: 4000, easing: Easing.inOut(Easing.quad) }), // Slow Inhale (4s)
+          withTiming(1, {
+            duration: 3500,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Snappier Exhale
+          withTiming(0, {
+            duration: 3500,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Snappier Inhale
         ),
         loop ? -1 : repeatCount,
         false,
@@ -61,13 +69,15 @@ const BreathingFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -26 },
         { translateY: -34 }, // Unpivot
-      ],
+      ] as any,
     };
   });
 
   const eyeProps = useAnimatedProps(() => ({
     // Subtle up/down float (Slower due to longer duration)
-    transform: [{ translateY: -1 + Math.sin(progress.value * Math.PI) * 1.0 }],
+    transform: [
+      { translateY: -1 + Math.sin(progress.value * Math.PI) * 1.0 },
+    ] as any,
   }));
 
   return (
@@ -109,6 +119,9 @@ const BreathingFace = ({
 
           {/* Closed Peaceful Eyes (Animated) */}
           <AnimatedG animatedProps={eyeProps}>
+            <View>
+              {/* Note: View here is just to wrap, but AnimatedG is the one that transforms */}
+            </View>
             <Path
               stroke="#000340"
               strokeWidth="2.5"

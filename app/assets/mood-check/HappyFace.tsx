@@ -57,31 +57,37 @@ const HappyFace = ({
       false,
     );
 
-    // 2. Happy Bounce (Rhythmic up/down)
+    // 2. Happy Bounce (Snappier spring-like feel)
     bounceY.value = withRepeat(
       withSequence(
-        withTiming(-6, { duration: 400, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 400, easing: Easing.in(Easing.quad) }),
+        withTiming(-6, {
+          duration: 350,
+          easing: Easing.bezier(0.33, 1, 0.68, 1),
+        }),
+        withTiming(0, {
+          duration: 350,
+          easing: Easing.bezier(0.32, 0, 0.67, 0),
+        }),
       ),
       -1,
       true,
     );
 
-    // 3. Wiggle (Joyful head tilt side to side)
+    // 3. Wiggle (Joyful head tilt)
     wiggleRotate.value = withRepeat(
       withSequence(
-        withTiming(-3, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(3, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-3, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+        withTiming(3, { duration: 800, easing: Easing.inOut(Easing.quad) }),
       ),
       -1,
       true,
     );
 
-    // 4. Twinkling Stars (Pulse)
+    // 4. Twinkling Stars (Snappier pulse)
     starTwinkle.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0.5, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+        withTiming(0.5, { duration: 600, easing: Easing.in(Easing.exp) }),
       ),
       -1,
       true,
@@ -94,7 +100,7 @@ const HappyFace = ({
       { translateY: 24 },
       { scaleY: eyeScaleY.value },
       { translateY: -24 },
-    ],
+    ] as any,
   }));
 
   // Face Bounce & Wiggle
@@ -102,14 +108,14 @@ const HappyFace = ({
     transform: [
       { translateY: bounceY.value },
       { rotate: `${wiggleRotate.value}deg` },
-    ],
+    ] as any,
     originX: 24,
     originY: 24,
   }));
 
   const starProps = useAnimatedProps(() => ({
     opacity: 0.5 + 0.5 * starTwinkle.value,
-    transform: [{ scale: 0.8 + 0.4 * starTwinkle.value }],
+    transform: [{ scale: 0.8 + 0.4 * starTwinkle.value }] as any,
     originX: 24,
     originY: 40,
   }));
@@ -138,12 +144,10 @@ const HappyFace = ({
 
           {/* Animated Face Group (Bounce + Wiggle) */}
           <AnimatedG animatedProps={faceAnimatedProps}>
-            <G>
-              <Path
-                fill="#F7DFA9"
-                d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 60 0 60 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-60 0-60"
-              />
-            </G>
+            <Path
+              fill="#F7DFA9"
+              d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 60 0 60 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-60 0-60"
+            />
 
             {/* Animated Eyes Group */}
             <AnimatedG animatedProps={eyeAnimatedProps}>

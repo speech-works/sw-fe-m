@@ -15,6 +15,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
@@ -39,8 +41,14 @@ const ReaderFace = ({
     if (shouldAnimate) {
       progress.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Review Left -> Right
-          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }), // Right -> Left
+          withTiming(1, {
+            duration: 800,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // Review L -> R
+          withTiming(0, {
+            duration: 800,
+            easing: Easing.bezier(0.33, 1, 0.68, 1),
+          }), // R -> L
         ),
         loop ? -1 : repeatCount,
         false,
@@ -59,7 +67,7 @@ const ReaderFace = ({
   }));
 
   const textLineProps = useAnimatedProps(() => ({
-    transform: [{ translateX: progress.value * 3 }], // Shift lines slightly right
+    transform: [{ translateX: progress.value * 3 }] as any, // Shift lines slightly right
   }));
 
   return (
