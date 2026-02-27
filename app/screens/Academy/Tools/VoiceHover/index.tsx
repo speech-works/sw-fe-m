@@ -1,17 +1,17 @@
 // VoiceHover.tsx
-import React, { useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Platform,
-} from "react-native";
 import Slider from "@react-native-community/slider"; // Import Slider
 import * as Speech from "expo-speech";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { theme } from "../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
 
 type VoiceHoverProps = {
   text: string;
@@ -29,7 +29,6 @@ type VoiceHoverProps = {
 export function VoiceHover({
   text,
   style,
-  textStyle,
   onHighlightChange,
   rate, // Optional external control
   prePause: externalPrePause, // Optional external control

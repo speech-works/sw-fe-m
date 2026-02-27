@@ -1,5 +1,5 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CharacterVoiceData } from "../../../../../../api/dailyPractice/types";
 
 export type CharacterVoiceFDPStackParamList = {

@@ -1,9 +1,9 @@
 import React from "react";
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from "react-native";
-import Button from "./Button";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/Feather";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/Feather";
+import Button from "./Button";
 
 interface OnboardingResumeModalProps {
   visible: boolean;

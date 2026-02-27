@@ -1,41 +1,37 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
-  Dimensions,
-  TouchableOpacity,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
+} from "react-native-reanimated";
+import Svg, {
+    Circle,
+    Defs,
+    G,
+    Line,
+    Path,
+    Stop,
+    LinearGradient as SvgGradient,
+    Text as SvgText
+} from "react-native-svg";
+import {
+    ClinicalDomain,
+    GrowthProfile,
+} from "../../api/userBehaviorTrends/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
-import {
-  ClinicalDomain,
-  GrowthProfile,
-} from "../../api/userBehaviorTrends/types";
 import SkeletonLoader from "../SkeletonLoader";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Svg, {
-  Line,
-  Circle,
-  Text as SvgText,
-  G,
-  Path,
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  Rect,
-} from "react-native-svg";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  useSharedValue,
-  withTiming,
-  withRepeat,
-  Easing,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-  withSequence,
-} from "react-native-reanimated";
 import DimensionDetailModal from "./DimensionDetailModal";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -708,7 +704,7 @@ const ClinicalStatsWidget = () => {
 
                   {/* Bottom Row: 2 Mini Cards Side-by-Side */}
                   <View style={{ flexDirection: "row", gap: 12 }}>
-                    {secondaryKeys.map((key, i) => {
+                    {secondaryKeys.map((key) => {
                       const { data, config } = getItem(key);
                       if (!data || !config) return null;
                       const isImp = data.trend === "IMPROVING";

@@ -1,17 +1,17 @@
 import axiosClient from "../axiosClient";
 import { generateUploadUrl } from "../file-handling";
-import { transcribeAudio } from "./processing/stt";
+
 import {
-  Recording,
-  CreateRecordingPayload,
-  RecordingQueryParams,
+    CreateRecordingPayload,
+    Recording,
+    RecordingQueryParams,
 } from "./types";
 
 /**
  * Fetch recordings by optional userId and/or activityId
  */
 export async function getRecordings(
-  params?: RecordingQueryParams
+  params?: RecordingQueryParams,
 ): Promise<Recording[]> {
   try {
     const response = await axiosClient.get<Recording[]>("/recordings", {
@@ -21,7 +21,7 @@ export async function getRecordings(
   } catch (error) {
     console.error(
       "There was a problem with the getRecordings API call:",
-      error
+      error,
     );
     throw error;
   }
@@ -37,7 +37,7 @@ export async function getRecordingById(id: string): Promise<Recording> {
   } catch (error) {
     console.error(
       `There was a problem with the getRecordingById API call (ID: ${id}):`,
-      error
+      error,
     );
     throw error;
   }
@@ -48,7 +48,7 @@ export async function getRecordingById(id: string): Promise<Recording> {
  */
 export async function createRecording(
   payload: Omit<CreateRecordingPayload, "audioUrl">,
-  file: File
+  file: File,
 ): Promise<Recording> {
   console.log("in createRecording", { payload, file });
   try {
@@ -63,7 +63,7 @@ export async function createRecording(
     const uploadUrl = await generateUploadUrl(
       fileName,
       mimeType,
-      "sw-voice-recording"
+      "sw-voice-recording",
     );
     if (!uploadUrl) {
       throw new Error("Voice recording upload url generation failed");
@@ -82,9 +82,7 @@ export async function createRecording(
 
     const audioUrlKey = fileName;
 
-    // console.log("Transcription start:", audioUrlKey);
     // const script = await transcribeAudio(audioUrlKey);
-    // console.log("Transcription result:", script);
 
     const requestBody: CreateRecordingPayload = {
       userId,
@@ -95,13 +93,13 @@ export async function createRecording(
     };
     const response = await axiosClient.post<Recording>(
       "/recordings",
-      requestBody
+      requestBody,
     );
     return response.data;
   } catch (error) {
     console.error(
       "There was a problem with the createRecording API call:",
-      error
+      error,
     );
     throw error;
   }
@@ -116,7 +114,7 @@ export async function deleteRecording(id: string): Promise<void> {
   } catch (error) {
     console.error(
       `There was a problem with the deleteRecording API call (ID: ${id}):`,
-      error
+      error,
     );
     throw error;
   }
@@ -133,7 +131,7 @@ export async function deleteRecordingsByUser(userId: string): Promise<void> {
   } catch (error) {
     console.error(
       `There was a problem with the deleteRecordingsByUser API call (userId: ${userId}):`,
-      error
+      error,
     );
     throw error;
   }

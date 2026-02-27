@@ -1,12 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import ScreenView from "../../components/ScreenView";
-import Button from "../../components/Button";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../Theme/tokens";
+import Button from "../../components/Button";
+import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
+import { parseTextStyle } from "../../util/functions/parseStyles";
 
 const OnboardingDone: React.FC = () => {
   const stopOnboarding = useEventStore((s) => s.emit);

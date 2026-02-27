@@ -1,12 +1,12 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
-import { theme } from "../../../../Theme/tokens";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import PracticeChart from "./Chart";
+import { getDailyActivityStatsForTheWeek } from "../../../../api";
 import { WeeklyStat } from "../../../../api/stats/types";
 import { useUserStore } from "../../../../stores/user";
-import { getDailyActivityStatsForTheWeek } from "../../../../api";
+import { theme } from "../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import PracticeChart from "./Chart";
 
 const Progress = () => {
   const { user } = useUserStore();

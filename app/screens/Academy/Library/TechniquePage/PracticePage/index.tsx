@@ -1,47 +1,43 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  LayoutAnimation,
-  ScrollView,
-  Platform,
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { useNavigation } from "@react-navigation/native";
 
-import {
-  ExerciseItem,
-  TECHNIQUES_ENUM,
-} from "../../../../../api/library/types";
 import { getAllExerciseItems } from "../../../../../api/library";
+import {
+    ExerciseItem,
+    TECHNIQUES_ENUM,
+} from "../../../../../api/library/types";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { speakText } from "../../../../../util/functions/speak";
 
 // Components
+import { ToolType } from "../../../../../api/tools/types";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
-import SmartRecorder from "./components/SmartRecorder";
 import { DAFTool, useDAF } from "../../../Tools/DAF";
 import { VoiceHover } from "../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import Metronome, { useMetronome } from "../components/Metronome";
-import { ToolType } from "../../../../../api/tools/types";
+import SmartRecorder from "./components/SmartRecorder";
 
 interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const PracticePage = ({
-  techniqueId,
-  setActiveStageIndex,
-}: PracticePageProps) => {
+const PracticePage = () => {
   // Data State
   const [exerciseItems, setExerciseItems] = useState<ExerciseItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);

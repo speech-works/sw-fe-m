@@ -1,20 +1,19 @@
 import React from "react";
 import { View } from "react-native";
-import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-  withDelay,
-  runOnJS,
-  useDerivedValue,
+    Easing,
+    runOnJS,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
+import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle); // Keep AnimatedCircle if needed for other components, though not used in the provided snippet.
 
 type ProfessionalRole = "doctor" | "teacher" | "engineer" | "student";
 type BackgroundStyle = "ocean" | "sunset" | "sky" | "forest" | "city" | "space";
@@ -277,7 +276,6 @@ const FaceNode = ({
   x,
   y,
   scale = 0.5,
-  shadowId,
   shouldAnimate,
 }: {
   faceColor: string;
@@ -638,50 +636,6 @@ const DiverseCommunityFace = ({
         {/* Static Faces on Top */}
         <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />
       </Svg>
-    </View>
-  );
-};
-
-const CommunityGallery = () => {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 10,
-        padding: 20,
-      }}
-    >
-      {/* Variant 1: Ocean BG */}
-      <DiverseCommunityFace
-        bgType="ocean"
-        roles={["teacher", "doctor", "engineer", "student"]}
-      />
-      {/* Variant 2: Sunset BG */}
-      <DiverseCommunityFace
-        bgType="sunset"
-        roles={["student", "engineer", "doctor", "teacher"]}
-      />
-      {/* Variant 3: Sky BG */}
-      <DiverseCommunityFace
-        bgType="sky"
-        roles={["doctor", "student", "teacher", "engineer"]}
-      />
-      {/* Variant 4: Forest BG */}
-      <DiverseCommunityFace
-        bgType="forest"
-        roles={["engineer", "teacher", "student", "doctor"]}
-      />
-      {/* Variant 5: City BG */}
-      <DiverseCommunityFace
-        bgType="city"
-        roles={["teacher", "student", "engineer", "doctor"]}
-      />
-      {/* Variant 6: Space BG */}
-      <DiverseCommunityFace
-        bgType="space"
-        roles={["student", "doctor", "engineer", "teacher"]}
-      />
     </View>
   );
 };

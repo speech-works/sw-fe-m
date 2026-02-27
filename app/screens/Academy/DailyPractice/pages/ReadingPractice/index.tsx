@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  ScrollView,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
-  RDPStackNavigationProp,
-  RDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
-import { formatDuration } from "../../../../../util/functions/time";
-import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
 import PoetFace from "../../../../../assets/sw-faces/PoetFace";
-import { LinearGradient } from "expo-linear-gradient";
+import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
+import ScreenView from "../../../../../components/ScreenView";
+import {
+    RDPStackNavigationProp,
+    RDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
+import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 

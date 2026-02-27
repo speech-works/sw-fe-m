@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { View, Text, StyleSheet, Animated, Easing } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 // import Svg, { Path } from "react-native-svg";
-import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../../../Theme/tokens";
-import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
 import GuidedBreathingFace, {
-  BreathingPhase,
+    BreathingPhase,
 } from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
+import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
+import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";
 
 type BreathingHaloProps = {
   inhale: number; // seconds

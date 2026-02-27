@@ -1,20 +1,20 @@
-import React, { useState, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { getPack, getPackProgress, getRecommendedPack } from "../../api/packs";
+import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { getRecommendedPack, getPackProgress, getPack } from "../../api/packs";
-import { PackRecommendation, PackProgress } from "../../api/packs/types";
 import BottomSheetModal from "../BottomSheetModal";
 
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 const SmartRecommendationCard = () => {
   const navigationAcademy = useNavigation<any>();

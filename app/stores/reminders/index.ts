@@ -1,14 +1,14 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-import {
-  scheduleOneTime,
-  scheduleRoutine,
-  cancelReminderNotifications,
-  cancelAllNotifications,
-} from "../../util/functions/notifications";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import {
+    cancelAllNotifications,
+    cancelReminderNotifications,
+    scheduleOneTime,
+    scheduleRoutine,
+} from "../../util/functions/notifications";
 
 export type ReminderType = "ONE_TIME" | "ROUTINE";
 

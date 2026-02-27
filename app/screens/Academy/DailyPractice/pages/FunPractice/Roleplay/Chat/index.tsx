@@ -1,49 +1,47 @@
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Platform,
-  UIManager,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
 } from "react-native";
 import Animated from "react-native-reanimated";
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
-import Separator from "../../../../../../../components/Separator";
 
-import Button from "../../../../../../../components/Button";
-import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import {
-  RolePlayNode,
-  RolePlayNodeOption,
+    RolePlayNode,
+    RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
+import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 
-import { useSessionStore } from "../../../../../../../stores/session";
-import { useActivityStore } from "../../../../../../../stores/activity";
 import {
-  completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 
-import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
-import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { LinearGradient } from "expo-linear-gradient";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 // Define the message structure
@@ -270,8 +268,6 @@ const Chat = () => {
   };
 
   // --- Render Helpers ---
-
-  const bottomPadding = 400; // Space for the dock
 
   if (isDone) {
     return (

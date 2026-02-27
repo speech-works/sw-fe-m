@@ -1,54 +1,52 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Alert } from "react-native";
-import ScreenView from "../../../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  useNavigation,
-  useRoute,
-  useFocusEffect,
+    useFocusEffect,
+    useNavigation,
+    useRoute,
 } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import ScreenView from "../../../../../../components/ScreenView";
+import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseTextStyle,
-  parseShadowStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import { BreathingHalo } from "./components/BreathingHalo";
-import MasonryTips from "../../../components/MasonryTips";
 import { triggerToast } from "../../../../../../util/functions/toast";
+import MasonryTips from "../../../components/MasonryTips";
+import { BreathingHalo } from "./components/BreathingHalo";
 
-import ProgressBar from "../../../../../../components/ProgressBar";
+import {
+    createPracticeActivity,
+    createPracticeActivityFromPack
+} from "../../../../../../api";
+import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
+import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
+import {
+    completePracticeActivity,
+    startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import Button from "../../../../../../components/Button";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
+import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
-import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  createSession,
-} from "../../../../../../api";
-import {
-  completePracticeActivity,
-  startPracticeActivity,
-} from "../../../../../../api/practiceActivities";
-import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
-import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
-import DonePractice from "../../../components/DonePractice";
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
-import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
-import {
-  shouldCollectVitals,
-  shouldCollectAccuracy,
-  validateVitals,
-} from "../../../../../../utils/vitals";
 import { useUserStore } from "../../../../../../stores/user";
+import {
+    shouldCollectAccuracy,
+    shouldCollectVitals,
+    validateVitals,
+} from "../../../../../../utils/vitals";
+import DonePractice from "../../../components/DonePractice";
 
-import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
 
 const Breathing = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"Breathing">>();
@@ -73,7 +71,7 @@ const Breathing = () => {
     useBackgroundAudio();
 
   const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } =
+  const { practiceSession, ensureActiveSession } =
     useSessionStore();
   const { user } = useUserStore();
 
@@ -318,7 +316,6 @@ const Breathing = () => {
   // Calculate elapsed minutes and remaining seconds for display
   const displayMinutes = Math.floor(elapsedSeconds / 60);
   const displaySeconds = elapsedSeconds % 60;
-  const totalDisplayMinutes = totalSessionDurationInSeconds / 60;
 
   const markActivityStart = async () => {
     console.log("Breathing Screen - markActivityStart", {

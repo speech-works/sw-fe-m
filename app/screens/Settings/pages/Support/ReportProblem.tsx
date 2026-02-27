@@ -1,24 +1,24 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  Platform,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
 import Constants from "expo-constants";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
-import { theme } from "../../../../Theme/tokens";
-import { useEffect, useState } from "react";
-import ModernImageUploader from "../../../../components/ModernImageUploader";
-import { createReportedIssue } from "../../../../api/settings/helpSupport";
-import { useUserStore } from "../../../../stores/user";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
+import {
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { createReportedIssue } from "../../../../api/settings/helpSupport";
+import ModernImageUploader from "../../../../components/ModernImageUploader";
+import { useUserStore } from "../../../../stores/user";
+import { theme } from "../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 
 const reportOptions = [
   { id: "bug", label: "Bug", icon: "bug" },
@@ -47,7 +47,6 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
   useEffect(() => {
     const config = Constants.expoConfig;
     const manifest = (Constants.manifest as any) ?? {};
-    const appName = config?.name ?? manifest.name ?? Constants.name;
     const appVer =
       config?.version ??
       (manifest.version as string) ??

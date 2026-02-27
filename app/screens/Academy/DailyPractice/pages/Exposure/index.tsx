@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
-  EDPStackNavigationProp,
-  EDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
-import { formatDuration } from "../../../../../util/functions/time";
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
 import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
 import WiseFace from "../../../../../assets/sw-faces/WiseFace";
-import { LinearGradient } from "expo-linear-gradient";
+import ScreenView from "../../../../../components/ScreenView";
+import {
+    EDPStackNavigationProp,
+    EDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
+import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
+import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 

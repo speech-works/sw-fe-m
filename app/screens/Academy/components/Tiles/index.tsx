@@ -1,19 +1,18 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import HeadphoneFace from "../../../../assets/sw-faces/HeadphoneFace";
+import IceSportFace from "../../../../assets/sw-faces/IceSportFace";
+import ReportFace from "../../../../assets/sw-faces/ReportFace";
+import {
+    AcademyStackNavigationProp,
+    AcademyStackParamList,
+} from "../../../../navigators/stacks/AcademyStack/types";
 import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../util/functions/parseStyles";
-import { useNavigation } from "@react-navigation/native";
-import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
-import HeadphoneFace from "../../../../assets/sw-faces/HeadphoneFace";
-import ReportFace from "../../../../assets/sw-faces/ReportFace";
-import IceSportFace from "../../../../assets/sw-faces/IceSportFace";
 
 const Tiles = () => {
   const navigation =

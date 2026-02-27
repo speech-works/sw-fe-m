@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
-import AuthNavigator from "./AuthNavigator";
 import AppNavigator from "./AppNavigator";
+import AuthNavigator from "./AuthNavigator";
 import OnboardingStackNavigator from "./stacks/OnboardingStack";
 
 import { useEventStore } from "../stores/events";

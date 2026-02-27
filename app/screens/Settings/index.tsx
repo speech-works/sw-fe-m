@@ -1,31 +1,31 @@
-import React, { useContext, useEffect, useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { AuthContext } from "../../contexts/AuthContext";
 import * as SecureStore from "expo-secure-store";
-import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
+import React, { useContext, useEffect, useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
-import ScreenView from "../../components/ScreenView";
+import BottomSheetModal from "../../components/BottomSheetModal";
 import CustomScrollView from "../../components/CustomScrollView";
+import ScreenView from "../../components/ScreenView";
+import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
+import { AuthContext } from "../../contexts/AuthContext";
+import {
+    SettingsStackNavigationProp,
+    SettingsStackParamList,
+} from "../../navigators/stacks/SettingsStack/types";
+import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
-import { useUserStore } from "../../stores/user";
-import {
-  SettingsStackNavigationProp,
-  SettingsStackParamList,
-} from "../../navigators/stacks/SettingsStack/types";
-import { useNavigation } from "@react-navigation/native";
-import {
-  getUnlockedLevelsFromXP,
-  LevelData,
+    getUnlockedLevelsFromXP,
+    LevelData,
 } from "../../util/functions/levels-xp";
-import BottomSheetModal from "../../components/BottomSheetModal";
-import FullProfile from "./components/FullProfile";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
+import FullProfile from "./components/FullProfile";
 
 const Settings = () => {
   const navigation =

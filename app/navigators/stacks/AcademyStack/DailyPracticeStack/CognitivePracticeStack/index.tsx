@@ -1,11 +1,11 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { CDPStackParamList } from "./types";
 import CognitivePractice from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice";
-import Reframe from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
 import Breathing from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
+import Reframe from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
+import { CDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<CDPStackParamList>();
 

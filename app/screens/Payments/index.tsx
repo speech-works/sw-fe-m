@@ -1,25 +1,25 @@
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  Text,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import ScreenView from "../../components/ScreenView";
-import CustomScrollView from "../../components/CustomScrollView";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
-import { theme } from "../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
 import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
-import { triggerToast } from "../../util/functions/toast";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { createRazorpayOrder } from "../../api/payments";
+import CustomScrollView from "../../components/CustomScrollView";
+import ScreenView from "../../components/ScreenView";
 import { useUserStore } from "../../stores/user";
+import { theme } from "../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../util/functions/parseStyles";
+import { triggerToast } from "../../util/functions/toast";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,

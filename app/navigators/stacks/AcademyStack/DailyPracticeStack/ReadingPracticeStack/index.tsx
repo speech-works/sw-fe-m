@@ -1,11 +1,11 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
 import ReadingPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice";
-import { RDPStackParamList } from "./types";
-import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
-import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
 import PoemPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
+import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
+import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
+import { RDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RDPStackParamList>();
 

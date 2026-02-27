@@ -1,20 +1,18 @@
-import { StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
-import ProgressBar from "../../../../../components/ProgressBar";
-import { useUserStore } from "../../../../../stores/user";
-import {
-  getProgressToNextLevel,
-  getUnlockedLevelsFromXP,
-  LevelData,
-  LevelProgress,
+    getProgressToNextLevel,
+    getUnlockedLevelsFromXP,
+    LevelData,
+    LevelProgress,
 } from "../../../../../util/functions/levels-xp";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import {
+    parseTextStyle
+} from "../../../../../util/functions/parseStyles";
 
 const Achievements = () => {
   const { user } = useUserStore();

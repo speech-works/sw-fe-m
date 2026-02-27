@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useEventStore } from "../stores/events";
-import { EVENT_NAMES } from "../stores/events/constants";
-import BottomSheetModal from "./BottomSheetModal";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
 import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
+import { useEventStore } from "../stores/events";
+import { EVENT_NAMES } from "../stores/events/constants";
+import { theme } from "../Theme/tokens";
+import { parseTextStyle } from "../util/functions/parseStyles";
+import BottomSheetModal from "./BottomSheetModal";
 
 const GlobalModal = () => {
   const { events, clear } = useEventStore();

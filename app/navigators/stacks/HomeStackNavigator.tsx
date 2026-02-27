@@ -1,13 +1,13 @@
 // src/navigators/HomeStackNavigator.tsx
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Home from "../../screens/Home";
-import PracticeBreathingScreen from "../../screens/Home/components/PracticeBreathing";
-import PracticeAffirmationScreen from "../../screens/Home/components/PracticeAffirmations";
-import SmoothSpeechScreen from "../../screens/Home/components/SmoothSpeech";
-import useScrollWrapper from "../../hooks/useScrollWrapper";
+import React from "react";
 import { HomeStackParamList } from "..";
+import useScrollWrapper from "../../hooks/useScrollWrapper";
+import Home from "../../screens/Home";
 import Exposure from "../../screens/Home/components/Exposure";
+import PracticeAffirmationScreen from "../../screens/Home/components/PracticeAffirmations";
+import PracticeBreathingScreen from "../../screens/Home/components/PracticeBreathing";
+import SmoothSpeechScreen from "../../screens/Home/components/SmoothSpeech";
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 

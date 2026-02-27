@@ -1,36 +1,34 @@
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-  Dimensions,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../components/ScreenView";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseTextStyle,
-  parseShadowStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 
-import ListCard, {
-  ListCardProps,
-} from "../../../DailyPractice/components/ListCard";
 import CustomScrollView from "../../../../../components/CustomScrollView";
+import ListCard from "../../../DailyPractice/components/ListCard";
 
-import {
-  MoodFUStackNavigationProp,
-  MoodFUStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
-import ExpressYourself, {
-  EXPRESSION_TYPE_ENUM,
-} from "./components/ExpressYourself";
 import { MoodType } from "../../../../../api/moodCheck/types";
+import {
+    MoodFUStackNavigationProp,
+    MoodFUStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
 import { useMoodCheckStore } from "../../../../../stores/mood";
+import ExpressYourself, {
+    EXPRESSION_TYPE_ENUM,
+} from "./components/ExpressYourself";
 
 import AngryFace from "../../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../../assets/mood-check/CalmFace";

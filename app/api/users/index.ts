@@ -1,13 +1,13 @@
+import {
+    getProgressToNextLevel,
+    getUnlockedLevelsFromXP,
+} from "../../util/functions/levels-xp";
 import axiosClient from "../axiosClient";
 import { XPLog } from "../userXP/types";
-import {
-  getUnlockedLevelsFromXP,
-  getProgressToNextLevel,
-} from "../../util/functions/levels-xp";
 
 export const MAX_STAMINA = 5;
 
-export { getUnlockedLevelsFromXP, getProgressToNextLevel };
+export { getProgressToNextLevel, getUnlockedLevelsFromXP };
 
 export interface User {
   id: string;

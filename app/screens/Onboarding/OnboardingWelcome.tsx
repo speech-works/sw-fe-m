@@ -1,16 +1,16 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import ScreenView from "../../components/ScreenView";
+import { useNavigation } from "@react-navigation/native";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { getActiveOnboardingFlow } from "../../api/onboarding";
 import Button from "../../components/Button";
+import ScreenView from "../../components/ScreenView";
+import {
+    OnboardingStackNavigationProp,
+    OnboardingStackParamList,
+} from "../../navigators/stacks/OnboardingStack/types";
+import { useOnboardingStore } from "../../stores/onboarding";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
-import { useNavigation } from "@react-navigation/native";
-import {
-  OnboardingStackNavigationProp,
-  OnboardingStackParamList,
-} from "../../navigators/stacks/OnboardingStack/types";
-import { getActiveOnboardingFlow } from "../../api/onboarding";
-import { useOnboardingStore } from "../../stores/onboarding";
 
 const OnboardingWelcome: React.FC = () => {
   const navigation =

@@ -1,5 +1,3 @@
-import { ClinicalDomain } from "../userBehaviorTrends/types";
-
 export enum PackCategory {
   STABILIZATION = "STABILIZATION",
   FOUNDATION = "FOUNDATION",

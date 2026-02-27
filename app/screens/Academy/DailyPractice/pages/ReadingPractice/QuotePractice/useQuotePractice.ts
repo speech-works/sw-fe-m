@@ -1,32 +1,32 @@
-import { useCallback, useEffect, useState, useRef } from "react";
 import {
-  useNavigation,
-  useFocusEffect,
-  useRoute,
+    useFocusEffect,
+    useNavigation,
+    useRoute,
 } from "@react-navigation/native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  RDPStackNavigationProp,
-  RDPStackParamList,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
+} from "../../../../../../api";
+import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
+import {
+    ReadingPractice,
+    ReadingPracticeType,
+} from "../../../../../../api/dailyPractice/types";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import {
+    RDPStackNavigationProp,
+    RDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
-import { useUserStore } from "../../../../../../stores/user";
-import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { useUIStore } from "../../../../../../stores/ui";
-import {
-  ReadingPractice,
-  ReadingPracticeType,
-} from "../../../../../../api/dailyPractice/types";
+import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
-import {
-  completePracticeActivity,
-  startPracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-} from "../../../../../../api";
-import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
-import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import { RecordingSourceType } from "../../../../../../api/recordings/types";
 
 export const useQuotePractice = () => {
   const { setTabBarVisible } = useUIStore();

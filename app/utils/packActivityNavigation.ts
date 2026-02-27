@@ -1,9 +1,9 @@
 import {
-  PracticeActivity,
-  CognitivePracticeType,
-  ExposurePracticeType,
-  FunPracticeType,
-  ReadingPracticeType,
+    CognitivePracticeType,
+    ExposurePracticeType,
+    FunPracticeType,
+    PracticeActivity,
+    ReadingPracticeType,
 } from "../api";
 
 export interface PackContext {

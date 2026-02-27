@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from "react";
 import {
-  TouchableOpacity,
-  TouchableOpacityProps,
-  Vibration,
-  Platform,
+    Platform,
+    TouchableOpacity,
+    TouchableOpacityProps,
+    Vibration,
 } from "react-native";
 // import * as Haptics from 'expo-haptics'; // Not installed, using Vibration fallback
 

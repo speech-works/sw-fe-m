@@ -1,8 +1,8 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { ChalStackParamList } from "./types";
 import Challenges from "../../../../screens/Academy/Challenges";
+import { ChalStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ChalStackParamList>();
 

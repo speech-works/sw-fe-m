@@ -1,35 +1,35 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 import Academy from "../../../screens/Academy";
-import { AcademyStackParamList } from "./types";
-import DPStackNavigator from "./DailyPracticeStack";
-import LibStackNavigator from "./LibraryStack";
-import ChalStackNavigator from "./ChallengesStack";
-import MoodCheckStackNavigator from "./MoodCheckStack";
-import PDStackNavigator from "./ProgressDetailStack";
-import PaymentStackNavigator from "../PaymentStack";
-import PackModuleScreen from "../../../screens/Academy/PackModule";
-import PackFormScreen from "../../../screens/Academy/PackFormScreen";
 import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
 import RealLifeChallenge from "../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
+import PackFormScreen from "../../../screens/Academy/PackFormScreen";
+import PackModuleScreen from "../../../screens/Academy/PackModule";
+import PaymentStackNavigator from "../PaymentStack";
+import ChalStackNavigator from "./ChallengesStack";
+import DPStackNavigator from "./DailyPracticeStack";
+import LibStackNavigator from "./LibraryStack";
+import MoodCheckStackNavigator from "./MoodCheckStack";
+import PDStackNavigator from "./ProgressDetailStack";
+import { AcademyStackParamList } from "./types";
 // Exposure: Briefing + Chat screens for pack navigation
-import SCBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Briefing";
-import SCChat from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat";
 import InterviewBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Briefing";
 import InterviewChat from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Chat";
 import PhoneCall from "../../../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
+import SCBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Briefing";
+import SCChat from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat";
 // Fun practice screens for pack navigation
-import TongueTwister from "../../../screens/Academy/DailyPractice/pages/FunPractice/Twister";
-import RoleplayBriefing from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
-import PackBriefingWrapper from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/PackBriefingWrapper";
-import RoleplayChat from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat";
 import CVExercise from "../../../screens/Academy/DailyPractice/pages/FunPractice/CharacterVoice/CVExercise";
+import RoleplayBriefing from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
+import RoleplayChat from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat";
+import PackBriefingWrapper from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/PackBriefingWrapper";
+import TongueTwister from "../../../screens/Academy/DailyPractice/pages/FunPractice/Twister";
 // Reading practice screens for pack navigation
 import PoemPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
-import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
+import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 

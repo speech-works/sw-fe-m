@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
 import { Audio } from "expo-av";
+import { useEffect, useRef } from "react";
 
 interface HoverSoundProps {
   voiceHoverUrl?: string;

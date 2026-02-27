@@ -1,20 +1,18 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View } from "react-native";
-import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withRepeat,
-  withSequence,
-  withTiming,
-  withDelay,
-  Easing,
-  cancelAnimation,
-  useDerivedValue,
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming
 } from "react-native-reanimated";
+import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;

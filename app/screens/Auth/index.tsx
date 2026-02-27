@@ -1,41 +1,39 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  Platform,
-  Alert,
-  Animated,
-  Easing,
-  Dimensions,
+    Alert,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
-import {
-  COMPANY_NAME,
-  COMPANY_SLOGAN,
-  PRIVACY_POLICY_URL,
-  SUPPORT_URL,
-} from "./constants";
 import { theme } from "../../Theme/tokens";
-
 import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../util/functions/parseStyles";
-import speechworksLogo from "../../assets/speechworks_logo.png";
-import { handleLinkPress } from "../../util/functions/externalLinks";
-import Button from "../../components/Button";
-import Constants from "expo-constants";
-import { AuthContext } from "../../contexts/AuthContext";
-import * as WebBrowser from "expo-web-browser";
-import * as SecureStore from "expo-secure-store";
+    COMPANY_NAME,
+    COMPANY_SLOGAN,
+    PRIVACY_POLICY_URL,
+    SUPPORT_URL,
+} from "./constants";
+
 import * as AuthSession from "expo-auth-session";
-import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
-import { loginUser, handleOAuthCallback } from "../../api";
-import { useUserStore } from "../../stores/user";
-import LoginBackground from "./components/LoginBackground";
+import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { handleOAuthCallback, loginUser } from "../../api";
+import speechworksLogo from "../../assets/speechworks_logo.png";
+import Button from "../../components/Button";
+import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
+import { AuthContext } from "../../contexts/AuthContext";
+import { useUserStore } from "../../stores/user";
+import { handleLinkPress } from "../../util/functions/externalLinks";
+import {
+    parseTextStyle
+} from "../../util/functions/parseStyles";
+import LoginBackground from "./components/LoginBackground";
 
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
@@ -97,8 +95,6 @@ const LoginScreen = () => {
     setLoadingProvider(provider);
 
     try {
-      const owner = Constants.expoConfig?.owner;
-      const slug = Constants.expoConfig?.slug;
 
       // iOS simulators have issues with custom schemes in development
       // Use Expo's proxy for iOS dev, custom scheme for Android/production

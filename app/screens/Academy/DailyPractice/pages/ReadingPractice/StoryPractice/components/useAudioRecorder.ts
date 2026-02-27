@@ -1,13 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from "react";
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import * as Speech from "expo-speech";
-import { Platform } from "react-native";
 import {
-  AndroidAudioEncoder,
-  AndroidOutputFormat,
-  IOSAudioQuality,
-  IOSOutputFormat,
+    AndroidAudioEncoder,
+    AndroidOutputFormat,
+    IOSAudioQuality,
+    IOSOutputFormat,
 } from "expo-av/build/Audio";
+import * as Speech from "expo-speech";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type RecorderState = "idle" | "recording" | "playback";
 

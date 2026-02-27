@@ -1,19 +1,19 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
-import ScreenView from "../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../../components/CustomScrollView";
-import { theme } from "../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
-import ReportProblem from "./ReportProblem";
+import CustomScrollView from "../../../../components/CustomScrollView";
+import ScreenView from "../../../../components/ScreenView";
+import { theme } from "../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 import ContactSupport from "./ContactSupport";
 import Feedback from "./Feedback";
-import { LinearGradient } from "expo-linear-gradient";
+import ReportProblem from "./ReportProblem";
 
 type SettingType = "Report Problem" | "Contact Support" | "Feedback";
 

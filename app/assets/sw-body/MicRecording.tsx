@@ -1,18 +1,18 @@
 import * as React from "react";
 import Svg, {
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-  Circle,
-  Rect,
+    Circle,
+    Defs,
+    FeBlend,
+    FeColorMatrix,
+    FeComposite,
+    FeFlood,
+    FeGaussianBlur,
+    FeOffset,
+    Filter,
+    G,
+    Path,
+    Rect,
+    SvgProps,
 } from "react-native-svg";
 
 const MicSimpleAgent = ({

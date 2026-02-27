@@ -1,28 +1,28 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  Animated,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import React, { useState, useRef } from "react";
-import ScreenView from "../../../../../components/ScreenView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useRef, useState } from "react";
 import {
-  LibStackNavigationProp,
-  LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+    Animated,
+    Dimensions,
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
-import CustomScrollView from "../../../../../components/CustomScrollView";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import { LinearGradient } from "expo-linear-gradient";
 import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
+import CustomScrollView from "../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../components/ScreenView";
+import {
+    LibStackNavigationProp,
+    LibStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 if (
   Platform.OS === "android" &&
@@ -35,7 +35,7 @@ const SummaryPage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const route = useRoute<RouteProp<LibStackParamList, "SummaryPage">>();
-  const { techniqueId, techniqueName, finalAnswers } = route.params;
+  const { finalAnswers } = route.params;
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const rotationAnim = useRef<Record<string, Animated.Value>>({}).current;

@@ -1,20 +1,19 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import React from "react";
 import { useNavigation } from "@react-navigation/native";
-import {
-  PDStackNavigationProp,
-  PDStackParamList,
-} from "../../../navigators/stacks/AcademyStack/ProgressDetailStack/types";
-import ScreenView from "../../../components/ScreenView";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { theme } from "../../../Theme/tokens";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import CustomScrollView from "../../../components/CustomScrollView";
+import ScreenView from "../../../components/ScreenView";
+import {
+    PDStackNavigationProp,
+    PDStackParamList,
+} from "../../../navigators/stacks/AcademyStack/ProgressDetailStack/types";
+import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
-import MoodSummary from "./components/MoodSummary";
-import DPSummary from "./components/DPSummary";
-import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
 import Achievements from "./components/Achievements";
-import TutStats from "./components/TutStats";
+import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
+import DPSummary from "./components/DPSummary";
+import MoodSummary from "./components/MoodSummary";
 
 import { LinearGradient } from "expo-linear-gradient";
 

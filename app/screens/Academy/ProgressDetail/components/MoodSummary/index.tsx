@@ -1,19 +1,18 @@
-import { StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
+import { StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { getWeeklyMoodReport } from "../../../../../api";
 import Angry1 from "../../../../../assets/mood-check/Angry1";
 import Calm1 from "../../../../../assets/mood-check/Calm1";
 import Happy1 from "../../../../../assets/mood-check/Happy1";
 import Sad1 from "../../../../../assets/mood-check/Sad1";
-import { getWeeklyMoodReport } from "../../../../../api";
 import { useUserStore } from "../../../../../stores/user";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseTextStyle
+} from "../../../../../util/functions/parseStyles";
 import { getMoodRemark } from "./helper";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
 const MoodSummary = () => {
   const { user } = useUserStore();

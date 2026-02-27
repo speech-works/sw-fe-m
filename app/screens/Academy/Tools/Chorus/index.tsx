@@ -1,6 +1,6 @@
 // ChorusButton.tsx
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { ChorusManager } from "./chorusManager";
 
 type Props = {

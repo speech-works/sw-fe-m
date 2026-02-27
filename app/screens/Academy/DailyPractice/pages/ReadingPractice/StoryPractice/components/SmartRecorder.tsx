@@ -1,22 +1,19 @@
-import React, { useEffect, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useMemo } from "react";
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import ModernWaveform from "../../../../../Library/TechniquePage/components/ModernWaveform";
 import { useAudioRecorder } from "./useAudioRecorder";
-
-const width = Dimensions.get("window").width;
 
 interface Props {
   onRecorded?: (uri: string) => void;

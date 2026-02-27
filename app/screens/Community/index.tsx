@@ -1,19 +1,19 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  Dimensions,
-  TouchableOpacity,
-  TextInput,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import ScreenView from "../../components/ScreenView";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import DiverseCommunityFace from "../../assets/sw-faces/DiverseCommunityFace";
 import CustomScrollView from "../../components/CustomScrollView";
+import ScreenView from "../../components/ScreenView";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
-import DiverseCommunityFace from "../../assets/sw-faces/DiverseCommunityFace";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const { width } = Dimensions.get("window");
 const FACE_SIZE = width * 0.55;

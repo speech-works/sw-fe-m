@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
-import React, { useEffect, useState } from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
-import ScreenView from "../../../components/ScreenView";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { theme } from "../../../Theme/tokens";
+import { format } from "date-fns";
+import React, { useEffect, useState } from "react";
+import {
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import BottomSheetModal from "../../../components/BottomSheetModal";
-import TimeSelector from "../../../components/TimeSelector";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { format } from "date-fns";
-import {
-  getUserPreferences,
-  updateUserPreferences,
+    getUserPreferences,
+    updateUserPreferences,
 } from "../../../api/settings/userPreference";
-import { useUserStore } from "../../../stores/user";
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
+import BottomSheetModal from "../../../components/BottomSheetModal";
+import CustomScrollView from "../../../components/CustomScrollView";
+import ScreenView from "../../../components/ScreenView";
+import TimeSelector from "../../../components/TimeSelector";
+import { useUserStore } from "../../../stores/user";
+import { theme } from "../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
 import { LinearGradient } from "expo-linear-gradient";
 

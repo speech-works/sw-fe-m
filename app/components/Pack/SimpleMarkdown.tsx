@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../Theme/tokens";
 
 export const SimpleMarkdown = ({ content }: { content: string }) => {

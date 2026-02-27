@@ -1,33 +1,31 @@
-import { StyleSheet, View, Text } from "react-native";
-import React, { useCallback, useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
-import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ScreenView from "../../components/ScreenView";
-import CustomScrollView from "../../components/CustomScrollView";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
-import WorldExplorationGraph from "./components/WorldExplorationGraph";
-import PracticeGrid from "./components/PracticeGrid";
-import LibrarySection from "./components/LibrarySection";
-import BuyPro from "../Settings/components/BuyPro";
-import { useUserStore } from "../../stores/user";
-import { useSessionStore } from "../../stores/session";
-import { usePracticeStatsStore } from "../../stores/practiceStats"; // Added missing import
-import { useEventStore } from "../../stores/events"; // Added missing import
+import { getAllSessionsOfUser } from "../../api";
 import { getUserStats } from "../../api/stats";
-import { createSession, getAllSessionsOfUser } from "../../api";
-import usePullToRefresh from "../../hooks/usePullToRefresh";
-import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
-import BottomSheetModal from "../../components/BottomSheetModal";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
+import BottomSheetModal from "../../components/BottomSheetModal";
+import CustomScrollView from "../../components/CustomScrollView";
+import usePullToRefresh from "../../hooks/usePullToRefresh";
+import { useEventStore } from "../../stores/events"; // Added missing import
+import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
+import { usePracticeStatsStore } from "../../stores/practiceStats"; // Added missing import
+import { useSessionStore } from "../../stores/session";
+import { useUserStore } from "../../stores/user";
+import { theme } from "../../Theme/tokens";
+import { parseTextStyle } from "../../util/functions/parseStyles";
+import BuyPro from "../Settings/components/BuyPro";
+import LibrarySection from "./components/LibrarySection";
+import PracticeGrid from "./components/PracticeGrid";
+import WorldExplorationGraph from "./components/WorldExplorationGraph";
 
 const Explore = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setPracticeStats } = usePracticeStatsStore();
-  const { emit, events, clear } = useEventStore();
+  const { events, clear } = useEventStore();
 
   // --- NEW: Local State for Error Modal ---
   const [errorModalVisible, setErrorModalVisible] = useState(false);
@@ -37,7 +35,6 @@ const Explore = () => {
 
   // --- NEW: Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
-  let scrollTimeout: NodeJS.Timeout | null = null;
   // ----------------------------------------
 
   const syncSessionWithBackend = useCallback(async () => {

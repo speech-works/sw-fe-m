@@ -1,42 +1,37 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import {
-  PhoneCallEDPStackNavigationProp,
-  PhoneCallEDPStackParamList,
-  PhoneCallEDPStackRouteProp,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
-import ScreenView from "../../../../../../components/ScreenView";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../../Theme/tokens";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import ScenarioCard from "./components/ScenarioCard";
-import { useUserStore } from "../../../../../../stores/user";
-import CallingWidget from "../../../../../../components/CallingWidget";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import { API_BASE_URL } from "../../../../../../api/constants";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
 import { PhoneCallScenario } from "../../../../../../api/dailyPractice/types";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import CallingWidget from "../../../../../../components/CallingWidget";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import {
+    PhoneCallEDPStackNavigationProp,
+    PhoneCallEDPStackParamList,
+    PhoneCallEDPStackRouteProp,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
+import { useUserStore } from "../../../../../../stores/user";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+    parseTextStyle
+} from "../../../../../../util/functions/parseStyles";
 import { triggerToast } from "../../../../../../util/functions/toast";
-import axios from "axios";
-import { API_BASE_URL } from "../../../../../../api/constants";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
-import { useActivityStore } from "../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../stores/session";
 import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
-  completePracticeActivity,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { useActivityStore } from "../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../stores/session";
 
 const PhoneCall = () => {
   const navigation =
@@ -46,7 +41,7 @@ const PhoneCall = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
-  const { addActivity, updateActivity, doesActivityExist } = useActivityStore();
+  const { addActivity, updateActivity } = useActivityStore();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();

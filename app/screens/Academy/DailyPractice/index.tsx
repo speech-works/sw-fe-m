@@ -1,37 +1,27 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ViewStyle,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../components/ScreenView";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import { theme } from "../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import ListCard, { ListCardProps } from "./components/ListCard";
 import { useNavigation } from "@react-navigation/native";
+import React from "react";
 import {
-  DPStackNavigationProp,
-  DPStackParamList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import CustomScrollView from "../../../components/CustomScrollView";
+import ScreenView from "../../../components/ScreenView";
+import {
+    DPStackNavigationProp,
+    DPStackParamList,
 } from "../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+import { theme } from "../../../Theme/tokens";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
+import ListCard, { ListCardProps } from "./components/ListCard";
 
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
-import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
+import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
 import { useUserStore } from "../../../stores/user";
-
-const iconContiainerStyle: ViewStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: 48,
-  width: 48,
-  borderRadius: 24,
-};
 
 const DailyPractice = () => {
   const navigation =

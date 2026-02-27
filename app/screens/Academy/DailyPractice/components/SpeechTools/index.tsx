@@ -1,12 +1,12 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import BottomSheetModal from "../../../../../components/BottomSheetModal"; // update the path as needed
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import BottomSheetModal from "../../../../../components/BottomSheetModal"; // update the path as needed
 
 interface SpeechToolsProps {
   onToolSelect?: (toolName: string) => void;

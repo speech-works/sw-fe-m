@@ -1,27 +1,27 @@
 import React, { useEffect } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import ScreenView from "../../components/ScreenView";
-import ProgressBar from "../../components/ProgressBar";
-import CustomScrollView from "../../components/CustomScrollView";
 import Button from "../../components/Button";
+import CustomScrollView from "../../components/CustomScrollView";
+import ProgressBar from "../../components/ProgressBar";
+import ScreenView from "../../components/ScreenView";
 
 import OnboardingQuestion from "../../components/OnBoarding/OnboardingQuestion";
 
-import { useOnboardingStore } from "../../stores/onboarding";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useOnboardingStore } from "../../stores/onboarding";
 import { theme } from "../../Theme/tokens";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
-  OnboardingStackNavigationProp,
-  OnboardingStackParamList,
-  OnboardingStackRouteProp,
+    OnboardingStackNavigationProp,
+    OnboardingStackParamList,
+    OnboardingStackRouteProp,
 } from "../../navigators/stacks/OnboardingStack/types";
 
 import {
-  submitOnboardingAnswers,
-  getActiveOnboardingFlow,
+    getActiveOnboardingFlow,
+    submitOnboardingAnswers,
 } from "../../api/onboarding";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
@@ -44,7 +44,6 @@ const OnboardingQuestionScreen: React.FC = () => {
   // ----------------------------
   const {
     flow,
-    currentScreen,
     setAnswer,
     nextScreen,
     getCurrentScreenQuestions,

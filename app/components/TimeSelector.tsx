@@ -1,6 +1,6 @@
-import { Platform, StyleSheet } from "react-native";
-import React, { useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import React, { useState } from "react";
+import { Platform, StyleSheet } from "react-native";
 import Button from "./Button";
 
 interface TimeSelectorProps {

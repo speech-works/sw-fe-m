@@ -1,55 +1,53 @@
-import React, { useEffect, useState, useRef } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  LayoutAnimation,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation, useRoute } from "@react-navigation/native";
-
-import ScreenView from "../../../../../../components/ScreenView";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import MasonryTips from "../../../components/MasonryTips";
-import DonePractice from "../../../components/DonePractice";
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
-import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-
-import { theme } from "../../../../../../Theme/tokens";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+    Dimensions,
+    LayoutAnimation,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+
+import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../components/ScreenView";
+import DonePractice from "../../../components/DonePractice";
+import MasonryTips from "../../../components/MasonryTips";
+import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
+
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-  FunPractice,
-  FunPracticeType,
+    FunPractice,
+    FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
-import { useActivityStore } from "../../../../../../stores/activity";
 import {
-  completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
-import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
-import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
 
-import { DAFTool, useDAF } from "../../../../Tools/DAF";
-import Metronome, {
-  useMetronome,
-} from "../../../../Library/TechniquePage/components/Metronome";
-import { ToolType } from "../../../../../../api/tools/types";
 import { ScrollView } from "react-native";
+import { ToolType } from "../../../../../../api/tools/types";
+import Metronome, {
+    useMetronome,
+} from "../../../../Library/TechniquePage/components/Metronome";
+import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 
@@ -61,8 +59,8 @@ import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverCo
 const { width } = Dimensions.get("window");
 
 import {
-  TwisterFDPStackNavigationProp,
-  TwisterFDPStackRouteProp,
+    TwisterFDPStackNavigationProp,
+    TwisterFDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
 
 const Twister = () => {

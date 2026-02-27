@@ -1,23 +1,14 @@
-import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Platform,
-} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import React from "react";
+import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  useSharedValue,
-  interpolate,
-  interpolateColor,
-  Extrapolation,
+    interpolate,
+    interpolateColor,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
-import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";

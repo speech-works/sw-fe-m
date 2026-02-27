@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
-  FDPStackNavigationProp,
-  FDPStackParamList,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
+import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
+import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
+import ScreenView from "../../../../../components/ScreenView";
+import {
+    FDPStackNavigationProp,
+    FDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../../util/functions/time";
-import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
-import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
-import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
-import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 

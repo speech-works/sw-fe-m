@@ -1,6 +1,6 @@
 // onboarding/helper.ts
 
-import { OnboardingFlow, OnboardingQuestion, OnboardingOption } from "./types";
+import { OnboardingFlow, OnboardingQuestion } from "./types";
 
 /**
  * Normalize an onboarding flow:

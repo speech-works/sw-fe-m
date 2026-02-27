@@ -1,16 +1,16 @@
 // DAFTool.tsx
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
 import Slider from "@react-native-community/slider";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
-import { theme } from "../../../../Theme/tokens";
 import { Audio } from "expo-av"; // Use expo-av for microphone permissions
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { theme } from "../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
 
 // --- Mocking the Real-time Audio Library Interface ---
 interface RealtimeAudioLib {
@@ -35,7 +35,7 @@ const mockRealtimeAudioLib: RealtimeAudioLib = (() => {
 
   return {
     async startMicrophone(options) {
-      // console.log("Mock: Starting microphone with options:", options);
+
       setInterval(() => {
         if (audioFrameCallback) {
           audioFrameCallback(
@@ -46,7 +46,7 @@ const mockRealtimeAudioLib: RealtimeAudioLib = (() => {
       return Promise.resolve();
     },
     async stopMicrophone() {
-      // console.log("Mock: Stopping microphone.");
+
       return Promise.resolve();
     },
     onAudioFrame(callback) {
@@ -55,12 +55,12 @@ const mockRealtimeAudioLib: RealtimeAudioLib = (() => {
         audioFrameCallback = null;
       };
     },
-    async playAudioChunk(chunk, sampleRate, channels) {
-      // console.log(`Mock: Playing audio chunk (${chunk.length} samples, ${sampleRate}Hz, ${channels}ch)`);
+    async playAudioChunk() {
+
       return Promise.resolve();
     },
     async stopPlayback() {
-      // console.log("Mock: Stopping playback.");
+
       return Promise.resolve();
     },
   };

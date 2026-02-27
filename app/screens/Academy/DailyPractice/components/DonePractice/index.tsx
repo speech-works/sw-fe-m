@@ -1,22 +1,22 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
+import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
+import { ROUTE_NAMES } from "../../../../../constants/routes";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { ROUTE_NAMES } from "../../../../../constants/routes";
 import Reminder from "../Reminder";
-import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 
 const { width } = Dimensions.get("window");
 

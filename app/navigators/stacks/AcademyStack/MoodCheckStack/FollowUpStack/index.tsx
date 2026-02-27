@@ -1,14 +1,14 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { MoodFUStackParamList } from "./types";
+import { MoodType } from "../../../../../api/moodCheck/types";
 import FollowUp from "../../../../../screens/Academy/components/MoodCheck/FollowUp";
 import Breathing from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
 import Meditation from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
-import RoleplayFDPStackNavigator from "../../DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack";
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
-import { MoodType } from "../../../../../api/moodCheck/types";
+import RoleplayFDPStackNavigator from "../../DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack";
+import { MoodFUStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<MoodFUStackParamList>();
 

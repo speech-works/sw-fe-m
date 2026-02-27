@@ -1,10 +1,10 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { SCEDPStackParamList } from "./types";
 import SocialChallenge from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge";
 import Briefing from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Briefing";
 import Chat from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat";
+import { SCEDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<SCEDPStackParamList>();
 

@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
 import { Audio } from "expo-av";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import FontLoader from "./app/util/components/FontLoader";
-import { NavigationContainer } from "@react-navigation/native";
-import MainNavigator from "./app/navigators/MainNavigator";
-import { AuthProvider } from "./app/contexts/AuthContext";
 import GlobalModal from "./app/components/GlobalModal";
+import { AuthProvider } from "./app/contexts/AuthContext";
+import MainNavigator from "./app/navigators/MainNavigator";
+import FontLoader from "./app/util/components/FontLoader";
 // import Toast from "react-native-toast-message";
 // import toastConfig from "./app/util/config/toastConfig";
-import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
-import {
-  registerForNotifications,
-  setupNotificationHandlers,
-} from "./app/util/functions/notifications";
-import { useReminderStore } from "./app/stores/reminders";
 import { useMoodCheckStore } from "./app/stores/mood";
+import { useReminderStore } from "./app/stores/reminders";
+import {
+    registerForNotifications,
+    setupNotificationHandlers,
+} from "./app/util/functions/notifications";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeModules } from "react-native";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
 

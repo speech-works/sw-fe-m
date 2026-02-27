@@ -1,17 +1,17 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
-import {
-  GrowthProfile,
-  WeeklyBreakthroughs,
-} from "../../api/userBehaviorTrends/types";
-import {
-  getGrowthProfile,
-  getWeeklyBreakthroughs,
-} from "../../api/userBehaviorTrends";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { getOverallStateHistory } from "../../api/overallState";
-import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+import {
+    getGrowthProfile,
+    getWeeklyBreakthroughs,
+} from "../../api/userBehaviorTrends";
+import {
+    ClinicalDomain,
+    GrowthProfile,
+    WeeklyBreakthroughs,
+} from "../../api/userBehaviorTrends/types";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 interface UserBehaviorTrendsState {
   growthProfile: GrowthProfile | null;

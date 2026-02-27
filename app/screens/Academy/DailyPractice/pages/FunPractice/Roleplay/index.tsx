@@ -1,32 +1,31 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
-import { theme } from "../../../../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
-import { useNavigation } from "@react-navigation/native";
-import {
-  RoleplayFDPStackNavigationProp,
-  RoleplayFDPStackParamList,
+    RoleplayFDPStackNavigationProp,
+    RoleplayFDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
 
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-  FunPractice,
-  FunPracticeType,
+    FunPractice,
+    FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 
 const Roleplay = () => {

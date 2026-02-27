@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
 import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withRepeat,
-  withSequence,
-  withTiming,
-  withDelay,
-  useDerivedValue,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 
 import { Easing, View } from "react-native";

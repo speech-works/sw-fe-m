@@ -1,14 +1,14 @@
 import axiosClient from "../axiosClient";
 import {
-  CognitivePractice,
-  CognitivePracticeType,
-  ExposurePractice,
-  ExposurePracticeType,
-  FunPractice,
-  FunPracticeType,
-  PhoneCallScenario,
-  ReadingPractice,
-  ReadingPracticeType,
+    CognitivePractice,
+    CognitivePracticeType,
+    ExposurePractice,
+    ExposurePracticeType,
+    FunPractice,
+    FunPracticeType,
+    PhoneCallScenario,
+    ReadingPractice,
+    ReadingPracticeType,
 } from "./types";
 
 // get all fun practice by type

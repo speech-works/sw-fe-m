@@ -1,42 +1,40 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  TextInput,
-  Animated,
-  StatusBar,
-  ScrollView,
-  LayoutAnimation,
-  Platform,
-  UIManager,
+    Animated,
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    UIManager,
+    View,
 } from "react-native";
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import ScreenView from "../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import ScreenView from "../../../components/ScreenView";
 
-import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
-import { theme } from "../../../Theme/tokens";
 import { LinearGradient } from "expo-linear-gradient";
+import { theme } from "../../../Theme/tokens";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
 
+import { CompositeNavigationProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { getLibraryDetails } from "../../../api/library";
 import {
-  Library as LibraryType,
-  TransformedTechnique,
-  TECHNIQUES_ENUM,
+    TECHNIQUES_ENUM,
+    TransformedTechnique
 } from "../../../api/library/types";
-import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { CompositeNavigationProp } from "@react-navigation/native";
 import { LibStackParamList } from "../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
 
 // New Components
-import TechniqueCard from "./components/TechniqueCard";
-import LibrarySection from "./components/LibrarySection";
-import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import { useUserStore } from "../../../stores/user";
+import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
+import LibrarySection from "./components/LibrarySection";
 
 // --- Data Definitions ---
 

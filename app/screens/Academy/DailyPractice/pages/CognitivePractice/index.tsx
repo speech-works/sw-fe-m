@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
-  CDPStackNavigationProp,
-  CDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
-import { formatDuration } from "../../../../../util/functions/time";
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingFace";
 import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
 import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
-import { LinearGradient } from "expo-linear-gradient";
+import ScreenView from "../../../../../components/ScreenView";
+import {
+    CDPStackNavigationProp,
+    CDPStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
+import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 

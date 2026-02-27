@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
-import { Platform } from "react-native";
 import * as Device from "expo-device";
+import { Platform } from "react-native";
 
 // Android emulators need 10.0.2.2 to access host machine
 // iOS simulators can use the WiFi IP directly

@@ -1,13 +1,13 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { theme } from "../../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
 import { CognitivePractice } from "../../../../../../../api/dailyPractice/types";
-import { LinearGradient } from "expo-linear-gradient";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
 
 interface MeditationCardProps {
   onMedToggle: () => void;

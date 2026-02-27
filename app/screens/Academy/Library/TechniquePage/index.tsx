@@ -1,32 +1,28 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Platform,
-  Dimensions,
-} from "react-native";
-import React, { useEffect, useState } from "react";
-import ScreenView from "../../../../components/ScreenView";
-import CustomScrollView from "../../../../components/CustomScrollView";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
 import {
-  LibStackNavigationProp,
-  LibStackParamList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { TECHNIQUES_ENUM } from "../../../../api/library/types";
+import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
+import BottomSheetModal from "../../../../components/BottomSheetModal";
+import ScreenView from "../../../../components/ScreenView";
+import {
+    LibStackNavigationProp,
+    LibStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import BentoPathSelector from "./components/BentoPathSelector";
-import TutorialPage from "./TutorialPage";
 import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
-import BottomSheetModal from "../../../../components/BottomSheetModal";
-import { useUserStore } from "../../../../stores/user";
-import BgPattern_EtherealFlow from "../../../../assets/sw-bg/BgPattern_EtherealFlow";
-import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
-import { LinearGradient } from "expo-linear-gradient";
-import { TECHNIQUES_ENUM } from "../../../../api/library/types";
+import TutorialPage from "./TutorialPage";
 
 // Helper for Icon Mapping (Duplicated from Library/index.tsx for now - ideally refactor to shared)
 const getIconForTechnique = (id: string): string => {
@@ -82,7 +78,6 @@ const TechniquePage = () => {
     techniqueId,
     techniqueName,
     techniqueDesc,
-    techniqueLevel,
     stage,
     hasFree,
   } = route.params;

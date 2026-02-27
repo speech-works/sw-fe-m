@@ -1,30 +1,30 @@
-import React, { useState, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
-} from "react-native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
-import { theme } from "../../../Theme/tokens";
-import { parseShadowStyle } from "../../../util/functions/parseStyles";
-import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { submitFormResponse } from "../../../api";
 import {
-  FormField,
-  FormFieldType,
-  FormConfiguration,
+    FormConfiguration,
+    FormField,
+    FormFieldType,
 } from "../../../api/packs/types";
+import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
+import { theme } from "../../../Theme/tokens";
+import { parseShadowStyle } from "../../../util/functions/parseStyles";
 import { triggerToast } from "../../../util/functions/toast";
 
 type PackFormRouteProp = RouteProp<
@@ -367,7 +367,7 @@ const PackFormScreen = () => {
             <Text style={styles.description}>{configuration.description}</Text>
           ) : null}
 
-          {configuration.fields.map((field, index) => (
+          {configuration.fields.map((field) => (
             <View key={field.id} style={styles.fieldCard}>
               <View style={styles.fieldHeader}>
                 <Text style={styles.fieldLabel}>{field.label}</Text>

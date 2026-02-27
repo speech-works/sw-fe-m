@@ -1,37 +1,35 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
-import React, { useState } from "react";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import Button from "../../../../../components/Button";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
-import { AcademyStackParamList } from "../../../../../navigators/stacks/AcademyStack/types";
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
-import { TactileTouchableOpacity } from "../../../../../components/TactileTouchableOpacity";
 import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
-  completePracticeActivity,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
-import { useSessionStore } from "../../../../../stores/session";
+import Button from "../../../../../components/Button";
+import { TactileTouchableOpacity } from "../../../../../components/TactileTouchableOpacity";
+import { AcademyStackParamList } from "../../../../../navigators/stacks/AcademyStack/types";
 import { useActivityStore } from "../../../../../stores/activity";
+import { useSessionStore } from "../../../../../stores/session";
 import { useUserStore } from "../../../../../stores/user";
-import { createSession } from "../../../../../api/practiceSessions";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseTextStyle
+} from "../../../../../util/functions/parseStyles";
 import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
@@ -120,7 +118,6 @@ const RealLifeChallenge = () => {
     if (!isPackContext && !sessionToUse) return;
 
     try {
-      const sessionId = isPackContext ? undefined : sessionToUse!.id;
       const userId = isPackContext ? user?.id : sessionToUse!.user.id;
 
       if (!userId) {

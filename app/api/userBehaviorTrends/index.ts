@@ -1,10 +1,10 @@
 import axiosClient from "../axiosClient";
 import {
-  ClinicalDomain,
-  UserBehaviorHistoricalTrend,
-  UserBehaviorTrendsResponse,
-  GrowthProfile,
-  WeeklyBreakthroughs,
+    ClinicalDomain,
+    GrowthProfile,
+    UserBehaviorHistoricalTrend,
+    UserBehaviorTrendsResponse,
+    WeeklyBreakthroughs,
 } from "./types";
 
 /**

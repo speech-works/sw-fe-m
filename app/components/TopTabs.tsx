@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { theme } from "../Theme/tokens";
+import { parseTextStyle } from "../util/functions/parseStyles";
 
 interface TopTabsProps {
   tabs: { tabName: string; tabContent: React.ReactElement }[];

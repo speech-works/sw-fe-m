@@ -1,6 +1,6 @@
 // ModernWaveform.tsx
 import React, { useMemo, useState } from "react";
-import { View, StyleSheet, LayoutChangeEvent } from "react-native";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 
 type Props = {
   envelope?: number[];

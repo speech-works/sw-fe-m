@@ -1,26 +1,26 @@
+import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
-import BottomSheetModal from "../../../components/BottomSheetModal";
-import OASESContinueModal from "../../../components/OASESContinueModal";
-import { useNavigation } from "@react-navigation/native";
-import { useOasesStore } from "../../../stores/oases";
-import { submitOasesBatch, getTodayOasesQuestions } from "../../../api/oases";
+import { getTodayOasesQuestions, submitOasesBatch } from "../../../api/oases";
 import {
-  OasesAnswerSubmission,
-  OasesDailyBatch,
+    OasesAnswerSubmission,
+    OasesDailyBatch,
 } from "../../../api/oases/types";
-import OnboardingQuestion from "../../../components/OnBoarding/OnboardingQuestion";
-import ScreenView from "../../../components/ScreenView";
+import BottomSheetModal from "../../../components/BottomSheetModal";
 import Button from "../../../components/Button";
+import OASESContinueModal from "../../../components/OASESContinueModal";
+import OnboardingQuestion from "../../../components/OnBoarding/OnboardingQuestion";
 import ProgressBar from "../../../components/ProgressBar";
+import ScreenView from "../../../components/ScreenView";
+import { useOasesStore } from "../../../stores/oases";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 

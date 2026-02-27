@@ -1,17 +1,17 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { G, Line, Path, SvgProps } from "react-native-svg";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withTiming,
-  Easing,
-  cancelAnimation,
-  useDerivedValue,
-  withSequence,
+    Easing,
+    cancelAnimation,
+    useAnimatedStyle,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
+import Svg, { Line, Path, SvgProps } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;

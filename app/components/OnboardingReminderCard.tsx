@@ -1,13 +1,13 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
-import { theme } from "../Theme/tokens";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../util/functions/parseStyles";
 
 import FinishLineFace from "../assets/mood-check/FinishLineFace";
 

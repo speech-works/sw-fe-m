@@ -1,15 +1,15 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, { G, Path, SvgProps } from "react-native-svg";
 import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-  useDerivedValue,
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
+import Svg, { G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);

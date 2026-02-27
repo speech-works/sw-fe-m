@@ -1,24 +1,22 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
+import {
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { updateUserById } from "../../../api";
+import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { updateUserById } from "../../../api";
 import { triggerToast } from "../../../util/functions/toast";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
 interface EditProfileProps {
   onSave: () => void;

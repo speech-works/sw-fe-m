@@ -1,23 +1,23 @@
-import { StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Button from "../../../../components/Button";
 import { theme } from "../../../../Theme/tokens";
 
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
+import { isSameDay, isValid } from "date-fns";
+import { getAllPracticeActivitiesBySessionId } from "../../../../api";
+import { getUserPreferences } from "../../../../api/settings/userPreference";
+import OnCallFace from "../../../../assets/sw-faces/OnCallFace";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
+    AcademyStackNavigationProp,
+    AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { useSessionStore } from "../../../../stores/session";
-import { isSameDay, isValid, set } from "date-fns";
-import { getUserPreferences } from "../../../../api/settings/userPreference";
-import { getAllPracticeActivitiesBySessionId } from "../../../../api";
 import { useUserStore } from "../../../../stores/user";
-import OnCallFace from "../../../../assets/sw-faces/OnCallFace";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 
 interface DailyPracticeProps {
   onClickStart: () => void;

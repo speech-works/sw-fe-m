@@ -1,14 +1,14 @@
-import { StyleSheet, View, Text } from "react-native";
-import React, { useState } from "react";
-import ScreenView from "../../components/ScreenView";
-import CustomScrollView from "../../components/CustomScrollView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import ComingSoonIcon from "../../assets/ComingSoonIcon";
-import { parseShadowStyle, parseTextStyle } from "../functions/parseStyles";
-import { theme } from "../../Theme/tokens";
-import Button from "../../components/Button";
-import TextArea from "../../components/TextArea";
 import { useNavigation } from "@react-navigation/native";
+import React, { useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../../Theme/tokens";
+import ComingSoonIcon from "../../assets/ComingSoonIcon";
+import Button from "../../components/Button";
+import CustomScrollView from "../../components/CustomScrollView";
+import ScreenView from "../../components/ScreenView";
+import TextArea from "../../components/TextArea";
+import { parseShadowStyle, parseTextStyle } from "../functions/parseStyles";
 
 interface ComingSoonProps {
   goBackTo: string;

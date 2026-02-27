@@ -1,5 +1,5 @@
 import axiosClient from "../axiosClient";
-import { PackRecommendation, PackProgress, PackModule } from "./types";
+import { PackModule, PackProgress, PackRecommendation } from "./types";
 
 export const getRecommendedPack = async (): Promise<PackRecommendation> => {
   try {

@@ -1,16 +1,16 @@
 // CallScreenWithTranscript.tsx
+import React, { useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import React, { useState, useRef, useEffect } from "react";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MessageBubble from "../../../../../../../components/MessageBubble";
 import { theme } from "../../../../../../../Theme/tokens";

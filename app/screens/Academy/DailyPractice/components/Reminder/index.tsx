@@ -1,28 +1,28 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Platform,
-  TextInput,
-  Alert,
-} from "react-native";
-import React, { useState, useEffect } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../../../../../Theme/tokens";
+import React, { useEffect, useState } from "react";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
+    Alert,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import Button from "../../../../../components/Button";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
-  useReminderStore,
-  ReminderType as StoreReminderType,
+    ReminderType as StoreReminderType,
+    useReminderStore,
 } from "../../../../../stores/reminders";
+import { theme } from "../../../../../Theme/tokens";
 import { registerForNotifications } from "../../../../../util/functions/notifications";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
 
 interface ReminderProps {
   onReminderSet?: () => void;

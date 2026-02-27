@@ -1,26 +1,26 @@
-import React, { useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  Dimensions,
-  TouchableOpacity,
-  Modal,
-  Pressable,
+    Dimensions,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { MoodType } from "../../../../api/moodCheck/types";
+import {
+    AcademyStackNavigationProp,
+    AcademyStackParamList,
+} from "../../../../navigators/stacks/AcademyStack/types";
+import { useMoodCheckStore } from "../../../../stores/mood";
 import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../util/functions/parseStyles";
-import { useMoodCheckStore } from "../../../../stores/mood";
-import { useNavigation } from "@react-navigation/native";
-import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
-import { MoodType } from "../../../../api/moodCheck/types";
 
 // Animated Faces
 import AngryFace from "../../../../assets/mood-check/AngryFace";

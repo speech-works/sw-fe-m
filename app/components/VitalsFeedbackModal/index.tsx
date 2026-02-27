@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, Modal, StyleSheet, Alert } from "react-native";
 import Slider from "@react-native-community/slider";
-import Button from "../Button";
+import React, { useState } from "react";
+import { Modal, StyleSheet, Text, View } from "react-native";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
+import Button from "../Button";
 
 interface VitalsFeedbackModalProps {
   visible: boolean;

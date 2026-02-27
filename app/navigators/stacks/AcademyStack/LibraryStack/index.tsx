@@ -1,10 +1,10 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 import Library from "../../../../screens/Academy/Library";
-import { LibStackParamList } from "./types";
 import TechniquePage from "../../../../screens/Academy/Library/TechniquePage";
 import SummaryPage from "../../../../screens/Academy/Library/TechniquePage/SummaryPage";
 import PaymentStackNavigator from "../../PaymentStack";
+import { LibStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<LibStackParamList>();
 

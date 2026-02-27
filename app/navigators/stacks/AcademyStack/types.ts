@@ -1,7 +1,7 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MoodType } from "../../../api/moodCheck/types";
-import { PackModule, FormConfiguration } from "../../../api/packs/types";
+import { FormConfiguration, PackModule } from "../../../api/packs/types";
 
 export type AcademyStackParamList = {
   Academy: undefined;

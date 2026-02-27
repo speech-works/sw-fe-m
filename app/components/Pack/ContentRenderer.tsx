@@ -1,37 +1,36 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  Alert,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import {
-  ModuleContentBlock,
-  ContentBlockType,
-  TextBlockContent,
-  VideoBlockContent,
-  AudioBlockContent,
-  FormBlockContent,
-  ReferenceBlockContent,
+    createPracticeActivityFromPack,
+    PracticeActivityContentType,
+} from "../../api";
+import {
+    ContentBlockType,
+    FormBlockContent,
+    ModuleContentBlock,
+    ReferenceBlockContent,
+    TextBlockContent,
+    VideoBlockContent,
 } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SimpleMarkdown } from "./SimpleMarkdown";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  createPracticeActivityFromPack,
-  PracticeActivityContentType,
-} from "../../api";
 
-import { navigateToPackActivity } from "../../utils/packActivityNavigation";
+import { useActivityStore } from "../../stores/activity";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
+import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
-import { useActivityStore } from "../../stores/activity";
 
 interface ContentRendererProps {
   block: ModuleContentBlock;
@@ -54,7 +53,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   isCompleted,
   blockIndex,
   onActivityCreated,
-  onFormCompleted,
 }) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
@@ -94,7 +92,6 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       );
     }
     case ContentBlockType.AUDIO: {
-      const audioContent = block.content as AudioBlockContent;
       return (
         <View style={styles.audioContainer}>
           <MaterialCommunityIcons

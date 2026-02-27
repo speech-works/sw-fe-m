@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from "react";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
-import { View, Text, StyleSheet, LayoutChangeEvent } from "react-native";
+import { addDays, format, startOfWeek } from "date-fns";
+import React, { useEffect, useMemo, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { format, startOfWeek, addDays } from "date-fns";
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withTiming,
+} from "react-native-reanimated";
 import { WeeklyStat } from "../../../../../api/stats/types";
 import ExplorerFace from "../../../../../assets/sw-faces/ExplorerFace";
 import { theme } from "../../../../../Theme/tokens";

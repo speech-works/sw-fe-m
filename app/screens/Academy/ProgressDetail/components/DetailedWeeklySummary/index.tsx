@@ -1,17 +1,15 @@
-import { StyleSheet, Text, TextStyle, View } from "react-native";
+import { addDays, format, startOfWeek } from "date-fns";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TextStyle, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { getDetailedWeeklySummary } from "../../../../../api";
+import { DetailedWeeklySummaryResponse } from "../../../../../api/progressReport/types";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseTextStyle
 } from "../../../../../util/functions/parseStyles";
-import { getDetailedWeeklySummary } from "../../../../../api";
-import { useUserStore } from "../../../../../stores/user";
-import { DetailedWeeklySummaryResponse } from "../../../../../api/progressReport/types";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { format, addDays, startOfWeek } from "date-fns";
-import * as Localization from "expo-localization";
-import { LinearGradient } from "expo-linear-gradient";
 
 export const formatDelta = (delta: number, unit: string) => {
   const value = delta.toFixed(1);
@@ -47,7 +45,6 @@ const DetailedWeeklySummary = () => {
 
   const getWeekRangeLabel = () => {
     const now = new Date();
-    const tz = Localization.getCalendars()[0].timeZone;
     const start = startOfWeek(now, { weekStartsOn: 1 });
     const end = addDays(start, 6);
     return `${format(start, "MMM d")} – ${format(end, "MMM d")}`;

@@ -1,15 +1,15 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 import DailyPractice from "../../../../screens/Academy/DailyPractice";
+import OASESComplete from "../../../../screens/Academy/OASES/OASESComplete";
 import OASESIntro from "../../../../screens/Academy/OASES/OASESIntro";
 import OASESQuestions from "../../../../screens/Academy/OASES/OASESQuestions";
-import OASESComplete from "../../../../screens/Academy/OASES/OASESComplete";
 import { DPStackParamList } from "./types";
 
-import RDPStackNavigator from "./ReadingPracticeStack";
-import FDPStackNavigator from "./FunPracticeStack";
 import CDPStackNavigator from "./CognitivePracticeStack";
 import EDPStackNavigator from "./ExposureStack";
+import FDPStackNavigator from "./FunPracticeStack";
+import RDPStackNavigator from "./ReadingPracticeStack";
 
 const Stack = createNativeStackNavigator<DPStackParamList>();
 

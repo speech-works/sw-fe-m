@@ -1,23 +1,21 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-  withDelay,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import Svg, {
-  Circle,
-  Path,
-  Defs,
-  RadialGradient,
-  Stop,
+    Circle,
+    Defs,
+    Path,
+    RadialGradient,
+    Stop,
 } from "react-native-svg";
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const { width } = Dimensions.get("window");
 

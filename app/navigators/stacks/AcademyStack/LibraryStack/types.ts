@@ -1,7 +1,7 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
-import { LIBRARY_STAGE } from "../../../../screens/Academy/Library/TechniquePage/type";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { FinalAnswer, TECHNIQUES_ENUM } from "../../../../api/library/types";
+import { LIBRARY_STAGE } from "../../../../screens/Academy/Library/TechniquePage/type";
 
 export type LibStackParamList = {
   Library: undefined;

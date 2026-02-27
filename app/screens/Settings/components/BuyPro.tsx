@@ -1,19 +1,19 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import { theme } from "../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  CompositeNavigationProp,
-  useNavigation,
+    CompositeNavigationProp,
+    useNavigation,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
-import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Switched to MaterialCommunity for better icons
+import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
+import { theme } from "../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
 const BuyPro = () => {
   // Navigation Types

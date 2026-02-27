@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
 import Slider from "@react-native-community/slider";
 import { Audio } from "expo-av";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 export const useMetronome = (muteLogic = false) => {
   const [isPlaying, setIsPlaying] = useState(true); // Default true so it auto-starts
@@ -104,12 +104,6 @@ const Metronome = ({
     ? (controlledSpeed as number)
     : internalHook.speed;
   const activeSetSpeed = isControlled ? onSpeedChange : internalHook.setSpeed;
-
-  const togglePlay = () => {
-    if (activeSetIsPlaying) {
-      activeSetIsPlaying(!activeIsPlaying);
-    }
-  };
 
   const min = 30;
   const max = 150;

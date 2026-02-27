@@ -1,18 +1,18 @@
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Animated,
-  Platform,
-  UIManager,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
+import {
+    Animated,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
 if (
   Platform.OS === "android" &&

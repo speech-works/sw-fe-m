@@ -1,16 +1,16 @@
 // AudioPlaybackButton.tsx
-import React, { useState, useEffect, useRef } from "react";
+import { Audio, AVPlaybackStatus } from "expo-av";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  ViewStyle,
-  StyleProp,
-  View,
+    ActivityIndicator,
+    Alert,
+    StyleProp,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { Audio, AVPlaybackStatus } from "expo-av";
 
 interface AudioPlaybackButtonProps {
   audioUrl: string | null | undefined;
@@ -37,7 +37,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     return () => {
       isMountedRef.current = false;
       if (soundInstanceRef.current) {
-        // console.log('Unloading sound on component unmount');
+
         soundInstanceRef.current
           .unloadAsync()
           .catch((e) => console.error("Error unloading sound on unmount:", e));
@@ -50,7 +50,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
   useEffect(() => {
     // If a sound is currently loaded (from a previous URL), unload it.
     if (soundInstanceRef.current) {
-      // console.log('audioUrl changed, unloading previous sound');
+
       soundInstanceRef.current
         .unloadAsync()
         .catch((e) => console.error("Error unloading sound on URL change:", e));
@@ -77,13 +77,13 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(status.isBuffering);
 
       if (status.didJustFinish && !status.isLooping) {
-        // console.log('Audio finished playing.');
+
         setIsPlaying(false); // Mark as not playing
         // Crucial: Stop the sound. This also resets its position to 0,
         // preparing it to be played again from the start.
         try {
           await soundInstanceRef.current.stopAsync();
-          // console.log('Sound stopped and reset after finishing.');
+
         } catch (error) {
           console.error("Error stopping sound after finish:", error);
         }
@@ -124,11 +124,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         if (status.isLoaded) {
           if (isPlaying) {
             // If currently playing, pause it
-            // console.log('Pausing sound.');
+
             await soundInstanceRef.current.pauseAsync();
           } else {
             // If not playing (it's paused or was stopped after finishing)
-            // console.log('Playing sound (resume or from start).');
+
             await soundInstanceRef.current.playAsync(); // Should start from beginning if stopped, or resume if paused.
           }
         } else {
@@ -159,7 +159,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     if (!soundInstanceRef.current) {
       if (!isMountedRef.current) return;
 
-      // console.log('Loading new sound for URL:', audioUrl);
       setIsLoading(true);
       setIsBuffering(false);
 
@@ -176,7 +175,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
           // Loading is complete once createAsync resolves.
           setIsLoading(false);
         } else {
-          // console.log('Component unmounted during sound load. Unloading new sound.');
+
           newSound
             .unloadAsync()
             .catch((e) =>

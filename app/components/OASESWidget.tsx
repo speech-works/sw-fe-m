@@ -1,7 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 // import { theme } from "../Theme/tokens"; // REMOVED to fix circular dependency/crash
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
@@ -19,8 +18,6 @@ const TOTAL_QUESTIONS = 100; // OASES assessment total
 
 const OASESWidget: React.FC<Props> = ({
   onPress,
-  dayNumber = 1,
-  totalDays = 7,
   totalRemaining = 100,
   style,
 }) => {

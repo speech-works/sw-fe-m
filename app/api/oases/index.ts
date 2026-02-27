@@ -2,9 +2,9 @@
 
 import axiosClient from "../axiosClient";
 import {
-  OasesDailyBatch,
-  OasesProgress,
-  SubmitOasesBatchPayload,
+    OasesDailyBatch,
+    OasesProgress,
+    SubmitOasesBatchPayload,
 } from "./types";
 
 /**

@@ -1,12 +1,12 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 import Explore from "../../../screens/Explore";
-import { ExploreStackParamList } from "./types";
+import ChalStackNavigator from "../AcademyStack/ChallengesStack";
 import DPStackNavigator from "../AcademyStack/DailyPracticeStack";
 import LibStackNavigator from "../AcademyStack/LibraryStack";
-import ChalStackNavigator from "../AcademyStack/ChallengesStack";
 import PDStackNavigator from "../AcademyStack/ProgressDetailStack";
 import PaymentStackNavigator from "../PaymentStack";
+import { ExploreStackParamList } from "./types";
 // We reuse the stacks from AcademyStack since they are just navigators
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>();

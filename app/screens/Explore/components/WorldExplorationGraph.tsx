@@ -1,14 +1,13 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import React, { useEffect, useState, useMemo } from "react";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import { theme } from "../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { useUserStore } from "../../../stores/user";
-import { getDailyActivityStatsForTheWeek } from "../../../api/progressReport";
-import { WeeklyStat } from "../../../api/progressReport/types";
+import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
-import { getDetailedWeeklySummary } from "../../../api/progressReport";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { getDailyActivityStatsForTheWeek, getDetailedWeeklySummary } from "../../../api/progressReport";
+import { WeeklyStat } from "../../../api/progressReport/types";
+import { useUserStore } from "../../../stores/user";
+import { theme } from "../../../Theme/tokens";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
 
 const WorldExplorationGraph = () => {
   const { user } = useUserStore();
@@ -65,7 +64,6 @@ const WorldExplorationGraph = () => {
   const hasSessionsHistory = Math.abs(sessionsChange) > 0;
 
   const minutesStats = formatChange(minutesChange, hasMinutesHistory);
-  const sessionsStats = formatChange(sessionsChange, hasSessionsHistory);
 
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;

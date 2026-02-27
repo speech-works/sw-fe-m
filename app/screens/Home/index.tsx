@@ -1,38 +1,37 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useCallback, useRef, useState } from "react";
 import {
-  ScrollView,
-  Text,
-  View,
-  StyleSheet,
-  RefreshControl,
-  Dimensions,
-  Animated,
+    Animated,
+    Dimensions,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import ScreenView from "../../components/ScreenView";
+import {
+    getTodayOasesQuestions,
+    startOasesCollection
+} from "../../api/oases";
+import { getActiveOnboardingFlow } from "../../api/onboarding";
+import { getMyUser } from "../../api/users";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
-import ResourceStats from "../Academy/components/ResourceStats";
-import { useUserStore } from "../../stores/user";
-import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
-import { getMyUser } from "../../api/users";
-import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
-import MoodCheckBanner from "./components/MoodCheckBanner";
+import OASESWidget from "../../components/OASESWidget";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
-import { useOnboardingStore } from "../../stores/onboarding";
-import { getActiveOnboardingFlow } from "../../api/onboarding";
+import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
-import {
-  startOasesCollection,
-  getOasesProgress,
-  getTodayOasesQuestions,
-} from "../../api/oases";
-import OASESWidget from "../../components/OASESWidget";
-import { useNavigation } from "@react-navigation/native";
 import { useMoodCheckStore } from "../../stores/mood";
 import { useOasesStore } from "../../stores/oases";
+import { useOnboardingStore } from "../../stores/onboarding";
+import { useUserStore } from "../../stores/user";
+import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
+import { theme } from "../../Theme/tokens";
+import { parseTextStyle } from "../../util/functions/parseStyles";
+import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
+import ResourceStats from "../Academy/components/ResourceStats";
+import MoodCheckBanner from "./components/MoodCheckBanner";
 
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");

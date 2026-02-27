@@ -1,23 +1,22 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Dimensions,
+    StyleSheet,
+    Text,
+    View
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import ConfettiAnimation from "../../../components/ConfettiAnimation";
-import Button from "../../../components/Button";
 import { getOasesProgress } from "../../../api/oases";
 import { OasesProgress } from "../../../api/oases/types";
+import Button from "../../../components/Button";
+import ConfettiAnimation from "../../../components/ConfettiAnimation";
 import { theme } from "../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 const { width } = Dimensions.get("window");

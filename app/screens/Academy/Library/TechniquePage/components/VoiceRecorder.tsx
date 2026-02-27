@@ -1,23 +1,21 @@
+import type { AVPlaybackStatus } from "expo-av";
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState
 } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  LayoutChangeEvent,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../../../../../Theme/tokens";
+import { parseShadowStyle } from "../../../../../util/functions/parseStyles";
 import AudioRecorderControls from "./AudioRecorderControls";
 import ModernWaveform from "./ModernWaveform";
-import type { AVPlaybackStatus } from "expo-av";
-import { theme } from "../../../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { parseShadowStyle } from "../../../../../util/functions/parseStyles";
 
 const BAR_COUNT = 32;
 const MAX_ENVELOPE = 512;

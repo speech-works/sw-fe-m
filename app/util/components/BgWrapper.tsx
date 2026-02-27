@@ -1,15 +1,15 @@
 // app/components/ScreenWrapper.tsx
 
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  View,
-  StyleSheet,
-  StyleProp,
-  ViewStyle,
-  Platform,
-  StatusBar,
+    Platform,
+    StatusBar,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../Theme/tokens";
 

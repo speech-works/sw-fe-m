@@ -1,53 +1,50 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-} from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import ScreenView from "../../../../../../components/ScreenView";
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../../Theme/tokens";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import {
-  CDPStackNavigationProp,
-  CDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import TextArea from "../../../../../../components/TextArea";
-import Button from "../../../../../../components/Button";
-import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/types";
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+} from "../../../../../../api";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
-  CognitivePracticeType,
-  ReframingThoughtScenarioData,
+    CognitivePracticeType,
+    ReframingThoughtScenarioData,
 } from "../../../../../../api/dailyPractice/types";
+import {
+    completePracticeActivity,
+    startPracticeActivity,
+} from "../../../../../../api/practiceActivities";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
+import Button from "../../../../../../components/Button";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../components/ScreenView";
+import TextArea from "../../../../../../components/TextArea";
+import {
+    CDPStackNavigationProp,
+    CDPStackParamList,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import {
+    AcademyStackNavigationProp,
+    AcademyStackParamList,
+} from "../../../../../../navigators/stacks/AcademyStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
+import { theme } from "../../../../../../Theme/tokens";
 import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-} from "../../../../../../api";
-import {
-  completePracticeActivity,
-  startPracticeActivity,
-} from "../../../../../../api/practiceActivities";
-import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import DonePractice from "../../../components/DonePractice";
-import { LinearGradient } from "expo-linear-gradient";
-import RainOverlay from "./components/RainOverlay";
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
 import { triggerToast } from "../../../../../../util/functions/toast";
+import DonePractice from "../../../components/DonePractice";
+import RainOverlay from "./components/RainOverlay";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 

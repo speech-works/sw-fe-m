@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { theme } from "../../../../../../../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
 import { ExposurePractice } from "../../../../../../../api/dailyPractice/types";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
 
 interface ScenarioCardProps {
   onToggle: () => void;

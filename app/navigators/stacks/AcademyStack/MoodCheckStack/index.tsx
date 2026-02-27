@@ -1,9 +1,9 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { MoodCheckStackParamList } from "./types";
-import MoodFUStackNavigator from "./FollowUpStack";
 import { MoodType } from "../../../../api/moodCheck/types";
+import MoodFUStackNavigator from "./FollowUpStack";
+import { MoodCheckStackParamList } from "./types";
 
 import MoodCheck from "../../../../screens/Academy/components/MoodCheck";
 

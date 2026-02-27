@@ -1,8 +1,8 @@
 // notifications.ts
-import * as Notifications from "expo-notifications";
-import type { Reminder } from "../../stores/reminders";
-import { Platform } from "react-native";
 import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
+import type { Reminder } from "../../stores/reminders";
 
 // --- New Global Listener for handling notification interactions ---
 // This should be set up once, typically in your App.tsx or a top-level component.

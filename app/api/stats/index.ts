@@ -1,17 +1,17 @@
 // src/services/stats.ts
 
 import axiosClient from "../axiosClient";
-import { PracticeStatSummary, WeeklyStat, WeeklyStatsResponse } from "./types";
+import { PracticeStatSummary } from "./types";
 
 /**
  * Lifetime totals per contentType
  */
 export async function getUserStats(
-  userId: string
+  userId: string,
 ): Promise<PracticeStatSummary[]> {
   try {
     const response = await axiosClient.get<PracticeStatSummary[]>(
-      `/stats/${userId}`
+      `/stats/${userId}`,
     );
     return response.data.map((stat) => ({
       contentType: stat.contentType,

@@ -1,14 +1,14 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isToday } from "date-fns";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
-  PracticeSession,
-  createSession,
-  getAllSessionsOfUser,
+    PracticeSession,
+    createSession,
+    getAllSessionsOfUser,
 } from "../../api/practiceSessions";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
-import { isToday } from "date-fns";
 
 interface PracticeSessionState {
   practiceSession: PracticeSession | null;

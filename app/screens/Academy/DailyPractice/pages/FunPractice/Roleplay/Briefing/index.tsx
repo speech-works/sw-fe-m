@@ -1,24 +1,24 @@
 // Redesigned Roleplay Briefing
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import {
-  RoleplayFDPStackNavigationProp,
-  RoleplayFDPStackParamList,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
-import { theme } from "../../../../../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
-import MasonryTips from "../../../../components/MasonryTips";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    RoleplayFDPStackNavigationProp,
+    RoleplayFDPStackParamList,
+} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
+import MasonryTips from "../../../../components/MasonryTips";
 
 const Briefing = () => {
   console.log("RoleplayBriefing MOUNTED");

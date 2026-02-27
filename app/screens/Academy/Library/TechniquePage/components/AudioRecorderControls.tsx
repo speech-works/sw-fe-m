@@ -1,15 +1,14 @@
 // AudioRecorderControls.tsx
-import React, { useEffect, useRef } from "react";
-import { Alert, Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import type { AVPlaybackStatus } from "expo-av";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import {
-  AndroidAudioEncoder,
-  AndroidOutputFormat,
-  IOSAudioQuality,
-  IOSOutputFormat,
+    AndroidAudioEncoder,
+    AndroidOutputFormat,
+    IOSAudioQuality,
+    IOSOutputFormat,
 } from "expo-av/build/Audio";
+import React, { useEffect, useRef } from "react";
+import { Alert } from "react-native";
 
 export type RecorderStatus =
   | "idle"

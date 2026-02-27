@@ -1,18 +1,12 @@
-import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { theme } from "../Theme/tokens";
+import React from "react";
 
-import OnboardingQuestions from "../components/OnBoarding/OnboardingQuestions";
-import { questions } from "../data/onboardingQuestions";
 import { ROUTE_NAMES } from "../constants/routes";
-import AcademyStackNavigator from "./stacks/AcademyStack";
-import SettingsStackNavigator from "./stacks/SettingsStack";
-import Home from "../screens/Home";
-import Explore from "../screens/Explore";
-import ExploreStackNavigator from "./stacks/ExploreStack";
 import Community from "../screens/Community";
+import Home from "../screens/Home";
+import ExploreStackNavigator from "./stacks/ExploreStack";
+import SettingsStackNavigator from "./stacks/SettingsStack";
 
 import CustomTabBar from "../components/CustomTabBar";
 
@@ -27,16 +21,6 @@ const getTabBarVisibility = (route: any, mainScreenName: string) => {
 };
 
 const BottomTabNavigator = () => {
-  const Onboarding = () => {
-    return (
-      <OnboardingQuestions
-        questions={questions}
-        onAnswer={(q, a) => {
-          console.log(q, a);
-        }}
-      />
-    );
-  };
 
   return (
     <Tab.Navigator

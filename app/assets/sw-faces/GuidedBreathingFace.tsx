@@ -1,30 +1,26 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import Svg, {
-  Circle,
-  Defs,
-  Ellipse,
-  G,
-  Line,
-  LinearGradient,
-  Path,
-  RadialGradient,
-  Stop,
-  SvgProps,
-} from "react-native-svg";
 import Animated, {
-  useSharedValue,
-  withSequence,
-  withTiming,
-  useAnimatedProps,
-  withRepeat,
-  Easing,
-  cancelAnimation,
-  withDelay,
+    Easing,
+    useAnimatedProps,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming
 } from "react-native-reanimated";
+import Svg, {
+    Circle,
+    Defs,
+    G,
+    LinearGradient,
+    Path,
+    RadialGradient,
+    Stop,
+    SvgProps
+} from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export type BreathingPhase =
   | "idle"

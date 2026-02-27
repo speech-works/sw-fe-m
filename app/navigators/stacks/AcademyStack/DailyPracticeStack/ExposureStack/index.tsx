@@ -1,12 +1,11 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { EDPStackParamList } from "./types";
 import Exposure from "../../../../../screens/Academy/DailyPractice/pages/Exposure";
 import InterviewEDPStackNavigator from "./InterviewSimulationStack";
-import PhoneCallEDPStackNavigator from "./PhoneCallStack";
 import SBEDPStackNavigator from "./SecondaryBehaviorsStack";
 import SCEDPStackNavigator from "./SocialChallengeStack";
+import { EDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<EDPStackParamList>();
 

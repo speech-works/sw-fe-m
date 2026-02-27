@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { StyleSheet, View, Dimensions, Animated, Easing } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef } from "react";
+import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { theme } from "../../../Theme/tokens";
 
 const { width, height } = Dimensions.get("window");

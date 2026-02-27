@@ -1,29 +1,29 @@
-import React, { useState, useRef, useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Dimensions,
-  FlatList,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Animated,
-  PanResponder,
-  ScrollView,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useRef, useState } from "react";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
+    Animated,
+    Dimensions,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    PanResponder,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { MoodType } from "../../../../api/moodCheck/types";
+import {
+    AcademyStackNavigationProp,
+    AcademyStackParamList,
+} from "../../../../navigators/stacks/AcademyStack/types";
 import { theme } from "../../../../Theme/tokens";
 import {
-  parseTextStyle,
-  parseShadowStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
 import AngryFace from "../../../../assets/mood-check/AngryFace";
@@ -99,7 +99,6 @@ const MoodCheck = () => {
   const rulerWidth = width - 40; // Approx ruler track width (paddingHorizontal: 20 * 2)
 
   // We need a ref for the initial value on gesture start to make the sliding smooth
-  const initialIntensityRef = useRef(50);
 
   // Let's rewrite the PanResponder to be properly self-contained
   const panResponderRef = useRef(

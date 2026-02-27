@@ -1,8 +1,8 @@
 // ToastConfig.tsx
 import React from "react";
-import Icon from "react-native-vector-icons/MaterialIcons";
-import { BaseToast, ErrorToast } from "react-native-toast-message";
 import { StyleSheet } from "react-native";
+import { BaseToast, ErrorToast } from "react-native-toast-message";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../../Theme/tokens";
 
 // Example brand colors (adjust to match your design)

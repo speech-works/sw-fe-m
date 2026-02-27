@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import BottomTabNavigator from "./BottomTabNavigator";
-import SubscribeScreen from "../screens/Payments";
+import React, { useEffect } from "react";
 import PhoneCall from "../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
-import { View } from "react-native";
+import SubscribeScreen from "../screens/Payments";
+import BottomTabNavigator from "./BottomTabNavigator";
 
 import AcademyStackNavigator from "./stacks/AcademyStack";
 

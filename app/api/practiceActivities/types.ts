@@ -1,8 +1,8 @@
 import {
-  CognitivePractice,
-  ExposurePractice,
-  FunPractice,
-  ReadingPractice,
+    CognitivePractice,
+    ExposurePractice,
+    FunPractice,
+    ReadingPractice,
 } from "../dailyPractice/types";
 import { PracticeSession } from "../practiceSessions";
 

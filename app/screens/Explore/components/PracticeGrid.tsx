@@ -1,23 +1,22 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-} from "react-native";
-import React, { useEffect, useState } from "react";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
-import ReaderFace from "../../../assets/mood-check/ReaderFace";
-import MovieFace from "../../../assets/sw-faces/MovieFace";
-import BreathingFace from "../../../assets/sw-faces/BreathingFace";
-import WarriorFace from "../../../assets/mood-check/WarriorFace";
-import { useUserStore } from "../../../stores/user";
+import React, { useEffect, useState } from "react";
+import {
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from "react-native";
 import { getUserStats } from "../../../api/stats";
 import { PracticeStatSummary } from "../../../api/stats/types";
+import ReaderFace from "../../../assets/mood-check/ReaderFace";
+import WarriorFace from "../../../assets/mood-check/WarriorFace";
+import BreathingFace from "../../../assets/sw-faces/BreathingFace";
+import MovieFace from "../../../assets/sw-faces/MovieFace";
+import { useUserStore } from "../../../stores/user";
+import { theme } from "../../../Theme/tokens";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
 
 // We need to navigate deep into DailyPracticeStack
 type RootStackParamList = {

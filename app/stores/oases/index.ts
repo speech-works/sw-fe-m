@@ -1,12 +1,10 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys"; // Verify this key exists or create new one
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import {
-  OasesDailyBatch,
-  OasesAnswerSubmission,
-  OasesQuestion,
+    OasesDailyBatch
 } from "../../api/oases/types";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys"; // Verify this key exists or create new one
 
 interface OasesState {
   dailyBatch: OasesDailyBatch | null;

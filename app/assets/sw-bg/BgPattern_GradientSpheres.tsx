@@ -1,13 +1,13 @@
 import * as React from "react";
 import { StyleSheet } from "react-native";
 import Svg, {
-  SvgProps,
-  Rect,
-  G,
-  Circle,
-  Defs,
-  RadialGradient,
-  Stop,
+    Circle,
+    Defs,
+    G,
+    RadialGradient,
+    Rect,
+    Stop,
+    SvgProps,
 } from "react-native-svg";
 
 const BgPattern_GradientSpheres = ({ style, ...props }: SvgProps) => {

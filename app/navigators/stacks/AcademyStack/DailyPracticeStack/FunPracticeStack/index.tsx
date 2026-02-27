@@ -1,9 +1,9 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { FDPStackParamList } from "./types";
 import FunPractice from "../../../../../screens/Academy/DailyPractice/pages/FunPractice";
 import TwisterFDPStackNavigator from "./TwisterPracticeStack";
+import { FDPStackParamList } from "./types";
 
 import CharacterVoiceFDPStackNavigator from "./CharacterVoicePracticeStack";
 import RoleplayFDPStackNavigator from "./RoleplayPracticeStack";

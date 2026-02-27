@@ -1,38 +1,37 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
-import { theme } from "../../../../../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { CharacterVoiceFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+import { theme } from "../../../../../../../Theme/tokens";
 
-import MasonryTips from "../../../../components/MasonryTips";
-import Button from "../../../../../../../components/Button";
-import DonePractice from "../../../../components/DonePractice";
-import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
-import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
-import { useActivityStore } from "../../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../../stores/session";
 import {
-  completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
+    completePracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { createSession } from "../../../../../../../api/practiceSessions";
-import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
-import { useUserStore } from "../../../../../../../stores/user";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
+import { useUserStore } from "../../../../../../../stores/user";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
+import DonePractice from "../../../../components/DonePractice";
+import MasonryTips from "../../../../components/MasonryTips";
+import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 const CVExercise = () => {
   const navigation = useNavigation();

@@ -1,5 +1,5 @@
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import React from "react";
+import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 import BgWrapper from "../util/components/BgWrapper";
 
 interface ScreenViewProps {

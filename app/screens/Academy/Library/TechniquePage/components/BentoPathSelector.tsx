@@ -1,14 +1,14 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
-import React, { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect } from "react";
+import {
+    LayoutAnimation,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";

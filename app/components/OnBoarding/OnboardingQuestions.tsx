@@ -1,10 +1,10 @@
-import { StyleSheet, View } from "react-native";
 import React, { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import Button from "../Button";
+import CustomScrollView from "../CustomScrollView";
+import ProgressBar from "../ProgressBar";
 import ScreenView from "../ScreenView";
 import OnboardingQuestion from "./OnboardingQuestion";
-import Button from "../Button";
-import ProgressBar from "../ProgressBar";
-import CustomScrollView from "../CustomScrollView";
 
 interface OnboardingQuestionsProps {
   questions: OnboardingQuestionType[]; // Renamed to avoid conflict with component name

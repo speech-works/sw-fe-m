@@ -1,23 +1,23 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
-import { theme } from "../../../../Theme/tokens";
-import { useUserStore } from "../../../../stores/user";
-import { submitAppFeedback } from "../../../../api/settings/helpSupport";
-import { LinearGradient } from "expo-linear-gradient";
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../../../../Theme/tokens";
+import { submitAppFeedback } from "../../../../api/settings/helpSupport";
+import { useUserStore } from "../../../../stores/user";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 
 interface FeedbackProps {
   onFeedbackSubmit: () => void;

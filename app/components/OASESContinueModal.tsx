@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import BottomSheetModal from "./BottomSheetModal";
-import Button from "./Button";
+import { StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/Feather";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/Feather";
+import BottomSheetModal from "./BottomSheetModal";
+import Button from "./Button";
 
 interface OASESContinueModalProps {
   visible: boolean;

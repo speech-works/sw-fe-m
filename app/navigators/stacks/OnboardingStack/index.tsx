@@ -1,13 +1,13 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { OnboardingStackParamList } from "./types";
+import React from "react";
 import { useOnboardingStore } from "../../../stores/onboarding"; // Import store
+import { OnboardingStackParamList } from "./types";
 
 // Screens
-import OnboardingWelcome from "../../../screens/Onboarding/OnboardingWelcome";
-import OnboardingQuestion from "../../../screens/Onboarding/OnboardingQuestionScreen";
-import OnboardingDone from "../../../screens/Onboarding/OnboardingDone";
 import Academy from "../../../screens/Academy";
+import OnboardingDone from "../../../screens/Onboarding/OnboardingDone";
+import OnboardingQuestion from "../../../screens/Onboarding/OnboardingQuestionScreen";
+import OnboardingWelcome from "../../../screens/Onboarding/OnboardingWelcome";
 
 const Stack = createNativeStackNavigator<OnboardingStackParamList>();
 
@@ -16,7 +16,6 @@ export default function OnboardingStackNavigator() {
   // Since this component mounts when 'forceOnboarding' becomes true in MainNavigator,
   // this state is fresh.
   const currentScreen = useOnboardingStore((s) => s.currentScreen);
-  const flow = useOnboardingStore((s) => s.flow);
 
   // LOGIC FIX: Dynamic initial route
   // If we have progress (screen > 1), start directly at the question.

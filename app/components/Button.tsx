@@ -1,19 +1,18 @@
 import React from "react";
 import {
-  Text,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  Platform,
-  ActivityIndicator,
-  View, // 1. --- Import ActivityIndicator ---
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TextStyle,
+    View,
+    ViewStyle
 } from "react-native";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
-import { theme } from "../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../util/functions/parseStyles";
 import { TactileTouchableOpacity } from "./TactileTouchableOpacity";
 
 /**

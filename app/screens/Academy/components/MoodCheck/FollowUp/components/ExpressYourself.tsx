@@ -1,28 +1,27 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import React, { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import React, { useState } from "react";
+import {
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 
-import { theme } from "../../../../../../Theme/tokens";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../../../../util/functions/parseStyles";
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
-import { useUserStore } from "../../../../../../stores/user";
-import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useUserStore } from "../../../../../../stores/user";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
+import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 
 export enum EXPRESSION_TYPE_ENUM {
   WRITE = "WRITE",

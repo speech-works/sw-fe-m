@@ -1,15 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Animated, // <-- IMPORTED
-  Modal, // <-- IMPORTED
-  Easing,
+    Animated, // <-- IMPORTED
+    Easing, // <-- IMPORTED
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 // Import icons
 import Icon from "react-native-vector-icons/Feather"; // For UI Controls
@@ -17,25 +15,24 @@ import FAIcon from "react-native-vector-icons/FontAwesome5"; // For Scenario Ico
 
 // These imports are correct for a React Native environment (Expo)
 import {
-  Audio,
-  InterruptionModeAndroid,
-  InterruptionModeIOS,
-  AVPlaybackStatus,
+    Audio,
+    InterruptionModeAndroid,
+    InterruptionModeIOS,
 } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient"; // <-- IMPORTED
 // These imports are correct for a React Native environment (Native Modules)
 import {
-  InputAudioStream,
-  AUDIO_FORMATS,
-  AUDIO_SOURCES,
-  CHANNEL_CONFIGS,
+    AUDIO_FORMATS,
+    AUDIO_SOURCES,
+    CHANNEL_CONFIGS,
+    InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
 
-import DeviceInfo from "react-native-device-info";
 import * as SecureStore from "expo-secure-store";
+import DeviceInfo from "react-native-device-info";
+import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";
-import { API_BASE_URL } from "../api/constants";
 
 // --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type Props = {
@@ -318,7 +315,6 @@ process(inputs, outputs) {
       this._previouslyHadSamples = false;
   }
 
-
 if (this.finalExpected) {
   // Accept truly empty OR "nearly empty" buffers as drained.
   const nearlyEmptyThreshold = Math.max(1, this.fadeSamples); // small grace area
@@ -334,7 +330,6 @@ if (this.finalExpected) {
     this.finalExpected = false;
   }
 }
-
 
   return true;
   // --- END: MODIFICATION ---
@@ -352,13 +347,6 @@ type TranscriptItem = {
 };
 
 // Helper function to format seconds into MM:SS
-const formatDuration = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs
-    .toString()
-    .padStart(2, "0")}`;
-};
 
 const CallingWidget: React.FC<Props> = ({
   websocketUrl,
@@ -412,8 +400,6 @@ const CallingWidget: React.FC<Props> = ({
   // Native refs
   const micStream = useRef<InputAudioStream | null>(null);
 
-  const isLoadingSound = useRef(false);
-
   // pacing refs
   const isMicActive = useRef(false);
   const outgoingMicBuffer = useRef<ArrayBuffer[]>([]);
@@ -433,7 +419,6 @@ const CallingWidget: React.FC<Props> = ({
   const nativeRingtoneLoading = useRef(false);
 
   const finalFallbackId = useRef<number | null>(null);
-  const recording = useRef<Audio.Recording | null>(null);
 
   const audioState = useRef<"IDLE" | "STARTING" | "STARTED" | "STOPPING">(
     "IDLE",
@@ -451,7 +436,6 @@ const CallingWidget: React.FC<Props> = ({
   // --- NEW REFS ---
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMutedRef = useRef(false); // Ref for mute state for async listeners
-  const scrollRef = useRef<ScrollView>(null);
   // --- ⬇️ ADDED: Ref to track current tips visibility for listener ⬇️ ---
   const showTipsRef = useRef(showTips);
   const idleCountdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -459,82 +443,8 @@ const CallingWidget: React.FC<Props> = ({
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
-  const awaitPlaybackWorkletDrain = (timeoutMs = 700): Promise<void> => {
-    return new Promise((resolve) => {
-      try {
-        if (Platform.OS !== "web" || !playbackNode.current) {
-          return resolve();
-        }
-        const port = playbackNode.current.port as any;
-        if (!port) return resolve();
-
-        let finished = false;
-        const oldHandler = port.onmessage;
-
-        const cleanupAndResolve = () => {
-          if (finished) return;
-          finished = true;
-          try {
-            port.onmessage = oldHandler ?? null;
-          } catch {}
-          resolve();
-        };
-
-        // Wrap old handler so existing logic still runs
-        port.onmessage = (ev: any) => {
-          try {
-            const d = ev?.data;
-            // If the worklet explicitly signals final_done or drain -> resolve
-            if (d && (d.cmd === "final_done" || d.cmd === "drain")) {
-              cleanupAndResolve();
-            }
-          } catch (e) {
-            // ignore
-          }
-          // call original handler too (so other parts of the app still get messages)
-          try {
-            if (typeof oldHandler === "function") oldHandler(ev);
-          } catch {}
-        };
-
-        // Ask for a graceful finalization
-        try {
-          port.postMessage({ cmd: "final_expected" });
-        } catch (e) {
-          // best-effort
-        }
-
-        // Timeout fallback: if no response in time, force immediate flush and continue
-        const to = setTimeout(() => {
-          try {
-            // send flushImmediate to clear tiny remnants
-            port.postMessage({ cmd: "flushImmediate" });
-          } catch {}
-          cleanupAndResolve();
-        }, timeoutMs);
-
-        // Ensure cleanup when resolved
-        const origResolve = resolve;
-        resolve = () => {
-          clearTimeout(to);
-          origResolve();
-        };
-      } catch (e) {
-        // if anything fails, resolve immediately to avoid hanging
-        resolve();
-      }
-    });
-  };
 
   // (isPlaybackSuccess function is unchanged)
-  function isPlaybackSuccess(s: AVPlaybackStatus): s is AVPlaybackStatus & {
-    isPlaying: boolean;
-    didJustFinish: boolean;
-    isBuffering: boolean;
-    playableDurationMillis?: number;
-  } {
-    return (s as any).isLoaded === true;
-  }
 
   // (checkHeadsetConnected function is unchanged)
   const checkHeadsetConnected = async (): Promise<boolean> => {
@@ -845,10 +755,6 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   // (sendChunk function is unchanged)
-  const sendChunk = async () => {
-    // This function is not used in this architecture
-    console.warn("sendChunk called, but should be disabled.");
-  };
 
   // (startAudioCapture function is unchanged, already includes mute check)
   const startAudioCapture = async (): Promise<boolean> => {
@@ -1494,7 +1400,6 @@ const CallingWidget: React.FC<Props> = ({
             return;
           }
           const newSound = new Audio.Sound();
-          let destroyed = false;
           try {
             // Fetch auth token so the TTS stream endpoint can authenticate
             const token = await SecureStore.getItemAsync(
@@ -1730,7 +1635,6 @@ const CallingWidget: React.FC<Props> = ({
   // --- ⬇️ MODIFIED: `canStartCall` now uses state ⬇️ ---
   // This check is now handled in the startCall button's `disabled` prop
   // Headphones are recommended but not required — loudspeaker works too
-  const canStartCall = audioState.current === "IDLE";
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
   // We use the raw scenarioIcon from backend (FontAwesome) for the Orb

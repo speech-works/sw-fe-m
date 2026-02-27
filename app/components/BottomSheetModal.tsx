@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
+    Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;

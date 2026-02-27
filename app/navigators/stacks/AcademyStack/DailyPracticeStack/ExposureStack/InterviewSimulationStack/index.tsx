@@ -1,10 +1,10 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { InterviewEDPStackParamList } from "./types";
 import Interview from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/Interview";
 import Briefing from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Briefing";
 import Chat from "../../../../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Chat";
+import { InterviewEDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<InterviewEDPStackParamList>();
 

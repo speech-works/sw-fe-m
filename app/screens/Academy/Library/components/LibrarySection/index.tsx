@@ -1,23 +1,22 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
+import {
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import {
+    TECHNIQUE_LEVEL_ENUM,
+    TransformedTechnique,
+} from "../../../../../api/library/types";
+import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import {
-  TransformedTechnique,
-  TECHNIQUE_LEVEL_ENUM,
-} from "../../../../../api/library/types";
 import TechniqueCard from "../TechniqueCard";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomSheetModal from "../../../../../components/BottomSheetModal";
 
 // Enable LayoutAnimation on Android
 if (

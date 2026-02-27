@@ -1,7 +1,7 @@
 // VoiceLister.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
 import * as Speech from "expo-speech";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 // Define a local “VoiceItem” type that matches what getAvailableVoicesAsync returns.
 // You can add or remove fields based on what you actually see at runtime.

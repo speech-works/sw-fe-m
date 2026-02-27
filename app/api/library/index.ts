@@ -1,11 +1,11 @@
 import axiosClient from "../axiosClient";
 import { parseTechniquesToLibrary } from "./helper";
 import {
-  ExerciseItem,
-  Library,
-  QuizQuestion,
-  TECHNIQUES_ENUM,
-  Tutorial,
+    ExerciseItem,
+    Library,
+    QuizQuestion,
+    TECHNIQUES_ENUM,
+    Tutorial,
 } from "./types";
 
 /**

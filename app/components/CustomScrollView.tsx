@@ -1,24 +1,22 @@
 // CustomScrollView.tsx
-import React, { forwardRef } from "react";
+import React, { forwardRef, useImperativeHandle } from "react";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  StyleProp,
-  ViewStyle,
-  TextStyle,
+    StyleProp,
+    StyleSheet,
+    TextStyle,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import Animated, {
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  scrollTo,
-  useAnimatedRef,
-  runOnJS,
+    scrollTo,
+    useAnimatedRef,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
 } from "react-native-reanimated";
-import { useImperativeHandle } from "react";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../Theme/tokens";
 
 export const SHADOW_BUFFER = 5;

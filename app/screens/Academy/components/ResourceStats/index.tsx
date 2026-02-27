@@ -1,31 +1,20 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Dimensions,
-  Animated,
-  Easing,
-} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
+import {
+    Animated,
+    Easing,
+    StyleSheet,
+    Text,
+    View
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import {
+    getProgressToNextLevel,
+    MAX_STAMINA
+} from "../../../../api/users";
+import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
-import { useUserStore } from "../../../../stores/user";
-import {
-  getMyUser,
-  getUnlockedLevelsFromXP,
-  getProgressToNextLevel,
-  MAX_STAMINA,
-} from "../../../../api/users";
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  G,
-} from "react-native-svg";
 
 // Animated Bar Component
 const AnimatedBar = ({
@@ -64,7 +53,7 @@ const AnimatedBar = ({
   );
 };
 
-const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
+const ResourceStats = () => {
   const { user } = useUserStore();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
 
@@ -127,17 +116,13 @@ const ResourceStats = ({ refreshing }: { refreshing: boolean }) => {
   // SVG Config
   const size = 88; // Slightly larger
   const strokeWidth = 8;
-  const center = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progressOffset = circumference * (1 - staminaPercentage / 100);
 
   // Derived Values for Bars
   const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
   const tasksTotal = 5;
   const taskPercentage = (tasksRemaining / tasksTotal) * 100;
-
-  const xpPercentage = userProgress?.progressPercent || 0;
 
   return (
     <View style={styles.container}>

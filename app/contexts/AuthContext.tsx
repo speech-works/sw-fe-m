@@ -1,10 +1,10 @@
-import React, { createContext, useState, useEffect } from "react";
-import { Text } from "react-native";
 import * as SecureStore from "expo-secure-store"; // or AsyncStorage
+import React, { createContext, useEffect, useState } from "react";
+import { Text } from "react-native";
 import { logoutUser } from "../api";
 import { resetAuthInterceptor } from "../api/axiosClient";
-import { setUpdateTokenFn } from "../util/functions/authToken";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
+import { setUpdateTokenFn } from "../util/functions/authToken";
 
 type AuthContextType = {
   isLoggedIn: boolean;

@@ -1,33 +1,32 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
-import MasonryTips from "../../../../components/MasonryTips";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
-import {
-  InterviewEDPStackParamList,
-  InterviewEDPStackNavigationProp,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import Button from "../../../../../../../components/Button";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../../components/ScreenView";
-import { useSessionStore } from "../../../../../../../stores/session";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
+    createPracticeActivity,
+    createPracticeActivityFromPack,
+    startPracticeActivity,
 } from "../../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import CustomScrollView, {
+    SHADOW_BUFFER,
+} from "../../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../../components/ScreenView";
+import {
+    InterviewEDPStackNavigationProp,
+    InterviewEDPStackParamList,
+} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
+import MasonryTips from "../../../../components/MasonryTips";
 
 const Briefing = () => {
   const { user } = useUserStore();

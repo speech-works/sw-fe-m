@@ -1,19 +1,17 @@
-import { StyleSheet, Text, Image, View, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import CustomScrollView from "../../../components/CustomScrollView";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
+import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../Theme/tokens";
+import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
 import { LevelData } from "../../../util/functions/levels-xp";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { Linking } from "react-native";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../util/functions/parseStyles";
 import { triggerToast } from "../../../util/functions/toast";
 import EditProfile from "./EditProfile";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 interface FullProfileProps {
   userLevelData?: LevelData;

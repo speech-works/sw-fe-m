@@ -1,20 +1,20 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
-  ActivityIndicator,
-  TouchableWithoutFeedback,
-  TouchableOpacity,
-  Animated,
-  Easing,
-  ViewStyle,
-  StyleProp,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  Image,
-  Dimensions,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    LayoutAnimation,
+    Platform,
+    StyleProp,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    UIManager,
+    View,
+    ViewStyle,
 } from "react-native";
 
 if (
@@ -24,14 +24,14 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-import Video, { VideoRef } from "react-native-video";
-import { useFocusEffect } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
+import { useFocusEffect } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import Button from "./Button";
-import SkeletonLoader from "./SkeletonLoader";
+import Video, { VideoRef } from "react-native-video";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
+import Button from "./Button";
+import SkeletonLoader from "./SkeletonLoader";
 
 interface VideoPlayerProps {
   uri: string;

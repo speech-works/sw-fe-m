@@ -1,10 +1,10 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-import { RoleplayFDPStackParamList } from "./types";
 import Roleplay from "../../../../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay";
 import Briefing from "../../../../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
 import Chat from "../../../../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat";
+import { RoleplayFDPStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RoleplayFDPStackParamList>();
 

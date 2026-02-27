@@ -1,49 +1,47 @@
 // StoryPractice.tsx (Redesigned)
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  LayoutAnimation,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+    Dimensions,
+    LayoutAnimation,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
-import ScreenView from "../../../../../../components/ScreenView";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import MasonryTips from "../../../components/MasonryTips";
-import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../components/ScreenView";
+import DonePractice from "../../../components/DonePractice";
+import MasonryTips from "../../../components/MasonryTips";
 
 // Tools
+import { ScrollView } from "react-native"; // Add ScrollView import
+import Metronome, {
+    useMetronome,
+} from "../../../../Library/TechniquePage/components/Metronome"; // Updated import
 import { DAFTool, useDAF } from "../../../../Tools/DAF"; // Updated import
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
-import Metronome, {
-  useMetronome,
-} from "../../../../Library/TechniquePage/components/Metronome"; // Updated import
 import SmartRecorder from "./components/SmartRecorder";
-import { ScrollView } from "react-native"; // Add ScrollView import
 
+import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 import { useStoryPractice } from "./useStoryPractice";
-import { ToolType } from "../../../../../../api/tools/types";
 const { width } = Dimensions.get("window");
 
 import {
-  RDPStackNavigationProp,
-  RDPStackRouteProp,
+    RDPStackNavigationProp,
+    RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const StoryPractice = () => {
@@ -57,12 +55,10 @@ const StoryPractice = () => {
     highlightRange,
     currentActivityId,
     isStarting,
-    isLoading,
     selectedPracticeTool,
     activeToolSheet,
     voiceRecordingUri,
     hasHydrated,
-    practiceSession,
   } = state;
 
   const route = useRoute<RDPStackRouteProp<"StoryPractice">>();
@@ -278,10 +274,6 @@ const StoryPractice = () => {
   // Calculate dynamic bottom padding based on recorder state
   // Idle: ~60px dock + spacing -> 120px safe
   // Expanded: ~80px wave + 100px controls + spacing -> 300px safe
-  const isRecorderActive =
-    state.isStarting || // treat starting as active
-    !!voiceRecordingUri ||
-    false; // or use a specific state check?
   // We can't easily access internal VoiceRecorder mode, but we know if we have a URI it shows "Finish".
   // Actually, VoiceRecorder expands when we interact.
   // The safest bet is: Always ample padding, OR if we want to be fancy, just use a large padding (350) which is safe for max expansion.

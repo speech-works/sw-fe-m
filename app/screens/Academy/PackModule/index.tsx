@@ -1,41 +1,41 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-} from "react-native";
-import {
-  useNavigation,
-  useRoute,
-  RouteProp,
-  useFocusEffect,
-} from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme } from "../../../Theme/tokens";
 import {
-  parseTextStyle,
-  parseShadowStyle as parseStyleShadow,
-} from "../../../util/functions/parseStyles";
-import { PackModule, Pack, ContentBlockType } from "../../../api/packs/types";
+    RouteProp,
+    useFocusEffect,
+    useNavigation,
+    useRoute,
+} from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import {
+    completeModule,
+    getModule,
+    getPack,
+    startModule,
+} from "../../../api/packs";
+import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
+import BottomSheetModal from "../../../components/BottomSheetModal";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
-import {
-  completeModule,
-  getModule,
-  startModule,
-  getPack,
-} from "../../../api/packs";
-import { LinearGradient } from "expo-linear-gradient";
-import BottomSheetModal from "../../../components/BottomSheetModal";
 import { useActivityStore } from "../../../stores/activity";
+import { theme } from "../../../Theme/tokens";
+import {
+    parseShadowStyle as parseStyleShadow,
+    parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
 import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
 

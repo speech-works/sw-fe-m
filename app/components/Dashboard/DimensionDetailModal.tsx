@@ -1,13 +1,13 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../Theme/tokens";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 

@@ -1,14 +1,14 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withDelay,
-  Easing,
-  FadeIn,
-  FadeOut,
+    Easing,
+    FadeIn,
+    FadeOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withTiming,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import SunshineOverlay from "./SunshineOverlay";
@@ -20,7 +20,7 @@ interface RainDropProps {
   index: number;
 }
 
-const RainDrop: React.FC<RainDropProps> = ({ index }) => {
+const RainDrop: React.FC<RainDropProps> = () => {
   // Random properties for this drop
   const randomX = Math.random() * width;
   const randomDelay = Math.random() * 2500; // Spread out start times

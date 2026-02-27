@@ -1,30 +1,30 @@
 // TutorialPage.tsx
 
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  getGlimpseVideoUrl,
-  getPremiumVideoUrl,
-  getTutorialByTechnique,
+    getGlimpseVideoUrl,
+    getPremiumVideoUrl,
+    getTutorialByTechnique,
 } from "../../../../../api/library";
 import { TECHNIQUES_ENUM, Tutorial } from "../../../../../api/library/types";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
-import { VideoPlayer } from "../../../../../components/VideoPlayer";
 import { useNavigation } from "@react-navigation/native";
+import { useEffect, useMemo, useState } from "react";
 import {
-  LibStackNavigationProp,
-  LibStackParamList,
+    ActivityIndicator,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import CustomScrollView from "../../../../../components/CustomScrollView";
+import { VideoPlayer } from "../../../../../components/VideoPlayer";
+import {
+    LibStackNavigationProp,
+    LibStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
-import CustomScrollView from "../../../../../components/CustomScrollView";
-import { useEffect, useState, useMemo } from "react";
-import {
-  ActivityIndicator,
-  Text,
-  View,
-  StyleSheet,
-  Platform,
-} from "react-native";
 
 interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -132,7 +132,6 @@ const TutorialPage = ({ techniqueId }: TutorialPageProps) => {
                 ],
               ];
               const activeBubbles = bubbles[i % bubbles.length];
-              const themeColor = theme.colors.library.orange[500]; // Unifying theme color
 
               return (
                 <View key={i} style={styles.objective}>

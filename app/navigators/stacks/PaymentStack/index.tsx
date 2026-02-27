@@ -1,7 +1,7 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { PaymentStackParamList } from "./types";
+import React from "react";
 import SubscribeScreen from "../../../screens/Payments";
+import { PaymentStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<PaymentStackParamList>();
 

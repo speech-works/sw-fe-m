@@ -1,25 +1,24 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  FinalAnswer,
-  QuizQuestion,
-  TECHNIQUES_ENUM,
-} from "../../../../../api/library/types";
-import {
-  LibStackNavigationProp,
-  LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { getQuizByTechnique } from "../../../../../api/library";
+import {
+    FinalAnswer,
+    QuizQuestion,
+    TECHNIQUES_ENUM,
+} from "../../../../../api/library/types";
 import { submitQuizAnswer as submitAnswerApi } from "../../../../../api/quiz";
 import CustomScrollView from "../../../../../components/CustomScrollView";
-import { LinearGradient } from "expo-linear-gradient";
+import {
+    LibStackNavigationProp,
+    LibStackParamList,
+} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseTextStyle
+} from "../../../../../util/functions/parseStyles";
 
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;

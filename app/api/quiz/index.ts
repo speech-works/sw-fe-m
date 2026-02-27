@@ -2,9 +2,9 @@
 
 import axiosClient from "../axiosClient";
 import {
-  CanAccessResponse,
-  QuizSubmissionResult,
-  UserKnowledgeMastery,
+    CanAccessResponse,
+    QuizSubmissionResult,
+    UserKnowledgeMastery,
 } from "./types";
 
 /**

@@ -1,39 +1,36 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ScrollView,
-  UIManager,
-  Platform,
-} from "react-native";
-import React, { useState, useRef, useEffect } from "react";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+} from "react-native";
 import Animated from "react-native-reanimated";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import {
+    FixedRolePlayNode,
+    FixedRolePlayNodeOption,
+} from "../../../../../../../api/dailyPractice/types";
+import { completePracticeActivity } from "../../../../../../../api/practiceActivities";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import CustomScrollView from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { SCEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
-import DonePractice from "../../../../components/DonePractice";
-import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
-import { completePracticeActivity } from "../../../../../../../api/practiceActivities";
 import { useUserStore } from "../../../../../../../stores/user";
-import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
-import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import { theme } from "../../../../../../../Theme/tokens";
 import {
-  FixedRolePlayNode,
-  FixedRolePlayNodeOption,
-} from "../../../../../../../api/dailyPractice/types";
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
+import DonePractice from "../../../../components/DonePractice";
+import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -42,8 +39,8 @@ interface ChatMessage {
   text: string;
 }
 
-import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
 import { SCEDPStackRouteProp } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
+import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
 
 const Chat = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"SCChat">>();

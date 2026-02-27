@@ -1,17 +1,15 @@
-import { StyleSheet, Text, View, Dimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
-import { useUserStore } from "../../../../../stores/user";
-import { getUserStats } from "../../../../../api";
+import { StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
-
-const screenWidth = Dimensions.get("window").width;
+import { getUserStats } from "../../../../../api";
+import { useUserStore } from "../../../../../stores/user";
+import { theme } from "../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
 
 type ContentTypeKey =
   | "COGNITIVE_PRACTICE"

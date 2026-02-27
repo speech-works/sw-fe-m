@@ -1,47 +1,47 @@
-import React, { useRef, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  LayoutAnimation,
-  ScrollView,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+    Dimensions,
+    LayoutAnimation,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
-import ScreenView from "../../../../../../components/ScreenView";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import MasonryTips from "../../../components/MasonryTips";
-import DonePractice from "../../../components/DonePractice";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../components/ScreenView";
+import DonePractice from "../../../components/DonePractice";
+import MasonryTips from "../../../components/MasonryTips";
 
 // Tools
+import Metronome, {
+    useMetronome,
+} from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
-import Metronome, {
-  useMetronome,
-} from "../../../../Library/TechniquePage/components/Metronome";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder";
 
+import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
-import { ToolType } from "../../../../../../api/tools/types";
 import { useQuotePractice } from "./useQuotePractice";
 
 const { width } = Dimensions.get("window");
 
 import {
-  RDPStackNavigationProp,
-  RDPStackRouteProp,
+    RDPStackNavigationProp,
+    RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const QuotePractice = () => {
@@ -54,7 +54,6 @@ const QuotePractice = () => {
     currentQuote,
     currentActivityId,
     isStarting,
-    isLoading,
     selectedPracticeTool,
     activeToolSheet,
     voiceRecordingUri,

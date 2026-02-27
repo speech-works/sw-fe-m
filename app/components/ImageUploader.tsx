@@ -1,13 +1,13 @@
+import * as ImagePicker from "expo-image-picker";
 import React, { useRef } from "react";
 import {
-  View,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../Theme/tokens"; // Adjust path to your theme
 import { parseShadowStyle } from "../util/functions/parseStyles";

@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 import {
-  startOasesCollection,
-  getTodayOasesQuestions,
+    getTodayOasesQuestions,
+    startOasesCollection,
 } from "../../../api/oases";
+import ScreenView from "../../../components/ScreenView";
 import { useOasesStore } from "../../../stores/oases";
 import { theme } from "../../../Theme/tokens";
-import ScreenView from "../../../components/ScreenView";
-import axios from "axios";
 
 const OASESIntro = () => {
   const navigation = useNavigation<any>();

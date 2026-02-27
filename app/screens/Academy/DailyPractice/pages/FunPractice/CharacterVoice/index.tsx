@@ -1,30 +1,30 @@
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-} from "react-native";
-import React, { useEffect, useState } from "react";
-import ScreenView from "../../../../../../components/ScreenView";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
 import {
-  CharacterVoiceFDPStackNavigationProp,
-  CharacterVoiceFDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-  FunPractice,
-  FunPracticeType,
+    FunPractice,
+    FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
+import CustomScrollView from "../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../components/ScreenView";
+import {
+    CharacterVoiceFDPStackNavigationProp,
+    CharacterVoiceFDPStackParamList,
+} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
 
 const CharacterVoice = () => {
   const [cvList, setcvList] = useState<FunPractice[]>([]);

@@ -1,7 +1,7 @@
 import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
-import { triggerToast } from "../../util/functions/toast";
+
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
 

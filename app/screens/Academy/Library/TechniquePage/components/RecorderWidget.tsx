@@ -1,6 +1,6 @@
+import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Audio } from "expo-av";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../Theme/tokens";
 import { parseShadowStyle } from "../../../../../util/functions/parseStyles";

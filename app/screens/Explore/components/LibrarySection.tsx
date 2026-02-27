@@ -1,13 +1,13 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import React from "react";
-import { theme } from "../../../Theme/tokens";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../../../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
 const LibrarySection = () => {
   const navigation = useNavigation<any>();

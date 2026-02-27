@@ -1,13 +1,13 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef } from "react";
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Animated,
-  Alert,
+    Alert,
+    Animated,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../../../Theme/tokens";
 
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -32,7 +32,6 @@ const TechniqueCard = ({
   disabled,
   onPressStart,
   isPaidUser,
-  variant = "standard",
 }: TechniqueCardProps) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isLocked = !hasFree && !isPaidUser;

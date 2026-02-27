@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  Extrapolate,
-  runOnJS,
-} from "react-native-reanimated";
 
 interface FlipSlideProps {
   children: React.ReactNode;

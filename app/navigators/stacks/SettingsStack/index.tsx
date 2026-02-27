@@ -1,11 +1,11 @@
-import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SettingsStackParamList } from "./types";
-import Settings from "../../../screens/Settings";
+import React from "react";
 import ProgressDetail from "../../../screens/Academy/ProgressDetail";
+import Settings from "../../../screens/Settings";
 import Preferences from "../../../screens/Settings/pages/Preferences";
 import Support from "../../../screens/Settings/pages/Support";
 import PaymentStackNavigator from "../PaymentStack";
+import { SettingsStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
