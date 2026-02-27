@@ -2230,60 +2230,61 @@ const styles = StyleSheet.create({
   controlsDock: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // Spread out nicely
-    width: "85%", // Slightly wider
-    maxWidth: 360,
-    backgroundColor: "rgba(255,255,255,0.07)", // Very subtle glass
-    borderRadius: 50, // Full pill
-    paddingVertical: 12,
-    paddingHorizontal: 32, // More internal breathing room
+    justifyContent: "space-between",
+    width: "75%", // Sleeker, tighter width
+    maxWidth: 320,
+    backgroundColor: "rgba(15, 23, 42, 0.4)", // Deeper, semi-transparent indigo
+    borderRadius: 999, // Perfect pill shape
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(167, 139, 250, 0.15)", // Very subtle violet border
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20, // Floating soft shadow
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
   },
   glassControlBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.03)", // Subtle button bg
+    backgroundColor: "transparent", // Clean minimalist look without background
   },
   glassControlBtnActive: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(167, 139, 250, 0.15)", // Subtle violet tint when active
+    borderColor: "rgba(167, 139, 250, 0.3)",
     borderWidth: 1,
   },
   mainCallButtonModern: {
-    width: 72, // Larger call button
-    height: 72,
-    borderRadius: 36,
+    width: 64, // Sleek, perfectly sized circle
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -40, // More pronounced float
-    borderWidth: 6, // Thicker border to mask the dock line
-    borderColor: "#0F172A", // Match the dark background of the screen
+    // No negative margin - fits inside the pill gracefully or slightly overlapping
+    borderWidth: 0, // Removed thick stroke for a cleaner look
   },
   startCallButton: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#10B981", // Rich Emerald
     shadowColor: "#10B981",
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   endCallButton: {
-    backgroundColor: "#EF4444",
-    shadowColor: "#EF4444",
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 8,
+    backgroundColor: "#E11D48", // Rich Rose/Red
+    shadowColor: "#E11D48",
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   disabledButton: {
-    backgroundColor: "#64748B",
+    backgroundColor: "rgba(255,255,255,0.1)", // Glassy disabled state
     shadowOpacity: 0,
   },
   notificationDotModern: {
