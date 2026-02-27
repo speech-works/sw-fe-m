@@ -26,7 +26,7 @@ import { PhoneCallScenario } from "../../../../../../api/dailyPractice/types";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../api/constants";
-const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/ringback-tone.wav");
+const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";

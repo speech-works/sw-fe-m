@@ -370,7 +370,6 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneUri,
   scenarioId,
   agentName,
-  agentDesignation,
   scenarioIcon,
 }) => {
   const [isCalling, setIsCalling] = useState(false);
@@ -805,11 +804,12 @@ const CallingWidget: React.FC<Props> = ({
         await sound.loadAsync(ringtoneAsset, {
           shouldPlay: true,
           isLooping: true,
+          volume: 0.15, // Extremely subtle, modern ring volume
         });
       } else if (ringtoneUri) {
         await sound.loadAsync(
           { uri: ringtoneUri },
-          { shouldPlay: true, isLooping: true },
+          { shouldPlay: true, isLooping: true, volume: 0.15 },
         );
       } else {
         console.warn("No native ringtone asset or uri provided.");
