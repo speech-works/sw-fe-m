@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
   Easing,
   cancelAnimation,
+  useDerivedValue,
+  withSequence,
 } from "react-native-reanimated";
 
 interface SvgIconProps extends SvgProps {
