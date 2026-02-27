@@ -101,16 +101,20 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
   const focusedValue = useSharedValue(isFocused ? 1 : 0);
 
   React.useEffect(() => {
+    // Ultra fast, snappy, aggressive spring
     focusedValue.value = withSpring(isFocused ? 1 : 0, {
-      damping: 15,
-      stiffness: 120,
+      stiffness: 450,
+      damping: 24,
+      mass: 0.5,
+      restDisplacementThreshold: 0.01,
+      restSpeedThreshold: 2,
     });
   }, [isFocused]);
 
   // Animated Styles
   const containerStyle = useAnimatedStyle(() => {
     return {
-      flex: isFocused ? 2.5 : 1, // Flex grows for active tab
+      flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]), // Fluid width
     };
   });
 
@@ -118,27 +122,37 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
     const backgroundColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["transparent", theme.colors.library.orange[400]] // Transparent -> Orange 400 Pill
+      ["transparent", theme.colors.library.orange[400]], // Transparent -> Orange 400 Pill
     );
     return {
       backgroundColor,
-      borderRadius: 30,
+      borderRadius: 100, // Maximum rounding
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      height: "100%",
-      width: "100%",
-      paddingHorizontal: isFocused ? 16 : 0,
+      height: 48, // Fixed height keeps padding predictable
+      alignSelf: "center", // Center vertically inside tabBar cell
+      paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]), // Perfect inner bubble padding
+    };
+  });
+
+  // Wraps the text so the layout expands left-to-right perfectly
+  const textWrapperStyle = useAnimatedStyle(() => {
+    return {
+      width: interpolate(focusedValue.value, [0, 1], [0, 85]), // Reveal text space
+      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 2]), // Reduce gap
+      overflow: "hidden", // Never bleed
+      opacity: focusedValue.value, // Fade in alongside expansion
+      justifyContent: "center",
+      alignItems: "center",
     };
   });
 
   const textStyle = useAnimatedStyle(() => {
     return {
-      opacity: focusedValue.value,
       transform: [
-        { translateX: interpolate(focusedValue.value, [0, 1], [20, 0]) },
+        { scale: interpolate(focusedValue.value, [0, 1], [0.85, 1]) }, // Slight pop up effect
       ],
-      display: isFocused ? "flex" : "none",
     };
   });
 
@@ -150,19 +164,18 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
       <TouchableOpacity
         onPress={onPress}
         onLongPress={onLongPress}
-        style={styles.touchable}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
+        style={styles.touchable} // Added stronger tap feel
       >
         <Animated.View style={pillStyle}>
-          {/* Icon - Using MaterialCommunityIcons for cleaner look */}
-          <MaterialCommunityIcons name={iconName} size={22} color={iconColor} />
+          <MaterialCommunityIcons name={iconName} size={24} color={iconColor} />
 
-          {/* Label */}
-          {isFocused && (
+          {/* Wrapper dictates layout shift precisely */}
+          <Animated.View style={textWrapperStyle}>
             <Animated.Text style={[styles.label, textStyle]} numberOfLines={1}>
               {label}
             </Animated.Text>
-          )}
+          </Animated.View>
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -205,10 +218,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    marginLeft: 8,
     fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF", // White text inside Orange Pill
+    textAlign: "center",
   },
 });
 
