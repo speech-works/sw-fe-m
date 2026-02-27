@@ -5,13 +5,10 @@ import Svg, {
   Path,
   G,
   Defs,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Circle,
   Rect,
-  Line,
-} from "react-native-svg";
+  Line } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -20,8 +17,7 @@ import Animated, {
   withTiming,
   Easing,
   withDelay,
-  runOnJS,
-} from "react-native-reanimated";
+  runOnJS } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -286,8 +282,7 @@ const FaceNode = ({
   y,
   scale = 0.5,
   shadowId,
-  shouldAnimate,
-}: {
+  shouldAnimate }: {
   faceColor: string;
   role: ProfessionalRole;
   x: number;
@@ -369,14 +364,12 @@ const FaceNode = ({
       { translateY: 24 },
       { scaleY: blink.value },
       { translateY: -24 },
-    ],
-  }));
+    ] }));
 
   const helmetProps = useAnimatedProps(() => ({
     transform: [{ rotate: `${helmetWiggle.value}deg` }],
     originX: 24,
-    originY: 24,
-  }));
+    originY: 24 }));
 
   const capProps = useAnimatedProps(() => ({
     // Apply float. Base position is handled by static transform on parent or G if needed.
@@ -384,14 +377,12 @@ const FaceNode = ({
     // Original static was translate(0, -2), so translateY should be related to that if we replace it?
     // Actually, animatedProps transform overrides static transform on Animated components usually.
     // We should include the static offset (-2) in the animated value or prop.
-    transform: [{ translateY: -2 + capFloat.value }],
-  }));
+    transform: [{ translateY: -2 + capFloat.value }] }));
 
   const glassesProps = useAnimatedProps(() => ({
     transform: [{ rotate: `${glassesTilt.value}deg` }],
     originX: 24,
-    originY: 24,
-  }));
+    originY: 24 }));
 
   return (
     <G transform={`translate(${x}, ${y}) scale(${scale})`}>
@@ -520,8 +511,7 @@ const FaceNode = ({
 
 const FacesLayer = ({
   roles,
-  shouldAnimate,
-}: {
+  shouldAnimate }: {
   roles: ProfessionalRole[];
   shouldAnimate?: boolean;
 }) => {
@@ -624,12 +614,10 @@ const DiverseCommunityFace = ({
   const nextScene = SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length];
 
   const currentBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: -slideOffset.value }],
-  }));
+    transform: [{ translateY: -slideOffset.value }] }));
 
   const nextBgStyle = useAnimatedProps(() => ({
-    transform: [{ translateY: 48 - slideOffset.value }],
-  }));
+    transform: [{ translateY: 48 - slideOffset.value }] }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
@@ -669,8 +657,7 @@ const CommunityGallery = () => {
         flexDirection: "row",
         flexWrap: "wrap",
         gap: 10,
-        padding: 20,
-      }}
+        padding: 20 }}
     >
       {/* Variant 1: Ocean BG */}
       <DiverseCommunityFace

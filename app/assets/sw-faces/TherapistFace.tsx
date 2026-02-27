@@ -6,8 +6,7 @@ import Svg, {
   Defs,
   SvgProps,
   Circle,
-  Rect,
-} from "react-native-svg";
+  Rect } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;

@@ -4,17 +4,9 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Circle,
-  Line,
-} from "react-native-svg";
+  Line } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -36,27 +28,6 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
       {...props}
     >
       <Defs>
-        <Filter
-          id="cheek_knife_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={2} dy={2} />
-          <FeGaussianBlur stdDeviation={0.5} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
         <Mask
           id="cheek_knife_mask"
           x="0"
@@ -79,7 +50,7 @@ const MaskedFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
         {/* Face Shape - Pale Peach/Skin Tone (RESTORED ORIGINAL PROPORTIONS) */}
-        <G filter="url(#cheek_knife_shadow)">
+        <G>
           <Path
             fill="#FFCCBC"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

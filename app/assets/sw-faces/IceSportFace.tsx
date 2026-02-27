@@ -4,16 +4,8 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
-  Circle,
-} from "react-native-svg";
+  Circle } from "react-native-svg";
 
 const IceSportFace = ({
   size = 48,
@@ -21,27 +13,6 @@ const IceSportFace = ({
 }: SvgProps & { size?: number | string; shouldAnimate?: boolean; loop?: boolean; repeatCount?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
     <Defs>
-      <Filter
-        id="goggle_shadow"
-        x="-50%"
-        y="-50%"
-        width="200%"
-        height="200%"
-        filterUnits="userSpaceOnUse"
-      >
-        <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-        <FeColorMatrix
-          in="SourceAlpha"
-          result="hardAlpha"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        />
-        <FeOffset dx={4} dy={4} />
-        <FeGaussianBlur stdDeviation={1.2} />
-        <FeComposite in2="hardAlpha" operator="out" />
-        <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-        <FeBlend in2="BackgroundImageFix" result="effect1" />
-        <FeBlend in="SourceGraphic" in2="effect1" result="shape" />
-      </Filter>
       <Mask id="goggle_mask" x="0" y="0" width="48" height="48">
         <Circle cx="24" cy="24" r="24" fill="#fff" />
       </Mask>
@@ -70,7 +41,7 @@ const IceSportFace = ({
       </G>
 
       <G id="PilotFace" transform="translate(0, 10)">
-        <G filter="url(#goggle_shadow)">
+        <G>
           <Path
             fill="#FFD4B8"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

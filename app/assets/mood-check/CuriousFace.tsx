@@ -4,15 +4,7 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+  SvgProps } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -34,27 +26,6 @@ const CuriousFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCoun
       {...props}
     >
       <Defs>
-        <Filter
-          id="curious_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
         <Mask
           id="curious_mask"
           x="0"
@@ -75,7 +46,7 @@ const CuriousFace = ({ size = 48, width, height, shouldAnimate, loop, repeatCoun
           fill="#80CBC4"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        <G filter="url(#curious_shadow)">
+        <G>
           {/* Face Shape - Light Teal/Grey */}
           <Path
             fill="#E0F2F1"

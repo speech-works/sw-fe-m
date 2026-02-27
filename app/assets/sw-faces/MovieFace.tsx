@@ -4,12 +4,9 @@ import Svg, {
   Path,
   G,
   Defs,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Rect,
-  Circle,
-} from "react-native-svg";
+  Circle } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -17,8 +14,7 @@ import Animated, {
   withSequence,
   withTiming,
   withDelay,
-  Easing,
-} from "react-native-reanimated";
+  Easing } from "react-native-reanimated";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -59,8 +55,7 @@ const MovieFace = ({
     // Translate across the width of the lens (10px) + buffer
     const translateX = -5 + sheenProgress.value * 20; // -5 -> 15 (Travels 20px total)
     return {
-      transform: [{ translateX }],
-    };
+      transform: [{ translateX }] };
   });
 
   return (

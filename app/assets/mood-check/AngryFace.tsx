@@ -4,19 +4,11 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Rect,
   Line,
   LinearGradient,
-  Stop,
-} from "react-native-svg";
+  Stop } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -24,8 +16,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
-  withDelay,
-} from "react-native-reanimated";
+  withDelay } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -108,31 +99,26 @@ const AngryFace = ({
   }, [shouldAnimate]);
 
   const upperJawProps = useAnimatedProps(() => ({
-    transform: [{ translateY: upperJawY.value }],
-  }));
+    transform: [{ translateY: upperJawY.value }] }));
 
   const lowerJawProps = useAnimatedProps(() => ({
-    transform: [{ translateY: lowerJawY.value }],
-  }));
+    transform: [{ translateY: lowerJawY.value }] }));
 
   // Pivot from Bottom Center
   const layer1Props = useAnimatedProps(() => ({
     transform: [{ scaleY: flameLayer1ScaleY.value }],
     originX: 24,
-    originY: 48,
-  }));
+    originY: 48 }));
 
   const layer2Props = useAnimatedProps(() => ({
     transform: [{ scaleY: flameLayer2ScaleY.value }],
     originX: 24,
-    originY: 48,
-  }));
+    originY: 48 }));
 
   const layer3Props = useAnimatedProps(() => ({
     transform: [{ scaleY: flameLayer3ScaleY.value }],
     originX: 24,
-    originY: 48,
-  }));
+    originY: 48 }));
 
   return (
     <Svg
@@ -143,31 +129,7 @@ const AngryFace = ({
       {...props}
     >
       <Defs>
-        <Filter
-          id="angry1_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
         {/* Medium Blur to soften the points just a bit */}
-        <Filter id="flameBlur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur stdDeviation="2" result="blur" />
-        </Filter>
         <Mask
           id="angry1_mask"
           x="0"
@@ -205,7 +167,7 @@ const AngryFace = ({
         />
 
         {/* 2. Three-Layered Flame Animation (Stylized Sharp Fire) */}
-        <G filter="url(#flameBlur)">
+        <G>
           {/* Layer 1: Red - Cheekbone Flares */}
           <AnimatedPath
             d="M-5 50 
@@ -250,7 +212,7 @@ const AngryFace = ({
         </G>
 
         {/* 3. Face Shape (Static) - Covers center */}
-        <G filter="url(#angry1_shadow)">
+        <G>
           <Path
             fill="#F28B82"
             d="M7.628 10.176c0-2.805 33.119-2.805 33.119 0 2.76 0 2.76 39.26 0 39.26 0 2.805-33.119 2.805-33.119 0-2.76 0-2.76-39.26 0-39.26"

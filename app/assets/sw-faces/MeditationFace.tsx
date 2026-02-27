@@ -5,17 +5,9 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Line,
-  Circle,
-} from "react-native-svg";
+  Circle } from "react-native-svg";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -23,8 +15,7 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
-  cancelAnimation,
-} from "react-native-reanimated";
+  cancelAnimation } from "react-native-reanimated";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -64,8 +55,7 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: scale.value }, { translateY: -size * 0.3 }], // Offset to forehead (approx 30% up)
-      opacity: opacity.value,
-    };
+      opacity: opacity.value };
   });
 
   return (
@@ -74,8 +64,7 @@ const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
         StyleSheet.absoluteFillObject,
         {
           justifyContent: "center",
-          alignItems: "center",
-        },
+          alignItems: "center" },
         animatedStyle,
       ]}
     >
@@ -110,8 +99,7 @@ const MeditationFace = ({
         width: activeWidth,
         height: activeHeight,
         justifyContent: "center",
-        alignItems: "center",
-      }}
+        alignItems: "center" }}
     >
       {/* Background Pulsing Rings */}
       <PulsingRing delay={0} size={activeWidth} />
@@ -127,31 +115,6 @@ const MeditationFace = ({
         {...props}
       >
         <Defs>
-          <Filter
-            id="calm_shadow"
-            x="-50%"
-            y="-50%"
-            width="200%"
-            height="200%"
-            filterUnits="userSpaceOnUse"
-          >
-            <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-            <FeColorMatrix
-              in="SourceAlpha"
-              result="hardAlpha"
-              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-            />
-            <FeOffset dx={4} dy={4} />
-            <FeGaussianBlur stdDeviation={1} />
-            <FeComposite in2="hardAlpha" operator="out" />
-            <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-            <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-            <FeBlend
-              in="SourceGraphic"
-              in2="effect1_dropShadow"
-              result="shape"
-            />
-          </Filter>
           <Mask
             id="calm_mask"
             x="0"
@@ -174,7 +137,7 @@ const MeditationFace = ({
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
           {/* Face Shape - Skin Tone (a warm, light peach/beige) */}
-          <G filter="url(#calm_shadow)">
+          <G>
             <Path
               fill="#FFDAB9" // Changed to a more neutral skin tone
               d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

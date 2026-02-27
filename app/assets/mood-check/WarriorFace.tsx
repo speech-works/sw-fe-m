@@ -4,23 +4,14 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+  SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
   withRepeat,
   withSequence,
   withTiming,
-  Easing,
-} from "react-native-reanimated";
+  Easing } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -75,8 +66,7 @@ const WarriorFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -42 },
         { translateY: -16 },
-      ],
-    };
+      ] };
   });
 
   const lowerKnotProps = useAnimatedProps(() => {
@@ -91,8 +81,7 @@ const WarriorFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -42 },
         { translateY: -18 },
-      ],
-    };
+      ] };
   });
 
   return (
@@ -104,27 +93,6 @@ const WarriorFace = ({
       {...props}
     >
       <Defs>
-        <Filter
-          id="determined_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
         <Mask
           id="determined_mask"
           x="0"
@@ -145,7 +113,7 @@ const WarriorFace = ({
           fill="#FF7043"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        <G filter="url(#determined_shadow)">
+        <G>
           {/* Face Shape */}
           <Path
             fill="#FFCCBC"

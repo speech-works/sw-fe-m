@@ -4,15 +4,7 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+  SvgProps } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -42,7 +34,7 @@ const SvgIcon = ({ width = 48, height = 48, shouldAnimate, loop, repeatCount, ..
         fill="#F9E7D9"
         d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
       />
-      <G filter="url(#filter0_d_2132_4899)">
+      <G>
         <Path
           fill="#F7DFA9"
           d="M7.538 10.313c0-2.766 33.199-2.766 33.199 0 2.766 0 2.766 38.736 0 38.736 0 2.767-33.2 2.767-33.2 0-2.766 0-2.766-38.736 0-38.736"
@@ -67,36 +59,7 @@ const SvgIcon = ({ width = 48, height = 48, shouldAnimate, loop, repeatCount, ..
         d="M16.8 36q7.2 4.8 14.4 0"
       />
     </G>
-    <Defs>
-      <Filter
-        id="filter0_d_2132_4899"
-        x={5.463}
-        y={8.238}
-        width={43.35}
-        height={48.886}
-        filterUnits="userSpaceOnUse"
-      >
-        <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-        <FeColorMatrix
-          in="SourceAlpha"
-          result="hardAlpha"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        />
-        <FeOffset dx={4} dy={4} />
-        <FeGaussianBlur stdDeviation={1} />
-        <FeComposite in2="hardAlpha" operator="out" />
-        <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-        <FeBlend
-          in2="BackgroundImageFix"
-          result="effect1_dropShadow_2132_4899"
-        />
-        <FeBlend
-          in="SourceGraphic"
-          in2="effect1_dropShadow_2132_4899"
-          result="shape"
-        />
-      </Filter>
-    </Defs>
+    
   </Svg>
 );
 

@@ -4,11 +4,8 @@ import Svg, {
   Path,
   G,
   Defs,
-  FeComposite,
-  FeBlend,
   SvgProps,
-  Circle,
-} from "react-native-svg";
+  Circle } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -17,8 +14,7 @@ import Animated, {
   withTiming,
   Easing,
   interpolate,
-  useDerivedValue,
-} from "react-native-reanimated";
+  useDerivedValue } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -129,8 +125,7 @@ const ExcitedTouristMapFace = ({
         { scale },
         { translateX: -24 },
         { translateY: -20 },
-      ],
-    };
+      ] };
   });
 
   // --- EYES TRACKING ANIMATION ---
@@ -210,8 +205,7 @@ const ExcitedTouristMapFace = ({
     }
 
     return {
-      transform: [{ translateX: cxOffset }, { translateY: cyOffset }],
-    };
+      transform: [{ translateX: cxOffset }, { translateY: cyOffset }] };
   });
 
   // Z-Index derived value for opacity toggle
@@ -224,12 +218,10 @@ const ExcitedTouristMapFace = ({
   });
 
   const frontOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value > 0 ? 1 : 0,
-  }));
+    opacity: zIndexVal.value > 0 ? 1 : 0 }));
 
   const backOpacityProps = useAnimatedProps(() => ({
-    opacity: zIndexVal.value < 0 ? 1 : 0,
-  }));
+    opacity: zIndexVal.value < 0 ? 1 : 0 }));
 
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>

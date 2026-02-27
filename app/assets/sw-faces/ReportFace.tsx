@@ -4,17 +4,9 @@ import Svg, {
   G,
   Defs,
   Mask,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Rect,
-  Circle,
-} from "react-native-svg";
+  Circle } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -39,28 +31,7 @@ const ReportFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
         <Mask id="circleMask">
           <Circle cx="24" cy="24" r="24" fill="#fff" />
         </Mask>
-        <Filter
-          id="report_shadow_greenflag"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-      </Defs>
+        </Defs>
 
       {/* Base Background - Sunny Yellow */}
       <Circle cx="24" cy="24" r="24" fill="#FFF59D" />
@@ -77,7 +48,7 @@ const ReportFace = ({ size = 48, shouldAnimate, loop, repeatCount, ...props }: S
         {/* Layer 2: Character (Middle) - Translucent & Shifted Down */}
         <G opacity={0.9} transform="translate(0, 8)">
           {/* Face Shape */}
-          <G filter="url(#report_shadow_greenflag)">
+          <G>
             <Path
               fill="#FFDABF"
               d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

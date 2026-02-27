@@ -4,18 +4,14 @@ import Svg, {
   Path,
   G,
   Defs,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+  SvgProps } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
   withRepeat,
   withSequence,
   withTiming,
-  Easing,
-} from "react-native-reanimated";
+  Easing } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -68,14 +64,12 @@ const BreathingFace = ({
         { rotate: `${rotate}deg` },
         { translateX: -26 },
         { translateY: -34 }, // Unpivot
-      ],
-    };
+      ] };
   });
 
   const eyeProps = useAnimatedProps(() => ({
     // Subtle up/down float (Slower due to longer duration)
-    transform: [{ translateY: -1 + Math.sin(progress.value * Math.PI) * 1.0 }],
-  }));
+    transform: [{ translateY: -1 + Math.sin(progress.value * Math.PI) * 1.0 }] }));
 
   return (
     <Svg

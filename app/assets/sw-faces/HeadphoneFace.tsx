@@ -4,17 +4,9 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Circle,
-  Rect,
-} from "react-native-svg";
+  Rect } from "react-native-svg";
 
 const HeadphoneFace = ({
   size = 48,
@@ -25,28 +17,7 @@ const HeadphoneFace = ({
       <Mask id="mask_playlist_berry">
         <Circle cx="24" cy="24" r="24" fill="#fff" />
       </Mask>
-      <Filter
-        id="shadow_playlist_berry"
-        x="-50%"
-        y="-50%"
-        width="200%"
-        height="200%"
-        filterUnits="userSpaceOnUse"
-      >
-        <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-        <FeColorMatrix
-          in="SourceAlpha"
-          result="hardAlpha"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        />
-        <FeOffset dx={2} dy={2} />
-        <FeGaussianBlur stdDeviation={1} />
-        <FeComposite in2="hardAlpha" operator="out" />
-        <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0" />
-        <FeBlend in2="BackgroundImageFix" result="effect1" />
-        <FeBlend in="SourceGraphic" in2="effect1" result="shape" />
-      </Filter>
-    </Defs>
+      </Defs>
 
     <G mask="url(#mask_playlist_berry)">
       {/* Background: Deep Pink */}
@@ -81,7 +52,7 @@ const HeadphoneFace = ({
 
       {/* Character */}
       <G transform="translate(0, 10)">
-        <G filter="url(#shadow_playlist_berry)">
+        <G>
           <Path
             fill="#FFECB3"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

@@ -6,8 +6,7 @@ import Svg, {
   Defs,
   SvgProps,
   Circle,
-  Rect,
-} from "react-native-svg";
+  Rect } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -16,8 +15,7 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
-  cancelAnimation,
-} from "react-native-reanimated";
+  cancelAnimation } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -65,8 +63,7 @@ const StorytellerFace = ({
   }, [shouldAnimate]);
 
   const scrollProps = useAnimatedProps(() => ({
-    transform: [{ translateY: scrollY.value }],
-  }));
+    transform: [{ translateY: scrollY.value }] }));
 
   return (
     <Svg

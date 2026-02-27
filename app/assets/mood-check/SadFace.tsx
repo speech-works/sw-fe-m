@@ -4,27 +4,18 @@ import Svg, {
   Path,
   G,
   Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
   SvgProps,
   Circle,
   ClipPath,
   LinearGradient,
-  Stop,
-} from "react-native-svg";
+  Stop } from "react-native-svg";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
   withRepeat,
   withSequence,
   withTiming,
-  Easing,
-} from "react-native-reanimated";
+  Easing } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -113,86 +104,74 @@ const SadFace = ({
     transform: [{ scale: 1 + 0.4 * pulse.value }],
     opacity: 0.3 * (1 - pulse.value), // Fade out
     originX: 24,
-    originY: 24,
-  }));
+    originY: 24 }));
 
   const rain1Props = useAnimatedProps(() => ({
     transform: [{ translateY: (rain.value % 1) * 70 }, { rotate: "-15deg" }],
-    opacity: 0.3 * (1 - (rain.value % 1)),
-  }));
+    opacity: 0.3 * (1 - (rain.value % 1)) }));
 
   const rain2Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.5) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.5) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.5) % 1)) }));
 
   const rain3Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.15) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.15) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.15) % 1)) }));
 
   const rain4Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.7) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.7) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.7) % 1)) }));
 
   const rain5Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.35) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.35) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.35) % 1)) }));
 
   const rain6Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.85) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.85) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.85) % 1)) }));
 
   const rain7Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.25) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.25) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.25) % 1)) }));
 
   const rain8Props = useAnimatedProps(() => ({
     transform: [
       { translateY: ((rain.value + 0.6) % 1) * 70 },
       { rotate: "-15deg" },
     ],
-    opacity: 0.3 * (1 - ((rain.value + 0.6) % 1)),
-  }));
+    opacity: 0.3 * (1 - ((rain.value + 0.6) % 1)) }));
 
   const mouthProps = useAnimatedProps(() => ({
     transform: [{ translateX: mouthQuiver.value * 0.5 }], // Subtle shake
     originX: 24,
-    originY: 39,
-  }));
+    originY: 39 }));
 
   const leftTearProps = useAnimatedProps(() => ({
     // Subtle wobble at the bottom
     transform: [{ translateY: -1 - 2 * tearLevel.value }],
-    opacity: 0.8,
-  }));
+    opacity: 0.8 }));
 
   const rightTearProps = useAnimatedProps(() => ({
     transform: [{ translateY: -1 - 2 * tearLevel.value }],
-    opacity: 0.8,
-  }));
+    opacity: 0.8 }));
 
   return (
     <Svg
@@ -203,30 +182,6 @@ const SadFace = ({
       {...props}
     >
       <Defs>
-        <Filter id="blue_blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur stdDeviation="4" />
-        </Filter>
-        <Filter
-          id="sad_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
         <Mask
           id="sad_mask"
           x="0"
@@ -334,7 +289,7 @@ const SadFace = ({
 
         {/* Animated Sad Face */}
         <AnimatedG animatedProps={faceProps}>
-          <G filter="url(#sad_shadow)">
+          <G>
             <Path
               fill="#BEEDE8"
               d="M7.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.199 2.766-33.199 0-2.767 0-2.767-38.736 0-38.736"

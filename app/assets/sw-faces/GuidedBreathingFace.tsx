@@ -10,8 +10,7 @@ import Svg, {
   Ellipse,
   LinearGradient,
   RadialGradient,
-  Stop,
-} from "react-native-svg";
+  Stop } from "react-native-svg";
 import Animated, {
   useSharedValue,
   withSequence,
@@ -20,8 +19,7 @@ import Animated, {
   withRepeat,
   Easing,
   cancelAnimation,
-  withDelay,
-} from "react-native-reanimated";
+  withDelay } from "react-native-reanimated";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
@@ -70,8 +68,7 @@ const GuidedBreathingFace = ({
         // Eyes: Lift
         eyeTranslateY.value = withTiming(-1.5, {
           duration: DURATION,
-          easing: Easing.out(Easing.quad),
-        });
+          easing: Easing.out(Easing.quad) });
         // Breath: Invisible
         breathOpacity.value = withTiming(0, { duration: 200 });
         break;
@@ -87,8 +84,7 @@ const GuidedBreathingFace = ({
         // Eyes: Relax
         eyeTranslateY.value = withTiming(0, {
           duration: DURATION,
-          easing: Easing.inOut(Easing.ease),
-        });
+          easing: Easing.inOut(Easing.ease) });
         // Breath: Visible (fade in then pulse/stay)
         breathOpacity.value = withSequence(
           withTiming(1, { duration: 300 })
@@ -107,20 +103,17 @@ const GuidedBreathingFace = ({
 
   const animatedGroupProps = useAnimatedProps(() => {
     return {
-      transform: [{ scale: scale.value }],
-    };
+      transform: [{ scale: scale.value }] };
   });
 
   const animatedBreathProps = useAnimatedProps(() => {
     return {
-      opacity: breathOpacity.value,
-    };
+      opacity: breathOpacity.value };
   });
 
   const animatedEyesProps = useAnimatedProps(() => {
     return {
-      transform: [{ translateY: eyeTranslateY.value }],
-    };
+      transform: [{ translateY: eyeTranslateY.value }] };
   });
 
   return (
