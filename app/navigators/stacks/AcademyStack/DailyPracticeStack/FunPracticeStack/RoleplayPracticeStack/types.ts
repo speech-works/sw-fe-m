@@ -9,14 +9,14 @@ export type RoleplayFDPStackParamList = {
     title: string;
     description: string;
     roleplay: RolePlayData;
-    packContext?: { packId: string; moduleId: string };
+    packContext?: { packId: string; moduleId: string; blockIndex?: number };
   };
   RoleplayChat: {
     id: string;
     title: string;
     roleplay: RolePlayData;
     selectedRoleName: string;
-    packContext?: { packId: string; moduleId: string };
+    packContext?: { packId: string; moduleId: string; blockIndex?: number };
   };
 };
 export type RoleplayFDPStackNavigationProp<

@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, {
-    Easing,
-    FadeIn,
-    FadeOut,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withTiming,
+  Easing,
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import SunshineOverlay from "./SunshineOverlay";
@@ -20,7 +21,7 @@ interface RainDropProps {
   index: number;
 }
 
-const RainDrop: React.FC<RainDropProps> = () => {
+const RainDrop: React.FC<RainDropProps> = React.memo(() => {
   // Random properties for this drop
   const randomX = Math.random() * width;
   const randomDelay = Math.random() * 2500; // Spread out start times
@@ -40,9 +41,10 @@ const RainDrop: React.FC<RainDropProps> = () => {
           easing: Easing.linear,
         }),
         -1, // Infinite repeat
-        false
-      )
+        false,
+      ),
     );
+    return () => cancelAnimation(translateY);
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -56,6 +58,8 @@ const RainDrop: React.FC<RainDropProps> = () => {
 
   return (
     <Animated.View
+      renderToHardwareTextureAndroid={true}
+      shouldRasterizeIOS={true}
       style={[
         styles.drop,
         {
@@ -67,45 +71,47 @@ const RainDrop: React.FC<RainDropProps> = () => {
       ]}
     />
   );
-};
+});
 
 interface RainOverlayProps {
   showSunshine?: boolean;
 }
 
-const RainOverlay: React.FC<RainOverlayProps> = ({ showSunshine = false }) => {
-  return (
-    <View style={styles.container} pointerEvents="none">
-      {showSunshine ? (
-        <Animated.View
-          key="sunshine"
-          entering={FadeIn.duration(800)}
-          exiting={FadeOut.duration(800)}
-          style={StyleSheet.absoluteFillObject}
-        >
-          <SunshineOverlay />
-        </Animated.View>
-      ) : (
-        <Animated.View
-          key="rain"
-          entering={FadeIn.duration(800)}
-          exiting={FadeOut.duration(800)}
-          style={StyleSheet.absoluteFillObject}
-        >
-          {/* Rain drops */}
-          {Array.from({ length: NUM_DROPS }).map((_, index) => (
-            <RainDrop key={index} index={index} />
-          ))}
+const RainOverlay: React.FC<RainOverlayProps> = React.memo(
+  ({ showSunshine = false }) => {
+    return (
+      <View style={styles.container} pointerEvents="none">
+        {showSunshine ? (
+          <Animated.View
+            key="sunshine"
+            entering={FadeIn.duration(800)}
+            exiting={FadeOut.duration(800)}
+            style={StyleSheet.absoluteFillObject}
+          >
+            <SunshineOverlay />
+          </Animated.View>
+        ) : (
+          <Animated.View
+            key="rain"
+            entering={FadeIn.duration(800)}
+            exiting={FadeOut.duration(800)}
+            style={StyleSheet.absoluteFillObject}
+          >
+            {/* Rain drops */}
+            {Array.from({ length: NUM_DROPS }).map((_, index) => (
+              <RainDrop key={index} index={index} />
+            ))}
 
-          {/* Water accumulation at bottom */}
-          <WaterLevel />
-        </Animated.View>
-      )}
-    </View>
-  );
-};
+            {/* Water accumulation at bottom */}
+            <WaterLevel />
+          </Animated.View>
+        )}
+      </View>
+    );
+  },
+);
 
-const WaterLevel: React.FC = () => {
+const WaterLevel: React.FC = React.memo(() => {
   const waterHeight = useSharedValue(0.25);
   const wave1Offset = useSharedValue(0);
   const wave2Offset = useSharedValue(0);
@@ -125,7 +131,7 @@ const WaterLevel: React.FC = () => {
         easing: Easing.linear,
       }),
       -1,
-      false
+      false,
     );
 
     // Wave 2 - faster horizontal movement for layered effect
@@ -135,7 +141,7 @@ const WaterLevel: React.FC = () => {
         easing: Easing.linear,
       }),
       -1,
-      false
+      false,
     );
 
     // Swivel/bobbing motion - gentle up and down
@@ -145,8 +151,15 @@ const WaterLevel: React.FC = () => {
         easing: Easing.inOut(Easing.sin),
       }),
       -1,
-      true // Reverse for smooth back-and-forth
+      true, // Reverse for smooth back-and-forth
     );
+
+    return () => {
+      cancelAnimation(waterHeight);
+      cancelAnimation(wave1Offset);
+      cancelAnimation(wave2Offset);
+      cancelAnimation(swivelOffset);
+    };
   }, []);
 
   const containerStyle = useAnimatedStyle(() => {
@@ -183,14 +196,14 @@ const WaterLevel: React.FC = () => {
     return `
       M0,${baseHeight}
       C${waveWidth * 0.1},${baseHeight - amplitude} ${waveWidth * 0.2},${
-      baseHeight + amplitude
-    } ${waveWidth * 0.25},${baseHeight}
+        baseHeight + amplitude
+      } ${waveWidth * 0.25},${baseHeight}
       S${waveWidth * 0.35},${baseHeight - amplitude * 0.8} ${
-      waveWidth * 0.5
-    },${baseHeight}
+        waveWidth * 0.5
+      },${baseHeight}
       S${waveWidth * 0.65},${baseHeight + amplitude * 1.2} ${
-      waveWidth * 0.75
-    },${baseHeight}
+        waveWidth * 0.75
+      },${baseHeight}
       S${waveWidth * 0.85},${baseHeight - amplitude} ${waveWidth},${baseHeight}
       L${waveWidth},15 L0,15 Z
     `;
@@ -213,7 +226,7 @@ const WaterLevel: React.FC = () => {
       </Animated.View>
     </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

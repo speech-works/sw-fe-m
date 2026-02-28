@@ -1,15 +1,15 @@
 // CallScreenWithTranscript.tsx
 import React, { useEffect, useRef, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MessageBubble from "../../../../../../../components/MessageBubble";
@@ -34,13 +34,14 @@ const CallScreenWithTranscript: React.FC = () => {
 
   // Initial greeting from the agent
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     if (isCallActive && transcript.length === 0) {
       const initialAgentMessage: Message = {
         sender: "agent",
         content:
           "Hello! I'll be your practice partner today. Ready when you are.",
       };
-      setTimeout(() => {
+      timer = setTimeout(() => {
         setTranscript([initialAgentMessage]);
         setCurrentTurn("user"); // After agent's greeting, it's user's turn
       }, 500); // Small delay for effect
@@ -48,6 +49,10 @@ const CallScreenWithTranscript: React.FC = () => {
       setTranscript([]); // Clear transcript when call ends
       setCurrentTurn("agent"); // Reset turn
     }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isCallActive]);
 
   // Scroll to bottom of chat

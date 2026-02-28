@@ -2,19 +2,19 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    UIManager,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-    FixedRolePlayNode,
-    FixedRolePlayNodeOption,
+  FixedRolePlayNode,
+  FixedRolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
 import { completePracticeActivity } from "../../../../../../../api/practiceActivities";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
@@ -26,8 +26,8 @@ import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -128,11 +128,15 @@ const Chat = () => {
 
   // Effect to scroll to the bottom of the chat when messages update
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     if (chatScrollRef.current && messages.length > 0) {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [messages]);
 
   // Handles the selection of a user response option

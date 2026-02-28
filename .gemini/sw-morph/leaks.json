@@ -1,0 +1,32 @@
+[
+  {
+    "file": "app/screens/Academy/DailyPractice/pages/CognitivePractice/Reframe/components/SunshineOverlay.tsx",
+    "line": 107,
+    "type": "setTimeout",
+    "reason": "Missing cleanup function in useEffect"
+  },
+  {
+    "file": "app/screens/Academy/DailyPractice/pages/Exposure/Interview/Chat/index.tsx",
+    "line": 130,
+    "type": "setTimeout",
+    "reason": "Missing cleanup function in useEffect"
+  },
+  {
+    "file": "app/screens/Academy/DailyPractice/pages/Exposure/PhoneCall/components/CallScreen.tsx",
+    "line": 36,
+    "type": "setTimeout",
+    "reason": "Missing cleanup function in useEffect"
+  },
+  {
+    "file": "app/screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat/index.tsx",
+    "line": 114,
+    "type": "setTimeout",
+    "reason": "Missing cleanup function in useEffect"
+  },
+  {
+    "file": "app/screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat/index.tsx",
+    "line": 155,
+    "type": "setTimeout",
+    "reason": "Missing cleanup function in useEffect"
+  }
+]

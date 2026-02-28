@@ -1,20 +1,21 @@
 import React, { useEffect } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    Path,
-    RadialGradient,
-    Stop,
+  Circle,
+  Defs,
+  Path,
+  RadialGradient,
+  Stop,
 } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
@@ -26,80 +27,89 @@ interface BirdProps {
   duration: number;
 }
 
-const Bird: React.FC<BirdProps> = ({ delay, yPosition, duration }) => {
-  const translateX = useSharedValue(width + 50);
-  const wingFlap = useSharedValue(0);
+const Bird: React.FC<BirdProps> = React.memo(
+  ({ delay, yPosition, duration }) => {
+    const translateX = useSharedValue(width + 50);
+    const wingFlap = useSharedValue(0);
 
-  useEffect(() => {
-    // Fly from right to left
-    translateX.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(-100, {
-          duration: duration,
-          easing: Easing.linear,
-        }),
+    useEffect(() => {
+      // Fly from right to left
+      translateX.value = withDelay(
+        delay,
+        withRepeat(
+          withTiming(-100, {
+            duration: duration,
+            easing: Easing.linear,
+          }),
+          -1,
+          false,
+        ),
+      );
+
+      // Wing flapping animation
+      wingFlap.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 250, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 250, easing: Easing.inOut(Easing.sin) }),
+        ),
         -1,
-        false
-      )
-    );
+        false,
+      );
 
-    // Wing flapping animation
-    wingFlap.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 250, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 250, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      false
-    );
-  }, []);
+      return () => {
+        cancelAnimation(translateX);
+        cancelAnimation(wingFlap);
+      };
+    }, []);
 
-  const birdStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
+    const birdStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: translateX.value }],
+      };
+    });
 
-  const wingStyle = useAnimatedStyle(() => {
-    // More subtle wing flapping
-    return {
-      transform: [{ scaleY: 0.85 + wingFlap.value * 0.15 }],
-    };
-  });
+    const wingStyle = useAnimatedStyle(() => {
+      // More subtle wing flapping
+      return {
+        transform: [{ scaleY: 0.85 + wingFlap.value * 0.15 }],
+      };
+    });
 
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          top: yPosition,
-          left: 0,
-        },
-        birdStyle,
-      ]}
-    >
-      <Animated.View style={wingStyle}>
-        <Svg width={12} height={8} viewBox="0 0 12 8">
-          {/* Realistic bird silhouette with curved wings */}
-          <Path
-            d="M 6,2 Q 3,0 1,1 Q 2,3 6,3.5 Q 10,3 11,1 Q 9,0 6,2 Z"
-            fill="#FFFFFF"
-            opacity={0.9}
-          />
-          {/* Small body */}
-          <Path
-            d="M 5.5,3 L 6.5,3 L 6.5,4 L 5.5,4 Z"
-            fill="#FFFFFF"
-            opacity={0.9}
-          />
-        </Svg>
+    return (
+      <Animated.View
+        renderToHardwareTextureAndroid={true}
+        shouldRasterizeIOS={true}
+        style={[
+          {
+            position: "absolute",
+            top: yPosition,
+            left: 0,
+          },
+          birdStyle,
+        ]}
+      >
+        <Animated.View style={wingStyle}>
+          <Svg width={12} height={8} viewBox="0 0 12 8">
+            {/* Realistic bird silhouette with curved wings */}
+            <Path
+              d="M 6,2 Q 3,0 1,1 Q 2,3 6,3.5 Q 10,3 11,1 Q 9,0 6,2 Z"
+              fill="#FFFFFF"
+              opacity={0.9}
+            />
+            {/* Small body */}
+            <Path
+              d="M 5.5,3 L 6.5,3 L 6.5,4 L 5.5,4 Z"
+              fill="#FFFFFF"
+              opacity={0.9}
+            />
+          </Svg>
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
-  );
-};
+    );
+  },
+);
 
-const SunshineOverlay: React.FC = () => {
+const SunshineOverlay: React.FC = React.memo(() => {
   const sunGlow = useSharedValue(1);
   const sunOpacity = useSharedValue(1);
   const sunRise = useSharedValue(100); // Start below visible area
@@ -112,27 +122,37 @@ const SunshineOverlay: React.FC = () => {
     });
 
     // After rise completes, start pulsing glow effect
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       // Pulsing sun glow effect - more pronounced breathing
       sunGlow.value = withRepeat(
         withSequence(
           withTiming(1.3, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) })
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
-        false
+        false,
       );
 
       // Pulsing opacity for extra glow effect
       sunOpacity.value = withRepeat(
         withSequence(
           withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0.85, { duration: 2000, easing: Easing.inOut(Easing.sin) })
+          withTiming(0.85, {
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+          }),
         ),
         -1,
-        false
+        false,
       );
     }, 3000); // Start glow after sunrise completes
+
+    return () => {
+      clearTimeout(timer);
+      cancelAnimation(sunRise);
+      cancelAnimation(sunGlow);
+      cancelAnimation(sunOpacity);
+    };
   }, []);
 
   const sunStyle = useAnimatedStyle(() => {
@@ -148,7 +168,11 @@ const SunshineOverlay: React.FC = () => {
       <View style={styles.skyBackground} />
 
       {/* Bright Sun - positioned at top-left, behind trees */}
-      <Animated.View style={[styles.sunContainer, sunStyle]}>
+      <Animated.View
+        style={[styles.sunContainer, sunStyle]}
+        renderToHardwareTextureAndroid={true}
+        shouldRasterizeIOS={true}
+      >
         <Svg width={90} height={90} viewBox="0 0 90 90">
           <Defs>
             <RadialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
@@ -173,7 +197,11 @@ const SunshineOverlay: React.FC = () => {
       </Animated.View>
 
       {/* Dense Forest - taller trees, in front of sun */}
-      <Animated.View style={styles.forestContainer}>
+      <Animated.View
+        style={styles.forestContainer}
+        renderToHardwareTextureAndroid={true}
+        shouldRasterizeIOS={true}
+      >
         <Svg
           width={width}
           height={120}
@@ -272,7 +300,7 @@ const SunshineOverlay: React.FC = () => {
       <Bird delay={8200} yPosition={68} duration={16800} />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

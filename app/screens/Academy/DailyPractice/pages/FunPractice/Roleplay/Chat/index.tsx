@@ -1,38 +1,38 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    UIManager,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
 
 import {
-    RolePlayNode,
-    RolePlayNodeOption,
+  RolePlayNode,
+  RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
 import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
@@ -153,11 +153,15 @@ const Chat = () => {
   }, [currentNodeId, dialogues, hasInitialized]);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     if (chatScrollRef.current && messages.length > 0) {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [messages]);
 
   const handleSelectOption = (option: RolePlayNodeOption) => {
