@@ -1,7 +1,7 @@
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getUserStats } from "../../../api/stats";
 import { PracticeStatSummary } from "../../../api/stats/types";
@@ -38,60 +38,74 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       .catch((err) => console.error("PracticeGrid stats error:", err));
   }, [user]);
 
-  const getCount = (type: string) => {
-    return stats.find((s) => s.contentType === type)?.itemsCompleted || 0;
-  };
+  const getCount = useCallback(
+    (type: string) => {
+      return stats.find((s) => s.contentType === type)?.itemsCompleted || 0;
+    },
+    [stats],
+  );
 
-  const practices = [
-    {
-      name: "Reading",
-      subtitle: "Fluency",
-      countLabel: `${getCount("READING_PRACTICE")} Done`,
-      icon: (
-        <ReaderFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
-      ),
-      route: "ReadingPracticeStack",
-      colors: ["#FFD8B5", "#FFAB76"],
-      shadowColor: "#FFAB76",
-    },
-    {
-      name: "Fun",
-      subtitle: "Expression",
-      countLabel: `${getCount("FUN_PRACTICE")} Done`,
-      icon: (
-        <MovieFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
-      ),
-      route: "FunPracticeStack",
-      colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
-      shadowColor: "#98E6E6",
-    },
-    {
-      name: "Cognitive",
-      subtitle: "Focus",
-      countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
-      icon: (
-        <BreathingFace
-          size={64}
-          shouldAnimate={isFocused && !isScrolling}
-          loop
-        />
-      ),
-      route: "CognitivePracticeStack",
-      colors: ["#EBCBF5", "#D8A7F0"],
-      shadowColor: "#D8A7F0",
-    },
-    {
-      name: "Exposure",
-      subtitle: "Courage",
-      countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
-      icon: (
-        <WarriorFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
-      ),
-      route: "ExposureStack",
-      colors: ["#FFC8C8", "#FF9E9E"],
-      shadowColor: "#FF9E9E",
-    },
-  ];
+  const practices = useMemo(
+    () => [
+      {
+        name: "Reading",
+        subtitle: "Fluency",
+        countLabel: `${getCount("READING_PRACTICE")} Done`,
+        icon: (
+          <ReaderFace
+            size={64}
+            shouldAnimate={isFocused && !isScrolling}
+            loop
+          />
+        ),
+        route: "ReadingPracticeStack",
+        colors: ["#FFD8B5", "#FFAB76"],
+        shadowColor: "#FFAB76",
+      },
+      {
+        name: "Fun",
+        subtitle: "Expression",
+        countLabel: `${getCount("FUN_PRACTICE")} Done`,
+        icon: (
+          <MovieFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
+        ),
+        route: "FunPracticeStack",
+        colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
+        shadowColor: "#98E6E6",
+      },
+      {
+        name: "Cognitive",
+        subtitle: "Focus",
+        countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
+        icon: (
+          <BreathingFace
+            size={64}
+            shouldAnimate={isFocused && !isScrolling}
+            loop
+          />
+        ),
+        route: "CognitivePracticeStack",
+        colors: ["#EBCBF5", "#D8A7F0"],
+        shadowColor: "#D8A7F0",
+      },
+      {
+        name: "Exposure",
+        subtitle: "Courage",
+        countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
+        icon: (
+          <WarriorFace
+            size={64}
+            shouldAnimate={isFocused && !isScrolling}
+            loop
+          />
+        ),
+        route: "ExposureStack",
+        colors: ["#FFC8C8", "#FF9E9E"],
+        shadowColor: "#FF9E9E",
+      },
+    ],
+    [getCount, isFocused, isScrolling],
+  );
 
   const handlePress = (route: string) => {
     // @ts-ignore - Simple navigation wrapper

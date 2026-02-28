@@ -184,11 +184,13 @@ const Home = () => {
 
   // Pagination Logic (React Native Animated)
   const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollHandler = useRef(
-    Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-      useNativeDriver: true,
-    }),
-  ).current;
+  const scrollHandler = React.useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+        useNativeDriver: true,
+      }),
+    [scrollX],
+  );
 
   // Calculate total pages logic
   const showOnboarding = user && !user.hasCompletedOnboarding;
