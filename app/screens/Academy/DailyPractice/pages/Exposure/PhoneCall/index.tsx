@@ -11,23 +11,21 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CallingWidget from "../../../../../../components/CallingWidget";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import {
-    PhoneCallEDPStackNavigationProp,
-    PhoneCallEDPStackParamList,
-    PhoneCallEDPStackRouteProp,
+  PhoneCallEDPStackNavigationProp,
+  PhoneCallEDPStackParamList,
+  PhoneCallEDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
-import {
-    parseTextStyle
-} from "../../../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 import { triggerToast } from "../../../../../../util/functions/toast";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../stores/activity";
@@ -133,7 +131,9 @@ const PhoneCall = () => {
   const markActivityComplete = async () => {
     if (!currentActivityId) return;
     // Fallback for user id
-    const userId = packContext ? "user" : practiceSession?.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession?.user?.id ?? user?.id);
 
     if (!userId) return;
 

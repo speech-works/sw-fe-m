@@ -5,17 +5,17 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import { CharacterVoiceFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
 
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { createSession } from "../../../../../../../api/practiceSessions";
@@ -26,8 +26,8 @@ import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
 import MasonryTips from "../../../../components/MasonryTips";
@@ -83,7 +83,9 @@ const CVExercise = () => {
 
     try {
       const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+      const userId = isPackContext
+        ? user?.id
+        : (sessionToUse!.user?.id ?? user?.id);
 
       if (!userId) {
         console.error("Missing userId");
@@ -134,7 +136,9 @@ const CVExercise = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

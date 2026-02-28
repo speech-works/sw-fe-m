@@ -196,7 +196,9 @@ const Chat = () => {
     if (!sessionToUse && !isPackContext) return;
 
     const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+    const userId = isPackContext
+      ? user?.id
+      : (sessionToUse!.user?.id ?? user?.id);
 
     if (!userId) {
       console.error("Missing userId");
@@ -242,7 +244,9 @@ const Chat = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

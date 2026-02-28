@@ -161,7 +161,9 @@ const Chat = () => {
       return;
 
     // Fallback for user id
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

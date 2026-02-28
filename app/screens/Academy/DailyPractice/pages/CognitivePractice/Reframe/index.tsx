@@ -1,25 +1,20 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-    createPracticeActivity,
-    createPracticeActivityFromPack,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
 } from "../../../../../../api";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    CognitivePracticeType,
-    ReframingThoughtScenarioData,
+  CognitivePracticeType,
+  ReframingThoughtScenarioData,
 } from "../../../../../../api/dailyPractice/types";
 import {
-    completePracticeActivity,
-    startPracticeActivity,
+  completePracticeActivity,
+  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import Button from "../../../../../../components/Button";
@@ -27,20 +22,20 @@ import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import TextArea from "../../../../../../components/TextArea";
 import {
-    CDPStackNavigationProp,
-    CDPStackParamList,
+  CDPStackNavigationProp,
+  CDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 import {
-    AcademyStackNavigationProp,
-    AcademyStackParamList,
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import DonePractice from "../../../components/DonePractice";
@@ -164,7 +159,9 @@ const Reframe = () => {
 
       // Fallback to user from store if session is missing (e.g. in pack mode)
       // Note: ensure user is available in store
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id; // Corrected to use user?.id for packContext
+      const userId = isPackContext
+        ? user?.id
+        : (sessionToUse!.user?.id ?? user?.id); // Corrected to use user?.id for packContext
 
       if (!userId) {
         console.error("Missing userId for activity start");

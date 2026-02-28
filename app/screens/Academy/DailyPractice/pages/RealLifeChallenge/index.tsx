@@ -2,22 +2,22 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import Button from "../../../../../components/Button";
@@ -27,9 +27,7 @@ import { useActivityStore } from "../../../../../stores/activity";
 import { useSessionStore } from "../../../../../stores/session";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
-import {
-    parseTextStyle
-} from "../../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import DonePractice from "../../components/DonePractice";
 
 enum ChallengeStep {
@@ -118,7 +116,9 @@ const RealLifeChallenge = () => {
     if (!isPackContext && !sessionToUse) return;
 
     try {
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+      const userId = isPackContext
+        ? user?.id
+        : (sessionToUse!.user?.id ?? user?.id);
 
       if (!userId) {
         console.error("Missing userId for activity start");
@@ -186,7 +186,9 @@ const RealLifeChallenge = () => {
     try {
       // If we are in a pack, we rely on the backend handling the "pack-session" logic or similar
       // inside completePracticeActivity if needed, but usually completePracticeActivity just needs ID and UserID.
-      const userId = packContext ? "user" : practiceSession!.user.id;
+      const userId = packContext
+        ? "user"
+        : (practiceSession!.user?.id ?? user?.id);
 
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,

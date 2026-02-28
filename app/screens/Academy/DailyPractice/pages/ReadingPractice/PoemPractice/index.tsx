@@ -1,18 +1,18 @@
 import {
-    useFocusEffect,
-    useNavigation,
-    useRoute,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
 } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    Dimensions,
-    LayoutAnimation,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  LayoutAnimation,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -25,7 +25,7 @@ import MasonryTips from "../../../components/MasonryTips";
 
 // Tools
 import Metronome, {
-    useMetronome,
+  useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
@@ -35,22 +35,22 @@ import SmartRecorder from "../StoryPractice/components/SmartRecorder"; // Reuse 
 import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 
 // API & Stores
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    ReadingPractice,
-    ReadingPracticeType,
+  ReadingPractice,
+  ReadingPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
@@ -64,8 +64,8 @@ import { toPascalCase } from "../../../../../../util/functions/strings";
 const { width } = Dimensions.get("window");
 
 import {
-    RDPStackNavigationProp,
-    RDPStackRouteProp,
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const PoemPractice = () => {
@@ -177,7 +177,9 @@ const PoemPractice = () => {
     if (!isPackContext && !sessionToUse) return;
 
     const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+    const userId = isPackContext
+      ? user?.id
+      : (sessionToUse!.user?.id ?? user?.id);
 
     if (!userId) {
       console.error("Missing userId");
@@ -221,7 +223,9 @@ const PoemPractice = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

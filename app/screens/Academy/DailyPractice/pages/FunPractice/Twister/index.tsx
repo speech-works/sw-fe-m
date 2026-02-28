@@ -2,12 +2,12 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
-    LayoutAnimation,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  LayoutAnimation,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -21,14 +21,14 @@ import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartR
 
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    FunPractice,
-    FunPracticeType,
+  FunPractice,
+  FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
@@ -38,14 +38,14 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 
 import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
 import Metronome, {
-    useMetronome,
+  useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
@@ -59,8 +59,8 @@ import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverCo
 const { width } = Dimensions.get("window");
 
 import {
-    TwisterFDPStackNavigationProp,
-    TwisterFDPStackRouteProp,
+  TwisterFDPStackNavigationProp,
+  TwisterFDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
 
 const Twister = () => {
@@ -222,7 +222,9 @@ const Twister = () => {
     }
     try {
       const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+      const userId = isPackContext
+        ? user?.id
+        : (sessionToUse!.user?.id ?? user?.id);
 
       if (!userId) {
         console.error("Missing userId");
@@ -277,7 +279,9 @@ const Twister = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     console.log(">> Twister: Completing activity", activityId);
     const completedActivity = await completePracticeActivity({

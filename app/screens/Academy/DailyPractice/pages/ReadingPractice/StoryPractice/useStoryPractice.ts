@@ -1,26 +1,26 @@
 import {
-    useFocusEffect,
-    useNavigation,
-    useRoute,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
 } from "@react-navigation/native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    completePracticeActivity,
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  completePracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    ReadingPractice,
-    ReadingPracticeType,
+  ReadingPractice,
+  ReadingPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import {
-    RDPStackNavigationProp,
-    RDPStackParamList,
+  RDPStackNavigationProp,
+  RDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
@@ -138,7 +138,9 @@ export const useStoryPractice = () => {
       if (!isPackContext && !sessionToUse) return;
 
       const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+      const userId = isPackContext
+        ? user?.id
+        : (sessionToUse!.user?.id ?? user?.id);
 
       if (!userId) {
         console.error("Missing userId");
@@ -190,7 +192,9 @@ export const useStoryPractice = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext ? "user" : practiceSession!.user.id;
+    const userId = packContext
+      ? "user"
+      : (practiceSession!.user?.id ?? user?.id);
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

@@ -4,27 +4,27 @@ import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-    createPracticeActivity,
-    createPracticeActivityFromPack,
-    startPracticeActivity,
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
 } from "../../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
-    InterviewEDPStackNavigationProp,
-    InterviewEDPStackParamList,
+  InterviewEDPStackNavigationProp,
+  InterviewEDPStackParamList,
 } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import MasonryTips from "../../../../components/MasonryTips";
 
@@ -65,7 +65,9 @@ const Briefing = () => {
     if (!isPackContext && !sessionToUse) return;
 
     const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext ? user?.id : sessionToUse!.user.id;
+    const userId = isPackContext
+      ? user?.id
+      : (sessionToUse!.user?.id ?? user?.id);
 
     if (!userId) {
       console.error("Missing userId");
