@@ -38,23 +38,28 @@ const MovieFace = ({
   const sheenProgress = useSharedValue(0);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
     if (shouldAnimate) {
-      sheenProgress.value = withRepeat(
-        withSequence(
-          withDelay(
-            1800,
-            withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+      timeout = setTimeout(() => {
+        sheenProgress.value = withRepeat(
+          withSequence(
+            withDelay(
+              1800,
+              withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+            ),
+            withTiming(0, { duration: 0 }),
           ),
-          withTiming(0, { duration: 0 }),
-        ),
-        loop ? -1 : repeatCount,
-        false,
-      );
+          loop ? -1 : repeatCount,
+          false,
+        );
+      }, 400); // delay to prevent UI thread deadlock during transiton
     } else {
       sheenProgress.value = 0;
     }
 
     return () => {
+      clearTimeout(timeout);
       cancelAnimation(sheenProgress);
     };
   }, [shouldAnimate, loop, repeatCount]);

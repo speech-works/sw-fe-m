@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming,
- cancelAnimation} from "react-native-reanimated";
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -34,20 +35,25 @@ const WarriorFace = ({
   const progress = useSharedValue(0);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
     if (shouldAnimate) {
-      progress.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
-          withTiming(0, { duration: 600, easing: Easing.out(Easing.exp) }),
-        ),
-        -1,
-        false,
-      );
+      timeout = setTimeout(() => {
+        progress.value = withRepeat(
+          withSequence(
+            withTiming(1, { duration: 600, easing: Easing.out(Easing.exp) }),
+            withTiming(0, { duration: 600, easing: Easing.out(Easing.exp) }),
+          ),
+          -1,
+          false,
+        );
+      }, 400); // delay to prevent UI thread deadlock during transiton
     } else {
       progress.value = 0;
     }
-  
+
     return () => {
+      clearTimeout(timeout);
       cancelAnimation(progress);
     };
   }, [shouldAnimate]);

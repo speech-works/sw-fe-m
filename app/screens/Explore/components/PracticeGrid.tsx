@@ -1,18 +1,8 @@
-import {
-  useFocusEffect,
-  useIsFocused,
-  useNavigation,
-} from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  InteractionManager,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getUserStats } from "../../../api/stats";
 import { PracticeStatSummary } from "../../../api/stats/types";
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
@@ -48,20 +38,6 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       .catch((err) => console.error("PracticeGrid stats error:", err));
   }, [user]);
 
-  const [canAnimate, setCanAnimate] = useState(false);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      const task = InteractionManager.runAfterInteractions(() => {
-        setCanAnimate(true);
-      });
-      return () => {
-        task.cancel();
-        setCanAnimate(false);
-      };
-    }, []),
-  );
-
   const getCount = (type: string) => {
     return stats.find((s) => s.contentType === type)?.itemsCompleted || 0;
   };
@@ -72,7 +48,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       subtitle: "Fluency",
       countLabel: `${getCount("READING_PRACTICE")} Done`,
       icon: (
-        <ReaderFace size={64} shouldAnimate={canAnimate && !isScrolling} loop />
+        <ReaderFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
       ),
       route: "ReadingPracticeStack",
       colors: ["#FFD8B5", "#FFAB76"],
@@ -83,7 +59,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       subtitle: "Expression",
       countLabel: `${getCount("FUN_PRACTICE")} Done`,
       icon: (
-        <MovieFace size={64} shouldAnimate={canAnimate && !isScrolling} loop />
+        <MovieFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
       ),
       route: "FunPracticeStack",
       colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
@@ -96,7 +72,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       icon: (
         <BreathingFace
           size={64}
-          shouldAnimate={canAnimate && !isScrolling}
+          shouldAnimate={isFocused && !isScrolling}
           loop
         />
       ),
@@ -109,11 +85,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       subtitle: "Courage",
       countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
       icon: (
-        <WarriorFace
-          size={64}
-          shouldAnimate={canAnimate && !isScrolling}
-          loop
-        />
+        <WarriorFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
       ),
       route: "ExposureStack",
       colors: ["#FFC8C8", "#FF9E9E"],
