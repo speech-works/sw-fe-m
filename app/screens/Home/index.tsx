@@ -186,7 +186,7 @@ const Home = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollHandler = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-      useNativeDriver: false,
+      useNativeDriver: true,
     }),
   ).current;
 
@@ -329,9 +329,9 @@ const Home = () => {
                     (index + 1) * snapInterval,
                   ];
 
-                  const dotWidth = scrollX.interpolate({
+                  const dotScaleX = scrollX.interpolate({
                     inputRange,
-                    outputRange: [8, 24, 8],
+                    outputRange: [1, 3, 1], // Equivalent to 8, 24, 8 width
                     extrapolate: "clamp",
                   });
 
@@ -346,7 +346,10 @@ const Home = () => {
                       key={index}
                       style={[
                         styles.dot,
-                        { width: dotWidth, opacity: opacity },
+                        {
+                          transform: [{ scaleX: dotScaleX }],
+                          opacity: opacity,
+                        },
                       ]}
                     />
                   );

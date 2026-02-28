@@ -1,4 +1,9 @@
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  RouteProp,
+  useNavigation,
+  useRoute,
+  useIsFocused,
+} from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
@@ -269,6 +274,7 @@ const FollowUp = () => {
   const navigation =
     useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
   const route = useRoute<RouteProp<MoodFUStackParamList, "FollowUp">>();
+  const isFocused = useIsFocused();
   const { mood } = route.params;
 
   const { FaceComponent, title, desc, helpful, gradientColor } =
@@ -344,7 +350,7 @@ const FollowUp = () => {
                   <FaceComponent
                     width={180}
                     height={180}
-                    shouldAnimate={true}
+                    shouldAnimate={isFocused}
                   />
                 </View>
                 {!submitted && <Text style={styles.titleText}>{title}</Text>}

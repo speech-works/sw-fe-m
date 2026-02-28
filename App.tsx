@@ -21,6 +21,7 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeModules } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
@@ -115,20 +116,22 @@ const App: React.FC = () => {
   // if (!ready) return <LoadingScreen />;
 
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <SafeAreaView
-          style={styles.safeAreaView}
-          edges={["top", "left", "right"]}
-        >
-          <FontLoader />
-          <NavigationContainer>
-            <MainNavigator />
-          </NavigationContainer>
-          <GlobalModal />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <SafeAreaView
+            style={styles.safeAreaView}
+            edges={["top", "left", "right"]}
+          >
+            <FontLoader />
+            <NavigationContainer>
+              <MainNavigator />
+            </NavigationContainer>
+            <GlobalModal />
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 };
 

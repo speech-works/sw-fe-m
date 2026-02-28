@@ -1,20 +1,24 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+  clamp,
+} from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
   AcademyStackNavigationProp,
@@ -72,9 +76,81 @@ const SPACING = (width - ITEM_WIDTH) / 2;
 const ICON_SIZE = Math.min(width * 0.45, 180); // Scale icon based on screen width, max 180
 const CAROUSEL_HEIGHT = Math.min(height * 0.28, 250); // Scale carousel based on screen height, max 250
 
+// --- Memoized Components ---
+
+const MoodItem = React.memo(
+  ({
+    item,
+    index,
+    currentIndex,
+    scrollX,
+    isFocused,
+  }: {
+    item: (typeof emotions)[0];
+    index: number;
+    currentIndex: number;
+    scrollX: Animated.Value;
+    isFocused: boolean;
+  }) => {
+    const inputRange = [
+      (index - 1) * ITEM_WIDTH,
+      index * ITEM_WIDTH,
+      (index + 1) * ITEM_WIDTH,
+    ];
+
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.6, 1.1, 0.6],
+      extrapolate: "clamp",
+    });
+
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.4, 1, 0.4],
+      extrapolate: "clamp",
+    });
+
+    return (
+      <View
+        style={{
+          width: ITEM_WIDTH,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Animated.View style={{ transform: [{ scale }], opacity }}>
+          <item.icon
+            width={ICON_SIZE}
+            height={ICON_SIZE}
+            // Only trigger inner SVG animations if this is the active item and screen is focused
+            shouldAnimate={isFocused && index === currentIndex}
+          />
+        </Animated.View>
+      </View>
+    );
+  },
+);
+
+const RulerTicks = React.memo(() => {
+  return (
+    <>
+      {Array.from({ length: 40 }).map((_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.rulerLine,
+            i % 5 === 0 ? { height: 24, backgroundColor: "#CBD5E1" } : {},
+          ]}
+        />
+      ))}
+    </>
+  );
+});
+
 const MoodCheck = () => {
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const isFocused = useIsFocused();
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
@@ -85,51 +161,49 @@ const MoodCheck = () => {
 
   const handleScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-      useNativeDriver: false,
+      useNativeDriver: true,
     }),
   ).current;
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index ?? 0);
+  // Replaced highly active viewability callback with MomentumScrollEnd for JS Thread savings
+  const handleMomentumScrollEnd = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / ITEM_WIDTH);
+    if (index >= 0 && index < emotions.length && index !== currentIndex) {
+      setCurrentIndex(index);
     }
-  }).current;
+  };
 
   // Mood Intensity State (0-100)
   const [moodIntensity, setMoodIntensity] = useState(50);
   const rulerWidth = width - 40; // Approx ruler track width (paddingHorizontal: 20 * 2)
 
-  // We need a ref for the initial value on gesture start to make the sliding smooth
+  // Reanimated shared values
+  const activeIntensity = useSharedValue(50);
 
-  // Let's rewrite the PanResponder to be properly self-contained
-  const panResponderRef = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      // Handle both GranT (Tap) and Move (Drag) with same logic
-      onPanResponderGrant: (evt) => {
-        const { locationX } = evt.nativeEvent;
-        // locationX is now relative to the Overlay View, which matches the ruler width
-        const effectiveX = locationX - 20; // 20 is left padding
-        const pct = (effectiveX / rulerWidth) * 100;
-        const clamped = Math.max(0, Math.min(100, pct));
+  const updateMoodState = (val: number) => {
+    setMoodIntensity(Math.round(val));
+  };
 
-        setMoodIntensity(clamped);
-      },
-      onPanResponderMove: (evt) => {
-        const { locationX } = evt.nativeEvent;
-        const effectiveX = locationX - 20;
-        const pct = (effectiveX / rulerWidth) * 100;
-        const clamped = Math.max(0, Math.min(100, pct));
+  const panGesture = Gesture.Pan()
+    .onStart((event) => {
+      let pct = (event.x / rulerWidth) * 100;
+      activeIntensity.value = clamp(pct, 0, 100);
+      runOnJS(updateMoodState)(activeIntensity.value);
+    })
+    .onUpdate((event) => {
+      let pct = (event.x / rulerWidth) * 100;
+      activeIntensity.value = clamp(pct, 0, 100);
+    })
+    .onEnd(() => {
+      runOnJS(updateMoodState)(activeIntensity.value);
+    });
 
-        setMoodIntensity(clamped);
-      },
-    }),
-  ).current;
-
-  // Update initial ref when state changes outside of gesture (rare here but good practice)
-
-  // Move the PanResponder ruler rendering inline to prevent remounts
+  const rIndicatorStyle = useAnimatedStyle(() => {
+    return {
+      left: `${activeIntensity.value}%`,
+    };
+  });
 
   const { setMood } = useMoodCheckStore();
 
@@ -186,45 +260,17 @@ const MoodCheck = () => {
               paddingHorizontal: SPACING,
             }}
             onScroll={handleScroll}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-            renderItem={({ item, index }) => {
-              const inputRange = [
-                (index - 1) * ITEM_WIDTH,
-                index * ITEM_WIDTH,
-                (index + 1) * ITEM_WIDTH,
-              ];
-
-              const scale = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.6, 1.1, 0.6], // Active item is larger
-                extrapolate: "clamp",
-              });
-
-              const opacity = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.4, 1, 0.4], // Active item is opaque
-                extrapolate: "clamp",
-              });
-
-              return (
-                <View
-                  style={{
-                    width: ITEM_WIDTH,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Animated.View style={{ transform: [{ scale }], opacity }}>
-                    <item.icon
-                      width={ICON_SIZE}
-                      height={ICON_SIZE}
-                      shouldAnimate={index === currentIndex}
-                    />
-                  </Animated.View>
-                </View>
-              );
-            }}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            extraData={{ currentIndex, isFocused }}
+            renderItem={({ item, index }) => (
+              <MoodItem
+                item={item}
+                index={index}
+                currentIndex={currentIndex}
+                scrollX={scrollX}
+                isFocused={isFocused}
+              />
+            )}
           />
         </View>
 
@@ -241,34 +287,25 @@ const MoodCheck = () => {
           </Text>
         </View>
 
-        {/* Ruler - Inlined to stop remounting loop */}
+        {/* Ruler Track (Memoized out of render loop) */}
         <View style={styles.rulerContainer}>
           <View style={styles.rulerTrack}>
-            {Array.from({ length: 40 }).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.rulerLine,
-                  i % 5 === 0 ? { height: 24, backgroundColor: "#CBD5E1" } : {},
-                ]}
-              />
-            ))}
+            <RulerTicks />
             {/* Active Indicator Line */}
-            <View
+            <Reanimated.View
               style={[
                 styles.activeIndicator,
                 {
                   backgroundColor: emotions[currentIndex].primaryColor,
-                  left: `${moodIntensity}%`, // Use percentage for positioning
                 },
+                rIndicatorStyle,
               ]}
             />
 
             {/* Transparent Overlay for Gestures */}
-            <View
-              style={StyleSheet.absoluteFill}
-              {...panResponderRef.panHandlers}
-            />
+            <GestureDetector gesture={panGesture}>
+              <Reanimated.View style={StyleSheet.absoluteFill} />
+            </GestureDetector>
           </View>
         </View>
 
