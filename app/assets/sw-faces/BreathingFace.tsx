@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -46,6 +46,10 @@ const BreathingFace = ({
     } else {
       progress.value = withTiming(0);
     }
+  
+    return () => {
+      cancelAnimation(progress);
+    };
   }, [shouldAnimate]);
 
   const scale = useDerivedValue(() => 0.2 + 0.8 * progress.value);

@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -48,6 +48,10 @@ const ReaderFace = ({
     } else {
       progress.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(progress);
+    };
   }, [shouldAnimate]);
 
   const lpX = useDerivedValue(() => 16.8 + progress.value * 2);

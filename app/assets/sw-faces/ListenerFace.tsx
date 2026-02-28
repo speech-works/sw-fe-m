@@ -7,7 +7,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import React, { useEffect } from "react";
 import { View } from "react-native";
@@ -61,6 +61,11 @@ const ListenerFace = ({
       blink.value = 1;
       bob.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(bob);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

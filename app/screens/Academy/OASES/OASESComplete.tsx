@@ -2,11 +2,11 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getOasesProgress } from "../../../api/oases";
@@ -15,8 +15,8 @@ import Button from "../../../components/Button";
 import ConfettiAnimation from "../../../components/ConfettiAnimation";
 import { theme } from "../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 const { width } = Dimensions.get("window");
@@ -41,7 +41,7 @@ const OASESComplete = () => {
   }, []);
 
   const handleDone = () => {
-    navigation.navigate("Home");
+    navigation.navigate("Root");
   };
 
   if (loading) {

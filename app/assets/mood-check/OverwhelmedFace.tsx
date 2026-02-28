@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -69,6 +69,12 @@ const OverwhelmedFace = ({
       spin.value = 0;
       sweat.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(spin);
+      cancelAnimation(sweat);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

@@ -6,7 +6,8 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming
-} from "react-native-reanimated";
+,
+    cancelAnimation} from "react-native-reanimated";
 
 import { Easing, View } from "react-native";
 import Svg, {
@@ -64,6 +65,11 @@ const MaskedFace = ({
       breath.value = 0;
       wiggle.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(breath);
+      cancelAnimation(wiggle);
+    };
   }, [shouldAnimate]);
 
   const fltSc = useDerivedValue(() => 1 + breath.value * 0.05);

@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -61,6 +61,11 @@ const Sad1 = ({
       blink.value = 1;
       droop.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(droop);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

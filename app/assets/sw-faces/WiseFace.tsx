@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, {
     Circle,
     Defs,
@@ -67,6 +67,11 @@ const WiseFace_RoadCaptain = ({
       blink.value = 1;
       wiggle.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(wiggle);
+    };
   }, [shouldAnimate]);
 
   const eyeScale = useDerivedValue(() => blink.value);

@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -74,6 +74,12 @@ const SleepyFace = ({
       zzz1.value = 0;
       zzz2.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(twitch);
+      cancelAnimation(zzz1);
+      cancelAnimation(zzz2);
+    };
   }, [shouldAnimate]);
 
   const eyeS = useDerivedValue(() => 1 + twitch.value * 0.1);

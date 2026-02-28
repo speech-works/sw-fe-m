@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -46,6 +46,10 @@ const WarriorFace = ({
     } else {
       progress.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(progress);
+    };
   }, [shouldAnimate]);
 
   const eyeY = useDerivedValue(() => progress.value * 2);

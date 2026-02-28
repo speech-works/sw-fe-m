@@ -1,25 +1,26 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    G,
-    LinearGradient,
-    Mask,
-    Path,
-    Pattern,
-    Rect,
-    Stop,
-    SvgProps
+  Circle,
+  Defs,
+  G,
+  LinearGradient,
+  Mask,
+  Path,
+  Pattern,
+  Rect,
+  Stop,
+  SvgProps,
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -77,6 +78,12 @@ const SadFace = ({
       quiver.value = 0;
       rain.value = 0;
     }
+
+    return () => {
+      cancelAnimation(tear);
+      cancelAnimation(quiver);
+      cancelAnimation(rain);
+    };
   }, [shouldAnimate]);
 
   const rainY = useDerivedValue(() => rain.value * 20);

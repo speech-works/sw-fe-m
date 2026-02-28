@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import { View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
@@ -62,6 +62,11 @@ const PilotFace = ({
       blink.value = 1;
       glint.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(glint);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

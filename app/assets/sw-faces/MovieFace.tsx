@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 
@@ -52,6 +53,10 @@ const MovieFace = ({
     } else {
       sheenProgress.value = 0;
     }
+
+    return () => {
+      cancelAnimation(sheenProgress);
+    };
   }, [shouldAnimate, loop, repeatCount]);
 
   const xPos = useDerivedValue(() => -5 + sheenProgress.value * 20);

@@ -6,7 +6,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import React, { useEffect } from "react";
 import { View } from "react-native";
@@ -69,6 +69,11 @@ const GamerFace = ({
       blink.value = 1;
       pulse.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(pulse);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

@@ -1,23 +1,24 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    G,
-    LinearGradient,
-    Path,
-    RadialGradient,
-    Stop,
-    SvgProps
+  Circle,
+  Defs,
+  G,
+  LinearGradient,
+  Path,
+  RadialGradient,
+  Stop,
+  SvgProps,
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -137,6 +138,13 @@ const GuidedBreathingFace = ({
         });
         break;
     }
+
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(eyeTranslateY);
+      cancelAnimation(breathOpacity);
+      cancelAnimation(scale);
+    };
   }, [phase]);
 
   const animatedGroupProps = useAnimatedProps(() => {

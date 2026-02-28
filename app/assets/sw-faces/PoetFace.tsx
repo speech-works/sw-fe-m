@@ -7,7 +7,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import { Easing, View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
@@ -57,6 +57,11 @@ const PoetFace = ({
       blink.value = 1;
       wiggle.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(wiggle);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, {
     Circle,
     Defs,
@@ -70,6 +70,11 @@ const TherapistFace = ({
       blink.value = 1;
       write.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(write);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

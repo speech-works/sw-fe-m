@@ -1,14 +1,15 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
@@ -78,6 +79,13 @@ const HappyFace = ({
       wiggle.value = 0;
       twinkle.value = 0;
     }
+
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(bounce);
+      cancelAnimation(wiggle);
+      cancelAnimation(twinkle);
+    };
   }, [shouldAnimate]);
 
   const eyeScale = useDerivedValue(() => blink.value);

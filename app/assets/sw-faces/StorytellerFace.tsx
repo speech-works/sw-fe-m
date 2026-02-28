@@ -9,7 +9,8 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming
-} from "react-native-reanimated";
+,
+    cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -64,6 +65,11 @@ const StorytellerFace = ({
       -1,
       false,
     );
+  
+    return () => {
+      cancelAnimation(scrollY);
+      cancelAnimation(blink);
+    };
   }, [shouldAnimate]);
 
   const offset = useDerivedValue(() => scrollY.value);

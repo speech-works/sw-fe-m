@@ -15,8 +15,8 @@ import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
 import { useMoodCheckStore } from "./app/stores/mood";
 import { useReminderStore } from "./app/stores/reminders";
 import {
-    registerForNotifications,
-    setupNotificationHandlers,
+  registerForNotifications,
+  setupNotificationHandlers,
 } from "./app/util/functions/notifications";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -55,6 +55,7 @@ const App: React.FC = () => {
       // );
       // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
       await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
+      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
 
       console.log(".................checkToken................");
       console.log("accessToken", accessToken);

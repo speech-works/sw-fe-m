@@ -1,24 +1,25 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    G,
-    Line,
-    LinearGradient,
-    Path,
-    Rect,
-    Stop,
-    SvgProps,
+  Circle,
+  Defs,
+  G,
+  Line,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+  SvgProps,
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -66,6 +67,11 @@ const AngryFace = ({
       jaw.value = 0;
       flameS.value = 1;
     }
+
+    return () => {
+      cancelAnimation(jaw);
+      cancelAnimation(flameS);
+    };
   }, [shouldAnimate]);
 
   const upperY = useDerivedValue(() => jaw.value);

@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -60,6 +60,11 @@ const AgentFace = ({
       glint.value = 0;
       wire.value = 1;
     }
+  
+    return () => {
+      cancelAnimation(glint);
+      cancelAnimation(wire);
+    };
   }, [shouldAnimate]);
 
   const glintOp = useDerivedValue(() => glint.value);

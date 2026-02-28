@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -60,6 +60,11 @@ const Calm1 = ({
       blink.value = 1;
       pulse.value = 1;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(pulse);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

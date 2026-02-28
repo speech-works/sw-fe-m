@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -54,6 +54,11 @@ const RobotoicPhoneFace = ({
       rotation.value = 0;
       pulse.value = 1;
     }
+  
+    return () => {
+      cancelAnimation(rotation);
+      cancelAnimation(pulse);
+    };
   }, [shouldAnimate]);
 
   const rotDeg = useDerivedValue(() => `${rotation.value}deg`);

@@ -8,7 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import { View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
@@ -59,6 +59,11 @@ const RewiringFace = ({
       blink.value = 1;
       rotation.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(rotation);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

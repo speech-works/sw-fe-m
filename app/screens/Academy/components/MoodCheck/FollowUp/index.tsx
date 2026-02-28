@@ -2,19 +2,20 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    ViewStyle,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  BackHandler,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../components/ScreenView";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 
 import CustomScrollView from "../../../../../components/CustomScrollView";
@@ -22,12 +23,11 @@ import ListCard from "../../../DailyPractice/components/ListCard";
 
 import { MoodType } from "../../../../../api/moodCheck/types";
 import {
-    MoodFUStackNavigationProp,
-    MoodFUStackParamList,
+  MoodFUStackNavigationProp,
+  MoodFUStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
-import { useMoodCheckStore } from "../../../../../stores/mood";
 import ExpressYourself, {
-    EXPRESSION_TYPE_ENUM,
+  EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";
 
 import AngryFace from "../../../../../assets/mood-check/AngryFace";
@@ -270,7 +270,6 @@ const FollowUp = () => {
     useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
   const route = useRoute<RouteProp<MoodFUStackParamList, "FollowUp">>();
   const { mood } = route.params;
-  const { setMood } = useMoodCheckStore();
 
   const { FaceComponent, title, desc, helpful, gradientColor } =
     moodContentMap[mood];
@@ -303,11 +302,21 @@ const FollowUp = () => {
     },
   ];
 
+  const navigateToHome = () => {
+    navigation.navigate("Root" as any);
+  };
+
   useEffect(() => {
-    if (submitted) {
-      setMood(mood);
-    }
-  }, [submitted]);
+    const onBackPress = () => {
+      navigateToHome();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [navigation]);
 
   return (
     <>
@@ -323,16 +332,7 @@ const FollowUp = () => {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
+            <View style={{ width: 32 }} />
             <Text style={styles.headerTitle}>Daily Log</Text>
             <View style={{ width: 32 }} />
           </View>
@@ -443,7 +443,7 @@ const FollowUp = () => {
                 </>
               )}
               <View style={styles.skipContainer}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => navigateToHome()}>
                   <Text style={styles.skipText}>Skip for now</Text>
                 </TouchableOpacity>
               </View>

@@ -6,7 +6,8 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming
-} from "react-native-reanimated";
+,
+    cancelAnimation} from "react-native-reanimated";
 
 import { Easing, View } from "react-native";
 import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
@@ -46,6 +47,10 @@ const KeyholeFace = ({
     } else {
       flare.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(flare);
+    };
   }, [shouldAnimate]);
 
   const fOp = useDerivedValue(() => 0.6 + flare.value * 0.4);

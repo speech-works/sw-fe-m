@@ -1,15 +1,16 @@
 import React from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    runOnJS,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  runOnJS,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect, SvgProps } from "react-native-svg";
 
@@ -589,7 +590,10 @@ const DiverseCommunityFace = ({
       );
     }, 4000); // 3.2s wait + 0.8s anim
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      cancelAnimation(slideOffset);
+    };
   }, [shouldAnimate]);
 
   const handleNextScene = () => {

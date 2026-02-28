@@ -2,29 +2,30 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
-    AcademyStackNavigationProp,
-    AcademyStackParamList,
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { theme } from "../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
+import { useMoodCheckStore } from "../../../../stores/mood";
 
 import AngryFace from "../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../assets/mood-check/CalmFace";
@@ -82,11 +83,11 @@ const MoodCheck = () => {
   // Auto-scroll to center index 0 on mount if needed, or just let it start there.
   // We start at index 0, but centering logic handles the padding.
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
       useNativeDriver: false,
-    })(event);
-  };
+    }),
+  ).current;
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -123,7 +124,7 @@ const MoodCheck = () => {
 
         setMoodIntensity(clamped);
       },
-    })
+    }),
   ).current;
 
   // Update initial ref when state changes outside of gesture (rare here but good practice)
@@ -166,8 +167,11 @@ const MoodCheck = () => {
     );
   };
 
+  const { setMood } = useMoodCheckStore();
+
   const handleSelect = () => {
     const activeMood = emotions[currentIndex];
+    setMood(activeMood.id);
     academyNavigation.navigate("MoodCheckStack", {
       screen: "FollowUpStack",
       params: { mood: activeMood.id },
@@ -321,7 +325,7 @@ const MoodCheck = () => {
           onPress={handleSelect}
           activeOpacity={0.8}
         >
-          <Text style={styles.confirmButtonText}>Continue</Text>
+          <Text style={styles.confirmButtonText}>Submit</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

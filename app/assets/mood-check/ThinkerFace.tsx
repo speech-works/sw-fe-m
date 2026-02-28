@@ -9,7 +9,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -60,6 +60,11 @@ const ThinkerFace = ({
       blink.value = 1;
       bob.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(bob);
+    };
   }, [shouldAnimate]);
 
   const eyeScale = useDerivedValue(() => blink.value);

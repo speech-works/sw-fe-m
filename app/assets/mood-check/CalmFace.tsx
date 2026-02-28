@@ -1,23 +1,24 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming,
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    Ellipse,
-    G,
-    LinearGradient,
-    Path,
-    Stop,
-    SvgProps
+  Circle,
+  Defs,
+  Ellipse,
+  G,
+  LinearGradient,
+  Path,
+  Stop,
+  SvgProps,
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -60,6 +61,11 @@ const CalmFace = ({
       wind.value = 0;
       halo.value = 0;
     }
+
+    return () => {
+      cancelAnimation(wind);
+      cancelAnimation(halo);
+    };
   }, [shouldAnimate]);
 
   const windOff = useDerivedValue(() => -wind.value);

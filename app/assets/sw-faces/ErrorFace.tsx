@@ -6,7 +6,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
-} from "react-native-reanimated";
+ cancelAnimation} from "react-native-reanimated";
 
 import React, { useEffect } from "react";
 import { View } from "react-native";
@@ -62,6 +62,11 @@ const ErrorFace = ({
       blink.value = 1;
       flicker.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(flicker);
+    };
   }, [shouldAnimate]);
 
   const blinkS = useDerivedValue(() => blink.value);

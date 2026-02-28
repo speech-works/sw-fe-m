@@ -6,7 +6,8 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming
-} from "react-native-reanimated";
+,
+    cancelAnimation} from "react-native-reanimated";
 
 import { Easing, View } from "react-native";
 import Svg, {
@@ -54,6 +55,10 @@ const ReportFace = ({
     } else {
       wiggle.value = 0;
     }
+  
+    return () => {
+      cancelAnimation(wiggle);
+    };
   }, [shouldAnimate]);
 
   const wigRot = useDerivedValue(() => `${wiggle.value * -5}deg`);
