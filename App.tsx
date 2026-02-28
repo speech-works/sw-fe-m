@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { Audio } from "expo-av";
 import React, { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import GlobalModal from "./app/components/GlobalModal";
 import { AuthProvider } from "./app/contexts/AuthContext";
@@ -14,6 +14,7 @@ import * as WebBrowser from "expo-web-browser";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
 import { useMoodCheckStore } from "./app/stores/mood";
 import { useReminderStore } from "./app/stores/reminders";
+import { useUserStore } from "./app/stores/user";
 import {
   registerForNotifications,
   setupNotificationHandlers,
@@ -112,6 +113,25 @@ const App: React.FC = () => {
       unsubscribe();
     };
   }, [rescheduleAllActiveNotifications]);
+
+  // Foreground sync for user data (stamina)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === "active") {
+        console.log("App foregrounded: Refreshing user data...");
+        useUserStore.getState().fetchUser();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // if (!ready) return <LoadingScreen />;
 

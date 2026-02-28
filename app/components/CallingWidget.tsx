@@ -1,35 +1,36 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated, // <-- IMPORTED
-    Easing, // <-- IMPORTED
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated, // <-- IMPORTED
+  Easing, // <-- IMPORTED
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 // Import icons
 import Icon from "react-native-vector-icons/Feather"; // For UI Controls
 import FAIcon from "react-native-vector-icons/FontAwesome5"; // For Scenario Icon (compatibility)
 
 // These imports are correct for a React Native environment (Expo)
-import {
-    Audio,
-    InterruptionModeAndroid,
-    InterruptionModeIOS,
-} from "expo-av";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient"; // <-- IMPORTED
 // These imports are correct for a React Native environment (Native Modules)
 import {
-    AUDIO_FORMATS,
-    AUDIO_SOURCES,
-    CHANNEL_CONFIGS,
-    InputAudioStream,
+  AUDIO_FORMATS,
+  AUDIO_SOURCES,
+  CHANNEL_CONFIGS,
+  InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
 
 import * as SecureStore from "expo-secure-store";
 import DeviceInfo from "react-native-device-info";
+import * as Localization from "expo-localization";
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+} from "react-native-gesture-handler";
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";
@@ -39,7 +40,7 @@ type Props = {
   websocketUrl: string;
   userId?: string;
   sampleRate?: number;
-  onCallStart?: () => void;
+  onCallStart?: () => Promise<string | null>;
   onCallEnd?: () => void;
   ringtoneAsset?: number;
   ringtoneUri?: string;
@@ -47,6 +48,7 @@ type Props = {
   agentName: string;
   agentDesignation: string;
   scenarioIcon: string;
+  practiceActivityId?: string; // <-- ADDED
 };
 const DEFAULT_SAMPLE_RATE = 24000;
 
@@ -359,6 +361,7 @@ const CallingWidget: React.FC<Props> = ({
   scenarioId,
   agentName,
   scenarioIcon,
+  practiceActivityId, // <-- ADDED
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
@@ -1062,6 +1065,19 @@ const CallingWidget: React.FC<Props> = ({
     console.log("[startCall] Audio capture started successfully (or is web).");
     audioState.current = "STARTED";
 
+    setStatus("Starting activity...");
+    const startedId = await onCallStart?.();
+
+    if (!startedId) {
+      console.error(
+        "[startCall] Failed to start activity (Stamina?). Aborting.",
+      );
+      setStatus("Failed to start activity");
+      audioState.current = "IDLE";
+      await cleanupAudio();
+      return;
+    }
+
     setStatus("Connecting...");
     ws.current = new WebSocket(websocketUrl);
     ws.current.binaryType = "arraybuffer";
@@ -1069,7 +1085,7 @@ const CallingWidget: React.FC<Props> = ({
     ws.current.onopen = () => {
       setStatus("Connected"); // Status for UI
       setIsCalling(true);
-      onCallStart?.();
+      // onCallStart?.(); // REMOVED: Activity is started before WS connection
 
       // --- NEW: Start Timer ---
       if (callTimerRef.current) clearInterval(callTimerRef.current);
@@ -1078,8 +1094,15 @@ const CallingWidget: React.FC<Props> = ({
       }, 1000);
       // --- END NEW Timer ---
 
+      const timezone = Localization.getCalendars()[0].timeZone || "UTC";
+
       ws.current?.send(
-        JSON.stringify({ type: "join", userId, scenarioId: scenarioId }),
+        JSON.stringify({
+          type: "join",
+          userId,
+          practiceActivityId: startedId, // Use the ID returned from onCallStart
+          clientTimezone: timezone,
+        }),
       );
     };
 

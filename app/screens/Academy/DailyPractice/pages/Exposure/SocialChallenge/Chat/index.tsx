@@ -143,9 +143,12 @@ const Chat = () => {
       return;
 
     // Fallback for user id
-    const userId = packContext
-      ? "user"
-      : (practiceSession!.user?.id ?? user?.id);
+    const userId = practiceSession?.user?.id || user?.id; // Always use real ID if available
+
+    if (!userId) {
+      console.warn("Cannot complete activity: Missing userId");
+      return;
+    }
 
     const completedActivity = await completePracticeActivity({
       id: activityId,
@@ -156,6 +159,7 @@ const Chat = () => {
     updateActivity(activityId, {
       ...completedActivity,
     });
+    useUserStore.getState().fetchUser();
   };
 
   const onDonePress = async () => {

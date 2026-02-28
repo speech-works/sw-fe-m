@@ -10,6 +10,7 @@ interface UserState {
   user: User | null;
   setUser: (user: User) => void;
   updateProfilePicture: (uri: string) => void;
+  fetchUser: () => Promise<void>;
   clearUser: () => void;
 }
 
@@ -32,6 +33,17 @@ export const useUserStore = create<UserState>()(
           return { user: { ...state.user, profilePicture: uri } };
         }),
 
+      fetchUser: async () => {
+        try {
+          const { getMyUser } = await import("../../api/users");
+          const user = await getMyUser();
+          console.log("zustand store fetching and setting user", user);
+          set({ user });
+        } catch (error) {
+          console.error("UserStore fetchUser error:", error);
+        }
+      },
+
       clearUser: () => {
         set({ user: null });
       },
@@ -45,15 +57,15 @@ export const useUserStore = create<UserState>()(
         if (state && state.user) {
           console.log(
             "Zustand UserStore: Rehydrating user from storage. Raw:",
-            JSON.stringify(state.user, null, 2)
+            JSON.stringify(state.user, null, 2),
           );
           state.user = reviveDatesInObject(state.user) as User | null;
           console.log(
             "Zustand UserStore: User AFTER rehydration parsing:",
-            JSON.stringify(state.user, null, 2)
+            JSON.stringify(state.user, null, 2),
           );
         }
       },
-    }
-  )
+    },
+  ),
 );

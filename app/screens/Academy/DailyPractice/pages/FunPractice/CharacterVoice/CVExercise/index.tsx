@@ -8,7 +8,10 @@ import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
-import { CharacterVoiceFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+import {
+  CharacterVoiceFDPStackNavigationProp,
+  CharacterVoiceFDPStackParamList,
+} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
 
 import {
@@ -34,7 +37,8 @@ import MasonryTips from "../../../../components/MasonryTips";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 const CVExercise = () => {
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext } = route.params;
@@ -126,6 +130,7 @@ const CVExercise = () => {
       addActivity({
         ...startedActivity,
       });
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("❌ Failed to start activity:", error);
@@ -137,8 +142,13 @@ const CVExercise = () => {
       return;
 
     const userId = packContext
-      ? "user"
-      : (practiceSession!.user?.id ?? user?.id);
+      ? user?.id
+      : (practiceSession?.user?.id ?? user?.id);
+
+    if (!userId) {
+      console.error("❌ Missing userId for markActivityComplete");
+      return;
+    }
 
     const completedActivity = await completePracticeActivity({
       id: activityId,
@@ -149,6 +159,7 @@ const CVExercise = () => {
     updateActivity(activityId, {
       ...completedActivity,
     });
+    useUserStore.getState().fetchUser();
 
     if (packContext && navigation.canGoBack()) {
       navigation.goBack();

@@ -1,7 +1,7 @@
 import {
-    useFocusEffect,
-    useNavigation,
-    useRoute,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
 } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
@@ -10,28 +10,28 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../../components/ScreenView";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import MasonryTips from "../../../components/MasonryTips";
 import { BreathingHalo } from "./components/BreathingHalo";
 
 import {
-    createPracticeActivity,
-    createPracticeActivityFromPack
+  createPracticeActivity,
+  createPracticeActivityFromPack,
 } from "../../../../../../api";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
 import {
-    completePracticeActivity,
-    startPracticeActivity,
+  completePracticeActivity,
+  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import Button from "../../../../../../components/Button";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
@@ -39,9 +39,9 @@ import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import {
-    shouldCollectAccuracy,
-    shouldCollectVitals,
-    validateVitals,
+  shouldCollectAccuracy,
+  shouldCollectVitals,
+  validateVitals,
 } from "../../../../../../utils/vitals";
 import DonePractice from "../../../components/DonePractice";
 
@@ -71,8 +71,7 @@ const Breathing = () => {
     useBackgroundAudio();
 
   const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession, ensureActiveSession } =
-    useSessionStore();
+  const { practiceSession, ensureActiveSession } = useSessionStore();
   const { user } = useUserStore();
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
@@ -102,6 +101,7 @@ const Breathing = () => {
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
       });
+      useUserStore.getState().fetchUser();
 
       console.log(
         "[Breathing Debug] markActivityDone: API success, updating store",
@@ -144,6 +144,7 @@ const Breathing = () => {
         moduleId: packContext?.moduleId,
       });
       updateActivity(currentActivityId, completedActivity);
+      useUserStore.getState().fetchUser();
       if (packContext && navigation.canGoBack()) {
         navigation.goBack();
       } else if (packContext) {
@@ -190,6 +191,7 @@ const Breathing = () => {
         completedActivity,
       );
       updateActivity(currentActivityId, completedActivity);
+      useUserStore.getState().fetchUser();
 
       if (packContext && navigation.canGoBack()) {
         navigation.goBack();
@@ -388,6 +390,7 @@ const Breathing = () => {
       });
 
       addActivity(startedActivity);
+      useUserStore.getState().fetchUser();
       setCurrentActivity(startedActivity);
       setCurrentActivityId(activityIdToStart);
     } catch (error) {

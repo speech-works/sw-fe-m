@@ -269,6 +269,7 @@ const Twister = () => {
         ...startedActivity,
         funPractice: twisters[currentIndex],
       });
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("!! Twister: Failed to start activity", e);
@@ -279,9 +280,7 @@ const Twister = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext
-      ? "user"
-      : (practiceSession!.user?.id ?? user?.id);
+    const userId = user?.id; // Always use real ID if available
 
     console.log(">> Twister: Completing activity", activityId);
     const completedActivity = await completePracticeActivity({
@@ -298,6 +297,7 @@ const Twister = () => {
       ...completedActivity,
       funPractice: twisters[currentIndex],
     });
+    useUserStore.getState().fetchUser();
 
     if (packContext && navigation.canGoBack()) {
       navigation.goBack();

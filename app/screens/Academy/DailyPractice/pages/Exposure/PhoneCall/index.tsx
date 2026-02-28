@@ -56,8 +56,8 @@ const PhoneCall = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
-  const markActivityStart = async () => {
-    if (!selectedScenario) return;
+  const markActivityStart = async (): Promise<string | null> => {
+    if (!selectedScenario) return null;
     const isPackContext = packContext?.packId;
 
     let sessionToUse = practiceSession;
@@ -68,24 +68,20 @@ const PhoneCall = () => {
         setSession(sessionToUse);
       } catch (err) {
         console.error("Failed to ensure active session", err);
-        return;
+        return null;
       }
     }
 
     // If not in a pack and no session, we can't track
-    if (!isPackContext && !sessionToUse) return;
+    if (!isPackContext && !sessionToUse) return null;
 
     try {
       const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      // Fallback: the recovered session from backend might only have a flat `userId` instead of a nested `user` object.
-      // Easiest and safest is to just use the global `user.id` state that we already confirmed exists.
-      const userId = isPackContext
-        ? user?.id
-        : user?.id || sessionToUse!.user?.id;
+      const userId = user?.id;
 
       if (!userId) {
         console.error("Missing userId");
-        return;
+        return null;
       }
 
       let activityIdToStart = currentActivityId;
@@ -102,8 +98,10 @@ const PhoneCall = () => {
           });
           activityIdToStart = newActivity.id;
         } else {
-          if (!sessionId)
-            throw new Error("No session ID for standalone activity");
+          if (!sessionId) {
+            console.error("No session ID for standalone activity");
+            return null;
+          }
           console.log("PhoneCall - Creating Activity via POST (Standalone)");
           const newActivity = await createPracticeActivity({
             sessionId,
@@ -123,17 +121,17 @@ const PhoneCall = () => {
         ...startedActivity,
       });
       setCurrentActivityId(activityIdToStart);
+      useUserStore.getState().fetchUser();
+      return activityIdToStart;
     } catch (error) {
       console.error("Failed to start phone call activity", error);
+      return null;
     }
   };
 
   const markActivityComplete = async () => {
     if (!currentActivityId) return;
-    // Fallback for user id
-    const userId = packContext
-      ? "user"
-      : (practiceSession?.user?.id ?? user?.id);
+    const userId = user?.id; // Always use real ID from store if available
 
     if (!userId) return;
 
@@ -148,6 +146,7 @@ const PhoneCall = () => {
       updateActivity(currentActivityId, {
         ...completedActivity,
       });
+      useUserStore.getState().fetchUser();
 
       // Clear the local activity ID state so starting another call creates a new one
       setCurrentActivityId(null);

@@ -1,11 +1,9 @@
 import {
-    getProgressToNextLevel,
-    getUnlockedLevelsFromXP,
+  getProgressToNextLevel,
+  getUnlockedLevelsFromXP,
 } from "../../util/functions/levels-xp";
 import axiosClient from "../axiosClient";
 import { XPLog } from "../userXP/types";
-
-export const MAX_STAMINA = 5;
 
 export { getProgressToNextLevel, getUnlockedLevelsFromXP };
 
@@ -41,6 +39,8 @@ export interface User {
   isPaid?: boolean;
   level?: number;
   currentStamina?: number;
+  maxStaminaCap?: number;
+  staminaRegenRateMs?: number;
   lastStaminaUpdate?: Date;
 
   createdAt?: Date;
@@ -73,7 +73,7 @@ export async function getUserById(id: string): Promise<User> {
 // Update user by ID
 export async function updateUserById(
   id: string,
-  user: Partial<Omit<User, "id" | "password" | "createdAt">>
+  user: Partial<Omit<User, "id" | "password" | "createdAt">>,
 ): Promise<User> {
   try {
     const response = await axiosClient.patch(`/users/${id}`, user);

@@ -175,6 +175,7 @@ const Reframe = () => {
       console.log("Reframe Activity STARTED:", startedActivity);
 
       addActivity(startedActivity);
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("Failed to start activity", e);
@@ -229,6 +230,7 @@ const Reframe = () => {
       updateActivity(currentActivityId, {
         ...completedActivity,
       });
+      useUserStore.getState().fetchUser();
 
       if (packContext) {
         // Use academyNav to navigate to PackModule as it is in the parent stack

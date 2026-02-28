@@ -107,6 +107,7 @@ const Briefing = () => {
     addActivity({
       ...startedActivity,
     });
+    useUserStore.getState().fetchUser();
     setCurrentActivityId(activityIdToStart);
 
     navigation.navigate("SCChat", {

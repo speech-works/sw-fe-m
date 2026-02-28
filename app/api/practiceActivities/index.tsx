@@ -152,19 +152,20 @@ export async function startPracticeActivity({
   } catch (error) {
     //console.error("Error starting practice activity:", error);
     if (axios.isAxiosError(error) && error.response) {
-      //console.error("Backend error details:", error.response.data);
-      dispatchCustomEvent(EVENT_NAMES.SHOW_ERROR_MODAL, {
-        errorMessage:
-          error.response.data.error ||
-          "An error occurred while starting the activity.",
-        modalTitle: "Try later",
-      });
-      // triggerToast(
-      //   "error",
-      //   "Try Later",
-      //   error.response.data.error ||
-      //     "An error occurred while starting the activity."
-      // );
+      const { errorCode, error: backendError } = error.response.data;
+
+      if (errorCode === "INSUFFICIENT_STAMINA") {
+        dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL, {
+          errorMessage: backendError,
+        });
+      } else {
+        dispatchCustomEvent(EVENT_NAMES.SHOW_ERROR_MODAL, {
+          errorMessage:
+            error.response.data.error ||
+            "An error occurred while starting the activity.",
+          modalTitle: "Try later",
+        });
+      }
     }
     throw error;
   }

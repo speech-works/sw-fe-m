@@ -181,6 +181,7 @@ export const useStoryPractice = () => {
       });
 
       addActivity({ ...startedActivity });
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (error) {
       console.error("[useStoryPractice] ❌ Error in markActivityStart:", error);
@@ -192,9 +193,7 @@ export const useStoryPractice = () => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
-    const userId = packContext
-      ? "user"
-      : (practiceSession!.user?.id ?? user?.id);
+    const userId = user?.id; // Always use real ID if available
 
     const completedActivity = await completePracticeActivity({
       id: activityId,
@@ -203,6 +202,7 @@ export const useStoryPractice = () => {
       moduleId: packContext?.moduleId,
     });
     updateActivity(activityId, { ...completedActivity });
+    useUserStore.getState().fetchUser();
   };
 
   const onDonePress = async () => {

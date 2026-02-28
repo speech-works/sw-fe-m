@@ -1,42 +1,37 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    CognitivePractice,
-    CognitivePracticeType,
+  CognitivePractice,
+  CognitivePracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import Button from "../../../../../../components/Button";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import MasonryTips from "../../../components/MasonryTips";
 import MeditationCard from "./components/MeditationCard";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 
 import {
-    createPracticeActivity,
-    createPracticeActivityFromPack
+  createPracticeActivity,
+  createPracticeActivityFromPack,
 } from "../../../../../../api";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import {
-    completePracticeActivity,
-    startPracticeActivity,
+  completePracticeActivity,
+  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
@@ -57,8 +52,7 @@ const Meditation = () => {
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, ensureActiveSession } =
-    useSessionStore();
+  const { practiceSession, ensureActiveSession } = useSessionStore();
   const { user } = useUserStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
@@ -287,6 +281,7 @@ const Meditation = () => {
         cognitivePractice: meditationScenarios[selectedIndex!],
       });
 
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("Failed to start activity", e);
@@ -346,6 +341,7 @@ const Meditation = () => {
         ...completedActivity,
         cognitivePractice: meditationScenarios[selectedIndex],
       });
+      useUserStore.getState().fetchUser();
     } catch (e) {
       console.error("Failed to complete activity", e);
       triggerToast(

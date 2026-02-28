@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getProgressToNextLevel, MAX_STAMINA } from "../../../../api/users";
+import { getProgressToNextLevel } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
@@ -53,14 +53,16 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
     : undefined;
   const userLevel = userProgress?.currentLevel || 1;
 
+  const currentMaxStamina = user?.maxStaminaCap || 80;
+
   const staminaPercentage = user
-    ? Math.round(((user.currentStamina ?? 0) / MAX_STAMINA) * 100)
+    ? Math.round(((user.currentStamina ?? 0) / currentMaxStamina) * 100)
     : 0;
 
   useEffect(() => {
     if (
       !user ||
-      (user.currentStamina ?? 0) >= MAX_STAMINA ||
+      (user.currentStamina ?? 0) >= currentMaxStamina ||
       !user.lastStaminaUpdate
     ) {
       setRechargeTimeLeft("");
@@ -70,14 +72,11 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
     const updateTimer = () => {
       const now = new Date().getTime();
       const lastUpdate = new Date(user.lastStaminaUpdate!).getTime();
-      const output = MAX_STAMINA - (user.currentStamina ?? 0);
-      // Assuming 10 minutes per stamina point
-      const RECHARGE_MS = 10 * 60 * 1000;
+      const output = currentMaxStamina - (user.currentStamina ?? 0);
+      // Use dynamic recharge rate or fallback to 18 mins
+      const RECHARGE_MS = user.staminaRegenRateMs || 18 * 60 * 1000;
 
-      // The time when we will reach MAX_STAMINA
-      // Formula: LastUpdate + (PointsMissing * 10 mins)
-      // Note: If lastStaminaUpdate is "when the last point was gained", then the next point is at lastUpdate + 10m.
-      // Full state is when we gain 'output' points.
+      // The time when we will reach currentMaxStamina
       const targetTime = lastUpdate + output * RECHARGE_MS;
 
       const diff = targetTime - now;

@@ -175,6 +175,7 @@ const RealLifeChallenge = () => {
       addActivity({
         ...startedActivity,
       });
+      useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (err) {
       console.error("Failed to start activity", err);
@@ -186,9 +187,7 @@ const RealLifeChallenge = () => {
     try {
       // If we are in a pack, we rely on the backend handling the "pack-session" logic or similar
       // inside completePracticeActivity if needed, but usually completePracticeActivity just needs ID and UserID.
-      const userId = packContext
-        ? "user"
-        : (practiceSession!.user?.id ?? user?.id);
+      const userId = user?.id; // Always use real ID if available
 
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
@@ -200,6 +199,7 @@ const RealLifeChallenge = () => {
       updateActivity(currentActivityId, {
         ...completedActivity,
       });
+      useUserStore.getState().fetchUser();
     } catch (err) {
       console.error("Failed to complete activity", err);
     }
