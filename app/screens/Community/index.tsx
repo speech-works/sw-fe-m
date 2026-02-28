@@ -1,12 +1,13 @@
+import { useIsFocused, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import DiverseCommunityFace from "../../assets/sw-faces/DiverseCommunityFace";
@@ -28,12 +29,14 @@ const FlipDigit = ({ digit }: { digit: string }) => (
 const AnimatedCounter = () => {
   const [count, setCount] = useState(2847);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        setCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
+      }, 4000);
+      return () => clearInterval(interval);
+    }, []),
+  );
 
   const countString = count.toLocaleString().replace(/,/g, "");
   const digits = countString.split("");
@@ -117,6 +120,7 @@ const FeatureCard = ({
 
 const Community = () => {
   const [email, setEmail] = useState("");
+  const isFocused = useIsFocused();
 
   const handleJoinWaitlist = () => {
     console.log("Joining waitlist with email:", email);
@@ -149,7 +153,7 @@ const Community = () => {
 
           {/* Friendly Illustration */}
           <View style={styles.illustrationSection}>
-            <DiverseCommunityFace size={FACE_SIZE} shouldAnimate />
+            <DiverseCommunityFace size={FACE_SIZE} shouldAnimate={isFocused} />
             <Text style={styles.illustrationCaption}>
               "The most powerful way to change the world is to change how you
               speak to it."
