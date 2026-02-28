@@ -129,43 +129,7 @@ const MoodCheck = () => {
 
   // Update initial ref when state changes outside of gesture (rare here but good practice)
 
-  // Ruler Component
-  const Ruler = () => {
-    const lines = Array.from({ length: 40 }); // Ruler Lines
-    return (
-      <View style={styles.rulerContainer}>
-        <View style={styles.rulerTrack}>
-          {lines.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.rulerLine,
-                // Make center line (approx) colored/taller?
-                // Getting visually close to the image, standard uniform lines is safer first.
-                i % 5 === 0 ? { height: 24, backgroundColor: "#CBD5E1" } : {},
-              ]}
-            />
-          ))}
-          {/* Active Indicator Line */}
-          <View
-            style={[
-              styles.activeIndicator,
-              {
-                backgroundColor: emotions[currentIndex].primaryColor,
-                left: `${moodIntensity}%`, // Use percentage for positioning
-              },
-            ]}
-          />
-
-          {/* Transparent Overlay for Gestures */}
-          <View
-            style={StyleSheet.absoluteFill}
-            {...panResponderRef.panHandlers}
-          />
-        </View>
-      </View>
-    );
-  };
+  // Move the PanResponder ruler rendering inline to prevent remounts
 
   const { setMood } = useMoodCheckStore();
 
@@ -277,8 +241,36 @@ const MoodCheck = () => {
           </Text>
         </View>
 
-        {/* Ruler */}
-        <Ruler />
+        {/* Ruler - Inlined to stop remounting loop */}
+        <View style={styles.rulerContainer}>
+          <View style={styles.rulerTrack}>
+            {Array.from({ length: 40 }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.rulerLine,
+                  i % 5 === 0 ? { height: 24, backgroundColor: "#CBD5E1" } : {},
+                ]}
+              />
+            ))}
+            {/* Active Indicator Line */}
+            <View
+              style={[
+                styles.activeIndicator,
+                {
+                  backgroundColor: emotions[currentIndex].primaryColor,
+                  left: `${moodIntensity}%`, // Use percentage for positioning
+                },
+              ]}
+            />
+
+            {/* Transparent Overlay for Gestures */}
+            <View
+              style={StyleSheet.absoluteFill}
+              {...panResponderRef.panHandlers}
+            />
+          </View>
+        </View>
 
         {/* Bottom Tabs/Button */}
         <View style={styles.bottomControls}>

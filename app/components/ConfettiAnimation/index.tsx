@@ -73,7 +73,7 @@ const ConfettiAnimation = () => {
                 duration: 1000,
                 useNativeDriver: true,
               }),
-            ])
+            ]),
           ),
         ]),
         // Rotate
@@ -84,13 +84,16 @@ const ConfettiAnimation = () => {
               toValue: 360,
               duration: 2000 + Math.random() * 1000,
               useNativeDriver: true,
-            })
+            }),
           ),
         ]),
       ]);
     });
 
-    Animated.parallel(animations).start();
+    const starrtedAnimation = Animated.parallel(animations);
+    starrtedAnimation.start();
+
+    return () => starrtedAnimation.stop();
   }, []);
 
   return (

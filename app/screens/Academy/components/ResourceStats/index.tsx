@@ -1,17 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
-import {
-    Animated,
-    Easing,
-    StyleSheet,
-    Text,
-    View
-} from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-    getProgressToNextLevel,
-    MAX_STAMINA
-} from "../../../../api/users";
+import { getProgressToNextLevel, MAX_STAMINA } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
@@ -53,7 +44,7 @@ const AnimatedBar = ({
   );
 };
 
-const ResourceStats = () => {
+const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const { user } = useUserStore();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
 

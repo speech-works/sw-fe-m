@@ -12,8 +12,10 @@ const LoginBackground = () => {
   const floatAnim3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    const currentAnimations: Animated.CompositeAnimation[] = [];
+
     const startFloat = (anim: Animated.Value, duration: number) => {
-      Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(anim, {
             toValue: 1,
@@ -27,13 +29,20 @@ const LoginBackground = () => {
             useNativeDriver: true,
             easing: Easing.inOut(Easing.ease),
           }),
-        ])
-      ).start();
+        ]),
+      );
+
+      currentAnimations.push(loop);
+      loop.start();
     };
 
     startFloat(floatAnim1, 6000);
     startFloat(floatAnim2, 7000);
     startFloat(floatAnim3, 8000);
+
+    return () => {
+      currentAnimations.forEach((a) => a.stop());
+    };
   }, []);
 
   // Interpolate 0-1 to X/Y offsets
@@ -42,7 +51,7 @@ const LoginBackground = () => {
     baseX: number,
     baseY: number,
     rangeX: number,
-    rangeY: number
+    rangeY: number,
   ) => {
     return {
       transform: [

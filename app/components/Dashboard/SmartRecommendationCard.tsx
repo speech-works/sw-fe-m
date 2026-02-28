@@ -2,17 +2,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { getPack, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import BottomSheetModal from "../BottomSheetModal";
+import ErrorStateCard from "./ErrorStateCard";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
@@ -83,90 +84,11 @@ const SmartRecommendationCard = () => {
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={["#FEF2F2", "#FFE4E6"]} // Soft Red/Rose gradient
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradient,
-            { justifyContent: "center", alignItems: "center", minHeight: 240 },
-          ]}
-        >
-          <View
-            style={[
-              styles.iconBox,
-              {
-                backgroundColor: "rgba(244, 63, 94, 0.1)", // Rose-500 optimized
-                marginBottom: 16,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="refresh"
-              size={32}
-              color={theme.colors.library.red[400]}
-            />
-          </View>
-
-          <Text
-            style={[
-              styles.packTitle,
-              {
-                color: theme.colors.text.title,
-                textAlign: "center",
-                marginBottom: 8,
-              },
-            ]}
-          >
-            Unable to load
-          </Text>
-          <Text
-            style={[
-              styles.packSubtitle,
-              {
-                color: theme.colors.text.disabled,
-                textAlign: "center",
-                marginBottom: 24,
-                maxWidth: "70%",
-              },
-            ]}
-          >
-            We couldn't load your recommendation at this time.
-          </Text>
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: theme.colors.library.red[400],
-              paddingHorizontal: 28,
-              paddingVertical: 14,
-              borderRadius: 30,
-              shadowColor: theme.colors.library.red[400],
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 4,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-            }}
-            onPress={handleFindNext}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="refresh" size={20} color="white" />
-            <Text
-              style={{
-                color: "white",
-                fontWeight: "700",
-                fontSize: 15,
-                letterSpacing: 0.5,
-              }}
-            >
-              Retry
-            </Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
+      <ErrorStateCard
+        onRetry={handleFindNext}
+        variant="light"
+        style={{ marginVertical: 16 }}
+      />
     );
   }
 

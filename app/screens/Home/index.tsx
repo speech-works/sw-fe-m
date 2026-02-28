@@ -1,18 +1,15 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import {
-    getTodayOasesQuestions,
-    startOasesCollection
-} from "../../api/oases";
+import { getTodayOasesQuestions, startOasesCollection } from "../../api/oases";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
@@ -177,6 +174,11 @@ const Home = () => {
 
   // Pagination Logic (React Native Animated)
   const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollHandler = useRef(
+    Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+      useNativeDriver: false,
+    }),
+  ).current;
 
   // Calculate total pages logic
   const showOnboarding = user && !user.hasCompletedOnboarding;
@@ -226,10 +228,7 @@ const Home = () => {
               snapToInterval={snapInterval}
               decelerationRate="fast"
               snapToAlignment="start"
-              onScroll={Animated.event(
-                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                { useNativeDriver: false }, // Width animation requires false
-              )}
+              onScroll={scrollHandler}
               scrollEventThrottle={16}
             >
               {/* Card 1: Onboarding or OASES */}

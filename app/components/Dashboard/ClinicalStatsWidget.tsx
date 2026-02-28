@@ -1,38 +1,39 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    G,
-    Line,
-    Path,
-    Stop,
-    LinearGradient as SvgGradient,
-    Text as SvgText
+  Circle,
+  Defs,
+  G,
+  Line,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
+  Text as SvgText,
 } from "react-native-svg";
 import {
-    ClinicalDomain,
-    GrowthProfile,
+  ClinicalDomain,
+  GrowthProfile,
 } from "../../api/userBehaviorTrends/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
 import DimensionDetailModal from "./DimensionDetailModal";
+import ErrorStateCard from "./ErrorStateCard";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -236,17 +237,11 @@ const ClinicalStatsWidget = () => {
   // Error State
   if (error) {
     return (
-      <View style={[styles.card, styles.centerContent]}>
-        <MaterialCommunityIcons
-          name="alert-circle-outline"
-          size={48}
-          color={theme.colors.library.red[400]}
-        />
-        <Text style={styles.errorText}>Unable to load usage data</Text>
-        <TouchableOpacity onPress={fetchAllTrends} style={styles.retryBtn}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorStateCard
+        onRetry={fetchAllTrends}
+        variant="dark"
+        style={{ marginVertical: 16 }}
+      />
     );
   }
 

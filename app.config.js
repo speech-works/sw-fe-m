@@ -39,6 +39,7 @@ module.exports = {
       },
     },
     android: {
+      usesCleartextTraffic: true,
       package: "com.mayankav.speechworks",
       permissions: [
         "android.permission.READ_EXTERNAL_STORAGE",
