@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import {
   Animated,
   Dimensions,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  InteractionManager,
 } from "react-native";
 import { getTodayOasesQuestions, startOasesCollection } from "../../api/oases";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
@@ -149,6 +150,15 @@ const Home = () => {
     initOases();
   }, [user?.hasCompletedOnboarding]);
 
+  const [interactionsDone, setInteractionsDone] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setInteractionsDone(true);
+    });
+    return () => task.cancel();
+  }, []);
+
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -203,7 +213,7 @@ const Home = () => {
 
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
-      <MoodCheckPopup />
+      {interactionsDone && <MoodCheckPopup />}
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
         refreshControl={
@@ -294,7 +304,17 @@ const Home = () => {
                     { width: carouselItemWidth, marginRight: carouselSpacing },
                   ]}
                 >
-                  <MoodCheckBanner style={{ marginBottom: 0 }} />
+                  {interactionsDone ? (
+                    <MoodCheckBanner style={{ marginBottom: 0 }} />
+                  ) : (
+                    <View
+                      style={{
+                        height: 260,
+                        borderRadius: 24,
+                        backgroundColor: "rgba(0,0,0,0.02)",
+                      }}
+                    />
+                  )}
                 </View>
               )}
             </Animated.ScrollView>

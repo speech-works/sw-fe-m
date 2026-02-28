@@ -2,24 +2,24 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
 import {
-    Dimensions,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
-    AcademyStackNavigationProp,
-    AcademyStackParamList,
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/types";
 import { useMoodCheckStore } from "../../../../stores/mood";
 import { theme } from "../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
 // Animated Faces
@@ -67,6 +67,7 @@ const MoodCheckPopup = () => {
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
   const [visible, setVisible] = React.useState(false);
+  const [canAnimate, setCanAnimate] = React.useState(false);
 
   useEffect(() => {
     // Wait for hydration
@@ -91,6 +92,7 @@ const MoodCheckPopup = () => {
     if (!hasRecordedToday && lastPopupDate !== today) {
       const timer = setTimeout(() => {
         setVisible(true);
+        setTimeout(() => setCanAnimate(true), 400); // 400ms delay after modal appears for smooth slide
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -160,7 +162,11 @@ const MoodCheckPopup = () => {
                     end={{ x: 1, y: 1 }}
                     style={[styles.card, { borderColor: emo.border }]}
                   >
-                    <emo.icon width={80} height={80} shouldAnimate={true} />
+                    <emo.icon
+                      width={80}
+                      height={80}
+                      shouldAnimate={canAnimate}
+                    />
                     <Text style={styles.moodName}>{emo.name}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
