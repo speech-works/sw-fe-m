@@ -92,9 +92,9 @@ const TherapistFace = ({
           withTiming(1, { duration: 400 }),
           withTiming(0, { duration: 400 }),
           withTiming(1, { duration: 400 }),
-          // After 2000ms of writing, wait 1500ms while the head looks back up
+          // After 2000ms of writing, smoothly return pen to original position (0) instead of snapping
           // Total cycle exactly matches lookDown's 7000ms
-          withDelay(1500, withTiming(0, { duration: 0 })),
+          withTiming(0, { duration: 1500 }),
         ),
         -1,
         false,
@@ -112,17 +112,13 @@ const TherapistFace = ({
     };
   }, [shouldAnimate]);
 
-  const blinkS = useDerivedValue(() => blink.value);
-  const penX = useDerivedValue(() => write.value * 2);
-  const penY = useDerivedValue(() => write.value * -1);
-
   const faceProps = useAnimatedProps(() => {
     // Avoid ANY negative values that could cause flying off perfectly
     const clampedDown = Math.max(0, lookDown.value);
     return {
       transform: [{ translateY: clampedDown * 2 }],
     };
-  });
+  }, []);
 
   const eyeProps = useAnimatedProps(() => {
     const clampedDown = Math.max(0, lookDown.value);
@@ -133,23 +129,28 @@ const TherapistFace = ({
       transform: [
         { translateY: clampedDown * 2.5 },
         { translateY: 26 },
-        { scaleY: Math.max(0, blinkS.value) },
+        { scaleY: Math.max(0, blink.value) },
         { translateY: -26 },
       ],
     };
-  });
-  const penProps = useAnimatedProps(() => ({
-    // Rotated positively so it slants /
-    transform: [
-      { translateX: penX.value },
-      { translateY: penY.value },
-      { translateX: 32 },
-      { translateY: 49 },
-      { rotateZ: "35deg" },
-      { translateX: -32 },
-      { translateY: -49 },
-    ],
-  }));
+  }, []);
+
+  const penProps = useAnimatedProps(() => {
+    const penX = write.value * 2;
+    const penY = write.value * -1;
+    return {
+      // Rotated positively so it slants /
+      transform: [
+        { translateX: penX },
+        { translateY: penY },
+        { translateX: 32 },
+        { translateY: 49 },
+        { rotateZ: "35deg" },
+        { translateX: -32 },
+        { translateY: -49 },
+      ],
+    };
+  }, []);
 
   return (
     <View
