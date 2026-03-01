@@ -44,7 +44,7 @@ const OASESWidget: React.FC<Props> = ({
 
           {/* Watermark Image */}
           <View style={styles.faceContainer}>
-            <TherapistFace size={160} shouldAnimate={false} transparentBg />
+            <TherapistFace size={160} shouldAnimate={true} transparentBg />
           </View>
 
           {/* Header Section */}
@@ -133,10 +133,10 @@ const styles = StyleSheet.create({
   },
   faceContainer: {
     position: "absolute",
-    right: -20,
-    bottom: -20,
+    right: 0,
+    bottom: -30,
     zIndex: 1,
-    opacity: 0.15,
+    opacity: 0.2,
   },
   content: {
     gap: 12,

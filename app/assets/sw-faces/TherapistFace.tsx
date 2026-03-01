@@ -1,22 +1,25 @@
 import React, { useEffect } from "react";
-import { Easing, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming,
- cancelAnimation} from "react-native-reanimated";
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+  Easing,
+} from "react-native-reanimated";
 import Svg, {
-    Circle,
-    Defs,
-    G,
-    Mask,
-    Path,
-    Rect,
-    SvgProps,
+  Circle,
+  Defs,
+  G,
+  Mask,
+  Path,
+  Rect,
+  SvgProps,
+  ClipPath,
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -44,6 +47,7 @@ const TherapistFace = ({
   const activeHeight = height || size;
   const blink = useSharedValue(1);
   const write = useSharedValue(0);
+  const lookDown = useSharedValue(0);
 
   useEffect(() => {
     if (shouldAnimate) {
@@ -58,22 +62,53 @@ const TherapistFace = ({
         -1,
         false,
       );
-      write.value = withRepeat(
+
+      lookDown.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 800, easing: Easing.out(Easing.exp) }),
-          withTiming(0, { duration: 800, easing: Easing.out(Easing.exp) }),
+          withDelay(
+            2000,
+            withTiming(1, {
+              duration: 1500,
+              easing: Easing.inOut(Easing.ease),
+            }),
+          ),
+          withDelay(
+            2000,
+            withTiming(0, {
+              duration: 1500,
+              easing: Easing.inOut(Easing.ease),
+            }),
+          ),
         ),
         -1,
-        true,
+        false,
+      );
+
+      write.value = withRepeat(
+        withSequence(
+          // Wait exactly 3500ms for the head to look down completely
+          withDelay(3500, withTiming(1, { duration: 400 })),
+          withTiming(0, { duration: 400 }),
+          withTiming(1, { duration: 400 }),
+          withTiming(0, { duration: 400 }),
+          withTiming(1, { duration: 400 }),
+          // After 2000ms of writing, wait 1500ms while the head looks back up
+          // Total cycle exactly matches lookDown's 7000ms
+          withDelay(1500, withTiming(0, { duration: 0 })),
+        ),
+        -1,
+        false,
       );
     } else {
       blink.value = 1;
       write.value = 0;
+      lookDown.value = 0;
     }
-  
+
     return () => {
       cancelAnimation(blink);
       cancelAnimation(write);
+      cancelAnimation(lookDown);
     };
   }, [shouldAnimate]);
 
@@ -81,12 +116,39 @@ const TherapistFace = ({
   const penX = useDerivedValue(() => write.value * 2);
   const penY = useDerivedValue(() => write.value * -1);
 
-  const eyeProps = useAnimatedProps(() => ({
-    transform: [{ scaleY: blinkS.value }],
-    originY: 26,
-  }));
+  const faceProps = useAnimatedProps(() => {
+    // Avoid ANY negative values that could cause flying off perfectly
+    const clampedDown = Math.max(0, lookDown.value);
+    return {
+      transform: [{ translateY: clampedDown * 2 }],
+    };
+  });
+
+  const eyeProps = useAnimatedProps(() => {
+    const clampedDown = Math.max(0, lookDown.value);
+    return {
+      // By manually translating to and from 26 (the eye center Y coordinate),
+      // we bypass the sometimes flaky react-native-svg originY prop.
+      // This completely links scale (blink) and down movement naturally.
+      transform: [
+        { translateY: clampedDown * 2.5 },
+        { translateY: 26 },
+        { scaleY: Math.max(0, blinkS.value) },
+        { translateY: -26 },
+      ],
+    };
+  });
   const penProps = useAnimatedProps(() => ({
-    transform: [{ translateX: penX.value }, { translateY: penY.value }],
+    // Rotated positively so it slants /
+    transform: [
+      { translateX: penX.value },
+      { translateY: penY.value },
+      { translateX: 32 },
+      { translateY: 49 },
+      { rotateZ: "35deg" },
+      { translateX: -32 },
+      { translateY: -49 },
+    ],
   }));
 
   return (
@@ -146,45 +208,57 @@ const TherapistFace = ({
             strokeWidth="3"
             strokeLinecap="round"
           />
-          <G stroke="#3E2723" strokeWidth="2.5" fill="none">
-            <Rect x="10" y="20" width="12" height="12" rx="3" />
-            <Rect x="26" y="20" width="12" height="12" rx="3" />
-            <Path d="M22 26h4" strokeWidth="2" />
-          </G>
-          <Rect
-            x="11"
-            y="21"
-            width="10"
-            height="10"
-            rx="2"
-            fill="#FFF"
-            opacity="0.3"
-          />
-          <Rect
-            x="27"
-            y="21"
-            width="10"
-            height="10"
-            rx="2"
-            fill="#FFF"
-            opacity="0.3"
-          />
-          <AnimatedG animatedProps={eyeProps}>
-            <Circle cx="16" cy="26" r="1.5" fill="#3E2723" />
-            <Circle cx="32" cy="26" r="1.5" fill="#3E2723" />
+          <AnimatedG animatedProps={faceProps}>
+            <G stroke="#3E2723" strokeWidth="2.5" fill="none">
+              <Rect x="10" y="20" width="12" height="12" rx="3" />
+              <Rect x="26" y="20" width="12" height="12" rx="3" />
+              <Path d="M22 26h4" strokeWidth="2" />
+            </G>
+            <Rect
+              x="11"
+              y="21"
+              width="10"
+              height="10"
+              rx="2"
+              fill="#FFF"
+              opacity="0.3"
+            />
+            <Rect
+              x="27"
+              y="21"
+              width="10"
+              height="10"
+              rx="2"
+              fill="#FFF"
+              opacity="0.3"
+            />
+            <AnimatedG animatedProps={eyeProps}>
+              <Circle cx="16" cy="26" r="1.5" fill="#3E2723" />
+              <Circle cx="32" cy="26" r="1.5" fill="#3E2723" />
+            </AnimatedG>
+            <Path
+              d="M20 36q4 2 8 0"
+              stroke="#3E2723"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </AnimatedG>
           <Path
             d="M9 26q-2-2 0-4M39 26q2-2 0-4"
             stroke="#E0E0E0"
             strokeWidth="1"
           />
-          <Path
-            d="M20 36q4 2 8 0"
-            stroke="#3E2723"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <G transform="translate(0, 3)">
+          <G transform="translate(-9, -3)">
+            <AnimatedRect
+              x="30"
+              y="35"
+              width="4"
+              height="14"
+              rx="1.5"
+              fill="#EF5350"
+              stroke="#C62828"
+              animatedProps={penProps}
+            />
             <Rect
               x="14"
               y="36"
@@ -205,16 +279,6 @@ const TherapistFace = ({
               rx="0.5"
               fill="#B0BEC5"
               stroke="#78909C"
-            />
-            <AnimatedRect
-              x="35"
-              y="36"
-              width="3"
-              height="12"
-              rx="1"
-              fill="#EF5350"
-              stroke="#C62828"
-              animatedProps={penProps}
             />
           </G>
         </G>
