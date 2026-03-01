@@ -5,20 +5,18 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getQuizByTechnique } from "../../../../../api/library";
 import {
-    FinalAnswer,
-    QuizQuestion,
-    TECHNIQUES_ENUM,
+  FinalAnswer,
+  QuizQuestion,
+  TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
 import { submitQuizAnswer as submitAnswerApi } from "../../../../../api/quiz";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
-    LibStackNavigationProp,
-    LibStackParamList,
+  LibStackNavigationProp,
+  LibStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { theme } from "../../../../../Theme/tokens";
-import {
-    parseTextStyle
-} from "../../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -204,6 +202,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
           {/* Footer with Navigation */}
           <View style={styles.quizFooter}>
             <TouchableOpacity
+              key={`next-btn-${selectedIndex}`}
               disabled={selectedAnsIndex === undefined || isSubmitting}
               style={[
                 styles.nextQButton,
@@ -372,7 +371,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#FFFFFF",
     position: "relative",
-    overflow: "hidden",
     shadowColor: theme.colors.library.orange[300],
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
@@ -438,7 +436,6 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     backgroundColor: "#FAFAFA",
     position: "relative",
-    overflow: "hidden",
   },
   selectedAnsRow: {
     borderColor: theme.colors.library.orange[400],
@@ -487,7 +484,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingTop: 12,
+    paddingTop: 16,
+    paddingBottom: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.06)",
     marginTop: 4,
@@ -505,11 +503,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    margin: 4,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   nextQButtonDisabled: {
     backgroundColor: "#F3F4F6",
-    borderWidth: 1,
     borderColor: "#E5E7EB",
     shadowOpacity: 0,
     elevation: 0,
