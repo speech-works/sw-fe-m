@@ -526,12 +526,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 12,
     gap: 12,
-    paddingBottom: 4,
+    paddingVertical: 16,
   },
   suggestionsScrollContent: {
     paddingHorizontal: 24,
     gap: 12,
     paddingRight: 40,
+    paddingVertical: 12,
   },
   suggestionsTitleText: {
     ...parseTextStyle(theme.typography.BodySmall),
