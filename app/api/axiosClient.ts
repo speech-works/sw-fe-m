@@ -2,7 +2,7 @@
 import axios from "axios";
 import * as Localization from "expo-localization";
 import * as SecureStore from "expo-secure-store";
-import { API_BASE_URL } from "./constants";
+import { API_BASE_URL, X_APP_SECRET } from "./constants";
 // import { refreshToken as refreshAccessToken } from "./auth"; // Removed to fix circular dependency
 import { isValid, parseISO } from "date-fns";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
@@ -80,6 +80,9 @@ const parseDatesInObject = (obj: any): any => {
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  headers: {
+    "X-App-Secret": X_APP_SECRET,
+  },
 });
 
 // Request Interceptor
@@ -163,6 +166,11 @@ axiosClient.interceptors.response.use(
           `${API_BASE_URL}/auth/refresh`,
           {
             refreshToken,
+          },
+          {
+            headers: {
+              "X-App-Secret": X_APP_SECRET,
+            },
           },
         );
         const { token: newAccessToken } = refreshResponse.data;

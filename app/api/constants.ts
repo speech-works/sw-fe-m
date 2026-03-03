@@ -29,6 +29,7 @@ const getApiBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
+export const X_APP_SECRET = Constants.expoConfig?.extra?.X_APP_SECRET;
 
 console.log(
   `[API] Using API_BASE_URL: ${API_BASE_URL} (Platform: ${Platform.OS}, Dev: ${__DEV__})`,
