@@ -18,6 +18,8 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Ellipse, Path } from "react-native-svg";
 
+import ErrorFace from "../../assets/sw-faces/ErrorFace";
+
 export type ErrorStateVariant = "light" | "dark";
 
 export interface ErrorStateCardProps {
@@ -29,72 +31,6 @@ export interface ErrorStateCardProps {
 }
 
 const windowWidth = Dimensions.get("window").width;
-
-const TornPaperSVG = ({ variant }: { variant: ErrorStateVariant }) => {
-  const isDark = variant === "dark";
-  const strokeColor = isDark ? "#FDA4AF" : "#F67A7A";
-  const shadowColor = isDark
-    ? "rgba(225, 29, 72, 0.4)"
-    : "rgba(246, 122, 122, 0.25)";
-
-  return (
-    <Svg width="120" height="130" viewBox="0 0 100 100">
-      <Ellipse cx="50" cy="92" rx="28" ry="4" fill={shadowColor} />
-
-      {/* Upside Down Crashed Plane SVG Path */}
-      {/* Front right wing (large) */}
-      <Path
-        d="M 50,75 L 75,25 L 45,65 Z"
-        fill={isDark ? "rgba(253, 164, 175, 0.05)" : "#FFFFFF"}
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-      />
-      {/* Front left wing (large) */}
-      <Path
-        d="M 50,75 L 25,25 L 45,65 Z"
-        fill={isDark ? "rgba(255, 255, 255, 0.02)" : "#FDFDFD"}
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-      />
-      {/* Left Back tail wing fold */}
-      <Path
-        d="M 25,25 L 35,15 L 45,65"
-        fill={isDark ? "rgba(253, 164, 175, 0.15)" : "#FFEBF0"}
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-      />
-      {/* Right Back tail wing fold */}
-      <Path
-        d="M 75,25 L 65,15 L 45,65"
-        fill={isDark ? "rgba(253, 164, 175, 0.1)" : "#FFF5F7"}
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinejoin="round"
-      />
-      {/* Center Crease */}
-      <Path
-        d="M 45,65 L 50,75"
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      {/* Crushed Tip Effect at the bottom (Nose of plane hitting ground) */}
-      <Path
-        d="M 45,70 L 41,75 L 48,82 L 53,75 L 49,70 Z"
-        fill={isDark ? "rgba(253, 164, 175, 0.05)" : "#FFFFFF"}
-        stroke={strokeColor}
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-};
 
 const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
   title = "Uh oh.",
@@ -198,9 +134,9 @@ const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
 
       {/* 3. Foreground Content */}
       <View style={styles.content}>
-        {/* Torn Paper Graphic positioned exactly halfway */}
+        {/* Error Face Graphic positioned exactly halfway */}
         <View style={styles.iconContainer}>
-          <TornPaperSVG variant={variant} />
+          <ErrorFace size={130} shouldAnimate={true} />
         </View>
 
         <Text style={[styles.title, { color: titleColor }]}>{title}</Text>

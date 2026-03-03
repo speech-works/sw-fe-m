@@ -174,13 +174,20 @@ const ClinicalStatsWidget = () => {
     }
   };
 
-  const refreshIconStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotationAnim.value}deg` }],
-  }));
+  const refreshIconStyle = useAnimatedStyle(
+    () => ({
+      // Avoids template-literal allocation per frame — string concat is faster
+      transform: [{ rotate: rotationAnim.value + "deg" }],
+    }),
+    [],
+  );
 
-  const cardPulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseAnim.value }],
-  }));
+  const cardPulseStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ scale: pulseAnim.value }],
+    }),
+    [],
+  );
 
   // --- Dynamic Subtitle Logic ---
   const getDynamicSubtitle = (): string => {

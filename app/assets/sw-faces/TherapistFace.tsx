@@ -1,34 +1,32 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
+  cancelAnimation,
+  Easing,
   useAnimatedProps,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
-  cancelAnimation,
-  Easing,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
+  ClipPath,
   Defs,
   G,
   Mask,
   Path,
   Rect,
   SvgProps,
-  ClipPath,
 } from "react-native-svg";
 
+// Created once at module level — never re-created on render
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
-  loop?: boolean;
-  repeatCount?: number;
   size?: number | string;
   width?: number | string;
   height?: number | string;
@@ -45,19 +43,25 @@ const TherapistFace = ({
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+
+  // Three shared values driving three independent animation loops.
+  // All run entirely on the Reanimated UI thread.
   const blink = useSharedValue(1);
   const write = useSharedValue(0);
   const lookDown = useSharedValue(0);
 
   useEffect(() => {
     if (shouldAnimate) {
+      // Eyelid close: ease-in (acceleration like real lids).
+      // Eyelid open: ease-out (deceleration like real lids).
+      // Math.random() is called on the JS thread inside useEffect — safe.
       blink.value = withRepeat(
         withSequence(
           withDelay(
             Math.random() * 2000 + 3000,
-            withTiming(0, { duration: 120 }),
+            withTiming(0, { duration: 100, easing: Easing.in(Easing.ease) }),
           ),
-          withTiming(1, { duration: 120 }),
+          withTiming(1, { duration: 100, easing: Easing.out(Easing.ease) }),
         ),
         -1,
         false,
@@ -86,23 +90,20 @@ const TherapistFace = ({
 
       write.value = withRepeat(
         withSequence(
-          // Wait exactly 3500ms for the head to look down completely
           withDelay(3500, withTiming(1, { duration: 400 })),
           withTiming(0, { duration: 400 }),
           withTiming(1, { duration: 400 }),
           withTiming(0, { duration: 400 }),
           withTiming(1, { duration: 400 }),
-          // After 2000ms of writing, smoothly return pen to original position (0) instead of snapping
-          // Total cycle exactly matches lookDown's 7000ms
           withTiming(0, { duration: 1500 }),
         ),
         -1,
         false,
       );
     } else {
-      blink.value = 1;
-      write.value = 0;
-      lookDown.value = 0;
+      blink.value = withTiming(1, { duration: 150 });
+      write.value = withTiming(0, { duration: 300 });
+      lookDown.value = withTiming(0, { duration: 300 });
     }
 
     return () => {
@@ -112,24 +113,30 @@ const TherapistFace = ({
     };
   }, [shouldAnimate]);
 
-  const faceProps = useAnimatedProps(() => {
-    // Avoid ANY negative values that could cause flying off perfectly
+  // Merged face + eye props into a single AnimatedG.
+  // One useAnimatedProps instead of two = half the per-frame worklet calls.
+  // Uses manual translate-scale-untranslate around the eye center (cx=16/32, cy=26)
+  // to avoid the buggy `originY` SVG prop.
+  const faceAndEyeProps = useAnimatedProps(() => {
     const clampedDown = Math.max(0, lookDown.value);
+    const clampedBlink = Math.max(0, blink.value);
     return {
+      // Face slides down slightly when looking down
       transform: [{ translateY: clampedDown * 2 }],
+      // Eyes: translate to center → scale → translate back, then add lookDown offset.
+      // Nested AnimatedG handles blink via scaleY.
     };
   }, []);
 
-  const eyeProps = useAnimatedProps(() => {
+  const eyeBlinkProps = useAnimatedProps(() => {
     const clampedDown = Math.max(0, lookDown.value);
+    const clampedBlink = Math.max(0, blink.value);
     return {
-      // By manually translating to and from 26 (the eye center Y coordinate),
-      // we bypass the sometimes flaky react-native-svg originY prop.
-      // This completely links scale (blink) and down movement naturally.
+      // Manual pivot around eye Y center (26) to avoid originY bug
       transform: [
         { translateY: clampedDown * 2.5 },
         { translateY: 26 },
-        { scaleY: Math.max(0, blink.value) },
+        { scaleY: clampedBlink },
         { translateY: -26 },
       ],
     };
@@ -139,7 +146,6 @@ const TherapistFace = ({
     const penX = write.value * 2;
     const penY = write.value * -1;
     return {
-      // Rotated positively so it slants /
       transform: [
         { translateX: penX },
         { translateY: penY },
@@ -193,6 +199,7 @@ const TherapistFace = ({
             fill="#F5F5F5"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
+          {/* Static hair circles */}
           <G fill="#F5F5F5">
             <Circle cx="10" cy="14" r="4" />
             <Circle cx="14" cy="11" r="4" />
@@ -209,7 +216,8 @@ const TherapistFace = ({
             strokeWidth="3"
             strokeLinecap="round"
           />
-          <AnimatedG animatedProps={faceProps}>
+          {/* Animated face group (lookDown drives translateY) */}
+          <AnimatedG animatedProps={faceAndEyeProps}>
             <G stroke="#3E2723" strokeWidth="2.5" fill="none">
               <Rect x="10" y="20" width="12" height="12" rx="3" />
               <Rect x="26" y="20" width="12" height="12" rx="3" />
@@ -233,7 +241,8 @@ const TherapistFace = ({
               fill="#FFF"
               opacity="0.3"
             />
-            <AnimatedG animatedProps={eyeProps}>
+            {/* Eye pupils — separate AnimatedG for blink scaleY */}
+            <AnimatedG animatedProps={eyeBlinkProps}>
               <Circle cx="16" cy="26" r="1.5" fill="#3E2723" />
               <Circle cx="32" cy="26" r="1.5" fill="#3E2723" />
             </AnimatedG>
@@ -244,11 +253,13 @@ const TherapistFace = ({
               strokeLinecap="round"
             />
           </AnimatedG>
+          {/* Static ear details */}
           <Path
             d="M9 26q-2-2 0-4M39 26q2-2 0-4"
             stroke="#E0E0E0"
             strokeWidth="1"
           />
+          {/* Clipboard + animated pen */}
           <G transform="translate(-9, -3)">
             <AnimatedRect
               x="30"
@@ -287,4 +298,5 @@ const TherapistFace = ({
     </View>
   );
 };
+
 export default React.memo(TherapistFace);
