@@ -187,7 +187,12 @@ const SmartRecommendationCard = () => {
 
   return (
     <>
-      <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.container}
+        activeOpacity={0.95}
+        onPress={percentComplete >= 1 ? handleFindNext : handlePress}
+        disabled={percentComplete >= 1 && isRefreshing}
+      >
         <LinearGradient
           colors={gradientColors as any}
           start={{ x: 0, y: 0 }}
@@ -199,11 +204,7 @@ const SmartRecommendationCard = () => {
           <View style={styles.bubbleBottomLeft} />
 
           {/* 1. Header Section */}
-          <TouchableOpacity
-            style={styles.headerRow}
-            onPress={handlePress}
-            activeOpacity={0.8}
-          >
+          <View style={styles.headerRow}>
             <View style={styles.headerTextContainer}>
               {tags && tags.length > 0 && (
                 <View style={styles.chip}>
@@ -222,7 +223,7 @@ const SmartRecommendationCard = () => {
                 color="white"
               />
             </View>
-          </TouchableOpacity>
+          </View>
 
           {/* 2. Progress Section */}
           <View style={styles.progressSection}>
@@ -261,12 +262,7 @@ const SmartRecommendationCard = () => {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.creamCardFooter}
-                activeOpacity={0.8}
-                onPress={handleFindNext}
-                disabled={isRefreshing}
-              >
+              <View style={styles.creamCardFooter}>
                 {isRefreshing && (
                   <ActivityIndicator
                     size="small"
@@ -289,7 +285,7 @@ const SmartRecommendationCard = () => {
                   />
                   <Text style={styles.creamCardButtonText}>Find Next</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             </View>
           ) : (
             nextModuleDisplay && (
@@ -309,11 +305,7 @@ const SmartRecommendationCard = () => {
                     {nextModuleDisplay.description}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.creamCardFooter}
-                  activeOpacity={0.8}
-                  onPress={handlePress}
-                >
+                <View style={styles.creamCardFooter}>
                   <View
                     style={{
                       flexDirection: "row",
@@ -330,12 +322,12 @@ const SmartRecommendationCard = () => {
                       {actionButtonText}
                     </Text>
                   </View>
-                </TouchableOpacity>
+                </View>
               </View>
             )
           )}
         </LinearGradient>
-      </View>
+      </TouchableOpacity>
 
       <BottomSheetModal
         visible={isModalVisible}
