@@ -419,7 +419,6 @@ const Chat = () => {
                 style={styles.startButtonGradient}
               >
                 <Text style={styles.startButtonText}>Start Practice</Text>
-                <Icon name="arrow-right" size={16} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>
           </View>

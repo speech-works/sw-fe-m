@@ -225,6 +225,10 @@ const PoemPractice = () => {
       return;
 
     const userId = user?.id; // Always use real ID if available
+    if (!userId) {
+      console.warn(">> PoemPractice: Missing userId, cannot complete activity");
+      return;
+    }
 
     const completedActivity = await completePracticeActivity({
       id: activityId,
@@ -418,9 +422,6 @@ const PoemPractice = () => {
               <Text style={styles.startButtonText}>
                 {isStarting ? "Loading..." : "Start Practice"}
               </Text>
-              {!isStarting && (
-                <Icon name="arrow-right" size={16} color="#FFF" />
-              )}
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

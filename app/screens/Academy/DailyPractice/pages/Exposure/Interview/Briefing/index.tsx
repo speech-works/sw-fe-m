@@ -214,7 +214,6 @@ const Briefing = () => {
               style={styles.startButtonGradient}
             >
               <Text style={styles.startButtonText}>Begin Interview</Text>
-              <Icon name="arrow-right" size={16} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

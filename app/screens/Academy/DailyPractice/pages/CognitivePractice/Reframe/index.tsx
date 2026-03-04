@@ -202,7 +202,7 @@ const Reframe = () => {
     // Determine userId: try user store first (common), then session user
     const userId = user?.id || practiceSession?.user?.id;
     if (!userId) {
-      console.error("Missing userId for Reframe completion");
+      console.warn(">> Reframe: Missing userId, cannot complete activity");
       return;
     }
 

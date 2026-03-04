@@ -3,12 +3,12 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    LayoutAnimation,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  LayoutAnimation,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -22,7 +22,7 @@ import MasonryTips from "../../../components/MasonryTips";
 // Tools
 import { ScrollView } from "react-native"; // Add ScrollView import
 import Metronome, {
-    useMetronome,
+  useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome"; // Updated import
 import { DAFTool, useDAF } from "../../../../Tools/DAF"; // Updated import
 import { VoiceHover } from "../../../../Tools/VoiceHover";
@@ -32,16 +32,16 @@ import SmartRecorder from "./components/SmartRecorder";
 import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 import { useStoryPractice } from "./useStoryPractice";
 const { width } = Dimensions.get("window");
 
 import {
-    RDPStackNavigationProp,
-    RDPStackRouteProp,
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const StoryPractice = () => {
@@ -261,9 +261,6 @@ const StoryPractice = () => {
               <Text style={styles.startButtonText}>
                 {!hasHydrated ? "Loading..." : "Start Practice"}
               </Text>
-              {hasHydrated && (
-                <Icon name="arrow-right" size={16} color="#FFF" />
-              )}
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

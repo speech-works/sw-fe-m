@@ -194,6 +194,12 @@ export const useStoryPractice = () => {
       return;
 
     const userId = user?.id; // Always use real ID if available
+    if (!userId) {
+      console.warn(
+        ">> useStoryPractice: Missing userId, cannot complete activity",
+      );
+      return;
+    }
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

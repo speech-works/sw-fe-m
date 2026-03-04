@@ -2,13 +2,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    LayoutAnimation,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  LayoutAnimation,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -21,7 +21,7 @@ import MasonryTips from "../../../components/MasonryTips";
 
 // Tools
 import Metronome, {
-    useMetronome,
+  useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
@@ -31,8 +31,8 @@ import SmartRecorder from "../StoryPractice/components/SmartRecorder";
 import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 import { useQuotePractice } from "./useQuotePractice";
@@ -40,8 +40,8 @@ import { useQuotePractice } from "./useQuotePractice";
 const { width } = Dimensions.get("window");
 
 import {
-    RDPStackNavigationProp,
-    RDPStackRouteProp,
+  RDPStackNavigationProp,
+  RDPStackRouteProp,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const QuotePractice = () => {
@@ -267,9 +267,6 @@ const QuotePractice = () => {
               <Text style={styles.startButtonText}>
                 {!hasHydrated ? "Loading..." : "Start Practice"}
               </Text>
-              {hasHydrated && (
-                <Icon name="arrow-right" size={16} color="#FFF" />
-              )}
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

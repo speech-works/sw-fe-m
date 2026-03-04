@@ -180,6 +180,12 @@ export const useQuotePractice = () => {
       return;
 
     const userId = user?.id; // Always use real ID if available
+    if (!userId) {
+      console.warn(
+        ">> useQuotePractice: Missing userId, cannot complete activity",
+      );
+      return;
+    }
 
     const completedActivity = await completePracticeActivity({
       id: activityId,

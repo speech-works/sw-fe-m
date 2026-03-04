@@ -281,6 +281,10 @@ const Twister = () => {
       return;
 
     const userId = user?.id; // Always use real ID if available
+    if (!userId) {
+      console.warn(">> Twister: Missing userId, cannot complete activity");
+      return;
+    }
 
     console.log(">> Twister: Completing activity", activityId);
     const completedActivity = await completePracticeActivity({
@@ -472,9 +476,6 @@ const Twister = () => {
               <Text style={styles.startButtonText}>
                 {!hasHydrated ? "Loading..." : "Start Practice"}
               </Text>
-              {hasHydrated && (
-                <Icon name="arrow-right" size={16} color="#FFF" />
-              )}
             </LinearGradient>
           </TouchableOpacity>
         </CustomScrollView>

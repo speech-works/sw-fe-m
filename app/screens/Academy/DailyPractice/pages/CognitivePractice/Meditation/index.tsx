@@ -322,7 +322,7 @@ const Meditation = () => {
     // Fix: Use user store ID if available, fallback to session ID
     const userId = user?.id || practiceSession?.user?.id;
     if (!userId) {
-      console.error("Missing userId for activity complete");
+      console.warn(">> Meditation: Missing userId, cannot complete activity");
       return;
     }
 

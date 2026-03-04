@@ -146,7 +146,7 @@ const CVExercise = () => {
       : (practiceSession?.user?.id ?? user?.id);
 
     if (!userId) {
-      console.error("❌ Missing userId for markActivityComplete");
+      console.warn(">> CVExercise: Missing userId, cannot complete activity");
       return;
     }
 
@@ -298,7 +298,6 @@ const CVExercise = () => {
                 style={styles.startButtonGradient}
               >
                 <Text style={styles.startButtonText}>Start Practice</Text>
-                <Icon name="arrow-right" size={16} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>
           </CustomScrollView>

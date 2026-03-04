@@ -1,5 +1,6 @@
-import { RouteProp } from "@react-navigation/native";
+import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AcademyStackParamList } from "../../types";
 
 export type TwisterFDPStackParamList = {
   TwisterExercise: {
@@ -9,6 +10,9 @@ export type TwisterFDPStackParamList = {
 };
 export type TwisterFDPStackNavigationProp<
   T extends keyof TwisterFDPStackParamList,
-> = NativeStackNavigationProp<TwisterFDPStackParamList, T>;
+> = CompositeNavigationProp<
+  NativeStackNavigationProp<TwisterFDPStackParamList, T>,
+  NativeStackNavigationProp<AcademyStackParamList>
+>;
 export type TwisterFDPStackRouteProp<T extends keyof TwisterFDPStackParamList> =
   RouteProp<TwisterFDPStackParamList, T>;
