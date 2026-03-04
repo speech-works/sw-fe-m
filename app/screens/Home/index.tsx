@@ -213,6 +213,15 @@ const Home = () => {
     // For now, let's just let it be empty or hide if totalPages 0
   }
 
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour < 12
+      ? "Good Morning,"
+      : currentHour < 18
+        ? "Good Afternoon,"
+        : "Good Evening,";
+  const firstName = user?.name ? user.name.split(" ")[0] : "";
+
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
       {interactionsDone && <MoodCheckPopup />}
@@ -223,8 +232,10 @@ const Home = () => {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.subGreeting}>Mayank</Text>
+          <Text style={styles.greeting}>{greeting}</Text>
+          {firstName ? (
+            <Text style={styles.subGreeting}>{firstName}</Text>
+          ) : null}
         </View>
 
         {/* --- Top Carousel --- */}

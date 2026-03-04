@@ -258,7 +258,10 @@ const CVExercise = () => {
             <View style={{ width: 32 }} />
           </View>
 
-          <CustomScrollView contentContainerStyle={styles.tipsScrollContent}>
+          <CustomScrollView
+            key="tips-scroll"
+            contentContainerStyle={styles.tipsScrollContent}
+          >
             <View style={styles.noteHeaderBanner}>
               <LinearGradient
                 colors={["#FFE4E6", "#FFEDD5"]}
@@ -332,6 +335,7 @@ const CVExercise = () => {
         </View>
 
         <CustomScrollView
+          key="practice-scroll"
           contentContainerStyle={[
             styles.scrollContent,
             { paddingBottom: bottomPadding },

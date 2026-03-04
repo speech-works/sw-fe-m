@@ -208,7 +208,10 @@ const StoryPractice = () => {
           <View style={{ width: 32 }} />
         </View>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+        <CustomScrollView
+          key="tips-scroll"
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.noteHeaderBanner}>
             <LinearGradient
               colors={["#FFE4E6", "#FFEDD5"]}
@@ -304,6 +307,7 @@ const StoryPractice = () => {
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
         <CustomScrollView
+          key="practice-scroll"
           scrollEnabled={true}
           contentContainerStyle={[
             styles.readingScrollContent,
