@@ -300,11 +300,11 @@ const Breathing = () => {
       console.log("Breathing Screen - Fetched default ID:", defaultId);
 
       if (passedActivity) {
-        console.log("Breathing Screen - Using passed activity mode");
-        // In the new workflow, passedActivity.id IS the unique instance ID
+        console.log(
+          "Breathing Screen - Using passed activity mode (wait for start)",
+        );
+        // In the new workflow, we wait for the user to click "Start Exercise"
         setCognitivePracticeId(passedActivity.id);
-        setCurrentActivityId(passedActivity.id);
-        setCurrentActivity(passedActivity);
         return;
       }
 
@@ -333,7 +333,7 @@ const Breathing = () => {
     }
 
     try {
-      let activityIdToStart = currentActivityId;
+      let activityIdToStart = currentActivityId || passedActivity?.id;
 
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {

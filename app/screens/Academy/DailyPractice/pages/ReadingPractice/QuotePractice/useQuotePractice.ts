@@ -56,7 +56,7 @@ export const useQuotePractice = () => {
   const initialActivity = (route.params as any)?.practiceActivity;
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    initialActivity?.id || null,
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -133,7 +133,7 @@ export const useQuotePractice = () => {
         return;
       }
 
-      let activityIdToStart = currentActivityId;
+      let activityIdToStart = currentActivityId || initialActivity?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {

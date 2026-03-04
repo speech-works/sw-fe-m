@@ -143,7 +143,7 @@ const Twister = () => {
   const [twisters, setTwisters] = useState<FunPractice[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    route.params?.practiceActivity?.id || null,
+    null,
   );
   const [isStarting, setIsStarting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -231,7 +231,8 @@ const Twister = () => {
         return;
       }
 
-      let activityIdToStart = currentActivityId;
+      let activityIdToStart =
+        currentActivityId || route.params?.practiceActivity?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {

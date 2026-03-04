@@ -73,14 +73,7 @@ const Meditation = () => {
     null,
   );
 
-  // Initialize from params for the new workflow
-  useEffect(() => {
-    if (practiceActivity?.id) {
-      setCurrentActivityId(practiceActivity.id);
-      // We don't have the full hydrated activity here yet (needs to be merged with scenario)
-      // but we have the ID for startPracticeActivity.
-    }
-  }, [practiceActivity]);
+  // meditation scenarios
 
   // Which scenario is currently selected
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);

@@ -55,7 +55,7 @@ const CVExercise = () => {
   const [texts, setTexts] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(6);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    (route.params as any).practiceActivity?.id || null,
+    null,
   );
 
   const toggleIndex = () => {
@@ -96,7 +96,8 @@ const CVExercise = () => {
         return;
       }
 
-      let activityIdToStart = currentActivityId;
+      let activityIdToStart =
+        currentActivityId || (route.params as any).practiceActivity?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {

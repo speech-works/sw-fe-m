@@ -87,7 +87,7 @@ const PoemPractice = () => {
   const packContext = route.params?.packContext;
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    route.params?.practiceActivity?.id || null,
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -186,7 +186,8 @@ const PoemPractice = () => {
       return;
     }
 
-    let activityIdToStart = currentActivityId;
+    let activityIdToStart =
+      currentActivityId || (route.params as any)?.practiceActivity?.id;
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
