@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
@@ -46,6 +47,7 @@ const AnimatedBar = ({
 
 const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const { user } = useUserStore();
+  const isFocused = useIsFocused();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
 
   const userProgress = user
@@ -61,6 +63,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
 
   useEffect(() => {
     if (
+      !isFocused ||
       !user ||
       (user.currentStamina ?? 0) >= currentMaxStamina ||
       !user.lastStaminaUpdate
@@ -101,7 +104,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
     updateTimer(); // Initial call
     const interval = setInterval(updateTimer, 1000); // Live update
     return () => clearInterval(interval);
-  }, [user?.currentStamina, user?.lastStaminaUpdate]);
+  }, [user?.currentStamina, user?.lastStaminaUpdate, isFocused]);
 
   // SVG Config
   const size = 88; // Slightly larger
@@ -283,7 +286,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   );
 };
 
-export default ResourceStats;
+export default React.memo(ResourceStats);
 
 const styles = StyleSheet.create({
   container: {

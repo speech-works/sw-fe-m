@@ -1,6 +1,6 @@
 import {
-    CompositeNavigationProp,
-    useNavigation,
+  CompositeNavigationProp,
+  useNavigation,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,8 +11,8 @@ import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/t
 import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
 import { theme } from "../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 const BuyPro = () => {
@@ -108,7 +108,7 @@ const BuyPro = () => {
   );
 };
 
-export default BuyPro;
+export default React.memo(BuyPro);
 
 const styles = StyleSheet.create({
   container: {

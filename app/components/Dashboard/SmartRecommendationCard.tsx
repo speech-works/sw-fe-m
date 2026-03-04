@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -27,6 +27,8 @@ const SmartRecommendationCard = () => {
   const [isModalVisible, setModalVisible] = useState(false);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastFetchRef = useRef<number>(0);
+  const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -60,11 +62,14 @@ const SmartRecommendationCard = () => {
     } finally {
       setLoading(false);
       setIsRefreshing(false);
+      lastFetchRef.current = Date.now();
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      const timeSinceLastFetch = Date.now() - lastFetchRef.current;
+      if (timeSinceLastFetch < STALE_THRESHOLD_MS && !loading) return;
       fetchRecommendations();
     }, [fetchRecommendations]),
   );

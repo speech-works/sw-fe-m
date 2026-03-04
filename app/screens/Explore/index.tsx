@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
@@ -36,6 +36,11 @@ const Explore = () => {
   // --- NEW: Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
   // ----------------------------------------
+
+  // Memoize heavy children so they don't re-render on isScrolling changes
+  const memoizedWorldGraph = useMemo(() => <WorldExplorationGraph />, []);
+  const memoizedBuyPro = useMemo(() => <BuyPro />, []);
+  const memoizedLibrary = useMemo(() => <LibrarySection />, []);
 
   const syncSessionWithBackend = useCallback(async () => {
     if (!user) {
@@ -101,7 +106,7 @@ const Explore = () => {
       setPracticeStats(practiceStats);
     };
     fetchUserStats();
-  }, [user, setPracticeStats]);
+  }, [user?.id, setPracticeStats]);
 
   return (
     <View style={styles.screenView}>
@@ -142,16 +147,16 @@ const Explore = () => {
 
           <View style={styles.innerContainer}>
             {/* World Exploration Map */}
-            <WorldExplorationGraph />
+            {memoizedWorldGraph}
 
             {/* 4 Types of Practice Grid */}
             <PracticeGrid isScrolling={isScrolling} />
 
             {/* Upgrade CTA */}
-            <BuyPro />
+            {memoizedBuyPro}
 
             {/* Inline Library Section */}
-            <LibrarySection />
+            {memoizedLibrary}
           </View>
         </CustomScrollView>
       </SafeAreaView>

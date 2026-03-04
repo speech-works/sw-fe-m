@@ -51,13 +51,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Reading",
         subtitle: "Fluency",
         countLabel: `${getCount("READING_PRACTICE")} Done`,
-        icon: (
-          <ReaderFace
-            size={64}
-            shouldAnimate={isFocused && !isScrolling}
-            loop
-          />
-        ),
+        faceType: "reader" as const,
         route: "ReadingPracticeStack",
         colors: ["#FFD8B5", "#FFAB76"],
         shadowColor: "#FFAB76",
@@ -66,9 +60,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Fun",
         subtitle: "Expression",
         countLabel: `${getCount("FUN_PRACTICE")} Done`,
-        icon: (
-          <MovieFace size={64} shouldAnimate={isFocused && !isScrolling} loop />
-        ),
+        faceType: "movie" as const,
         route: "FunPracticeStack",
         colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
         shadowColor: "#98E6E6",
@@ -77,13 +69,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Cognitive",
         subtitle: "Focus",
         countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
-        icon: (
-          <BreathingFace
-            size={64}
-            shouldAnimate={isFocused && !isScrolling}
-            loop
-          />
-        ),
+        faceType: "breathing" as const,
         route: "CognitivePracticeStack",
         colors: ["#EBCBF5", "#D8A7F0"],
         shadowColor: "#D8A7F0",
@@ -92,20 +78,31 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Exposure",
         subtitle: "Courage",
         countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
-        icon: (
-          <WarriorFace
-            size={64}
-            shouldAnimate={isFocused && !isScrolling}
-            loop
-          />
-        ),
+        faceType: "warrior" as const,
         route: "ExposureStack",
         colors: ["#FFC8C8", "#FF9E9E"],
         shadowColor: "#FF9E9E",
       },
     ],
-    [getCount, isFocused, isScrolling],
+    [getCount],
   );
+
+  const shouldAnimate = isFocused && !isScrolling;
+
+  const renderFace = (faceType: string) => {
+    switch (faceType) {
+      case "reader":
+        return <ReaderFace size={64} shouldAnimate={shouldAnimate} loop />;
+      case "movie":
+        return <MovieFace size={64} shouldAnimate={shouldAnimate} loop />;
+      case "breathing":
+        return <BreathingFace size={64} shouldAnimate={shouldAnimate} loop />;
+      case "warrior":
+        return <WarriorFace size={64} shouldAnimate={shouldAnimate} loop />;
+      default:
+        return null;
+    }
+  };
 
   const handlePress = (route: string) => {
     // @ts-ignore - Simple navigation wrapper
@@ -154,7 +151,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
                 </View>
                 <Text style={styles.cardTitle}>{p.name}</Text>
               </View>
-              <View style={styles.iconWrapper}>{p.icon}</View>
+              <View style={styles.iconWrapper}>{renderFace(p.faceType)}</View>
             </LinearGradient>
           </TouchableOpacity>
         ))}

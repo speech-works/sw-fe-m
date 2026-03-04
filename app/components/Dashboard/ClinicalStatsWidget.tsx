@@ -240,6 +240,105 @@ const ClinicalStatsWidget = () => {
   const SIZE = 220;
   const CENTER = SIZE / 2;
   const RADIUS = SIZE / 2 - 45; // Slightly more padding for labels
+  const angleStep = chartData ? 360 / chartData.allDomains.length : 72;
+
+  // --- Memoized heavy SVG path computations (must be before early returns for hooks rules) ---
+  const {
+    currentPoints,
+    gridPaths,
+    currentPathD,
+    historicalPathD,
+    baselinePathD,
+  } = useMemo(() => {
+    if (!chartData) {
+      return {
+        currentPoints: [],
+        gridPaths: [],
+        currentPathD: "",
+        historicalPathD: null as string | null,
+        baselinePathD: "",
+      };
+    }
+
+    const _getPoints = (data: number[], scale: number = 1) => {
+      return data.map((value, i) => {
+        const r = (value / 100) * RADIUS * scale;
+        return POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
+      });
+    };
+
+    const _makeSmoothCurve = (
+      points: { x: number; y: number }[],
+      tension: number = 0.45,
+    ) => {
+      if (points.length < 2) return "";
+      const len = points.length;
+
+      const getControlPoint = (
+        current: { x: number; y: number },
+        previous: { x: number; y: number },
+        next: { x: number; y: number },
+        reverse?: boolean,
+      ) => {
+        const smoothing = tension;
+        const oX = next.x - previous.x;
+        const oY = next.y - previous.y;
+        return {
+          x: current.x + (reverse ? -1 : 1) * (oX * smoothing),
+          y: current.y + (reverse ? -1 : 1) * (oY * smoothing),
+        };
+      };
+
+      const dParts: string[] = [];
+      dParts.push(`M ${points[0].x},${points[0].y}`);
+      for (let i = 0; i < len; i++) {
+        const current = points[i];
+        const next = points[(i + 1) % len];
+        const nextNext = points[(i + 2) % len];
+        const prev = points[i === 0 ? len - 1 : i - 1];
+        const cp1 = getControlPoint(current, prev, next);
+        const cp2 = getControlPoint(next, current, nextNext, true);
+        dParts.push(
+          `C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${next.x},${next.y}`,
+        );
+      }
+      dParts.push("Z");
+      return dParts.join(" ");
+    };
+
+    const _getGridPoints = (percentage: number) => {
+      return _getPoints(
+        new Array(chartData.allDomains.length).fill(percentage),
+      );
+    };
+
+    const _currentPoints = _getPoints(chartData.currentData);
+
+    const gridLevels = [25, 50, 75, 100];
+    const _gridPaths = gridLevels.map((level) => {
+      return _makeSmoothCurve(_getGridPoints(level), 0.3);
+    });
+
+    const _currentPathD = _makeSmoothCurve(_currentPoints, 0.45);
+
+    let _historicalPathD: string | null = null;
+    if (historicalProfile) {
+      const historicalData = chartData.allDomains.map((domain) => {
+        const key = METRIC_CONFIG[domain].profileKey;
+        return historicalProfile[key] || 50;
+      });
+      const historicalPoints = _getPoints(historicalData);
+      _historicalPathD = _makeSmoothCurve(historicalPoints, 0.45);
+    }
+
+    return {
+      currentPoints: _currentPoints,
+      gridPaths: _gridPaths,
+      currentPathD: _currentPathD,
+      historicalPathD: _historicalPathD,
+      baselinePathD: _makeSmoothCurve(_getPoints(chartData.baselineData), 0.45),
+    };
+  }, [chartData, historicalProfile]);
 
   // Error State
   if (error) {
@@ -259,86 +358,6 @@ const ClinicalStatsWidget = () => {
         <SkeletonLoader width={"100%"} height={300} />
       </View>
     );
-  }
-
-  const angleStep = 360 / chartData.allDomains.length;
-
-  // Build Static Paths (Changed to return Array of Points for Spline processing)
-  const getPoints = (data: number[], scale: number = 1) => {
-    return data.map((value, i) => {
-      // Normalize value 0-100 to radius
-      const r = (value / 100) * RADIUS * scale;
-      return POLAR_TO_CARTESIAN(CENTER, CENTER, r, i * angleStep);
-    });
-  };
-
-  // --- Spline / Curve Calculation ---
-  const makeSmoothCurve = (
-    points: { x: number; y: number }[],
-    tension: number = 0.45,
-  ) => {
-    if (points.length < 2) return "";
-    const len = points.length;
-
-    const getControlPoint = (
-      current: { x: number; y: number },
-      previous: { x: number; y: number },
-      next: { x: number; y: number },
-      reverse?: boolean,
-    ) => {
-      const smoothing = tension;
-      const oX = next.x - previous.x;
-      const oY = next.y - previous.y;
-      return {
-        x: current.x + (reverse ? -1 : 1) * (oX * smoothing),
-        y: current.y + (reverse ? -1 : 1) * (oY * smoothing),
-      };
-    };
-
-    const dParts: string[] = [];
-    dParts.push(`M ${points[0].x},${points[0].y}`);
-    for (let i = 0; i < len; i++) {
-      const current = points[i];
-      const next = points[(i + 1) % len];
-      const nextNext = points[(i + 2) % len];
-      const prev = points[i === 0 ? len - 1 : i - 1];
-      const cp1 = getControlPoint(current, prev, next);
-      const cp2 = getControlPoint(next, current, nextNext, true);
-      dParts.push(`C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${next.x},${next.y}`);
-    }
-    dParts.push("Z");
-    return dParts.join(" ");
-  };
-
-  // Generate Point Objects for Data
-  const currentPoints = getPoints(chartData.currentData);
-  // const baselinePoints = getPoints(chartData.baselineData);
-
-  // Helper to generate a "perfect" regular polygon for the grid background
-  const getGridPoints = (percentage: number) => {
-    return getPoints(new Array(chartData.allDomains.length).fill(percentage));
-  };
-
-  // Generate Organic Grid Paths (Concentric Blobs)
-  const gridLevels = [25, 50, 75, 100];
-  const gridPaths = gridLevels.map((level) => {
-    // Use slightly lower tension for grid to keep it distinguishable but soft
-    return makeSmoothCurve(getGridPoints(level), 0.3);
-  });
-
-  // Generate Data Paths (High Tension = Blobby/Splatter look)
-  // 0.45 tension creates that "amoeba" look from the reference
-  const currentPathD = makeSmoothCurve(currentPoints, 0.45);
-
-  // Generate Ghost Overlay Path (Historical Comparison)
-  let historicalPathD: string | null = null;
-  if (historicalProfile) {
-    const historicalData = chartData.allDomains.map((domain) => {
-      const key = METRIC_CONFIG[domain].profileKey;
-      return historicalProfile[key] || 50;
-    });
-    const historicalPoints = getPoints(historicalData);
-    historicalPathD = makeSmoothCurve(historicalPoints, 0.45);
   }
 
   // Weekly Breakthroughs Domain List
@@ -485,7 +504,7 @@ const ClinicalStatsWidget = () => {
 
                 {/* Average Baseline Chart (Grey) */}
                 <Path
-                  d={makeSmoothCurve(getPoints(chartData.baselineData), 0.45)}
+                  d={baselinePathD}
                   fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
                   stroke={theme.colors.library.gray[400]}
                   strokeWidth="2"
@@ -1121,4 +1140,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ClinicalStatsWidget;
+export default React.memo(ClinicalStatsWidget);
