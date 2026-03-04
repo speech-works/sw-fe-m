@@ -580,7 +580,6 @@ const Meditation = () => {
                   style={styles.startButtonGradient}
                 >
                   <Text style={styles.startButtonText}>Start Exercise</Text>
-                  <Icon name="arrow-right" size={16} color="#FFF" />
                 </LinearGradient>
               </TouchableOpacity>
             </>

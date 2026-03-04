@@ -92,12 +92,6 @@ const BuyPro = () => {
           style={styles.ctaGradient}
         >
           <Text style={styles.ctaText}>{copy.cta}</Text>
-          <Icon
-            name="arrow-right"
-            size={16}
-            color="#DB2777"
-            style={{ marginLeft: 8 }}
-          />
         </LinearGradient>
       </TouchableOpacity>
 

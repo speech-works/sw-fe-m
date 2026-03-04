@@ -2,11 +2,11 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -16,8 +16,8 @@ import ScreenView from "../../components/ScreenView";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
 
@@ -32,7 +32,7 @@ const SubscribeScreen = () => {
   const { user } = useUserStore();
   const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
-    PAYMENT_PLAN_TYPE.ANNUALLY
+    PAYMENT_PLAN_TYPE.ANNUALLY,
   );
 
   const handlePayment = async () => {
@@ -88,7 +88,7 @@ const SubscribeScreen = () => {
           triggerToast(
             "success",
             "Payment successful!",
-            `Payment ID: ${paymentData.razorpay_payment_id}`
+            `Payment ID: ${paymentData.razorpay_payment_id}`,
           );
         })
         .catch((error: any) => {
@@ -100,7 +100,7 @@ const SubscribeScreen = () => {
       triggerToast(
         "error",
         "Payment failed. Please try again.",
-        "Something went wrong with payment."
+        "Something went wrong with payment.",
       );
     }
   };
@@ -253,7 +253,6 @@ const SubscribeScreen = () => {
                 ? "Start My 7-Day Free Trial" // High conversion copy
                 : "Get Instant Access"}
             </Text>
-            <Icon name="arrow-right" size={16} color="#FFF" />
           </LinearGradient>
         </TouchableOpacity>
 

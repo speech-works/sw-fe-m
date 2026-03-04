@@ -1,11 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -18,8 +18,8 @@ import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 
@@ -187,7 +187,6 @@ const ExpressYourself = ({
                   style={styles.gradientButton}
                 >
                   <Text style={styles.submitText}>Let it out</Text>
-                  <Icon name="arrow-right" size={14} color="#FFF" />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
