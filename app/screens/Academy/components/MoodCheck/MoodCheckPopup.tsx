@@ -179,7 +179,7 @@ const MoodCheckPopup = () => {
   );
 };
 
-export default MoodCheckPopup;
+export default React.memo(MoodCheckPopup);
 
 const styles = StyleSheet.create({
   overlay: {

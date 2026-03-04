@@ -92,7 +92,7 @@ const OASESWidget: React.FC<Props> = ({
   );
 };
 
-export default OASESWidget;
+export default React.memo(OASESWidget);
 
 const styles = StyleSheet.create({
   container: {

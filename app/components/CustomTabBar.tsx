@@ -3,16 +3,18 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
-    interpolate,
-    interpolateColor,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  interpolate,
+  interpolateColor,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useDerivedValue,
+  withSpring,
 } from "react-native-reanimated";
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 
+const AnimatedIcon = Animated.createAnimatedComponent(MaterialCommunityIcons);
 const { width } = Dimensions.get("window");
 
 const CustomTabBar = ({
@@ -88,12 +90,11 @@ const CustomTabBar = ({
 };
 
 const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
-  // Animation Values
-  const focusedValue = useSharedValue(isFocused ? 1 : 0);
-
-  React.useEffect(() => {
-    // Ultra fast, snappy, aggressive spring
-    focusedValue.value = withSpring(isFocused ? 1 : 0, {
+  // Animation Values - Using useDerivedValue instead of useEffect
+  // This triggers the spring synchronously during the commit phase
+  // instead of waiting for useEffect (which gets blocked by the new screen's heavy JS render)
+  const focusedValue = useDerivedValue(() => {
+    return withSpring(isFocused ? 1 : 0, {
       stiffness: 450,
       damping: 24,
       mass: 0.5,
@@ -147,8 +148,15 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
     };
   });
 
-  // Icon Color
-  const iconColor = isFocused ? "#FFFFFF" : "#94A3B8";
+  // Icon Cross-fade Animation Styles
+  const inactiveIconStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    opacity: 1 - focusedValue.value,
+  }));
+
+  const activeIconStyle = useAnimatedStyle(() => ({
+    opacity: focusedValue.value,
+  }));
 
   return (
     <Animated.View style={[styles.tabItemContainer, containerStyle]}>
@@ -156,10 +164,33 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
         onPress={onPress}
         onLongPress={onLongPress}
         activeOpacity={0.7}
-        style={styles.touchable} // Added stronger tap feel
+        style={styles.touchable}
       >
         <Animated.View style={pillStyle}>
-          <MaterialCommunityIcons name={iconName} size={24} color={iconColor} />
+          {/* Cross-fading icons for reliable Reanimated color transition */}
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Animated.View style={inactiveIconStyle}>
+              <MaterialCommunityIcons
+                name={iconName}
+                size={24}
+                color="#94A3B8"
+              />
+            </Animated.View>
+            <Animated.View style={[activeIconStyle, { position: "absolute" }]}>
+              <MaterialCommunityIcons
+                name={iconName}
+                size={24}
+                color="#FFFFFF"
+              />
+            </Animated.View>
+          </View>
 
           {/* Wrapper dictates layout shift precisely */}
           <Animated.View style={textWrapperStyle}>

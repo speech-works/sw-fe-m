@@ -662,4 +662,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SmartRecommendationCard;
+export default React.memo(SmartRecommendationCard);

@@ -5,14 +5,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
 import {
-    AcademyStackNavigationProp,
-    AcademyStackParamList,
+  AcademyStackNavigationProp,
+  AcademyStackParamList,
 } from "../../../navigators/stacks/AcademyStack/types";
 import { useMoodCheckStore } from "../../../stores/mood";
 import { theme } from "../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 interface Props {
@@ -87,7 +87,7 @@ const MoodCheckBanner = ({ style }: Props) => {
   );
 };
 
-export default MoodCheckBanner;
+export default React.memo(MoodCheckBanner);
 
 const styles = StyleSheet.create({
   container: {
