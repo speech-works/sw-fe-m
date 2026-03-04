@@ -8,15 +8,19 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "newArchEnabled": true
+        "buildType": "apk"
       },
-      "ios": {
-        "newArchEnabled": true
+      "env": {
+        "API_BASE_URL": "https://api.speechworks.in",
+        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565"
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "API_BASE_URL": "https://api.speechworks.in",
+        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565"
+      }
     },
     "preview-apk": {
       "extends": "preview",
@@ -25,7 +29,11 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "API_BASE_URL": "https://api.speechworks.in",
+        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565"
+      }
     }
   },
   "submit": {

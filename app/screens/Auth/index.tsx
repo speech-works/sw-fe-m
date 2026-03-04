@@ -1,22 +1,23 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    Platform,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 import { theme } from "../../Theme/tokens";
 import {
-    COMPANY_NAME,
-    COMPANY_SLOGAN,
-    PRIVACY_POLICY_URL,
-    SUPPORT_URL,
+  COMPANY_NAME,
+  COMPANY_SLOGAN,
+  PRIVACY_POLICY_URL,
+  SUPPORT_URL,
 } from "./constants";
 
 import * as AuthSession from "expo-auth-session";
@@ -30,9 +31,7 @@ import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
 import { handleLinkPress } from "../../util/functions/externalLinks";
-import {
-    parseTextStyle
-} from "../../util/functions/parseStyles";
+import { parseTextStyle } from "../../util/functions/parseStyles";
 import LoginBackground from "./components/LoginBackground";
 
 // Define the providers to display
@@ -47,6 +46,9 @@ const getDisplayProviders = () => {
   // On Android/Web/Other, filter out 'apple'
   return ALL_PROVIDERS.filter((provider) => provider !== "apple");
 };
+
+// Required to ensure the WebBrowser closes correctly on Android redirects
+WebBrowser.maybeCompleteAuthSession();
 
 const { height } = Dimensions.get("window");
 
@@ -95,7 +97,6 @@ const LoginScreen = () => {
     setLoadingProvider(provider);
 
     try {
-
       // iOS simulators have issues with custom schemes in development
       // Use Expo's proxy for iOS dev, custom scheme for Android/production
       const redirectUri = AuthSession.makeRedirectUri({
@@ -115,6 +116,30 @@ const LoginScreen = () => {
 
       console.log("[Auth] 🔍 Supabase Auth URL:", authUrl);
 
+      // On Android, openAuthSessionAsync often returns { type: 'dismiss' } due to
+      // an AppState race condition, even when the OAuth redirect actually happened.
+      // We set up a Linking listener as a fallback to catch the redirect URL.
+      let linkingHandled = false;
+
+      const handleRedirect = async (event: { url: string }) => {
+        if (linkingHandled) return;
+        const url = event.url;
+        if (!url.startsWith("speechworks://auth-callback")) return;
+        linkingHandled = true;
+        console.log("[Auth] 🔍 Deep link captured:", url);
+        try {
+          await processAuthRedirect(url);
+        } catch (err: any) {
+          console.error("🚨 OAuth callback failed:", err.message || err);
+          showError(err.message || "Login failed. Please try again.");
+        } finally {
+          setLoadingProvider(null);
+        }
+      };
+
+      // Register the listener before opening the browser
+      const subscription = Linking.addEventListener("url", handleRedirect);
+
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
         redirectUri,
@@ -126,36 +151,62 @@ const LoginScreen = () => {
       console.log("[Auth] 🔍 Auth session result:", result);
 
       if (result.type === "success" && result.url) {
-        const params = new URLSearchParams(result.url.split("?")[1]);
-        let code = params.get("code");
-        if (!code) throw new Error("No code returned from OAuth");
-
-        // Supabase/Google often appends a trailing '#' to the redirect URL
-        // which URLSearchParams captures. We must strip it or the code exchange fails.
-        code = code.replace(/#.*$/, "");
-
-        const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
-        setUser(user);
-
-        await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
-        await SecureStore.setItemAsync(
-          SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-          refreshToken,
-        );
-
-        login(appJwt);
+        // Browser returned the URL directly (common on iOS)
+        if (!linkingHandled) {
+          linkingHandled = true;
+          await processAuthRedirect(result.url);
+        }
       } else if (result.type === "cancel") {
         console.log("🔸 User cancelled OAuth");
+        if (!linkingHandled) setLoadingProvider(null);
       } else {
-        console.warn("⚠️ Unexpected OAuth result:", result);
-        showError("Unexpected login response. Please try again.");
+        // On Android this often fires as 'dismiss' even on success.
+        // The Linking listener above will handle the redirect if it happened.
+        console.warn(
+          "⚠️ OAuth result type:",
+          result.type,
+          "— waiting for deep link fallback",
+        );
+        // Give the deep link listener a moment to fire
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (!linkingHandled) {
+          console.warn(
+            "⚠️ No deep link received. OAuth may have been cancelled.",
+          );
+          showError("Login was interrupted. Please try again.");
+          setLoadingProvider(null);
+        }
       }
+
+      // Clean up the listener
+      subscription.remove();
     } catch (err: any) {
       console.error("🚨 OAuth failed:", err.message || err);
       showError(err.message || "Login failed. Please try again.");
-    } finally {
       setLoadingProvider(null);
     }
+  };
+
+  /** Shared logic to exchange the OAuth code for tokens and log the user in. */
+  const processAuthRedirect = async (url: string) => {
+    const params = new URLSearchParams(url.split("?")[1]);
+    let code = params.get("code");
+    if (!code) throw new Error("No code returned from OAuth");
+
+    // Supabase/Google often appends a trailing '#' to the redirect URL
+    // which URLSearchParams captures. We must strip it or the code exchange fails.
+    code = code.replace(/#.*$/, "");
+
+    const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
+    setUser(user);
+
+    await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
+    await SecureStore.setItemAsync(
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
+      refreshToken,
+    );
+
+    login(appJwt);
   };
 
   const providers = getDisplayProviders();

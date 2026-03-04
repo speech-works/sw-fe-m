@@ -23,7 +23,8 @@
     "build:android:preview": "eas build -p android --profile preview-apk",
     "build:ios:preview": "eas build -p ios --profile preview",
     "build:android:production": "eas build -p android --profile production",
-    "build:ios:production": "eas build -p ios --profile production"
+    "build:ios:production": "eas build -p ios --profile production",
+    "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
