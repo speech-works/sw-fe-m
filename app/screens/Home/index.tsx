@@ -213,9 +213,37 @@ const Home = () => {
       // We will handle basic vertical scrolling first.
 
       if (yOffset !== undefined && verticalScrollRef.current) {
-        // Scroll vertically ensuring element is perfectly centered.
         const { height: screenHeight } = Dimensions.get("window");
-        const targetY = Math.max(0, yOffset - screenHeight / 2 + height / 2);
+        // Place the spotlighted element in the upper ~30% of the screen.
+        // This creates a natural gap below for the tooltip which always renders under the spotlight.
+        // Top buffer ~100px accounts for status bar + a bit of breathing room above the element.
+        const TOP_BUFFER = 100;
+        let targetY = Math.max(0, yOffset - TOP_BUFFER);
+
+        // Zone 5 (Free Activity & Level) is inside ResourceStats, below the Energy Tank section.
+        // Both zones 4 and 5 share the same outer wrapper y position, so we scroll an extra ~200px
+        // for zone 5 to account for the energySection height above it, pulling the grid into view.
+        if (targetOrder === 5) {
+          targetY = Math.max(0, yOffset + 200 - TOP_BUFFER);
+        }
+
+        // Zone 6 (SmartRecommendationCard) is a tall card. Scroll so its bottom sits near the
+        // center of the screen, giving the tooltip room to be below it in the lower screen half.
+        if (targetOrder === 6) {
+          targetY = Math.max(0, yOffset + height - screenHeight * 0.45);
+        }
+
+        // Zone 7 (Growth Profile container) is also a very tall card (header + radar chart + breakthroughs).
+        // Use a more aggressive formula: put bottom at 30% of screen (not 45%), leaving 70% for tooltip.
+        if (targetOrder === 7) {
+          targetY = Math.max(0, yOffset + height - screenHeight * 0.1);
+        }
+
+        // Zone 9 (Social metric overlay) is inside ClinicalStatsWidget, ~320px down from widget top.
+        // Increased from 240px to 320px to account for actual radar chart geometry.
+        if (targetOrder === 9) {
+          targetY = Math.max(0, yOffset + 320 - TOP_BUFFER);
+        }
 
         verticalScrollRef.current.scrollTo({
           y: targetY,
@@ -232,11 +260,12 @@ const Home = () => {
           });
         }
 
-        // Wait for smooth scroll to finish before moving tour step
+        // Wait for scroll animation to fully finish before advancing the tour step.
+        // 700ms gives the animated scrollTo enough time to complete on all devices.
         setTimeout(() => {
           if (event === "next" && handleNext) handleNext();
           if (event === "prev" && handlePrev) handlePrev();
-        }, 350); // Typical RN scroll animation duration
+        }, 700);
       } else {
         // Fallback immediately if position unknown
         if (event === "next" && handleNext) handleNext();
@@ -531,27 +560,23 @@ const Home = () => {
           onLayout={(e) => {
             zoneYPositions.current[4] = e.nativeEvent.layout.y;
             zoneHeights.current[4] = e.nativeEvent.layout.height;
+            zoneYPositions.current[5] = e.nativeEvent.layout.y;
+            zoneHeights.current[5] = e.nativeEvent.layout.height;
           }}
         >
-          <TourGuideZone
-            zone={4}
-            text="Energy & Progress: Stamina powers your daily exercises. It refills over time so you can keep practicing!"
-            shape="rectangle"
-          >
-            <ResourceStats refreshing={refreshing} />
-          </TourGuideZone>
+          <ResourceStats refreshing={refreshing} />
         </View>
 
         <View style={{ height: 24 }} />
 
         <View
           onLayout={(e) => {
-            zoneYPositions.current[5] = e.nativeEvent.layout.y;
-            zoneHeights.current[5] = e.nativeEvent.layout.height;
+            zoneYPositions.current[6] = e.nativeEvent.layout.y;
+            zoneHeights.current[6] = e.nativeEvent.layout.height;
           }}
         >
           <TourGuideZone
-            zone={5}
+            zone={6}
             text="Smart Recommendations: Personalized suggestions to help you reach your goals faster."
             shape="rectangle"
           >
@@ -559,7 +584,17 @@ const Home = () => {
           </TourGuideZone>
         </View>
 
-        <ClinicalStatsWidget />
+        <View
+          onLayout={(e) => {
+            const layout = e.nativeEvent.layout;
+            for (let i = 7; i <= 9; i++) {
+              zoneYPositions.current[i] = layout.y;
+              zoneHeights.current[i] = layout.height;
+            }
+          }}
+        >
+          <ClinicalStatsWidget />
+        </View>
       </ScrollView>
 
       {/* Resume Modal Overlay */}
