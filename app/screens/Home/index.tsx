@@ -9,6 +9,7 @@ import {
   Text,
   View,
   InteractionManager,
+  DeviceEventEmitter,
 } from "react-native";
 import { getTodayOasesQuestions, startOasesCollection } from "../../api/oases";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
@@ -31,7 +32,10 @@ import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 
+import { TourGuideZone, useTourGuideController } from "rn-tourguide";
+
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
+import { useTourStore } from "../../stores/tour";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
@@ -150,6 +154,109 @@ const Home = () => {
     initOases();
   }, [user?.hasCompletedOnboarding]);
 
+  // --- Tour Logic (rn-tourguide) ---
+  // --- Tour Logic (rn-tourguide) ---
+  const { start, canStart, stop, eventEmitter, getCurrentStep } =
+    useTourGuideController();
+  const { hasCompletedTour, finishTour } = useTourStore();
+  const [isTourActive, setIsTourActive] = useState(false);
+
+  // Refs for precise auto-scrolling
+  const verticalScrollRef = useRef<ScrollView>(null);
+  const horizontalScrollRef = useRef<ScrollView>(null);
+  const zoneYPositions = useRef<{ [zone: number]: number }>({});
+  const zoneHeights = useRef<{ [zone: number]: number }>({});
+  const zoneXPositions = useRef<{ [zone: number]: number }>({});
+
+  useEffect(() => {
+    if (canStart && !hasCompletedTour && !getCurrentStep()) {
+      // Small delay to ensure all zones are registered
+      const timer = setTimeout(() => {
+        start();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [canStart, hasCompletedTour, start, getCurrentStep]);
+
+  // Handle tour completion to prevent re-runs
+  useEffect(() => {
+    if (!eventEmitter) return;
+    const handleStart = () => setIsTourActive(true);
+    const handleStop = () => {
+      setIsTourActive(false);
+      finishTour();
+    };
+    eventEmitter.on("start", handleStart);
+    eventEmitter.on("stop", handleStop);
+    return () => {
+      eventEmitter.off("start", handleStart);
+      eventEmitter.off("stop", handleStop);
+    };
+  }, [eventEmitter, finishTour]);
+
+  // Intercept Navigation to Auto-Scroll
+  useEffect(() => {
+    const handleTourNavigation = (
+      event: "next" | "prev",
+      {
+        currentStep,
+        handleNext,
+        handlePrev,
+      }: { currentStep: any; handleNext?: () => void; handlePrev?: () => void },
+    ) => {
+      const targetOrder =
+        event === "next" ? currentStep.order + 1 : currentStep.order - 1;
+
+      const yOffset = zoneYPositions.current[targetOrder];
+      const height = zoneHeights.current[targetOrder] || 0;
+      // Note: X offset scrolling currently only applicable if we are scrolling within horizontal carousel.
+      // We will handle basic vertical scrolling first.
+
+      if (yOffset !== undefined && verticalScrollRef.current) {
+        // Scroll vertically ensuring element is perfectly centered.
+        const { height: screenHeight } = Dimensions.get("window");
+        const targetY = Math.max(0, yOffset - screenHeight / 2 + height / 2);
+
+        verticalScrollRef.current.scrollTo({
+          y: targetY,
+          animated: true,
+        });
+
+        // Horizontal scroll logic for Zones 2,3 (which are inside horizontal carousel)
+        if (targetOrder === 2 && horizontalScrollRef.current) {
+          horizontalScrollRef.current.scrollTo({ x: 0, animated: true });
+        } else if (targetOrder === 3 && horizontalScrollRef.current) {
+          horizontalScrollRef.current.scrollTo({
+            x: carouselItemWidth + carouselSpacing,
+            animated: true,
+          });
+        }
+
+        // Wait for smooth scroll to finish before moving tour step
+        setTimeout(() => {
+          if (event === "next" && handleNext) handleNext();
+          if (event === "prev" && handlePrev) handlePrev();
+        }, 350); // Typical RN scroll animation duration
+      } else {
+        // Fallback immediately if position unknown
+        if (event === "next" && handleNext) handleNext();
+        if (event === "prev" && handlePrev) handlePrev();
+      }
+    };
+
+    const nextListener = DeviceEventEmitter.addListener("tour:next", (data) =>
+      handleTourNavigation("next", data),
+    );
+    const prevListener = DeviceEventEmitter.addListener("tour:prev", (data) =>
+      handleTourNavigation("prev", data),
+    );
+
+    return () => {
+      nextListener.remove();
+      prevListener.remove();
+    };
+  }, []);
+
   const [interactionsDone, setInteractionsDone] = useState(false);
 
   useEffect(() => {
@@ -226,23 +333,40 @@ const Home = () => {
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
       {interactionsDone && <MoodCheckPopup />}
       <ScrollView
+        ref={verticalScrollRef}
+        scrollEnabled={!isTourActive}
         contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.greeting}>{greeting}</Text>
-          {firstName ? (
-            <Text style={styles.subGreeting}>{firstName}</Text>
-          ) : null}
+        <View
+          onLayout={(e) => {
+            zoneYPositions.current[1] = e.nativeEvent.layout.y;
+            zoneHeights.current[1] = e.nativeEvent.layout.height;
+          }}
+        >
+          <TourGuideZone
+            zone={1}
+            text="Welcome to Speechworks! 👋 Let's help you master your speech with daily practices and insights."
+            shape="rectangle"
+          >
+            <View style={styles.header}>
+              <Text style={styles.greeting}>{greeting}</Text>
+              {firstName ? (
+                <Text style={styles.subGreeting}>{firstName}</Text>
+              ) : null}
+            </View>
+          </TourGuideZone>
         </View>
 
         {/* --- Top Carousel --- */}
         {totalPages > 0 && (
           <View style={{ marginHorizontal: -16 }}>
             <Animated.ScrollView
+              ref={horizontalScrollRef as any}
               horizontal
+              scrollEnabled={!isTourActive}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: sidePadding,
@@ -257,77 +381,107 @@ const Home = () => {
               {/* Card 1: Onboarding or OASES */}
               {(showOnboarding || showOases) && (
                 <View
+                  onLayout={(e) => {
+                    // Mark global Y position of entire Carousel relative to vertical ScrollView for Zone 2 and 3
+                    zoneYPositions.current[2] =
+                      zoneYPositions.current[2] || e.nativeEvent.layout.y; // Simplified
+                    zoneHeights.current[2] =
+                      zoneHeights.current[2] || e.nativeEvent.layout.height;
+                    zoneXPositions.current[2] = e.nativeEvent.layout.x;
+                  }}
                   style={[
                     styles.carouselItem,
                     { width: carouselItemWidth, marginRight: carouselSpacing },
                   ]}
                 >
-                  {showOnboarding ? (
-                    <OnboardingReminderCard
-                      currentStep={currentOnboardingScreen - 1}
-                      totalSteps={totalOnboardingScreens}
-                      style={{ marginBottom: 0 }}
-                      onPress={async () => {
-                        try {
-                          const state = useOnboardingStore.getState();
-                          // Check for valid progress to resume
-                          if (
-                            state.flow &&
-                            (state.currentScreen > 1 ||
-                              Object.keys(state.answers).length > 0)
-                          ) {
-                            // Show modal on Dashboard instead of navigating immediately
-                            setShowResumeModal(true);
-                            return;
-                          }
+                  <TourGuideZone
+                    zone={2}
+                    text="Your Daily Focus: Complete your OASES assessment and onboarding tasks here."
+                    shape="rectangle"
+                  >
+                    {showOnboarding ? (
+                      <OnboardingReminderCard
+                        currentStep={currentOnboardingScreen - 1}
+                        totalSteps={totalOnboardingScreens}
+                        style={{ marginBottom: 0 }}
+                        onPress={async () => {
+                          try {
+                            const state = useOnboardingStore.getState();
+                            // Check for valid progress to resume
+                            if (
+                              state.flow &&
+                              (state.currentScreen > 1 ||
+                                Object.keys(state.answers).length > 0)
+                            ) {
+                              // Show modal on Dashboard instead of navigating immediately
+                              setShowResumeModal(true);
+                              return;
+                            }
 
-                          // No progress? Start fresh immediately
-                          const flow = await getActiveOnboardingFlow();
-                          state.startFresh(flow);
-                          emit(EVENT_NAMES.START_ONBOARDING);
-                        } catch (err) {
-                          console.error("Failed to load onboarding flow:", err);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <OASESWidget
-                      dayNumber={oasesProgress?.dayNumber}
-                      totalDays={oasesProgress?.totalDays}
-                      totalRemaining={oasesProgress?.totalRemaining}
-                      style={{ marginBottom: 0 }}
-                      onPress={() => {
-                        navigation.navigate("AcademyStack", {
-                          screen: "DailyPracticeStack",
-                          params: {
-                            screen: "OASESIntro",
-                          },
-                        });
-                      }}
-                    />
-                  )}
+                            // No progress? Start fresh immediately
+                            const flow = await getActiveOnboardingFlow();
+                            state.startFresh(flow);
+                            emit(EVENT_NAMES.START_ONBOARDING);
+                          } catch (err) {
+                            console.error(
+                              "Failed to load onboarding flow:",
+                              err,
+                            );
+                          }
+                        }}
+                      />
+                    ) : (
+                      <OASESWidget
+                        dayNumber={oasesProgress?.dayNumber}
+                        totalDays={oasesProgress?.totalDays}
+                        totalRemaining={oasesProgress?.totalRemaining}
+                        style={{ marginBottom: 0 }}
+                        onPress={() => {
+                          navigation.navigate("AcademyStack", {
+                            screen: "DailyPracticeStack",
+                            params: {
+                              screen: "OASESIntro",
+                            },
+                          });
+                        }}
+                      />
+                    )}
+                  </TourGuideZone>
                 </View>
               )}
 
               {/* Card 2: Mood Check (if not recorded today) */}
               {showMoodCheck && (
                 <View
+                  onLayout={(e) => {
+                    zoneYPositions.current[3] =
+                      zoneYPositions.current[3] || e.nativeEvent.layout.y;
+                    zoneHeights.current[3] =
+                      zoneHeights.current[3] || e.nativeEvent.layout.height;
+                    zoneXPositions.current[3] = e.nativeEvent.layout.x;
+                  }}
                   style={[
                     styles.carouselItem,
                     { width: carouselItemWidth, marginRight: carouselSpacing },
                   ]}
                 >
-                  {interactionsDone ? (
-                    <MoodCheckBanner style={{ marginBottom: 0 }} />
-                  ) : (
-                    <View
-                      style={{
-                        height: 260,
-                        borderRadius: 24,
-                        backgroundColor: "rgba(0,0,0,0.02)",
-                      }}
-                    />
-                  )}
+                  <TourGuideZone
+                    zone={3}
+                    text="Mood Check: Tracking your daily mood helps us identify patterns in your speech journey."
+                    shape="rectangle"
+                  >
+                    {interactionsDone ? (
+                      <MoodCheckBanner style={{ marginBottom: 0 }} />
+                    ) : (
+                      <View
+                        style={{
+                          height: 260,
+                          borderRadius: 24,
+                          backgroundColor: "rgba(0,0,0,0.02)",
+                        }}
+                      />
+                    )}
+                  </TourGuideZone>
                 </View>
               )}
             </Animated.ScrollView>
@@ -373,11 +527,37 @@ const Home = () => {
         )}
         {/* ------------------- */}
 
-        <ResourceStats refreshing={refreshing} />
+        <View
+          onLayout={(e) => {
+            zoneYPositions.current[4] = e.nativeEvent.layout.y;
+            zoneHeights.current[4] = e.nativeEvent.layout.height;
+          }}
+        >
+          <TourGuideZone
+            zone={4}
+            text="Energy & Progress: Stamina powers your daily exercises. It refills over time so you can keep practicing!"
+            shape="rectangle"
+          >
+            <ResourceStats refreshing={refreshing} />
+          </TourGuideZone>
+        </View>
 
         <View style={{ height: 24 }} />
 
-        <SmartRecommendationCard key={`rec-${refreshKey}`} />
+        <View
+          onLayout={(e) => {
+            zoneYPositions.current[5] = e.nativeEvent.layout.y;
+            zoneHeights.current[5] = e.nativeEvent.layout.height;
+          }}
+        >
+          <TourGuideZone
+            zone={5}
+            text="Smart Recommendations: Personalized suggestions to help you reach your goals faster."
+            shape="rectangle"
+          >
+            <SmartRecommendationCard key={`rec-${refreshKey}`} />
+          </TourGuideZone>
+        </View>
 
         <ClinicalStatsWidget />
       </ScrollView>
@@ -401,6 +581,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 16,
+    minHeight: 60,
   },
   greeting: {
     ...parseTextStyle(theme.typography.Heading3),

@@ -24,6 +24,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeModules } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
+import { TourGuideProvider } from "rn-tourguide";
+import TourTooltip from "./app/components/Tour";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
 
@@ -139,16 +141,29 @@ const App: React.FC = () => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <SafeAreaProvider>
-          <SafeAreaView
-            style={styles.safeAreaView}
-            edges={["top", "left", "right"]}
+          <TourGuideProvider
+            tooltipComponent={TourTooltip}
+            androidStatusBarVisible
+            backdropColor="rgba(0, 0, 0, 0.7)"
+            preventOutsideInteraction={true}
+            labels={{
+              skip: "Skip Tour",
+              previous: "Back",
+              next: "Next",
+              finish: "Got it!",
+            }}
           >
-            <FontLoader />
-            <NavigationContainer>
-              <MainNavigator />
-            </NavigationContainer>
-            <GlobalModal />
-          </SafeAreaView>
+            <SafeAreaView
+              style={styles.safeAreaView}
+              edges={["top", "left", "right"]}
+            >
+              <FontLoader />
+              <NavigationContainer>
+                <MainNavigator />
+              </NavigationContainer>
+              <GlobalModal />
+            </SafeAreaView>
+          </TourGuideProvider>
         </SafeAreaProvider>
       </AuthProvider>
     </GestureHandlerRootView>
