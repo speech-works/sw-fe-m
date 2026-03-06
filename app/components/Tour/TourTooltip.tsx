@@ -22,7 +22,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 
-import { useTourGuideController } from "rn-tourguide";
+import { TooltipProps, useTourGuideController } from "rn-tourguide";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -35,12 +35,12 @@ interface Coords {
 
 /**
  * AUTONOMOUS GLOBAL TOUR CONTROLLER
- * This component renders at the App Root.
+ * This component renders at the App Root as a standalone Modal.
  * It listens to the TourGuideController independently.
  */
 const GlobalTourTooltip = () => {
   const insets = useSafeAreaInsets();
-  const { getCurrentStep, stop, canStart } = useTourGuideController();
+  const { getCurrentStep, stop } = useTourGuideController();
 
   const step = getCurrentStep();
   const active = !!step;
@@ -143,7 +143,7 @@ const GlobalTourTooltip = () => {
   );
 
   const isFirstStep = step.order === 1;
-  const isLastStep = step.order >= 4;
+  const isLastStep = step.order >= 4; // Adjust based on total steps
 
   return (
     <Modal visible={active && !!coords} transparent animationType="none">
@@ -304,5 +304,13 @@ const styles = StyleSheet.create({
   nextText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
 });
 
-export const LocalTourTooltipStub = () => null;
+export const LocalTourTooltipStub = () => (
+  <View
+    style={{
+      width: SCREEN_WIDTH,
+      height: 100,
+      backgroundColor: "transparent",
+    }}
+  />
+);
 export default GlobalTourTooltip;

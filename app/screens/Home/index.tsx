@@ -319,14 +319,6 @@ const Home = () => {
                   style={{ flex: 1 }}
                 >
                   <View collapsable={false} style={{ flex: 1 }}>
-                    {zoneLayouts.current[1] ? (
-                      <TourGuideZoneByPosition
-                        zone={1}
-                        shape="rectangle"
-                        isTourGuide
-                        {...zoneLayouts.current[1]}
-                      />
-                    ) : null}
                     {showOnboarding ? (
                       <OnboardingReminderCard
                         currentStep={currentOnboardingScreen - 1}

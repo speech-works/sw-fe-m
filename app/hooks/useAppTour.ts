@@ -47,7 +47,7 @@ export const useAppTour = (
     if (canStart && !hasCompletedToken && !getCurrentStep() && ready) {
       const timer = setTimeout(() => {
         start();
-      }, 2000);
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [canStart, hasCompletedToken, start, getCurrentStep, ready]);

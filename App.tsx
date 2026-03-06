@@ -141,23 +141,23 @@ const App: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <SafeAreaProvider style={{ flex: 1 }}>
-          <TourGuideProvider
-            tooltipComponent={LocalTourTooltipStub}
-            tooltipStyle={{
-              backgroundColor: "transparent",
-            }}
-            androidStatusBarVisible
-            backdropColor="rgba(0, 0, 0, 0.85)"
-            preventOutsideInteraction={true}
-            labels={{
-              skip: "Skip Tour",
-              previous: "Back",
-              next: "Next",
-              finish: "Got it!",
-            }}
-          >
+      <TourGuideProvider
+        tooltipComponent={LocalTourTooltipStub}
+        tooltipStyle={{
+          backgroundColor: "transparent",
+        }}
+        androidStatusBarVisible
+        backdropColor="rgba(0, 0, 0, 0.85)"
+        preventOutsideInteraction={true}
+        labels={{
+          skip: "Skip Tour",
+          previous: "Back",
+          next: "Next",
+          finish: "Got it!",
+        }}
+      >
+        <AuthProvider>
+          <SafeAreaProvider style={{ flex: 1 }}>
             <SafeAreaView
               style={styles.safeAreaView}
               edges={["top", "left", "right"]}
@@ -169,9 +169,9 @@ const App: React.FC = () => {
               <GlobalModal />
             </SafeAreaView>
             <TourTooltip />
-          </TourGuideProvider>
-        </SafeAreaProvider>
-      </AuthProvider>
+          </SafeAreaProvider>
+        </AuthProvider>
+      </TourGuideProvider>
     </GestureHandlerRootView>
   );
 };
