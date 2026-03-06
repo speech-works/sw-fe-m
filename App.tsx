@@ -149,6 +149,8 @@ const App: React.FC = () => {
         androidStatusBarVisible
         backdropColor="rgba(0, 0, 0, 0.85)"
         preventOutsideInteraction={true}
+        borderRadius={24}
+        maskOffset={10}
         labels={{
           skip: "Skip Tour",
           previous: "Back",
