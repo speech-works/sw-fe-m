@@ -54,7 +54,7 @@ export const useAppTour = (
         setTimeout(() => {
           if (start) start(1);
         }, 500);
-      }, 4000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [canStart, hasCompletedToken, start, getCurrentStep, ready]);

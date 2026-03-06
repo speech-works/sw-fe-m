@@ -10,6 +10,8 @@ import {
   View,
   InteractionManager,
   DeviceEventEmitter,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import { getTodayOasesQuestions, startOasesCollection } from "../../api/oases";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
@@ -33,6 +35,7 @@ import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import { TourGuideZone, TourGuideZoneByPosition } from "rn-tourguide";
 import { useAppTour } from "../../hooks/useAppTour";
+import { useTourStore } from "../../stores/tour";
 
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");
@@ -42,6 +45,7 @@ const Home = () => {
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
+  const { hasCompletedHomeTour } = useTourStore();
 
   const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
@@ -268,12 +272,17 @@ const Home = () => {
         : "Good Evening,";
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
+  // Show a full-screen loader to block interaction until tour initializes
+  const shouldShowTourBlocker = !hasCompletedHomeTour && !isTourActive;
+
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
-      {interactionsDone && <MoodCheckPopup />}
+      {/* Suppress MoodCheck and other Modals unless tour is finished */}
+      {hasCompletedHomeTour && interactionsDone && <MoodCheckPopup />}
+
       <ScrollView
         ref={verticalScrollRef}
-        scrollEnabled={!isTourActive}
+        scrollEnabled={hasCompletedHomeTour && !isTourActive}
         contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -292,7 +301,7 @@ const Home = () => {
             <Animated.ScrollView
               ref={horizontalScrollRef as any}
               horizontal
-              scrollEnabled={!isTourActive}
+              scrollEnabled={hasCompletedHomeTour && !isTourActive}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: sidePadding,
@@ -454,13 +463,31 @@ const Home = () => {
         <ClinicalStatsWidget />
       </ScrollView>
 
-      {/* Resume Modal Overlay */}
-      <OnboardingResumeModal
-        visible={showResumeModal}
-        onResume={handleResumeOnboarding}
-        onStartOver={handleStartOverOnboarding}
-        onDismiss={() => setShowResumeModal(false)}
-      />
+      {/* Resume Modal Overlay - Suppressed until tour is done */}
+      {hasCompletedHomeTour && (
+        <OnboardingResumeModal
+          visible={showResumeModal}
+          onResume={handleResumeOnboarding}
+          onStartOver={handleStartOverOnboarding}
+          onDismiss={() => setShowResumeModal(false)}
+        />
+      )}
+
+      {/* Tour Blocker Overlay - Using Modal to cover everything including Tab Bar */}
+      <Modal
+        visible={shouldShowTourBlocker}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.tourBlocker}>
+          <ActivityIndicator
+            size="large"
+            color={theme.colors.actionPrimary.default}
+          />
+          <Text style={styles.tourBlockerText}>Loading guided tour…</Text>
+        </View>
+      </Modal>
     </ScreenView>
   );
 };
@@ -501,6 +528,19 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: theme.colors.background.default,
+  },
+  tourBlocker: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.background.default,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 99999,
+    gap: 16,
+  },
+  tourBlockerText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    fontWeight: "600",
   },
 });
 export default Home;
