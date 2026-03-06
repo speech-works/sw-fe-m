@@ -46,7 +46,14 @@ export const useAppTour = (
   useEffect(() => {
     if (canStart && !hasCompletedToken && !getCurrentStep() && ready) {
       const timer = setTimeout(() => {
+        // Initial start to initialize the state
         start();
+
+        // Forced re-start to Step 1 after a short delay
+        // This forces the library to re-measure and render the mask once the UI is stable
+        setTimeout(() => {
+          if (start) start(1);
+        }, 500);
       }, 4000);
       return () => clearTimeout(timer);
     }

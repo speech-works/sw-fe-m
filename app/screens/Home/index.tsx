@@ -305,18 +305,18 @@ const Home = () => {
               scrollEventThrottle={16}
             >
               {/* Card 1: Onboarding or OASES */}
-              <View
-                onLayout={captureLayout(1)}
-                style={[
-                  styles.carouselItem,
-                  { width: carouselItemWidth, marginRight: carouselSpacing },
-                ]}
+              <TourGuideZone
+                zone={1}
+                text="Daily Focus: Quickly access your most important tasks, like assessments or onboarding, to keep your progress on track."
+                shape="rectangle"
               >
-                <TourGuideZone
-                  zone={1}
-                  text="Daily Focus: Quickly access your most important tasks, like assessments or onboarding, to keep your progress on track."
-                  shape="rectangle"
-                  style={{ flex: 1 }}
+                <View
+                  onLayout={captureLayout(1)}
+                  collapsable={false}
+                  style={[
+                    styles.carouselItem,
+                    { width: carouselItemWidth, marginRight: carouselSpacing },
+                  ]}
                 >
                   <View collapsable={false} style={{ flex: 1 }}>
                     {showOnboarding ? (
@@ -369,8 +369,8 @@ const Home = () => {
                       />
                     )}
                   </View>
-                </TourGuideZone>
-              </View>
+                </View>
+              </TourGuideZone>
 
               {/* Card 2: Mood Check */}
               {showMoodCheck && (
