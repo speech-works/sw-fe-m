@@ -1,1 +1,1 @@
-export { default } from "./TourTooltip";
+export { default, LocalTourTooltipStub } from "./TourTooltip";

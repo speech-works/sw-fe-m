@@ -34,7 +34,6 @@ import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
 import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
-import { TourGuideZone } from "rn-tourguide";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -368,576 +367,495 @@ const ClinicalStatsWidget = () => {
 
   return (
     <View>
-      <TourGuideZone
-        zone={7}
-        shape="rectangle"
-        text="Growth Profile: A visual representation of your progress across 5 key speech dimensions."
+      <View
+        // Vibrant Purple/Violet Gradient for Growth/Insights
+        style={styles.container}
       >
-        <View
-          // Vibrant Purple/Violet Gradient for Growth/Insights
-          style={styles.container}
-        >
-          {/* Decorative Bubbles */}
-          <View style={styles.decorBubble1} />
-          <View style={styles.decorBubble2} />
-          <View style={styles.decorBubble3} />
+        {/* Decorative Bubbles */}
+        <View style={styles.decorBubble1} />
+        <View style={styles.decorBubble2} />
+        <View style={styles.decorBubble3} />
 
-          {/* Header */}
-          {/* Header */}
-          <View style={styles.header}>
-            {/* Top Row: Chip + Refresh */}
-            <View style={styles.headerTopRow}>
-              <View style={styles.chip}>
-                <MaterialCommunityIcons
-                  name="chart-donut"
-                  size={12}
-                  color={theme.colors.library.orange[500]}
-                />
-                <Text style={styles.chipText}>Tracking</Text>
-              </View>
-
-              <TourGuideZone
-                zone={8}
-                shape="rectangle"
-                text="Refresh Data: Tap here to manually pull in your latest speech data."
-              >
-                <TouchableOpacity
-                  onPress={onRefresh}
-                  disabled={isRefreshing}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.refreshBtn,
-                    isRefreshing && styles.refreshBtnActive,
-                  ]}
-                >
-                  <Animated.View style={refreshIconStyle}>
-                    <MaterialCommunityIcons
-                      name="sync"
-                      size={14}
-                      color={
-                        isRefreshing
-                          ? theme.colors.library.blue[500]
-                          : theme.colors.text.default
-                      }
-                    />
-                  </Animated.View>
-                  <Text style={styles.refreshText}>Refresh</Text>
-                </TouchableOpacity>
-              </TourGuideZone>
+        {/* Header */}
+        {/* Header */}
+        <View style={styles.header}>
+          {/* Top Row: Chip + Refresh */}
+          <View style={styles.headerTopRow}>
+            <View style={styles.chip}>
+              <MaterialCommunityIcons
+                name="chart-donut"
+                size={12}
+                color={theme.colors.library.orange[500]}
+              />
+              <Text style={styles.chipText}>Tracking</Text>
             </View>
 
-            {/* Title & Subtitle */}
-            <View style={styles.textContainer}>
-              <Text style={styles.bigTitle}>Growth Profile</Text>
-              <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
-            </View>
-          </View>
-
-          {/* Main Content Panel (White) */}
-          <View style={styles.contentPanel}>
-            {/* Radar Chart */}
-            <View style={styles.chartContainer}>
-              <Svg
-                height={SIZE}
-                width={CHART_WIDTH}
-                viewBox={`0 0 ${SIZE} ${SIZE}`}
-              >
-                <Defs>
-                  <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop
-                      offset="0"
-                      stopColor={theme.colors.library.orange[300]}
-                      stopOpacity="0.7"
-                    />
-                    <Stop
-                      offset="1"
-                      stopColor={theme.colors.library.red[200]}
-                      stopOpacity="0.4"
-                    />
-                  </SvgGradient>
-                </Defs>
-
-                {/* Organic Grid (Concentric Blobs) */}
-                {gridPaths.map((pathD, i) => (
-                  <Path
-                    key={`grid-${i}`}
-                    d={pathD}
-                    stroke={theme.colors.library.gray[200]}
-                    strokeWidth="0.5" // Thinner grid
-                    strokeDasharray="4,2" // Tighter dash
-                    fill="none"
-                    opacity={0.6} // Subtler
-                  />
-                ))}
-
-                {/* Axes */}
-                {chartData.allDomains.map((_, i) => {
-                  const end = POLAR_TO_CARTESIAN(
-                    CENTER,
-                    CENTER,
-                    RADIUS,
-                    i * angleStep,
-                  );
-                  return (
-                    <Line
-                      key={i}
-                      x1={CENTER}
-                      y1={CENTER}
-                      x2={end.x}
-                      y2={end.y}
-                      stroke={theme.colors.library.gray[200]} // Lighter axis
-                      strokeWidth="1"
-                      strokeDasharray="2,2" // Tighter dash
-                    />
-                  );
-                })}
-
-                {/* Main Chart Layer */}
-                <G>
-                  {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
-                  {historicalPathD && (
-                    <>
-                      <Path
-                        d={historicalPathD}
-                        fill="rgba(200, 200, 200, 0.15)"
-                        stroke="none"
-                      />
-                      <Path
-                        d={historicalPathD}
-                        fill="none"
-                        stroke="#94A3B8"
-                        strokeWidth="2"
-                        strokeDasharray="6,4"
-                        strokeLinecap="round"
-                        opacity={0.6}
-                      />
-                    </>
-                  )}
-
-                  {/* Average Baseline Chart (Grey) */}
-                  <Path
-                    d={baselinePathD}
-                    fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
-                    stroke={theme.colors.library.gray[400]}
-                    strokeWidth="2"
-                    strokeDasharray="4,4"
-                    opacity={0.8}
-                  />
-
-                  {/* 1. GLOW Effect */}
-                  <AnimatedPath
-                    d={currentPathD}
-                    fill="none"
-                    stroke={theme.colors.library.orange[300]}
-                    strokeWidth="12"
-                    strokeOpacity={0.1} // Reduced glow opacity
-                  />
-
-                  {/* 2. FILL Path */}
-                  <AnimatedPath
-                    d={currentPathD}
-                    fill="url(#radarGrad)"
-                    stroke="none"
-                    opacity={0.9}
-                  />
-                  {/* 3. STROKE Path */}
-                  <Path
-                    d={currentPathD}
-                    fill="none"
-                    stroke={theme.colors.library.orange[400]} // Darker orange stroke
-                    strokeWidth="2.5" // Slightly thinner stroke
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {/* Dots */}
-                  {currentPoints.map((coord, i) => {
-                    return (
-                      <Circle
-                        key={`dot-${i}`}
-                        cx={coord.x}
-                        cy={coord.y}
-                        r="4" // Smaller dots
-                        fill="white"
-                        stroke={theme.colors.library.orange[400]}
-                        strokeWidth="2" // Thinner dot stroke
-                      />
-                    );
-                  })}
-                </G>
-
-                {/* Labels (Simplified) */}
-                {chartData.allDomains.map((domain, i) => {
-                  const pos = POLAR_TO_CARTESIAN(
-                    CENTER,
-                    CENTER,
-                    RADIUS + 28, // More breathing room
-                    i * angleStep,
-                  );
-                  const config = METRIC_CONFIG[domain];
-                  const isSelected = selectedMetric === domain;
-
-                  // Determine text anchor based on horizontal position
-                  type TextAnchor = "start" | "middle" | "end";
-                  let anchor: TextAnchor = "middle";
-                  if (pos.x < CENTER - 10) anchor = "end";
-                  if (pos.x > CENTER + 10) anchor = "start";
-
-                  return (
-                    <G
-                      key={i}
-                      onPress={() => {
-                        setSelectedMetric(domain);
-                        setModalVisible(true);
-                      }}
-                    >
-                      {/* Hit Area */}
-                      <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
-
-                      {/* Text Label */}
-                      <SvgText
-                        key={`text-${i}`}
-                        x={pos.x}
-                        y={pos.y}
-                        fill={
-                          isSelected ? config.color : theme.colors.text.default
-                        }
-                        fontSize={isSelected ? "11" : "10"}
-                        fontWeight={isSelected ? "800" : "600"}
-                        textAnchor={anchor}
-                        alignmentBaseline="middle"
-                      >
-                        {config.label.toUpperCase()}
-                      </SvgText>
-                    </G>
-                  );
-                })}
-              </Svg>
-
-              {/* Tour Guide Overlays for Metrics */}
-              {chartData &&
-                chartData.allDomains.map((domain, i) => {
-                  const pos = POLAR_TO_CARTESIAN(
-                    CENTER,
-                    CENTER,
-                    RADIUS + 28, // Matches the text position
-                    i * angleStep,
-                  );
-                  const config = METRIC_CONFIG[domain];
-
-                  // SVG is centered horizontally within CHART_WIDTH
-                  const offsetX = (CHART_WIDTH - SIZE) / 2;
-
-                  const absoluteX = offsetX + pos.x;
-                  const absoluteY = pos.y;
-
-                  // Adjust based on text anchor
-                  let leftPos = absoluteX - 40; // Default middle
-                  const boxWidth = 80;
-
-                  if (pos.x < CENTER - 10) {
-                    // Text drawn to the left (anchor='end')
-                    leftPos = absoluteX - boxWidth + 10;
-                  } else if (pos.x > CENTER + 10) {
-                    // Text drawn to the right (anchor='start')
-                    leftPos = absoluteX - 10;
-                  }
-
-                  // Only Spotlight the Social Metric (Participation Restriction)
-                  const isSocial =
-                    domain === ClinicalDomain.PARTICIPATION_RESTRICTION;
-
-                  return (
-                    <View
-                      key={`tour-metric-overlay-${i}`}
-                      style={{
-                        position: "absolute",
-                        left: leftPos,
-                        top: absoluteY - 16,
-                        width: boxWidth,
-                        height: 32,
-                      }}
-                      pointerEvents="none"
-                    >
-                      {isSocial ? (
-                        <TourGuideZone
-                          zone={9}
-                          shape="rectangle"
-                          text={`Social: ${config.description}\n\nTap to learn more about this specific metric!`}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            borderRadius: 16,
-                          }}
-                        >
-                          {/* Transparent child to ensure measurement works */}
-                          <View style={{ width: "100%", height: "100%" }} />
-                        </TourGuideZone>
-                      ) : (
-                        <View style={{ width: "100%", height: "100%" }} />
-                      )}
-                    </View>
-                  );
-                })}
-            </View>
-
-            {/* Tooltip */}
-            <AnimatedView
+            <TouchableOpacity
+              onPress={onRefresh}
+              disabled={isRefreshing}
+              activeOpacity={0.8}
               style={[
-                styles.tooltipWrapper,
-                { opacity: selectedMetric ? 1 : 0 },
+                styles.refreshBtn,
+                isRefreshing && styles.refreshBtnActive,
               ]}
             >
-              {selectedMetric ? (
-                <View style={styles.tooltipSubtleCard}>
-                  <MaterialCommunityIcons
-                    name="information-variant"
-                    size={16}
-                    color={theme.colors.library.orange[400]}
-                    style={{ marginTop: 1 }}
+              <Animated.View style={refreshIconStyle}>
+                <MaterialCommunityIcons
+                  name="sync"
+                  size={14}
+                  color={
+                    isRefreshing
+                      ? theme.colors.library.blue[500]
+                      : theme.colors.text.default
+                  }
+                />
+              </Animated.View>
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Title & Subtitle */}
+          <View style={styles.textContainer}>
+            <Text style={styles.bigTitle}>Growth Profile</Text>
+            <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+          </View>
+        </View>
+
+        {/* Main Content Panel (White) */}
+        <View style={styles.contentPanel}>
+          {/* Radar Chart */}
+          <View style={styles.chartContainer}>
+            <Svg
+              height={SIZE}
+              width={CHART_WIDTH}
+              viewBox={`0 0 ${SIZE} ${SIZE}`}
+            >
+              <Defs>
+                <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop
+                    offset="0"
+                    stopColor={theme.colors.library.orange[300]}
+                    stopOpacity="0.7"
                   />
-                  <Text style={styles.tooltipSubtleText}>
-                    {METRIC_CONFIG[selectedMetric].description}
-                  </Text>
-                </View>
-              ) : (
-                // Placeholder height
-                <View style={styles.tooltipPlaceholder} />
-              )}
-            </AnimatedView>
+                  <Stop
+                    offset="1"
+                    stopColor={theme.colors.library.red[200]}
+                    stopOpacity="0.4"
+                  />
+                </SvgGradient>
+              </Defs>
 
-            {/* Weekly Breakthroughs */}
-            <View style={styles.breakthroughContainer}>
-              <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
+              {/* Organic Grid (Concentric Blobs) */}
+              {gridPaths.map((pathD, i) => (
+                <Path
+                  key={`grid-${i}`}
+                  d={pathD}
+                  stroke={theme.colors.library.gray[200]}
+                  strokeWidth="0.5" // Thinner grid
+                  strokeDasharray="4,2" // Tighter dash
+                  fill="none"
+                  opacity={0.6} // Subtler
+                />
+              ))}
 
-              {(() => {
-                // 1. Sort & Top 3
-                const sortedKeys = domainBreakthroughs
-                  .sort((a, b) => {
-                    const scoreA = weeklyBreakthroughs[a]?.current || 0;
-                    const scoreB = weeklyBreakthroughs[b]?.current || 0;
-                    return scoreB - scoreA;
-                  })
-                  .slice(0, 3);
+              {/* Axes */}
+              {chartData.allDomains.map((_, i) => {
+                const end = POLAR_TO_CARTESIAN(
+                  CENTER,
+                  CENTER,
+                  RADIUS,
+                  i * angleStep,
+                );
+                return (
+                  <Line
+                    key={i}
+                    x1={CENTER}
+                    y1={CENTER}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke={theme.colors.library.gray[200]} // Lighter axis
+                    strokeWidth="1"
+                    strokeDasharray="2,2" // Tighter dash
+                  />
+                );
+              })}
 
-                if (sortedKeys.length === 0) return null;
+              {/* Main Chart Layer */}
+              <G>
+                {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
+                {historicalPathD && (
+                  <>
+                    <Path
+                      d={historicalPathD}
+                      fill="rgba(200, 200, 200, 0.15)"
+                      stroke="none"
+                    />
+                    <Path
+                      d={historicalPathD}
+                      fill="none"
+                      stroke="#94A3B8"
+                      strokeWidth="2"
+                      strokeDasharray="6,4"
+                      strokeLinecap="round"
+                      opacity={0.6}
+                    />
+                  </>
+                )}
 
-                const topKey = sortedKeys[0];
-                const secondaryKeys = sortedKeys.slice(1);
+                {/* Average Baseline Chart (Grey) */}
+                <Path
+                  d={baselinePathD}
+                  fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
+                  stroke={theme.colors.library.gray[400]}
+                  strokeWidth="2"
+                  strokeDasharray="4,4"
+                  opacity={0.8}
+                />
 
-                // Helper to get config & data
-                const getItem = (key: keyof typeof weeklyBreakthroughs) => {
-                  const data = weeklyBreakthroughs[key];
-                  const domain = (
-                    Object.keys(METRIC_CONFIG) as ClinicalDomain[]
-                  ).find((d) => METRIC_CONFIG[d].profileKey === key);
-                  const config = domain ? METRIC_CONFIG[domain] : null;
-                  return { data, config };
-                };
+                {/* 1. GLOW Effect */}
+                <AnimatedPath
+                  d={currentPathD}
+                  fill="none"
+                  stroke={theme.colors.library.orange[300]}
+                  strokeWidth="12"
+                  strokeOpacity={0.1} // Reduced glow opacity
+                />
 
-                const heroItem = getItem(topKey);
+                {/* 2. FILL Path */}
+                <AnimatedPath
+                  d={currentPathD}
+                  fill="url(#radarGrad)"
+                  stroke="none"
+                  opacity={0.9}
+                />
+                {/* 3. STROKE Path */}
+                <Path
+                  d={currentPathD}
+                  fill="none"
+                  stroke={theme.colors.library.orange[400]} // Darker orange stroke
+                  strokeWidth="2.5" // Slightly thinner stroke
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Dots */}
+                {currentPoints.map((coord, i) => {
+                  return (
+                    <Circle
+                      key={`dot-${i}`}
+                      cx={coord.x}
+                      cy={coord.y}
+                      r="4" // Smaller dots
+                      fill="white"
+                      stroke={theme.colors.library.orange[400]}
+                      strokeWidth="2" // Thinner dot stroke
+                    />
+                  );
+                })}
+              </G>
+
+              {/* Labels (Simplified) */}
+              {chartData.allDomains.map((domain, i) => {
+                const pos = POLAR_TO_CARTESIAN(
+                  CENTER,
+                  CENTER,
+                  RADIUS + 28, // More breathing room
+                  i * angleStep,
+                );
+                const config = METRIC_CONFIG[domain];
+                const isSelected = selectedMetric === domain;
+
+                // Determine text anchor based on horizontal position
+                type TextAnchor = "start" | "middle" | "end";
+                let anchor: TextAnchor = "middle";
+                if (pos.x < CENTER - 10) anchor = "end";
+                if (pos.x > CENTER + 10) anchor = "start";
 
                 return (
-                  <View style={styles.heroChartContainer}>
-                    {/* Left Col: Hero Card */}
-                    {heroItem.data && heroItem.config && (
-                      <View
-                        style={[
-                          styles.miniCard,
-                          styles.heroCard,
-                          {
-                            borderWidth: 1,
-                            borderColor: theme.colors.library.gray[100],
-                          },
-                        ]}
-                      >
-                        <View style={styles.heroHeader}>
-                          <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
-                            {heroItem.config.label}
-                          </Text>
-                          <MaterialCommunityIcons
-                            name={heroItem.config.icon as any}
-                            size={18}
-                            color={heroItem.config.color}
-                          />
-                        </View>
-                        <Text style={styles.heroValue}>
-                          {Math.round(heroItem.data.current)}
+                  <G
+                    key={i}
+                    onPress={() => {
+                      setSelectedMetric(domain);
+                      setModalVisible(true);
+                    }}
+                  >
+                    {/* Hit Area */}
+                    <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
+
+                    {/* Text Label */}
+                    <SvgText
+                      key={`text-${i}`}
+                      x={pos.x}
+                      y={pos.y}
+                      fill={
+                        isSelected ? config.color : theme.colors.text.default
+                      }
+                      fontSize={isSelected ? "11" : "10"}
+                      fontWeight={isSelected ? "800" : "600"}
+                      textAnchor={anchor}
+                      alignmentBaseline="middle"
+                    >
+                      {config.label.toUpperCase()}
+                    </SvgText>
+                  </G>
+                );
+              })}
+            </Svg>
+          </View>
+
+          {/* Tooltip */}
+          <AnimatedView
+            style={[styles.tooltipWrapper, { opacity: selectedMetric ? 1 : 0 }]}
+          >
+            {selectedMetric ? (
+              <View style={styles.tooltipSubtleCard}>
+                <MaterialCommunityIcons
+                  name="information-variant"
+                  size={16}
+                  color={theme.colors.library.orange[400]}
+                  style={{ marginTop: 1 }}
+                />
+                <Text style={styles.tooltipSubtleText}>
+                  {METRIC_CONFIG[selectedMetric].description}
+                </Text>
+              </View>
+            ) : (
+              // Placeholder height
+              <View style={styles.tooltipPlaceholder} />
+            )}
+          </AnimatedView>
+
+          {/* Weekly Breakthroughs */}
+          <View style={styles.breakthroughContainer}>
+            <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
+
+            {(() => {
+              // 1. Sort & Top 3
+              const sortedKeys = domainBreakthroughs
+                .sort((a, b) => {
+                  const scoreA = weeklyBreakthroughs[a]?.current || 0;
+                  const scoreB = weeklyBreakthroughs[b]?.current || 0;
+                  return scoreB - scoreA;
+                })
+                .slice(0, 3);
+
+              if (sortedKeys.length === 0) return null;
+
+              const topKey = sortedKeys[0];
+              const secondaryKeys = sortedKeys.slice(1);
+
+              // Helper to get config & data
+              const getItem = (key: keyof typeof weeklyBreakthroughs) => {
+                const data = weeklyBreakthroughs[key];
+                const domain = (
+                  Object.keys(METRIC_CONFIG) as ClinicalDomain[]
+                ).find((d) => METRIC_CONFIG[d].profileKey === key);
+                const config = domain ? METRIC_CONFIG[domain] : null;
+                return { data, config };
+              };
+
+              const heroItem = getItem(topKey);
+
+              return (
+                <View style={styles.heroChartContainer}>
+                  {/* Left Col: Hero Card */}
+                  {heroItem.data && heroItem.config && (
+                    <View
+                      style={[
+                        styles.miniCard,
+                        styles.heroCard,
+                        {
+                          borderWidth: 1,
+                          borderColor: theme.colors.library.gray[100],
+                        },
+                      ]}
+                    >
+                      <View style={styles.heroHeader}>
+                        <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                          {heroItem.config.label}
                         </Text>
-                        <View style={styles.btChangeRow}>
-                          {heroItem.data.change !== 0 && (
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Text
-                                style={[
-                                  styles.btChange,
-                                  heroItem.data.trend === "IMPROVING"
-                                    ? styles.textSuccess
-                                    : styles.textNeutral,
-                                ]}
-                              >
-                                {heroItem.data.change > 0 ? "+" : ""}
-                                {heroItem.data.change.toFixed(1)}%
-                              </Text>
-
-                              <MaterialCommunityIcons
-                                name={
-                                  heroItem.data.trend === "IMPROVING"
-                                    ? "trending-up"
-                                    : "trending-down"
-                                }
-                                size={16}
-                                color={
-                                  heroItem.data.trend === "IMPROVING"
-                                    ? theme.colors.library.green[400]
-                                    : theme.colors.library.red[400]
-                                }
-                                style={{ marginLeft: 4 }}
-                              />
-                            </View>
-                          )}
-                        </View>
+                        <MaterialCommunityIcons
+                          name={heroItem.config.icon as any}
+                          size={18}
+                          color={heroItem.config.color}
+                        />
                       </View>
-                    )}
-
-                    {/* Bottom Row: 2 Mini Cards Side-by-Side */}
-                    <View style={{ flexDirection: "row", gap: 12 }}>
-                      {secondaryKeys.map((key) => {
-                        const { data, config } = getItem(key);
-                        if (!data || !config) return null;
-                        const isImp = data.trend === "IMPROVING";
-
-                        return (
+                      <Text style={styles.heroValue}>
+                        {Math.round(heroItem.data.current)}
+                      </Text>
+                      <View style={styles.btChangeRow}>
+                        {heroItem.data.change !== 0 && (
                           <View
-                            key={key}
-                            style={[
-                              styles.miniCard,
-                              {
-                                // Override defaults for Grid layout
-                                borderWidth: 1,
-                                borderColor: theme.colors.library.gray[100],
-                                flex: 1,
-                                height: 100, // Fixed height for alignment
-                                padding: 12,
-                              },
-                            ]}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                            }}
                           >
-                            <View
-                              style={{
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                height: "100%",
-                              }}
+                            <Text
+                              style={[
+                                styles.btChange,
+                                heroItem.data.trend === "IMPROVING"
+                                  ? styles.textSuccess
+                                  : styles.textNeutral,
+                              ]}
                             >
-                              <View>
+                              {heroItem.data.change > 0 ? "+" : ""}
+                              {heroItem.data.change.toFixed(1)}%
+                            </Text>
+
+                            <MaterialCommunityIcons
+                              name={
+                                heroItem.data.trend === "IMPROVING"
+                                  ? "trending-up"
+                                  : "trending-down"
+                              }
+                              size={16}
+                              color={
+                                heroItem.data.trend === "IMPROVING"
+                                  ? theme.colors.library.green[400]
+                                  : theme.colors.library.red[400]
+                              }
+                              style={{ marginLeft: 4 }}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Bottom Row: 2 Mini Cards Side-by-Side */}
+                  <View style={{ flexDirection: "row", gap: 12 }}>
+                    {secondaryKeys.map((key) => {
+                      const { data, config } = getItem(key);
+                      if (!data || !config) return null;
+                      const isImp = data.trend === "IMPROVING";
+
+                      return (
+                        <View
+                          key={key}
+                          style={[
+                            styles.miniCard,
+                            {
+                              // Override defaults for Grid layout
+                              borderWidth: 1,
+                              borderColor: theme.colors.library.gray[100],
+                              flex: 1,
+                              height: 100, // Fixed height for alignment
+                              padding: 12,
+                            },
+                          ]}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              height: "100%",
+                            }}
+                          >
+                            <View>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  width: "100%",
+                                }}
+                              >
+                                <Text
+                                  style={[
+                                    styles.cardTitle,
+                                    { marginBottom: 0 },
+                                  ]}
+                                >
+                                  {config.label}
+                                </Text>
+                                <MaterialCommunityIcons
+                                  name={config.icon as any}
+                                  size={16}
+                                  color={config.color}
+                                />
+                              </View>
+
+                              {/* Change Trend */}
+                              {data.change !== 0 && (
                                 <View
                                   style={{
                                     flexDirection: "row",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    width: "100%",
+                                    alignItems: "center",
+                                    marginTop: 4,
                                   }}
                                 >
                                   <Text
                                     style={[
-                                      styles.cardTitle,
-                                      { marginBottom: 0 },
+                                      styles.btChange,
+                                      isImp
+                                        ? styles.textSuccess
+                                        : styles.textNeutral,
+                                      { fontSize: 11, fontWeight: "700" },
                                     ]}
                                   >
-                                    {config.label}
+                                    {data.change > 0 ? "+" : ""}
+                                    {data.change.toFixed(1)}%
                                   </Text>
                                   <MaterialCommunityIcons
-                                    name={config.icon as any}
-                                    size={16}
-                                    color={config.color}
+                                    name={
+                                      isImp ? "trending-up" : "trending-down"
+                                    }
+                                    size={14}
+                                    color={
+                                      isImp
+                                        ? theme.colors.library.green[400]
+                                        : theme.colors.library.red[400]
+                                    }
+                                    style={{ marginLeft: 2 }}
                                   />
                                 </View>
-
-                                {/* Change Trend */}
-                                {data.change !== 0 && (
-                                  <View
-                                    style={{
-                                      flexDirection: "row",
-                                      alignItems: "center",
-                                      marginTop: 4,
-                                    }}
-                                  >
-                                    <Text
-                                      style={[
-                                        styles.btChange,
-                                        isImp
-                                          ? styles.textSuccess
-                                          : styles.textNeutral,
-                                        { fontSize: 11, fontWeight: "700" },
-                                      ]}
-                                    >
-                                      {data.change > 0 ? "+" : ""}
-                                      {data.change.toFixed(1)}%
-                                    </Text>
-                                    <MaterialCommunityIcons
-                                      name={
-                                        isImp ? "trending-up" : "trending-down"
-                                      }
-                                      size={14}
-                                      color={
-                                        isImp
-                                          ? theme.colors.library.green[400]
-                                          : theme.colors.library.red[400]
-                                      }
-                                      style={{ marginLeft: 2 }}
-                                    />
-                                  </View>
-                                )}
-                              </View>
-
-                              {/* Score */}
-                              <Text style={styles.miniValue}>
-                                {Math.round(data.current)}
-                              </Text>
+                              )}
                             </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })()}
-            </View>
-          </View>
 
-          {/* Dimension Detail Modal */}
-          <DimensionDetailModal
-            visible={modalVisible}
-            domain={selectedMetric}
-            currentScore={
-              selectedMetric && weeklyBreakthroughs
-                ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                    ?.current || 0
-                : 0
-            }
-            change={
-              selectedMetric && weeklyBreakthroughs
-                ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                    ?.change || 0
-                : 0
-            }
-            trend={
-              selectedMetric && weeklyBreakthroughs
-                ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                    ?.trend || "STABLE"
-                : "STABLE"
-            }
-            onClose={() => {
-              setModalVisible(false);
-              setSelectedMetric(null);
-            }}
-          />
+                            {/* Score */}
+                            <Text style={styles.miniValue}>
+                              {Math.round(data.current)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })()}
+          </View>
         </View>
-      </TourGuideZone>
+
+        {/* Dimension Detail Modal */}
+        <DimensionDetailModal
+          visible={modalVisible}
+          domain={selectedMetric}
+          currentScore={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.current || 0
+              : 0
+          }
+          change={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.change || 0
+              : 0
+          }
+          trend={
+            selectedMetric && weeklyBreakthroughs
+              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
+                  ?.trend || "STABLE"
+              : "STABLE"
+          }
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedMetric(null);
+          }}
+        />
+      </View>
     </View>
   );
 };

@@ -16,7 +16,6 @@ import {
 } from "../../navigators/stacks/SettingsStack/types";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
-import { useTourStore } from "../../stores/tour";
 import { ROUTE_NAMES } from "../../constants/routes";
 import {
   getUnlockedLevelsFromXP,
@@ -33,7 +32,6 @@ const Settings = () => {
   const navigation = useNavigation<any>();
   const { logout } = useContext(AuthContext);
   const { user } = useUserStore();
-  const { resetTour } = useTourStore();
 
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [userLevel, setUserLevel] = useState<number>(0);
@@ -78,16 +76,6 @@ const Settings = () => {
       text: "Progress Report",
       onClick: () => {
         navigation.navigate("ProgressDetail");
-      },
-    },
-    {
-      icon: "compass",
-      iconColor: "#F59E0B", // Amber for tour
-      iconBg: "#FFFBEB",
-      text: "App Tour",
-      onClick: () => {
-        resetTour();
-        navigation.navigate(ROUTE_NAMES.HOME);
       },
     },
     {

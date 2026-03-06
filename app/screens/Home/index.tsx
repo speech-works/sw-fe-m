@@ -31,11 +31,10 @@ import { parseTextStyle } from "../../util/functions/parseStyles";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
-
-import { TourGuideZone, useTourGuideController } from "rn-tourguide";
+import { TourGuideZone, TourGuideZoneByPosition } from "rn-tourguide";
+import { useAppTour } from "../../hooks/useAppTour";
 
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
-import { useTourStore } from "../../stores/tour";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
@@ -55,6 +54,10 @@ const Home = () => {
     totalDays: number;
     totalRemaining: number;
   } | null>(null);
+  const [loadingOases, setLoadingOases] = useState(true);
+  const [isZone1Measured, setIsZone1Measured] = useState(false);
+  const [interactionsDone, setInteractionsDone] = useState(false);
+  const [isTourReady, setIsTourReady] = useState(false);
 
   // Resume Modal State
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -149,144 +152,12 @@ const Home = () => {
           err.response?.data || err.message,
         );
         setOasesProgress(null); // Ensure hidden on error
+      } finally {
+        setLoadingOases(false);
       }
     };
     initOases();
   }, [user?.hasCompletedOnboarding]);
-
-  // --- Tour Logic (rn-tourguide) ---
-  // --- Tour Logic (rn-tourguide) ---
-  const { start, canStart, stop, eventEmitter, getCurrentStep } =
-    useTourGuideController();
-  const { hasCompletedTour, finishTour } = useTourStore();
-  const [isTourActive, setIsTourActive] = useState(false);
-
-  // Refs for precise auto-scrolling
-  const verticalScrollRef = useRef<ScrollView>(null);
-  const horizontalScrollRef = useRef<ScrollView>(null);
-  const zoneYPositions = useRef<{ [zone: number]: number }>({});
-  const zoneHeights = useRef<{ [zone: number]: number }>({});
-  const zoneXPositions = useRef<{ [zone: number]: number }>({});
-
-  useEffect(() => {
-    if (canStart && !hasCompletedTour && !getCurrentStep()) {
-      // Small delay to ensure all zones are registered
-      const timer = setTimeout(() => {
-        start();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [canStart, hasCompletedTour, start, getCurrentStep]);
-
-  // Handle tour completion to prevent re-runs
-  useEffect(() => {
-    if (!eventEmitter) return;
-    const handleStart = () => setIsTourActive(true);
-    const handleStop = () => {
-      setIsTourActive(false);
-      finishTour();
-    };
-    eventEmitter.on("start", handleStart);
-    eventEmitter.on("stop", handleStop);
-    return () => {
-      eventEmitter.off("start", handleStart);
-      eventEmitter.off("stop", handleStop);
-    };
-  }, [eventEmitter, finishTour]);
-
-  // Intercept Navigation to Auto-Scroll
-  useEffect(() => {
-    const handleTourNavigation = (
-      event: "next" | "prev",
-      {
-        currentStep,
-        handleNext,
-        handlePrev,
-      }: { currentStep: any; handleNext?: () => void; handlePrev?: () => void },
-    ) => {
-      const targetOrder =
-        event === "next" ? currentStep.order + 1 : currentStep.order - 1;
-
-      const yOffset = zoneYPositions.current[targetOrder];
-      const height = zoneHeights.current[targetOrder] || 0;
-      // Note: X offset scrolling currently only applicable if we are scrolling within horizontal carousel.
-      // We will handle basic vertical scrolling first.
-
-      if (yOffset !== undefined && verticalScrollRef.current) {
-        const { height: screenHeight } = Dimensions.get("window");
-        // Place the spotlighted element in the upper ~30% of the screen.
-        // This creates a natural gap below for the tooltip which always renders under the spotlight.
-        // Top buffer ~100px accounts for status bar + a bit of breathing room above the element.
-        const TOP_BUFFER = 100;
-        let targetY = Math.max(0, yOffset - TOP_BUFFER);
-
-        // Zone 5 (Free Activity & Level) is inside ResourceStats, below the Energy Tank section.
-        // Both zones 4 and 5 share the same outer wrapper y position, so we scroll an extra ~200px
-        // for zone 5 to account for the energySection height above it, pulling the grid into view.
-        if (targetOrder === 5) {
-          targetY = Math.max(0, yOffset + 200 - TOP_BUFFER);
-        }
-
-        // Zone 6 (SmartRecommendationCard) is a tall card. Scroll so its bottom sits near the
-        // center of the screen, giving the tooltip room to be below it in the lower screen half.
-        if (targetOrder === 6) {
-          targetY = Math.max(0, yOffset + height - screenHeight * 0.45);
-        }
-
-        // Zone 7 (Growth Profile container) is also a very tall card (header + radar chart + breakthroughs).
-        // Use a more aggressive formula: put bottom at 30% of screen (not 45%), leaving 70% for tooltip.
-        if (targetOrder === 7) {
-          targetY = Math.max(0, yOffset + height - screenHeight * 0.1);
-        }
-
-        // Zone 9 (Social metric overlay) is inside ClinicalStatsWidget, ~320px down from widget top.
-        // Increased from 240px to 320px to account for actual radar chart geometry.
-        if (targetOrder === 9) {
-          targetY = Math.max(0, yOffset + 320 - TOP_BUFFER);
-        }
-
-        verticalScrollRef.current.scrollTo({
-          y: targetY,
-          animated: true,
-        });
-
-        // Horizontal scroll logic for Zones 2,3 (which are inside horizontal carousel)
-        if (targetOrder === 2 && horizontalScrollRef.current) {
-          horizontalScrollRef.current.scrollTo({ x: 0, animated: true });
-        } else if (targetOrder === 3 && horizontalScrollRef.current) {
-          horizontalScrollRef.current.scrollTo({
-            x: carouselItemWidth + carouselSpacing,
-            animated: true,
-          });
-        }
-
-        // Wait for scroll animation to fully finish before advancing the tour step.
-        // 700ms gives the animated scrollTo enough time to complete on all devices.
-        setTimeout(() => {
-          if (event === "next" && handleNext) handleNext();
-          if (event === "prev" && handlePrev) handlePrev();
-        }, 700);
-      } else {
-        // Fallback immediately if position unknown
-        if (event === "next" && handleNext) handleNext();
-        if (event === "prev" && handlePrev) handlePrev();
-      }
-    };
-
-    const nextListener = DeviceEventEmitter.addListener("tour:next", (data) =>
-      handleTourNavigation("next", data),
-    );
-    const prevListener = DeviceEventEmitter.addListener("tour:prev", (data) =>
-      handleTourNavigation("prev", data),
-    );
-
-    return () => {
-      nextListener.remove();
-      prevListener.remove();
-    };
-  }, []);
-
-  const [interactionsDone, setInteractionsDone] = useState(false);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -294,6 +165,45 @@ const Home = () => {
     });
     return () => task.cancel();
   }, []);
+
+  useEffect(() => {
+    if (!loadingOases && interactionsDone && isZone1Measured) {
+      // Extended stability pause - wait for UI to fully settle in native layer
+      const timer = setTimeout(() => {
+        setIsTourReady(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsTourReady(false);
+    }
+  }, [loadingOases, interactionsDone, isZone1Measured]);
+
+  // --- Tour Setup ---
+  const verticalScrollRef = useRef<ScrollView>(null);
+  const horizontalScrollRef = useRef<ScrollView>(null);
+  const zoneLayouts = useRef<{ [key: number]: any }>({});
+
+  const captureLayout = (order: number) => (event: any) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    // Only accept measurement if it's non-zero
+    if (width > 0 && height > 0) {
+      zoneLayouts.current[order] = { x, y, width, height };
+      if (order === 1) {
+        setIsZone1Measured(true);
+      }
+    }
+  };
+
+  const {
+    isActive: isTourActive,
+    start,
+    getCurrentStep,
+  } = useAppTour(
+    "home",
+    { vertical: verticalScrollRef, horizontal: horizontalScrollRef },
+    zoneLayouts,
+    isTourReady,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -369,24 +279,11 @@ const Home = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View
-          onLayout={(e) => {
-            zoneYPositions.current[1] = e.nativeEvent.layout.y;
-            zoneHeights.current[1] = e.nativeEvent.layout.height;
-          }}
-        >
-          <TourGuideZone
-            zone={1}
-            text="Welcome to Speechworks! 👋 Let's help you master your speech with daily practices and insights."
-            shape="rectangle"
-          >
-            <View style={styles.header}>
-              <Text style={styles.greeting}>{greeting}</Text>
-              {firstName ? (
-                <Text style={styles.subGreeting}>{firstName}</Text>
-              ) : null}
-            </View>
-          </TourGuideZone>
+        <View style={styles.header}>
+          <Text style={styles.greeting}>{greeting}</Text>
+          {firstName ? (
+            <Text style={styles.subGreeting}>{firstName}</Text>
+          ) : null}
         </View>
 
         {/* --- Top Carousel --- */}
@@ -408,26 +305,28 @@ const Home = () => {
               scrollEventThrottle={16}
             >
               {/* Card 1: Onboarding or OASES */}
-              {(showOnboarding || showOases) && (
-                <View
-                  onLayout={(e) => {
-                    // Mark global Y position of entire Carousel relative to vertical ScrollView for Zone 2 and 3
-                    zoneYPositions.current[2] =
-                      zoneYPositions.current[2] || e.nativeEvent.layout.y; // Simplified
-                    zoneHeights.current[2] =
-                      zoneHeights.current[2] || e.nativeEvent.layout.height;
-                    zoneXPositions.current[2] = e.nativeEvent.layout.x;
-                  }}
-                  style={[
-                    styles.carouselItem,
-                    { width: carouselItemWidth, marginRight: carouselSpacing },
-                  ]}
+              <View
+                onLayout={captureLayout(1)}
+                style={[
+                  styles.carouselItem,
+                  { width: carouselItemWidth, marginRight: carouselSpacing },
+                ]}
+              >
+                <TourGuideZone
+                  zone={1}
+                  text="Daily Focus: Quickly access your most important tasks, like assessments or onboarding, to keep your progress on track."
+                  shape="rectangle"
+                  style={{ flex: 1 }}
                 >
-                  <TourGuideZone
-                    zone={2}
-                    text="Your Daily Focus: Complete your OASES assessment and onboarding tasks here."
-                    shape="rectangle"
-                  >
+                  <View collapsable={false} style={{ flex: 1 }}>
+                    {zoneLayouts.current[1] ? (
+                      <TourGuideZoneByPosition
+                        zone={1}
+                        shape="rectangle"
+                        isTourGuide
+                        {...zoneLayouts.current[1]}
+                      />
+                    ) : null}
                     {showOnboarding ? (
                       <OnboardingReminderCard
                         currentStep={currentOnboardingScreen - 1}
@@ -436,18 +335,14 @@ const Home = () => {
                         onPress={async () => {
                           try {
                             const state = useOnboardingStore.getState();
-                            // Check for valid progress to resume
                             if (
                               state.flow &&
                               (state.currentScreen > 1 ||
                                 Object.keys(state.answers).length > 0)
                             ) {
-                              // Show modal on Dashboard instead of navigating immediately
                               setShowResumeModal(true);
                               return;
                             }
-
-                            // No progress? Start fresh immediately
                             const flow = await getActiveOnboardingFlow();
                             state.startFresh(flow);
                             emit(EVENT_NAMES.START_ONBOARDING);
@@ -459,7 +354,7 @@ const Home = () => {
                           }
                         }}
                       />
-                    ) : (
+                    ) : showOases ? (
                       <OASESWidget
                         dayNumber={oasesProgress?.dayNumber}
                         totalDays={oasesProgress?.totalDays}
@@ -468,48 +363,50 @@ const Home = () => {
                         onPress={() => {
                           navigation.navigate("AcademyStack", {
                             screen: "DailyPracticeStack",
-                            params: {
-                              screen: "OASESIntro",
-                            },
+                            params: { screen: "OASESIntro" },
                           });
                         }}
                       />
+                    ) : (
+                      <View
+                        style={{
+                          height: 220,
+                          backgroundColor: "rgba(0,0,0,0.02)",
+                          borderRadius: 24,
+                        }}
+                      />
                     )}
-                  </TourGuideZone>
-                </View>
-              )}
+                  </View>
+                </TourGuideZone>
+              </View>
 
-              {/* Card 2: Mood Check (if not recorded today) */}
+              {/* Card 2: Mood Check */}
               {showMoodCheck && (
                 <View
-                  onLayout={(e) => {
-                    zoneYPositions.current[3] =
-                      zoneYPositions.current[3] || e.nativeEvent.layout.y;
-                    zoneHeights.current[3] =
-                      zoneHeights.current[3] || e.nativeEvent.layout.height;
-                    zoneXPositions.current[3] = e.nativeEvent.layout.x;
-                  }}
+                  onLayout={captureLayout(2)}
                   style={[
                     styles.carouselItem,
                     { width: carouselItemWidth, marginRight: carouselSpacing },
                   ]}
                 >
                   <TourGuideZone
-                    zone={3}
-                    text="Mood Check: Tracking your daily mood helps us identify patterns in your speech journey."
+                    zone={2}
+                    text="Mood Check: Log your daily vibes to see how your feelings influence your speech journey over time."
                     shape="rectangle"
                   >
-                    {interactionsDone ? (
-                      <MoodCheckBanner style={{ marginBottom: 0 }} />
-                    ) : (
-                      <View
-                        style={{
-                          height: 260,
-                          borderRadius: 24,
-                          backgroundColor: "rgba(0,0,0,0.02)",
-                        }}
-                      />
-                    )}
+                    <View collapsable={false}>
+                      {interactionsDone ? (
+                        <MoodCheckBanner style={{ marginBottom: 0 }} />
+                      ) : (
+                        <View
+                          style={{
+                            height: 260,
+                            borderRadius: 24,
+                            backgroundColor: "rgba(0,0,0,0.02)",
+                          }}
+                        />
+                      )}
+                    </View>
                   </TourGuideZone>
                 </View>
               )}
@@ -556,45 +453,13 @@ const Home = () => {
         )}
         {/* ------------------- */}
 
-        <View
-          onLayout={(e) => {
-            zoneYPositions.current[4] = e.nativeEvent.layout.y;
-            zoneHeights.current[4] = e.nativeEvent.layout.height;
-            zoneYPositions.current[5] = e.nativeEvent.layout.y;
-            zoneHeights.current[5] = e.nativeEvent.layout.height;
-          }}
-        >
-          <ResourceStats refreshing={refreshing} />
-        </View>
+        <ResourceStats refreshing={refreshing} />
 
         <View style={{ height: 24 }} />
 
-        <View
-          onLayout={(e) => {
-            zoneYPositions.current[6] = e.nativeEvent.layout.y;
-            zoneHeights.current[6] = e.nativeEvent.layout.height;
-          }}
-        >
-          <TourGuideZone
-            zone={6}
-            text="Smart Recommendations: Personalized suggestions to help you reach your goals faster."
-            shape="rectangle"
-          >
-            <SmartRecommendationCard key={`rec-${refreshKey}`} />
-          </TourGuideZone>
-        </View>
+        <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
-        <View
-          onLayout={(e) => {
-            const layout = e.nativeEvent.layout;
-            for (let i = 7; i <= 9; i++) {
-              zoneYPositions.current[i] = layout.y;
-              zoneHeights.current[i] = layout.height;
-            }
-          }}
-        >
-          <ClinicalStatsWidget />
-        </View>
+        <ClinicalStatsWidget />
       </ScrollView>
 
       {/* Resume Modal Overlay */}

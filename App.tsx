@@ -25,7 +25,7 @@ import { NativeModules } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 import { TourGuideProvider } from "rn-tourguide";
-import TourTooltip from "./app/components/Tour";
+import TourTooltip, { LocalTourTooltipStub } from "./app/components/Tour";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
 
@@ -37,8 +37,10 @@ if (__DEV__) {
 WebBrowser.maybeCompleteAuthSession();
 
 const App: React.FC = () => {
-  // reset mood log on frontend
-  useMoodCheckStore.getState().checkAndResetIfNeeded();
+  useEffect(() => {
+    // reset mood log on frontend
+    useMoodCheckStore.getState().checkAndResetIfNeeded();
+  }, []);
 
   const rescheduleAllActiveNotifications = useReminderStore(
     (state) => state.rescheduleAllActiveNotifications,
@@ -60,7 +62,7 @@ const App: React.FC = () => {
       // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
       await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
       await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
-
+      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_TOUR);
       console.log(".................checkToken................");
       console.log("accessToken", accessToken);
       console.log("refreshToken", refreshToken);
@@ -140,11 +142,14 @@ const App: React.FC = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <SafeAreaProvider>
+        <SafeAreaProvider style={{ flex: 1 }}>
           <TourGuideProvider
-            tooltipComponent={TourTooltip}
+            tooltipComponent={LocalTourTooltipStub}
+            tooltipStyle={{
+              backgroundColor: "transparent",
+            }}
             androidStatusBarVisible
-            backdropColor="rgba(0, 0, 0, 0.7)"
+            backdropColor="rgba(0, 0, 0, 0.85)"
             preventOutsideInteraction={true}
             labels={{
               skip: "Skip Tour",
@@ -163,6 +168,7 @@ const App: React.FC = () => {
               </NavigationContainer>
               <GlobalModal />
             </SafeAreaView>
+            <TourTooltip />
           </TourGuideProvider>
         </SafeAreaProvider>
       </AuthProvider>

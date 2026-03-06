@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { TourGuideZone } from "rn-tourguide";
 import { getProgressToNextLevel } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
@@ -152,153 +151,138 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
           {/* Glass Data Card - MAXIMALIST STACK */}
           <View style={styles.glassCard}>
             {/* 1. Energy Section (Full Width) */}
-            <TourGuideZone
-              zone={4}
-              shape="rectangle"
-              text="Energy Tank: This bar shows how much Stamina you have left. It refills automatically over time so you can keep practicing!"
-            >
-              <View style={styles.energySection}>
-                <View style={styles.energyHeader}>
+            <View style={styles.energySection}>
+              <View style={styles.energyHeader}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
                   <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
+                    style={[styles.iconCircle, { backgroundColor: "#FFF7ED" }]}
                   >
-                    <View
-                      style={[
-                        styles.iconCircle,
-                        { backgroundColor: "#FFF7ED" },
-                      ]}
-                    >
-                      <Icon name="bolt" size={16} color="#F97316" solid />
-                    </View>
-                    <Text style={styles.sectionLabel}>Energy Tank</Text>
+                    <Icon name="bolt" size={16} color="#F97316" solid />
                   </View>
-                  <Text style={styles.energyValue}>{staminaPercentage}%</Text>
+                  <Text style={styles.sectionLabel}>Energy Tank</Text>
                 </View>
-
-                <AnimatedBar percentage={staminaPercentage} color="#F97316" />
-
-                <View style={styles.energyFooter}>
-                  {staminaPercentage === 100 ? (
-                    <Text style={styles.footerText}>Fully Charged</Text>
-                  ) : (
-                    <Text style={styles.footerText}>
-                      {rechargeTimeLeft
-                        ? `~${rechargeTimeLeft} until full`
-                        : "Recharging..."}
-                    </Text>
-                  )}
-                </View>
+                <Text style={styles.energyValue}>{staminaPercentage}%</Text>
               </View>
-            </TourGuideZone>
+
+              <AnimatedBar percentage={staminaPercentage} color="#F97316" />
+
+              <View style={styles.energyFooter}>
+                {staminaPercentage === 100 ? (
+                  <Text style={styles.footerText}>Fully Charged</Text>
+                ) : (
+                  <Text style={styles.footerText}>
+                    {rechargeTimeLeft
+                      ? `~${rechargeTimeLeft} until full`
+                      : "Recharging..."}
+                  </Text>
+                )}
+              </View>
+            </View>
 
             {/* 2. The Big Grid */}
-            <TourGuideZone
-              zone={5}
-              shape="rectangle"
-              text="Free Activity & Level: Track your daily free practice slots and see your current level and XP progress here!"
-            >
-              <View style={styles.gridContainer}>
-                {/* Task Card - HUGE */}
+            <View style={styles.gridContainer}>
+              {/* Task Card - HUGE */}
+              <View
+                style={[
+                  styles.bigCard,
+                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                ]}
+              >
+                {/* Watermark Icon */}
                 <View
                   style={[
-                    styles.bigCard,
-                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                    styles.watermarkContainer,
+                    { transform: [{ rotate: "-20deg" }] },
                   ]}
                 >
-                  {/* Watermark Icon */}
-                  <View
-                    style={[
-                      styles.watermarkContainer,
-                      { transform: [{ rotate: "-20deg" }] },
-                    ]}
-                  >
-                    <Icon
-                      name="check-circle"
-                      size={90}
-                      color="#10B981"
-                      style={{ opacity: 0.05 }}
-                    />
-                  </View>
-
-                  <View style={styles.cardHeader}>
-                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                      Free Activity
-                    </Text>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                      {tasksRemaining}
-                    </Text>
-                    <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
-                      / {tasksTotal}
-                    </Text>
-                  </View>
-                  {/* Mini Bar */}
-                  <View
-                    style={{
-                      marginTop: 8,
-                      height: 6,
-                      backgroundColor: "rgba(16, 185, 129, 0.1)",
-                      borderRadius: 3,
-                      width: "100%",
-                    }}
-                  >
-                    <View
-                      style={{
-                        height: "100%",
-                        backgroundColor: "#10B981",
-                        borderRadius: 3,
-                        width: `${taskPercentage}%`,
-                      }}
-                    />
-                  </View>
+                  <Icon
+                    name="check-circle"
+                    size={90}
+                    color="#10B981"
+                    style={{ opacity: 0.05 }}
+                  />
                 </View>
 
-                {/* Level Card - HUGE */}
-                <View
-                  style={[
-                    styles.bigCard,
-                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                  ]}
-                >
-                  {/* Watermark Icon */}
-                  <View
-                    style={[
-                      styles.watermarkContainer,
-                      { transform: [{ rotate: "-20deg" }] },
-                    ]}
-                  >
-                    <Icon
-                      name="star"
-                      size={90}
-                      color="#3B82F6"
-                      style={{ opacity: 0.05 }}
-                    />
-                  </View>
-
-                  <View style={styles.cardHeader}>
-                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                      Level
-                    </Text>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                      {userLevel}
-                    </Text>
-                  </View>
-                  {/* XP Text */}
-                  <Text style={[styles.xpText, { color: "#3B82F6" }]}>
-                    {userProgress
-                      ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
-                      : "0 XP"}
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                    Free Activity
                   </Text>
                 </View>
+                <View style={styles.cardBody}>
+                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                    {tasksRemaining}
+                  </Text>
+                  <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
+                    / {tasksTotal}
+                  </Text>
+                </View>
+                {/* Mini Bar */}
+                <View
+                  style={{
+                    marginTop: 8,
+                    height: 6,
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
+                    borderRadius: 3,
+                    width: "100%",
+                  }}
+                >
+                  <View
+                    style={{
+                      height: "100%",
+                      backgroundColor: "#10B981",
+                      borderRadius: 3,
+                      width: `${taskPercentage}%`,
+                    }}
+                  />
+                </View>
               </View>
-            </TourGuideZone>
+
+              {/* Level Card - HUGE */}
+              <View
+                style={[
+                  styles.bigCard,
+                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                ]}
+              >
+                {/* Watermark Icon */}
+                <View
+                  style={[
+                    styles.watermarkContainer,
+                    { transform: [{ rotate: "-20deg" }] },
+                  ]}
+                >
+                  <Icon
+                    name="star"
+                    size={90}
+                    color="#3B82F6"
+                    style={{ opacity: 0.05 }}
+                  />
+                </View>
+
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                    Level
+                  </Text>
+                </View>
+                <View style={styles.cardBody}>
+                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                    {userLevel}
+                  </Text>
+                </View>
+                {/* XP Text */}
+                <Text style={[styles.xpText, { color: "#3B82F6" }]}>
+                  {userProgress
+                    ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
+                    : "0 XP"}
+                </Text>
+              </View>
+            </View>
           </View>
         </LinearGradient>
       </View>
