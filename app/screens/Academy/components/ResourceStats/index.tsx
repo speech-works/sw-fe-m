@@ -157,40 +157,42 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
               text="Your daily fuel for practice! It recharges over time, so plan your sessions to keep the momentum going."
               shape="rectangle"
             >
-              <View style={styles.energySection}>
-                <View style={styles.energyHeader}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
+              <View style={{ paddingVertical: 12, marginVertical: -12 }}>
+                <View style={styles.energySection}>
+                  <View style={styles.energyHeader}>
                     <View
-                      style={[
-                        styles.iconCircle,
-                        { backgroundColor: "#FFF7ED" },
-                      ]}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
                     >
-                      <Icon name="bolt" size={16} color="#F97316" solid />
+                      <View
+                        style={[
+                          styles.iconCircle,
+                          { backgroundColor: "#FFF7ED" },
+                        ]}
+                      >
+                        <Icon name="bolt" size={16} color="#F97316" solid />
+                      </View>
+                      <Text style={styles.sectionLabel}>Energy Tank</Text>
                     </View>
-                    <Text style={styles.sectionLabel}>Energy Tank</Text>
+                    <Text style={styles.energyValue}>{staminaPercentage}%</Text>
                   </View>
-                  <Text style={styles.energyValue}>{staminaPercentage}%</Text>
-                </View>
 
-                <AnimatedBar percentage={staminaPercentage} color="#F97316" />
+                  <AnimatedBar percentage={staminaPercentage} color="#F97316" />
 
-                <View style={styles.energyFooter}>
-                  {staminaPercentage === 100 ? (
-                    <Text style={styles.footerText}>Fully Charged</Text>
-                  ) : (
-                    <Text style={styles.footerText}>
-                      {rechargeTimeLeft
-                        ? `~${rechargeTimeLeft} until full`
-                        : "Recharging..."}
-                    </Text>
-                  )}
+                  <View style={styles.energyFooter}>
+                    {staminaPercentage === 100 ? (
+                      <Text style={styles.footerText}>Fully Charged</Text>
+                    ) : (
+                      <Text style={styles.footerText}>
+                        {rechargeTimeLeft
+                          ? `~${rechargeTimeLeft} until full`
+                          : "Recharging..."}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
             </TourGuideZone>
