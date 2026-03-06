@@ -45,7 +45,8 @@ const GlobalTourTooltip = () => {
   const step = getCurrentStep();
   const active = !!step;
 
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const targetY = useSharedValue(0);
+  const targetHeight = useSharedValue(0);
   const [layoutReady, setLayoutReady] = useState(false);
   const intervalRef = useRef<any>(null);
 
@@ -55,6 +56,12 @@ const GlobalTourTooltip = () => {
 
   useEffect(() => {
     if (active && step?.target) {
+      // RESET: Go invisible and clear old position immediately to prevent flickering
+      opacity.value = 0;
+      setLayoutReady(false);
+      targetY.value = 0;
+      targetHeight.value = 0;
+
       const measure = () => {
         const handle = findNodeHandle(step.target);
         if (!handle) return;
@@ -70,95 +77,120 @@ const GlobalTourTooltip = () => {
             pageY: number,
           ) => {
             if (pageX !== undefined && pageY !== undefined && width > 0) {
-              setCoords({ x: pageX, y: pageY, width, height });
+              // Update shared values directly
+              targetY.value = pageY;
+              targetHeight.value = height;
+
+              // Only reveal once we have valid coordinates and everything is stable
+              if (opacity.value === 0) {
+                opacity.value = withTiming(1, { duration: 400 });
+                scale.value = withTiming(1, { duration: 400 });
+                runOnJS(setLayoutReady)(true);
+              }
             }
           },
         );
       };
 
+      // Wait for scroll settlement before starting measurement
       const timer = setTimeout(() => {
         measure();
         intervalRef.current = setInterval(measure, 100);
-      }, 500);
-
-      scale.value = withSpring(1, { damping: 15, stiffness: 120 });
-      opacity.value = withTiming(1, { duration: 300 }, () => {
-        runOnJS(setLayoutReady)(true);
-      });
+      }, 400);
 
       return () => {
         clearTimeout(timer);
         if (intervalRef.current) clearInterval(intervalRef.current);
-        setLayoutReady(false);
       };
     } else {
-      scale.value = withSpring(0.8);
-      opacity.value = withTiming(0, { duration: 200 }, () => {
-        runOnJS(setCoords)(null);
+      // EXIT animation
+      opacity.value = withTiming(0, { duration: 250 });
+      scale.value = withTiming(0.8, { duration: 250 }, () => {
         runOnJS(setLayoutReady)(false);
       });
     }
   }, [active, step?.name]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    /**
+     * UI THREAD POSITIONING LOGIC
+     * This eliminates frame misalignment flickers
+     */
+    const MARGIN = 12;
+    const cardHeightEstimate = 220;
 
-  if (!active || !coords) return null;
+    let topVal = targetY.value + targetHeight.value + MARGIN;
+    let isBelowVal = true;
 
-  const handleNext = () => {
+    const bottomThreshold = SCREEN_HEIGHT - insets.bottom - 40;
+    if (topVal + cardHeightEstimate > bottomThreshold) {
+      topVal = targetY.value - cardHeightEstimate - MARGIN;
+      isBelowVal = false;
+    }
+
+    // Final safety clamp
+    topVal = Math.max(
+      insets.top + 20,
+      Math.min(topVal, SCREEN_HEIGHT - insets.bottom - cardHeightEstimate - 20),
+    );
+
+    return {
+      opacity: opacity.value,
+      transform: [{ scale: scale.value }],
+      top: topVal,
+      borderTopRightRadius: isBelowVal ? 32 : 8,
+      borderBottomRightRadius: isBelowVal ? 8 : 32,
+    };
+  });
+
+  if (!active || !layoutReady) return null;
+
+  const emitNext = () => {
     DeviceEventEmitter.emit("tour:next", {
       currentStep: step,
       handleStop: stop,
     });
   };
 
-  const handlePrev = () => {
+  const emitPrev = () => {
     DeviceEventEmitter.emit("tour:prev", {
       currentStep: step,
       handleStop: stop,
     });
   };
 
-  /**
-   * POSITIONING LOGIC
-   */
-  const MARGIN = 16;
-  const cardHeightEstimate = 160;
+  const handleNext = () => {
+    opacity.value = withTiming(0, { duration: 200 });
+    scale.value = withTiming(0.8, { duration: 200 }, () => {
+      runOnJS(emitNext)();
+    });
+  };
 
-  let top = coords.y + coords.height + MARGIN;
-  let isBelow = true;
+  const handlePrev = () => {
+    opacity.value = withTiming(0, { duration: 200 });
+    scale.value = withTiming(0.8, { duration: 200 }, () => {
+      runOnJS(emitPrev)();
+    });
+  };
 
-  // If it hits the bottom safe area, place it above
-  if (top + cardHeightEstimate > SCREEN_HEIGHT - insets.bottom - 40) {
-    top = coords.y - cardHeightEstimate - MARGIN;
-    isBelow = false;
-  }
+  const startStop = () => {
+    stop();
+  };
 
-  // Safety clamp
-  top = Math.max(
-    insets.top + 20,
-    Math.min(top, SCREEN_HEIGHT - insets.bottom - cardHeightEstimate - 20),
-  );
+  const handleStop = () => {
+    opacity.value = withTiming(0, { duration: 200 });
+    scale.value = withTiming(0.8, { duration: 200 }, () => {
+      runOnJS(startStop)();
+    });
+  };
 
   const isFirstStep = step.order === 1;
-  const isLastStep = step.order >= 4; // Adjust based on total steps
+  const isLastStep = step.order >= 3; // Step 3 is currently the last step
 
   return (
-    <Modal visible={active && !!coords} transparent animationType="none">
+    <Modal visible={active && layoutReady} transparent animationType="none">
       <View style={styles.rootLayer} pointerEvents="box-none">
-        <Animated.View
-          style={[
-            styles.container,
-            {
-              top,
-              borderTopRightRadius: isBelow ? 32 : 8,
-              borderBottomRightRadius: isBelow ? 8 : 32,
-            },
-            animatedStyle,
-          ]}
-        >
+        <Animated.View style={[styles.container, animatedStyle]}>
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Icon
@@ -177,7 +209,7 @@ const GlobalTourTooltip = () => {
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity onPress={stop} style={styles.skipButton}>
+            <TouchableOpacity onPress={handleStop} style={styles.skipButton}>
               <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
 
@@ -192,7 +224,7 @@ const GlobalTourTooltip = () => {
               )}
 
               <TouchableOpacity
-                onPress={isLastStep ? stop : handleNext}
+                onPress={isLastStep ? handleStop : handleNext}
                 style={styles.nextButton}
               >
                 <Text style={styles.nextText}>

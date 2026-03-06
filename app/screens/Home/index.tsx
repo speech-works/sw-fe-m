@@ -454,7 +454,9 @@ const Home = () => {
         )}
         {/* ------------------- */}
 
-        <ResourceStats refreshing={refreshing} />
+        <View onLayout={captureLayout(3)} collapsable={false}>
+          <ResourceStats refreshing={refreshing} />
+        </View>
 
         <View style={{ height: 24 }} />
 

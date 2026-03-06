@@ -50,10 +50,10 @@ export const useAppTour = (
         start();
 
         // Forced re-start to Step 1 after a short delay
-        // This forces the library to re-measure and render the mask once the UI is stable
+        // Increase to 800ms for extra stability on slower devices
         setTimeout(() => {
           if (start) start(1);
-        }, 500);
+        }, 800);
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -91,7 +91,7 @@ export const useAppTour = (
       if (layout) {
         // Vertical Scroll Logic
         if (scrollRefs.vertical?.current) {
-          const V_OFFSET = 120;
+          const V_OFFSET = 20;
           const targetY = Math.max(0, layout.y - V_OFFSET);
 
           scrollRefs.vertical.current.scrollTo({
@@ -123,7 +123,7 @@ export const useAppTour = (
               error,
             );
           }
-        }, 500);
+        }, 800);
       } else {
         // Fallback if layout not captured
         try {
