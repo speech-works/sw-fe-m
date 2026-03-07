@@ -49,6 +49,7 @@ const GlobalTourTooltip = () => {
   const targetHeight = useSharedValue(0);
   const [layoutReady, setLayoutReady] = useState(false);
   const intervalRef = useRef<any>(null);
+  const transitionRef = useRef(false);
 
   // Animation values
   const scale = useSharedValue(0.8);
@@ -61,8 +62,10 @@ const GlobalTourTooltip = () => {
       setLayoutReady(false);
       targetY.value = 0;
       targetHeight.value = 0;
+      transitionRef.current = false;
 
       const measure = () => {
+        if (transitionRef.current) return;
         const handle = findNodeHandle(step.target);
         if (!handle) return;
 
@@ -82,7 +85,7 @@ const GlobalTourTooltip = () => {
               targetHeight.value = height;
 
               // Only reveal once we have valid coordinates and everything is stable
-              if (opacity.value === 0) {
+              if (!transitionRef.current && opacity.value === 0) {
                 opacity.value = withTiming(1, { duration: 400 });
                 scale.value = withTiming(1, { duration: 400 });
                 runOnJS(setLayoutReady)(true);
@@ -160,6 +163,9 @@ const GlobalTourTooltip = () => {
   };
 
   const handleNext = () => {
+    transitionRef.current = true;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
     opacity.value = withTiming(0, { duration: 200 });
     scale.value = withTiming(0.8, { duration: 200 }, () => {
       runOnJS(emitNext)();
@@ -167,6 +173,9 @@ const GlobalTourTooltip = () => {
   };
 
   const handlePrev = () => {
+    transitionRef.current = true;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
     opacity.value = withTiming(0, { duration: 200 });
     scale.value = withTiming(0.8, { duration: 200 }, () => {
       runOnJS(emitPrev)();
@@ -178,6 +187,9 @@ const GlobalTourTooltip = () => {
   };
 
   const handleStop = () => {
+    transitionRef.current = true;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
     opacity.value = withTiming(0, { duration: 200 });
     scale.value = withTiming(0.8, { duration: 200 }, () => {
       runOnJS(startStop)();
@@ -336,13 +348,5 @@ const styles = StyleSheet.create({
   nextText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
 });
 
-export const LocalTourTooltipStub = () => (
-  <View
-    style={{
-      width: SCREEN_WIDTH,
-      height: 100,
-      backgroundColor: "transparent",
-    }}
-  />
-);
+export const LocalTourTooltipStub = () => null;
 export default GlobalTourTooltip;
