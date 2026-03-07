@@ -275,14 +275,18 @@ const TherapistFace = ({
               x="14"
               y="36"
               width="20"
-              height="14"
+              height="30"
               rx="1"
               fill="#8D6E63"
               stroke="#5D4037"
               strokeLinecap="round"
             />
-            <Rect x="16" y="38" width="16" height="11" fill="#FFF" />
-            <Path d="M18 41h12M18 44h8" stroke="#BDBDBD" strokeWidth="1" />
+            <Rect x="16" y="38" width="16" height="30" fill="#FFF" />
+            <Path
+              d="M18 41h12M18 44h8M18 47h10M18 50h12"
+              stroke="#BDBDBD"
+              strokeWidth="1"
+            />
             <Rect
               x="20"
               y="35"

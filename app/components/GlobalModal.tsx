@@ -21,6 +21,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import TherapistFace from "../assets/sw-faces/TherapistFace";
 
 const GlobalModal = () => {
   const navigation = useNavigation<any>();
@@ -97,7 +98,7 @@ const GlobalModal = () => {
         if (event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL) {
           title = "Master Speech Management";
           message =
-            "Learn advanced tools and SLP-led strategies for better speech management.";
+            "Learn advanced tools and strategies directly from expert SLPs.";
         }
 
         setModalType(type);
@@ -130,7 +131,7 @@ const GlobalModal = () => {
           {modalType === "error" ? (
             <ErrorFace size={152} />
           ) : modalType === "upsell" ? (
-            <ExplorerFace size={152} shouldAnimate loop={false} />
+            <TherapistFace size={152} shouldAnimate />
           ) : (
             <HappyScreamFace size={152} />
           )}
