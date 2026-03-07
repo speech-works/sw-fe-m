@@ -7,8 +7,11 @@ interface TourState {
   hasCompletedHomeTour: boolean;
   hasCompletedExploreTour: boolean;
   hasCompletedOverallTour: boolean;
+  activeTourKey: "home" | "explore" | null;
+  activeTourMaxSteps: number;
   setHasCompletedHomeTour: (completed: boolean) => void;
   setHasCompletedExploreTour: (completed: boolean) => void;
+  setActiveTour: (key: "home" | "explore" | null, maxSteps: number) => void;
   resetAllTours: () => void;
 }
 
@@ -18,6 +21,8 @@ export const useTourStore = create<TourState>()(
       hasCompletedHomeTour: false,
       hasCompletedExploreTour: false,
       hasCompletedOverallTour: false,
+      activeTourKey: null,
+      activeTourMaxSteps: 8,
       setHasCompletedHomeTour: (completed) =>
         set((state) => ({
           hasCompletedHomeTour: completed,
@@ -28,11 +33,15 @@ export const useTourStore = create<TourState>()(
           hasCompletedExploreTour: completed,
           hasCompletedOverallTour: state.hasCompletedHomeTour && completed,
         })),
+      setActiveTour: (key, maxSteps) =>
+        set({ activeTourKey: key, activeTourMaxSteps: maxSteps }),
       resetAllTours: () =>
         set({
           hasCompletedHomeTour: false,
           hasCompletedExploreTour: false,
           hasCompletedOverallTour: false,
+          activeTourKey: null,
+          activeTourMaxSteps: 8,
         }),
     }),
     {

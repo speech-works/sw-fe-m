@@ -23,6 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { TooltipProps, useTourGuideController } from "rn-tourguide";
+import { useTourStore } from "../../stores/tour";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -41,6 +42,7 @@ interface Coords {
 const GlobalTourTooltip = () => {
   const insets = useSafeAreaInsets();
   const { getCurrentStep, stop } = useTourGuideController();
+  const { activeTourMaxSteps } = useTourStore();
 
   const step = getCurrentStep();
   const active = !!step;
@@ -64,6 +66,8 @@ const GlobalTourTooltip = () => {
       targetHeight.value = 0;
       transitionRef.current = false;
 
+      const stabilityRef = { count: 0, lastY: 0 };
+
       const measure = () => {
         if (transitionRef.current) return;
         let handle;
@@ -85,12 +89,27 @@ const GlobalTourTooltip = () => {
             pageY: number,
           ) => {
             if (pageX !== undefined && pageY !== undefined && width > 0) {
-              // Update shared values directly
+              // STABILITY CHECK:
+              // Tooltip revelation is deferred until the Y coordinate is stable
+              // for at least 3 consecutive checks (300ms of stability).
+              const isStable = Math.abs(pageY - stabilityRef.lastY) < 1;
+              if (isStable) {
+                stabilityRef.count += 1;
+              } else {
+                stabilityRef.count = 0;
+                stabilityRef.lastY = pageY;
+              }
+
+              // Update shared values
               targetY.value = pageY;
               targetHeight.value = height;
 
-              // Only reveal once we have valid coordinates and everything is stable
-              if (!transitionRef.current && opacity.value === 0) {
+              // Only reveal if stable and not already showing
+              if (
+                !transitionRef.current &&
+                opacity.value === 0 &&
+                stabilityRef.count >= 3
+              ) {
                 opacity.value = withTiming(1, { duration: 400 });
                 scale.value = withTiming(1, { duration: 400 });
                 runOnJS(setLayoutReady)(true);
@@ -100,11 +119,11 @@ const GlobalTourTooltip = () => {
         );
       };
 
-      // Wait for scroll settlement before starting measurement
+      // Increased settling delay to 600ms to allow layout animations to finish
       const timer = setTimeout(() => {
         measure();
         intervalRef.current = setInterval(measure, 100);
-      }, 400);
+      }, 600);
 
       return () => {
         clearTimeout(timer);
@@ -138,12 +157,7 @@ const GlobalTourTooltip = () => {
       step?.order === 8;
     const bottomThreshold = SCREEN_HEIGHT - insets.bottom - 40;
 
-    if (
-      topVal + cardHeightEstimate > bottomThreshold &&
-      step?.order !== 6 &&
-      step?.order !== 7 &&
-      step?.order !== 8
-    ) {
+    if (topVal + cardHeightEstimate > bottomThreshold && step?.order !== 6) {
       topVal = targetY.value - cardHeightEstimate - MARGIN;
       isBelowVal = false;
 
@@ -222,7 +236,7 @@ const GlobalTourTooltip = () => {
   };
 
   const isFirstStep = step.order === 1;
-  const isLastStep = step.order >= 8; // Step 8 is the final step
+  const isLastStep = step.order >= activeTourMaxSteps;
 
   return (
     <Modal visible={active && layoutReady} transparent animationType="none">

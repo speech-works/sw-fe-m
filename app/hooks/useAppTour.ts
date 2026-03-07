@@ -34,6 +34,7 @@ export const useAppTour = (
     hasCompletedExploreTour,
     setHasCompletedHomeTour,
     setHasCompletedExploreTour,
+    setActiveTour,
   } = useTourStore();
 
   const [isActive, setIsActive] = useState(false);
@@ -49,15 +50,28 @@ export const useAppTour = (
         // Initial start to initialize the state
         start();
 
-        // Forced re-start to starting step after a short delay
-        const startingStep = tourKey === "home" ? 1 : 30;
+        // All tours now start at step 1
+        const startingStep = 1;
+        const maxSteps = tourKey === "home" ? 8 : 4;
+
         setTimeout(() => {
-          if (start) start(startingStep);
+          if (start) {
+            setActiveTour(tourKey, maxSteps);
+            start(startingStep);
+          }
         }, 800);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [canStart, hasCompletedToken, start, getCurrentStep, ready, tourKey]);
+  }, [
+    canStart,
+    hasCompletedToken,
+    start,
+    getCurrentStep,
+    ready,
+    tourKey,
+    setActiveTour,
+  ]);
 
   useEffect(() => {
     if (!eventEmitter) return;
@@ -97,9 +111,9 @@ export const useAppTour = (
             stepVOffset =
               targetOrder === 7 ? -100 : targetOrder === 8 ? -200 : 20;
           } else {
-            // Explore Screen Offsets (30-33)
-            // Libary (33) might need more scroll to be visible
-            stepVOffset = targetOrder === 33 ? 50 : 20;
+            // Explore Screen Offsets (1-4)
+            // Libary (4) might need more scroll to be visible
+            stepVOffset = targetOrder === 4 ? 50 : 20;
           }
           const targetY = Math.max(0, layout.y - stepVOffset);
 

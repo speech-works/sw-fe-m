@@ -6,7 +6,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  InteractionManager,
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
 import { getUserStats } from "../../api/stats";
@@ -42,18 +49,26 @@ const Explore = () => {
   const [errorMessage, setErrorMessage] = useState("");
   // ----------------------------------------
 
+  const [interactionsDone, setInteractionsDone] = useState(false);
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setInteractionsDone(true);
+    });
+    return () => task.cancel();
+  }, []);
+
   // --- Tour Setup ---
   const scrollRef = useRef<any>(null); // CustomScrollView ref
   const zoneLayouts = useRef<{ [key: number]: any }>({});
   const [isTourReady, setIsTourReady] = useState(false);
-  const { hasCompletedHomeTour } = useTourStore();
+  const { hasCompletedHomeTour, hasCompletedExploreTour } = useTourStore();
 
   const captureLayout = (order: number) => (event: any) => {
     const { x, y, width, height } = event.nativeEvent.layout;
     if (width > 0 && height > 0) {
       zoneLayouts.current[order] = { x, y, width, height };
-      // For Explore tour, if first zone (order 30) is measured, we're likely ready
-      if (order === 30) {
+      // For Explore tour, if first zone (order 1) is measured, we're likely ready
+      if (order === 1) {
         setIsTourReady(true);
       }
     }
@@ -67,8 +82,13 @@ const Explore = () => {
     "explore",
     { vertical: scrollRef },
     zoneLayouts,
-    hasCompletedHomeTour && isTourReady,
+    hasCompletedHomeTour && isTourReady && interactionsDone,
   );
+
+  // Show a full-screen loader to block interaction until tour initializes
+  // Visible if user hasn't finished Explore tour AND tour isn't active yet (measuring/settling)
+  const shouldShowTourBlocker =
+    hasCompletedHomeTour && !hasCompletedExploreTour && !isTourActive;
 
   // --- NEW: Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
@@ -123,6 +143,8 @@ const Explore = () => {
   // --- Listen for Modal Events ---
   useEffect(() => {
     if (!events || events.length === 0) return;
+    // Suppress popups if tour is active or blocker is showing
+    if (isTourActive || shouldShowTourBlocker) return;
 
     for (const event of events) {
       if (event.name === EVENT_NAMES.SHOW_ERROR_MODAL) {
@@ -134,7 +156,7 @@ const Explore = () => {
         clear(EVENT_NAMES.SHOW_ERROR_MODAL);
       }
     }
-  }, [events, clear]);
+  }, [events, clear, isTourActive, shouldShowTourBlocker]);
 
   useEffect(() => {
     if (!user) return;
@@ -187,42 +209,42 @@ const Explore = () => {
           <View style={styles.innerContainer}>
             {/* World Exploration Map */}
             <TourGuideZone
-              zone={30}
+              zone={1}
               text="Your Journey Map: Visualize your weekly practice rhythm and see how you explore different areas of speech improvement."
               shape="rectangle"
             >
-              <WorldExplorationGraph onLayoutCapture={captureLayout(30)} />
+              <WorldExplorationGraph onLayoutCapture={captureLayout(1)} />
             </TourGuideZone>
 
             {/* 4 Types of Practice Grid */}
             <TourGuideZone
-              zone={31}
+              zone={2}
               text="Practice Zones: Choose from Story, Social, Interview, or Daily challenges to target specific speech goals."
               shape="rectangle"
             >
-              <View onLayout={captureLayout(31)} collapsable={false}>
+              <View onLayout={captureLayout(2)} collapsable={false}>
                 <PracticeGrid isScrolling={isScrolling} />
               </View>
             </TourGuideZone>
 
             {/* Upgrade CTA */}
             <TourGuideZone
-              zone={32}
+              zone={3}
               text="Pro Access: Unlock unlimited practice, more territories, and join our community to accelerate your progress."
               shape="rectangle"
             >
-              <View onLayout={captureLayout(32)} collapsable={false}>
-                <BuyPro onLayoutCapture={captureLayout(32)} />
+              <View onLayout={captureLayout(3)} collapsable={false}>
+                <BuyPro onLayoutCapture={captureLayout(3)} />
               </View>
             </TourGuideZone>
 
             {/* Inline Library Section */}
             <TourGuideZone
-              zone={33}
+              zone={4}
               text="Tutorial Library: Deepen your knowledge with our curated video collection on speech techniques and mindset."
               shape="rectangle"
             >
-              <LibrarySection onLayoutCapture={captureLayout(33)} />
+              <LibrarySection onLayoutCapture={captureLayout(4)} />
             </TourGuideZone>
 
             {/* Spacer for tour deep-scrolling */}
@@ -244,6 +266,22 @@ const Explore = () => {
           <ErrorFace size={152} />
         </View>
       </BottomSheetModal>
+
+      {/* Tour Blocker Overlay - Using Modal to cover everything */}
+      <Modal
+        visible={shouldShowTourBlocker}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.tourBlocker}>
+          <ActivityIndicator
+            size="large"
+            color={theme.colors.actionPrimary.default}
+          />
+          <Text style={styles.tourBlockerText}>Preparing your guide…</Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -292,5 +330,18 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
     lineHeight: 22,
+  },
+  tourBlocker: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.background.default,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 99999,
+    gap: 16,
+  },
+  tourBlockerText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    fontWeight: "600",
   },
 });

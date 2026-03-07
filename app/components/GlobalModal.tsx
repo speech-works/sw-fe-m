@@ -9,9 +9,12 @@ import { EVENT_NAMES } from "../stores/events/constants";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 import BottomSheetModal from "./BottomSheetModal";
+import { useTourGuideController } from "rn-tourguide";
 
 const GlobalModal = () => {
   const { events, clear } = useEventStore();
+  const { getCurrentStep } = useTourGuideController();
+  const isTourActive = !!getCurrentStep();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"error" | "success" | null>(null);
   const [modalTitle, setModalTitle] = useState("");
@@ -19,6 +22,8 @@ const GlobalModal = () => {
 
   useEffect(() => {
     if (!events || events.length === 0) return;
+    // Suppress popups during app tours
+    if (isTourActive) return;
 
     for (const event of events) {
       if (
@@ -50,7 +55,7 @@ const GlobalModal = () => {
         clear(event.name);
       }
     }
-  }, [events, clear]);
+  }, [events, clear, isTourActive]);
 
   return (
     <BottomSheetModal
