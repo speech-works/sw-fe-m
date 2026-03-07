@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
+import ExplorerFace from "../assets/sw-faces/ExplorerFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
@@ -10,15 +11,45 @@ import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 import BottomSheetModal from "./BottomSheetModal";
 import { useTourGuideController } from "rn-tourguide";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 
 const GlobalModal = () => {
   const { events, clear } = useEventStore();
   const { getCurrentStep } = useTourGuideController();
   const isTourActive = !!getCurrentStep();
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<"error" | "success" | null>(null);
+  const [modalType, setModalType] = useState<
+    "error" | "success" | "upsell" | null
+  >(null);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    if (modalVisible) {
+      translateY.value = withRepeat(
+        withTiming(-10, {
+          duration: 3500,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        -1,
+        true,
+      );
+    } else {
+      translateY.value = 0;
+    }
+  }, [modalVisible]);
+
+  const animatedFaceStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -28,17 +59,24 @@ const GlobalModal = () => {
     for (const event of events) {
       if (
         event.name === EVENT_NAMES.SHOW_ERROR_MODAL ||
-        event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL
+        event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL ||
+        event.name === EVENT_NAMES.SHOW_STAMINA_UPSELL
       ) {
         console.log(`[GlobalModal] Handling event: ${event.name}`);
-        const type =
-          event.name === EVENT_NAMES.SHOW_ERROR_MODAL ? "error" : "success";
+
+        let type: "error" | "success" | "upsell" = "error";
+        if (event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL) type = "success";
+        if (event.name === EVENT_NAMES.SHOW_STAMINA_UPSELL) type = "upsell";
 
         // Extract content with fallbacks for triggerToast compatibility
         const title =
           event.detail.modalTitle ||
           event.detail.title ||
-          (type === "error" ? "Something went wrong" : "Success");
+          (type === "error"
+            ? "Something went wrong"
+            : type === "upsell"
+              ? "Practice Limit Reached"
+              : "Success");
 
         const message =
           event.detail.errorMessage ||
@@ -72,11 +110,15 @@ const GlobalModal = () => {
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>{modalTitle}</Text>
         <Text style={styles.modalMessage}>{modalMessage}</Text>
-        {modalType === "error" ? (
-          <ErrorFace size={152} />
-        ) : (
-          <HappyScreamFace size={152} />
-        )}
+        <Animated.View style={animatedFaceStyle}>
+          {modalType === "error" ? (
+            <ErrorFace size={152} />
+          ) : modalType === "upsell" ? (
+            <ExplorerFace size={152} shouldAnimate loop={false} />
+          ) : (
+            <HappyScreamFace size={152} />
+          )}
+        </Animated.View>
       </View>
     </BottomSheetModal>
   );

@@ -1,16 +1,16 @@
 import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
-    Easing,
-    useAnimatedProps,
-    useDerivedValue,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withSequence,
-    withTiming
-,
-    cancelAnimation} from "react-native-reanimated";
+  Easing,
+  useAnimatedProps,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from "react-native-reanimated";
 import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -75,7 +75,7 @@ const ExcitedTouristMapFace = ({
       progress.value = withRepeat(
         withSequence(
           withTiming(0, { duration: 50 }),
-          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
           withTiming(0, { duration: 600 }),
         ),
         -1,
@@ -96,7 +96,7 @@ const ExcitedTouristMapFace = ({
       progress.value = withTiming(0);
       blink.value = 1;
     }
-  
+
     return () => {
       cancelAnimation(progress);
       cancelAnimation(blink);
@@ -140,11 +140,11 @@ const ExcitedTouristMapFace = ({
     } else if (val < P_ORBIT) {
       const t = (val - P_LIFT) / (P_ORBIT - P_LIFT);
       const angle = t * Math.PI * 2;
-      ox = 2.5 * Math.sin(angle);
-      oy = -2.5 * Math.cos(angle);
+      ox = 1.5 * Math.sin(angle);
+      oy = -1.5 * Math.cos(angle);
     } else {
       const t = (val - P_ORBIT) / (1 - P_ORBIT);
-      oy = -2.5 * (1 - t);
+      oy = -1.5 * (1 - t);
     }
     return { ox, oy };
   });
@@ -228,7 +228,7 @@ const ExcitedTouristMapFace = ({
             fill="#FFE0B2"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
-          <AnimatedG animatedProps={eyeWhiteProps}>
+          <G>
             <Circle cx="15" cy="23.5" r="5" fill="#FFF" />
             <AnimatedG animatedProps={eyePupilProps}>
               <Circle cx="15" cy="23.5" r="2.5" fill="#1A1A1A" />
@@ -239,7 +239,7 @@ const ExcitedTouristMapFace = ({
               <Circle cx="33" cy="23.5" r="2.5" fill="#1A1A1A" />
               <Circle cx="34" cy="22.5" r="0.8" fill="#FFF" />
             </AnimatedG>
-          </AnimatedG>
+          </G>
           <AnimatedG animatedProps={glassesProps}>
             <AnimatedG animatedProps={frontOpacity}>
               <GlassesGroup />
