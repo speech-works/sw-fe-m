@@ -122,6 +122,10 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
   // Animation Shared Value
   const progress = useSharedValue(0);
 
+  // Refs to track container offsets for coordinate summation (Rules 2 & 5 of tour-guide-meta.md)
+  const contentPanelY = React.useRef(0);
+  const chartContainerY = React.useRef(0);
+
   useEffect(() => {
     // If not loaded, or stale logic (optional), fetch
     if (!growthProfile) {
@@ -246,6 +250,15 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
   const CENTER = SIZE / 2;
   const RADIUS = SIZE / 2 - 45; // Slightly more padding for labels
   const angleStep = chartData ? 360 / chartData.allDomains.length : 72;
+  const svgScale = CHART_WIDTH / SIZE;
+
+  const socialIndex = chartData?.allDomains.findIndex(
+    (d) => d === ClinicalDomain.PARTICIPATION_RESTRICTION,
+  );
+  const socialPos =
+    chartData && socialIndex !== undefined && socialIndex !== -1
+      ? POLAR_TO_CARTESIAN(CENTER, CENTER, RADIUS + 32, socialIndex * angleStep)
+      : null;
 
   // --- Memoized heavy SVG path computations (must be before early returns for hooks rules) ---
   const {
@@ -427,7 +440,12 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
         </View>
 
         {/* Main Content Panel (White) */}
-        <View style={styles.contentPanel}>
+        <View
+          style={styles.contentPanel}
+          onLayout={(e) => {
+            contentPanelY.current = e.nativeEvent.layout.y;
+          }}
+        >
           {/* Radar Chart Section - Step 7 */}
           <TourGuideZone
             zone={7}
@@ -437,6 +455,7 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
             <View
               style={styles.chartContainer}
               onLayout={(e) => {
+                chartContainerY.current = e.nativeEvent.layout.y;
                 onLayoutCapture?.(7, e);
               }}
             >
@@ -601,36 +620,6 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
                       {/* Hit Area */}
                       <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
 
-                      {isSocial ? (
-                        <TourGuideZone
-                          zone={8}
-                          text="Social Impact: This metric tracks your comfort and participation in social settings. Improving this score means you're reclaiming your voice in your community."
-                          shape="rectangle"
-                        >
-                          {/* Inner wrapper View to capture the label layout precisely */}
-                          <View
-                            onLayout={(e) => {
-                              // Report layout to parent Home/index.tsx
-                              // Note: SVG positions are internal, but the TourGuideZone wrapper
-                              // around a View inside foreignObject (or similar) is tricky.
-                              // Since we're in Execution, let's use a cleaner approach:
-                              // We'll wrap the Text in a TourGuideZone, but TourGuide usually wants Views.
-                              // Actually, rn-tourguide works best with Views.
-                              // We will place an absolute View overlay for the SOCIAL label.
-                              onLayoutCapture?.(8, e);
-                            }}
-                            style={{
-                              position: "absolute",
-                              left: pos.x - 40, // Match anchor and width approx
-                              top: pos.y - 15,
-                              width: 80,
-                              height: 30,
-                              backgroundColor: "transparent",
-                            }}
-                          />
-                        </TourGuideZone>
-                      ) : null}
-
                       {/* Text Label */}
                       <SvgText
                         key={`text-${i}`}
@@ -650,6 +639,64 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
                   );
                 })}
               </Svg>
+
+              {/* Step 8: SOCIAL Metric Physical Overlay (Rule 1 & 2 of tour-guide-meta.md) */}
+              {socialPos && (
+                <View
+                  style={{
+                    position: "absolute",
+                    left: socialPos.x * svgScale - 45,
+                    top: socialPos.y - 12,
+                    width: 90,
+                    height: 24,
+                    backgroundColor: "transparent",
+                    zIndex: 999,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                  pointerEvents="none"
+                  onLayout={() => {
+                    // Report to Home the absolute coordinate relative to ClinicalStatsWidget top
+                    const y =
+                      socialPos.y +
+                      chartContainerY.current +
+                      contentPanelY.current -
+                      12;
+                    const x = socialPos.x * svgScale - 45;
+
+                    const customEvent = {
+                      nativeEvent: {
+                        layout: {
+                          x,
+                          y,
+                          width: 90,
+                          height: 24,
+                        },
+                      },
+                    };
+                    onLayoutCapture?.(8, customEvent);
+                  }}
+                >
+                  <TourGuideZone
+                    zone={8}
+                    text="Social Impact: This metric tracks your comfort and participation in social settings. Improving this score means you're reclaiming your voice in your community."
+                    shape="rectangle"
+                  >
+                    {/* Rule 1: Physical Component (contains text for measurement stability) */}
+                    <View style={{ flex: 1, padding: 2 }}>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "800",
+                          opacity: 0, // Invisible but physical
+                        }}
+                      >
+                        SOCIAL
+                      </Text>
+                    </View>
+                  </TourGuideZone>
+                </View>
+              )}
             </View>
           </TourGuideZone>
 
