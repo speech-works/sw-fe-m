@@ -34,6 +34,11 @@ import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
 import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
+import { TourGuideZone } from "rn-tourguide";
+
+interface ClinicalStatsWidgetProps {
+  onLayoutCapture?: (order: number, event: any) => void;
+}
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -100,7 +105,7 @@ const POLAR_TO_CARTESIAN = (
   };
 };
 
-const ClinicalStatsWidget = () => {
+const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
   const {
     growthProfile,
     weeklyBreakthroughs,
@@ -423,185 +428,230 @@ const ClinicalStatsWidget = () => {
 
         {/* Main Content Panel (White) */}
         <View style={styles.contentPanel}>
-          {/* Radar Chart */}
-          <View style={styles.chartContainer}>
-            <Svg
-              height={SIZE}
-              width={CHART_WIDTH}
-              viewBox={`0 0 ${SIZE} ${SIZE}`}
+          {/* Radar Chart Section - Step 7 */}
+          <TourGuideZone
+            zone={7}
+            text="Growth Profile: This radar chart visualizes your progress across 5 key clinical domains. A larger, more balanced shape indicates holistic speech growth."
+            shape="rectangle"
+          >
+            <View
+              style={styles.chartContainer}
+              onLayout={(e) => {
+                onLayoutCapture?.(7, e);
+              }}
             >
-              <Defs>
-                <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop
-                    offset="0"
-                    stopColor={theme.colors.library.orange[300]}
-                    stopOpacity="0.7"
-                  />
-                  <Stop
-                    offset="1"
-                    stopColor={theme.colors.library.red[200]}
-                    stopOpacity="0.4"
-                  />
-                </SvgGradient>
-              </Defs>
-
-              {/* Organic Grid (Concentric Blobs) */}
-              {gridPaths.map((pathD, i) => (
-                <Path
-                  key={`grid-${i}`}
-                  d={pathD}
-                  stroke={theme.colors.library.gray[200]}
-                  strokeWidth="0.5" // Thinner grid
-                  strokeDasharray="4,2" // Tighter dash
-                  fill="none"
-                  opacity={0.6} // Subtler
-                />
-              ))}
-
-              {/* Axes */}
-              {chartData.allDomains.map((_, i) => {
-                const end = POLAR_TO_CARTESIAN(
-                  CENTER,
-                  CENTER,
-                  RADIUS,
-                  i * angleStep,
-                );
-                return (
-                  <Line
-                    key={i}
-                    x1={CENTER}
-                    y1={CENTER}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke={theme.colors.library.gray[200]} // Lighter axis
-                    strokeWidth="1"
-                    strokeDasharray="2,2" // Tighter dash
-                  />
-                );
-              })}
-
-              {/* Main Chart Layer */}
-              <G>
-                {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
-                {historicalPathD && (
-                  <>
-                    <Path
-                      d={historicalPathD}
-                      fill="rgba(200, 200, 200, 0.15)"
-                      stroke="none"
+              <Svg
+                height={SIZE}
+                width={CHART_WIDTH}
+                viewBox={`0 0 ${SIZE} ${SIZE}`}
+              >
+                <Defs>
+                  <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <Stop
+                      offset="0"
+                      stopColor={theme.colors.library.orange[300]}
+                      stopOpacity="0.7"
                     />
-                    <Path
-                      d={historicalPathD}
-                      fill="none"
-                      stroke="#94A3B8"
-                      strokeWidth="2"
-                      strokeDasharray="6,4"
-                      strokeLinecap="round"
-                      opacity={0.6}
+                    <Stop
+                      offset="1"
+                      stopColor={theme.colors.library.red[200]}
+                      stopOpacity="0.4"
                     />
-                  </>
-                )}
+                  </SvgGradient>
+                </Defs>
 
-                {/* Average Baseline Chart (Grey) */}
-                <Path
-                  d={baselinePathD}
-                  fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
-                  stroke={theme.colors.library.gray[400]}
-                  strokeWidth="2"
-                  strokeDasharray="4,4"
-                  opacity={0.8}
-                />
+                {/* Organic Grid (Concentric Blobs) */}
+                {gridPaths.map((pathD, i) => (
+                  <Path
+                    key={`grid-${i}`}
+                    d={pathD}
+                    stroke={theme.colors.library.gray[200]}
+                    strokeWidth="0.5" // Thinner grid
+                    strokeDasharray="4,2" // Tighter dash
+                    fill="none"
+                    opacity={0.6} // Subtler
+                  />
+                ))}
 
-                {/* 1. GLOW Effect */}
-                <AnimatedPath
-                  d={currentPathD}
-                  fill="none"
-                  stroke={theme.colors.library.orange[300]}
-                  strokeWidth="12"
-                  strokeOpacity={0.1} // Reduced glow opacity
-                />
-
-                {/* 2. FILL Path */}
-                <AnimatedPath
-                  d={currentPathD}
-                  fill="url(#radarGrad)"
-                  stroke="none"
-                  opacity={0.9}
-                />
-                {/* 3. STROKE Path */}
-                <Path
-                  d={currentPathD}
-                  fill="none"
-                  stroke={theme.colors.library.orange[400]} // Darker orange stroke
-                  strokeWidth="2.5" // Slightly thinner stroke
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Dots */}
-                {currentPoints.map((coord, i) => {
+                {/* Axes */}
+                {chartData.allDomains.map((_, i) => {
+                  const end = POLAR_TO_CARTESIAN(
+                    CENTER,
+                    CENTER,
+                    RADIUS,
+                    i * angleStep,
+                  );
                   return (
-                    <Circle
-                      key={`dot-${i}`}
-                      cx={coord.x}
-                      cy={coord.y}
-                      r="4" // Smaller dots
-                      fill="white"
-                      stroke={theme.colors.library.orange[400]}
-                      strokeWidth="2" // Thinner dot stroke
+                    <Line
+                      key={i}
+                      x1={CENTER}
+                      y1={CENTER}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke={theme.colors.library.gray[200]} // Lighter axis
+                      strokeWidth="1"
+                      strokeDasharray="2,2" // Tighter dash
                     />
                   );
                 })}
-              </G>
 
-              {/* Labels (Simplified) */}
-              {chartData.allDomains.map((domain, i) => {
-                const pos = POLAR_TO_CARTESIAN(
-                  CENTER,
-                  CENTER,
-                  RADIUS + 28, // More breathing room
-                  i * angleStep,
-                );
-                const config = METRIC_CONFIG[domain];
-                const isSelected = selectedMetric === domain;
+                {/* Main Chart Layer */}
+                <G>
+                  {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
+                  {historicalPathD && (
+                    <>
+                      <Path
+                        d={historicalPathD}
+                        fill="rgba(200, 200, 200, 0.15)"
+                        stroke="none"
+                      />
+                      <Path
+                        d={historicalPathD}
+                        fill="none"
+                        stroke="#94A3B8"
+                        strokeWidth="2"
+                        strokeDasharray="6,4"
+                        strokeLinecap="round"
+                        opacity={0.6}
+                      />
+                    </>
+                  )}
 
-                // Determine text anchor based on horizontal position
-                type TextAnchor = "start" | "middle" | "end";
-                let anchor: TextAnchor = "middle";
-                if (pos.x < CENTER - 10) anchor = "end";
-                if (pos.x > CENTER + 10) anchor = "start";
+                  {/* Average Baseline Chart (Grey) */}
+                  <Path
+                    d={baselinePathD}
+                    fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
+                    stroke={theme.colors.library.gray[400]}
+                    strokeWidth="2"
+                    strokeDasharray="4,4"
+                    opacity={0.8}
+                  />
 
-                return (
-                  <G
-                    key={i}
-                    onPress={() => {
-                      setSelectedMetric(domain);
-                      setModalVisible(true);
-                    }}
-                  >
-                    {/* Hit Area */}
-                    <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
+                  {/* 1. GLOW Effect */}
+                  <AnimatedPath
+                    d={currentPathD}
+                    fill="none"
+                    stroke={theme.colors.library.orange[300]}
+                    strokeWidth="12"
+                    strokeOpacity={0.1} // Reduced glow opacity
+                  />
 
-                    {/* Text Label */}
-                    <SvgText
-                      key={`text-${i}`}
-                      x={pos.x}
-                      y={pos.y}
-                      fill={
-                        isSelected ? config.color : theme.colors.text.default
-                      }
-                      fontSize={isSelected ? "11" : "10"}
-                      fontWeight={isSelected ? "800" : "600"}
-                      textAnchor={anchor}
-                      alignmentBaseline="middle"
+                  {/* 2. FILL Path */}
+                  <AnimatedPath
+                    d={currentPathD}
+                    fill="url(#radarGrad)"
+                    stroke="none"
+                    opacity={0.9}
+                  />
+                  {/* 3. STROKE Path */}
+                  <Path
+                    d={currentPathD}
+                    fill="none"
+                    stroke={theme.colors.library.orange[400]} // Darker orange stroke
+                    strokeWidth="2.5" // Slightly thinner stroke
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Dots */}
+                  {currentPoints.map((coord, i) => {
+                    return (
+                      <Circle
+                        key={`dot-${i}`}
+                        cx={coord.x}
+                        cy={coord.y}
+                        r="4" // Smaller dots
+                        fill="white"
+                        stroke={theme.colors.library.orange[400]}
+                        strokeWidth="2" // Thinner dot stroke
+                      />
+                    );
+                  })}
+                </G>
+
+                {/* Labels (Simplified) */}
+                {chartData.allDomains.map((domain, i) => {
+                  const pos = POLAR_TO_CARTESIAN(
+                    CENTER,
+                    CENTER,
+                    RADIUS + 28, // More breathing room
+                    i * angleStep,
+                  );
+                  const config = METRIC_CONFIG[domain];
+                  const isSelected = selectedMetric === domain;
+
+                  // Determine text anchor based on horizontal position
+                  type TextAnchor = "start" | "middle" | "end";
+                  let anchor: TextAnchor = "middle";
+                  if (pos.x < CENTER - 10) anchor = "end";
+                  if (pos.x > CENTER + 10) anchor = "start";
+
+                  // Check if this is the SOCIAL domain (Particption Restriction)
+                  const isSocial =
+                    domain === ClinicalDomain.PARTICIPATION_RESTRICTION;
+
+                  return (
+                    <G
+                      key={i}
+                      onPress={() => {
+                        setSelectedMetric(domain);
+                        setModalVisible(true);
+                      }}
                     >
-                      {config.label.toUpperCase()}
-                    </SvgText>
-                  </G>
-                );
-              })}
-            </Svg>
-          </View>
+                      {/* Hit Area */}
+                      <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
+
+                      {isSocial ? (
+                        <TourGuideZone
+                          zone={8}
+                          text="Social Impact: This metric tracks your comfort and participation in social settings. Improving this score means you're reclaiming your voice in your community."
+                          shape="rectangle"
+                        >
+                          {/* Inner wrapper View to capture the label layout precisely */}
+                          <View
+                            onLayout={(e) => {
+                              // Report layout to parent Home/index.tsx
+                              // Note: SVG positions are internal, but the TourGuideZone wrapper
+                              // around a View inside foreignObject (or similar) is tricky.
+                              // Since we're in Execution, let's use a cleaner approach:
+                              // We'll wrap the Text in a TourGuideZone, but TourGuide usually wants Views.
+                              // Actually, rn-tourguide works best with Views.
+                              // We will place an absolute View overlay for the SOCIAL label.
+                              onLayoutCapture?.(8, e);
+                            }}
+                            style={{
+                              position: "absolute",
+                              left: pos.x - 40, // Match anchor and width approx
+                              top: pos.y - 15,
+                              width: 80,
+                              height: 30,
+                              backgroundColor: "transparent",
+                            }}
+                          />
+                        </TourGuideZone>
+                      ) : null}
+
+                      {/* Text Label */}
+                      <SvgText
+                        key={`text-${i}`}
+                        x={pos.x}
+                        y={pos.y}
+                        fill={
+                          isSelected ? config.color : theme.colors.text.default
+                        }
+                        fontSize={isSelected ? "11" : "10"}
+                        fontWeight={isSelected ? "800" : "600"}
+                        textAnchor={anchor}
+                        alignmentBaseline="middle"
+                      >
+                        {config.label.toUpperCase()}
+                      </SvgText>
+                    </G>
+                  );
+                })}
+              </Svg>
+            </View>
+          </TourGuideZone>
 
           {/* Tooltip */}
           <AnimatedView

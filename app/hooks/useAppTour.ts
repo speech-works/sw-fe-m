@@ -91,8 +91,10 @@ export const useAppTour = (
       if (layout) {
         // Vertical Scroll Logic
         if (scrollRefs.vertical?.current) {
-          const V_OFFSET = 20;
-          const targetY = Math.max(0, layout.y - V_OFFSET);
+          // Refined lift: -50px for Step 7 (balanced), -200px for Step 8 (extreme)
+          const stepVOffset =
+            targetOrder === 7 ? -50 : targetOrder === 8 ? -200 : 20;
+          const targetY = Math.max(0, layout.y - stepVOffset);
 
           scrollRefs.vertical.current.scrollTo({
             y: targetY,

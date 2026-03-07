@@ -487,7 +487,21 @@ const Home = () => {
           />
         </View>
 
-        <ClinicalStatsWidget />
+        <View onLayout={captureLayout(7)} collapsable={false}>
+          <ClinicalStatsWidget
+            onLayoutCapture={(order, event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              const parentLayout = zoneLayouts.current[7];
+              const absoluteY = y + (parentLayout?.y || 0);
+              const customEvent = {
+                nativeEvent: { layout: { x, y: absoluteY, width, height } },
+              };
+              captureLayout(order)(customEvent);
+            }}
+          />
+        </View>
+        {/* Spacer for tour deep-scrolling */}
+        {isTourActive && <View style={{ height: 600 }} />}
       </ScrollView>
 
       {/* Resume Modal Overlay - Suppressed until tour is done */}

@@ -131,10 +131,19 @@ const GlobalTourTooltip = () => {
     let isBelowVal = true;
 
     const isStepHighClarity =
-      step?.order === 4 || step?.order === 5 || step?.order === 6;
+      step?.order === 4 ||
+      step?.order === 5 ||
+      step?.order === 6 ||
+      step?.order === 7 ||
+      step?.order === 8;
     const bottomThreshold = SCREEN_HEIGHT - insets.bottom - 40;
 
-    if (topVal + cardHeightEstimate > bottomThreshold && step?.order !== 6) {
+    if (
+      topVal + cardHeightEstimate > bottomThreshold &&
+      step?.order !== 6 &&
+      step?.order !== 7 &&
+      step?.order !== 8
+    ) {
       topVal = targetY.value - cardHeightEstimate - MARGIN;
       isBelowVal = false;
 
@@ -213,7 +222,7 @@ const GlobalTourTooltip = () => {
   };
 
   const isFirstStep = step.order === 1;
-  const isLastStep = step.order >= 6; // Step 6 is the final step
+  const isLastStep = step.order >= 8; // Step 8 is the final step
 
   return (
     <Modal visible={active && layoutReady} transparent animationType="none">
