@@ -3,13 +3,22 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getDailyActivityStatsForTheWeek, getDetailedWeeklySummary } from "../../../api/progressReport";
+import {
+  getDailyActivityStatsForTheWeek,
+  getDetailedWeeklySummary,
+} from "../../../api/progressReport";
 import { WeeklyStat } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 
-const WorldExplorationGraph = () => {
+interface WorldExplorationGraphProps {
+  onLayoutCapture?: (event: any) => void;
+}
+
+const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
+  onLayoutCapture,
+}) => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
   // Use detailed percentages
@@ -40,7 +49,7 @@ const WorldExplorationGraph = () => {
 
   // --- Metrics ---
   const totalWeeklyMinutes = Math.round(
-    weeklyData.reduce((sum, d) => sum + d.totalTime, 0)
+    weeklyData.reduce((sum, d) => sum + d.totalTime, 0),
   );
   const daysActive = weeklyData.filter((d) => d.totalTime > 0).length;
 
@@ -91,11 +100,14 @@ const WorldExplorationGraph = () => {
 
   const maxMinutes = Math.max(
     ...rhythmData.map((d) => d.minutes),
-    DAILY_TARGET_MINUTES * 1.3
+    DAILY_TARGET_MINUTES * 1.3,
   );
 
   return (
     <View
+      onLayout={(event) => {
+        if (onLayoutCapture) onLayoutCapture(event);
+      }}
       style={styles.shadowContainer}
       shouldRasterizeIOS={true}
       accessible={true}
@@ -152,11 +164,11 @@ const WorldExplorationGraph = () => {
                   rhythmData.map((d, index) => {
                     const actualPercent = Math.min(
                       100,
-                      (d.minutes / maxMinutes) * 100
+                      (d.minutes / maxMinutes) * 100,
                     );
                     const targetPercent = Math.min(
                       100,
-                      (DAILY_TARGET_MINUTES / maxMinutes) * 100
+                      (DAILY_TARGET_MINUTES / maxMinutes) * 100,
                     );
 
                     const isTargetReached = d.minutes >= DAILY_TARGET_MINUTES;
@@ -174,7 +186,7 @@ const WorldExplorationGraph = () => {
                     // Label should be above the taller of actual or target bar
                     const topBarPercent = Math.max(
                       actualPercent,
-                      targetPercent
+                      targetPercent,
                     );
 
                     return (

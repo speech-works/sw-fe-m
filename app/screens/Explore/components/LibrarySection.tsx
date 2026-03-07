@@ -9,11 +9,20 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
-const LibrarySection = () => {
+interface LibrarySectionProps {
+  onLayoutCapture?: (event: any) => void;
+}
+
+const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
   const navigation = useNavigation<any>();
 
   return (
-    <View style={styles.container}>
+    <View
+      onLayout={(event) => {
+        if (onLayoutCapture) onLayoutCapture(event);
+      }}
+      style={styles.container}
+    >
       <Text style={styles.sectionTitle}>Library</Text>
 
       <TouchableOpacity

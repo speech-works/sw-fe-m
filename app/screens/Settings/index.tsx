@@ -17,6 +17,7 @@ import {
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 import { ROUTE_NAMES } from "../../constants/routes";
+import { useTourStore } from "../../stores/tour";
 import {
   getUnlockedLevelsFromXP,
   LevelData,
@@ -37,6 +38,8 @@ const Settings = () => {
   const [userLevel, setUserLevel] = useState<number>(0);
   const [userLevelData, setUserLevelData] = useState<LevelData>();
   const [isVisible, setIsVisible] = useState(false);
+
+  const { resetAllTours } = useTourStore();
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
@@ -85,6 +88,17 @@ const Settings = () => {
       text: "Help & Support",
       onClick: () => {
         navigation.navigate("HelpSupport");
+      },
+    },
+    {
+      icon: "undo",
+      iconColor: "#F59E0B", // Amber for reset
+      iconBg: "#FFFBEB",
+      text: "Reset App Tour",
+      onClick: () => {
+        resetAllTours();
+        // Optionally navigate to Home to see it start
+        navigation.navigate("HomeStack");
       },
     },
   ];

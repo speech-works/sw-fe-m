@@ -1,5 +1,11 @@
 import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
@@ -20,6 +26,9 @@ import BuyPro from "../Settings/components/BuyPro";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
+import { TourGuideZone } from "rn-tourguide";
+import { useAppTour } from "../../hooks/useAppTour";
+import { useTourStore } from "../../stores/tour";
 
 const Explore = () => {
   const { user } = useUserStore();
@@ -32,6 +41,34 @@ const Explore = () => {
   const [errorTitle, setErrorTitle] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   // ----------------------------------------
+
+  // --- Tour Setup ---
+  const scrollRef = useRef<any>(null); // CustomScrollView ref
+  const zoneLayouts = useRef<{ [key: number]: any }>({});
+  const [isTourReady, setIsTourReady] = useState(false);
+  const { hasCompletedHomeTour } = useTourStore();
+
+  const captureLayout = (order: number) => (event: any) => {
+    const { x, y, width, height } = event.nativeEvent.layout;
+    if (width > 0 && height > 0) {
+      zoneLayouts.current[order] = { x, y, width, height };
+      // For Explore tour, if first zone (order 30) is measured, we're likely ready
+      if (order === 30) {
+        setIsTourReady(true);
+      }
+    }
+  };
+
+  const {
+    isActive: isTourActive,
+    start,
+    getCurrentStep,
+  } = useAppTour(
+    "explore",
+    { vertical: scrollRef },
+    zoneLayouts,
+    hasCompletedHomeTour && isTourReady,
+  );
 
   // --- NEW: Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
@@ -122,9 +159,11 @@ const Explore = () => {
 
       <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
         <CustomScrollView
+          ref={scrollRef}
           refreshControl={refreshControl}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!isTourActive}
           onScrollBeginDrag={() => setIsScrolling(true)}
           onMomentumScrollBegin={() => setIsScrolling(true)}
           onScrollEndDrag={(e: any) => {
@@ -147,16 +186,47 @@ const Explore = () => {
 
           <View style={styles.innerContainer}>
             {/* World Exploration Map */}
-            {memoizedWorldGraph}
+            <TourGuideZone
+              zone={30}
+              text="Your Journey Map: Visualize your weekly practice rhythm and see how you explore different areas of speech improvement."
+              shape="rectangle"
+            >
+              <WorldExplorationGraph onLayoutCapture={captureLayout(30)} />
+            </TourGuideZone>
 
             {/* 4 Types of Practice Grid */}
-            <PracticeGrid isScrolling={isScrolling} />
+            <TourGuideZone
+              zone={31}
+              text="Practice Zones: Choose from Story, Social, Interview, or Daily challenges to target specific speech goals."
+              shape="rectangle"
+            >
+              <View onLayout={captureLayout(31)} collapsable={false}>
+                <PracticeGrid isScrolling={isScrolling} />
+              </View>
+            </TourGuideZone>
 
             {/* Upgrade CTA */}
-            {memoizedBuyPro}
+            <TourGuideZone
+              zone={32}
+              text="Pro Access: Unlock unlimited practice, more territories, and join our community to accelerate your progress."
+              shape="rectangle"
+            >
+              <View onLayout={captureLayout(32)} collapsable={false}>
+                <BuyPro onLayoutCapture={captureLayout(32)} />
+              </View>
+            </TourGuideZone>
 
             {/* Inline Library Section */}
-            {memoizedLibrary}
+            <TourGuideZone
+              zone={33}
+              text="Tutorial Library: Deepen your knowledge with our curated video collection on speech techniques and mindset."
+              shape="rectangle"
+            >
+              <LibrarySection onLayoutCapture={captureLayout(33)} />
+            </TourGuideZone>
+
+            {/* Spacer for tour deep-scrolling */}
+            {isTourActive && <View style={{ height: 600 }} />}
           </View>
         </CustomScrollView>
       </SafeAreaView>

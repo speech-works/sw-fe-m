@@ -15,7 +15,11 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
-const BuyPro = () => {
+interface BuyProProps {
+  onLayoutCapture?: (event: any) => void;
+}
+
+const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
   // Navigation Types
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
   type AcademyNav = NativeStackNavigationProp<AcademyStackParamList>;
@@ -44,6 +48,9 @@ const BuyPro = () => {
 
   return (
     <LinearGradient
+      onLayout={(event) => {
+        if (onLayoutCapture) onLayoutCapture(event);
+      }}
       colors={[
         "#F472B6",
         theme.colors.library.orange[400],

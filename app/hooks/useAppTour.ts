@@ -49,15 +49,15 @@ export const useAppTour = (
         // Initial start to initialize the state
         start();
 
-        // Forced re-start to Step 1 after a short delay
-        // Increase to 800ms for extra stability on slower devices
+        // Forced re-start to starting step after a short delay
+        const startingStep = tourKey === "home" ? 1 : 30;
         setTimeout(() => {
-          if (start) start(1);
+          if (start) start(startingStep);
         }, 800);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [canStart, hasCompletedToken, start, getCurrentStep, ready]);
+  }, [canStart, hasCompletedToken, start, getCurrentStep, ready, tourKey]);
 
   useEffect(() => {
     if (!eventEmitter) return;
@@ -92,8 +92,15 @@ export const useAppTour = (
         // Vertical Scroll Logic
         if (scrollRefs.vertical?.current) {
           // Refined lift: -100px for Step 7 (elevated), -200px for Step 8 (extreme)
-          const stepVOffset =
-            targetOrder === 7 ? -100 : targetOrder === 8 ? -200 : 20;
+          let stepVOffset = 20;
+          if (tourKey === "home") {
+            stepVOffset =
+              targetOrder === 7 ? -100 : targetOrder === 8 ? -200 : 20;
+          } else {
+            // Explore Screen Offsets (30-33)
+            // Libary (33) might need more scroll to be visible
+            stepVOffset = targetOrder === 33 ? 50 : 20;
+          }
           const targetY = Math.max(0, layout.y - stepVOffset);
 
           scrollRefs.vertical.current.scrollTo({

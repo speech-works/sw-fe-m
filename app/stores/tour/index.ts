@@ -6,6 +6,7 @@ import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 interface TourState {
   hasCompletedHomeTour: boolean;
   hasCompletedExploreTour: boolean;
+  hasCompletedOverallTour: boolean;
   setHasCompletedHomeTour: (completed: boolean) => void;
   setHasCompletedExploreTour: (completed: boolean) => void;
   resetAllTours: () => void;
@@ -16,12 +17,23 @@ export const useTourStore = create<TourState>()(
     (set) => ({
       hasCompletedHomeTour: false,
       hasCompletedExploreTour: false,
+      hasCompletedOverallTour: false,
       setHasCompletedHomeTour: (completed) =>
-        set({ hasCompletedHomeTour: completed }),
+        set((state) => ({
+          hasCompletedHomeTour: completed,
+          hasCompletedOverallTour: completed && state.hasCompletedExploreTour,
+        })),
       setHasCompletedExploreTour: (completed) =>
-        set({ hasCompletedExploreTour: completed }),
+        set((state) => ({
+          hasCompletedExploreTour: completed,
+          hasCompletedOverallTour: state.hasCompletedHomeTour && completed,
+        })),
       resetAllTours: () =>
-        set({ hasCompletedHomeTour: false, hasCompletedExploreTour: false }),
+        set({
+          hasCompletedHomeTour: false,
+          hasCompletedExploreTour: false,
+          hasCompletedOverallTour: false,
+        }),
     }),
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_TOUR || "sw-zstore-tour",
