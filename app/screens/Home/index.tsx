@@ -455,7 +455,19 @@ const Home = () => {
         {/* ------------------- */}
 
         <View onLayout={captureLayout(3)} collapsable={false}>
-          <ResourceStats refreshing={refreshing} />
+          <ResourceStats
+            refreshing={refreshing}
+            onLayoutCapture={(order, event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              const parentLayout = zoneLayouts.current[3];
+              // ResourceStats now provides true internal coordinates
+              const absoluteY = y + (parentLayout?.y || 0);
+              const customEvent = {
+                nativeEvent: { layout: { x, y: absoluteY, width, height } },
+              };
+              captureLayout(order)(customEvent);
+            }}
+          />
         </View>
 
         <View style={{ height: 24 }} />

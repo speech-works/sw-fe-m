@@ -46,7 +46,13 @@ const AnimatedBar = ({
   );
 };
 
-const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
+const ResourceStats = ({
+  refreshing,
+  onLayoutCapture,
+}: {
+  refreshing?: boolean;
+  onLayoutCapture?: (order: number, event: any) => void;
+}) => {
   const { user } = useUserStore();
   const isFocused = useIsFocused();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
@@ -112,6 +118,8 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+
+  const gridOriginY = React.useRef(0);
 
   // Derived Values for Bars
   const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
@@ -197,103 +205,139 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
               </View>
             </TourGuideZone>
 
-            {/* 2. The Big Grid */}
-            <View style={styles.gridContainer}>
+            <View
+              style={styles.gridContainer}
+              onLayout={(e) => {
+                gridOriginY.current = e.nativeEvent.layout.y;
+              }}
+            >
               {/* Task Card - HUGE */}
-              <View
-                style={[
-                  styles.bigCard,
-                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                ]}
+              <TourGuideZone
+                zone={4}
+                text="Daily Practice: Track your completed free activities here. Completing your daily goal earns you bonus XP and helps build a solid speech habit."
+                shape="rectangle"
               >
-                {/* Watermark Icon */}
                 <View
+                  onLayout={(e) => {
+                    const { x, y, width, height } = e.nativeEvent.layout;
+                    const relativeY = y + gridOriginY.current;
+                    const customEvent = {
+                      nativeEvent: {
+                        layout: { x, y: relativeY, width, height },
+                      },
+                    };
+                    onLayoutCapture?.(4, customEvent);
+                  }}
                   style={[
-                    styles.watermarkContainer,
-                    { transform: [{ rotate: "-20deg" }] },
+                    styles.bigCard,
+                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
                   ]}
                 >
-                  <Icon
-                    name="check-circle"
-                    size={90}
-                    color="#10B981"
-                    style={{ opacity: 0.05 }}
-                  />
-                </View>
+                  {/* Watermark Icon */}
+                  <View
+                    style={[
+                      styles.watermarkContainer,
+                      { transform: [{ rotate: "-20deg" }] },
+                    ]}
+                  >
+                    <Icon
+                      name="check-circle"
+                      size={90}
+                      color="#10B981"
+                      style={{ opacity: 0.05 }}
+                    />
+                  </View>
 
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                    Free Activity
-                  </Text>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                    {tasksRemaining}
-                  </Text>
-                  <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
-                    / {tasksTotal}
-                  </Text>
-                </View>
-                {/* Mini Bar */}
-                <View
-                  style={{
-                    marginTop: 8,
-                    height: 6,
-                    backgroundColor: "rgba(16, 185, 129, 0.1)",
-                    borderRadius: 3,
-                    width: "100%",
-                  }}
-                >
+                  <View style={styles.cardHeader}>
+                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                      Free Activity
+                    </Text>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                      {tasksRemaining}
+                    </Text>
+                    <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
+                      / {tasksTotal}
+                    </Text>
+                  </View>
+                  {/* Mini Bar */}
                   <View
                     style={{
-                      height: "100%",
-                      backgroundColor: "#10B981",
+                      marginTop: 8,
+                      height: 6,
+                      backgroundColor: "rgba(16, 185, 129, 0.1)",
                       borderRadius: 3,
-                      width: `${taskPercentage}%`,
+                      width: "100%",
                     }}
-                  />
+                  >
+                    <View
+                      style={{
+                        height: "100%",
+                        backgroundColor: "#10B981",
+                        borderRadius: 3,
+                        width: `${taskPercentage}%`,
+                      }}
+                    />
+                  </View>
                 </View>
-              </View>
+              </TourGuideZone>
 
               {/* Level Card - HUGE */}
-              <View
-                style={[
-                  styles.bigCard,
-                  { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                ]}
+              <TourGuideZone
+                zone={5}
+                text="Your Progress: Watch your level rise as you practice. Higher levels unlock new insights and demonstrate your commitment to mastering your speech."
+                shape="rectangle"
               >
-                {/* Watermark Icon */}
                 <View
+                  onLayout={(e) => {
+                    const { x, y, width, height } = e.nativeEvent.layout;
+                    const relativeY = y + gridOriginY.current;
+                    const customEvent = {
+                      nativeEvent: {
+                        layout: { x, y: relativeY, width, height },
+                      },
+                    };
+                    onLayoutCapture?.(5, customEvent);
+                  }}
                   style={[
-                    styles.watermarkContainer,
-                    { transform: [{ rotate: "-20deg" }] },
+                    styles.bigCard,
+                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
                   ]}
                 >
-                  <Icon
-                    name="star"
-                    size={90}
-                    color="#3B82F6"
-                    style={{ opacity: 0.05 }}
-                  />
-                </View>
+                  {/* Watermark Icon */}
+                  <View
+                    style={[
+                      styles.watermarkContainer,
+                      { transform: [{ rotate: "-20deg" }] },
+                    ]}
+                  >
+                    <Icon
+                      name="star"
+                      size={90}
+                      color="#3B82F6"
+                      style={{ opacity: 0.05 }}
+                    />
+                  </View>
 
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                    Level
+                  <View style={styles.cardHeader}>
+                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                      Level
+                    </Text>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                      {userLevel}
+                    </Text>
+                  </View>
+                  {/* XP Text */}
+                  <Text style={[styles.xpText, { color: "#3B82F6" }]}>
+                    {userProgress
+                      ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
+                      : "0 XP"}
                   </Text>
                 </View>
-                <View style={styles.cardBody}>
-                  <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                    {userLevel}
-                  </Text>
-                </View>
-                {/* XP Text */}
-                <Text style={[styles.xpText, { color: "#3B82F6" }]}>
-                  {userProgress
-                    ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
-                    : "0 XP"}
-                </Text>
-              </View>
+              </TourGuideZone>
             </View>
           </View>
         </LinearGradient>
@@ -443,7 +487,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     justifyContent: "space-between",
-    overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",
