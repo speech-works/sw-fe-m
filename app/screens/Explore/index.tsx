@@ -1,4 +1,4 @@
-import { LinearGradient } from "expo-linear-gradient"; // Added useEffect import
+import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
   useEffect,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   InteractionManager,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,7 +21,6 @@ import { getUserStats } from "../../api/stats";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
 import BottomSheetModal from "../../components/BottomSheetModal";
-import CustomScrollView from "../../components/CustomScrollView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { useEventStore } from "../../stores/events"; // Added missing import
 import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
@@ -57,8 +57,7 @@ const Explore = () => {
     return () => task.cancel();
   }, []);
 
-  // --- Tour Setup ---
-  const scrollRef = useRef<any>(null); // CustomScrollView ref
+  const verticalScrollRef = useRef<ScrollView>(null);
   const zoneLayouts = useRef<{ [key: number]: any }>({});
   const [isTourReady, setIsTourReady] = useState(false);
   const { hasCompletedHomeTour, hasCompletedExploreTour } = useTourStore();
@@ -66,8 +65,8 @@ const Explore = () => {
   const captureLayout = (order: number) => (event: any) => {
     const { x, y, width, height } = event.nativeEvent.layout;
     if (width > 0 && height > 0) {
+      // In flattened layout, y is directly absolute to ScrollView content
       zoneLayouts.current[order] = { x, y, width, height };
-      // For Explore tour, if first zone (order 1) is measured, we're likely ready
       if (order === 1) {
         setIsTourReady(true);
       }
@@ -80,7 +79,7 @@ const Explore = () => {
     getCurrentStep,
   } = useAppTour(
     "explore",
-    { vertical: scrollRef },
+    { vertical: verticalScrollRef },
     zoneLayouts,
     hasCompletedHomeTour && isTourReady && interactionsDone,
   );
@@ -180,8 +179,8 @@ const Explore = () => {
       </View>
 
       <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-        <CustomScrollView
-          ref={scrollRef}
+        <ScrollView
+          ref={verticalScrollRef}
           refreshControl={refreshControl}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -189,7 +188,6 @@ const Explore = () => {
           onScrollBeginDrag={() => setIsScrolling(true)}
           onMomentumScrollBegin={() => setIsScrolling(true)}
           onScrollEndDrag={(e: any) => {
-            // Check for momentum relying on velocity
             const hasMomentum =
               e.nativeEvent?.velocity &&
               Math.abs(e.nativeEvent.velocity.y) > 0.1;
@@ -206,51 +204,47 @@ const Explore = () => {
             </Text>
           </View>
 
-          <View style={styles.innerContainer}>
-            {/* World Exploration Map */}
+          {/* World Exploration Map */}
+          <View onLayout={captureLayout(1)} collapsable={false}>
             <TourGuideZone
               zone={1}
               text="Your Journey Map: Visualize your weekly practice rhythm and see how you explore different areas of speech improvement."
               shape="rectangle"
             >
-              <WorldExplorationGraph onLayoutCapture={captureLayout(1)} />
+              <WorldExplorationGraph onLayoutCapture={() => {}} />
             </TourGuideZone>
+          </View>
 
-            {/* 4 Types of Practice Grid */}
+          {/* 4 Types of Practice Grid */}
+          <View onLayout={captureLayout(2)} collapsable={false}>
             <TourGuideZone
               zone={2}
               text="Practice Zones: Choose from Story, Social, Interview, or Daily challenges to target specific speech goals."
               shape="rectangle"
             >
-              <View onLayout={captureLayout(2)} collapsable={false}>
+              <View collapsable={false}>
                 <PracticeGrid isScrolling={isScrolling} />
               </View>
             </TourGuideZone>
+          </View>
 
-            {/* Upgrade CTA */}
+          {/* Upgrade CTA */}
+          <BuyPro onLayoutCapture={() => {}} />
+
+          {/* Inline Library Section */}
+          <View onLayout={captureLayout(3)} collapsable={false}>
             <TourGuideZone
               zone={3}
-              text="Pro Access: Unlock unlimited practice, more territories, and join our community to accelerate your progress."
-              shape="rectangle"
-            >
-              <View onLayout={captureLayout(3)} collapsable={false}>
-                <BuyPro onLayoutCapture={captureLayout(3)} />
-              </View>
-            </TourGuideZone>
-
-            {/* Inline Library Section */}
-            <TourGuideZone
-              zone={4}
               text="Tutorial Library: Deepen your knowledge with our curated video collection on speech techniques and mindset."
               shape="rectangle"
             >
-              <LibrarySection onLayoutCapture={captureLayout(4)} />
+              <LibrarySection onLayoutCapture={() => {}} />
             </TourGuideZone>
-
-            {/* Spacer for tour deep-scrolling */}
-            {isTourActive && <View style={{ height: 600 }} />}
           </View>
-        </CustomScrollView>
+
+          {/* Spacer for tour deep-scrolling */}
+          {isTourActive && <View style={{ height: 600 }} />}
+        </ScrollView>
       </SafeAreaView>
 
       {/* Error Modal */}
@@ -296,7 +290,7 @@ const styles = StyleSheet.create({
     paddingBottom: 130, // Space for Custom Tab Bar
     paddingHorizontal: 20,
     paddingTop: 20,
-    gap: 24,
+    gap: 32, // Consistent space between sections
   },
   header: {
     gap: 8,

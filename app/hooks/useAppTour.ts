@@ -52,7 +52,7 @@ export const useAppTour = (
 
         // All tours now start at step 1
         const startingStep = 1;
-        const maxSteps = tourKey === "home" ? 8 : 4;
+        const maxSteps = tourKey === "home" ? 8 : 3;
 
         setTimeout(() => {
           if (start) {
@@ -112,8 +112,8 @@ export const useAppTour = (
               targetOrder === 7 ? -100 : targetOrder === 8 ? -200 : 20;
           } else {
             // Explore Screen Offsets (1-4)
-            // Libary (4) might need more scroll to be visible
-            stepVOffset = targetOrder === 4 ? 50 : 20;
+            // Centering: Increase offset to reveal more around the component
+            stepVOffset = 100;
           }
           const targetY = Math.max(0, layout.y - stepVOffset);
 
@@ -137,6 +137,8 @@ export const useAppTour = (
         }
 
         // Wait for animation to finish before calling the library's navigation handler
+        setIsActive(true);
+        const navigationDelay = tourKey === "explore" ? 1500 : 800;
         setTimeout(() => {
           try {
             if (start) start(targetOrder);
@@ -146,7 +148,7 @@ export const useAppTour = (
               error,
             );
           }
-        }, 800);
+        }, navigationDelay);
       } else {
         // Fallback if layout not captured
         try {
