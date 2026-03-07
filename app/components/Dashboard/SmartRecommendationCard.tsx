@@ -14,10 +14,17 @@ import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import BottomSheetModal from "../BottomSheetModal";
 import ErrorStateCard from "./ErrorStateCard";
+import { TourGuideZone } from "rn-tourguide";
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-const SmartRecommendationCard = () => {
+interface SmartRecommendationCardProps {
+  onLayoutCapture?: (order: number, event: any) => void;
+}
+
+const SmartRecommendationCard = ({
+  onLayoutCapture,
+}: SmartRecommendationCardProps) => {
   const navigationAcademy = useNavigation<any>();
   const [recommendation, setRecommendation] =
     useState<PackRecommendation | null>(null);
@@ -203,47 +210,64 @@ const SmartRecommendationCard = () => {
           <View style={styles.bubbleTopRight} />
           <View style={styles.bubbleBottomLeft} />
 
-          {/* 1. Header Section */}
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextContainer}>
-              {tags && tags.length > 0 && (
-                <View style={styles.chip}>
-                  <MaterialCommunityIcons name="fire" size={14} color="white" />
-                  <Text style={styles.chipText}>{tags[0]}</Text>
+          {/* Header & Progress Wrapper for Tour Step 6 */}
+          <TourGuideZone
+            zone={6}
+            text="Recommended Packs: These are curated learning paths designed specifically for your goals. Complete the modules sequentially to master new speech techniques."
+            shape="rectangle"
+          >
+            <View
+              onLayout={(e) => {
+                onLayoutCapture?.(6, e);
+              }}
+            >
+              {/* 1. Header Section */}
+              <View style={styles.headerRow}>
+                <View style={styles.headerTextContainer}>
+                  {tags && tags.length > 0 && (
+                    <View style={styles.chip}>
+                      <MaterialCommunityIcons
+                        name="fire"
+                        size={14}
+                        color="white"
+                      />
+                      <Text style={styles.chipText}>{tags[0]}</Text>
+                    </View>
+                  )}
+
+                  <Text style={styles.packTitle}>{pack.title}</Text>
+                  <Text style={styles.packSubtitle}>{pack.description}</Text>
                 </View>
-              )}
+                <View style={styles.iconBox}>
+                  <MaterialCommunityIcons
+                    name={isSafetyMode ? "spa" : "lightning-bolt"}
+                    size={32}
+                    color="white"
+                  />
+                </View>
+              </View>
 
-              <Text style={styles.packTitle}>{pack.title}</Text>
-              <Text style={styles.packSubtitle}>{pack.description}</Text>
+              {/* 2. Progress Section */}
+              <View style={styles.progressSection}>
+                <View style={styles.progressLabels}>
+                  <Text style={styles.progressText}>
+                    Module {nextModuleOrder} of {totalModules}
+                  </Text>
+                  <Text style={styles.progressText}>
+                    {Math.round(percentComplete * 100)}%
+                  </Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { width: `${percentComplete * 100}%` },
+                    ]}
+                  />
+                </View>
+              </View>
             </View>
-            <View style={styles.iconBox}>
-              <MaterialCommunityIcons
-                name={isSafetyMode ? "spa" : "lightning-bolt"}
-                size={32}
-                color="white"
-              />
-            </View>
-          </View>
-
-          {/* 2. Progress Section */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressLabels}>
-              <Text style={styles.progressText}>
-                Module {nextModuleOrder} of {totalModules}
-              </Text>
-              <Text style={styles.progressText}>
-                {Math.round(percentComplete * 100)}%
-              </Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${percentComplete * 100}%` },
-                ]}
-              />
-            </View>
-          </View>
+          </TourGuideZone>
 
           {/* 3. Next Module Card (Glassmorphism) or Pack Completion Card */}
           {percentComplete >= 1 ? (

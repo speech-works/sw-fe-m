@@ -130,19 +130,19 @@ const GlobalTourTooltip = () => {
     let topVal = targetY.value + targetHeight.value + MARGIN;
     let isBelowVal = true;
 
+    const isStepHighClarity =
+      step?.order === 4 || step?.order === 5 || step?.order === 6;
     const bottomThreshold = SCREEN_HEIGHT - insets.bottom - 40;
-    if (topVal + cardHeightEstimate > bottomThreshold) {
+
+    if (topVal + cardHeightEstimate > bottomThreshold && step?.order !== 6) {
       topVal = targetY.value - cardHeightEstimate - MARGIN;
       isBelowVal = false;
 
-      // STEP-SPECIFIC OFFSETS
-      // For the Free Activity (4) and Level (5) cards, we want even more clearance
-      if (step?.order === 4 || step?.order === 5) {
+      if (isStepHighClarity) {
         topVal -= 40;
       }
     } else {
-      // STEP-SPECIFIC OFFSETS (For 'Below' tooltips)
-      if (step?.order === 4 || step?.order === 5) {
+      if (isStepHighClarity) {
         topVal += 40;
       }
     }
@@ -213,7 +213,7 @@ const GlobalTourTooltip = () => {
   };
 
   const isFirstStep = step.order === 1;
-  const isLastStep = step.order >= 5; // Step 5 is the final step
+  const isLastStep = step.order >= 6; // Step 6 is the final step
 
   return (
     <Modal visible={active && layoutReady} transparent animationType="none">

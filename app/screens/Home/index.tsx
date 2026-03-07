@@ -472,7 +472,20 @@ const Home = () => {
 
         <View style={{ height: 24 }} />
 
-        <SmartRecommendationCard key={`rec-${refreshKey}`} />
+        <View onLayout={captureLayout(6)} collapsable={false}>
+          <SmartRecommendationCard
+            key={`rec-${refreshKey}`}
+            onLayoutCapture={(order, event) => {
+              const { x, y, width, height } = event.nativeEvent.layout;
+              const parentLayout = zoneLayouts.current[6];
+              const absoluteY = y + (parentLayout?.y || 0);
+              const customEvent = {
+                nativeEvent: { layout: { x, y: absoluteY, width, height } },
+              };
+              captureLayout(order)(customEvent);
+            }}
+          />
+        </View>
 
         <ClinicalStatsWidget />
       </ScrollView>
