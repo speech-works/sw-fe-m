@@ -281,11 +281,6 @@ const GlobalTourTooltip = () => {
                 <Text style={styles.nextText}>
                   {isLastStep ? "Finish" : "Next"}
                 </Text>
-                <Icon
-                  name={isLastStep ? "checkmark-circle" : "arrow-forward"}
-                  size={14}
-                  color="#FFF"
-                />
               </TouchableOpacity>
             </View>
           </View>
@@ -377,7 +372,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
     shadowColor: theme.colors.actionPrimary.default,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
