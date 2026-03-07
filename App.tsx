@@ -167,8 +167,8 @@ const App: React.FC = () => {
               <FontLoader />
               <NavigationContainer>
                 <MainNavigator />
+                <GlobalModal />
               </NavigationContainer>
-              <GlobalModal />
             </SafeAreaView>
             <TourTooltip />
           </SafeAreaProvider>

@@ -1,17 +1,19 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef } from "react";
 import {
-    Alert,
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { theme } from "../../../../../Theme/tokens";
 
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import { useEventStore } from "../../../../../stores/events";
+import { EVENT_NAMES } from "../../../../../stores/events/constants";
 
 export interface TechniqueCardProps {
   title: string;
@@ -33,8 +35,17 @@ const TechniqueCard = ({
   onPressStart,
   isPaidUser,
 }: TechniqueCardProps) => {
+  const { emit } = useEventStore();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const isLocked = !hasFree && !isPaidUser;
+
+  const handlePress = () => {
+    if (isLocked) {
+      emit(EVENT_NAMES.SHOW_PREMIUM_UPSELL);
+    } else {
+      onPressStart();
+    }
+  };
 
   // --- Theme Logic ---
   const getTheme = (lvl: string) => {
@@ -109,7 +120,7 @@ const TechniqueCard = ({
     Alert.alert(
       "Deep Practice",
       "Optional, more advanced. Use gently. Stop if uncomfortable.",
-      [{ text: "Got it" }]
+      [{ text: "Got it" }],
     );
   };
 
@@ -118,7 +129,7 @@ const TechniqueCard = ({
       style={[styles.wrapper, { transform: [{ scale: scaleAnim }] }]}
     >
       <TouchableOpacity
-        onPress={isLocked ? undefined : onPressStart}
+        onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
