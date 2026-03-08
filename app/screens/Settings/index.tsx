@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import BottomSheetModal from "../../components/BottomSheetModal";
 import CustomScrollView from "../../components/CustomScrollView";
@@ -28,6 +29,7 @@ import {
 } from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
+import ExplorerFace from "../../assets/sw-faces/ExplorerFace";
 
 const Settings = () => {
   const navigation = useNavigation<any>();
@@ -38,8 +40,9 @@ const Settings = () => {
   const [userLevel, setUserLevel] = useState<number>(0);
   const [userLevelData, setUserLevelData] = useState<LevelData>();
   const [isVisible, setIsVisible] = useState(false);
+  const [isTourVisible, setIsTourVisible] = useState(false);
 
-  const { resetAllTours } = useTourStore();
+  const { resetHomeTour, resetExploreTour } = useTourStore();
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
@@ -60,6 +63,21 @@ const Settings = () => {
 
   const closeModal = () => {
     setIsVisible(false);
+  };
+
+  const openTourModal = () => setIsTourVisible(true);
+  const closeTourModal = () => setIsTourVisible(false);
+
+  const handleRestartHomeTour = () => {
+    resetHomeTour();
+    closeTourModal();
+    navigation.navigate("HomeStack");
+  };
+
+  const handleRestartExploreTour = () => {
+    resetExploreTour();
+    closeTourModal();
+    navigation.navigate("ExploreStack");
   };
 
   const menuItems = [
@@ -91,15 +109,11 @@ const Settings = () => {
       },
     },
     {
-      icon: "undo",
-      iconColor: "#F59E0B", // Amber for reset
+      icon: "map-signs",
+      iconColor: "#F59E0B", // Amber for tour
       iconBg: "#FFFBEB",
-      text: "Reset App Tour",
-      onClick: () => {
-        resetAllTours();
-        // Optionally navigate to Home to see it start
-        navigation.navigate("HomeStack");
-      },
+      text: "App Tour",
+      onClick: openTourModal,
     },
   ];
 
@@ -231,6 +245,58 @@ const Settings = () => {
           </View>
         </CustomScrollView>
       </ScreenView>
+
+      <BottomSheetModal
+        visible={isTourVisible}
+        onClose={closeTourModal}
+        maxHeight="75%"
+      >
+        <View style={styles.tourModalContent}>
+          <ExplorerFace size={100} shouldAnimate />
+          <View style={styles.tourTextContainer}>
+            <Text style={styles.tourModalTitle}>Interactive Guide</Text>
+            <Text style={styles.tourModalSubtitle}>
+              Which part of the app would you like to explore?
+            </Text>
+          </View>
+
+          <View style={styles.tourOptions}>
+            <TouchableOpacity
+              style={styles.tourOption}
+              onPress={handleRestartHomeTour}
+            >
+              <View
+                style={[styles.tourOptionIcon, { backgroundColor: "#EFF6FF" }]}
+              >
+                <MaterialCommunityIcons
+                  name="home-variant"
+                  size={24}
+                  color="#3B82F6"
+                />
+              </View>
+              <Text style={styles.tourOptionText}>Home Page</Text>
+              <Icon name="chevron-right" size={14} color="#CBD5E1" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.tourOption}
+              onPress={handleRestartExploreTour}
+            >
+              <View
+                style={[styles.tourOptionIcon, { backgroundColor: "#ECFDF5" }]}
+              >
+                <MaterialCommunityIcons
+                  name="view-grid-outline"
+                  size={24}
+                  color="#10B981"
+                />
+              </View>
+              <Text style={styles.tourOptionText}>Explore Page</Text>
+              <Icon name="chevron-right" size={14} color="#CBD5E1" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </BottomSheetModal>
 
       <BottomSheetModal
         visible={isVisible}
@@ -419,6 +485,51 @@ const styles = StyleSheet.create({
   versionText: {
     ...parseTextStyle(theme.typography.BodyDetails),
     color: "#94A3B8",
+  },
+  // Tour Modal Styles
+  tourModalContent: {
+    padding: 24,
+    paddingBottom: 64,
+    alignItems: "center",
+    gap: 24,
+  },
+  tourTextContainer: {
+    alignItems: "center",
+    gap: 4,
+  },
+  tourModalTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+  },
+  tourModalSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+  },
+  tourOptions: {
+    width: "100%",
+    gap: 12,
+  },
+  tourOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    padding: 16,
+    borderRadius: 16,
+    gap: 16,
+  },
+  tourOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tourOptionText: {
+    flex: 1,
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
   },
 });
 
