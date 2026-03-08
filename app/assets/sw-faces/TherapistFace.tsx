@@ -150,10 +150,10 @@ const TherapistFace = ({
         { translateX: penX },
         { translateY: penY },
         { translateX: 32 },
-        { translateY: 49 },
+        { translateY: 51 },
         { rotateZ: "35deg" },
         { translateX: -32 },
-        { translateY: -49 },
+        { translateY: -51 },
       ],
     };
   }, []);
@@ -261,16 +261,25 @@ const TherapistFace = ({
           />
           {/* Clipboard + animated pen */}
           <G transform="translate(-9, -3)">
-            <AnimatedRect
-              x="30"
-              y="35"
-              width="4"
-              height="14"
-              rx="1.5"
-              fill="#EF5350"
-              stroke="#C62828"
-              animatedProps={penProps}
-            />
+            <AnimatedG animatedProps={penProps}>
+              {/* Pen Body */}
+              {/* Pen Body (Rounded rear end) */}
+              <Path
+                d="M 30 37 L 30 47 L 34 47 L 34 37 A 2 2 0 0 0 30 37 Z"
+                fill="#EF5350"
+                stroke="#C62828"
+                strokeWidth="0.5"
+              />
+              {/* Conical Tip */}
+              <Path
+                d="M30 47 L34 47 L32 51 Z"
+                fill="#FFCCBC"
+                stroke="#C62828"
+                strokeWidth="0.5"
+              />
+              {/* Lead/Nib */}
+              <Path d="M31.5 50 L32.5 50 L32 51 Z" fill="#3E2723" />
+            </AnimatedG>
             <Rect
               x="14"
               y="36"
