@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 130, // Space for Custom Tab Bar
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
     gap: 32, // Consistent space between sections
   },

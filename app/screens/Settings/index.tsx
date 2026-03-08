@@ -130,7 +130,7 @@ const Settings = () => {
 
   return (
     <>
-      <ScreenView style={styles.screenView}>
+      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
         {/* Unified Background Gradient */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
     paddingTop: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   pageTitle: {
     ...parseTextStyle(theme.typography.Heading2),
