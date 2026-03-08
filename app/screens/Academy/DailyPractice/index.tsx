@@ -1,17 +1,12 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
 import {
-    DPStackNavigationProp,
-    DPStackParamList,
+  DPStackNavigationProp,
+  DPStackParamList,
 } from "../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
@@ -21,11 +16,14 @@ import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
+import { useEventStore } from "../../../stores/events";
+import { EVENT_NAMES } from "../../../stores/events/constants";
 import { useUserStore } from "../../../stores/user";
 
 const DailyPractice = () => {
   const navigation =
     useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
+  const { emit } = useEventStore();
 
   const moveToReadingPractice = () => {
     navigation.navigate("ReadingPracticeStack");
@@ -66,7 +64,7 @@ const DailyPractice = () => {
           {
             title: "Complete Profile",
             description: "Finish your clinical intake",
-            onPress: () => navigation.navigate("OnboardingStack"), // Assuming this key exists globally or handle appropriately
+            onPress: () => emit(EVENT_NAMES.START_ONBOARDING), // Trigger onboarding via event store
             icon: <Icon name="user-clock" size={52} color={"#F59E0B"} />,
           },
         ]),
