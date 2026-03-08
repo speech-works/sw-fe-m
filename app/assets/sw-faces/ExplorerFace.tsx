@@ -69,6 +69,7 @@ const ExcitedTouristMapFace = ({
 
   const progress = useSharedValue(0);
   const blink = useSharedValue(1);
+  const mapRotation = useSharedValue(0);
 
   useEffect(() => {
     if (shouldAnimate) {
@@ -92,14 +93,21 @@ const ExcitedTouristMapFace = ({
         -1,
         false,
       );
+      mapRotation.value = withRepeat(
+        withTiming(1, { duration: 6000, easing: Easing.linear }),
+        -1,
+        false,
+      );
     } else {
       progress.value = withTiming(0);
       blink.value = 1;
+      mapRotation.value = 0;
     }
 
     return () => {
       cancelAnimation(progress);
       cancelAnimation(blink);
+      cancelAnimation(mapRotation);
     };
   }, [shouldAnimate]);
 
@@ -186,6 +194,14 @@ const ExcitedTouristMapFace = ({
     opacity: zPos.value < 0 ? 1 : 0,
   }));
 
+  const map1Props = useAnimatedProps(() => ({
+    transform: [{ translateX: mapRotation.value * 48 }] as any,
+  }));
+
+  const map2Props = useAnimatedProps(() => ({
+    transform: [{ translateX: (mapRotation.value - 1) * 48 }] as any,
+  }));
+
   return (
     <View
       style={{
@@ -203,15 +219,28 @@ const ExcitedTouristMapFace = ({
         {...props}
       >
         <Path fill="#01579B" d="M0 0h48v48H0z" />
-        <G fill="#4CAF50" opacity="0.9">
-          <Path d="M2 2l10-2l6 5l-4 7l-6 3l-6-3zM22 1l4-1l2 4l-4 2zM30 5l5-3l10 2l3 8l-8 6l-8-3zM42 22l6 2l-2 11l-6 3l-2-8zM4 35l8 3l-2 10H2V35zM38 42l6-2l2 5l-4 3H36l2-6z" />
-        </G>
-        <Path
-          d="M0 24h48M24 0v48"
-          stroke="#FFF"
-          strokeWidth="0.2"
-          opacity="0.3"
-        />
+        <AnimatedG animatedProps={map1Props}>
+          <G fill="#4CAF50" opacity="0.9">
+            <Path d="M2 2l10-2l6 5l-4 7l-6 3l-6-3zM22 1l4-1l2 4l-4 2zM30 5l5-3l10 2l3 8l-8 6l-8-3zM42 22l6 2l-2 11l-6 3l-2-8zM4 35l8 3l-2 10H2V35zM38 42l6-2l2 5l-4 3H36l2-6z" />
+          </G>
+          <Path
+            d="M0 24h48M24 0v48"
+            stroke="#FFF"
+            strokeWidth="0.2"
+            opacity="0.3"
+          />
+        </AnimatedG>
+        <AnimatedG animatedProps={map2Props}>
+          <G fill="#4CAF50" opacity="0.9">
+            <Path d="M2 2l10-2l6 5l-4 7l-6 3l-6-3zM22 1l4-1l2 4l-4 2zM30 5l5-3l10 2l3 8l-8 6l-8-3zM42 22l6 2l-2 11l-6 3l-2-8zM4 35l8 3l-2 10H2V35zM38 42l6-2l2 5l-4 3H36l2-6z" />
+          </G>
+          <Path
+            d="M0 24h48M24 0v48"
+            stroke="#FFF"
+            strokeWidth="0.2"
+            opacity="0.3"
+          />
+        </AnimatedG>
         <G transform="translate(0, 6)">
           <Path
             fill="black"
