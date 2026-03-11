@@ -2,13 +2,13 @@ import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { createReportedIssue } from "../../../../api/settings/helpSupport";
@@ -16,8 +16,8 @@ import ModernImageUploader from "../../../../components/ModernImageUploader";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
 const reportOptions = [
@@ -39,7 +39,7 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
   const { user } = useUserStore();
   const [issueDesc, setIssueDesc] = useState("");
   const [selectedIssue, setSelectedIssue] = useState<ReportOptionType | null>(
-    null
+    null,
   );
   const [screenshots, setScreenshots] = useState<string[]>([]);
   const [deviceInfo, setDeviceInfo] = useState("");
@@ -207,7 +207,7 @@ export default ReportProblem;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: 16,
   },
   container: {
     gap: 32,

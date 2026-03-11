@@ -212,7 +212,7 @@ const Preferences = () => {
 
   return (
     <>
-      <ScreenView style={styles.screenView}>
+      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
         {/* Background Gradient */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
@@ -261,11 +261,6 @@ const Preferences = () => {
                     {format(reminderTime, "hh:mm a")}
                   </Text>
                 )}
-                <Icon
-                  name="chevron-right"
-                  size={14}
-                  color={theme.colors.library.orange[400]}
-                />
               </View>
             </TouchableOpacity>
 
@@ -286,11 +281,6 @@ const Preferences = () => {
               </View>
               <View style={styles.valueRow}>
                 <Text style={styles.valueText}>{selectedGoalType}</Text>
-                <Icon
-                  name="chevron-right"
-                  size={14}
-                  color={theme.colors.library.orange[400]}
-                />
               </View>
             </TouchableOpacity>
 
@@ -419,7 +409,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 24,
   },
@@ -440,7 +430,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     gap: 16,
-    paddingHorizontal: 24, // Match header alignment
+    paddingHorizontal: 16, // Match header alignment
     paddingBottom: 40,
   },
   card: {

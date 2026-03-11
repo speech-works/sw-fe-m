@@ -1,17 +1,17 @@
 import React from "react";
 import {
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
 const ContactSupport = () => {
@@ -49,7 +49,6 @@ const ContactSupport = () => {
               <Text style={styles.subText}>Get a response within 24h</Text>
             </View>
           </View>
-          <Icon name="chevron-right" size={14} color="#CBD5E1" />
         </TouchableOpacity>
 
         {/* WhatsApp Card */}
@@ -69,7 +68,6 @@ const ContactSupport = () => {
               </Text>
             </View>
           </View>
-          <Icon name="chevron-right" size={14} color="#CBD5E1" />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -81,7 +79,7 @@ export default ContactSupport;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20, // Standard 20px padding
+    paddingHorizontal: 16, // Standard 16px padding
   },
   wrapper: {
     gap: 16,

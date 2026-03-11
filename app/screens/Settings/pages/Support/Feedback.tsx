@@ -1,22 +1,22 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
 import { submitAppFeedback } from "../../../../api/settings/helpSupport";
 import { useUserStore } from "../../../../stores/user";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
 interface FeedbackProps {
@@ -187,7 +187,7 @@ export default Feedback;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32,
+    paddingHorizontal: 16,
   },
   wrapper: {
     gap: 32,

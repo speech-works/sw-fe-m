@@ -8,8 +8,8 @@ import CustomScrollView from "../../../../components/CustomScrollView";
 import ScreenView from "../../../../components/ScreenView";
 import { theme } from "../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 import ContactSupport from "./ContactSupport";
 import Feedback from "./Feedback";
@@ -36,14 +36,14 @@ const Support = () => {
   const navigation = useNavigation();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [openSettingType, setOpenSettingType] = useState<SettingType | null>(
-    null
+    null,
   );
 
   const closeModal = () => setIsModalVisible(false);
 
   return (
     <>
-      <ScreenView style={styles.screenView}>
+      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
         {/* Aurora Background */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
@@ -89,11 +89,6 @@ const Support = () => {
                   </Text>
                 </View>
               </View>
-              <Icon
-                name="chevron-right"
-                size={14}
-                color={theme.colors.library.gray[400]}
-              />
             </TouchableOpacity>
 
             {/* Contact Support Card - Blue Glow */}
@@ -114,11 +109,6 @@ const Support = () => {
                   </Text>
                 </View>
               </View>
-              <Icon
-                name="chevron-right"
-                size={14}
-                color={theme.colors.library.gray[400]}
-              />
             </TouchableOpacity>
 
             {/* Feedback Card - Pink Glow */}
@@ -137,11 +127,6 @@ const Support = () => {
                   <Text style={styles.descText}>How can we improve?</Text>
                 </View>
               </View>
-              <Icon
-                name="chevron-right"
-                size={14}
-                color={theme.colors.library.gray[400]}
-              />
             </TouchableOpacity>
           </CustomScrollView>
         </View>
@@ -159,8 +144,8 @@ const Support = () => {
               {openSettingType === "Report Problem"
                 ? "We usually respond within 24–48 hours."
                 : openSettingType === "Feedback"
-                ? "Your feedback helps us make the app better."
-                : "Get in touch with us directly"}
+                  ? "Your feedback helps us make the app better."
+                  : "Get in touch with us directly"}
             </Text>
           </View>
 
@@ -195,14 +180,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 8,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 24,
   },
@@ -223,7 +208,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     gap: 16,
-    paddingHorizontal: 24, // Match Preferences/MoodCheck
+    paddingHorizontal: 16, // Match Preferences/MoodCheck
     paddingBottom: 40,
   },
   card: {
