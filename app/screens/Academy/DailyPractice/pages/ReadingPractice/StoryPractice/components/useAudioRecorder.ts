@@ -204,6 +204,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       recordingRef.current = null;
       setState("idle");
       setMetering(0);
+      setDuration(recordingDuration);
       // OPTIMIZATION: Restore full waveform on stop for review/playback
       setWaveform([...samplesRef.current]);
       return uri;
@@ -276,6 +277,8 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     await stopPlayback();
     setWaveform([]);
     samplesRef.current = [];
+    setDuration(0);
+    setRecordingDuration(0);
   };
 
   return {
