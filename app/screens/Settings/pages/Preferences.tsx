@@ -3,16 +3,16 @@ import { useNavigation } from "@react-navigation/native";
 import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
 import {
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-    getUserPreferences,
-    updateUserPreferences,
+  getUserPreferences,
+  updateUserPreferences,
 } from "../../../api/settings/userPreference";
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
@@ -22,8 +22,8 @@ import TimeSelector from "../../../components/TimeSelector";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: theme.colors.library.orange[800],
-    width: 30,
+    minWidth: 32,
     textAlign: "center",
   },
   valueControlContainer: {

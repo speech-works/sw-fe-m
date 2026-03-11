@@ -81,15 +81,15 @@ const Settings = () => {
   };
 
   const menuItems = [
-    {
-      icon: "sliders-h",
-      iconColor: "#3B82F6", // Blue for preferences
-      iconBg: "#EFF6FF",
-      text: "Preferences",
-      onClick: () => {
-        navigation.navigate("Preferences");
-      },
-    },
+    // {
+    //   icon: "sliders-h",
+    //   iconColor: "#3B82F6", // Blue for preferences
+    //   iconBg: "#EFF6FF",
+    //   text: "Preferences (Pending)",
+    //   onClick: () => {
+    //     navigation.navigate("Preferences");
+    //   },
+    // },
     {
       icon: "chart-line",
       iconColor: "#8B5CF6", // Purple for progress
