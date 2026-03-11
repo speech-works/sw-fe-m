@@ -43,6 +43,7 @@ const SmartRecorder: React.FC<Props> = ({
     playbackPosition, // Needed for replay sync
     recordingDuration,
     deleteRecording,
+    duration,
   } = useAudioRecorder();
 
   const isRecording = state === "recording";
@@ -182,6 +183,13 @@ const SmartRecorder: React.FC<Props> = ({
           </View>
         )}
 
+        {/* Duration text perfectly centered between Left (Trash) and Center (Play) */}
+        {hasRecording && !isPlaying && !isRecording && (
+          <View style={styles.reviewTimerContainer}>
+            <Text style={styles.timerTextPlayback}>{formatTime(duration)}</Text>
+          </View>
+        )}
+
         {/* RIGHT SECTION: Stop/Submit */}
         <View style={styles.rightSection}>
           {isRecording ? (
@@ -303,6 +311,13 @@ const styles = StyleSheet.create({
   centerSectionRecording: {
     flex: 1,
     marginHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reviewTimerContainer: {
+    position: "absolute",
+    left: 0,
+    right: "50%",
     alignItems: "center",
     justifyContent: "center",
   },
