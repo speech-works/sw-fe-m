@@ -1,9 +1,9 @@
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import {
-    AndroidAudioEncoder,
-    AndroidOutputFormat,
-    IOSAudioQuality,
-    IOSOutputFormat,
+  AndroidAudioEncoder,
+  AndroidOutputFormat,
+  IOSAudioQuality,
+  IOSOutputFormat,
 } from "expo-av/build/Audio";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,6 +20,7 @@ interface UseAudioRecorderReturn {
   waveform: number[]; // Array of normalized levels (0-1) for entire session
   playbackPosition: number; // ms
   duration: number; // ms
+  recordingDuration: number; // ms
   deleteRecording: () => void;
 }
 
@@ -31,6 +32,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
   const [waveform, setWaveform] = useState<number[]>([]);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -66,18 +68,23 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       if (recordingRef.current) {
         try {
           const status = await recordingRef.current.getStatusAsync();
-          if (status.isRecording && (status as any).metering !== undefined) {
-            const db = (status as any).metering;
-            const rawLevel = normalizeDb(db);
-            // console.log("Metering:", db, rawLevel); // Uncomment for spammy debug
+          if (status.isRecording) {
+            if (status.durationMillis !== undefined) {
+              setRecordingDuration(status.durationMillis);
+            }
+            if ((status as any).metering !== undefined) {
+              const db = (status as any).metering;
+              const rawLevel = normalizeDb(db);
+              // console.log("Metering:", db, rawLevel); // Uncomment for spammy debug
 
-            // Smooth check
-            setMetering(rawLevel);
-            samplesRef.current.push(rawLevel);
-            // OPTIMIZATION: Only update state with the tail (last 50 samples) during recording.
-            // This prevents O(N) array copying every frame as the recording grows.
-            // The full history is preserved in samplesRef.current.
-            setWaveform(samplesRef.current.slice(-50));
+              // Smooth check
+              setMetering(rawLevel);
+              samplesRef.current.push(rawLevel);
+              // OPTIMIZATION: Only update state with the tail (last 50 samples) during recording.
+              // This prevents O(N) array copying every frame as the recording grows.
+              // The full history is preserved in samplesRef.current.
+              setWaveform(samplesRef.current.slice(-50));
+            }
           }
         } catch (e) {
           // ignore
@@ -107,6 +114,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       setWaveform([]);
       samplesRef.current = [];
       setMetering(0);
+      setRecordingDuration(0);
       console.log("[useAudioRecorder] Starting recording sequence...");
 
       // 1.5 Stop any TTS
@@ -241,10 +249,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
           } else if (status.error) {
             console.warn(
               "[useAudioRecorder] Playback error update:",
-              status.error
+              status.error,
             );
           }
-        }
+        },
       );
 
       soundRef.current = sound;
@@ -280,6 +288,7 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
     waveform,
     playbackPosition,
     duration,
+    recordingDuration,
     deleteRecording,
   };
 };

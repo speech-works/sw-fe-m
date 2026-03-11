@@ -1,19 +1,21 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo } from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import ModernWaveform from "../../components/ModernWaveform";
 import { useAudioRecorder } from "./useAudioRecorder";
+
+const formatTime = (ms: number) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
 
 interface Props {
   onRecorded?: (uri: string) => void;
@@ -39,6 +41,7 @@ const SmartRecorder: React.FC<Props> = ({
     state,
     waveform,
     playbackPosition, // Needed for replay sync
+    recordingDuration,
     deleteRecording,
   } = useAudioRecorder();
 
@@ -107,14 +110,25 @@ const SmartRecorder: React.FC<Props> = ({
             isRecording
               ? styles.leftSectionRecording
               : isPlaying
-              ? styles.leftSectionCompact
-              : styles.leftSection
+                ? styles.leftSectionCompact
+                : styles.leftSection
           }
         >
           {isRecording ? (
             <View style={styles.recordingIndicator}>
               <View style={styles.recordingDot} />
-              <Text style={styles.recordingText}>Rec</Text>
+              <View style={styles.recordingTextContainer}>
+                <Text style={styles.recordingText}>Rec</Text>
+                <Text style={styles.timerTextRecording}>
+                  {formatTime(recordingDuration)}
+                </Text>
+              </View>
+            </View>
+          ) : isPlaying ? (
+            <View style={styles.playbackIndicator}>
+              <Text style={styles.timerTextPlayback}>
+                {formatTime(playbackPosition)}
+              </Text>
             </View>
           ) : hasRecording ? (
             <TouchableOpacity
@@ -309,6 +323,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  recordingTextContainer: {
+    flexDirection: "column",
+  },
   recordingDot: {
     width: 8,
     height: 8,
@@ -318,8 +335,25 @@ const styles = StyleSheet.create({
   },
   recordingText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
+    color: "#94A3B8",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  timerTextRecording: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.library.red[500],
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  playbackIndicator: {
+    paddingLeft: 12,
+    justifyContent: "center",
+  },
+  timerTextPlayback: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.library.orange[500],
     fontWeight: "600",
+    fontSize: 14,
   },
   toolsWrapper: {
     width: "100%",
