@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../../../Theme/tokens";
@@ -72,8 +72,15 @@ const SmartRecorder: React.FC<Props> = ({
     return waveform; // Review Mode: Show full history squeezed
   }, [waveform, isRecording, isPlaying, playbackPosition]);
 
+  const [isPreparing, setIsPreparing] = useState(false);
+
   const handleStartRecording = async () => {
-    await startRecording();
+    setIsPreparing(true);
+    try {
+      await startRecording();
+    } finally {
+      setIsPreparing(false);
+    }
   };
 
   const handleStopRecording = async () => {
@@ -226,12 +233,20 @@ const SmartRecorder: React.FC<Props> = ({
             <TouchableOpacity
               style={styles.mainMicButton}
               onPress={handleStartRecording}
+              disabled={isPreparing}
             >
               <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
+                colors={
+                  isPreparing
+                    ? [
+                        theme.colors.library.gray[200],
+                        theme.colors.library.gray[300],
+                      ]
+                    : [
+                        theme.colors.library.orange[400],
+                        theme.colors.library.orange[500],
+                      ]
+                }
                 style={StyleSheet.absoluteFill}
               />
               <Icon name="microphone" size={20} color="#FFF" />
