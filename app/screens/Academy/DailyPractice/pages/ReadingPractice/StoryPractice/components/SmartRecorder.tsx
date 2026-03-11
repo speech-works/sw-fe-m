@@ -185,7 +185,7 @@ const SmartRecorder: React.FC<Props> = ({
 
         {/* Duration text perfectly centered between Left (Trash) and Center (Play) */}
         {hasRecording && !isPlaying && !isRecording && (
-          <View style={styles.reviewTimerContainer}>
+          <View style={styles.reviewTimerContainer} pointerEvents="none">
             <Text style={styles.timerTextPlayback}>{formatTime(duration)}</Text>
           </View>
         )}
