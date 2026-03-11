@@ -1,14 +1,21 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../Theme/tokens";
 import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
 import { LevelData } from "../../../util/functions/levels-xp";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 import { triggerToast } from "../../../util/functions/toast";
 import EditProfile from "./EditProfile";
@@ -43,221 +50,238 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
   };
 
   return (
-    <>
+    <View style={styles.root}>
       {mode === "view" ? (
-        <CustomScrollView
-          style={styles.screenContainer}
-          showsVerticalScrollIndicator={false}
-        >
+        <>
           <View style={styles.headerContainer}>
             <Text style={styles.headerText}>My Profile</Text>
           </View>
-          {/* Profile Card */}
-          <View style={{ width: "100%" }}>
-            <LinearGradient
-              colors={["#fb923c", "#f97316", "#ea580c"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.profileSection}
-            >
-              {/* Mesh Glow Blobs */}
-              <View style={styles.bubbleTopRight} />
-              <View style={styles.bubbleBottomLeft} />
+          <CustomScrollView
+            style={styles.screenContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Profile Card */}
+            <View style={{ width: "100%" }}>
+              <LinearGradient
+                colors={["#fb923c", "#f97316", "#ea580c"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.profileSection}
+              >
+                {/* Mesh Glow Blobs */}
+                <View style={styles.bubbleTopRight} />
+                <View style={styles.bubbleBottomLeft} />
 
-              <View style={styles.profileInfo}>
-                <View style={styles.profileImageWrapper}>
-                  <Image
-                    source={{ uri: user?.profilePictureUrl }}
-                    style={styles.profileImage}
-                  />
-                  <View style={styles.levelBadge}>
-                    <Text style={styles.levelBadgeText}>{userLevel}</Text>
+                <View style={styles.profileInfo}>
+                  <View style={styles.profileImageWrapper}>
+                    <Image
+                      source={{ uri: user?.profilePictureUrl }}
+                      style={styles.profileImage}
+                    />
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelBadgeText}>{userLevel}</Text>
+                    </View>
                   </View>
+                  <View style={styles.profileDetails}>
+                    <Text style={styles.profileName}>{user?.name}</Text>
+                    <Text style={styles.memberSince}>
+                      Member since{" "}
+                      {user?.createdAt
+                        ? new Date(user.createdAt).getFullYear()
+                        : new Date().getFullYear()}
+                    </Text>
+                    {userLevelData && (
+                      <View style={styles.levelTitle}>
+                        <Text style={styles.levelTitleText}>
+                          {userLevelData?.levelTitle}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={onProfileEdit}
+                    style={styles.editButton}
+                  >
+                    <Text style={styles.editText}>Edit</Text>
+                    <Icon solid name="user-edit" size={12} color="#FFF" />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.profileDetails}>
-                  <Text style={styles.profileName}>{user?.name}</Text>
-                  <Text style={styles.memberSince}>
-                    Member since{" "}
-                    {user?.createdAt
-                      ? new Date(user.createdAt).getFullYear()
-                      : new Date().getFullYear()}
-                  </Text>
-                  {userLevelData && (
-                    <View style={styles.levelTitle}>
-                      <Text style={styles.levelTitleText}>
-                        {userLevelData?.levelTitle}
+              </LinearGradient>
+            </View>
+            <View style={styles.infoContainer}>
+              {/* Personal Info Section */}
+              <View style={styles.cardContainer}>
+                <View style={styles.sectionHeader}>
+                  <LivelyIcon name="user" color="#EA580C" bg="#FFF7ED" />
+                  <Text style={styles.sectionTitle}>Personal Information</Text>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <View style={styles.fieldRow}>
+                    <View style={styles.fieldIconWrapper}>
+                      <Icon name="envelope" size={14} color="#94A3B8" />
+                    </View>
+                    <View style={styles.fieldContent}>
+                      <Text style={styles.fieldLabel}>Email</Text>
+                      <Text style={styles.fieldValue}>{user?.email}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.separator} />
+
+                  <View style={styles.fieldRow}>
+                    <View style={styles.fieldIconWrapper}>
+                      <Icon name="mobile-alt" size={16} color="#94A3B8" />
+                    </View>
+                    <View style={styles.fieldContent}>
+                      <Text style={styles.fieldLabel}>Phone</Text>
+                      <Text style={styles.fieldValue}>
+                        {user?.phoneNumber || "-"}
                       </Text>
                     </View>
-                  )}
+                  </View>
+
+                  <View style={styles.separator} />
+
+                  <View style={styles.fieldRow}>
+                    <View style={styles.fieldIconWrapper}>
+                      <Icon name="calendar" size={14} color="#94A3B8" />
+                    </View>
+                    <View style={styles.fieldContent}>
+                      <Text style={styles.fieldLabel}>Date of Birth</Text>
+                      <Text style={styles.fieldValue}>
+                        {user?.dob
+                          ? new Date(user.dob).toLocaleDateString("en-GB")
+                          : "-"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  onPress={onProfileEdit}
-                  style={styles.editButton}
-                >
-                  <Text style={styles.editText}>Edit</Text>
-                  <Icon solid name="user-edit" size={12} color="#FFF" />
-                </TouchableOpacity>
               </View>
-            </LinearGradient>
-          </View>
-          <View style={styles.infoContainer}>
-            {/* Personal Info Section */}
-            <View style={styles.cardContainer}>
-              <View style={styles.sectionHeader}>
-                <LivelyIcon name="user" color="#EA580C" bg="#FFF7ED" />
-                <Text style={styles.sectionTitle}>Personal Information</Text>
+
+              {/* About Me Section */}
+              <View style={styles.cardContainer}>
+                <View style={styles.sectionHeader}>
+                  <LivelyIcon name="info-circle" color="#3B82F6" bg="#EFF6FF" />
+                  <Text style={styles.sectionTitle}>About Me</Text>
+                </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.fieldValue, { lineHeight: 24 }]}>
+                    {user?.bio || "No bio added yet."}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.fieldGroup}>
-                <View style={styles.fieldRow}>
-                  <View style={styles.fieldIconWrapper}>
-                    <Icon name="envelope" size={14} color="#94A3B8" />
-                  </View>
-                  <View style={styles.fieldContent}>
-                    <Text style={styles.fieldLabel}>Email</Text>
-                    <Text style={styles.fieldValue}>{user?.email}</Text>
-                  </View>
+              {/* Social Links Section */}
+              <View style={styles.cardContainer}>
+                <View style={styles.sectionHeader}>
+                  <LivelyIcon name="share-alt" color="#10B981" bg="#ECFDF5" />
+                  <Text style={styles.sectionTitle}>Social Links</Text>
                 </View>
 
-                <View style={styles.separator} />
+                <View style={styles.socialGrid}>
+                  {/* Facebook */}
+                  <TouchableOpacity
+                    style={styles.socialItem}
+                    onPress={() => {
+                      const link = user?.links?.social.facebook;
+                      if (!link)
+                        return triggerToast(
+                          "Error",
+                          "Can't open Facebook",
+                          "No link provided",
+                        );
+                      Linking.openURL(link).catch(console.error);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.socialIcon,
+                        { backgroundColor: "#EFF6FF" },
+                      ]}
+                    >
+                      <Icon name="facebook-f" size={20} color="#2563EB" />
+                    </View>
+                    <Text style={styles.socialLabel}>Facebook</Text>
+                  </TouchableOpacity>
 
-                <View style={styles.fieldRow}>
-                  <View style={styles.fieldIconWrapper}>
-                    <Icon name="mobile-alt" size={16} color="#94A3B8" />
-                  </View>
-                  <View style={styles.fieldContent}>
-                    <Text style={styles.fieldLabel}>Phone</Text>
-                    <Text style={styles.fieldValue}>
-                      {user?.phoneNumber || "-"}
-                    </Text>
-                  </View>
-                </View>
+                  {/* Instagram */}
+                  <TouchableOpacity
+                    style={styles.socialItem}
+                    onPress={() => {
+                      const link = user?.links?.social.instagram;
+                      if (!link)
+                        return triggerToast(
+                          "Error",
+                          "Can't open Instagram",
+                          "No link provided",
+                        );
+                      Linking.openURL(link).catch(console.error);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.socialIcon,
+                        { backgroundColor: "#FDF2F8" },
+                      ]}
+                    >
+                      <Icon name="instagram" size={20} color="#DB2777" />
+                    </View>
+                    <Text style={styles.socialLabel}>Instagram</Text>
+                  </TouchableOpacity>
 
-                <View style={styles.separator} />
-
-                <View style={styles.fieldRow}>
-                  <View style={styles.fieldIconWrapper}>
-                    <Icon name="calendar" size={14} color="#94A3B8" />
-                  </View>
-                  <View style={styles.fieldContent}>
-                    <Text style={styles.fieldLabel}>Date of Birth</Text>
-                    <Text style={styles.fieldValue}>
-                      {user?.dob
-                        ? new Date(user.dob).toLocaleDateString("en-GB")
-                        : "-"}
-                    </Text>
-                  </View>
+                  {/* Whatsapp */}
+                  <TouchableOpacity
+                    style={styles.socialItem}
+                    onPress={() => {
+                      const link = user?.links?.social.whatsapp;
+                      if (!link)
+                        return triggerToast(
+                          "Error",
+                          "Can't open Whatsapp",
+                          "No link provided",
+                        );
+                      Linking.openURL(link).catch(console.error);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.socialIcon,
+                        { backgroundColor: "#F0FDF4" },
+                      ]}
+                    >
+                      <Icon name="whatsapp" size={20} color="#16A34A" />
+                    </View>
+                    <Text style={styles.socialLabel}>Whatsapp</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
-
-            {/* About Me Section */}
-            <View style={styles.cardContainer}>
-              <View style={styles.sectionHeader}>
-                <LivelyIcon name="info-circle" color="#3B82F6" bg="#EFF6FF" />
-                <Text style={styles.sectionTitle}>About Me</Text>
-              </View>
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldValue, { lineHeight: 24 }]}>
-                  {user?.bio || "No bio added yet."}
-                </Text>
-              </View>
-            </View>
-
-            {/* Social Links Section */}
-            <View style={styles.cardContainer}>
-              <View style={styles.sectionHeader}>
-                <LivelyIcon name="share-alt" color="#10B981" bg="#ECFDF5" />
-                <Text style={styles.sectionTitle}>Social Links</Text>
-              </View>
-
-              <View style={styles.socialGrid}>
-                {/* Facebook */}
-                <TouchableOpacity
-                  style={styles.socialItem}
-                  onPress={() => {
-                    const link = user?.links?.social.facebook;
-                    if (!link)
-                      return triggerToast(
-                        "Error",
-                        "Can't open Facebook",
-                        "No link provided"
-                      );
-                    Linking.openURL(link).catch(console.error);
-                  }}
-                >
-                  <View
-                    style={[styles.socialIcon, { backgroundColor: "#EFF6FF" }]}
-                  >
-                    <Icon name="facebook-f" size={20} color="#2563EB" />
-                  </View>
-                  <Text style={styles.socialLabel}>Facebook</Text>
-                </TouchableOpacity>
-
-                {/* Instagram */}
-                <TouchableOpacity
-                  style={styles.socialItem}
-                  onPress={() => {
-                    const link = user?.links?.social.instagram;
-                    if (!link)
-                      return triggerToast(
-                        "Error",
-                        "Can't open Instagram",
-                        "No link provided"
-                      );
-                    Linking.openURL(link).catch(console.error);
-                  }}
-                >
-                  <View
-                    style={[styles.socialIcon, { backgroundColor: "#FDF2F8" }]}
-                  >
-                    <Icon name="instagram" size={20} color="#DB2777" />
-                  </View>
-                  <Text style={styles.socialLabel}>Instagram</Text>
-                </TouchableOpacity>
-
-                {/* Whatsapp */}
-                <TouchableOpacity
-                  style={styles.socialItem}
-                  onPress={() => {
-                    const link = user?.links?.social.whatsapp;
-                    if (!link)
-                      return triggerToast(
-                        "Error",
-                        "Can't open Whatsapp",
-                        "No link provided"
-                      );
-                    Linking.openURL(link).catch(console.error);
-                  }}
-                >
-                  <View
-                    style={[styles.socialIcon, { backgroundColor: "#F0FDF4" }]}
-                  >
-                    <Icon name="whatsapp" size={20} color="#16A34A" />
-                  </View>
-                  <Text style={styles.socialLabel}>Whatsapp</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </CustomScrollView>
+          </CustomScrollView>
+        </>
       ) : (
         <EditProfile onSave={onProfileSave} />
       )}
-    </>
+    </View>
   );
 };
 
 export default FullProfile;
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
   screenContainer: {
     flex: 1,
-    paddingTop: 20,
-    backgroundColor: "#F8FAFC", // Light gray bg for contrast
+    paddingTop: 8,
   },
   headerContainer: {
-    padding: 16,
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
   },
   headerText: {
     color: theme.colors.text.title,
