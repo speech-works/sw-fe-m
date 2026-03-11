@@ -213,13 +213,13 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
+      <LoginBackground />
+
       {/*
         1. TOP SECTION (Brand)
-           - Uses absolute positioning for background to cover the top half
+           - Now transparent to show through to root background
       */}
       <View style={styles.topSection}>
-        <LoginBackground />
-
         {/* Logo Content */}
         <SafeAreaView edges={["top"]} style={styles.brandContent}>
           <Animated.View
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   // Bottom Sheet
   bottomSheet: {
     flex: 0.55, // 55% height
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "transparent",
     // Removed border radius and shadow as requested
     overflow: "hidden",
   },

@@ -334,7 +334,7 @@ const PoemPractice = () => {
     }
   };
 
-  const bottomPadding = 400; // Same as StoryPractice
+  const bottomPadding = 20; // 20px gap over the menu dock
 
   // --- View: Done Practice ---
   if (practiceComplete) {
@@ -803,7 +803,6 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
     backgroundColor: "#FFFFFF",
     overflow: "hidden", // Clip the sheet
-    minHeight: 500,
   },
   cardHeaderGradient: {
     padding: 24,
@@ -881,8 +880,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     marginTop: -24, // Overlap
     padding: 24,
-    paddingBottom: 40,
-    minHeight: 400,
+    paddingBottom: 24,
     justifyContent: "space-between", // Pushes text top, pagination bottom
   },
   floatingTimeBadge: {

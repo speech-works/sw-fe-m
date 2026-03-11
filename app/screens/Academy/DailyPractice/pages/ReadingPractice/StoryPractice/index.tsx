@@ -278,7 +278,7 @@ const StoryPractice = () => {
   // Actually, VoiceRecorder expands when we interact.
   // The safest bet is: Always ample padding, OR if we want to be fancy, just use a large padding (350) which is safe for max expansion.
   // Given the "Immersive" goal, having extra scroll space at bottom is fine.
-  const bottomPadding = 400;
+  const bottomPadding = 20;
 
   // Active Practice View
   return (
@@ -653,7 +653,6 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
     backgroundColor: "#FFFFFF",
     overflow: "hidden", // Clip the sheet
-    minHeight: 500,
   },
   cardHeaderGradient: {
     padding: 24,
@@ -725,8 +724,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     marginTop: -24, // Overlap
     padding: 24,
-    paddingBottom: 40,
-    minHeight: 400,
+    paddingBottom: 24,
     justifyContent: "space-between", // Pushes text top, pagination bottom
   },
   floatingTimeBadge: {

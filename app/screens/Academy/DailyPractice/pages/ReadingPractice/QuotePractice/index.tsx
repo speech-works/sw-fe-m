@@ -277,7 +277,7 @@ const QuotePractice = () => {
     );
   }
 
-  const bottomPadding = 400;
+  const bottomPadding = 20;
 
   // Active Practice View
   return (
@@ -603,7 +603,6 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
     backgroundColor: "#FFFFFF",
     overflow: "hidden", // Clip the sheet
-    minHeight: 450,
   },
   cardHeaderGradient: {
     padding: 24,
@@ -660,9 +659,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -40, // Overlap
-    padding: 32,
-    paddingBottom: 40,
-    minHeight: 300,
+    padding: 24,
+    paddingBottom: 24,
     alignItems: "center",
     justifyContent: "center", // Center text vertically
   },
