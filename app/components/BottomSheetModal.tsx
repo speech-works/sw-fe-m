@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    StyleSheet,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -23,6 +23,11 @@ interface BottomSheetModalProps {
    * If omitted, the sheet will size itself to its content (minHeight: 200).
    */
   maxHeight?: number | `${number}%`;
+
+  /**
+   * If true, displays a small drag indicator handle at the top of the modal.
+   */
+  showHandle?: boolean;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
@@ -30,6 +35,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   onClose,
   children,
   maxHeight,
+  showHandle = false,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isMounted, setIsMounted] = useState(visible);
@@ -92,6 +98,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
+          {showHandle && <View style={styles.handle} />}
           {children}
         </Animated.View>
       </View>
@@ -119,5 +126,14 @@ const styles = StyleSheet.create({
     minHeight: 200,
     // NOTE: no "maxHeight" here. We are now assigning "height" explicitly if maxHeight was provided.
     overflow: "hidden",
+  },
+  handle: {
+    width: 48,
+    height: 6,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    borderRadius: 3,
+    alignSelf: "center",
+    marginTop: 16,
+    marginBottom: 8,
   },
 });

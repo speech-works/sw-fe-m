@@ -250,6 +250,7 @@ const Settings = () => {
         visible={isTourVisible}
         onClose={closeTourModal}
         maxHeight="75%"
+        showHandle={true}
       >
         <View style={styles.tourModalContent}>
           <ExplorerFace size={100} shouldAnimate />
@@ -302,6 +303,7 @@ const Settings = () => {
         visible={isVisible}
         onClose={closeModal}
         maxHeight="80%"
+        showHandle={true}
       >
         <FullProfile userLevel={userLevel} userLevelData={userLevelData} />
       </BottomSheetModal>

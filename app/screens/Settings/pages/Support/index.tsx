@@ -15,7 +15,11 @@ import ContactSupport from "./ContactSupport";
 import Feedback from "./Feedback";
 import ReportProblem from "./ReportProblem";
 
-type SettingType = "Report Problem" | "Contact Support" | "Feedback";
+type SettingType =
+  | "Report Problem"
+  | "Contact Support"
+  | "Feedback"
+  | "Success";
 
 // Helper for consistent lovely icons
 const LivelyIcon = ({
@@ -40,6 +44,10 @@ const Support = () => {
   );
 
   const closeModal = () => setIsModalVisible(false);
+
+  const handleSuccess = () => {
+    setOpenSettingType("Success");
+  };
 
   return (
     <>
@@ -136,26 +144,55 @@ const Support = () => {
         visible={isModalVisible}
         onClose={closeModal}
         maxHeight="90%"
+        showHandle={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitleText}>{openSettingType}</Text>
-            <Text style={styles.modalDescText}>
-              {openSettingType === "Report Problem"
-                ? "We usually respond within 24–48 hours."
-                : openSettingType === "Feedback"
-                  ? "Your feedback helps us make the app better."
-                  : "Get in touch with us directly"}
-            </Text>
+            {openSettingType !== "Success" && (
+              <>
+                <Text style={styles.modalTitleText}>{openSettingType}</Text>
+                <Text style={styles.modalDescText}>
+                  {openSettingType === "Report Problem"
+                    ? "We usually respond within 24–48 hours."
+                    : openSettingType === "Feedback"
+                      ? "Your feedback helps us make the app better."
+                      : "Get in touch with us directly"}
+                </Text>
+              </>
+            )}
           </View>
 
           <View style={styles.modalBody}>
             {openSettingType === "Contact Support" && <ContactSupport />}
             {openSettingType === "Feedback" && (
-              <Feedback onFeedbackSubmit={closeModal} />
+              <Feedback onFeedbackSubmit={handleSuccess} />
             )}
             {openSettingType === "Report Problem" && (
-              <ReportProblem onReportSubmit={closeModal} />
+              <ReportProblem onReportSubmit={handleSuccess} />
+            )}
+            {openSettingType === "Success" && (
+              <View style={styles.successContainer}>
+                <View style={styles.successIconBox}>
+                  <LinearGradient
+                    colors={["#10B981", "#059669"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.innerCheckmarkCircle}
+                  >
+                    <Icon name="check" size={32} color="#FFFFFF" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.successTitle}>Thank You!</Text>
+                <Text style={styles.successDesc}>
+                  Your submission has been received successfully.
+                </Text>
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -273,5 +310,59 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
+  },
+
+  // Success Modal Styles
+  successContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  successIconBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#ECFDF5", // Light green background
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  innerCheckmarkCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginBottom: 8,
+  },
+  successDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  doneButton: {
+    backgroundColor: theme.colors.actionPrimary.default,
+    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    width: "100%",
+    alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  doneButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
