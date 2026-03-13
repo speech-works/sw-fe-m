@@ -203,7 +203,7 @@ const SubscribeScreen = () => {
                 free: "Preview",
                 pro: "Full Access",
                 icon: "folder-open",
-                desc: "Unlock the entire library of 14+ clinical packs designed by SLP experts.",
+                desc: "Unlock the entire library of clinical packs designed by Speechworks.",
               },
             ].map((slide, i) => (
               <View key={i} style={styles.carouselSlide}>
@@ -282,7 +282,7 @@ const SubscribeScreen = () => {
             <View style={styles.slpAvatar}>
               <Icon name="user-md" size={14} color="#FFF" />
             </View>
-            <Text style={styles.noteHeaderText}>A note from our SLPs</Text>
+            <Text style={styles.noteHeaderText}>A note from us</Text>
           </View>
           <Text style={styles.noteText}>
             "We built Premium because progress shouldn't be limited by a timer.
