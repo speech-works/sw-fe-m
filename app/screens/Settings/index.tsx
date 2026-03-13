@@ -100,7 +100,7 @@ const Settings = () => {
       },
     },
     {
-      icon: "question-circle",
+      icon: "shield-check",
       iconColor: "#10B981", // Green for help
       iconBg: "#ECFDF5",
       text: "Help & Support",
@@ -109,7 +109,7 @@ const Settings = () => {
       },
     },
     {
-      icon: "map-signs",
+      icon: "compass",
       iconColor: "#F59E0B", // Amber for tour
       iconBg: "#FFFBEB",
       text: "App Tour",
@@ -213,19 +213,42 @@ const Settings = () => {
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.menuTile}
+                style={[
+                  styles.menuTile,
+                  { borderColor: `${item.iconColor}20` }, // Subtle 12.5% opacity tint for Prism effect
+                ]}
                 onPress={item.onClick}
               >
+                {/* Premium Watermark */}
+                <View style={styles.watermarkContainer}>
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={100}
+                    color={`${item.iconColor}08`} // Extremely subtle 5% opacity
+                  />
+                </View>
+
                 <View
                   style={[
                     styles.iconContainer,
-                    { backgroundColor: item.iconBg },
+                    {
+                      backgroundColor: item.iconBg,
+                      borderColor: `${item.iconColor}40`, // Slightly stronger border for the icon box
+                    },
                   ]}
                 >
-                  <Icon name={item.icon} size={18} color={item.iconColor} />
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={20}
+                    color={item.iconColor}
+                  />
                 </View>
                 <Text style={styles.menuItemText}>{item.text}</Text>
-                <Icon name="chevron-right" size={14} color="#CBD5E1" />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={16}
+                  color="#CBD5E1"
+                />
               </TouchableOpacity>
             ))}
           </View>
@@ -450,23 +473,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    height: 72,
     gap: 16,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowOpacity: 0.08,
+    overflow: "hidden", // Ensure watermark stays clipped
+  },
+  watermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -30,
+    opacity: 0.6,
+    transform: [{ rotate: "-15deg" }],
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
   menuItemText: {
     flex: 1,
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
-    fontWeight: "500",
+    fontWeight: "600",
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
 
   // Footer
