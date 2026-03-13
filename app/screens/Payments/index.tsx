@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { createRazorpayOrder } from "../../api/payments";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
@@ -20,7 +20,6 @@ import {
   parseTextStyle,
 } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
-import { PREMIUM_FEATURES } from "./constants";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -37,11 +36,8 @@ const SubscribeScreen = () => {
 
   const handlePayment = async () => {
     try {
-      console.log("⚡ Payment button pressed");
-
-      console.log("➡️ Calling backend to create order for user:", user?.id);
       if (!user?.id) {
-        console.error("❌ User ID is not available");
+        triggerToast("error", "Error", "User not found. Please log in.");
         return;
       }
 
@@ -51,81 +47,87 @@ const SubscribeScreen = () => {
         currency: "INR",
       });
 
-      console.log("✅ Raw backend response:", response);
-
       const order = response;
-      if (!order?.orderId) {
-        console.error("❌ Backend did not return an order ID", order);
-        return;
-      }
-      console.log("✅ Order created successfully:", order);
+      if (!order?.orderId) return;
 
-      // 2. Open Razorpay checkout
       const options: CheckoutOptions = {
         description: "SpeechWorks Premium Subscription",
         image: "https://ibb.co/YFgn6JkY",
         currency: order.currency,
-        key: "rzp_test_R5etRTxWNFWDih", // ⚠️ replace with process.env for prod
+        key: "rzp_test_R5etRTxWNFWDih",
         name: "Speechworks",
         order_id: order.id,
-        amount: order.amount, // use backend-confirmed amount
+        amount: order.amount,
         prefill: {
-          email: "user@example.com",
-          contact: "9999999999",
-          name: "John Doe",
+          email: user.email || "",
+          contact: "",
+          name: user.name || "User",
         },
         theme: {
-          color: theme.colors.actionPrimary.default,
-          backdrop_color: "red",
+          color: "#D4AF37",
         },
       };
 
-      console.log("🟢 Opening Razorpay with options:", options);
-
       RazorpayCheckout.open(options)
         .then((paymentData: any) => {
-          console.log("🎉 Payment Success full response:", paymentData);
           triggerToast(
             "success",
-            "Payment successful!",
-            `Payment ID: ${paymentData.razorpay_payment_id}`,
+            "Welcome to Premium!",
+            "Your subscription is now active.",
           );
+          navigation.goBack();
         })
         .catch((error: any) => {
-          console.error("❌ Payment Failed:", error);
-          triggerToast("error", "Payment failed", `Please retry payment.`);
+          triggerToast(
+            "error",
+            "Payment Failed",
+            "Please try again or contact support.",
+          );
         });
     } catch (err) {
-      console.error("🔥 Error in handlePayment:", err);
-      triggerToast(
-        "error",
-        "Payment failed. Please try again.",
-        "Something went wrong with payment.",
-      );
+      triggerToast("error", "Payment Failed", "Something went wrong.");
     }
   };
 
   return (
     <ScreenView style={styles.screenView}>
-      {/* Aurora Mesh Background */}
+      {/* Background Layer */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
-          colors={["#FFF7ED", "#FFF", "#FFF"]}
-          locations={[0, 0.4, 1]}
+          colors={["#0F172A", "#1E293B", "#0F172A"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{ flex: 1 }}
         />
-        {/* Decorative Orbs */}
-        <View style={styles.orbTopRight} />
-        <View style={styles.orbBottomLeft} />
+        {/* Glow Orbs */}
+        <View
+          style={[
+            styles.glowOrb,
+            { top: -50, right: -50, backgroundColor: "#22D3EE", opacity: 0.1 },
+          ]}
+        />
+        <View
+          style={[
+            styles.glowOrb,
+            {
+              bottom: 100,
+              left: -50,
+              width: 250,
+              height: 250,
+              backgroundColor: "#8B5CF6",
+              opacity: 0.08,
+            },
+          ]}
+        />
       </View>
 
-      {/* Header Navigation - Sticky */}
+      {/* Header NavBar */}
       <View style={styles.navBar}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="times" size={16} color={theme.colors.text.title} />
+          <Icon name="close" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -135,7 +137,12 @@ const SubscribeScreen = () => {
       >
         {/* Hero Section */}
         <View style={styles.heroContainer}>
-          <Text style={styles.heroLabel}>PREMIUM ACCESS</Text>
+          <View style={styles.badgeGlass}>
+            <View style={styles.badgeInner}>
+              <Icon name="crown" size={12} color="#D4AF37" />
+              <Text style={styles.badgeText}>PREMIUM ACCESS</Text>
+            </View>
+          </View>
           <Text style={styles.heroTitle}>Control Your Voice.</Text>
           <Text style={styles.heroSubtitle}>
             Unlock the clinically-proven power of Speechworks and turn your
@@ -143,7 +150,7 @@ const SubscribeScreen = () => {
           </Text>
         </View>
 
-        {/* Value Carousel (Replaces Table) */}
+        {/* Feature Carousel */}
         <View style={styles.carouselSection}>
           <Text style={styles.carouselHeader}>Experience the Difference</Text>
           <ScrollView
@@ -188,14 +195,14 @@ const SubscribeScreen = () => {
                 label: "Real-World Mastery",
                 free: "Basic",
                 pro: "Full Access",
-                icon: "comment-alt",
+                icon: "robot",
                 desc: "Simulate pressure with AI phone calls and social challenge drills.",
               },
               {
                 label: "Stamina System",
                 free: "Static",
                 pro: "Smart Refill",
-                icon: "bolt",
+                icon: "lightning-bolt",
                 desc: "Passive regeneration means you're always ready for a breakthrough.",
               },
               {
@@ -207,45 +214,37 @@ const SubscribeScreen = () => {
               },
             ].map((slide, i) => (
               <View key={i} style={styles.carouselSlide}>
-                <View style={styles.slideInner}>
-                  <View style={styles.watermarkContainer}>
+                <View
+                  style={[
+                    styles.slideInner,
+                    { backgroundColor: "rgba(255, 255, 255, 0.04)" },
+                  ]}
+                >
+                  <View style={styles.watermarkIcon}>
                     <Icon
                       name={slide.icon}
-                      size={140}
-                      color={theme.colors.actionPrimary.default}
+                      size={120}
+                      color="#D4AF37"
+                      style={{ opacity: 0.03 }}
                     />
+                  </View>
+                  <View style={styles.iconCircle}>
+                    <Icon name={slide.icon} size={28} color="#D4AF37" />
                   </View>
                   <Text style={styles.slideTitle}>{slide.label}</Text>
                   <Text style={styles.slideDesc}>{slide.desc}</Text>
-                  <View style={styles.slideGapBox}>
-                    <View style={styles.gapCol}>
-                      <Text style={styles.gapLabel}>FREE</Text>
-                      <Text
-                        style={styles.gapValue}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                      >
-                        {slide.free}
-                      </Text>
+
+                  <View style={styles.compareRow}>
+                    <View style={styles.compareCol}>
+                      <Text style={styles.compareLabel}>FREE</Text>
+                      <Text style={styles.compareValue}>{slide.free}</Text>
                     </View>
-                    <View style={styles.gapDivider} />
-                    <View style={styles.gapCol}>
-                      <Text
-                        style={[
-                          styles.gapLabel,
-                          { color: theme.colors.actionPrimary.default },
-                        ]}
-                      >
+                    <View style={styles.compareDivider} />
+                    <View style={styles.compareCol}>
+                      <Text style={[styles.compareLabel, { color: "#D4AF37" }]}>
                         PRO
                       </Text>
-                      <Text
-                        style={[
-                          styles.gapValue,
-                          { color: theme.colors.text.title },
-                        ]}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                      >
+                      <Text style={[styles.compareValue, { color: "#FFFFFF" }]}>
                         {slide.pro}
                       </Text>
                     </View>
@@ -255,7 +254,6 @@ const SubscribeScreen = () => {
             ))}
           </ScrollView>
 
-          {/* Pagination Dots */}
           <View style={styles.paginationDots}>
             {[0, 1, 2, 3, 4].map((i) => (
               <View
@@ -269,144 +267,152 @@ const SubscribeScreen = () => {
           </View>
         </View>
 
-        {/* Note from Therapists (Narrative) */}
+        {/* Narrative Note */}
         <View style={styles.noteContainer}>
-          <View style={styles.watermarkContainer}>
+          <View style={styles.noteWatermark}>
             <Icon
-              name="user-circle"
+              name="account-group"
               size={180}
-              color={theme.colors.actionPrimary.default}
+              color="#D4AF37"
+              style={{ opacity: 0.02 }}
             />
           </View>
-          <View style={styles.quoteIconLeft}>
-            <Icon
-              name="quote-left"
-              size={40}
-              color={theme.colors.actionPrimary.default}
-            />
-          </View>
+          <Icon
+            name="format-quote-open"
+            size={40}
+            color="#D4AF37"
+            style={{ opacity: 0.2, marginBottom: 16 }}
+          />
           <Text style={styles.noteText}>
             We built Premium because progress shouldn't be limited by a timer.
             It's the commitment you make to your future self—having the right
             support when anxiety hits and the real data to prove you’re winning.
           </Text>
-          <View style={styles.quoteIconRight}>
-            <Icon
-              name="quote-right"
-              size={40}
-              color={theme.colors.actionPrimary.default}
-            />
-          </View>
           <View style={styles.noteSignature}>
             <View style={styles.signatureLine} />
-            <Text style={styles.noteHeaderText}>Speechworks Team</Text>
+            <Text style={styles.signatureText}>The Speechworks Team</Text>
             <View style={styles.signatureLine} />
           </View>
         </View>
 
-        {/* Pricing Cards */}
-        <View style={styles.pricingHeader}>
+        {/* Pricing Selection */}
+        <View style={styles.pricingSection}>
           <Text style={styles.pricingTitle}>Simple Pricing</Text>
           <Text style={styles.pricingSubtitle}>
             Choose the plan that fits your growth journey
           </Text>
-        </View>
-        <View style={styles.plansContainer}>
-          {/* Annual Plan */}
-          <TouchableOpacity
-            onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
-            style={[
-              styles.planCard,
-              paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                ? styles.activePlanCard
-                : styles.inactivePlanCard,
-            ]}
-            activeOpacity={0.95}
-          >
-            {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
-              <LinearGradient
-                colors={[theme.colors.actionPrimary.default, "#EC4899"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.bestValueBadge}
-              >
-                <Text style={styles.bestValueText}>BEST VALUE</Text>
-              </LinearGradient>
-            )}
-            <View style={styles.cardContent}>
-              <View style={styles.radioCircle}>
-                {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
-                  <View style={styles.radioInner} />
-                )}
-              </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <View style={styles.planHeaderRow}>
-                  <Text style={styles.planName}>Annual</Text>
-                  <View style={styles.savingsTag}>
-                    <Text style={styles.savingsText}>SAVE 17%</Text>
-                  </View>
-                </View>
-                <Text style={styles.planDescription}>
-                  <Text style={styles.strikeThrough}>$143.88</Text> $119.99
-                  /year
-                </Text>
-                <Text style={styles.planMath}>That’s just $9.99/month</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
 
-          {/* Monthly Plan */}
-          <TouchableOpacity
-            onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY)}
-            style={[
-              styles.planCard,
-              paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
-                ? styles.activePlanCard
-                : styles.inactivePlanCard,
-            ]}
-            activeOpacity={0.95}
-          >
-            <View style={styles.cardContent}>
-              <View style={styles.radioCircle}>
-                {paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && (
-                  <View style={styles.radioInner} />
-                )}
+          <View style={styles.plansGap}>
+            {/* Annual */}
+            <TouchableOpacity
+              onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
+              activeOpacity={0.9}
+              style={[
+                styles.planCard,
+                paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                  ? styles.activePlanCard
+                  : styles.inactivePlanCard,
+              ]}
+            >
+              {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
+                <LinearGradient
+                  colors={["#D4AF37", "#B8860B"]}
+                  style={styles.bestValueBadge}
+                >
+                  <Text style={styles.bestValueText}>BEST VALUE</Text>
+                </LinearGradient>
+              )}
+              <View style={styles.planHeader}>
+                <View
+                  style={[
+                    styles.radio,
+                    paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY &&
+                      styles.radioActive,
+                  ]}
+                >
+                  {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.planNameRow}>
+                    <Text style={styles.planName}>Annual Membership</Text>
+                    <View style={styles.savingsBadge}>
+                      <Text style={styles.savingsText}>SAVE 17%</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.planPrice}>
+                    <Text style={styles.strikePrice}>₹14,399</Text> ₹11,999
+                    <Text style={styles.pricePeriod}>/year</Text>
+                  </Text>
+                  <Text style={styles.planSubtext}>Roughly ₹999 / month</Text>
+                </View>
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.planName}>Monthly</Text>
-                <Text style={styles.planDescription}>$11.99 /month</Text>
-                <Text style={styles.planMath}>Flexible, cancel anytime</Text>
+            </TouchableOpacity>
+
+            {/* Monthly */}
+            <TouchableOpacity
+              onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY)}
+              activeOpacity={0.9}
+              style={[
+                styles.planCard,
+                paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
+                  ? styles.activePlanCard
+                  : styles.inactivePlanCard,
+              ]}
+            >
+              <View style={styles.planHeader}>
+                <View
+                  style={[
+                    styles.radio,
+                    paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY &&
+                      styles.radioActive,
+                  ]}
+                >
+                  {paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planName}>Monthly Explorer</Text>
+                  <Text style={styles.planPrice}>
+                    ₹1,199<Text style={styles.pricePeriod}>/month</Text>
+                  </Text>
+                  <Text style={styles.planSubtext}>
+                    Flexible, cancel anytime
+                  </Text>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
       </CustomScrollView>
 
-      {/* Floating Bottom CTA */}
-      <View style={styles.footerContainer}>
-        <TouchableOpacity activeOpacity={0.9} onPress={handlePayment}>
+      {/* Persistent Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.upgradeBtnWrapper}
+          activeOpacity={0.85}
+          onPress={handlePayment}
+        >
           <LinearGradient
-            colors={[theme.colors.library.orange[400], "#DB2777"]}
+            colors={["#D4AF37", "#B8860B", "#996515"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.upgradeButton}
+            end={{ x: 1, y: 1 }}
+            style={styles.upgradeBtn}
           >
-            <Text style={styles.upgradeButtonText}>
+            <Text style={styles.upgradeBtnText}>
               {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                ? "Start My 7-Day Free Trial" // High conversion copy
-                : "Get Instant Access"}
+                ? "Start 7-Day Free Trial"
+                : "Unlock Full Access"}
             </Text>
+            <View style={styles.btnShine} />
           </LinearGradient>
         </TouchableOpacity>
-
-        <View style={styles.trustRow}>
-          <Icon
-            name="shield-alt"
-            size={12}
-            color={theme.colors.text.disabled}
-          />
-          <Text style={styles.trustText}>
-            30-Day Money-Back Guarantee • Cancel Anytime
+        <View style={styles.guaranteeRow}>
+          <Icon name="shield-check" size={14} color="rgba(255,255,255,0.4)" />
+          <Text style={styles.guaranteeText}>
+            Secure Payment • No Questions Asked Refund
           </Text>
         </View>
       </View>
@@ -419,402 +425,387 @@ export default SubscribeScreen;
 const styles = StyleSheet.create({
   screenView: {
     flex: 1,
-    paddingTop: 0,
+    backgroundColor: "#0F172A",
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 160, // Ensure last item clears the footer
+    paddingBottom: 180,
   },
-  // Aurora Orbs
-  orbTopRight: {
+  glowOrb: {
     position: "absolute",
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(251, 146, 60, 0.15)", // Orange 400
-    transform: [{ scale: 1.5 }],
+    borderRadius: 200,
+    width: 300,
+    height: 300,
   },
-  orbBottomLeft: {
-    position: "absolute",
-    bottom: 100,
-    left: -50,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: "rgba(236, 72, 153, 0.1)", // Pink 500
-    transform: [{ scale: 1.2 }],
-  },
-
-  // Navbar
   navBar: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    justifyContent: "flex-end",
     position: "absolute",
-    top: 20, // Adjust for safe area if needed, or use SafeAreaView
-    right: 20,
-    zIndex: 100,
+    top: 0,
+    right: 0,
+    zIndex: 10,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "rgba(255,255,255,0.1)",
   },
-
   // Hero
   heroContainer: {
     alignItems: "center",
-    marginBottom: 56,
+    paddingHorizontal: 24,
     marginTop: 80,
+    marginBottom: 48,
   },
-  heroLabel: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.actionPrimary.default,
-    fontWeight: "800",
-    textTransform: "uppercase",
+  badgeGlass: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 100,
+    padding: 1,
+    marginBottom: 20,
+  },
+  badgeInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 100,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
+  },
+  badgeText: {
+    color: "#D4AF37",
+    fontSize: 10,
+    fontWeight: "900",
     letterSpacing: 2,
-    marginBottom: 12,
   },
   heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
+    fontSize: 38,
+    fontWeight: "900",
     textAlign: "center",
+    letterSpacing: -1,
     marginBottom: 16,
-    fontSize: 36,
   },
   heroSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 16,
     textAlign: "center",
-    paddingHorizontal: 10,
     lineHeight: 24,
-    opacity: 0.8,
+    paddingHorizontal: 10,
   },
-
-  // Carousel Section
+  // Carousel
   carouselSection: {
-    marginBottom: 56,
-    overflow: "visible",
+    marginBottom: 48,
   },
   carouselHeader: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginBottom: 24,
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
     textAlign: "center",
+    marginBottom: 24,
   },
   carousel: {
-    width: theme.dimensions.screenWidth,
-    alignSelf: "center",
-    paddingVertical: 32,
     overflow: "visible",
   },
   carouselSlide: {
     width: theme.dimensions.screenWidth * 0.8,
-    backgroundColor: "#FFF",
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation3),
-    marginHorizontal: 8, // Half of 16px gap
+    marginHorizontal: 8,
   },
   slideInner: {
     padding: 24,
-    alignItems: "center",
     borderRadius: 32,
-    overflow: "hidden", // Clips watermark
-    width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    overflow: "hidden",
+    height: 340, // Uniform height for benefit cards
+    justifyContent: "space-between",
   },
-  watermarkContainer: {
+  watermarkIcon: {
     position: "absolute",
     right: -20,
     bottom: -20,
-    opacity: 0.05,
-    zIndex: -1,
     transform: [{ rotate: "-15deg" }],
   },
-  slideIconBox: {
-    width: 64,
-    height: 64,
+  iconCircle: {
+    width: 60,
+    height: 60,
     borderRadius: 20,
-    backgroundColor: "rgba(251, 146, 60, 0.1)",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
   },
   slideTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 24,
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "900",
     marginBottom: 12,
-    textAlign: "center",
   },
   slideDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 28,
-    lineHeight: 22,
-    opacity: 0.8,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 24,
   },
-  slideGapBox: {
+  compareRow: {
     flexDirection: "row",
-    backgroundColor: theme.colors.library.gray[100],
+    backgroundColor: "rgba(0,0,0,0.2)",
     borderRadius: 20,
-    padding: 12,
-    width: "100%",
-    alignItems: "flex-start",
+    padding: 16,
+    alignItems: "center",
   },
-  gapCol: {
+  compareCol: {
     flex: 1,
     alignItems: "center",
   },
-  gapLabel: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontWeight: "800",
-    color: theme.colors.text.disabled,
-    marginBottom: 4,
+  compareLabel: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: "rgba(255,255,255,0.4)",
     letterSpacing: 1,
+    marginBottom: 4,
   },
-  gapValue: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 15,
-    color: theme.colors.text.disabled,
+  compareValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.6)",
   },
-  gapDivider: {
+  compareDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: theme.colors.library.gray[200],
-    marginHorizontal: 12,
+    height: 30,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   paginationDots: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 8,
     marginTop: 24,
+    gap: 8,
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
   },
   activeDot: {
-    width: 24,
-    backgroundColor: theme.colors.actionPrimary.default,
+    width: 20,
+    backgroundColor: "#D4AF37",
   },
   inactiveDot: {
-    width: 8,
-    backgroundColor: theme.colors.library.gray[300],
+    width: 6,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-
-  // Note from SLPs
+  // Note
   noteContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    marginHorizontal: 24,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 32,
     borderRadius: 32,
-    padding: 40,
-    marginBottom: 64,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden",
+    borderColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
+    marginBottom: 64,
   },
-
-  noteHeaderText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontWeight: "700",
-    color: theme.colors.actionPrimary.default,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-    opacity: 0.8,
+  noteWatermark: {
+    position: "absolute",
+    bottom: -30,
+    right: -30,
   },
   noteText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    lineHeight: 30,
+    color: "#FFFFFF",
+    fontSize: 18,
+    lineHeight: 28,
     textAlign: "center",
-    marginBottom: 24,
-    fontSize: 20,
     fontWeight: "500",
+    fontStyle: "italic",
+    marginBottom: 24,
   },
   noteSignature: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 16,
   },
   signatureLine: {
-    width: 24,
+    width: 30,
     height: 1,
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: "#D4AF37",
     opacity: 0.3,
   },
-  quoteIconLeft: {
-    position: "absolute",
-    top: 20,
-    left: 20,
-    opacity: 0.08,
+  signatureText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  quoteIconRight: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    opacity: 0.08,
-  },
-
-  // Pricing Header
-  pricingHeader: {
-    alignItems: "center",
-    marginBottom: 24,
+  // Pricing
+  pricingSection: {
+    paddingHorizontal: 24,
   },
   pricingTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    marginBottom: 4,
+    color: "#FFFFFF",
+    fontSize: 28,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 8,
   },
   pricingSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    opacity: 0.7,
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 32,
   },
-
-  // Plans
-  plansContainer: {
+  plansGap: {
     gap: 16,
-    marginBottom: 40,
   },
   planCard: {
     borderRadius: 24,
-    backgroundColor: "#FFF",
-    borderWidth: 2,
     padding: 24,
+    borderWidth: 2,
     position: "relative",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    height: 145, // Uniform height for pricing cards
+    justifyContent: "center",
   },
   activePlanCard: {
-    borderColor: theme.colors.actionPrimary.default,
-    backgroundColor: "#FFF7ED",
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    borderColor: "#D4AF37",
   },
   inactivePlanCard: {
-    borderColor: theme.colors.library.gray[200],
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   bestValueBadge: {
     position: "absolute",
     top: -12,
-    right: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    right: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 100,
   },
   bestValueText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#FFF",
-    fontWeight: "800",
+    color: "#FFFFFF",
     fontSize: 10,
-    letterSpacing: 0.5,
+    fontWeight: "900",
   },
-  cardContent: {
+  planHeader: {
     flexDirection: "row",
-    gap: 20,
     alignItems: "center",
+    gap: 16,
   },
-  radioCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2.5,
-    borderColor: theme.colors.library.gray[300],
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
-  radioInner: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: theme.colors.actionPrimary.default,
+  radioActive: {
+    borderColor: "#D4AF37",
   },
-  planHeaderRow: {
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#D4AF37",
+  },
+  planNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    marginBottom: 4,
   },
   planName: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 20,
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
   },
-  savingsTag: {
-    backgroundColor: "#DEF7EC",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  savingsBadge: {
+    backgroundColor: "#D4AF37",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   savingsText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#03543F",
-    letterSpacing: 0.5,
+    color: "#000",
+    fontSize: 9,
+    fontWeight: "900",
   },
-  planDescription: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontSize: 22,
+  planPrice: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "900",
+  },
+  strikePrice: {
+    color: "rgba(255,255,255,0.3)",
+    fontSize: 16,
+    textDecorationLine: "line-through",
+  },
+  pricePeriod: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
+    fontWeight: "400",
+  },
+  planSubtext: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 12,
     marginTop: 4,
   },
-  planMath: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  strikeThrough: {
-    textDecorationLine: "line-through",
-    color: theme.colors.text.disabled,
-    fontWeight: "400",
-    fontSize: 16,
-  },
-
   // Footer
-  footerContainer: {
+  footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingTop: 24,
+    paddingBottom: 40,
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 44,
+    backgroundColor: "rgba(15, 23, 42, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
-    ...parseShadowStyle(theme.shadow.elevation4),
+    borderTopColor: "rgba(255,255,255,0.1)",
   },
-  upgradeButton: {
+  upgradeBtnWrapper: {
     borderRadius: 20,
-    marginBottom: 16,
-    ...parseShadowStyle(theme.shadow.elevation3),
     overflow: "hidden",
-    paddingVertical: 18,
-    flexDirection: "row",
+    marginBottom: 16,
+  },
+  upgradeBtn: {
+    paddingVertical: 20,
     alignItems: "center",
     justifyContent: "center",
   },
-  upgradeButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
+  upgradeBtnText: {
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
-  trustRow: {
+  btnShine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "50%",
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  guaranteeRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
   },
-  trustText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.disabled,
-    fontWeight: "500",
+  guaranteeText: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });
