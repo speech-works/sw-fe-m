@@ -700,28 +700,6 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
             </View>
           </TourGuideZone>
 
-          {/* Tooltip */}
-          <AnimatedView
-            style={[styles.tooltipWrapper, { opacity: selectedMetric ? 1 : 0 }]}
-          >
-            {selectedMetric ? (
-              <View style={styles.tooltipSubtleCard}>
-                <MaterialCommunityIcons
-                  name="information-variant"
-                  size={16}
-                  color={theme.colors.library.orange[400]}
-                  style={{ marginTop: 1 }}
-                />
-                <Text style={styles.tooltipSubtleText}>
-                  {METRIC_CONFIG[selectedMetric].description}
-                </Text>
-              </View>
-            ) : (
-              // Placeholder height
-              <View style={styles.tooltipPlaceholder} />
-            )}
-          </AnimatedView>
-
           {/* Weekly Breakthroughs */}
           <View style={styles.breakthroughContainer}>
             <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
@@ -1157,37 +1135,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     height: "100%",
-  },
-
-  tooltipWrapper: {
-    marginBottom: 20,
-    minHeight: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    paddingHorizontal: 16,
-  },
-  tooltipSubtleCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#F8FAFC", // Very subtle gray/blue
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    gap: 10,
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)", // Almost invisible border
-  },
-  tooltipSubtleText: {
-    fontSize: 13,
-    color: "#475569", // Softer text color
-    fontWeight: "500",
-    lineHeight: 18,
-    flex: 1,
-  },
-  tooltipPlaceholder: {
-    height: 50,
   },
 
   // --- Breakdown/List Section ---
