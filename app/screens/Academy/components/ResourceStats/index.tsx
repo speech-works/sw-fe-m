@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -60,6 +61,7 @@ const ResourceStats = ({
   refreshing?: boolean;
   onLayoutCapture?: (order: number, event: any) => void;
 }) => {
+  const { width } = useWindowDimensions();
   const { user } = useUserStore();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
@@ -228,12 +230,7 @@ const ResourceStats = ({
                       <TouchableOpacity
                         onPress={() => navigation.navigate("PremiumModal")}
                       >
-                        <Text
-                          style={[
-                            styles.footerText,
-                            { color: theme.colors.actionPrimary.default },
-                          ]}
-                        >
+                        <Text style={[styles.footerText, { color: "#3B82F6" }]}>
                           Upgrade Energy
                         </Text>
                       </TouchableOpacity>
@@ -252,17 +249,26 @@ const ResourceStats = ({
             </TourGuideZone>
 
             <View
-              style={styles.gridContainer}
+              style={[
+                styles.gridContainer,
+                width < 320 && { flexDirection: "column" },
+              ]}
               onLayout={(e) => {
                 gridOriginY.current = e.nativeEvent.layout.y;
               }}
             >
-              <View style={{ flex: 1 }}>
+              <View
+                style={[
+                  styles.tileWrapper,
+                  width < 320 && { flex: 0, width: "100%" },
+                ]}
+              >
                 {/* Task Card - HUGE */}
                 <TourGuideZone
                   zone={4}
                   text="Daily Practice: Track your completed free activities here. Completing your daily goal earns you bonus XP and helps build a solid speech habit."
                   shape="rectangle"
+                  style={{ flex: 1 }}
                 >
                   <View
                     onLayout={(e) => {
@@ -331,12 +337,18 @@ const ResourceStats = ({
                 </TourGuideZone>
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View
+                style={[
+                  styles.tileWrapper,
+                  width < 320 && { flex: 0, width: "100%" },
+                ]}
+              >
                 {/* Level Card - HUGE */}
                 <TourGuideZone
                   zone={5}
                   text="Your Progress: Watch your level rise as you practice. Higher levels unlock new insights and demonstrate your commitment to mastering your speech."
                   shape="rectangle"
+                  style={{ flex: 1 }}
                 >
                   <View
                     onLayout={(e) => {
@@ -380,7 +392,12 @@ const ResourceStats = ({
                       </Text>
                     </View>
                     {/* XP Text */}
-                    <Text style={[styles.xpText, { color: "#3B82F6" }]}>
+                    <Text
+                      style={[
+                        styles.xpText,
+                        { color: theme.colors.library.orange[600] },
+                      ]}
+                    >
                       {userProgress
                         ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
                         : "0 XP"}
@@ -531,12 +548,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
+  tileWrapper: {
+    flex: 1,
+  },
   bigCard: {
     flex: 1,
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
     justifyContent: "space-between",
+    width: "100%",
   },
   cardHeader: {
     flexDirection: "row",
