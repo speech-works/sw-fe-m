@@ -4,8 +4,8 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../../../components/BottomSheetModal"; // update the path as needed
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 
 interface SpeechToolsProps {
@@ -78,7 +78,11 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
         />
       </TouchableOpacity>
 
-      <BottomSheetModal visible={isVisible} onClose={closeModal}>
+      <BottomSheetModal
+        visible={isVisible}
+        onClose={closeModal}
+        showCloseButton={true}
+      >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>
             <Text style={styles.modalTiteText}>Speech Tools</Text>

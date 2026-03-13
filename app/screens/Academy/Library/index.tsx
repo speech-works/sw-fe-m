@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    LayoutAnimation,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    UIManager,
-    View,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  UIManager,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../components/ScreenView";
@@ -24,8 +24,8 @@ import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { getLibraryDetails } from "../../../api/library";
 import {
-    TECHNIQUES_ENUM,
-    TransformedTechnique
+  TECHNIQUES_ENUM,
+  TransformedTechnique,
 } from "../../../api/library/types";
 import { LibStackParamList } from "../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
@@ -147,7 +147,7 @@ const Library = () => {
           flat.push(...cat.techniques);
         });
         const unique = Array.from(
-          new Map(flat.map((item) => [item.id, item])).values()
+          new Map(flat.map((item) => [item.id, item])).values(),
         );
         setAllTechniques(unique);
       } catch (e) {
@@ -231,7 +231,7 @@ const Library = () => {
           (t) =>
             !searchText ||
             t.name.toLowerCase().includes(searchLower) ||
-            t.description.toLowerCase().includes(searchLower)
+            t.description.toLowerCase().includes(searchLower),
         )
         .filter((t) => {
           if (activeFilter === "ALL") return true;
@@ -402,7 +402,7 @@ const Library = () => {
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
@@ -435,7 +435,7 @@ const Library = () => {
       <BottomSheetModal
         visible={isSelectionModalVisible}
         onClose={() => setIsSelectionModalVisible(false)}
-        // maxHeight={undefined} // Allow full expansion
+        showCloseButton={true}
       >
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
@@ -447,8 +447,8 @@ const Library = () => {
               name={(() => {
                 const group = SLP_GROUPS.find((g) =>
                   g.techniqueIds.includes(
-                    selectedTechnique?.id as TECHNIQUES_ENUM
-                  )
+                    selectedTechnique?.id as TECHNIQUES_ENUM,
+                  ),
                 );
                 switch (group?.id) {
                   case "UNDERSTANDING":

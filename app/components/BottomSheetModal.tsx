@@ -6,7 +6,11 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
   View,
+  TouchableOpacity,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { theme } from "../Theme/tokens";
+import { parseShadowStyle } from "../util/functions/parseStyles";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -28,6 +32,10 @@ interface BottomSheetModalProps {
    * If true, displays a small drag indicator handle at the top of the modal.
    */
   showHandle?: boolean;
+  /**
+   * If true, displays a circular close button at the top right.
+   */
+  showCloseButton?: boolean;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
@@ -36,6 +44,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   children,
   maxHeight,
   showHandle = false,
+  showCloseButton = false,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isMounted, setIsMounted] = useState(visible);
@@ -99,6 +108,15 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           ]}
         >
           {showHandle && <View style={styles.handle} />}
+          {showCloseButton && (
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={theme.colors.text.title}
+              />
+            </TouchableOpacity>
+          )}
           {children}
         </Animated.View>
       </View>
@@ -135,5 +153,20 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 16,
     marginBottom: 8,
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 100,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
 });

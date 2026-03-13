@@ -359,7 +359,7 @@ const Preferences = () => {
         visible={isModalVisible}
         onClose={closeModal}
         maxHeight="70%"
-        showHandle={true}
+        showCloseButton={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>

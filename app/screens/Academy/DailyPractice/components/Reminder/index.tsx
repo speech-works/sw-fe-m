@@ -2,26 +2,26 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import Button from "../../../../../components/Button";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
-    ReminderType as StoreReminderType,
-    useReminderStore,
+  ReminderType as StoreReminderType,
+  useReminderStore,
 } from "../../../../../stores/reminders";
 import { theme } from "../../../../../Theme/tokens";
 import { registerForNotifications } from "../../../../../util/functions/notifications";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 
 interface ReminderProps {
@@ -75,7 +75,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
     if (!hasPermissions) {
       Alert.alert(
         "Permissions Required",
-        "Please enable notification permissions in your device settings."
+        "Please enable notification permissions in your device settings.",
       );
       return;
     }
@@ -86,7 +86,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
       selectedDate.getMonth(),
       selectedDate.getDate(),
       selectedTime.getHours(),
-      selectedTime.getMinutes()
+      selectedTime.getMinutes(),
     );
 
     if (
@@ -95,7 +95,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
     ) {
       Alert.alert(
         "Invalid Date/Time",
-        "One-time reminders must be in the future."
+        "One-time reminders must be in the future.",
       );
       return;
     }
@@ -164,6 +164,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
         visible={isVisible}
         onClose={closeModal}
         maxHeight="80%"
+        showCloseButton={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>
@@ -328,12 +329,6 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
               </View>
 
               <View style={styles.actionButtonsContainer}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={closeModal}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSaveReminder}

@@ -641,6 +641,7 @@ const PoemPractice = () => {
         visible={!!activeToolSheet}
         onClose={() => setActiveToolSheet(null)}
         maxHeight={500}
+        showCloseButton={true}
       >
         <ScrollView
           contentContainerStyle={styles.sheetContent}

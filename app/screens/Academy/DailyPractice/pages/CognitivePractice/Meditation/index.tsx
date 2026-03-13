@@ -585,10 +585,10 @@ const Meditation = () => {
         visible={isVisible}
         onClose={closeModal}
         maxHeight="80%"
+        showCloseButton={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <View style={styles.modalHandle} />
             <Text style={styles.modalTitleText}>Meditation Library</Text>
             <Text style={styles.modalSubtitleText}>
               Select a scenario to start your practice
@@ -885,15 +885,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 32, // Significant spacing
     marginTop: 16,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#CBD5E1", // Lighter handle
-    marginBottom: 24,
-    opacity: 0.6,
-    alignSelf: "center", // Keep handle centered
   },
   modalTitleText: {
     ...parseTextStyle(theme.typography.Heading1), // Heavy font

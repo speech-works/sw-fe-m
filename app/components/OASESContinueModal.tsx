@@ -25,7 +25,11 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
   }
 
   return (
-    <BottomSheetModal visible={visible} onClose={onSaveForLater}>
+    <BottomSheetModal
+      visible={visible}
+      onClose={onSaveForLater}
+      showCloseButton={true}
+    >
       <View style={styles.container}>
         {/* Celebration Icon */}
         <View style={styles.iconContainer}>
@@ -96,7 +100,7 @@ const styles = StyleSheet.create({
   remainingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.library.orange[50],
+    backgroundColor: theme.colors.library.orange[100],
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

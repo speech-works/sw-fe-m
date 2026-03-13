@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { theme } from "../../Theme/tokens";
+import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 
 // Domain config with descriptions and recommendations
@@ -196,8 +197,8 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <MaterialCommunityIcons
                   name="close"
-                  size={24}
-                  color={theme.colors.text.default}
+                  size={18}
+                  color={theme.colors.text.title}
                 />
               </TouchableOpacity>
             </View>
@@ -299,7 +300,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeBtn: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   body: {
     padding: 20,

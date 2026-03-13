@@ -130,7 +130,11 @@ const ExpressYourself = ({
 
   return (
     <View>
-      <BottomSheetModal visible={expressionType !== null} onClose={onClose}>
+      <BottomSheetModal
+        visible={expressionType !== null}
+        onClose={onClose}
+        showCloseButton={true}
+      >
         <LinearGradient
           colors={config.gradient}
           style={styles.container}

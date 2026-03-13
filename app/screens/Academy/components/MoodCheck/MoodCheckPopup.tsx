@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
   AcademyStackNavigationProp,
@@ -184,8 +185,12 @@ const MoodCheckPopup = () => {
 
             <View style={styles.header}>
               <Text style={styles.title}>How do you feel today?</Text>
-              <TouchableOpacity onPress={handleSkip} hitSlop={10}>
-                <Text style={styles.skipText}>Skip</Text>
+              <TouchableOpacity onPress={handleSkip} style={styles.closeBtn}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={18}
+                  color={theme.colors.library.gray[500]}
+                />
               </TouchableOpacity>
             </View>
 
@@ -262,10 +267,16 @@ const styles = StyleSheet.create({
     color: theme.colors.library.orange[800],
     fontSize: 24,
   },
-  skipText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.gray[500],
-    fontWeight: "600",
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   grid: {
     flexDirection: "row",

@@ -1,30 +1,30 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    RouteProp,
-    useFocusEffect,
-    useNavigation,
-    useRoute,
+  RouteProp,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
 } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import {
-    completeModule,
-    getModule,
-    getPack,
-    startModule,
+  completeModule,
+  getModule,
+  getPack,
+  startModule,
 } from "../../../api/packs";
 import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
@@ -33,8 +33,8 @@ import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpa
 import { useActivityStore } from "../../../stores/activity";
 import { theme } from "../../../Theme/tokens";
 import {
-    parseShadowStyle as parseStyleShadow,
-    parseTextStyle,
+  parseShadowStyle as parseStyleShadow,
+  parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
 import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
@@ -721,6 +721,7 @@ const PackModuleScreen = () => {
       <BottomSheetModal
         visible={showSkipConfirmation}
         onClose={() => setShowSkipConfirmation(false)}
+        showCloseButton={true}
       >
         <LinearGradient
           colors={["#FFF7ED", "#FFEDD5"]}

@@ -356,6 +356,7 @@ const SmartRecommendationCard = ({
       <BottomSheetModal
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
+        showCloseButton={true}
       >
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]}

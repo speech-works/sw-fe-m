@@ -117,13 +117,13 @@ const GlobalModal = () => {
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
       maxHeight={modalType === "upsell" ? "92%" : "55%"}
+      showCloseButton={true}
     >
       {modalType === "error" ? (
         <BgPattern_404 />
       ) : (
         <BgPattern_GradientSpheres />
       )}
-      <View style={styles.handle} />
       <View style={styles.modalContent}>
         <Text style={styles.modalTitle}>{modalTitle}</Text>
         <Text style={styles.modalMessage}>{modalMessage}</Text>
@@ -205,17 +205,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 96,
     paddingBottom: 40,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#E2E8F0",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginTop: 12,
-    position: "absolute",
-    top: 0,
-    zIndex: 10,
   },
   modalTitle: {
     color: theme.colors.text.title,

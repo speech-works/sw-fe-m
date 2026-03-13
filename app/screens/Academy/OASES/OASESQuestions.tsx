@@ -1,18 +1,19 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/Feather";
 import { getTodayOasesQuestions, submitOasesBatch } from "../../../api/oases";
 import {
-    OasesAnswerSubmission,
-    OasesDailyBatch,
+  OasesAnswerSubmission,
+  OasesDailyBatch,
 } from "../../../api/oases/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import Button from "../../../components/Button";
@@ -22,7 +23,10 @@ import ProgressBar from "../../../components/ProgressBar";
 import ScreenView from "../../../components/ScreenView";
 import { useOasesStore } from "../../../stores/oases";
 import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
 const OASESQuestions = () => {
   const navigation = useNavigation<any>();
@@ -179,9 +183,13 @@ const OASESQuestions = () => {
         <Text style={styles.headerTitle}>OASES Assessment</Text>
         <TouchableOpacity
           onPress={() => setIsStopModalVisible(true)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.closeBtn}
         >
-          <Icon name="x" size={24} color={theme.colors.text.default} />
+          <MaterialCommunityIcons
+            name="close"
+            size={18}
+            color={theme.colors.text.title}
+          />
         </TouchableOpacity>
       </View>
 
@@ -227,6 +235,7 @@ const OASESQuestions = () => {
       <BottomSheetModal
         visible={isStopModalVisible}
         onClose={() => setIsStopModalVisible(false)}
+        showCloseButton={true}
       >
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Stop Check-in?</Text>
@@ -280,6 +289,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   estimatedTime: {
     ...parseTextStyle(theme.typography.BodySmall),

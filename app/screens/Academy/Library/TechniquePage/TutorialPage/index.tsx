@@ -2,9 +2,9 @@
 
 import { theme } from "../../../../../Theme/tokens";
 import {
-    getGlimpseVideoUrl,
-    getPremiumVideoUrl,
-    getTutorialByTechnique,
+  getGlimpseVideoUrl,
+  getPremiumVideoUrl,
+  getTutorialByTechnique,
 } from "../../../../../api/library";
 import { TECHNIQUES_ENUM, Tutorial } from "../../../../../api/library/types";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
@@ -12,17 +12,17 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { VideoPlayer } from "../../../../../components/VideoPlayer";
 import {
-    LibStackNavigationProp,
-    LibStackParamList,
+  LibStackNavigationProp,
+  LibStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
 
@@ -31,7 +31,10 @@ interface TutorialPageProps {
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const TutorialPage = ({ techniqueId }: TutorialPageProps) => {
+const TutorialPage = ({
+  techniqueId,
+  setActiveStageIndex,
+}: TutorialPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { user } = useUserStore();

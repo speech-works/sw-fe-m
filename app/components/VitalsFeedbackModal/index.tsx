@@ -6,10 +6,15 @@ import {
   Modal,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../util/functions/parseStyles";
 import Button from "../Button";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -106,6 +111,13 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
             },
           ]}
         >
+          <TouchableOpacity onPress={onSkip} style={styles.closeBtn}>
+            <MaterialCommunityIcons
+              name="close"
+              size={18}
+              color={theme.colors.text.disabled}
+            />
+          </TouchableOpacity>
           {/* Header */}
           <Text style={styles.title}>How did it go? 🎉</Text>
           <Text style={styles.subtitle}>
@@ -263,6 +275,21 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    zIndex: 10,
   },
 });
 

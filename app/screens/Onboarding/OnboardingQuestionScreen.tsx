@@ -11,17 +11,18 @@ import OnboardingQuestion from "../../components/OnBoarding/OnboardingQuestion";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { theme } from "../../Theme/tokens";
+import { parseShadowStyle } from "../../util/functions/parseStyles";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
-    OnboardingStackNavigationProp,
-    OnboardingStackParamList,
-    OnboardingStackRouteProp,
+  OnboardingStackNavigationProp,
+  OnboardingStackParamList,
+  OnboardingStackRouteProp,
 } from "../../navigators/stacks/OnboardingStack/types";
 
 import {
-    getActiveOnboardingFlow,
-    submitOnboardingAnswers,
+  getActiveOnboardingFlow,
+  submitOnboardingAnswers,
 } from "../../api/onboarding";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
@@ -171,8 +172,8 @@ const OnboardingQuestionScreen: React.FC = () => {
   return (
     <ScreenView>
       {/* Skip Button */}
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Icon name="times" size={20} color={theme.colors.text.default} />
+      <TouchableOpacity style={styles.closeBtn} onPress={handleSkip}>
+        <Icon name="times" size={16} color={theme.colors.text.title} />
       </TouchableOpacity>
 
       <ProgressBar
@@ -236,12 +237,20 @@ const OnboardingQuestionScreen: React.FC = () => {
 export default OnboardingQuestionScreen;
 
 const styles = StyleSheet.create({
-  skipButton: {
+  closeBtn: {
     position: "absolute",
     top: 16,
     right: 16,
     zIndex: 10,
-    padding: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   scrollContent: {
     gap: 48,

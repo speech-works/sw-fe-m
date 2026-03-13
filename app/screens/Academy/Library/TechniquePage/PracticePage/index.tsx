@@ -1,25 +1,25 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    LayoutAnimation,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  LayoutAnimation,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 import { getAllExerciseItems } from "../../../../../api/library";
 import {
-    ExerciseItem,
-    TECHNIQUES_ENUM,
+  ExerciseItem,
+  TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { speakText } from "../../../../../util/functions/speak";
 
@@ -37,7 +37,10 @@ interface PracticePageProps {
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const PracticePage = () => {
+const PracticePage = ({
+  techniqueId,
+  setActiveStageIndex,
+}: PracticePageProps) => {
   // Data State
   const [exerciseItems, setExerciseItems] = useState<ExerciseItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -49,7 +52,7 @@ const PracticePage = () => {
 
   // Recorder State
   const [voiceRecordingUri, setVoiceRecordingUri] = useState<string | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -61,7 +64,7 @@ const PracticePage = () => {
 
   // Tool Hooks (for internal state management)
   const metronomeState = useMetronome(
-    selectedPracticeTool !== ToolType.METRONOME
+    selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
 
@@ -273,7 +276,7 @@ const PracticePage = () => {
                     style={[styles.dockItem, isActive && styles.dockItemActive]}
                     onPress={() => {
                       LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut
+                        LayoutAnimation.Presets.easeInEaseOut,
                       );
                       handleToolSelect(tool.id);
                     }}
@@ -301,7 +304,7 @@ const PracticePage = () => {
       <BottomSheetModal
         visible={!!activeToolSheet}
         onClose={() => setActiveToolSheet(null)}
-        maxHeight={500}
+        showCloseButton={true}
       >
         <ScrollView
           contentContainerStyle={styles.sheetContent}

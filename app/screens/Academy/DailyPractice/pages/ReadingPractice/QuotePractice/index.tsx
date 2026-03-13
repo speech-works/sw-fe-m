@@ -445,6 +445,7 @@ const QuotePractice = () => {
         visible={!!activeToolSheet}
         onClose={() => actions.setActiveToolSheet(null)}
         maxHeight={500}
+        showCloseButton={true}
       >
         <ScrollView
           contentContainerStyle={styles.sheetContent}

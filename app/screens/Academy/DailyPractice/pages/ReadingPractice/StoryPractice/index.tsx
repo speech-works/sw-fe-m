@@ -490,6 +490,7 @@ const StoryPractice = () => {
         visible={!!activeToolSheet}
         onClose={() => actions.setActiveToolSheet(null)}
         maxHeight={500} // Increased for better visibility
+        showCloseButton={true}
       >
         <ScrollView
           contentContainerStyle={styles.sheetContent}

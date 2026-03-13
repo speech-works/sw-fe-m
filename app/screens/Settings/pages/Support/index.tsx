@@ -144,7 +144,7 @@ const Support = () => {
         visible={isModalVisible}
         onClose={closeModal}
         maxHeight="90%"
-        showHandle={true}
+        showCloseButton={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalHeader: {
-    marginTop: 20,
+    marginTop: 56,
     marginBottom: 20,
     alignItems: "center",
     gap: 6,

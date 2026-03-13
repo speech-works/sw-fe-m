@@ -1,20 +1,15 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { TECHNIQUES_ENUM } from "../../../../api/library/types";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
 import ScreenView from "../../../../components/ScreenView";
 import {
-    LibStackNavigationProp,
-    LibStackParamList,
+  LibStackNavigationProp,
+  LibStackParamList,
 } from "../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
@@ -58,7 +53,7 @@ const getIconForTechnique = (id: string): string => {
 
   if (
     [TECHNIQUES_ENUM.YAWN_SIGH_TECHNIQUE, TECHNIQUES_ENUM.GLOTTAL_FRY].includes(
-      ID
+      ID,
     )
   )
     return "spa"; // Relaxation
@@ -74,13 +69,8 @@ const TechniquePage = () => {
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
 
   // @ts-ignore
-  const {
-    techniqueId,
-    techniqueName,
-    techniqueDesc,
-    stage,
-    hasFree,
-  } = route.params;
+  const { techniqueId, techniqueName, techniqueDesc, stage, hasFree } =
+    route.params;
 
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -233,7 +223,7 @@ const TechniquePage = () => {
       <BottomSheetModal
         visible={isModalVisible}
         onClose={closeModal}
-        // maxHeight="50%" // Removed to allow auto-height
+        showCloseButton={true}
       >
         {/* Reusing Premium Style for Info Modal as well */}
         <LinearGradient
@@ -289,7 +279,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16, // Adjust for header
+    paddingTop: 36, // Adjust for header
     gap: 16,
   },
   // Header
@@ -353,6 +343,7 @@ const styles = StyleSheet.create({
   // Modal Styles (Premium)
   modalGradientContainer: {
     padding: 32,
+    paddingTop: 56,
     alignItems: "center",
     paddingBottom: 48,
     borderTopLeftRadius: 32,
