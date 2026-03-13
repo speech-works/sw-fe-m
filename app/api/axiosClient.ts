@@ -9,6 +9,7 @@ import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { getUpdateTokenFn } from "../util/functions/authToken";
 import { dispatchCustomEvent } from "../util/functions/events";
+import { reviveDatesInObject } from "../util/functions/date";
 
 let isRefreshing = false;
 let failedQueue: any[] = [];
@@ -26,56 +27,7 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Helper function to convert ISO-like strings to Date objects
-// This is the core logic from our previous discussions, adjusted for robustness.
-const convertIsoLikeStringToDate = (dateString: string): Date | string => {
-  // Regex to extract YYYY-MM-DD HH:mm:ss part
-  const match = dateString.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
-  if (match && match[1]) {
-    // Convert to YYYY-MM-DDTHH:mm:ss for reliable parseISO
-    const isoLikeString = match[1].replace(" ", "T");
-    const parsedDate = parseISO(isoLikeString);
-    // Return the Date object if valid, otherwise return the original string
-    return isValid(parsedDate) ? parsedDate : dateString;
-  }
-  // If it doesn't match our expected format, return the original string
-  return dateString;
-};
-
-// Recursive function to deeply parse date strings in an object or array
-const parseDatesInObject = (obj: any): any => {
-  if (obj === null || typeof obj !== "object") {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => parseDatesInObject(item));
-  }
-
-  // Handle plain objects
-  const newObj: { [key: string]: any } = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      // Check if the value is a string that looks like our expected date format
-      // Adjust this regex if your backend might send other date string formats
-      if (
-        typeof value === "string" &&
-        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}( .+)?$/.test(value)
-      ) {
-        // Attempt to convert the date string, handling the " Timezone Name" part
-        newObj[key] = convertIsoLikeStringToDate(value);
-      } else if (typeof value === "object") {
-        // Recursively process nested objects/arrays
-        newObj[key] = parseDatesInObject(value);
-      } else {
-        // Keep other values as they are
-        newObj[key] = value;
-      }
-    }
-  }
-  return newObj;
-};
+// Local parsing logic removed in favor of util/functions/date.ts
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -131,7 +83,7 @@ axiosClient.interceptors.response.use(
     }
     // --- DATE PARSING HERE ---
     // ... existing error handling
-    response.data = parseDatesInObject(response.data);
+    response.data = reviveDatesInObject(response.data);
     return response;
   },
   async (error) => {

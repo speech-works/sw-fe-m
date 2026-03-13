@@ -60,9 +60,9 @@ const App: React.FC = () => {
       //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
       // );
       // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
-      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
-      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
-      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_TOUR);
+      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
+      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
+      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_TOUR);
       console.log(".................checkToken................");
       console.log("accessToken", accessToken);
       console.log("refreshToken", refreshToken);

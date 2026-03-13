@@ -1,7 +1,14 @@
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { TourGuideZone } from "rn-tourguide";
 import { getProgressToNextLevel } from "../../../../api/users";
@@ -55,7 +62,11 @@ const ResourceStats = ({
 }) => {
   const { user } = useUserStore();
   const isFocused = useIsFocused();
+  const navigation = useNavigation<any>();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
+  const [estimatedStamina, setEstimatedStamina] = React.useState<number>(
+    user?.currentStamina ?? 0,
+  );
 
   const userProgress = user
     ? getProgressToNextLevel(user.totalXp ?? 0)
@@ -64,39 +75,61 @@ const ResourceStats = ({
 
   const currentMaxStamina = user?.maxStaminaCap || 80;
 
-  const staminaPercentage = user
-    ? Math.round(((user.currentStamina ?? 0) / currentMaxStamina) * 100)
-    : 0;
+  const staminaPercentage = Math.min(
+    100,
+    Math.round((estimatedStamina / currentMaxStamina) * 100),
+  );
+
+  useEffect(() => {
+    if (user?.currentStamina !== undefined) {
+      setEstimatedStamina(user.currentStamina);
+    }
+  }, [user?.currentStamina]);
 
   useEffect(() => {
     if (
       !isFocused ||
       !user ||
+      !user.isPaid ||
       (user.currentStamina ?? 0) >= currentMaxStamina ||
       !user.lastStaminaUpdate
     ) {
       setRechargeTimeLeft("");
+      if (user?.currentStamina !== undefined) {
+        setEstimatedStamina(user.currentStamina);
+      }
       return;
     }
 
-    const updateTimer = () => {
+    const updateTimerAndEstimation = () => {
       const now = new Date().getTime();
       const lastUpdate = new Date(user.lastStaminaUpdate!).getTime();
-      const output = currentMaxStamina - (user.currentStamina ?? 0);
-      // Use dynamic recharge rate or fallback to 18 mins
       const RECHARGE_MS = user.staminaRegenRateMs || 18 * 60 * 1000;
 
-      // The time when we will reach currentMaxStamina
-      const targetTime = lastUpdate + output * RECHARGE_MS;
+      // Calculate how many points were recharged since lastUpdate
+      const msPassed = now - lastUpdate;
+      const pointsRecharged = Math.floor(msPassed / RECHARGE_MS);
+      const newEstimation = Math.min(
+        currentMaxStamina,
+        (user.currentStamina ?? 0) + pointsRecharged,
+      );
 
-      const diff = targetTime - now;
+      setEstimatedStamina(newEstimation);
 
-      if (diff <= 0) {
+      if (newEstimation >= currentMaxStamina) {
         setRechargeTimeLeft("");
         return;
       }
 
-      const totalSeconds = Math.floor(diff / 1000);
+      // Time for VERY NEXT point
+      const msUntilNextPoint = RECHARGE_MS - (msPassed % RECHARGE_MS);
+
+      // Time until FULL
+      const pointsToFull = currentMaxStamina - newEstimation;
+      const totalMsUntilFull =
+        (pointsToFull - 1) * RECHARGE_MS + msUntilNextPoint;
+
+      const totalSeconds = Math.floor(totalMsUntilFull / 1000);
       const h = Math.floor(totalSeconds / 3600);
       const m = Math.floor((totalSeconds % 3600) / 60);
       const s = totalSeconds % 60;
@@ -108,10 +141,10 @@ const ResourceStats = ({
       }
     };
 
-    updateTimer(); // Initial call
-    const interval = setInterval(updateTimer, 1000); // Live update
+    updateTimerAndEstimation(); // Initial call
+    const interval = setInterval(updateTimerAndEstimation, 1000); // Live update
     return () => clearInterval(interval);
-  }, [user?.currentStamina, user?.lastStaminaUpdate, isFocused]);
+  }, [user?.currentStamina, user?.lastStaminaUpdate, user?.isPaid, isFocused]);
 
   // SVG Config
   const size = 88; // Slightly larger
@@ -191,7 +224,20 @@ const ResourceStats = ({
                   <AnimatedBar percentage={staminaPercentage} color="#F97316" />
 
                   <View style={styles.energyFooter}>
-                    {staminaPercentage === 100 ? (
+                    {!user?.isPaid ? (
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate("PremiumModal")}
+                      >
+                        <Text
+                          style={[
+                            styles.footerText,
+                            { color: theme.colors.actionPrimary.default },
+                          ]}
+                        >
+                          Upgrade to regain stamina
+                        </Text>
+                      </TouchableOpacity>
+                    ) : staminaPercentage === 100 ? (
                       <Text style={styles.footerText}>Fully Charged</Text>
                     ) : (
                       <Text style={styles.footerText}>
