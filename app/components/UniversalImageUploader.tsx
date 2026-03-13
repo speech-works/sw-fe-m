@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    minHeight: 220,
+    minHeight: 180,
     borderRadius: 24,
     backgroundColor: "rgba(255,255,255,0.4)",
     borderWidth: 1.5,

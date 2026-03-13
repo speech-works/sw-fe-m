@@ -215,16 +215,23 @@ const Support = () => {
                   : "#FDF2F8";
 
               return (
-                <View
-                  style={[styles.modalHeader, { backgroundColor: headerBg }]}
+                <LinearGradient
+                  colors={[headerBg, "#FFF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.modalHeader}
                 >
+                  {/* Header Decorative Bubbles */}
+                  <View style={styles.modalHeaderBubble} />
+                  <View style={styles.modalHeaderBubbleSmall} />
+
                   <View
                     style={[styles.iconCircle, { backgroundColor: iconColor }]}
                   >
                     <Icon name={iconName} size={20} color="white" solid />
                   </View>
                   <Text style={styles.modalTitleText}>{openSettingType}</Text>
-                </View>
+                </LinearGradient>
               );
             })()}
 
@@ -403,12 +410,32 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 40, // Increased to clear handle
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: 44, // Increased to clear handle
+    paddingBottom: 24,
+    paddingHorizontal: 24,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    gap: 12,
+    gap: 16,
+    position: "relative",
+    overflow: "hidden",
+  },
+  modalHeaderBubble: {
+    position: "absolute",
+    top: -20,
+    right: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  modalHeaderBubbleSmall: {
+    position: "absolute",
+    bottom: -10,
+    left: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   iconCircle: {
     width: 44,

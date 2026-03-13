@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { createReportedIssue } from "../../../../api/settings/helpSupport";
 import UniversalImageUploader from "../../../../components/UniversalImageUploader";
@@ -82,6 +83,10 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
+        {/* Background Decorative Patterns */}
+        <View style={styles.bgBubble} pointerEvents="none" />
+        <View style={styles.bgBubbleSmall} pointerEvents="none" />
+
         {/* Issue Type */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>WHAT'S THE ISSUE?</Text>
@@ -92,15 +97,27 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
                 <TouchableOpacity
                   key={option.id}
                   onPress={() => setSelectedIssue(option)}
-                  activeOpacity={0.75}
-                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.chip,
+                    isSelected && styles.chipSelected,
+                    isSelected && { shadowColor: "#EA580C" },
+                  ]}
                 >
-                  <Icon
-                    name={option.icon}
-                    size={12}
-                    color={isSelected ? "#FFF" : "#64748B"}
-                    style={{ marginRight: 6 }}
-                  />
+                  <View
+                    style={[
+                      styles.chipIconBox,
+                      isSelected && {
+                        backgroundColor: "rgba(255,255,255,0.3)",
+                      },
+                    ]}
+                  >
+                    <Icon
+                      name={option.icon}
+                      size={10}
+                      color={isSelected ? "#FFF" : "#64748B"}
+                    />
+                  </View>
                   <Text
                     style={[
                       styles.chipText,
@@ -119,6 +136,11 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>DETAILS</Text>
           <View style={styles.inputCard}>
+            <BlurView
+              intensity={10}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
             <TextInput
               value={issueDesc}
               onChangeText={setIssueDesc}
@@ -132,18 +154,48 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           </View>
         </View>
 
-        {/* Device Info */}
-        <View style={styles.deviceInfoContainer}>
-          <Icon name="mobile-alt" size={14} color="#475569" />
-          <Text style={styles.deviceInfoText}>{deviceInfo}</Text>
-          <Icon name="check-circle" size={14} color="#10B981" solid />
+        {/* Device Info Card */}
+        <View style={styles.deviceCardWrapper}>
+          <LinearGradient
+            colors={["#F0FDF4", "#DCFCE7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.deviceCardGradient}
+          >
+            {/* Watermark Icon */}
+            <View style={styles.deviceWatermark}>
+              <Icon
+                name="mobile-alt"
+                size={80}
+                color="rgba(22, 163, 74, 0.08)"
+              />
+            </View>
+
+            {/* Decorative Bubbles */}
+            <View style={styles.deviceBubble} />
+
+            <View style={styles.deviceInfoRow}>
+              <View style={styles.deviceIconCircle}>
+                <Icon name="mobile-alt" size={12} color="#166534" />
+              </View>
+              <View style={styles.deviceTextCol}>
+                <Text style={styles.deviceInfoText}>{deviceInfo}</Text>
+                <Text style={styles.deviceStatusText}>
+                  System Diagnostics Verified
+                </Text>
+              </View>
+              <View style={styles.statusBadge}>
+                <Icon name="check-circle" size={14} color="white" solid />
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
-        {/* Screenshots Optional */}
+        {/* Screenshots */}
         <UniversalImageUploader
           images={screenshots}
           onChange={setScreenshots}
-          label="screenshots"
+          label="screenshots (optional)"
         />
 
         {/* CTA */}
@@ -202,30 +254,63 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
   },
 
+  // Background Patterns
+  bgBubble: {
+    position: "absolute",
+    top: 40,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 126, 0, 0.03)", // Very subtle orange
+  },
+  bgBubbleSmall: {
+    position: "absolute",
+    top: 300,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(0, 102, 255, 0.03)", // Very subtle blue
+  },
+
   // Chips
   chipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E2E8F0",
     ...parseShadowStyle(theme.shadow.elevation1),
+    shadowOpacity: 0.05,
   },
   chipSelected: {
     backgroundColor: "#EA580C",
     borderColor: "#EA580C",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chipIconBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
   },
   chipText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#64748B",
   },
   chipTextSelected: {
@@ -234,10 +319,10 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.8)",
     ...parseShadowStyle(theme.shadow.elevation1),
     overflow: "hidden",
   },
@@ -248,24 +333,86 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
     lineHeight: 22,
     ...Platform.select({ android: { textAlignVertical: "top" } }),
+    zIndex: 1,
   },
 
-  // Device Info
-  deviceInfoContainer: {
+  // Device Info Card
+  deviceCardWrapper: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.6)",
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: "hidden",
+  },
+  deviceCardGradient: {
+    padding: 24,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 100,
+    justifyContent: "center",
+  },
+  deviceWatermark: {
+    position: "absolute",
+    right: -10,
+    bottom: -25,
+    transform: [{ rotate: "15deg" }],
+  },
+  deviceBubble: {
+    position: "absolute",
+    top: -40,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+  },
+  deviceInfoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "#F0FDF4",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#DCFCE7",
+    gap: 18,
+    zIndex: 1,
+  },
+  deviceIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  deviceTextCol: {
+    flex: 1,
+    gap: 4,
   },
   deviceInfoText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "900",
     color: "#166534",
+    letterSpacing: -0.4,
+  },
+  deviceStatusText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#166534",
+    opacity: 0.5,
+    letterSpacing: 0.2,
+  },
+  statusBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
   },
 
   // CTA
