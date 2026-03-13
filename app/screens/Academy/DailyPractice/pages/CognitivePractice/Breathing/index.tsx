@@ -393,13 +393,9 @@ const Breathing = () => {
       useUserStore.getState().fetchUser();
       setCurrentActivity(startedActivity);
       setCurrentActivityId(activityIdToStart);
-    } catch (error) {
-      console.error("Failed to start activity:", error);
-      triggerToast(
-        "error",
-        "Failed to Start",
-        "We couldn't start this exercise. Please try again later.",
-      );
+    } catch (e) {
+      console.error("Failed to start activity", e);
+      throw e; // Re-throw to be handled by the caller
     }
   };
 
@@ -471,8 +467,6 @@ const Breathing = () => {
                       moduleId: packContext.moduleId,
                       initialBlockIndex: packContext.blockIndex,
                     });
-                  } else {
-                    setIsDone(true);
                   }
                 }
               } finally {
@@ -548,26 +542,18 @@ const Breathing = () => {
                 ]}
               />
             </View>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={markActivityStart}
-              style={[
-                styles.startButton,
-                { marginHorizontal: 20, marginTop: 10 },
-              ]}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.startButtonGradient}
-              >
-                <Text style={styles.startButtonText}>Start Exercise</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <Button
+              text="Start Exercise"
+              onPress={async () => {
+                try {
+                  await markActivityStart();
+                } catch (error) {
+                  console.error("Error starting breathing practice:", error);
+                  // Global stamina modal will be handled by the API layer event
+                }
+              }}
+              style={styles.startButton}
+            />
           </View>
         </CustomScrollView>
       </View>

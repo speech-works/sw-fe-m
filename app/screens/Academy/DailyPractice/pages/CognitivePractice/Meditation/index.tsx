@@ -278,11 +278,7 @@ const Meditation = () => {
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("Failed to start activity", e);
-      triggerToast(
-        "error",
-        "Failed to Start",
-        "We couldn't start this exercise. Please try again later.",
-      );
+      throw e; // Re-throw to handle in UI
     }
   };
 
@@ -378,10 +374,15 @@ const Meditation = () => {
   // ... (previous state variables remain if needed)
 
   const handleStart = async () => {
-    await markActivityStart();
-    setIsStarted(true);
-    setIsPlaying(true);
-    setProgress(0);
+    try {
+      await markActivityStart();
+      setIsStarted(true);
+      setIsPlaying(true);
+      setProgress(0);
+    } catch (error) {
+      console.error("Error starting meditation practice:", error);
+      // Global stamina modal will be handled by the API layer event
+    }
   };
 
   const handleComplete = async () => {

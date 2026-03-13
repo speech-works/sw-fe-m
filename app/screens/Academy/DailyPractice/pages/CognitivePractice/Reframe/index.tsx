@@ -179,11 +179,7 @@ const Reframe = () => {
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
       console.error("Failed to start activity", e);
-      triggerToast(
-        "error",
-        "Failed to Start",
-        "We couldn't start this exercise. Please try again later.",
-      );
+      throw e; // Re-throw to handle in UI
     }
   };
 
@@ -428,7 +424,14 @@ const Reframe = () => {
                 </Text>
                 <Button
                   text="Start Exercise"
-                  onPress={markActivityStart}
+                  onPress={async () => {
+                    try {
+                      await markActivityStart();
+                    } catch (error) {
+                      console.error("Error starting reframe practice:", error);
+                      // Global stamina modal will be handled by the API layer event
+                    }
+                  }}
                   style={styles.startButton}
                 />
               </View>
