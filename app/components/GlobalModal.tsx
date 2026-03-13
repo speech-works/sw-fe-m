@@ -8,7 +8,10 @@ import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../util/functions/parseStyles";
 import BottomSheetModal from "./BottomSheetModal";
 import { useTourGuideController } from "rn-tourguide";
 import { useNavigation } from "@react-navigation/native";
@@ -139,19 +142,28 @@ const GlobalModal = () => {
 
         {modalType === "upsell" && (
           <>
-            {/* Mini Pro Benefits */}
-            <View style={styles.upsellBenefits}>
+            {/* Value Proposition */}
+            <View style={styles.upsellBadge}>
+              <Text style={styles.upsellBadgeText}>MOST POPULAR</Text>
+            </View>
+
+            {/* Mini Pro Benefits - Pill Style */}
+            <View style={styles.upsellBenefitsGrid}>
               {[
-                "Break the Limit (No Caps)",
-                "Master the Real World",
-                "Personalized Roadmap",
-                "Expertise on Demand",
+                { label: "Break Daily Caps", icon: "infinity" },
+                { label: "AI Phone Calls", icon: "robot" },
+                { label: "Clinical Roadmap", icon: "map-check" },
+                { label: "Expert Tutorials", icon: "play-circle" },
               ].map((benefit, index) => (
-                <View key={index} style={styles.upsellBenefitRow}>
-                  <View style={styles.upsellCheckIcon}>
-                    <Icon name="check" size={8} color="#FFF" />
+                <View key={index} style={styles.upsellBenefitPill}>
+                  <View style={styles.pillIconBox}>
+                    <Icon
+                      name={benefit.icon}
+                      size={10}
+                      color={theme.colors.actionPrimary.default}
+                    />
                   </View>
-                  <Text style={styles.upsellBenefitText}>{benefit}</Text>
+                  <Text style={styles.upsellBenefitText}>{benefit.label}</Text>
                 </View>
               ))}
             </View>
@@ -172,7 +184,7 @@ const GlobalModal = () => {
                 style={styles.upsellButton}
               >
                 <Text style={styles.upsellButtonText}>
-                  Start My 7-Day Free Trial
+                  Unlock Your Full Potential
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -218,42 +230,63 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: "85%",
   },
-  upsellBenefits: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
+  upsellBadge: {
+    backgroundColor: "rgba(251, 146, 60, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  upsellBenefitRow: {
+  upsellBadgeText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.actionPrimary.default,
+    fontWeight: "800",
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  upsellBenefitsGrid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  upsellBenefitPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  upsellCheckIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: theme.colors.actionPrimary.default,
+  pillIconBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(251, 146, 60, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
   upsellBenefitText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.title,
-    fontWeight: "500",
+    fontWeight: "700",
+    fontSize: 12,
   },
   upsellButtonContainer: {
     width: "100%",
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
-    marginTop: 10,
+    marginTop: 8,
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   upsellButton: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -261,17 +294,19 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
     fontSize: 16,
+    fontWeight: "700",
   },
   trustRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 10,
+    marginTop: 4,
   },
   trustText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.text.disabled,
     fontSize: 10,
+    fontWeight: "500",
   },
 });

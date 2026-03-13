@@ -1,4 +1,7 @@
+import { Dimensions } from "react-native";
 import colors from "./colors";
+
+const { width, height } = Dimensions.get("window");
 
 export const mobileTypography = {
   Heading1: "700 32px/40px Inter_700Bold, sans-serif",
@@ -21,6 +24,10 @@ export const shadow = {
 };
 
 export const theme = {
+  dimensions: {
+    screenWidth: width,
+    screenHeight: height,
+  },
   shadow,
   colors: {
     background: {

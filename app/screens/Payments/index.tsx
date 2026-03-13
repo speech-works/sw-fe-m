@@ -2,7 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  Dimensions,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -27,14 +27,13 @@ export enum PAYMENT_PLAN_TYPE {
   ANNUALLY = 1,
 }
 
-const { width } = Dimensions.get("window");
-
 const SubscribeScreen = () => {
   const { user } = useUserStore();
   const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   const handlePayment = async () => {
     try {
@@ -136,46 +135,163 @@ const SubscribeScreen = () => {
       >
         {/* Hero Section */}
         <View style={styles.heroContainer}>
-          <View style={styles.crownIconContainer}>
-            <LinearGradient
-              colors={["#F59E0B", "#D97706"]}
-              style={styles.crownGradient}
-            >
-              <Icon name="crown" size={24} color="#FFF" solid />
-            </LinearGradient>
-          </View>
-          <Text style={styles.heroTitle}>Don’t Just Practice. Transform.</Text>
+          <Text style={styles.heroLabel}>PREMIUM ACCESS</Text>
+          <Text style={styles.heroTitle}>Transform Your Voice.</Text>
           <Text style={styles.heroSubtitle}>
-            Stop hitting walls and start breaking records. Unlock the full
-            clinical power of SpeechWorks today.
+            Unlock the clinically-proven power of SpeechWorks and turn your
+            limitations into strengths.
           </Text>
         </View>
 
-        {/* Emotional Narrative */}
-        <View style={styles.narrativeContainer}>
-          <Text style={styles.narrativeText}>
-            You’ve done the free version. You’ve seen the potential. But
-            progress shouldn't be limited by a timer. Premium isn't just a list
-            of features; it's the commitment you make to your future self.
-          </Text>
+        {/* Value Carousel (Replaces Table) */}
+        <View style={styles.carouselSection}>
+          <Text style={styles.carouselHeader}>Experience the Difference</Text>
+          <ScrollView
+            horizontal
+            pagingEnabled={false}
+            showsHorizontalScrollIndicator={false}
+            onScroll={(e) => {
+              const x = e.nativeEvent.contentOffset.x;
+              const snapInterval = theme.dimensions.screenWidth * 0.8 + 16;
+              const index = Math.round(x / snapInterval);
+              if (index !== carouselIndex) setCarouselIndex(index);
+            }}
+            scrollEventThrottle={16}
+            style={styles.carousel}
+            snapToInterval={theme.dimensions.screenWidth * 0.8 + 16}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            contentContainerStyle={{
+              paddingHorizontal:
+                (theme.dimensions.screenWidth -
+                  (theme.dimensions.screenWidth * 0.8 + 16)) /
+                  2 +
+                8,
+            }}
+          >
+            {[
+              {
+                label: "Perf. Intelligence",
+                free: "Limited",
+                pro: "Deep Audit",
+                icon: "chart-line",
+                desc: "Deep tracking across 5 clinical domains with weekly breakthrough reports.",
+              },
+              {
+                label: "Daily Activities",
+                free: "1 / Day",
+                pro: "No Limits",
+                icon: "calendar-check",
+                desc: "Progress shouldn't be gated. Practice as much as you need to reach your goals.",
+              },
+              {
+                label: "Real-World Mastery",
+                free: "Basic",
+                pro: "Full Access",
+                icon: "comment-alt",
+                desc: "Simulate pressure with AI phone calls and social challenge drills.",
+              },
+              {
+                label: "Stamina System",
+                free: "Static",
+                pro: "Smart Refill",
+                icon: "bolt",
+                desc: "Passive regeneration means you're always ready for a breakthrough.",
+              },
+              {
+                label: "Clinical Depth",
+                free: "Preview",
+                pro: "Full Access",
+                icon: "folder-open",
+                desc: "Unlock the entire library of 14+ clinical packs designed by SLP experts.",
+              },
+            ].map((slide, i) => (
+              <View key={i} style={styles.carouselSlide}>
+                <View style={styles.slideInner}>
+                  <View style={styles.watermarkContainer}>
+                    <Icon
+                      name={slide.icon}
+                      size={140}
+                      color={theme.colors.actionPrimary.default}
+                    />
+                  </View>
+                  <Text style={styles.slideTitle}>{slide.label}</Text>
+                  <Text style={styles.slideDesc}>{slide.desc}</Text>
+                  <View style={styles.slideGapBox}>
+                    <View style={styles.gapCol}>
+                      <Text style={styles.gapLabel}>FREE</Text>
+                      <Text
+                        style={styles.gapValue}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {slide.free}
+                      </Text>
+                    </View>
+                    <View style={styles.gapDivider} />
+                    <View style={styles.gapCol}>
+                      <Text
+                        style={[
+                          styles.gapLabel,
+                          { color: theme.colors.actionPrimary.default },
+                        ]}
+                      >
+                        PRO
+                      </Text>
+                      <Text
+                        style={[
+                          styles.gapValue,
+                          { color: theme.colors.text.title },
+                        ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {slide.pro}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Pagination Dots */}
+          <View style={styles.paginationDots}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  carouselIndex === i ? styles.activeDot : styles.inactiveDot,
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
-        {/* Benefits List */}
-        <View style={styles.benefitsContainer}>
-          {PREMIUM_FEATURES.map((feature, index) => (
-            <View key={index} style={styles.benefitRow}>
-              <View style={styles.checkIcon}>
-                <Icon name="check" size={10} color="#FFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.benefitText}>{feature.headline}</Text>
-                <Text style={styles.benefitSubtitle}>{feature.subtitle}</Text>
-              </View>
+        {/* Note from Therapists (Narrative) */}
+        <View style={styles.noteContainer}>
+          <View style={styles.noteHeader}>
+            <View style={styles.slpAvatar}>
+              <Icon name="user-md" size={14} color="#FFF" />
             </View>
-          ))}
+            <Text style={styles.noteHeaderText}>A Note from our SLPs</Text>
+          </View>
+          <Text style={styles.noteText}>
+            "We built Premium because progress shouldn't be limited by a timer.
+            It's the commitment you make to your future self—having the right
+            support when anxiety hits and the real data to prove you’re
+            winning."
+          </Text>
         </View>
 
         {/* Pricing Cards */}
+        <View style={styles.pricingHeader}>
+          <Text style={styles.pricingTitle}>Simple Pricing</Text>
+          <Text style={styles.pricingSubtitle}>
+            Choose the plan that fits your growth journey
+          </Text>
+        </View>
         <View style={styles.plansContainer}>
           {/* Annual Plan */}
           <TouchableOpacity
@@ -334,175 +450,296 @@ const styles = StyleSheet.create({
   // Hero
   heroContainer: {
     alignItems: "center",
-    marginBottom: 32,
-    marginTop: 100, // Added margin to clear header initially
+    marginBottom: 56,
+    marginTop: 80,
   },
-  crownIconContainer: {
-    marginBottom: 16,
-    borderRadius: 32, // Match the gradient's radius to fix square shadow
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  crownGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+  heroLabel: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.actionPrimary.default,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: 12,
   },
   heroTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 28,
-    textAlign: "center",
+    ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
-    marginBottom: 8,
+    textAlign: "center",
+    marginBottom: 16,
+    fontSize: 36,
   },
   heroSubtitle: {
     ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
     textAlign: "center",
-    color: theme.colors.text.default,
-    lineHeight: 22,
     paddingHorizontal: 10,
-  },
-  narrativeContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.library.orange[400],
-    paddingLeft: 16,
-  },
-  narrativeText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontStyle: "italic",
-    color: theme.colors.text.default,
-    fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 24,
     opacity: 0.8,
   },
 
-  // Benefits
-  benefitsContainer: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.8)",
+  // Carousel Section
+  carouselSection: {
+    marginBottom: 56,
+    overflow: "visible",
   },
-  benefitRow: {
+  carouselHeader: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  carousel: {
+    width: theme.dimensions.screenWidth,
+    alignSelf: "center",
+    paddingVertical: 32,
+    overflow: "visible",
+  },
+  carouselSlide: {
+    width: theme.dimensions.screenWidth * 0.8,
+    backgroundColor: "#FFF",
+    borderRadius: 32,
+    ...parseShadowStyle(theme.shadow.elevation3),
+    marginHorizontal: 8, // Half of 16px gap
+  },
+  slideInner: {
+    padding: 24,
+    alignItems: "center",
+    borderRadius: 32,
+    overflow: "hidden", // Clips watermark
+    width: "100%",
+  },
+  watermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    opacity: 0.05,
+    zIndex: -1,
+    transform: [{ rotate: "-15deg" }],
+  },
+  slideIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(251, 146, 60, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  slideTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 24,
+    color: theme.colors.text.title,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  slideDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    marginBottom: 28,
+    lineHeight: 22,
+    opacity: 0.8,
+  },
+  slideGapBox: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.library.gray[100],
+    borderRadius: 20,
+    padding: 12,
+    width: "100%",
+    alignItems: "flex-start",
+  },
+  gapCol: {
+    flex: 1,
+    alignItems: "center",
+  },
+  gapLabel: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontWeight: "800",
+    color: theme.colors.text.disabled,
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  gapValue: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 15,
+    color: theme.colors.text.disabled,
+  },
+  gapDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: theme.colors.library.gray[200],
+    marginHorizontal: 12,
+  },
+  paginationDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 24,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+  },
+  activeDot: {
+    width: 24,
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+  inactiveDot: {
+    width: 8,
+    backgroundColor: theme.colors.library.gray[300],
+  },
+
+  // Note from SLPs
+  noteContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 24,
+    padding: 28, // Increased
+    marginBottom: 64, // Increased
+    borderStyle: "dashed",
+    borderWidth: 1.5,
+    borderColor: theme.colors.actionPrimary.default,
+  },
+
+  noteHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 12,
   },
-  checkIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  slpAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: theme.colors.actionPrimary.default,
     alignItems: "center",
     justifyContent: "center",
   },
-  benefitText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: "600",
+  noteHeaderText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "700",
+    color: theme.colors.actionPrimary.default,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  benefitSubtitle: {
+  noteText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontStyle: "italic",
+    color: theme.colors.text.title,
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+
+  // Pricing Header
+  pricingHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  pricingTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    marginBottom: 4,
+  },
+  pricingSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
+    opacity: 0.7,
   },
 
   // Plans
   plansContainer: {
     gap: 16,
+    marginBottom: 40,
   },
   planCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     backgroundColor: "#FFF",
     borderWidth: 2,
-    padding: 20,
+    padding: 24,
     position: "relative",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    // overflow: "hidden" REMOVED to allow badge to hang out
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   activePlanCard: {
     borderColor: theme.colors.actionPrimary.default,
-    backgroundColor: "#FFF7ED", // Very light orange tint
+    backgroundColor: "#FFF7ED",
   },
   inactivePlanCard: {
-    borderColor: theme.colors.library.gray[200], // Subtle grey border instead of transparent
+    borderColor: theme.colors.library.gray[200],
     backgroundColor: "#FFF",
   },
   bestValueBadge: {
     position: "absolute",
     top: -12,
-    right: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    right: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 100,
   },
   bestValueText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: "#FFF",
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 10,
+    letterSpacing: 0.5,
   },
   cardContent: {
     flexDirection: "row",
-    gap: 16,
+    gap: 20,
     alignItems: "center",
   },
   radioCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2.5,
     borderColor: theme.colors.library.gray[300],
     alignItems: "center",
     justifyContent: "center",
   },
   radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: theme.colors.actionPrimary.default,
   },
   planHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   planName: {
     ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
+    fontSize: 20,
     color: theme.colors.text.title,
   },
   savingsTag: {
     backgroundColor: "#DEF7EC",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   savingsText: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "800",
     color: "#03543F",
+    letterSpacing: 0.5,
   },
   planDescription: {
-    ...parseTextStyle(theme.typography.Body),
+    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontSize: 22,
+    marginTop: 4,
   },
   planMath: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
+    color: theme.colors.text.default,
+    opacity: 0.6,
+    marginTop: 2,
   },
   strikeThrough: {
     textDecorationLine: "line-through",
     color: theme.colors.text.disabled,
+    fontWeight: "400",
+    fontSize: 16,
   },
 
   // Footer
@@ -511,44 +748,39 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 44,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    borderTopColor: "rgba(0,0,0,0.06)",
+    ...parseShadowStyle(theme.shadow.elevation4),
   },
   upgradeButton: {
-    borderRadius: 16,
-    marginBottom: 12,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    borderRadius: 20,
+    marginBottom: 16,
+    ...parseShadowStyle(theme.shadow.elevation3),
     overflow: "hidden",
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  gradientButton: {
     paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
   upgradeButtonText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
     fontSize: 18,
+    fontWeight: "700",
   },
   trustRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 8,
   },
   trustText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.text.disabled,
+    fontWeight: "500",
   },
 });

@@ -51,38 +51,39 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
       onLayout={(event) => {
         if (onLayoutCapture) onLayoutCapture(event);
       }}
-      colors={[
-        "#F472B6",
-        theme.colors.library.orange[400],
-        theme.colors.library.orange[500],
-      ]} // Pink -> Orange -> Darker Orange
+      colors={["#1E1B4B", "#312E81", "#1E1B4B"]} // Deep indigo / Midnight blue
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
+      {/* Decorative Glow */}
+      <View style={styles.glowOrb} />
+
       {/* Badge */}
       <View style={styles.badgeContainer}>
-        <Icon
-          name="star-four-points"
-          size={12}
-          color={theme.colors.library.orange[500]}
-        />
-        <Text style={styles.badgeText}>{copy.badge}</Text>
+        <Icon name="crown" size={12} color="#F59E0B" />
+        <Text style={styles.badgeText}>EXCLUSIVE OFFER</Text>
       </View>
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{copy.title}</Text>
-        <Text style={styles.subtitle}>{copy.subtitle}</Text>
+        <Text style={styles.title}>Go Premium.</Text>
+        <Text style={styles.subtitle}>
+          Remove limits and unlock your true potential with clinical-grade
+          tools.
+        </Text>
       </View>
 
-      {/* Benefits List */}
-      <View style={styles.benefitsContainer}>
-        {benefits.map((benefit, index) => (
-          <View key={index} style={styles.benefitRow}>
-            <View style={styles.iconContainer}>
-              <Icon name={benefit.icon} size={14} color="#4F46E5" />
-            </View>
+      {/* Benefits Grid (Compact) */}
+      <View style={styles.benefitsGrid}>
+        {benefits.slice(0, 3).map((benefit, index) => (
+          <View key={index} style={styles.benefitItem}>
+            <Icon
+              name={benefit.icon}
+              size={14}
+              color="#FFF"
+              style={{ opacity: 0.8 }}
+            />
             <Text style={styles.benefitText}>{benefit.text}</Text>
           </View>
         ))}
@@ -95,16 +96,12 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
         onPress={() => navigation.navigate("PremiumModal" as any)}
       >
         <LinearGradient
-          colors={["#FFFFFF", "#F9FAFB"]}
+          colors={["#F59E0B", "#D97706"]}
           style={styles.ctaGradient}
         >
-          <Text style={styles.ctaText}>{copy.cta}</Text>
+          <Text style={styles.ctaText}>Explore Premium</Text>
         </LinearGradient>
       </TouchableOpacity>
-
-      <Text style={styles.disclaimer}>
-        Join 1,000+ early members • Cancel anytime
-      </Text>
     </LinearGradient>
   );
 };
@@ -114,101 +111,93 @@ export default React.memo(BuyPro);
 const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 32, // More vertical breathing room
-    ...parseShadowStyle(theme.shadow.elevation2),
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    ...parseShadowStyle(theme.shadow.elevation4),
     position: "relative",
     overflow: "hidden",
-    gap: 24, // increased gap between sections
+    gap: 20,
+  },
+  glowOrb: {
+    position: "absolute",
+    top: -40,
+    right: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    filter: "blur(20px)",
   },
   badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
     gap: 6,
-    marginBottom: 8, // slight increase
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.2)",
   },
   badgeText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    fontWeight: "800",
-    color: theme.colors.text.title,
+    fontWeight: "900",
+    color: "#F59E0B",
     fontSize: 10,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   header: {
-    gap: 12, // increased gap
+    gap: 8,
   },
   title: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#FFFFFF",
     fontSize: 28,
-    fontWeight: "800",
-    lineHeight: 34,
+    fontWeight: "900",
   },
   subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 15,
-    lineHeight: 22,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    lineHeight: 20,
   },
-  benefitsContainer: {
-    gap: 16, // More space between benefits
-    marginTop: 12,
-  },
-  benefitRow: {
+  benefitsGrid: {
     flexDirection: "row",
-    alignItems: "center", // Revert to center for better visual alignment
-    gap: 16,
-    width: "100%",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 8,
   },
-  iconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
+  benefitItem: {
+    flexDirection: "row",
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    // Removed marginTop so it centers perfectly
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   benefitText: {
-    ...parseTextStyle(theme.typography.Body),
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: "#FFFFFF",
     fontWeight: "600",
-    fontSize: 15,
-    flex: 1, // Take remaining space
-    flexShrink: 1, // Force wrap if too long
-    lineHeight: 22, // Ensure readability for multi-line
+    fontSize: 12,
   },
   ctaButton: {
-    marginTop: 24, // Isolating CTA
+    marginTop: 12,
     borderRadius: 100,
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    ...parseShadowStyle(theme.shadow.elevation3),
   },
   ctaGradient: {
-    paddingVertical: 18,
-    flexDirection: "row",
-    justifyContent: "center",
+    paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
   ctaText: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: "#DB2777",
-    fontSize: 18,
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "800",
-  },
-  disclaimer: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-    marginTop: 4, // Positive margin for breathing room
-    fontSize: 12,
-    fontWeight: "500",
   },
 });
