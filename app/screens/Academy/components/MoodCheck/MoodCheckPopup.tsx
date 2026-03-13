@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
 import {
+  Animated,
   Dimensions,
   Modal,
   Pressable,
@@ -61,6 +62,8 @@ const emotions = [
   },
 ];
 
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 const MoodCheckPopup = () => {
   const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
     useMoodCheckStore();
@@ -69,22 +72,17 @@ const MoodCheckPopup = () => {
   const [visible, setVisible] = React.useState(false);
   const [canAnimate, setCanAnimate] = React.useState(false);
 
+  const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
+  const [isMounted, setIsMounted] = React.useState(false);
+
   useEffect(() => {
     // Wait for hydration
     if (!_hasHydrated) {
-      console.log("MoodCheck - Waiting for Hydration");
       return;
     }
 
     const today = getLocalTodayDateString();
-
-    console.log("MoodCheck Check:", {
-      _hasHydrated,
-      hasRecordedToday,
-      lastPopupDate,
-      today,
-      shouldShow: !hasRecordedToday && lastPopupDate !== today,
-    });
 
     // Show if:
     // 1. Not recorded today
@@ -92,11 +90,46 @@ const MoodCheckPopup = () => {
     if (!hasRecordedToday && lastPopupDate !== today) {
       const timer = setTimeout(() => {
         setVisible(true);
-        setTimeout(() => setCanAnimate(true), 400); // 400ms delay after modal appears for smooth slide
       }, 500);
       return () => clearTimeout(timer);
     }
   }, [hasRecordedToday, lastPopupDate, _hasHydrated]);
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCanAnimate(true);
+      });
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsMounted(false);
+        setCanAnimate(false);
+      });
+    }
+  }, [visible]);
 
   const handleSkip = () => {
     setPopupShown(); // Mark as shown for today
@@ -116,19 +149,28 @@ const MoodCheckPopup = () => {
     });
   };
 
-  if (!visible) return null;
+  if (!isMounted) return null;
 
   return (
     <Modal
       transparent
-      visible={visible}
-      animationType="slide"
+      visible={isMounted}
+      animationType="none"
       onRequestClose={handleSkip}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={handleSkip} />
-        <View style={styles.container}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: "rgba(0,0,0,0.5)", opacity: opacityAnim },
+          ]}
+        >
+          <Pressable style={{ flex: 1 }} onPress={handleSkip} />
+        </Animated.View>
+        <Animated.View
+          style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+        >
           <LinearGradient
             colors={[
               theme.colors.library.orange[100],
@@ -173,7 +215,7 @@ const MoodCheckPopup = () => {
               ))}
             </View>
           </LinearGradient>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -185,7 +227,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "transparent",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,

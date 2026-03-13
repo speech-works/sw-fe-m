@@ -748,7 +748,7 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
                   Object.keys(METRIC_CONFIG) as ClinicalDomain[]
                 ).find((d) => METRIC_CONFIG[d].profileKey === key);
                 const config = domain ? METRIC_CONFIG[domain] : null;
-                return { data, config };
+                return { data, config, domain };
               };
 
               const heroItem = getItem(topKey);
@@ -756,8 +756,13 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
               return (
                 <View style={styles.heroChartContainer}>
                   {/* Left Col: Hero Card */}
-                  {heroItem.data && heroItem.config && (
-                    <View
+                  {heroItem.data && heroItem.config && heroItem.domain && (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setSelectedMetric(heroItem.domain as ClinicalDomain);
+                        setModalVisible(true);
+                      }}
                       style={[
                         styles.miniCard,
                         styles.heroCard,
@@ -817,19 +822,24 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
                           </View>
                         )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   )}
 
                   {/* Bottom Row: 2 Mini Cards Side-by-Side */}
                   <View style={{ flexDirection: "row", gap: 12 }}>
                     {secondaryKeys.map((key) => {
-                      const { data, config } = getItem(key);
-                      if (!data || !config) return null;
+                      const { data, config, domain } = getItem(key);
+                      if (!data || !config || !domain) return null;
                       const isImp = data.trend === "IMPROVING";
 
                       return (
-                        <View
+                        <TouchableOpacity
                           key={key}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setSelectedMetric(domain);
+                            setModalVisible(true);
+                          }}
                           style={[
                             styles.miniCard,
                             {
@@ -915,7 +925,7 @@ const ClinicalStatsWidget = ({ onLayoutCapture }: ClinicalStatsWidgetProps) => {
                               {Math.round(data.current)}
                             </Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </View>

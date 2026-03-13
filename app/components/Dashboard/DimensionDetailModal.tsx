@@ -1,12 +1,13 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { theme } from "../../Theme/tokens";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
@@ -84,6 +85,8 @@ const DIMENSION_CONFIG: Record<
   },
 };
 
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 interface DimensionDetailModalProps {
   visible: boolean;
   domain: ClinicalDomain | null;
@@ -101,7 +104,44 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   trend,
   onClose,
 }) => {
-  if (!domain) return null;
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [isMounted, setIsMounted] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsMounted(false);
+      });
+    }
+  }, [visible]);
+
+  if (!isMounted || !domain) return null;
 
   const config = DIMENSION_CONFIG[domain];
   const trendIcon =
@@ -119,17 +159,23 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={isMounted}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.modalContainer}>
+      <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
           <TouchableOpacity activeOpacity={1}>
             {/* Header */}
             <View
@@ -211,8 +257,8 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               <Text style={styles.doneButtonText}>Got it</Text>
             </TouchableOpacity>
           </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };

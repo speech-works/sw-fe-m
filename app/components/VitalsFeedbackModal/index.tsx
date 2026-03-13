@@ -1,9 +1,18 @@
 import Slider from "@react-native-community/slider";
-import React, { useState } from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import Button from "../Button";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface VitalsFeedbackModalProps {
   visible: boolean;
@@ -26,6 +35,43 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
   const [autonomy, setAutonomy] = useState(60);
   const [accuracy, setAccuracy] = useState(60);
 
+  const [isMounted, setIsMounted] = useState(false);
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current; // Subtle slide up
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.parallel([
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 20,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsMounted(false);
+      });
+    }
+  }, [visible]);
+
   const handleSubmit = () => {
     const vitals = {
       effortScore: Math.round(effort),
@@ -35,15 +81,31 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
     onSubmit(vitals);
   };
 
+  if (!isMounted) return null;
+
   return (
     <Modal
-      visible={visible}
+      visible={isMounted}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onSkip}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+      <View style={styles.container}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: "rgba(0,0,0,0.5)", opacity: opacityAnim },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              opacity: opacityAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
           {/* Header */}
           <Text style={styles.title}>How did it go? 🎉</Text>
           <Text style={styles.subtitle}>
@@ -124,16 +186,15 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
               style={styles.submitButton}
             />
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
