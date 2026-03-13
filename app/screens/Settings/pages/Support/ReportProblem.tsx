@@ -137,7 +137,7 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           <Text style={styles.sectionLabel}>DETAILS</Text>
           <View style={styles.inputCard}>
             <BlurView
-              intensity={10}
+              intensity={20}
               tint="light"
               style={StyleSheet.absoluteFill}
             />
@@ -153,6 +153,13 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
             />
           </View>
         </View>
+
+        {/* Screenshots */}
+        <UniversalImageUploader
+          images={screenshots}
+          onChange={setScreenshots}
+          label="screenshots (optional)"
+        />
 
         {/* Device Info Card */}
         <View style={styles.deviceCardWrapper}>
@@ -190,13 +197,6 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
             </View>
           </LinearGradient>
         </View>
-
-        {/* Screenshots */}
-        <UniversalImageUploader
-          images={screenshots}
-          onChange={setScreenshots}
-          label="screenshots (optional)"
-        />
 
         {/* CTA */}
         <TouchableOpacity
@@ -286,9 +286,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "rgba(0,0,0,0.05)",
     ...parseShadowStyle(theme.shadow.elevation1),
     shadowOpacity: 0.05,
   },
@@ -319,11 +319,11 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.8)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseShadowStyle(theme.shadow.elevation2),
     overflow: "hidden",
   },
   input: {

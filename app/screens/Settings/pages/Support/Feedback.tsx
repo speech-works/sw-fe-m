@@ -59,7 +59,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           <Text style={styles.sectionLabel}>FEATURE REQUESTS</Text>
           <View style={styles.inputCard}>
             <BlurView
-              intensity={10}
+              intensity={20}
               tint="light"
               style={StyleSheet.absoluteFill}
             />
@@ -81,7 +81,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           <Text style={styles.sectionLabel}>FRUSTRATIONS</Text>
           <View style={styles.inputCard}>
             <BlurView
-              intensity={10}
+              intensity={20}
               tint="light"
               style={StyleSheet.absoluteFill}
             />
@@ -103,7 +103,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           <Text style={styles.sectionLabel}>OTHER THOUGHTS</Text>
           <View style={styles.inputCard}>
             <BlurView
-              intensity={10}
+              intensity={20}
               tint="light"
               style={StyleSheet.absoluteFill}
             />
@@ -217,11 +217,11 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.8)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseShadowStyle(theme.shadow.elevation2),
     overflow: "hidden",
   },
   input: {
@@ -236,13 +236,13 @@ const styles = StyleSheet.create({
 
   // Toggle
   toggleCard: {
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderColor: "rgba(0,0,0,0.05)",
     padding: 20,
     gap: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   toggleRow: {
     flexDirection: "row",
