@@ -37,13 +37,13 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
     cta: "Upgrade to Pro",
   };
 
-  // MAPPED BENEFITS (Simple & Desirable)
+  // MAPPED BENEFITS (High-Converting Short Copy)
   const benefits = [
-    { text: "Unlimited Practice (No Daily Limits)", icon: "infinity" },
-    { text: "Join the Inner Circle (Community Access)", icon: "account-group" }, // Big selling point
-    { text: "Unlock All 4 Territories", icon: "map-legend" }, // Fits "World" theme
-    { text: "Access Every Exercise & Game", icon: "lock-open-variant" },
-    { text: "Practice Anytime (Never Wait)", icon: "clock-fast" },
+    { text: "Break the Limit (No Daily Caps)", icon: "infinity" },
+    { text: "Master the Real World (AI Calls)", icon: "robot" },
+    { text: "Your Personalized Roadmap", icon: "map-check" },
+    { text: "See the Unseen Progress", icon: "chart-line" },
+    { text: "Expertise on Demand (All Tutorials)", icon: "play-circle" },
   ];
 
   return (

@@ -142,10 +142,10 @@ const GlobalModal = () => {
             {/* Mini Pro Benefits */}
             <View style={styles.upsellBenefits}>
               {[
-                "Unlimited AI Speech Analysis",
-                "Deep Performance Analytics",
-                "Personalized Growth Plan",
-                "Exclusive Pro Content",
+                "Break the Limit (No Caps)",
+                "Master the Real World",
+                "Personalized Roadmap",
+                "Expertise on Demand",
               ].map((benefit, index) => (
                 <View key={index} style={styles.upsellBenefitRow}>
                   <View style={styles.upsellCheckIcon}>

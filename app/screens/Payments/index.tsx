@@ -20,6 +20,7 @@ import {
   parseTextStyle,
 } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
+import { PREMIUM_FEATURES } from "./constants";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -143,26 +144,33 @@ const SubscribeScreen = () => {
               <Icon name="crown" size={24} color="#FFF" solid />
             </LinearGradient>
           </View>
-          <Text style={styles.heroTitle}>Unlock Your Full Potential</Text>
+          <Text style={styles.heroTitle}>Don’t Just Practice. Transform.</Text>
           <Text style={styles.heroSubtitle}>
-            Stop guessing. Start improving. Get the AI advantage to master your
-            speech today.
+            Stop hitting walls and start breaking records. Unlock the full
+            clinical power of SpeechWorks today.
+          </Text>
+        </View>
+
+        {/* Emotional Narrative */}
+        <View style={styles.narrativeContainer}>
+          <Text style={styles.narrativeText}>
+            You’ve done the free version. You’ve seen the potential. But
+            progress shouldn't be limited by a timer. Premium isn't just a list
+            of features; it's the commitment you make to your future self.
           </Text>
         </View>
 
         {/* Benefits List */}
         <View style={styles.benefitsContainer}>
-          {[
-            "Unlimited AI Speech Analysis",
-            "Deep Performance Analytics",
-            "Personalized Growth Plan",
-            "Exclusive Pro Content",
-          ].map((benefit, index) => (
+          {PREMIUM_FEATURES.map((feature, index) => (
             <View key={index} style={styles.benefitRow}>
               <View style={styles.checkIcon}>
                 <Icon name="check" size={10} color="#FFF" />
               </View>
-              <Text style={styles.benefitText}>{benefit}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.benefitText}>{feature.headline}</Text>
+                <Text style={styles.benefitSubtitle}>{feature.subtitle}</Text>
+              </View>
             </View>
           ))}
         </View>
@@ -355,6 +363,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     paddingHorizontal: 10,
   },
+  narrativeContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.library.orange[400],
+    paddingLeft: 16,
+  },
+  narrativeText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontStyle: "italic",
+    color: theme.colors.text.default,
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
 
   // Benefits
   benefitsContainer: {
@@ -382,7 +405,14 @@ const styles = StyleSheet.create({
   benefitText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  benefitSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
   },
 
   // Plans
