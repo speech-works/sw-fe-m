@@ -83,7 +83,11 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
     const dataMap = new Map();
     weeklyData.forEach((d) => {
-      const dateStr = d.date.split("T")[0];
+      // Handle both string and Date objects (axios auto-revival)
+      const dateStr =
+        typeof d.date === "string"
+          ? d.date.split("T")[0]
+          : d.date.toISOString().split("T")[0];
       dataMap.set(dateStr, d.totalTime);
     });
 

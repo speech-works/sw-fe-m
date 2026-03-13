@@ -5,8 +5,8 @@ export type PracticeStatSummary = {
 };
 
 export type WeeklyStat = {
-  /** Local‐timezone ISO date at 00:00 for each day */
-  date: string;
+  /** Local‐timezone ISO date at 00:00 for each day or Date object */
+  date: string | Date;
   /** Total minutes for that day */
   totalTime: number;
 };
