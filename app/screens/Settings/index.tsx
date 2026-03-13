@@ -164,7 +164,7 @@ const Settings = () => {
 
           {/* Aurora Glass Identity Card (Concept A) */}
           <LinearGradient
-            colors={["#22d3ee", "#60a5fa", "#818cf8"]} // Cyan -> Blue -> Indigo
+            colors={["#0EA5E9", "#2563EB", "#312E81"]} // Sky -> Royal -> Deep Indigo
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.profileSection}
@@ -172,6 +172,15 @@ const Settings = () => {
             {/* Mesh Glow Blobs */}
             <View style={styles.bubbleTopRight} />
             <View style={styles.bubbleBottomLeft} />
+
+            {/* Subtle Watermark */}
+            <View style={styles.profileWatermark}>
+              <MaterialCommunityIcons
+                name="shield-star-outline"
+                size={140}
+                color="rgba(255, 255, 255, 0.06)"
+              />
+            </View>
 
             <View style={styles.profileContent}>
               <View style={styles.imageContainer}>
@@ -352,33 +361,38 @@ const styles = StyleSheet.create({
   },
   // Aurora Glass Card Styles
   profileSection: {
+    marginTop: 10,
     marginBottom: 24,
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    overflow: "hidden", // Clip bubbles
-    position: "relative",
-    // No bg color here, strictly gradient
+    borderRadius: 32,
+    overflow: "hidden", // Clip internal layout-bubbles
+    ...parseShadowStyle(theme.shadow.elevation3),
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.25,
+  },
+  profileWatermark: {
+    position: "absolute",
+    left: -20,
+    bottom: -30,
+    transform: [{ rotate: "15deg" }],
   },
   // Mesh Glow Blobs
   bubbleTopRight: {
     position: "absolute",
     top: -40,
-    right: -40,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "#FFFFFF",
-    opacity: 0.2, // Subtle white glow
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
   },
   bubbleBottomLeft: {
     position: "absolute",
-    bottom: -20,
-    left: -20,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#C2410C", // Deep Orange (700)
-    opacity: 0.4, // Deep warm glow
+    bottom: -50,
+    left: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   profileContent: {
     padding: 24,
@@ -396,7 +410,7 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     backgroundColor: "#E2E8F0",
     borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.2)", // Glassy halo
+    borderColor: "rgba(255,255,255,0.25)", // Glassy halo
   },
   onlineBadge: {
     position: "absolute",
@@ -407,7 +421,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#10B981", // Green
     borderWidth: 3,
-    borderColor: "#FB923C", // Match Gradient (Orange 400)
+    borderColor: "#2563EB", // Match Sapphire Blue (Royal)
   },
   centerInfo: {
     alignItems: "center",
