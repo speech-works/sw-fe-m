@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useState } from "react";
 import {
   Dimensions,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,95 +24,86 @@ const FACE_SIZE = width * 0.55;
 const FlipDigit = ({ digit }: { digit: string }) => (
   <View style={styles.digitBox}>
     <Text style={styles.digitText}>{digit}</Text>
+    <View style={styles.digitDivider} />
   </View>
 );
 
 const AnimatedCounter = () => {
-  const [count, setCount] = useState(2847);
+  const [count, setCount] = useState(3142);
 
   useFocusEffect(
     useCallback(() => {
       const interval = setInterval(() => {
-        setCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-      }, 4000);
+        setCount((prev) => prev + Math.floor(Math.random() * 2) + 1);
+      }, 5000);
       return () => clearInterval(interval);
     }, []),
   );
 
-  const countString = count.toLocaleString().replace(/,/g, "");
+  const countString = count.toLocaleString().padStart(5, "0");
   const digits = countString.split("");
 
   return (
     <View style={styles.counterCard}>
       <LinearGradient
-        colors={["#FFF7ED", "#FFE4E6", "#FFEEF8"]} // Peach → Pink → Lavender
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.03)"]}
         style={styles.counterGradient}
       >
-        <Text style={styles.counterTitle}>FOUNDING MEMBERS WAITING</Text>
-
+        <Text style={styles.counterTitle}>FOUNDING MEMBERS SECURED</Text>
         <View style={styles.digitsContainer}>
           {digits.map((digit, index) => (
             <FlipDigit key={index} digit={digit} />
           ))}
         </View>
-
-        <Text style={styles.counterLabel}>
-          future leaders joining the revolution
-        </Text>
+        <Text style={styles.counterLabel}>future leaders in wait</Text>
       </LinearGradient>
     </View>
   );
 };
 
-// Feature Card with Octalysis Gamification Elements
+// Refined Feature Card
 const FeatureCard = ({
   title,
   description,
   iconName,
-  gradient,
-  watermarkColor,
-  locked,
+  iconColor,
 }: {
   title: string;
   description: string;
   iconName: string;
-  gradient: readonly [string, string, ...string[]];
-  watermarkColor: string;
-  locked?: boolean;
+  iconColor: string;
 }) => (
   <View style={styles.featureCard}>
     <LinearGradient
-      colors={gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
       style={styles.featureGradient}
     >
-      <View style={styles.watermarkContainer}>
+      <View style={styles.featureWatermark}>
         <MaterialCommunityIcons
           name={iconName}
-          size={140}
-          color={watermarkColor}
-          style={{ opacity: 0.15 }}
+          size={120}
+          color={iconColor}
+          style={{ opacity: 0.08 }}
         />
       </View>
 
       <View style={styles.featureContent}>
         <View style={styles.featureHeader}>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons name={iconName} size={28} color="#1F2937" />
+          <View style={[styles.iconBox, { backgroundColor: `${iconColor}20` }]}>
+            <MaterialCommunityIcons
+              name={iconName}
+              size={24}
+              color={iconColor}
+            />
           </View>
-          {locked && (
-            <View style={styles.comingSoonBadge}>
-              <Text style={styles.comingSoonText}>SOON</Text>
-            </View>
-          )}
+          <View style={styles.soonBadge}>
+            <Text style={styles.soonText}>SOON</Text>
+          </View>
         </View>
 
-        <View style={styles.featureTextContainer}>
-          <Text style={styles.featureTitle}>{title}</Text>
-          <Text style={styles.featureDescription}>{description}</Text>
+        <View style={styles.featureTextWrapper}>
+          <Text style={styles.featureTitleText}>{title}</Text>
+          <Text style={styles.featureDescText}>{description}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -120,142 +112,168 @@ const FeatureCard = ({
 
 const Community = () => {
   const [email, setEmail] = useState("");
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const isFocused = useIsFocused();
 
   const handleJoinWaitlist = () => {
-    console.log("Joining waitlist with email:", email);
+    console.log("Waitlist joining:", email);
   };
+
+  const features = [
+    {
+      title: "Live Voice Rooms",
+      description:
+        "Overcome speech blocks together in safe, real-time audio spaces.",
+      iconName: "microphone",
+      iconColor: "#38BDF8",
+    },
+    {
+      title: "Community Challenges",
+      description:
+        "Join weekly milestones with peers to build lasting confidence.",
+      iconName: "trophy-outline",
+      iconColor: "#FCD34D",
+    },
+    {
+      title: "Peer Support Feed",
+      description:
+        "Share your Vents, celebrate Wins, and exchange Practice tips.",
+      iconName: "forum-outline",
+      iconColor: "#818CF8",
+    },
+    {
+      title: "Career Growth",
+      description: "Access Job opportunities and professional mentorship.",
+      iconName: "briefcase-outline",
+      iconColor: "#34D399",
+    },
+  ];
+
+  const CARD_WIDTH = width * 0.82;
+  const GAP = 16;
+  const SNAP_INTERVAL = CARD_WIDTH + GAP;
+  const SIDE_PADDING = (width - CARD_WIDTH) / 2;
 
   return (
     <ScreenView style={styles.screenView}>
-      {/* Soft Multi-Stop Gradient Background */}
+      {/* Sapphire Glass Background System */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
-          colors={["#FFF7ED", "#FFEEF8", "#F0F9FF", "#FFFFFF"]} // Peach → Lavender → Sky → White
-          locations={[0, 0.3, 0.6, 1]}
+          colors={["#0F172A", "#1E293B", "#0F172A"]} // Deep Slate/Sapphire
           style={{ flex: 1 }}
         />
+        {/* Volumetric Glows */}
+        <View style={styles.glowTopRight} />
+        <View style={styles.glowBottomLeft} />
       </View>
 
       <CustomScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Gentle Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>The Speechworks Community</Text>
-          <Text style={styles.subtitle}>We are bringing everyone here</Text>
+          <Text style={styles.comingSoonTag}>COMING SOON</Text>
+          <Text style={styles.mainTitle}>Community Ecosystem</Text>
+          <Text style={styles.tagline}>
+            A sanctuary for voices reaching further.
+          </Text>
         </View>
 
-        <View style={styles.innerContainer}>
-          {/* Counter with Soft Gradient */}
+        <View style={styles.mainContainer}>
           <AnimatedCounter />
 
-          {/* Friendly Illustration */}
-          <View style={styles.illustrationSection}>
+          <View style={styles.visualSection}>
             <DiverseCommunityFace size={FACE_SIZE} shouldAnimate={isFocused} />
-            <Text style={styles.illustrationCaption}>
-              "The most powerful way to change the world is to change how you
-              speak to it."
+            <Text style={styles.manifesto}>
+              "Communication is the bridge between isolation and community."
             </Text>
           </View>
 
-          {/* Call for Purpose Section */}
-          <View style={styles.purposeSection}>
-            <Text style={styles.purposeTitle}>Join the Revolution</Text>
-            <Text style={styles.purposeText}>
-              We are democratizing public speaking for everyone, everywhere. Be
-              part of the first cohort to access these game-changing features.
-            </Text>
-          </View>
+          <View style={styles.featuresSection}>
+            <Text style={styles.sectionHeading}>Experience the Future</Text>
 
-          {/* Features with Pastel Gradients & Gamification */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Unlockable Achievements</Text>
-            <Text style={styles.sectionSubtitle}>
-              Coming soon to your journey
-            </Text>
+            <ScrollView
+              horizontal
+              pagingEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              onScroll={(e) => {
+                const x = e.nativeEvent.contentOffset.x;
+                const index = Math.round(x / SNAP_INTERVAL);
+                if (index !== carouselIndex) setCarouselIndex(index);
+              }}
+              scrollEventThrottle={16}
+              snapToInterval={SNAP_INTERVAL}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              style={styles.carousel}
+              contentContainerStyle={{
+                paddingHorizontal: SIDE_PADDING,
+              }}
+            >
+              {features.map((item, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.slide,
+                    {
+                      width: CARD_WIDTH,
+                      marginRight: i === features.length - 1 ? 0 : GAP,
+                    },
+                  ]}
+                >
+                  <FeatureCard {...item} />
+                </View>
+              ))}
+            </ScrollView>
 
-            <View style={styles.featuresGrid}>
-              <FeatureCard
-                iconName="trophy-award"
-                title="Leaderboards & Leagues"
-                description="Compete with friends and rise through the ranks. Claim your spot atop the Global Speaker Hall of Fame."
-                gradient={["#FEF3C7", "#FCD34D"]} // Amber Gold
-                watermarkColor="#B45309"
-                locked
-              />
-              <FeatureCard
-                iconName="account-group"
-                title="Practice Pods"
-                description="Join exclusive real-time practice rooms. Give feedback, get inspired, and grow together."
-                gradient={["#E0E7FF", "#A5B4FC"]} // Indigo
-                watermarkColor="#4338CA"
-                locked
-              />
-              <FeatureCard
-                iconName="star-four-points"
-                title="Mentor Matching"
-                description="Get paired with expert speakers for 1:1 coaching. Unlock wisdom from the best."
-                gradient={["#ECFDF5", "#6EE7B7"]} // Emerald
-                watermarkColor="#047857"
-                locked
-              />
+            <View style={styles.pagination}>
+              {features.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    carouselIndex === i ? styles.activeDot : styles.inactiveDot,
+                  ]}
+                />
+              ))}
             </View>
           </View>
 
-          {/* Gentle CTA - Scarcity & Ownership */}
-          <View style={styles.ctaSection}>
-            <View style={styles.ctaCard}>
-              <LinearGradient
-                colors={["#FFFBEB", "#FEF3C7"]} // Soft amber
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.ctaCardGradient}
-              >
-                <View style={styles.earlyAccessBadge}>
-                  <Text style={styles.earlyAccessText}>
-                    ✨ LIMITED SPOTS AVAILABLE
-                  </Text>
-                </View>
+          <View style={styles.ctaWrapper}>
+            <LinearGradient
+              colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.03)"]}
+              style={styles.ctaCard}
+            >
+              <Text style={styles.ctaTitle}>Claim Founding Status</Text>
+              <Text style={styles.ctaSubtitle}>
+                Secure early-access perks and your legacy member badge.
+              </Text>
 
-                <Text style={styles.ctaTitle}>
-                  Claim Founding Member Status
-                </Text>
-                <Text style={styles.ctaSubtitle}>
-                  Secure your legacy badge and lifetime perks before we launch.
-                </Text>
-
+              <View style={styles.inputContainer}>
                 <TextInput
-                  style={styles.emailInput}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#9CA3AF"
+                  style={styles.waitlistInput}
+                  placeholder="name@email.com"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
-                  autoCapitalize="none"
                 />
-
                 <TouchableOpacity
-                  style={styles.ctaButton}
-                  activeOpacity={0.8}
+                  style={styles.reserveButton}
                   onPress={handleJoinWaitlist}
                 >
                   <LinearGradient
-                    colors={["#EA580C", "#C2410C"]} // Darker Orange/Red for urgency
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.ctaButtonGradient}
+                    colors={["#2563EB", "#1D4ED8"]}
+                    style={styles.reserveGradient}
                   >
-                    <Text style={styles.ctaButtonText}>Reserve My Spot</Text>
+                    <Text style={styles.reserveText}>Join</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-
-                <Text style={styles.ctaNote}>
-                  🎁 Only 153 spots left for this month.
-                </Text>
-              </LinearGradient>
-            </View>
+              </View>
+              <Text style={styles.spotsLeft}>
+                ✨ Strictly limited founding spots remaining.
+              </Text>
+            </LinearGradient>
           </View>
         </View>
       </CustomScrollView>
@@ -266,281 +284,245 @@ const Community = () => {
 export default Community;
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
+  screenView: { flex: 1, backgroundColor: "#0F172A" },
+  scrollContent: { paddingBottom: 120, paddingTop: 60 },
+  glowTopRight: {
+    position: "absolute",
+    top: -100,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "rgba(37, 99, 235, 0.15)",
   },
-  scrollContent: {
-    paddingBottom: 130,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 24,
+  glowBottomLeft: {
+    position: "absolute",
+    bottom: -150,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: "rgba(129, 140, 248, 0.1)",
   },
   header: {
+    alignItems: "center",
     gap: 8,
-    alignItems: "center",
-  },
-  innerContainer: {
-    gap: 32,
-    flex: 1,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    lineHeight: 24,
-  },
-  // Counter Card
-  counterCard: {
-    borderRadius: 24,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  counterGradient: {
-    padding: 32,
-    alignItems: "center",
-    gap: 16,
-  },
-  counterTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  digitsContainer: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  digitBox: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minWidth: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  digitText: {
-    ...parseTextStyle(theme.typography.XL),
-    fontSize: 48,
-    color: theme.colors.text.title,
-    fontWeight: "800",
-    lineHeight: 52,
-  },
-  counterLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    opacity: 0.8,
-  },
-  // Illustration
-  illustrationSection: {
-    alignItems: "center",
-    gap: 16,
-  },
-  illustrationCaption: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    fontStyle: "italic",
+    marginBottom: 32,
     paddingHorizontal: 20,
   },
-  // Purpose Section
-  purposeSection: {
-    gap: 8,
-    paddingHorizontal: 10,
+  comingSoonTag: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#38BDF8",
+    letterSpacing: 2,
   },
-  purposeTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+  mainTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    color: "#FFFFFF",
     textAlign: "center",
   },
-  purposeText: {
+  tagline: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-    lineHeight: 24,
   },
-  // Section
-  section: {
-    gap: 16,
+  mainContainer: { gap: 40 },
+  // Counter
+  counterCard: {
+    marginHorizontal: 20,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.02)",
+    overflow: "hidden",
   },
-  sectionTitle: {
+  counterGradient: { padding: 24, alignItems: "center", gap: 16 },
+  counterTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 2,
+  },
+  digitsContainer: { flexDirection: "row", gap: 6 },
+  digitBox: {
+    width: 44,
+    height: 60,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  digitText: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  digitDivider: {
+    position: "absolute",
+    top: "50%",
+    width: "100%",
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
+  counterLabel: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.4)",
+    fontStyle: "italic",
+  },
+  // Visuals
+  visualSection: { alignItems: "center", gap: 20, paddingHorizontal: 20 },
+  manifesto: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    fontStyle: "italic",
+    paddingHorizontal: 30,
+  },
+  // Features Carousel
+  featuresSection: { gap: 20 },
+  sectionHeading: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
+    paddingHorizontal: 24,
   },
-  sectionSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginTop: -8,
+  carousel: {
+    width: width,
   },
-  // Features
-  featuresGrid: {
-    gap: 16,
+  carouselContainer: {
+    paddingHorizontal: 20,
+  },
+  slide: {
+    marginRight: 0,
   },
   featureCard: {
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.02)",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    minHeight: 160,
+    height: 180,
   },
-  featureGradient: {
-    flex: 1,
-    padding: 24,
-    position: "relative",
-  },
-  watermarkContainer: {
+  featureGradient: { flex: 1, padding: 20, position: "relative" },
+  featureWatermark: {
     position: "absolute",
     bottom: -20,
     right: -20,
-    zIndex: 0,
-    transform: [{ rotate: "-10deg" }],
   },
-  featureContent: {
-    zIndex: 1,
-    gap: 12,
-  },
+  featureContent: { zIndex: 1, flex: 1, gap: 12 },
   featureHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  iconCircle: {
+  iconBox: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    justifyContent: "center",
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  comingSoonBadge: {
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+  soonBadge: {
+    backgroundColor: "rgba(37, 99, 235, 0.2)",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(37, 99, 235, 0.3)",
   },
-  comingSoonText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#FFF",
-    fontWeight: "700",
+  soonText: {
     fontSize: 10,
-    letterSpacing: 1,
+    fontWeight: "800",
+    color: "#38BDF8",
+    letterSpacing: 0.5,
   },
-  featureTextContainer: {
-    gap: 6,
+  featureTextWrapper: { gap: 4, flex: 1 },
+  featureTitleText: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
-  featureTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 20,
-    color: "#1F2937", // Dark gray almost black
+  featureDescText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
+    lineHeight: 20,
   },
-  featureDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#374151", // Gray 700
-    lineHeight: 22,
-    fontWeight: "500",
-  },
-
-  // CTA Section
-  ctaSection: {
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
     marginTop: 8,
   },
+  dot: {
+    height: 4,
+    borderRadius: 2,
+  },
+  activeDot: {
+    width: 20,
+    backgroundColor: "#38BDF8",
+  },
+  inactiveDot: {
+    width: 6,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  // CTA
+  ctaWrapper: { marginTop: 10, paddingHorizontal: 20 },
   ctaCard: {
-    borderRadius: 28,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  ctaCardGradient: {
     padding: 28,
-    gap: 20,
-    alignItems: "center",
-  },
-  earlyAccessBadge: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 32,
     borderWidth: 1,
-    borderColor: "#F59E0B",
-  },
-  earlyAccessText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#B45309",
-    fontWeight: "800",
-    fontSize: 12,
+    borderColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    gap: 12,
   },
   ctaTitle: {
     ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
     textAlign: "center",
   },
   ctaSubtitle: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.5)",
     textAlign: "center",
-    marginTop: -8,
+    marginBottom: 8,
   },
-  emailInput: {
+  inputContainer: {
+    flexDirection: "row",
     width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    gap: 10,
+  },
+  waitlistInput: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  ctaButton: {
-    width: "100%",
-    shadowColor: "#EA580C",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  ctaButtonGradient: {
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  ctaButtonText: {
-    ...parseTextStyle(theme.typography.Button),
+    paddingVertical: 14,
     color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
-  ctaNote: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#B45309",
-    textAlign: "center",
+  reserveButton: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  reserveGradient: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reserveText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  spotsLeft: {
+    fontSize: 12,
+    color: "#38BDF8",
     fontWeight: "600",
+    marginTop: 8,
   },
 });
