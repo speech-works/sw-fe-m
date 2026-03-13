@@ -107,17 +107,17 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
+          {children}
           {showHandle && <View style={styles.handle} />}
           {showCloseButton && (
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
               <MaterialCommunityIcons
                 name="close"
-                size={18}
+                size={20}
                 color={theme.colors.text.title}
               />
             </TouchableOpacity>
           )}
-          {children}
         </Animated.View>
       </View>
     </Modal>
@@ -146,23 +146,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   handle: {
-    width: 48,
-    height: 6,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 3,
+    position: "absolute",
+    top: 12,
     alignSelf: "center",
-    marginTop: 16,
-    marginBottom: 8,
+    width: 44,
+    height: 5,
+    backgroundColor: "rgba(0,0,0,0.12)",
+    borderRadius: 3,
+    zIndex: 10,
   },
   closeBtn: {
     position: "absolute",
     top: 16,
     right: 16,
-    zIndex: 100,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    zIndex: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.7)",
     alignItems: "center",
     justifyContent: "center",
     ...parseShadowStyle(theme.shadow.elevation1),

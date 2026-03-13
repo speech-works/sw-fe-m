@@ -456,9 +456,27 @@ const Preferences = () => {
         showCloseButton={true}
       >
         <View style={styles.modalContent}>
-          <View style={styles.modalTitleContainer}>
-            <Text style={styles.modalTiteText}>{openSettingType}</Text>
-          </View>
+          {(() => {
+            const isTimer = openSettingType === "TIMER";
+            const iconName = isTimer ? "clock" : "tasks";
+            const iconColor = isTimer ? "#9333EA" : "#EA580C";
+            const headerBg = isTimer ? "#F3E8FF" : "#FFF7ED";
+            const title = isTimer ? "Practice Reminder" : "Practice Goal";
+
+            return (
+              <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
+                <View
+                  style={[
+                    styles.modalIconCircle,
+                    { backgroundColor: iconColor },
+                  ]}
+                >
+                  <Icon name={iconName} size={20} color="white" solid />
+                </View>
+                <Text style={styles.modalTiteText}>{title}</Text>
+              </View>
+            );
+          })()}
           {openSettingType === "GOAL" && <SelectGoalType />}
           {openSettingType === "TIMER" && (
             <TimeSelector
@@ -614,43 +632,54 @@ const styles = StyleSheet.create({
   },
 
   // modal
-  modalTitleContainer: {
-    gap: 4,
-    alignItems: "center",
-    marginBottom: 8, // Match ContactSupport wrapper top padding logic
-  },
-  modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title, // Keep title standard
-  },
-  modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
   modalContent: {
-    paddingVertical: 24,
-    paddingHorizontal: 20, // Match ContactSupport
     width: "100%",
     flex: 1,
     flexDirection: "column",
-    gap: 24,
-    backgroundColor: "#fff", // White background
+    backgroundColor: "#fff",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 40, // Increased to clear absolute handle
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    gap: 12,
+  },
+  modalIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalTiteText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontSize: 20,
+    fontWeight: "800",
+    flex: 1,
   },
   goalListContainer: {
     gap: 16,
     alignItems: "center",
     width: "100%",
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   goalCard: {
     width: "100%",
-    borderRadius: 24,
-    padding: 20, // Match ContactSupport
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#F1F5F9", // Match ContactSupport
+    borderColor: "#E2E8F0",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   disabledCard: {

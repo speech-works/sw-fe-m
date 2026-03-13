@@ -194,20 +194,39 @@ const Support = () => {
         showCloseButton={true}
       >
         <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            {openSettingType !== "Success" && (
-              <>
-                <Text style={styles.modalTitleText}>{openSettingType}</Text>
-                <Text style={styles.modalDescText}>
-                  {openSettingType === "Report Problem"
-                    ? "We usually respond within 24–48 hours."
-                    : openSettingType === "Feedback"
-                      ? "Your feedback helps us make the app better."
-                      : "Get in touch with us directly"}
-                </Text>
-              </>
-            )}
-          </View>
+          {openSettingType !== "Success" &&
+            (() => {
+              const isReport = openSettingType === "Report Problem";
+              const isContact = openSettingType === "Contact Support";
+              const iconName = isReport
+                ? "bug"
+                : isContact
+                  ? "headset"
+                  : "lightbulb";
+              const iconColor = isReport
+                ? "#EA580C"
+                : isContact
+                  ? "#2563EB"
+                  : "#DB2777";
+              const headerBg = isReport
+                ? "#FFF7ED"
+                : isContact
+                  ? "#EFF6FF"
+                  : "#FDF2F8";
+
+              return (
+                <View
+                  style={[styles.modalHeader, { backgroundColor: headerBg }]}
+                >
+                  <View
+                    style={[styles.iconCircle, { backgroundColor: iconColor }]}
+                  >
+                    <Icon name={iconName} size={20} color="white" solid />
+                  </View>
+                  <Text style={styles.modalTitleText}>{openSettingType}</Text>
+                </View>
+              );
+            })()}
 
           <View style={styles.modalBody}>
             {openSettingType === "Contact Support" && <ContactSupport />}
@@ -378,29 +397,37 @@ const styles = StyleSheet.create({
     color: theme.colors.library.gray[500],
   },
 
-  // Modal Styles
   modalContent: {
     flex: 1,
   },
   modalHeader: {
-    marginTop: 56,
-    marginBottom: 20,
+    flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 24,
+    paddingTop: 40, // Increased to clear handle
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    gap: 12,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalTitleText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    textAlign: "center",
-  },
-  modalDescText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "800",
+    flex: 1,
+    marginTop: 4, // Slight nudge for alignment with icon
   },
   modalBody: {
     flex: 1,
+    paddingTop: 12,
   },
 
   // Success Modal Styles

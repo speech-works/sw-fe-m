@@ -15,13 +15,29 @@ import {
 } from "../../../../util/functions/parseStyles";
 
 const ContactSupport = () => {
-  const handleEmailPress = () => {
+  const handleEmailPress = () =>
     Linking.openURL("mailto:contact@speechworks.in");
-  };
-
-  const handleWhatsAppPress = () => {
+  const handleWhatsAppPress = () =>
     Linking.openURL("https://wa.me/917350075986");
-  };
+
+  const options = [
+    {
+      icon: "envelope",
+      iconColor: "#2563EB",
+      iconBg: "#EFF6FF",
+      title: "Send an Email",
+      sub: "Get a response within 24 hours",
+      onPress: handleEmailPress,
+    },
+    {
+      icon: "whatsapp",
+      iconColor: "#16A34A",
+      iconBg: "#F0FDF4",
+      title: "Chat on WhatsApp",
+      sub: "Instant support for quick queries",
+      onPress: handleWhatsAppPress,
+    },
+  ];
 
   return (
     <ScrollView
@@ -29,46 +45,29 @@ const ContactSupport = () => {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.wrapper}>
-        {/* Email Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleEmailPress}
-          style={styles.card}
-        >
-          <View style={styles.contentRow}>
-            <View style={[styles.iconBox, { backgroundColor: "#EFF6FF" }]}>
-              <Icon
-                name="envelope"
-                size={18}
-                color={theme.colors.actionPrimary.default}
-                solid
-              />
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.titleText}>Send an Email</Text>
-              <Text style={styles.subText}>Get a response within 24h</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+        <Text style={styles.sectionLabel}>CHOOSE A CHANNEL</Text>
 
-        {/* WhatsApp Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleWhatsAppPress}
-          style={styles.card}
-        >
-          <View style={styles.contentRow}>
-            <View style={[styles.iconBox, { backgroundColor: "#F0FDF4" }]}>
-              <Icon name="whatsapp" size={20} color="#16A34A" />
+        {options.map((opt) => (
+          <TouchableOpacity
+            key={opt.icon}
+            activeOpacity={0.85}
+            onPress={opt.onPress}
+            style={styles.card}
+          >
+            <View style={[styles.iconCircle, { backgroundColor: opt.iconBg }]}>
+              <Icon name={opt.icon} size={20} color={opt.iconColor} />
             </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.titleText}>Chat on WhatsApp</Text>
-              <Text style={styles.subText}>
-                Instant support for quick queries
-              </Text>
+            <View style={styles.textCol}>
+              <Text style={styles.cardTitle}>{opt.title}</Text>
+              <Text style={styles.cardSub}>{opt.sub}</Text>
             </View>
-          </View>
-        </TouchableOpacity>
+            <View style={styles.arrowBox}>
+              <Icon name="chevron-right" size={11} color="#94A3B8" />
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        <View style={{ height: 48 }} />
       </View>
     </ScrollView>
   );
@@ -79,46 +78,57 @@ export default ContactSupport;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16, // Standard 16px padding
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
   wrapper: {
     gap: 16,
-    paddingTop: 8,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.text.default,
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   card: {
-    backgroundColor: "#fff", // Consistent white card
+    backgroundColor: "#FFFFFF",
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 14,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: "#E2E8F0",
   },
-  contentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    flex: 1,
-  },
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
-  textContainer: {
-    gap: 4,
+  textCol: {
+    flex: 1,
+    gap: 2,
   },
-  titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: "700",
+    color: theme.colors.text.title,
   },
-  subText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+  cardSub: {
+    fontSize: 13,
     color: theme.colors.text.default,
+  },
+  arrowBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

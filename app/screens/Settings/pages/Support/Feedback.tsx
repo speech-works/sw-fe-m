@@ -41,10 +41,6 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
     onFeedbackSubmit();
   };
 
-  const handleAnonymousChange = () => {
-    setSubmitEmail((old) => !old);
-  };
-
   const isFormValid =
     features.length > 0 || frustrations.length > 0 || otherThoughts.length > 0;
 
@@ -54,20 +50,15 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.wrapper}>
-        {/* 1. Features */}
+        {/* Feature Requests */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.iconBox, { backgroundColor: "#EFF6FF" }]}>
-              <Icon name="magic" size={14} color="#2563EB" />
-            </View>
-            <Text style={styles.label}>Feature Requests</Text>
-          </View>
-          <View style={styles.inputWrapper}>
+          <Text style={styles.sectionLabel}>FEATURE REQUESTS</Text>
+          <View style={styles.inputCard}>
             <TextInput
               value={features}
               onChangeText={setFeatures}
               placeholder="I wish the app could..."
-              placeholderTextColor={theme.colors.text.disabled}
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -76,20 +67,15 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           </View>
         </View>
 
-        {/* 2. Frustrations */}
+        {/* Frustrations */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.iconBox, { backgroundColor: "#FEF2F2" }]}>
-              <Icon name="frown" size={14} color="#DC2626" />
-            </View>
-            <Text style={styles.label}>Frustrations</Text>
-          </View>
-          <View style={styles.inputWrapper}>
+          <Text style={styles.sectionLabel}>FRUSTRATIONS</Text>
+          <View style={styles.inputCard}>
             <TextInput
               value={frustrations}
               onChangeText={setFrustrations}
               placeholder="I find it difficult to..."
-              placeholderTextColor={theme.colors.text.disabled}
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -98,20 +84,15 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           </View>
         </View>
 
-        {/* 3. Other */}
+        {/* Other Thoughts */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.iconBox, { backgroundColor: "#F0FDF4" }]}>
-              <Icon name="comment-alt" size={14} color="#16A34A" />
-            </View>
-            <Text style={styles.label}>Other Thoughts</Text>
-          </View>
-          <View style={styles.inputWrapper}>
+          <Text style={styles.sectionLabel}>OTHER THOUGHTS</Text>
+          <View style={styles.inputCard}>
             <TextInput
               value={otherThoughts}
               onChangeText={setOtherThoughts}
               placeholder="Any other ideas or feelings..."
-              placeholderTextColor={theme.colors.text.disabled}
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={4}
               style={styles.input}
@@ -120,7 +101,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           </View>
         </View>
 
-        {/* Email Toggle Card */}
+        {/* Follow-up Toggle */}
         <View style={styles.toggleCard}>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1, gap: 4 }}>
@@ -131,29 +112,25 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
             </View>
             <Switch
               value={submitEmail}
-              trackColor={{
-                false: "#CBD5E1",
-                true: "#fb923c",
-              }}
+              trackColor={{ false: "#CBD5E1", true: "#fb923c" }}
               thumbColor={"#FFFFFF"}
-              onValueChange={handleAnonymousChange}
+              onValueChange={() => setSubmitEmail((v) => !v)}
             />
           </View>
-
           {submitEmail && (
             <View style={styles.emailBox}>
-              <Icon name="envelope" size={14} color="#EA580C" />
+              <Icon name="envelope" size={13} color="#EA580C" />
               <Text style={styles.emailText}>{user?.email}</Text>
             </View>
           )}
         </View>
 
-        {/* Standard Gradient Button */}
+        {/* CTA */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleFeedbackSubmit}
           disabled={!isFormValid}
-          style={[styles.saveButtonContainer, !isFormValid && { opacity: 0.6 }]}
+          style={[styles.ctaWrapper, !isFormValid && { opacity: 0.5 }]}
         >
           <LinearGradient
             colors={
@@ -161,13 +138,10 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.saveButton}
+            style={styles.ctaButton}
           >
             <Text
-              style={[
-                styles.saveButtonText,
-                !isFormValid && { color: "#94A3B8" },
-              ]}
+              style={[styles.ctaText, !isFormValid && { color: "#94A3B8" }]}
             >
               Send Feedback
             </Text>
@@ -175,8 +149,7 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Bottom Spacer */}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 48 }} />
       </View>
     </ScrollView>
   );
@@ -187,65 +160,49 @@ export default Feedback;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
   wrapper: {
     gap: 32,
-    paddingTop: 8,
   },
   section: {
     gap: 12,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginLeft: 4,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.text.default,
+    letterSpacing: 0.5,
   },
-  iconBox: {
-    width: 32,
-    height: 32,
+
+  // Input
+  inputCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  label: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    letterSpacing: 0.3,
-  },
-  inputWrapper: {
-    backgroundColor: theme.colors.surface.default,
-    borderRadius: 20,
+    borderColor: "#E2E8F0",
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
     overflow: "hidden",
   },
   input: {
-    backgroundColor: "#fff",
-    padding: 20,
-    minHeight: 120,
-    ...parseTextStyle(theme.typography.Body),
+    padding: 16,
+    minHeight: 110,
+    fontSize: 15,
     color: theme.colors.text.title,
-    ...Platform.select({
-      android: { textAlignVertical: "top" },
-    }),
+    lineHeight: 22,
+    ...Platform.select({ android: { textAlignVertical: "top" } }),
   },
 
-  // Toggle Card
+  // Toggle
   toggleCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    padding: 20,
+    borderColor: "#E2E8F0",
+    padding: 16,
     gap: 16,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginTop: 8,
   },
   toggleRow: {
     flexDirection: "row",
@@ -253,8 +210,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   toggleLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: theme.colors.text.title,
   },
   toggleSub: {
@@ -263,41 +220,41 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   emailBox: {
-    backgroundColor: "#FFF7ED", // Orange 50
+    backgroundColor: "#FFF7ED",
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: "#FFEDD5",
+    marginTop: 4,
   },
   emailText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#EA580C", // Primary Orange
+    fontSize: 13,
+    color: "#EA580C",
     fontWeight: "600",
   },
 
-  // Uniform Button Style
-  saveButtonContainer: {
-    borderRadius: 30,
-    marginTop: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: theme.colors.surface.default,
+  // CTA
+  ctaWrapper: {
+    borderRadius: 16,
+    marginTop: 4,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  saveButton: {
-    borderRadius: 30,
-    paddingVertical: 18,
+  ctaButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
-  saveButtonText: {
-    ...parseTextStyle(theme.typography.Button),
+  ctaText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#ffffff",
-    letterSpacing: 0.5,
   },
 });

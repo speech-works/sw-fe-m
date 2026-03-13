@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { createReportedIssue } from "../../../../api/settings/helpSupport";
-import ModernImageUploader from "../../../../components/ModernImageUploader";
+import UniversalImageUploader from "../../../../components/UniversalImageUploader";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import {
@@ -52,16 +52,12 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
       (manifest.version as string) ??
       Constants.nativeAppVersion ??
       "";
-
     const info = [
-      `Device: ${Platform.OS === "ios" ? "iOS" : "Android"} ${
-        Platform.Version
-      }`,
+      `Device: ${Platform.OS === "ios" ? "iOS" : "Android"} ${Platform.Version}`,
       `App v${appVer}`,
     ]
       .filter(Boolean)
-      .join(" • ");
-
+      .join(" \u2022 ");
     setDeviceInfo(info);
   }, []);
 
@@ -86,12 +82,9 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
-        {/* 1. Issue Type Chips */}
+        {/* Issue Type */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="tag" size={14} color="#EA580C" />
-            <Text style={styles.sectionTitle}>What's the issue?</Text>
-          </View>
+          <Text style={styles.sectionLabel}>WHAT'S THE ISSUE?</Text>
           <View style={styles.chipsContainer}>
             {reportOptions.map((option) => {
               const isSelected = selectedIssue?.id === option.id;
@@ -99,14 +92,14 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
                 <TouchableOpacity
                   key={option.id}
                   onPress={() => setSelectedIssue(option)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
                   style={[styles.chip, isSelected && styles.chipSelected]}
                 >
                   <Icon
                     name={option.icon}
                     size={12}
                     color={isSelected ? "#FFF" : "#64748B"}
-                    style={{ marginRight: 8 }}
+                    style={{ marginRight: 6 }}
                   />
                   <Text
                     style={[
@@ -122,18 +115,15 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           </View>
         </View>
 
-        {/* 2. Description */}
+        {/* Details */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="align-left" size={14} color="#EA580C" />
-            <Text style={styles.sectionTitle}>Details</Text>
-          </View>
-          <View style={styles.inputWrapper}>
+          <Text style={styles.sectionLabel}>DETAILS</Text>
+          <View style={styles.inputCard}>
             <TextInput
               value={issueDesc}
               onChangeText={setIssueDesc}
               placeholder="Please describe exactly what happened..."
-              placeholderTextColor={theme.colors.text.disabled}
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -142,38 +132,26 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           </View>
         </View>
 
-        {/* 3. Device Info Badge */}
+        {/* Device Info */}
         <View style={styles.deviceInfoContainer}>
-          <View style={styles.deviceIconBox}>
-            <Icon name="mobile-alt" size={14} color="#475569" />
-          </View>
-          <Text style={styles.deviceInfoText}>Auto-detected: {deviceInfo}</Text>
+          <Icon name="mobile-alt" size={14} color="#475569" />
+          <Text style={styles.deviceInfoText}>{deviceInfo}</Text>
           <Icon name="check-circle" size={14} color="#10B981" solid />
         </View>
 
-        {/* 4. Screenshots (Optional) */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="image" size={14} color="#64748B" />
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: theme.colors.text.default },
-              ]}
-            >
-              Screenshots (Optional)
-            </Text>
-          </View>
-          {/* Using the new Modern Uploader */}
-          <ModernImageUploader images={screenshots} onChange={setScreenshots} />
-        </View>
+        {/* Screenshots Optional */}
+        <UniversalImageUploader
+          images={screenshots}
+          onChange={setScreenshots}
+          label="screenshots"
+        />
 
-        {/* Standard Gradient Button */}
+        {/* CTA */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleReportSubmit}
           disabled={!isFormValid}
-          style={[styles.saveButtonContainer, !isFormValid && { opacity: 0.6 }]}
+          style={[styles.ctaWrapper, !isFormValid && { opacity: 0.5 }]}
         >
           <LinearGradient
             colors={
@@ -181,13 +159,10 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.saveButton}
+            style={styles.ctaButton}
           >
             <Text
-              style={[
-                styles.saveButtonText,
-                !isFormValid && { color: "#94A3B8" },
-              ]}
+              style={[styles.ctaText, !isFormValid && { color: "#94A3B8" }]}
             >
               Submit Report
             </Text>
@@ -195,8 +170,7 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Bottom Spacer */}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 48 }} />
       </View>
     </ScrollView>
   );
@@ -207,53 +181,49 @@ export default ReportProblem;
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
+    paddingTop: 12,
   },
   container: {
     gap: 32,
-    paddingTop: 8,
   },
   section: {
     gap: 12,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-    paddingLeft: 4,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: theme.colors.text.default,
+    letterSpacing: 0.5,
   },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+  optionalTag: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: "#94A3B8",
   },
 
   // Chips
   chipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 10,
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-  },
-  chipSelected: {
-    backgroundColor: "#EA580C", // Primary Orange
-    borderColor: "#EA580C",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
+  chipSelected: {
+    backgroundColor: "#EA580C",
+    borderColor: "#EA580C",
+  },
   chipText: {
-    ...parseTextStyle(theme.typography.Body),
     fontSize: 14,
     fontWeight: "600",
     color: "#64748B",
@@ -263,70 +233,58 @@ const styles = StyleSheet.create({
   },
 
   // Input
-  inputWrapper: {
-    backgroundColor: theme.colors.surface.default,
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
+  inputCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: "#E2E8F0",
+    ...parseShadowStyle(theme.shadow.elevation1),
     overflow: "hidden",
   },
   input: {
-    backgroundColor: theme.colors.surface.elevated,
-    padding: 20,
+    padding: 16,
     minHeight: 120,
-    ...parseTextStyle(theme.typography.Body),
+    fontSize: 15,
     color: theme.colors.text.title,
-    ...Platform.select({
-      android: { textAlignVertical: "top" },
-    }),
+    lineHeight: 22,
+    ...Platform.select({ android: { textAlignVertical: "top" } }),
   },
 
   // Device Info
   deviceInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: "#F0FDF4", // Light green tint
-    padding: 16,
-    borderRadius: 16,
+    gap: 10,
+    backgroundColor: "#F0FDF4",
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#DCFCE7",
   },
-  deviceIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   deviceInfoText: {
     flex: 1,
-    ...parseTextStyle(theme.typography.BodySmall),
     fontSize: 13,
     fontWeight: "600",
-    color: "#166534", // Green 800
+    color: "#166534",
   },
 
-  // Uniform Button Style
-  saveButtonContainer: {
-    borderRadius: 30, // Fully rounded
-    marginTop: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: theme.colors.surface.default,
+  // CTA
+  ctaWrapper: {
+    borderRadius: 16,
+    marginTop: 4,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  saveButton: {
-    borderRadius: 30,
-    paddingVertical: 18,
+  ctaButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
-  saveButtonText: {
-    ...parseTextStyle(theme.typography.Button),
+  ctaText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#ffffff",
-    letterSpacing: 0.5,
   },
 });
