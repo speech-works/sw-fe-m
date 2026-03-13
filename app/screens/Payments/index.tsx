@@ -271,11 +271,18 @@ const SubscribeScreen = () => {
 
         {/* Note from Therapists (Narrative) */}
         <View style={styles.noteContainer}>
+          <View style={styles.watermarkContainer}>
+            <Icon
+              name="user-md"
+              size={120}
+              color={theme.colors.actionPrimary.default}
+            />
+          </View>
           <View style={styles.noteHeader}>
             <View style={styles.slpAvatar}>
               <Icon name="user-md" size={14} color="#FFF" />
             </View>
-            <Text style={styles.noteHeaderText}>A Note from our SLPs</Text>
+            <Text style={styles.noteHeaderText}>A note from our SLPs</Text>
           </View>
           <Text style={styles.noteText}>
             "We built Premium because progress shouldn't be limited by a timer.
@@ -591,13 +598,14 @@ const styles = StyleSheet.create({
 
   // Note from SLPs
   noteContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    borderRadius: 24,
-    padding: 28, // Increased
-    marginBottom: 64, // Increased
-    borderStyle: "dashed",
-    borderWidth: 1.5,
-    borderColor: theme.colors.actionPrimary.default,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 32,
+    padding: 32,
+    marginBottom: 64,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+    ...parseShadowStyle(theme.shadow.elevation2),
+    overflow: "hidden", // Clips watermark
   },
 
   noteHeader: {
@@ -607,26 +615,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   slpAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: theme.colors.actionPrimary.default,
     alignItems: "center",
     justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   noteHeaderText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 18,
     color: theme.colors.actionPrimary.default,
-    textTransform: "uppercase",
-    letterSpacing: 1,
   },
   noteText: {
     ...parseTextStyle(theme.typography.Body),
-    fontStyle: "italic",
     color: theme.colors.text.title,
-    lineHeight: 22,
-    opacity: 0.9,
+    lineHeight: 24,
+    opacity: 0.85,
+    marginTop: 4,
   },
 
   // Pricing Header
