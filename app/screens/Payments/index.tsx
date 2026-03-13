@@ -136,9 +136,9 @@ const SubscribeScreen = () => {
         {/* Hero Section */}
         <View style={styles.heroContainer}>
           <Text style={styles.heroLabel}>PREMIUM ACCESS</Text>
-          <Text style={styles.heroTitle}>Transform Your Voice.</Text>
+          <Text style={styles.heroTitle}>Control Your Voice.</Text>
           <Text style={styles.heroSubtitle}>
-            Unlock the clinically-proven power of SpeechWorks and turn your
+            Unlock the clinically-proven power of Speechworks and turn your
             limitations into strengths.
           </Text>
         </View>
@@ -273,23 +273,35 @@ const SubscribeScreen = () => {
         <View style={styles.noteContainer}>
           <View style={styles.watermarkContainer}>
             <Icon
-              name="user-md"
-              size={120}
+              name="user-circle"
+              size={180}
               color={theme.colors.actionPrimary.default}
             />
           </View>
-          <View style={styles.noteHeader}>
-            <View style={styles.slpAvatar}>
-              <Icon name="user-md" size={14} color="#FFF" />
-            </View>
-            <Text style={styles.noteHeaderText}>A note from us</Text>
+          <View style={styles.quoteIconLeft}>
+            <Icon
+              name="quote-left"
+              size={40}
+              color={theme.colors.actionPrimary.default}
+            />
           </View>
           <Text style={styles.noteText}>
-            "We built Premium because progress shouldn't be limited by a timer.
+            We built Premium because progress shouldn't be limited by a timer.
             It's the commitment you make to your future self—having the right
-            support when anxiety hits and the real data to prove you’re
-            winning."
+            support when anxiety hits and the real data to prove you’re winning.
           </Text>
+          <View style={styles.quoteIconRight}>
+            <Icon
+              name="quote-right"
+              size={40}
+              color={theme.colors.actionPrimary.default}
+            />
+          </View>
+          <View style={styles.noteSignature}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.noteHeaderText}>Speechworks Team</Text>
+            <View style={styles.signatureLine} />
+          </View>
         </View>
 
         {/* Pricing Cards */}
@@ -600,40 +612,55 @@ const styles = StyleSheet.create({
   noteContainer: {
     backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderRadius: 32,
-    padding: 32,
+    padding: 40,
     marginBottom: 64,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.5)",
     ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden", // Clips watermark
+    overflow: "hidden",
+    alignItems: "center",
   },
 
-  noteHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  slpAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.actionPrimary.default,
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
   noteHeaderText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontWeight: "700",
     color: theme.colors.actionPrimary.default,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    opacity: 0.8,
   },
   noteText: {
-    ...parseTextStyle(theme.typography.Body),
+    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    lineHeight: 24,
-    opacity: 0.85,
-    marginTop: 4,
+    lineHeight: 30,
+    textAlign: "center",
+    marginBottom: 24,
+    fontSize: 20,
+    fontWeight: "500",
+  },
+  noteSignature: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+  },
+  signatureLine: {
+    width: 24,
+    height: 1,
+    backgroundColor: theme.colors.actionPrimary.default,
+    opacity: 0.3,
+  },
+  quoteIconLeft: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    opacity: 0.08,
+  },
+  quoteIconRight: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    opacity: 0.08,
   },
 
   // Pricing Header
