@@ -2,7 +2,7 @@ import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 export type PDStackParamList = {
-  ProgressDetail: undefined;
+  ProgressDetail: { scrollTo?: "achievements" } | undefined;
 };
 export type PDStackNavigationProp<T extends keyof PDStackParamList> =
   NativeStackNavigationProp<PDStackParamList, T>;

@@ -1,12 +1,18 @@
-import { useNavigation } from "@react-navigation/native";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useRef } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
 import {
-    PDStackNavigationProp,
-    PDStackParamList,
+  PDStackNavigationProp,
+  PDStackParamList,
+  PDStackRouteProp,
 } from "../../../navigators/stacks/AcademyStack/ProgressDetailStack/types";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
@@ -20,6 +26,21 @@ import { LinearGradient } from "expo-linear-gradient";
 const ProgressDetail = () => {
   const navigation =
     useNavigation<PDStackNavigationProp<keyof PDStackParamList>>();
+  const route = useRoute<PDStackRouteProp<"ProgressDetail">>();
+  const scrollRef = useRef<ScrollView>(null);
+  const achievementsY = useRef<number>(0);
+
+  React.useEffect(() => {
+    if (route.params?.scrollTo === "achievements") {
+      const timer = setTimeout(() => {
+        scrollRef.current?.scrollTo({
+          y: achievementsY.current,
+          animated: true,
+        });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [route.params?.scrollTo]);
 
   return (
     <ScreenView style={styles.screenView}>
@@ -42,14 +63,24 @@ const ProgressDetail = () => {
         <View style={{ width: 32 }} />
       </View>
       <View style={styles.container}>
-        <CustomScrollView contentContainerStyle={styles.scrollView}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          decelerationRate={0.9}
+        >
           <DetailedWeeklySummary />
           <DPSummary />
-
           <MoodSummary />
-          <Achievements />
+          <View
+            onLayout={(e) => {
+              achievementsY.current = e.nativeEvent.layout.y;
+            }}
+          >
+            <Achievements />
+          </View>
           {/* <TutStats /> */}
-        </CustomScrollView>
+        </ScrollView>
       </View>
     </ScreenView>
   );

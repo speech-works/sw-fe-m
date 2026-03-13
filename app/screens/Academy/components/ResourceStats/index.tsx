@@ -350,7 +350,17 @@ const ResourceStats = ({
                   shape="rectangle"
                   style={{ flex: 1 }}
                 >
-                  <View
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      navigation.navigate("AcademyStack", {
+                        screen: "ProgressDetailStack",
+                        params: {
+                          screen: "ProgressDetail",
+                          params: { scrollTo: "achievements" },
+                        },
+                      })
+                    }
                     onLayout={(e) => {
                       const { x, y, width, height } = e.nativeEvent.layout;
                       const relativeY = y + gridOriginY.current;
@@ -364,6 +374,7 @@ const ResourceStats = ({
                     style={[
                       styles.bigCard,
                       { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                      width < 320 && { flex: 0, width: "100%" },
                     ]}
                   >
                     {/* Watermark Icon */}
@@ -402,7 +413,7 @@ const ResourceStats = ({
                         ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
                         : "0 XP"}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </TourGuideZone>
               </View>
             </View>

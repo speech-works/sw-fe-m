@@ -1,20 +1,20 @@
 // CustomScrollView.tsx
 import React, { forwardRef, useImperativeHandle } from "react";
 import {
-    StyleProp,
-    StyleSheet,
-    TextStyle,
-    TouchableOpacity,
-    View,
-    ViewStyle,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
 import Animated, {
-    scrollTo,
-    useAnimatedRef,
-    useAnimatedScrollHandler,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming
+  scrollTo,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../Theme/tokens";
@@ -46,7 +46,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       showScrollButtons = false,
       ...rest
     },
-    ref
+    ref,
   ) => {
     // Internal ref for Reanimated scrollTo
     const internalRef = useAnimatedRef<Animated.ScrollView>();
@@ -126,6 +126,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             },
           ]}
           showsVerticalScrollIndicator={false}
+          decelerationRate={0.9}
           {...rest}
         >
           {children}
@@ -176,7 +177,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
         )}
       </View>
     );
-  }
+  },
 );
 
 export default CustomScrollView;
