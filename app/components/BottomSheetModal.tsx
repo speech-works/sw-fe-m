@@ -43,7 +43,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   onClose,
   children,
   maxHeight,
-  showHandle = false,
+  showHandle = true,
   showCloseButton = false,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;

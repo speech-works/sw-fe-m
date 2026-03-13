@@ -79,62 +79,109 @@ const Support = () => {
           </View>
 
           <CustomScrollView contentContainerStyle={styles.scrollView}>
-            {/* Report Problem Card - Orange/Red Glow */}
+            {/* Report Problem Card */}
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => {
                 setOpenSettingType("Report Problem");
                 setIsModalVisible(true);
               }}
-              style={styles.card}
+              style={styles.cardWrapper}
             >
-              <View style={styles.cardLeft}>
-                <LivelyIcon name="bug" color="#EA580C" bg="#FFF7ED" />
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Report A Problem</Text>
-                  <Text style={styles.descText}>
+              <LinearGradient
+                colors={["#FFD8B5", "#FFAB76"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.watermarkContainer}>
+                  <Icon name="bug" size={120} color="rgba(255,255,255,0.15)" />
+                </View>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>HELP</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Report A Problem</Text>
+                  <Text style={styles.cardDesc}>
                     Let us know what needs fixing
                   </Text>
                 </View>
-              </View>
+                <View style={styles.cardFooter}>
+                  <LivelyIcon name="bug" color="#EA580C" bg="white" />
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
-            {/* Contact Support Card - Blue Glow */}
+            {/* Contact Support Card */}
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => {
                 setOpenSettingType("Contact Support");
                 setIsModalVisible(true);
               }}
-              style={styles.card}
+              style={styles.cardWrapper}
             >
-              <View style={styles.cardLeft}>
-                <LivelyIcon name="headset" color="#2563EB" bg="#EFF6FF" />
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Contact Support</Text>
-                  <Text style={styles.descText}>
+              <LinearGradient
+                colors={["#Cbf0f0", "#98E6E6"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.watermarkContainer}>
+                  <Icon
+                    name="headset"
+                    size={120}
+                    color="rgba(255,255,255,0.15)"
+                  />
+                </View>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>SUPPORT</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Contact Support</Text>
+                  <Text style={styles.cardDesc}>
                     Reach out to our friendly support team
                   </Text>
                 </View>
-              </View>
+                <View style={styles.cardFooter}>
+                  <LivelyIcon name="headset" color="#2563EB" bg="white" />
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
-            {/* Feedback Card - Pink Glow */}
+            {/* Feedback Card */}
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => {
                 setOpenSettingType("Feedback");
                 setIsModalVisible(true);
               }}
-              style={styles.card}
+              style={styles.cardWrapper}
             >
-              <View style={styles.cardLeft}>
-                <LivelyIcon name="lightbulb" color="#DB2777" bg="#FDF2F8" />
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Feedback & Suggestions</Text>
-                  <Text style={styles.descText}>How can we improve?</Text>
+              <LinearGradient
+                colors={["#FFC8C8", "#FF9E9E"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.watermarkContainer}>
+                  <Icon
+                    name="lightbulb"
+                    size={120}
+                    color="rgba(255,255,255,0.15)"
+                  />
                 </View>
-              </View>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>FEEDBACK</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Feedback & Suggestions</Text>
+                  <Text style={styles.cardDesc}>How can we improve?</Text>
+                </View>
+                <View style={styles.cardFooter}>
+                  <LivelyIcon name="lightbulb" color="#DB2777" bg="white" />
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
           </CustomScrollView>
         </View>
@@ -244,26 +291,65 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollView: {
-    gap: 16,
-    paddingHorizontal: 16, // Match Preferences/MoodCheck
+    gap: 20,
+    paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
+  cardWrapper: {
+    borderRadius: 32,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    overflow: "hidden",
+  },
+  cardGradient: {
+    padding: 24,
+    minHeight: 160,
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  watermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    transform: [{ rotate: "-15deg" }],
+    opacity: 0.8,
+  },
+  cardHeader: {
+    zIndex: 1,
+  },
+  badge: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
+  badgeText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 10,
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.6)",
+    letterSpacing: 1,
+  },
+  cardTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "rgba(0,0,0,0.8)",
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  cardDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(0,0,0,0.6)",
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    // borderColor: handles per card
-  },
-  cardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    flex: 1,
+    marginTop: 16,
+    zIndex: 1,
   },
   iconContainer: {
     width: 44,
@@ -271,6 +357,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   textContainer: {
     gap: 4,

@@ -249,19 +249,40 @@ const Preferences = () => {
                   setIsModalVisible(true);
                 }
               }}
-              style={styles.card}
+              style={styles.cardWrapper}
             >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Preferred Practice Time</Text>
-                <Text style={styles.descText}>When should we remind you?</Text>
-              </View>
-              <View style={styles.valueRow}>
-                {reminderTime && (
-                  <Text style={styles.valueText}>
-                    {format(reminderTime, "hh:mm a")}
+              <LinearGradient
+                colors={["#EBCBF5", "#D8A7F0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.watermarkContainer}>
+                  <Icon
+                    name="clock"
+                    size={120}
+                    color="rgba(255,255,255,0.15)"
+                  />
+                </View>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>SCHEDULE</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Preferred Practice Time</Text>
+                  <Text style={styles.cardDesc}>
+                    When should we remind you?
                   </Text>
-                )}
-              </View>
+                </View>
+                <View style={styles.cardFooter}>
+                  {reminderTime && (
+                    <View style={styles.valueControlContainer}>
+                      <Text style={styles.valueTextLarge}>
+                        {format(reminderTime, "hh:mm a")}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Goal Type Card */}
@@ -271,85 +292,158 @@ const Preferences = () => {
                 setOpenSettingType("GOAL");
                 setIsModalVisible(true);
               }}
-              style={styles.card}
+              style={styles.cardWrapper}
             >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Practice Goal Type</Text>
-                <Text style={styles.descText}>
-                  How would you like to train?
-                </Text>
-              </View>
-              <View style={styles.valueRow}>
-                <Text style={styles.valueText}>{selectedGoalType}</Text>
-              </View>
+              <LinearGradient
+                colors={["#FFD8B5", "#FFAB76"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.watermarkContainer}>
+                  <Icon
+                    name="tasks"
+                    size={120}
+                    color="rgba(255,255,255,0.15)"
+                  />
+                </View>
+                <View style={styles.cardHeader}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>PRACTICE GOAL</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Practice Goal Type</Text>
+                  <Text style={styles.cardDesc}>
+                    How would you like to train?
+                  </Text>
+                </View>
+                <View style={styles.cardFooter}>
+                  <View style={styles.valueControlContainer}>
+                    <Text style={styles.valueTextLarge}>
+                      {selectedGoalType}
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Dynamic Goal Limit Cards */}
             {selectedGoalType === "Time based" && (
-              <View style={styles.card}>
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Daily practice limit</Text>
-                  <Text style={styles.descText}>
-                    Set your target practice minutes
-                  </Text>
-                </View>
-                <View style={styles.valueControlContainer}>
-                  <TouchableOpacity
-                    onPress={handleIncrementTargetMins}
-                    style={styles.chevronButton}
-                  >
+              <View style={styles.cardWrapper}>
+                <LinearGradient
+                  colors={["#Cbf0f0", "#98E6E6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.cardGradient}
+                >
+                  <View style={styles.watermarkContainer}>
                     <Icon
-                      name="chevron-up"
-                      size={14}
-                      color={theme.colors.library.orange[600]}
+                      name="hourglass-half"
+                      size={120}
+                      color="rgba(255,255,255,0.15)"
                     />
-                  </TouchableOpacity>
-                  <Text style={styles.valueTextLarge}>{targetMins}</Text>
-                  <TouchableOpacity
-                    onPress={handleDecrementTargetMins}
-                    style={styles.chevronButton}
-                  >
-                    <Icon
-                      name="chevron-down"
-                      size={14}
-                      color={theme.colors.library.orange[600]}
-                    />
-                  </TouchableOpacity>
-                </View>
+                  </View>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>DAILY LIMIT</Text>
+                    </View>
+                    <Text style={styles.cardTitle}>Daily practice limit</Text>
+                    <Text style={styles.cardDesc}>
+                      Set your target practice minutes
+                    </Text>
+                  </View>
+                  <View style={styles.cardFooter}>
+                    <View style={styles.valueControlRows}>
+                      <TouchableOpacity
+                        onPress={handleIncrementTargetMins}
+                        style={styles.pillButton}
+                      >
+                        <Icon
+                          name="plus"
+                          size={12}
+                          color={theme.colors.library.orange[600]}
+                        />
+                      </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.valueTextLarge,
+                          { marginHorizontal: 12 },
+                        ]}
+                      >
+                        {targetMins} min
+                      </Text>
+                      <TouchableOpacity
+                        onPress={handleDecrementTargetMins}
+                        style={styles.pillButton}
+                      >
+                        <Icon
+                          name="minus"
+                          size={12}
+                          color={theme.colors.library.orange[600]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </LinearGradient>
               </View>
             )}
 
             {selectedGoalType === "Task based" && (
-              <View style={styles.card}>
-                <View style={styles.textContainer}>
-                  <Text style={styles.titleText}>Daily task count</Text>
-                  <Text style={styles.descText}>
-                    e.g., complete 3 tasks/day
-                  </Text>
-                </View>
-                <View style={styles.valueControlContainer}>
-                  <TouchableOpacity
-                    onPress={handleIncrementTaskCount}
-                    style={styles.chevronButton}
-                  >
+              <View style={styles.cardWrapper}>
+                <LinearGradient
+                  colors={["#Cbf0f0", "#98E6E6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.cardGradient}
+                >
+                  <View style={styles.watermarkContainer}>
                     <Icon
-                      name="chevron-up"
-                      size={14}
-                      color={theme.colors.library.orange[600]}
+                      name="check-double"
+                      size={120}
+                      color="rgba(255,255,255,0.15)"
                     />
-                  </TouchableOpacity>
-                  <Text style={styles.valueTextLarge}>{taskCount}</Text>
-                  <TouchableOpacity
-                    onPress={handleDecrementTaskCount}
-                    style={styles.chevronButton}
-                  >
-                    <Icon
-                      name="chevron-down"
-                      size={14}
-                      color={theme.colors.library.orange[600]}
-                    />
-                  </TouchableOpacity>
-                </View>
+                  </View>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>TASK TARGET</Text>
+                    </View>
+                    <Text style={styles.cardTitle}>Daily task count</Text>
+                    <Text style={styles.cardDesc}>
+                      e.g., complete 3 tasks/day
+                    </Text>
+                  </View>
+                  <View style={styles.cardFooter}>
+                    <View style={styles.valueControlRows}>
+                      <TouchableOpacity
+                        onPress={handleIncrementTaskCount}
+                        style={styles.pillButton}
+                      >
+                        <Icon
+                          name="plus"
+                          size={12}
+                          color={theme.colors.library.orange[600]}
+                        />
+                      </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.valueTextLarge,
+                          { marginHorizontal: 12 },
+                        ]}
+                      >
+                        {taskCount} tasks
+                      </Text>
+                      <TouchableOpacity
+                        onPress={handleDecrementTaskCount}
+                        style={styles.pillButton}
+                      >
+                        <Icon
+                          name="minus"
+                          size={12}
+                          color={theme.colors.library.orange[600]}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </LinearGradient>
               </View>
             )}
           </CustomScrollView>
@@ -430,64 +524,93 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollView: {
-    gap: 16,
-    paddingHorizontal: 16, // Match header alignment
+    gap: 20,
+    paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
+  cardWrapper: {
+    borderRadius: 32,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    overflow: "hidden",
+  },
+  cardGradient: {
+    padding: 24,
+    minHeight: 160,
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  watermarkContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    transform: [{ rotate: "-15deg" }],
+    opacity: 0.8,
+  },
+  cardHeader: {
+    zIndex: 1,
+  },
+  badge: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
+  badgeText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 10,
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.6)",
+    letterSpacing: 1,
+  },
+  cardTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "rgba(0,0,0,0.8)",
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  cardDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(0,0,0,0.6)",
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  textContainer: {
-    gap: 6,
-    flex: 1,
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.library.orange[800],
-    fontWeight: "700",
-    fontSize: 18,
-  },
-  descText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.gray[500],
-  },
-  valueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    // Removed background and padding for clean look
-  },
-  valueText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.orange[800],
-    fontWeight: "600",
-  },
-  valueTextLarge: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: theme.colors.library.orange[800],
-    minWidth: 32,
-    textAlign: "center",
+    marginTop: 16,
+    zIndex: 1,
   },
   valueControlContainer: {
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    backgroundColor: "rgba(255,247,237, 1)", // Soft Orange
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
   },
-  chevronButton: {
-    padding: 8,
+  valueControlRows: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  pillButton: {
+    backgroundColor: "white",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  valueTextLarge: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "rgba(0,0,0,0.7)",
   },
 
   // modal
