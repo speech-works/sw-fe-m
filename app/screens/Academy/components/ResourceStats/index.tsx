@@ -234,7 +234,7 @@ const ResourceStats = ({
                             { color: theme.colors.actionPrimary.default },
                           ]}
                         >
-                          Upgrade to regain stamina
+                          Upgrade Energy
                         </Text>
                       </TouchableOpacity>
                     ) : staminaPercentage === 100 ? (
@@ -257,133 +257,137 @@ const ResourceStats = ({
                 gridOriginY.current = e.nativeEvent.layout.y;
               }}
             >
-              {/* Task Card - HUGE */}
-              <TourGuideZone
-                zone={4}
-                text="Daily Practice: Track your completed free activities here. Completing your daily goal earns you bonus XP and helps build a solid speech habit."
-                shape="rectangle"
-              >
-                <View
-                  onLayout={(e) => {
-                    const { x, y, width, height } = e.nativeEvent.layout;
-                    const relativeY = y + gridOriginY.current;
-                    const customEvent = {
-                      nativeEvent: {
-                        layout: { x, y: relativeY, width, height },
-                      },
-                    };
-                    onLayoutCapture?.(4, customEvent);
-                  }}
-                  style={[
-                    styles.bigCard,
-                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                  ]}
+              <View style={{ flex: 1 }}>
+                {/* Task Card - HUGE */}
+                <TourGuideZone
+                  zone={4}
+                  text="Daily Practice: Track your completed free activities here. Completing your daily goal earns you bonus XP and helps build a solid speech habit."
+                  shape="rectangle"
                 >
-                  {/* Watermark Icon */}
                   <View
+                    onLayout={(e) => {
+                      const { x, y, width, height } = e.nativeEvent.layout;
+                      const relativeY = y + gridOriginY.current;
+                      const customEvent = {
+                        nativeEvent: {
+                          layout: { x, y: relativeY, width, height },
+                        },
+                      };
+                      onLayoutCapture?.(4, customEvent);
+                    }}
                     style={[
-                      styles.watermarkContainer,
-                      { transform: [{ rotate: "-20deg" }] },
+                      styles.bigCard,
+                      { backgroundColor: "#F1F5F9", borderWidth: 0 },
                     ]}
                   >
-                    <Icon
-                      name="check-circle"
-                      size={90}
-                      color="#10B981"
-                      style={{ opacity: 0.05 }}
-                    />
-                  </View>
+                    {/* Watermark Icon */}
+                    <View
+                      style={[
+                        styles.watermarkContainer,
+                        { transform: [{ rotate: "-20deg" }] },
+                      ]}
+                    >
+                      <Icon
+                        name="check-circle"
+                        size={90}
+                        color="#10B981"
+                        style={{ opacity: 0.05 }}
+                      />
+                    </View>
 
-                  <View style={styles.cardHeader}>
-                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                      Free Activity
-                    </Text>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                      {tasksRemaining}
-                    </Text>
-                    <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
-                      / {tasksTotal}
-                    </Text>
-                  </View>
-                  {/* Mini Bar */}
-                  <View
-                    style={{
-                      marginTop: 8,
-                      height: 6,
-                      backgroundColor: "rgba(16, 185, 129, 0.1)",
-                      borderRadius: 3,
-                      width: "100%",
-                    }}
-                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                        Free Activity
+                      </Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                        {tasksRemaining}
+                      </Text>
+                      <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
+                        / {tasksTotal}
+                      </Text>
+                    </View>
+                    {/* Mini Bar */}
                     <View
                       style={{
-                        height: "100%",
-                        backgroundColor: "#10B981",
+                        marginTop: 8,
+                        height: 6,
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
                         borderRadius: 3,
-                        width: `${taskPercentage}%`,
+                        width: "100%",
                       }}
-                    />
+                    >
+                      <View
+                        style={{
+                          height: "100%",
+                          backgroundColor: "#10B981",
+                          borderRadius: 3,
+                          width: `${taskPercentage}%`,
+                        }}
+                      />
+                    </View>
                   </View>
-                </View>
-              </TourGuideZone>
+                </TourGuideZone>
+              </View>
 
-              {/* Level Card - HUGE */}
-              <TourGuideZone
-                zone={5}
-                text="Your Progress: Watch your level rise as you practice. Higher levels unlock new insights and demonstrate your commitment to mastering your speech."
-                shape="rectangle"
-              >
-                <View
-                  onLayout={(e) => {
-                    const { x, y, width, height } = e.nativeEvent.layout;
-                    const relativeY = y + gridOriginY.current;
-                    const customEvent = {
-                      nativeEvent: {
-                        layout: { x, y: relativeY, width, height },
-                      },
-                    };
-                    onLayoutCapture?.(5, customEvent);
-                  }}
-                  style={[
-                    styles.bigCard,
-                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                  ]}
+              <View style={{ flex: 1 }}>
+                {/* Level Card - HUGE */}
+                <TourGuideZone
+                  zone={5}
+                  text="Your Progress: Watch your level rise as you practice. Higher levels unlock new insights and demonstrate your commitment to mastering your speech."
+                  shape="rectangle"
                 >
-                  {/* Watermark Icon */}
                   <View
+                    onLayout={(e) => {
+                      const { x, y, width, height } = e.nativeEvent.layout;
+                      const relativeY = y + gridOriginY.current;
+                      const customEvent = {
+                        nativeEvent: {
+                          layout: { x, y: relativeY, width, height },
+                        },
+                      };
+                      onLayoutCapture?.(5, customEvent);
+                    }}
                     style={[
-                      styles.watermarkContainer,
-                      { transform: [{ rotate: "-20deg" }] },
+                      styles.bigCard,
+                      { backgroundColor: "#F1F5F9", borderWidth: 0 },
                     ]}
                   >
-                    <Icon
-                      name="star"
-                      size={90}
-                      color="#3B82F6"
-                      style={{ opacity: 0.05 }}
-                    />
-                  </View>
+                    {/* Watermark Icon */}
+                    <View
+                      style={[
+                        styles.watermarkContainer,
+                        { transform: [{ rotate: "-20deg" }] },
+                      ]}
+                    >
+                      <Icon
+                        name="star"
+                        size={90}
+                        color="#3B82F6"
+                        style={{ opacity: 0.05 }}
+                      />
+                    </View>
 
-                  <View style={styles.cardHeader}>
-                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                      Level
+                    <View style={styles.cardHeader}>
+                      <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                        Level
+                      </Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                        {userLevel}
+                      </Text>
+                    </View>
+                    {/* XP Text */}
+                    <Text style={[styles.xpText, { color: "#3B82F6" }]}>
+                      {userProgress
+                        ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
+                        : "0 XP"}
                     </Text>
                   </View>
-                  <View style={styles.cardBody}>
-                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                      {userLevel}
-                    </Text>
-                  </View>
-                  {/* XP Text */}
-                  <Text style={[styles.xpText, { color: "#3B82F6" }]}>
-                    {userProgress
-                      ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
-                      : "0 XP"}
-                  </Text>
-                </View>
-              </TourGuideZone>
+                </TourGuideZone>
+              </View>
             </View>
           </View>
         </LinearGradient>
