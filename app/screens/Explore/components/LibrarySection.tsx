@@ -83,7 +83,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
           {/* Tag / Badge */}
           <View style={styles.badge}>
             <Icon name="video" size={12} color="#FFFFFF" />
-            <Text style={styles.badgeText}>120+ Videos</Text>
+            <Text style={styles.badgeText}>Recorded Lessons</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
+    marginTop: 12,
   },
   badgeText: {
     ...parseTextStyle(theme.typography.BodySmall),
