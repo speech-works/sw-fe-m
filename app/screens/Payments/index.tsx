@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   navBar: {
     position: "absolute",
     top: 20, // Adjust for safe area if needed, or use SafeAreaView
-    left: 20,
+    right: 20,
     zIndex: 100,
   },
   backButton: {
