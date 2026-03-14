@@ -4,17 +4,23 @@ import { AcademyStackParamList } from "../../types";
 
 export type RDPStackParamList = {
   ReadingPractice: undefined;
-  StoryPractice: {
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
-    practiceActivity?: any;
-  };
-  PoemPractice: {
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
-    practiceActivity?: any;
-  };
-  QuotePractice: {
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
-  };
+  StoryPractice:
+    | {
+        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+        practiceActivity?: any;
+      }
+    | undefined;
+  PoemPractice:
+    | {
+        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+        practiceActivity?: any;
+      }
+    | undefined;
+  QuotePractice:
+    | {
+        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+      }
+    | undefined;
 };
 export type RDPStackNavigationProp<T extends keyof RDPStackParamList> =
   CompositeNavigationProp<

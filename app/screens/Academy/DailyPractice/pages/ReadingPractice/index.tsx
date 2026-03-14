@@ -2,12 +2,12 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
@@ -15,14 +15,14 @@ import PoetFace from "../../../../../assets/sw-faces/PoetFace";
 import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
 import ScreenView from "../../../../../components/ScreenView";
 import {
-    RDPStackNavigationProp,
-    RDPStackParamList,
+  RDPStackNavigationProp,
+  RDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../../util/functions/time";
 
@@ -65,7 +65,7 @@ const ReadingPractice = () => {
   ];
 
   const stats = practiceStats.find(
-    (stat) => stat.contentType === "READING_PRACTICE"
+    (stat) => stat.contentType === "READING_PRACTICE",
   );
 
   return (
@@ -252,7 +252,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 40,
+    paddingBottom: 10,
   },
   backButton: {
     width: 32,

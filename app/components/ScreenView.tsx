@@ -45,8 +45,7 @@ export default ScreenView;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 32,
+    flex: 1,
     display: "flex",
     overflow: "visible",
   },

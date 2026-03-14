@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   container: {
     gap: 32,
     flex: 1,
+    paddingTop: 40,
   },
   topNavigation: {
     position: "relative",

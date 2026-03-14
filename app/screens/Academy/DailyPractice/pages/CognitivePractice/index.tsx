@@ -2,12 +2,12 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingFace";
@@ -15,14 +15,14 @@ import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
 import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
 import ScreenView from "../../../../../components/ScreenView";
 import {
-    CDPStackNavigationProp,
-    CDPStackParamList,
+  CDPStackNavigationProp,
+  CDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../../util/functions/time";
 
@@ -58,7 +58,7 @@ const CognitivePractice = () => {
   ];
 
   const stats = practiceStats.find(
-    (stat) => stat.contentType === "COGNITIVE_PRACTICE"
+    (stat) => stat.contentType === "COGNITIVE_PRACTICE",
   );
 
   return (
@@ -243,7 +243,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 40,
+    paddingBottom: 10,
   },
   backButton: {
     width: 32,

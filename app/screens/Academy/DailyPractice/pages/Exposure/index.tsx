@@ -2,12 +2,12 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
@@ -15,14 +15,14 @@ import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
 import WiseFace from "../../../../../assets/sw-faces/WiseFace";
 import ScreenView from "../../../../../components/ScreenView";
 import {
-    EDPStackNavigationProp,
-    EDPStackParamList,
+  EDPStackNavigationProp,
+  EDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../../util/functions/time";
 
@@ -78,7 +78,7 @@ const Exposure = () => {
   ];
 
   const stats = practiceStats.find(
-    (stat) => stat.contentType === "EXPOSURE_PRACTICE"
+    (stat) => stat.contentType === "EXPOSURE_PRACTICE",
   );
 
   return (
@@ -296,7 +296,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 40,
+    paddingBottom: 10,
   },
   backButton: {
     width: 32,

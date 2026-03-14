@@ -2,12 +2,12 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
@@ -15,14 +15,14 @@ import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
 import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
 import ScreenView from "../../../../../components/ScreenView";
 import {
-    FDPStackNavigationProp,
-    FDPStackParamList,
+  FDPStackNavigationProp,
+  FDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
 import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../../util/functions/time";
 
@@ -62,7 +62,7 @@ const FunPractice = () => {
   ];
 
   const stats = practiceStats.find(
-    (stat) => stat.contentType === "FUN_PRACTICE"
+    (stat) => stat.contentType === "FUN_PRACTICE",
   );
 
   return (
@@ -251,7 +251,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 40,
+    paddingBottom: 10,
   },
   backButton: {
     width: 32,
