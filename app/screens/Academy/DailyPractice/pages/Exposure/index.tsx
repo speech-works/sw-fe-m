@@ -13,6 +13,8 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import InterviewFace from "../../../../../assets/sw-faces/InterviewFace";
 import RoboticPhoneFace from "../../../../../assets/sw-faces/RoboticPhoneFace";
 import WiseFace from "../../../../../assets/sw-faces/WiseFace";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
 import {
   EDPStackNavigationProp,
@@ -31,7 +33,8 @@ const { width } = Dimensions.get("window");
 const Exposure = () => {
   const navigation =
     useNavigation<EDPStackNavigationProp<keyof EDPStackParamList>>();
-
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { practiceStats } = usePracticeStatsStore();
 
   const exposureData = [
@@ -92,7 +95,14 @@ const Exposure = () => {
         />
       </View>
 
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -101,10 +111,13 @@ const Exposure = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Exposure</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionSubtitle}>
@@ -292,12 +305,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 10,
   },
   backButton: {
     width: 32,

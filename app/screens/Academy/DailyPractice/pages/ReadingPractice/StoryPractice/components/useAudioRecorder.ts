@@ -247,10 +247,10 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
               setPlaybackPosition(0);
               setMetering(0);
             }
-          } else if (status.error) {
+          } else if ((status as any).error) {
             console.warn(
               "[useAudioRecorder] Playback error update:",
-              status.error,
+              (status as any).error,
             );
           }
         },

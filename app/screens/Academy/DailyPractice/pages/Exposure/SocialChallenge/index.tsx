@@ -1,37 +1,36 @@
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import {
-    SCEDPStackNavigationProp,
-    SCEDPStackParamList,
+  SCEDPStackNavigationProp,
+  SCEDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 
 import { getExposurePracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    ExposurePractice,
-    ExposurePracticeType,
+  ExposurePractice,
+  ExposurePracticeType,
 } from "../../../../../../api/dailyPractice/types";
 
 const SocialChallenge = () => {
   const [socialChallengesList, setSocialChallengesList] = useState<
     ExposurePractice[]
   >([]);
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
 
   // Calm/Cool Palette - Blue/Teal/Indigo
   const SC_THEMES = [
@@ -69,7 +68,7 @@ const SocialChallenge = () => {
   useEffect(() => {
     const fetchSCDetails = async () => {
       const socialChallenges = await getExposurePracticeByType(
-        ExposurePracticeType.SOCIAL_CHALLENGE_SIMULATION
+        ExposurePracticeType.SOCIAL_CHALLENGE_SIMULATION,
       );
       setSocialChallengesList(socialChallenges);
     };
@@ -90,7 +89,14 @@ const SocialChallenge = () => {
       </View>
 
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -103,9 +109,14 @@ const SocialChallenge = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Social Challenges</Text>
           <View style={{ width: 32 }} />
-        </View>
+        </BlurView>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroIconContainer}>
@@ -214,11 +225,15 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Scroll clearance
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,

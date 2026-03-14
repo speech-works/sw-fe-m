@@ -2,7 +2,14 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { API_BASE_URL } from "../../../../../../api/constants";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
@@ -40,6 +47,7 @@ const PhoneCall = () => {
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
   const { addActivity, updateActivity } = useActivityStore();
+  const insets = useSafeAreaInsets();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
@@ -201,7 +209,12 @@ const PhoneCall = () => {
         />
 
         {/* Safe Area Top Layout */}
-        <View style={styles.topHeader}>
+        <View
+          style={[
+            styles.topHeader,
+            { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 10) },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButtonGlass}
@@ -337,7 +350,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 60, // Adjust for safe area approximately
+    // paddingTop handled dynamically
     paddingBottom: 20,
     zIndex: 10,
   },

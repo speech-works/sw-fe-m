@@ -155,7 +155,7 @@ const SunshineOverlay: React.FC = React.memo(() => {
     };
   }, []);
 
-  const sunStyle = useAnimatedStyle(() => {
+  const sunStyle = useAnimatedStyle((): any => {
     return {
       transform: [{ scale: sunGlow.value }, { translateY: sunRise.value }],
       opacity: sunOpacity.value,

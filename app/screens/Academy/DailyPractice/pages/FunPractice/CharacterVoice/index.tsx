@@ -2,28 +2,30 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
-    FunPractice,
-    FunPracticeType,
+  FunPractice,
+  FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import {
-    CharacterVoiceFDPStackNavigationProp,
-    CharacterVoiceFDPStackParamList,
+  CharacterVoiceFDPStackNavigationProp,
+  CharacterVoiceFDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 
 const CharacterVoice = () => {
@@ -35,6 +37,8 @@ const CharacterVoice = () => {
         keyof CharacterVoiceFDPStackParamList
       >
     >();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
 
   // Award-Winning Gradient Palette
   // Award-Winning Gradient Palette - Lightened & Softer
@@ -102,24 +106,31 @@ const CharacterVoice = () => {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Character Voice</Text>
-          <View style={{ width: 32 }} />
-        </View>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.topNavigationContainer,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Character Voice</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.container}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroIconContainer}>
@@ -231,11 +242,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,

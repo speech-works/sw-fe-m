@@ -19,6 +19,8 @@ import Reanimated, {
 } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
   AcademyStackNavigationProp,
@@ -150,6 +152,8 @@ const RulerTicks = React.memo(() => {
 const MoodCheck = () => {
   const academyNavigation =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const isFocused = useIsFocused();
 
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -227,7 +231,14 @@ const MoodCheck = () => {
       />
 
       {/* Header */}
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => academyNavigation.goBack()}
           style={styles.backButton}
@@ -236,11 +247,14 @@ const MoodCheck = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Daily Log</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -367,7 +381,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    paddingTop: 32,
   },
   scrollView: {
     flex: 1,
@@ -377,12 +390,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginBottom: height * 0.02,
   },
   backButton: {
     width: 32,

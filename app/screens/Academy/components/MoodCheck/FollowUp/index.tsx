@@ -16,6 +16,8 @@ import {
   BackHandler,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
 import { theme } from "../../../../../Theme/tokens";
 import {
@@ -276,6 +278,8 @@ const FollowUp = () => {
   const route = useRoute<RouteProp<MoodFUStackParamList, "FollowUp">>();
   const isFocused = useIsFocused();
   const { mood } = route.params;
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
 
   const { FaceComponent, title, desc, helpful, gradientColor } =
     moodContentMap[mood];
@@ -335,8 +339,36 @@ const FollowUp = () => {
           end={{ x: 0.5, y: 0.6 }}
         />
 
+        {/* Header */}
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.header,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => navigateToHome()}
+            style={styles.backButton}
+          >
+            <Icon
+              name="chevron-left"
+              size={16}
+              color={theme.colors.text.title}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Daily Log</Text>
+          <View style={{ width: 32 }} />
+        </BlurView>
+
         <View style={styles.container}>
-          <CustomScrollView contentContainerStyle={styles.innerContainer}>
+          <CustomScrollView
+            contentContainerStyle={[
+              styles.innerContainer,
+              { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+            ]}
+          >
             <View style={styles.titleWrapper}>
               <View style={styles.faceContainer}>
                 <FaceComponent
@@ -465,8 +497,23 @@ const styles = StyleSheet.create({
   innerContainer: {
     gap: 32,
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 40,
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
   },
 
   backButton: {

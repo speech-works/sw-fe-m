@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from "react";
 import {
-    Platform,
-    TouchableOpacity,
-    TouchableOpacityProps,
-    Vibration,
+  Platform,
+  TouchableOpacity,
+  TouchableOpacityProps,
+  Vibration,
 } from "react-native";
 // import * as Haptics from 'expo-haptics'; // Not installed, using Vibration fallback
 
@@ -45,7 +45,7 @@ export const TactileTouchableOpacity: React.FC<
       if (hapticFeedback) {
         // Simple fallback vibration
         // In a real app with expo-haptics: Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        if (Platform.OS === "bg") {
+        if (Platform.OS === "web") {
           // no-op
         } else {
           Vibration.vibrate(10); // Short vibration

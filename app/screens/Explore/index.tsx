@@ -15,7 +15,11 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
 import { getUserStats } from "../../api/stats";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
@@ -43,6 +47,8 @@ const Explore = () => {
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { setPracticeStats } = usePracticeStatsStore();
   const { events, clear } = useEventStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 100;
 
   // --- NEW: Local State for Error Modal ---
   const [errorModalVisible, setErrorModalVisible] = useState(false);
@@ -180,10 +186,30 @@ const Explore = () => {
       </View>
 
       <View style={{ flex: 1 }}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 20,
+              height: HEADER_HEIGHT + insets.top,
+            },
+          ]}
+        >
+          <Text style={styles.title}>Explore</Text>
+          <Text style={styles.subtitle}>
+            Discover new ways to improve your speech.
+          </Text>
+        </BlurView>
+
         <ScrollView
           ref={verticalScrollRef}
           refreshControl={refreshControl}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!isTourActive}
           onScrollBeginDrag={() => setIsScrolling(true)}
@@ -198,13 +224,6 @@ const Explore = () => {
           }}
           onMomentumScrollEnd={() => setIsScrolling(false)}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Explore</Text>
-            <Text style={styles.subtitle}>
-              Discover new ways to improve your speech.
-            </Text>
-          </View>
-
           {/* World Exploration Map */}
           <View onLayout={captureLayout(1)} collapsable={false}>
             <TourGuideZone
@@ -297,7 +316,13 @@ const styles = StyleSheet.create({
     gap: 32, // Consistent space between sections
   },
   header: {
-    gap: 8,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 16,
+    gap: 4,
   },
   innerContainer: {
     gap: 32,

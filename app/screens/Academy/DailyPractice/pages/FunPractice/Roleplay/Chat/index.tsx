@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
@@ -66,6 +68,8 @@ const Chat = () => {
     useSessionStore();
 
   const { user } = useUserStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
 
@@ -317,7 +321,14 @@ const Chat = () => {
   );
 
   const Header = () => (
-    <View style={styles.topNavigationContainer}>
+    <BlurView
+      intensity={80}
+      tint="light"
+      style={[
+        styles.topNavigationContainer,
+        { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+      ]}
+    >
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.backButton}
@@ -330,7 +341,7 @@ const Chat = () => {
       </Text>
 
       <View style={{ width: 32 }} />
-    </View>
+    </BlurView>
   );
 
   // 1. Intro Layout (Scrollable Page)
@@ -342,7 +353,10 @@ const Chat = () => {
 
         <CustomScrollView
           scrollEnabled={true}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 40 },
+          ]}
         >
           <View style={styles.introContainer}>
             <LinearGradient
@@ -437,7 +451,10 @@ const Chat = () => {
       <View style={{ flex: 1, overflow: "hidden" }}>
         <CustomScrollView
           ref={chatScrollRef}
-          contentContainerStyle={styles.chatsScrollView}
+          contentContainerStyle={[
+            styles.chatsScrollView,
+            { paddingTop: HEADER_HEIGHT + insets.top + 10 },
+          ]}
           style={styles.chatsView}
           scrollEventThrottle={16}
         >
@@ -556,12 +573,15 @@ const styles = StyleSheet.create({
     paddingTop: SHADOW_BUFFER,
   },
   topNavigationContainer: {
-    display: "flex",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
@@ -580,6 +600,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     flex: 1,
     marginHorizontal: 16,
+    marginTop: 2,
   },
   messagesContainer: {
     padding: 16,

@@ -41,6 +41,8 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import DonePractice from "../../../components/DonePractice";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
 
@@ -48,6 +50,8 @@ import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademySt
 
 const Meditation = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"Meditation">>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
 
@@ -483,101 +487,112 @@ const Meditation = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
-        <View style={styles.container}>
-          <View style={styles.topNavigationContainer}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Icon
+              name="chevron-left"
+              size={16}
+              color={theme.colors.text.title}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Guided Meditation</Text>
+          <View style={{ width: 32 }} />
+        </BlurView>
+
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
+          ]}
+        >
+          <>
+            {selectedIndex !== null && meditationScenarios[selectedIndex] && (
+              <MeditationCard
+                selectedMed={meditationScenarios[selectedIndex]}
+                onMedToggle={() => {
+                  setIsVisible((old) => !old);
+                }}
               />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Guided Meditation</Text>
-            <View style={{ width: 32 }} />
-          </View>
+            )}
 
-          <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-            <>
-              {selectedIndex !== null && meditationScenarios[selectedIndex] && (
-                <MeditationCard
-                  selectedMed={meditationScenarios[selectedIndex]}
-                  onMedToggle={() => {
-                    setIsVisible((old) => !old);
-                  }}
-                />
-              )}
-
-              <View style={styles.tipsContainer}>
-                {/* Header Banner */}
-                <View style={styles.noteHeaderBanner}>
-                  <LinearGradient
-                    colors={["#EEF2FF", "#E0E7FF", "#C7D2FE"]} // Soft Indigo
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  {/* Decorative Elements */}
-                  <View style={styles.bannerBubbleLeft} />
-                  <View style={styles.bannerBubbleRight} />
-
-                  <View style={styles.noteHeaderTextContainer}>
-                    <View style={styles.bannerChip}>
-                      <Icon name="lightbulb" size={10} color="#4338CA" />
-                      <Text style={styles.bannerChipText}>PREPARATION</Text>
-                    </View>
-                    <Text
-                      style={[styles.noteHeaderTitle, { color: "#312E81" }]}
-                    >
-                      Tips
-                    </Text>
-                    <Text
-                      style={[styles.noteHeaderSubtitle, { color: "#4338CA" }]}
-                    >
-                      Before you start
-                    </Text>
-                  </View>
-                  <TherapistFace size={80} />
-                </View>
-
-                {/* Masonry Tips Grid */}
-                {selectedIndex !== null &&
-                meditationScenarios[selectedIndex]?.guidedMeditationData
-                  ?.tips ? (
-                  <MasonryTips
-                    tips={
-                      meditationScenarios[selectedIndex]?.guidedMeditationData
-                        ?.tips || []
-                    }
-                  />
-                ) : null}
-              </View>
-
-              {/* Start Button */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleStart}
-                style={[
-                  styles.startButton,
-                  { marginHorizontal: 20, marginTop: 20 },
-                ]}
-              >
+            <View style={styles.tipsContainer}>
+              {/* Header Banner */}
+              <View style={styles.noteHeaderBanner}>
                 <LinearGradient
-                  colors={[
-                    theme.colors.library.purple[400],
-                    theme.colors.library.purple[500],
-                  ]}
+                  colors={["#EEF2FF", "#E0E7FF", "#C7D2FE"]} // Soft Indigo
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.startButtonGradient}
-                >
-                  <Text style={styles.startButtonText}>Start Exercise</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </>
-          </CustomScrollView>
+                  style={StyleSheet.absoluteFill}
+                />
+                {/* Decorative Elements */}
+                <View style={styles.bannerBubbleLeft} />
+                <View style={styles.bannerBubbleRight} />
+
+                <View style={styles.noteHeaderTextContainer}>
+                  <View style={styles.bannerChip}>
+                    <Icon name="lightbulb" size={10} color="#4338CA" />
+                    <Text style={styles.bannerChipText}>PREPARATION</Text>
+                  </View>
+                  <Text style={[styles.noteHeaderTitle, { color: "#312E81" }]}>
+                    Tips
+                  </Text>
+                  <Text
+                    style={[styles.noteHeaderSubtitle, { color: "#4338CA" }]}
+                  >
+                    Before you start
+                  </Text>
+                </View>
+                <TherapistFace size={80} />
+              </View>
+
+              {/* Masonry Tips Grid */}
+              {selectedIndex !== null &&
+              meditationScenarios[selectedIndex]?.guidedMeditationData?.tips ? (
+                <MasonryTips
+                  tips={
+                    meditationScenarios[selectedIndex]?.guidedMeditationData
+                      ?.tips || []
+                  }
+                />
+              ) : null}
+            </View>
+          </>
+        </CustomScrollView>
+
+        {/* Start Button at bottom */}
+        <View
+          style={[
+            styles.bottomActionContainer,
+            { paddingBottom: insets.bottom || 24 },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={handleStart}
+            style={styles.startButton}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.purple[400],
+                theme.colors.library.purple[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>Start Exercise</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </ScreenView>
 
@@ -679,14 +694,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topNavigationContainer: {
-    position: "relative",
+    position: "absolute",
     top: 0,
-    display: "flex",
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24, // Matched others
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
@@ -829,7 +845,7 @@ const styles = StyleSheet.create({
   startButton: {
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 40,
+    marginBottom: 0,
   },
   startButtonGradient: {
     flexDirection: "row",
@@ -1015,5 +1031,8 @@ const styles = StyleSheet.create({
     fontWeight: "200", // Thinner, elegant font
     letterSpacing: 4,
     lineHeight: 80,
+  },
+  bottomActionContainer: {
+    paddingHorizontal: SHADOW_BUFFER + 20,
   },
 });

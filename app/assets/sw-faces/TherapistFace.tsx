@@ -22,8 +22,8 @@ import Svg, {
 } from "react-native-svg";
 
 // Created once at module level — never re-created on render
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedG = Animated.createAnimatedComponent(G) as any;
+const AnimatedRect = Animated.createAnimatedComponent(Rect) as any;
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;

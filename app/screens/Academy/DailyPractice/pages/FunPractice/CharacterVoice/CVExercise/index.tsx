@@ -1,9 +1,12 @@
+// FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView, {
   SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
@@ -39,6 +42,8 @@ import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/Sma
 const CVExercise = () => {
   const navigation =
     useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext } = route.params;
@@ -244,7 +249,17 @@ const CVExercise = () => {
           style={StyleSheet.absoluteFillObject}
         />
         <View style={styles.container}>
-          <View style={styles.topNavigationContainer}>
+          <BlurView
+            intensity={80}
+            tint="light"
+            style={[
+              styles.topNavigationContainer,
+              {
+                paddingTop: insets.top + 10,
+                height: HEADER_HEIGHT + insets.top,
+              },
+            ]}
+          >
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backButton}
@@ -257,54 +272,72 @@ const CVExercise = () => {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Character Voice</Text>
             <View style={{ width: 32 }} />
-          </View>
+          </BlurView>
 
-          <CustomScrollView
-            key="tips-scroll"
-            contentContainerStyle={styles.tipsScrollContent}
-          >
-            <View style={styles.noteHeaderBanner}>
-              <LinearGradient
-                colors={["#FFE4E6", "#FFEDD5"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.noteHeaderTextContainer}>
-                <Text style={styles.noteHeaderTitle}>Tips</Text>
-                <Text style={styles.noteHeaderSubtitle}>Before you start</Text>
-              </View>
-              <TherapistFace size={72} />
-            </View>
-
-            <MasonryTips tips={cvData.hints} />
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={async () => {
-                setIsStarting(true);
-                try {
-                  await markActivityStart();
-                } finally {
-                  setIsStarting(false);
-                }
-              }}
-              disabled={isStarting}
-              style={styles.startButton}
+          <View style={styles.container}>
+            <CustomScrollView
+              key="tips-scroll"
+              contentContainerStyle={[
+                styles.tipsScrollContent,
+                {
+                  paddingTop: HEADER_HEIGHT + insets.top + 20,
+                  paddingBottom: 120,
+                },
+              ]}
             >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.startButtonGradient}
+              <View style={styles.noteHeaderBanner}>
+                <LinearGradient
+                  colors={["#FFE4E6", "#FFEDD5"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.noteHeaderTextContainer}>
+                  <Text style={styles.noteHeaderTitle}>Tips</Text>
+                  <Text style={styles.noteHeaderSubtitle}>
+                    Before you start
+                  </Text>
+                </View>
+                <TherapistFace size={72} />
+              </View>
+
+              <MasonryTips tips={cvData.hints} />
+            </CustomScrollView>
+
+            {/* Fixed Start Button at bottom */}
+            <View
+              style={[
+                styles.bottomActionContainer,
+                { paddingBottom: insets.bottom || 24 },
+              ]}
+            >
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={async () => {
+                  setIsStarting(true);
+                  try {
+                    await markActivityStart();
+                  } finally {
+                    setIsStarting(false);
+                  }
+                }}
+                disabled={isStarting}
+                style={styles.startButton}
               >
-                <Text style={styles.startButtonText}>Start Practice</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </CustomScrollView>
+                <LinearGradient
+                  colors={[
+                    theme.colors.library.orange[400],
+                    theme.colors.library.orange[500],
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.startButtonGradient}
+                >
+                  <Text style={styles.startButtonText}>Start Practice</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScreenView>
     );
@@ -320,7 +353,14 @@ const CVExercise = () => {
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -333,76 +373,81 @@ const CVExercise = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Character Voice</Text>
           <View style={{ width: 32 }} />
-        </View>
+        </BlurView>
 
-        <CustomScrollView
-          key="practice-scroll"
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: bottomPadding },
-          ]}
-        >
-          <View style={styles.cardContainer}>
-            {/* 1. Warm Gradient Header */}
-            <LinearGradient
-              colors={["#2DD4BF", "#0F766E"]} // Teal 400 -> Teal 700 (Matching Character Voice Theme)
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardHeaderGradient}
-            >
-              <View style={styles.headerTopRow}>
-                <View style={styles.categoryPill}>
-                  <Icon name="microphone-alt" size={12} color="#115E59" />
-                  <Text style={styles.categoryPillText}>VOICE</Text>
+        <View style={styles.container}>
+          <CustomScrollView
+            key="practice-scroll"
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingTop: HEADER_HEIGHT + insets.top + 10,
+                paddingBottom: bottomPadding,
+              },
+            ]}
+          >
+            <View style={styles.cardContainer}>
+              {/* 1. Warm Gradient Header */}
+              <LinearGradient
+                colors={["#2DD4BF", "#0F766E"]} // Teal 400 -> Teal 700 (Matching Character Voice Theme)
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardHeaderGradient}
+              >
+                <View style={styles.headerTopRow}>
+                  <View style={styles.categoryPill}>
+                    <Icon name="microphone-alt" size={12} color="#115E59" />
+                    <Text style={styles.categoryPillText}>VOICE</Text>
+                  </View>
+
+                  {/* Glassy Next Button */}
+                  <TouchableOpacity
+                    onPress={toggleIndex}
+                    style={styles.glassButton}
+                  >
+                    <Text style={styles.glassButtonText}>Next</Text>
+                    <Icon name="chevron-right" size={12} color="#FFF" />
+                  </TouchableOpacity>
                 </View>
 
-                {/* Glassy Next Button */}
-                <TouchableOpacity
-                  onPress={toggleIndex}
-                  style={styles.glassButton}
-                >
-                  <Text style={styles.glassButtonText}>Next</Text>
-                  <Icon name="chevron-right" size={12} color="#FFF" />
-                </TouchableOpacity>
-              </View>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.articleTitle}>{name}</Text>
+                  <AudioPlaybackButton
+                    audioUrl={cvData.exampleAudioUrl}
+                    iconSize={14}
+                    activeColor="#FFF"
+                    style={styles.playbackButton}
+                  />
+                </View>
 
-              <View style={styles.titleContainer}>
-                <Text style={styles.articleTitle}>{name}</Text>
-                <AudioPlaybackButton
-                  audioUrl={cvData.exampleAudioUrl}
-                  iconSize={14}
-                  activeColor="#FFF"
-                  style={styles.playbackButton}
-                />
-              </View>
+                {/* Watermark */}
+                <View style={styles.headerWatermark}>
+                  <Icon
+                    name="microphone-alt"
+                    size={96}
+                    color="rgba(255,255,255,0.15)"
+                  />
+                </View>
+              </LinearGradient>
 
-              {/* Watermark */}
-              <View style={styles.headerWatermark}>
-                <Icon
-                  name="microphone-alt"
-                  size={96}
-                  color="rgba(255,255,255,0.15)"
-                />
-              </View>
-            </LinearGradient>
+              {/* 2. White Sheet Content */}
+              <View style={styles.cardBodySheet}>
+                {/* Internal Watermark */}
+                <View style={styles.sheetWatermarkContainer}>
+                  <Icon
+                    name={cvData.icon || "user"}
+                    size={120}
+                    color={theme.colors.library.orange[200]}
+                  />
+                </View>
 
-            {/* 2. White Sheet Content */}
-            <View style={styles.cardBodySheet}>
-              {/* Internal Watermark */}
-              <View style={styles.sheetWatermarkContainer}>
-                <Icon
-                  name={cvData.icon || "user"}
-                  size={120}
-                  color={theme.colors.library.orange[200]}
-                />
-              </View>
-
-              <View style={styles.textArea}>
-                <Text style={styles.readingText}>{texts[currentIndex]}</Text>
+                <View style={styles.textArea}>
+                  <Text style={styles.readingText}>{texts[currentIndex]}</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </CustomScrollView>
+          </CustomScrollView>
+        </View>
       </View>
 
       {/* Action Dock (Fixed Bottom) */}
@@ -450,11 +495,15 @@ const styles = StyleSheet.create({
     // Bottom padding inserted dynamically via style prop
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
@@ -621,10 +670,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   startButton: {
-    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 40,
+    marginBottom: 0,
   },
   startButtonGradient: {
     flexDirection: "row",
@@ -641,4 +689,7 @@ const styles = StyleSheet.create({
   },
   // Recorder Dock
   actionDockWrapper: {},
+  bottomActionContainer: {
+    paddingHorizontal: 20,
+  },
 });

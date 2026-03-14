@@ -40,6 +40,8 @@ import {
 import { triggerToast } from "../../../../../../util/functions/toast";
 import DonePractice from "../../../components/DonePractice";
 import RainOverlay from "./components/RainOverlay";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 
@@ -51,6 +53,8 @@ const Reframe = () => {
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
   const academyNav =
     useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null,
   );
@@ -282,16 +286,26 @@ const Reframe = () => {
       </View>
 
       {/* Header */}
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.screenHeaderTitle}>Reframe Thoughts</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <CustomScrollView
-        contentContainerStyle={[styles.scrollContainer, { paddingBottom: 120 }]}
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
+        ]}
       >
         <View style={styles.cardContainer}>
           {/* 1. Indigo/Blurple Gradient Header */}
@@ -410,35 +424,33 @@ const Reframe = () => {
               </View>
             </View>
           </View>
-
-          {/* Start Button Overlay if not started - MOVED HERE */}
-          {!currentActivityId && (
-            <View style={styles.startOverlay}>
-              <View style={styles.startContent}>
-                <Text style={styles.startTitle}>
-                  Ready to Shift Perspective?
-                </Text>
-                <Text style={styles.startDesc}>
-                  Learn to identify negative thoughts and replace them with
-                  empowering ones.
-                </Text>
-                <Button
-                  text="Start Exercise"
-                  onPress={async () => {
-                    try {
-                      await markActivityStart();
-                    } catch (error) {
-                      console.error("Error starting reframe practice:", error);
-                      // Global stamina modal will be handled by the API layer event
-                    }
-                  }}
-                  style={styles.startButton}
-                />
-              </View>
-            </View>
-          )}
         </View>
       </CustomScrollView>
+
+      {/* Start Button Overlay if not started - MOVED OUTSIDE SCROLL VIEW */}
+      {!currentActivityId && (
+        <View style={[styles.startOverlay, { paddingTop: insets.top + 100 }]}>
+          <View style={styles.startContent}>
+            <Text style={styles.startTitle}>Ready to Shift Perspective?</Text>
+            <Text style={styles.startDesc}>
+              Learn to identify negative thoughts and replace them with
+              empowering ones.
+            </Text>
+            <Button
+              text="Start Exercise"
+              onPress={async () => {
+                try {
+                  await markActivityStart();
+                } catch (error) {
+                  console.error("Error starting reframe practice:", error);
+                  // Global stamina modal will be handled by the API layer event
+                }
+              }}
+              style={styles.startButton}
+            />
+          </View>
+        </View>
+      )}
     </ScreenView>
   );
 };
@@ -450,11 +462,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 12,
   },
   backButton: {
     width: 36,
@@ -554,11 +570,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 20, // Higher zIndex
     justifyContent: "flex-start",
-    paddingTop: 100,
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.85)", // More opaque for focus
-
-    borderRadius: 32,
   },
   startContent: {
     padding: 40,

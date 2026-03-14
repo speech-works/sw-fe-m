@@ -1,22 +1,25 @@
 // Redesigned Roleplay Briefing
+// FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
-    RoleplayFDPStackNavigationProp,
-    RoleplayFDPStackParamList,
+  RoleplayFDPStackNavigationProp,
+  RoleplayFDPStackParamList,
 } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import MasonryTips from "../../../../components/MasonryTips";
 
@@ -26,6 +29,8 @@ const Briefing = () => {
     useNavigation<
       RoleplayFDPStackNavigationProp<keyof RoleplayFDPStackParamList>
     >();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
   const { title, description, roleplay, id } = route.params;
@@ -47,23 +52,31 @@ const Briefing = () => {
 
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Briefing</Text>
-          <View style={{ width: 32 }} />
-        </View>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.topNavigationContainer,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Briefing</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.container}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           {/* Hero Briefing Card - Matte Modern Orange */}
           <LinearGradient
             colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
@@ -172,11 +185,15 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // Increased for bottom nav clearance
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,

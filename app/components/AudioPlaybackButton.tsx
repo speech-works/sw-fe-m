@@ -2,13 +2,13 @@
 import { Audio, AVPlaybackStatus } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleProp,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    ViewStyle,
+  ActivityIndicator,
+  Alert,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -37,7 +37,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     return () => {
       isMountedRef.current = false;
       if (soundInstanceRef.current) {
-
         soundInstanceRef.current
           .unloadAsync()
           .catch((e) => console.error("Error unloading sound on unmount:", e));
@@ -50,7 +49,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
   useEffect(() => {
     // If a sound is currently loaded (from a previous URL), unload it.
     if (soundInstanceRef.current) {
-
       soundInstanceRef.current
         .unloadAsync()
         .catch((e) => console.error("Error unloading sound on URL change:", e));
@@ -77,13 +75,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(status.isBuffering);
 
       if (status.didJustFinish && !status.isLooping) {
-
         setIsPlaying(false); // Mark as not playing
         // Crucial: Stop the sound. This also resets its position to 0,
         // preparing it to be played again from the start.
         try {
           await soundInstanceRef.current.stopAsync();
-
         } catch (error) {
           console.error("Error stopping sound after finish:", error);
         }
@@ -92,11 +88,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       // Sound is not loaded, possibly due to an error or unload
       setIsPlaying(false);
       setIsBuffering(false);
-      if (status.error) {
-        console.error(`Playback Status Error: ${status.error}`);
+      if ((status as any).error) {
+        console.error(`Playback Status Error: ${(status as any).error}`);
         Alert.alert(
           "Audio Error",
-          `An error occurred during playback: ${status.error}`,
+          `An error occurred during playback: ${(status as any).error}`,
         );
         // Unload the problematic sound instance and nullify the ref
         if (soundInstanceRef.current) {
@@ -175,7 +171,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
           // Loading is complete once createAsync resolves.
           setIsLoading(false);
         } else {
-
           newSound
             .unloadAsync()
             .catch((e) =>

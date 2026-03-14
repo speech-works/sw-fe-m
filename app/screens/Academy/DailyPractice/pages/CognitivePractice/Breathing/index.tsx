@@ -16,6 +16,8 @@ import {
 import { triggerToast } from "../../../../../../util/functions/toast";
 import MasonryTips from "../../../components/MasonryTips";
 import { BreathingHalo } from "./components/BreathingHalo";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   createPracticeActivity,
@@ -50,6 +52,8 @@ import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/
 
 const Breathing = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"Breathing">>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
 
   // single “mute” state that mutes both breath sounds + background
   const [mute, setMute] = useState(false);
@@ -497,7 +501,14 @@ const Breathing = () => {
       {/* ── STANDARD MODE (Intro) ────────────────────────────────────────────── */}
       <View style={styles.container}>
         {/* ── Top Bar with Back + Mute Button ──────────────────────────────────────── */}
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -510,9 +521,14 @@ const Breathing = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Breathing</Text>
           <View style={{ width: 32 }} />
-        </View>
+        </BlurView>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           <View>
             {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
             <View style={styles.tipsContainer}>
@@ -542,20 +558,29 @@ const Breathing = () => {
                 ]}
               />
             </View>
-            <Button
-              text="Start Exercise"
-              onPress={async () => {
-                try {
-                  await markActivityStart();
-                } catch (error) {
-                  console.error("Error starting breathing practice:", error);
-                  // Global stamina modal will be handled by the API layer event
-                }
-              }}
-              style={styles.startButton}
-            />
           </View>
         </CustomScrollView>
+
+        {/* Fixed Start Button at the bottom */}
+        <View
+          style={[
+            styles.bottomActionContainer,
+            { paddingBottom: insets.bottom || 24 },
+          ]}
+        >
+          <Button
+            text="Start Exercise"
+            onPress={async () => {
+              try {
+                await markActivityStart();
+              } catch (error) {
+                console.error("Error starting breathing practice:", error);
+                // Global stamina modal will be handled by the API layer event
+              }
+            }}
+            style={styles.startButton}
+          />
+        </View>
       </View>
 
       {/* Vitals Feedback Modal */}
@@ -585,11 +610,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
@@ -691,7 +720,7 @@ const styles = StyleSheet.create({
   startButton: {
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 40,
+    marginBottom: 0,
   },
   startButtonGradient: {
     flexDirection: "row",
@@ -735,6 +764,10 @@ const styles = StyleSheet.create({
   },
   actionContainer: {
     gap: 20,
+  },
+  bottomActionContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   // Immersive Styles
   immersiveContainer: {

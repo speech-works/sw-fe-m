@@ -22,6 +22,8 @@ import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 import MasonryTips from "../../../components/MasonryTips";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Tools
 import Metronome, {
@@ -70,6 +72,8 @@ import {
 
 const PoemPractice = () => {
   const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, ensureActiveSession } = useSessionStore();
@@ -367,7 +371,14 @@ const PoemPractice = () => {
           />
         </View>
 
-        <View style={styles.header}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
             <Icon
               name="chevron-left"
@@ -375,13 +386,16 @@ const PoemPractice = () => {
               color={theme.colors.text.title}
             />
           </TouchableOpacity>
-          <Text style={styles.screenHeaderTitle}>Reading Room</Text>
+          <Text style={styles.headerTitle}>Reading Room</Text>
           <View style={{ width: 32 }} />
-        </View>
+        </BlurView>
 
         <CustomScrollView
           key="tips-scroll"
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
+          ]}
         >
           <View style={styles.noteHeaderBanner}>
             <LinearGradient
@@ -398,7 +412,15 @@ const PoemPractice = () => {
           </View>
 
           <MasonryTips tips={readingTips.poem} />
+        </CustomScrollView>
 
+        {/* Fixed Start Button at bottom */}
+        <View
+          style={[
+            styles.bottomActionContainer,
+            { paddingBottom: insets.bottom || 24 },
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={async () => {
@@ -428,7 +450,7 @@ const PoemPractice = () => {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        </CustomScrollView>
+        </View>
       </ScreenView>
     );
   }
@@ -446,13 +468,20 @@ const PoemPractice = () => {
       </View>
 
       {/* Header */}
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.screenHeaderTitle}>Poem</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
@@ -461,7 +490,10 @@ const PoemPractice = () => {
           scrollEnabled={true}
           contentContainerStyle={[
             styles.readingScrollContent,
-            { paddingBottom: bottomPadding },
+            {
+              paddingTop: HEADER_HEIGHT + insets.top + 10,
+              paddingBottom: bottomPadding,
+            },
           ]}
         >
           <View style={styles.cardContainer}>
@@ -665,12 +697,27 @@ const styles = StyleSheet.create({
   screenView: {
     flex: 1,
   },
+  topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+  },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 12,
   },
   backButton: {
     width: 36,
@@ -682,13 +729,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+  },
   screenHeaderTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
   },
   // Tips Styles
   scrollContent: {
-    paddingBottom: 40,
     paddingHorizontal: 20,
   },
   noteHeaderBanner: {
@@ -716,10 +766,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   startButton: {
-    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 40,
+    marginBottom: 0,
   },
   startButtonGradient: {
     flexDirection: "row",
@@ -737,7 +786,6 @@ const styles = StyleSheet.create({
   // Reading Mode Styles
   readingScrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
     // paddingBottom handled dynamically
   },
   textArea: {
@@ -760,6 +808,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 20,
     gap: 16,
+  },
+  bottomActionContainer: {
+    paddingHorizontal: 20,
   },
   dockTools: {
     flexDirection: "row",

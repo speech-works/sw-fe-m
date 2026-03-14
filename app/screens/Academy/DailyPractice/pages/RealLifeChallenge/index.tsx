@@ -1,3 +1,4 @@
+// FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import {
@@ -54,6 +56,8 @@ const RealLifeChallenge = () => {
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
   const { addActivity, updateActivity } = useActivityStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 64;
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     practiceActivity?.id || null,
   );
@@ -188,6 +192,10 @@ const RealLifeChallenge = () => {
       // If we are in a pack, we rely on the backend handling the "pack-session" logic or similar
       // inside completePracticeActivity if needed, but usually completePracticeActivity just needs ID and UserID.
       const userId = user?.id; // Always use real ID if available
+      if (!userId) {
+        console.error("Missing userId for activity completion");
+        return;
+      }
 
       const completedActivity = await completePracticeActivity({
         id: currentActivityId,
@@ -248,15 +256,18 @@ const RealLifeChallenge = () => {
     }
   };
 
-  const insets = useSafeAreaInsets();
-
   // --- Render Steps ---
 
   const renderHeader = () => (
-    <View
+    <BlurView
+      intensity={80}
+      tint="light"
       style={[
         styles.header,
-        { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0) },
+        {
+          paddingTop: insets.top + (Platform.OS === "android" ? 12 : 0),
+          height: HEADER_HEIGHT + insets.top,
+        },
       ]}
     >
       <TactileTouchableOpacity
@@ -272,8 +283,8 @@ const RealLifeChallenge = () => {
           {title}
         </Text>
       </View>
-      <View style={{ width: 36 }} />
-    </View>
+      <View style={{ width: 40 }} />
+    </BlurView>
   );
 
   const renderStartScreen = () => (
@@ -390,27 +401,7 @@ const RealLifeChallenge = () => {
         </View>
       </View>
 
-      {/* Start Button Integrated in Scroll */}
-      <View style={styles.startActionContainer}>
-        <TactileTouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleStart}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.library.orange[400],
-              theme.colors.library.orange[500],
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.buttonGradient}
-          >
-            <Icon name="play" size={16} color="#FFF" />
-            <Text style={styles.primaryButtonText}>Start Practice</Text>
-          </LinearGradient>
-        </TactileTouchableOpacity>
-      </View>
+      {/* Start Button removed from scroll */}
     </ScrollView>
   );
 
@@ -478,23 +469,7 @@ const RealLifeChallenge = () => {
         </LinearGradient>
       </View>
 
-      <View style={styles.actionContainer}>
-        <TactileTouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleInstructionsComplete}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.library.orange[400],
-              theme.colors.library.orange[500],
-            ]}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.primaryButtonText}>I'm Ready</Text>
-          </LinearGradient>
-        </TactileTouchableOpacity>
-      </View>
+      {/* Action button removed from scroll */}
     </ScrollView>
   );
 
@@ -502,40 +477,27 @@ const RealLifeChallenge = () => {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.contentContainer}
+      contentContainerStyle={{ flex: 1 }}
     >
-      <Text style={styles.stepHeader}>Step 2: Reflection</Text>
-      <Text style={styles.stepSubHeader}>{completionPrompt}</Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: HEADER_HEIGHT + insets.top + 20,
+          paddingBottom: 100,
+        }}
+      >
+        <Text style={styles.stepHeader}>Step 2: Reflection</Text>
+        <Text style={styles.stepSubHeader}>{completionPrompt}</Text>
 
-      <TextInput
-        style={styles.textArea}
-        placeholder={challengeData.completionPlaceholder || "How did it go?"}
-        multiline
-        value={reflectionText}
-        onChangeText={setReflectionText}
-        placeholderTextColor="rgba(0,0,0,0.3)"
-      />
-
-      <View style={styles.footer}>
-        <TactileTouchableOpacity
-          style={[
-            styles.primaryButton,
-            !reflectionText.trim() && styles.buttonDisabled,
-          ]}
-          onPress={handleReflectionComplete}
-          disabled={!reflectionText.trim()}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.library.orange[400],
-              theme.colors.library.orange[500],
-            ]}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.primaryButtonText}>Complete Challenge</Text>
-          </LinearGradient>
-        </TactileTouchableOpacity>
-      </View>
+        <TextInput
+          style={styles.textArea}
+          placeholder={challengeData.completionPlaceholder || "How did it go?"}
+          multiline
+          value={reflectionText}
+          onChangeText={setReflectionText}
+          placeholderTextColor="rgba(0,0,0,0.3)"
+        />
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 
@@ -549,6 +511,95 @@ const RealLifeChallenge = () => {
   if (currentStep === ChallengeStep.SUMMARY) {
     return renderSummaryScreen();
   }
+
+  const renderBottomAction = () => {
+    if (currentStep === ChallengeStep.START) {
+      return (
+        <View
+          style={[
+            styles.fixedBottomAction,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
+          <TactileTouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleStart}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.buttonGradient}
+            >
+              <Icon name="play" size={16} color="#FFF" />
+              <Text style={styles.primaryButtonText}>Start Practice</Text>
+            </LinearGradient>
+          </TactileTouchableOpacity>
+        </View>
+      );
+    }
+    if (currentStep === ChallengeStep.INSTRUCTION) {
+      return (
+        <View
+          style={[
+            styles.fixedBottomAction,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
+          <TactileTouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleInstructionsComplete}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.primaryButtonText}>I'm Ready</Text>
+            </LinearGradient>
+          </TactileTouchableOpacity>
+        </View>
+      );
+    }
+    if (currentStep === ChallengeStep.REFLECTION) {
+      return (
+        <View
+          style={[
+            styles.fixedBottomAction,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
+          <TactileTouchableOpacity
+            style={[
+              styles.primaryButton,
+              !reflectionText.trim() && styles.buttonDisabled,
+            ]}
+            onPress={handleReflectionComplete}
+            disabled={!reflectionText.trim()}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.primaryButtonText}>Complete Challenge</Text>
+            </LinearGradient>
+          </TactileTouchableOpacity>
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <View style={styles.mainContainer}>
@@ -570,6 +621,7 @@ const RealLifeChallenge = () => {
       {currentStep === ChallengeStep.START && renderStartScreen()}
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
+      {renderBottomAction()}
     </View>
   );
 };
@@ -1042,6 +1094,15 @@ const styles = StyleSheet.create({
   },
   gradientBackground: {
     ...StyleSheet.absoluteFillObject,
+  },
+  fixedBottomAction: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    backgroundColor: "transparent",
+    zIndex: 10,
   },
 });
 

@@ -14,6 +14,8 @@ import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingF
 import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
 import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
 import ScreenView from "../../../../../components/ScreenView";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
@@ -31,6 +33,8 @@ const { width } = Dimensions.get("window");
 const CognitivePractice = () => {
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { practiceStats } = usePracticeStatsStore();
 
   const cognitivePracticeData = [
@@ -72,7 +76,14 @@ const CognitivePractice = () => {
         />
       </View>
 
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -81,10 +92,13 @@ const CognitivePractice = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cognitive Therapy</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionSubtitle}>
@@ -239,12 +253,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 10,
   },
   backButton: {
     width: 32,

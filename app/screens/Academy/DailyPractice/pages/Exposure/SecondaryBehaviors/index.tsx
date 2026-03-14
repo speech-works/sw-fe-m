@@ -2,13 +2,15 @@ import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import CustomScrollView, {
-    SHADOW_BUFFER,
+  SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import {
-    SBEDPStackNavigationProp,
-    SBEDPStackParamList,
+  SBEDPStackNavigationProp,
+  SBEDPStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SecondaryBehaviorsStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
@@ -16,10 +18,19 @@ import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 const SecondaryBehaviors = () => {
   const navigation =
     useNavigation<SBEDPStackNavigationProp<keyof SBEDPStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.topNavigation}
@@ -31,8 +42,14 @@ const SecondaryBehaviors = () => {
             />
             <Text style={styles.topNavigationText}>AI Phone Calls</Text>
           </TouchableOpacity>
-        </View>
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
+        </BlurView>
+
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           <Text>Secondary Behaviors Screen</Text>
         </CustomScrollView>
       </View>
@@ -56,12 +73,15 @@ const styles = StyleSheet.create({
     flexGrow: 1, // Allows CustomScrollView to take available space
   },
   topNavigationContainer: {
-    position: "relative",
+    position: "absolute",
     top: 0,
-    display: "flex",
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 20,
   },
   topNavigation: {
     display: "flex",

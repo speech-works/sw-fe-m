@@ -3,6 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import {
   createPracticeActivity,
   createPracticeActivityFromPack,
@@ -33,6 +35,8 @@ const Briefing = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession } = useSessionStore();
   const { addActivity } = useActivityStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const navigation =
     useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();
   const route = useRoute<RouteProp<SCEDPStackParamList, "SCBriefing">>();
@@ -120,7 +124,14 @@ const Briefing = () => {
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -133,9 +144,14 @@ const Briefing = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Social Challenge</Text>
           <View style={{ width: 32 }} />
-        </View>
+        </BlurView>
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+          ]}
+        >
           {/* Hero Briefing Card - Matte Modern Orange */}
           <LinearGradient
             colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
@@ -195,13 +211,20 @@ const Briefing = () => {
             <MasonryTips tips={data?.stage?.userCharacter || []} />
           </View>
 
+          {/* Button removed from scroll */}
+        </CustomScrollView>
+
+        {/* Fixed Start Button at the bottom */}
+        <View
+          style={[
+            styles.bottomActionContainer,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={markActivityStart}
-            style={[
-              styles.startButton,
-              { marginHorizontal: 20, marginTop: 10 },
-            ]}
+            style={styles.startButton}
           >
             <LinearGradient
               colors={[
@@ -215,7 +238,7 @@ const Briefing = () => {
               <Text style={styles.startButtonText}>Begin Challenge</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </CustomScrollView>
+        </View>
       </View>
     </ScreenView>
   );
@@ -238,11 +261,15 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
@@ -359,7 +386,7 @@ const styles = StyleSheet.create({
   startButton: {
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 40,
+    marginBottom: 0,
   },
   startButtonGradient: {
     flexDirection: "row",
@@ -373,5 +400,12 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
     fontWeight: "700",
+  },
+  bottomActionContainer: {
+    paddingHorizontal: 20,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

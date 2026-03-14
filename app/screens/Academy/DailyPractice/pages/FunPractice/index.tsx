@@ -13,6 +13,8 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
 import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
 import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
 import {
   FDPStackNavigationProp,
@@ -33,6 +35,8 @@ const FunPractice = () => {
     useNavigation<FDPStackNavigationProp<keyof FDPStackParamList>>();
 
   const { practiceStats } = usePracticeStatsStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
 
   const funPracticeData = [
     {
@@ -76,7 +80,14 @@ const FunPractice = () => {
         />
       </View>
 
-      <View style={styles.header}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -85,10 +96,13 @@ const FunPractice = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Fun Practice</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.sectionSubtitle}>
@@ -247,12 +261,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 10,
   },
   backButton: {
     width: 32,

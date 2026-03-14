@@ -47,7 +47,7 @@ const RainDrop: React.FC<RainDropProps> = React.memo(() => {
     return () => cancelAnimation(translateY);
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => {
+  const animatedStyle = useAnimatedStyle((): any => {
     return {
       transform: [
         { translateY: translateY.value },
@@ -168,7 +168,7 @@ const WaterLevel: React.FC = React.memo(() => {
     };
   });
 
-  const wave1Style = useAnimatedStyle(() => {
+  const wave1Style = useAnimatedStyle((): any => {
     return {
       transform: [
         { translateX: -wave1Offset.value },
@@ -177,7 +177,7 @@ const WaterLevel: React.FC = React.memo(() => {
     };
   });
 
-  const wave2Style = useAnimatedStyle(() => {
+  const wave2Style = useAnimatedStyle((): any => {
     return {
       transform: [
         { translateX: -wave2Offset.value },
