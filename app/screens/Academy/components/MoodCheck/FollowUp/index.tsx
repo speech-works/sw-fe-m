@@ -336,124 +336,106 @@ const FollowUp = () => {
         />
 
         <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={{ width: 32 }} />
-            <Text style={styles.headerTitle}>Daily Log</Text>
-            <View style={{ width: 32 }} />
-          </View>
-
           <CustomScrollView contentContainerStyle={styles.innerContainer}>
-            <>
-              <View style={styles.titleWrapper}>
-                <View style={styles.faceContainer}>
-                  <FaceComponent
-                    width={180}
-                    height={180}
-                    shouldAnimate={isFocused}
-                  />
-                </View>
-                {!submitted && <Text style={styles.titleText}>{title}</Text>}
-                {!submitted && <Text style={styles.descText}>{desc}</Text>}
+            <View style={styles.titleWrapper}>
+              <View style={styles.faceContainer}>
+                <FaceComponent
+                  width={180}
+                  height={180}
+                  shouldAnimate={isFocused}
+                />
               </View>
-              {submitted ? (
-                <View style={styles.helpfulActContianer}>
-                  <Text style={styles.helpfulTitleText}>
-                    Try one of these tailored activities:
-                  </Text>
-                  {helpful.map((item, idx) => (
-                    <ListCard
-                      noChevron
+              {!submitted && <Text style={styles.titleText}>{title}</Text>}
+              {!submitted && <Text style={styles.descText}>{desc}</Text>}
+            </View>
+            {submitted ? (
+              <View style={styles.helpfulActContianer}>
+                <Text style={styles.helpfulTitleText}>
+                  Try one of these tailored activities:
+                </Text>
+                {helpful.map((item, idx) => (
+                  <ListCard
+                    noChevron
+                    key={idx}
+                    title={item.title}
+                    description={item.description}
+                    icon={item.icon}
+                    gradientColors={item.gradientColors}
+                    onPress={() => {
+                      navigation.navigate({
+                        name: item.action as any,
+                        params: undefined,
+                      });
+                    }}
+                  />
+                ))}
+              </View>
+            ) : (
+              <>
+                <View style={styles.followUpActContainer}>
+                  {followUpAct.map((item, idx) => (
+                    <TouchableOpacity
                       key={idx}
-                      title={item.title}
-                      description={item.description}
-                      icon={item.icon}
-                      gradientColors={item.gradientColors}
-                      onPress={() => {
-                        navigation.navigate({
-                          name: item.action as any,
-                          params: undefined,
-                        });
-                      }}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <>
-                  <View style={styles.followUpActContainer}>
-                    {followUpAct.map((item, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        activeOpacity={0.9}
-                        onPress={item.onPress}
-                        style={styles.cardWrapper}
+                      activeOpacity={0.9}
+                      onPress={item.onPress}
+                      style={styles.cardWrapper}
+                    >
+                      <LinearGradient
+                        colors={item.colors}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.gradientCard}
                       >
-                        <LinearGradient
-                          colors={item.colors}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.gradientCard}
-                        >
-                          {/* Decorative Bubbles */}
-                          <View
-                            style={[
-                              styles.bubble,
-                              { top: -20, right: -20, width: 80, height: 80 },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.bubble,
-                              {
-                                bottom: 10,
-                                left: 10,
-                                width: 40,
-                                height: 40,
-                                opacity: 0.1,
-                              },
-                            ]}
-                          />
+                        {/* Decorative Bubbles */}
+                        <View
+                          style={[
+                            styles.bubble,
+                            { top: -20, right: -20, width: 80, height: 80 },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.bubble,
+                            {
+                              bottom: 10,
+                              left: 10,
+                              width: 40,
+                              height: 40,
+                              opacity: 0.1,
+                            },
+                          ]}
+                        />
 
-                          <View style={styles.cardContent}>
-                            <View>
-                              <Text style={styles.cardTitle}>{item.title}</Text>
-                              <Text style={styles.cardSubtitle}>
-                                {item.description}
-                              </Text>
-                            </View>
-                            <View style={styles.iconContainer}>
-                              <View style={styles.iconWrapper}>
-                                {item.icon}
-                              </View>
-                            </View>
-                          </View>
-                          <View style={styles.playButton}>
-                            <Icon
-                              name="play"
-                              size={12}
-                              color={item.colors[1]}
-                            />
-                            <Text
-                              style={[
-                                styles.playText,
-                                { color: item.colors[1] },
-                              ]}
-                            >
-                              Start
+                        <View style={styles.cardContent}>
+                          <View>
+                            <Text style={styles.cardTitle}>{item.title}</Text>
+                            <Text style={styles.cardSubtitle}>
+                              {item.description}
                             </Text>
                           </View>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              )}
-              <View style={styles.skipContainer}>
-                <TouchableOpacity onPress={() => navigateToHome()}>
-                  <Text style={styles.skipText}>Skip for now</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+                          <View style={styles.iconContainer}>
+                            <View style={styles.iconWrapper}>{item.icon}</View>
+                          </View>
+                        </View>
+                        <View style={styles.playButton}>
+                          <Icon name="play" size={12} color={item.colors[1]} />
+                          <Text
+                            style={[styles.playText, { color: item.colors[1] }]}
+                          >
+                            Start
+                          </Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+            <View style={styles.skipContainer}>
+              <TouchableOpacity onPress={() => navigateToHome()}>
+                <Text style={styles.skipText}>Skip for now</Text>
+              </TouchableOpacity>
+            </View>
           </CustomScrollView>
         </View>
       </ScreenView>
@@ -482,24 +464,11 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     gap: 32,
-  },
-  topNavigationContainer: {
-    // Removed
-  },
-  topNavigation: {
-    // Removed
-  },
-  topNavigationText: {
-    // Removed
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 40,
   },
 
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
   backButton: {
     width: 32,
     height: 32,
@@ -509,11 +478,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
   },
 
   titleWrapper: {
