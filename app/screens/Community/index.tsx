@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   ScrollView,
@@ -14,30 +14,45 @@ const { width, height } = Dimensions.get("window");
 
 const RED_COLOR = "#FF5858";
 
+const PAGES = [
+  {
+    title: "Peer Support Feed",
+    description:
+      "Share your journey, vent, or celebrate wins with others who understand. Join a supportive space built for real conversations.",
+    icon: "chat-processing",
+  },
+  {
+    title: "Live Voice Rooms",
+    description:
+      "Connect in real-time. Join live audio discussion rooms to practice techniques or simply chat with the community.",
+    icon: "microphone",
+  },
+  {
+    title: "Challenges & Growth",
+    description:
+      "Participate in weekly speech challenges and discover career opportunities tailored for our community.",
+    icon: "trophy",
+  },
+];
+
 const Community = () => {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isAutoSliding, setIsAutoSliding] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
 
-  const pages = [
-    {
-      title: "Peer Support Feed",
-      description:
-        "Share your journey, vent, or celebrate wins with others who understand. Join a supportive space built for real conversations.",
-      icon: "chat-processing",
-    },
-    {
-      title: "Live Voice Rooms",
-      description:
-        "Connect in real-time. Join live audio discussion rooms to practice techniques or simply chat with the community.",
-      icon: "microphone",
-    },
-    {
-      title: "Challenges & Growth",
-      description:
-        "Participate in weekly speech challenges and discover career opportunities tailored for our community.",
-      icon: "trophy",
-    },
-  ];
+  useEffect(() => {
+    if (!isAutoSliding) return;
+
+    const interval = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % PAGES.length;
+      scrollRef.current?.scrollTo({
+        x: nextIndex * width,
+        animated: true,
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [activeIndex, isAutoSliding]);
 
   return (
     <ScreenView style={styles.screenView}>
@@ -60,9 +75,10 @@ const Community = () => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           if (index !== activeIndex) setActiveIndex(index);
         }}
+        onScrollBeginDrag={() => setIsAutoSliding(false)}
         scrollEventThrottle={16}
       >
-        {pages.map((page, i) => (
+        {PAGES.map((page, i) => (
           <View key={i} style={styles.page}>
             {/* Top Illustration (Moves) */}
             <View style={styles.topContainer}>
@@ -90,7 +106,7 @@ const Community = () => {
       {/* FIXED PAGINATION MARKERS */}
       <View style={styles.fixedMarkersContainer}>
         <View style={styles.markers}>
-          {pages.map((_, dotIdx) => (
+          {PAGES.map((_, dotIdx) => (
             <View
               key={dotIdx}
               style={[
