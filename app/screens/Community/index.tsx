@@ -20,21 +20,22 @@ const Community = () => {
 
   const pages = [
     {
-      title: "Discover place near you",
+      title: "Peer Support Feed",
       description:
-        "We make it simple to find the food you crave. Enter your address and let us do the rest.",
-      icon: "home-city",
+        "Share your journey, vent, or celebrate wins with others who understand. Join a supportive space built for real conversations.",
+      icon: "chat-processing",
     },
     {
-      title: "Choose a tasty dish",
+      title: "Live Voice Rooms",
       description:
-        "When you order Eat street, We'll hook you up with exclusive coupons specials and rewards.",
-      icon: "chef-hat",
+        "Connect in real-time. Join live audio discussion rooms to practice techniques or simply chat with the community.",
+      icon: "microphone",
     },
     {
-      title: "Pick up your delivery",
-      description: "Pick up delivery at your door and enjoy our food.",
-      icon: "truck-delivery",
+      title: "Challenges & Growth",
+      description:
+        "Participate in weekly speech challenges and discover career opportunities tailored for our community.",
+      icon: "trophy",
     },
   ];
 
@@ -77,14 +78,6 @@ const Community = () => {
                   <Text style={styles.title}>{page.title}</Text>
                   <Text style={styles.description}>{page.description}</Text>
                 </View>
-
-                {i === pages.length - 1 && (
-                  <View style={styles.buttonContainer}>
-                    <TouchableOpacity activeOpacity={0.9} style={styles.button}>
-                      <Text style={styles.buttonText}>GET STERTED</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
             </View>
           </View>
@@ -194,24 +187,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     opacity: 0.9,
-  },
-  buttonContainer: {
-    width: "100%",
-    paddingHorizontal: 50,
-    marginTop: 40,
-  },
-  button: {
-    backgroundColor: "#FFF",
-    width: "100%",
-    height: 54,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   buttonText: {
     color: RED_COLOR,

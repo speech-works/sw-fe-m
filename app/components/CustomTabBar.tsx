@@ -73,12 +73,19 @@ const CustomTabBar = ({
             iconName = "account-group";
           else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
 
+          // Color mapping
+          let activeColor = theme.colors.library.orange[400];
+          if (routeName === ROUTE_NAMES.COMMUNITY) {
+            activeColor = "#FF5858";
+          }
+
           return (
             <TabItem
               key={route.key}
               isFocused={isFocused}
               label={(options.tabBarLabel as string) || route.name}
               iconName={iconName}
+              activeColor={activeColor}
               onPress={onPress}
               onLongPress={onLongPress}
             />
@@ -89,7 +96,14 @@ const CustomTabBar = ({
   );
 };
 
-const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
+const TabItem = ({
+  isFocused,
+  label,
+  iconName,
+  onPress,
+  onLongPress,
+  activeColor,
+}: any) => {
   // Animation Values - Using useDerivedValue instead of useEffect
   // This triggers the spring synchronously during the commit phase
   // instead of waiting for useEffect (which gets blocked by the new screen's heavy JS render)
@@ -114,7 +128,7 @@ const TabItem = ({ isFocused, label, iconName, onPress, onLongPress }: any) => {
     const backgroundColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["transparent", theme.colors.library.orange[400]], // Transparent -> Orange 400 Pill
+      ["transparent", activeColor], // Transparent -> Dynamic Active Color
     );
     return {
       backgroundColor,
