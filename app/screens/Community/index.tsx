@@ -67,7 +67,10 @@ const Community = () => {
             {/* Top Illustration (Moves) */}
             <View style={styles.topContainer}>
               <View style={styles.illustrationPlaceholder}>
-                <Icon name={page.icon} size={150} color="#E2E8F0" />
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>COMING SOON</Text>
+                </View>
+                <Icon name={page.icon} size={150} color="#CBD5E1" />
               </View>
             </View>
 
@@ -137,10 +140,36 @@ const styles = StyleSheet.create({
   illustrationPlaceholder: {
     width: width * 0.8,
     height: 180,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#EFF6FF", // Slightly deeper blue/gray
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#DBEAFE", // Subtle border for definition
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+    // overflow: "hidden", // Removed to allow badge to sit on border
+  },
+  comingSoonBadge: {
+    position: "absolute",
+    top: -10, // Sits on the border
+    right: -10, // Sits on the border
+    backgroundColor: "#FF5858", // Solid red
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    // Shadow for premium feel
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+  },
+  comingSoonText: {
+    color: "#FFFFFF", // White text
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
   bottomContainer: {
     height: "55%",
