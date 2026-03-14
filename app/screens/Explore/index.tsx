@@ -21,6 +21,7 @@ import { getUserStats } from "../../api/stats";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
 import BottomSheetModal from "../../components/BottomSheetModal";
+import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { useEventStore } from "../../stores/events"; // Added missing import
 import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
@@ -167,7 +168,7 @@ const Explore = () => {
   }, [user?.id, setPracticeStats]);
 
   return (
-    <View style={styles.screenView}>
+    <ScreenView style={styles.screenView}>
       {/* Background Mesh/Gradient */}
       <View style={StyleSheet.absoluteFillObject}>
         {/* We use a multi-stop gradient for a 'Mesh' feel */}
@@ -178,7 +179,7 @@ const Explore = () => {
         />
       </View>
 
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           ref={verticalScrollRef}
           refreshControl={refreshControl}
@@ -245,7 +246,7 @@ const Explore = () => {
           {/* Spacer for tour deep-scrolling */}
           {isTourActive && <View style={{ height: 600 }} />}
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       {/* Error Modal */}
       <BottomSheetModal
@@ -277,7 +278,7 @@ const Explore = () => {
           <Text style={styles.tourBlockerText}>Preparing your guide…</Text>
         </View>
       </Modal>
-    </View>
+    </ScreenView>
   );
 };
 
@@ -286,6 +287,8 @@ export default Explore;
 const styles = StyleSheet.create({
   screenView: {
     flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   scrollContent: {
     paddingBottom: 130, // Space for Custom Tab Bar
