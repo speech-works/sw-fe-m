@@ -1,282 +1,112 @@
-import { useIsFocused, useFocusEffect } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Dimensions,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import DiverseCommunityFace from "../../assets/sw-faces/DiverseCommunityFace";
-import CustomScrollView from "../../components/CustomScrollView";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import ScreenView from "../../components/ScreenView";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
 
-const { width } = Dimensions.get("window");
-const FACE_SIZE = width * 0.55;
+const { width, height } = Dimensions.get("window");
 
-// Flip-Clock Style Counter Component
-const FlipDigit = ({ digit }: { digit: string }) => (
-  <View style={styles.digitBox}>
-    <Text style={styles.digitText}>{digit}</Text>
-    <View style={styles.digitDivider} />
-  </View>
-);
-
-const AnimatedCounter = () => {
-  const [count, setCount] = useState(3142);
-
-  useFocusEffect(
-    useCallback(() => {
-      const interval = setInterval(() => {
-        setCount((prev) => prev + Math.floor(Math.random() * 2) + 1);
-      }, 5000);
-      return () => clearInterval(interval);
-    }, []),
-  );
-
-  const countString = count.toLocaleString().padStart(5, "0");
-  const digits = countString.split("");
-
-  return (
-    <View style={styles.counterCard}>
-      <LinearGradient
-        colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.03)"]}
-        style={styles.counterGradient}
-      >
-        <Text style={styles.counterTitle}>FOUNDING MEMBERS SECURED</Text>
-        <View style={styles.digitsContainer}>
-          {digits.map((digit, index) => (
-            <FlipDigit key={index} digit={digit} />
-          ))}
-        </View>
-        <Text style={styles.counterLabel}>future leaders in wait</Text>
-      </LinearGradient>
-    </View>
-  );
-};
-
-// Refined Feature Card
-const FeatureCard = ({
-  title,
-  description,
-  iconName,
-  iconColor,
-}: {
-  title: string;
-  description: string;
-  iconName: string;
-  iconColor: string;
-}) => (
-  <View style={styles.featureCard}>
-    <LinearGradient
-      colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
-      style={styles.featureGradient}
-    >
-      <View style={styles.featureWatermark}>
-        <MaterialCommunityIcons
-          name={iconName}
-          size={120}
-          color={iconColor}
-          style={{ opacity: 0.08 }}
-        />
-      </View>
-
-      <View style={styles.featureContent}>
-        <View style={styles.featureHeader}>
-          <View style={[styles.iconBox, { backgroundColor: `${iconColor}20` }]}>
-            <MaterialCommunityIcons
-              name={iconName}
-              size={24}
-              color={iconColor}
-            />
-          </View>
-          <View style={styles.soonBadge}>
-            <Text style={styles.soonText}>SOON</Text>
-          </View>
-        </View>
-
-        <View style={styles.featureTextWrapper}>
-          <Text style={styles.featureTitleText}>{title}</Text>
-          <Text style={styles.featureDescText}>{description}</Text>
-        </View>
-      </View>
-    </LinearGradient>
-  </View>
-);
+const RED_COLOR = "#FF5858";
 
 const Community = () => {
-  const [email, setEmail] = useState("");
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const isFocused = useIsFocused();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const handleJoinWaitlist = () => {
-    console.log("Waitlist joining:", email);
-  };
-
-  const features = [
+  const pages = [
     {
-      title: "Live Voice Rooms",
+      title: "Discover place near you",
       description:
-        "Overcome speech blocks together in safe, real-time audio spaces.",
-      iconName: "microphone",
-      iconColor: "#38BDF8",
+        "We make it simple to find the food you crave. Enter your address and let us do the rest.",
+      icon: "home-city",
     },
     {
-      title: "Community Challenges",
+      title: "Choose a tasty dish",
       description:
-        "Join weekly milestones with peers to build lasting confidence.",
-      iconName: "trophy-outline",
-      iconColor: "#FCD34D",
+        "When you order Eat street, We'll hook you up with exclusive coupons specials and rewards.",
+      icon: "chef-hat",
     },
     {
-      title: "Peer Support Feed",
-      description:
-        "Share your Vents, celebrate Wins, and exchange Practice tips.",
-      iconName: "forum-outline",
-      iconColor: "#818CF8",
-    },
-    {
-      title: "Career Growth",
-      description: "Access Job opportunities and professional mentorship.",
-      iconName: "briefcase-outline",
-      iconColor: "#34D399",
+      title: "Pick up your delivery",
+      description: "Pick up delivery at your door and enjoy our food.",
+      icon: "truck-delivery",
     },
   ];
 
-  const CARD_WIDTH = width * 0.82;
-  const GAP = 16;
-  const SNAP_INTERVAL = CARD_WIDTH + GAP;
-  const SIDE_PADDING = (width - CARD_WIDTH) / 2;
-
   return (
     <ScreenView style={styles.screenView}>
-      {/* Sapphire Glass Background System */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#0F172A", "#1E293B", "#0F172A"]} // Deep Slate/Sapphire
-          style={{ flex: 1 }}
-        />
-        {/* Volumetric Glows */}
-        <View style={styles.glowTopRight} />
-        <View style={styles.glowBottomLeft} />
+      {/* FIXED BACKGROUND LAYER */}
+      <View style={styles.fixedBackgroundContainer}>
+        <View style={styles.fixedRedBlock}>
+          {/* Static decorative circles matching reference */}
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
+        </View>
       </View>
 
-      <CustomScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* SLIDING CONTENT LAYER */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          if (index !== activeIndex) setActiveIndex(index);
+        }}
+        scrollEventThrottle={16}
       >
-        <View style={styles.header}>
-          <Text style={styles.comingSoonTag}>COMING SOON</Text>
-          <Text style={styles.mainTitle}>Community Ecosystem</Text>
-          <Text style={styles.tagline}>
-            A sanctuary for voices reaching further.
-          </Text>
-        </View>
+        {pages.map((page, i) => (
+          <View key={i} style={styles.page}>
+            {/* Top Illustration (Moves) */}
+            <View style={styles.topContainer}>
+              <View style={styles.illustrationPlaceholder}>
+                <Icon name={page.icon} size={150} color="#E2E8F0" />
+              </View>
+            </View>
 
-        <View style={styles.mainContainer}>
-          <AnimatedCounter />
-
-          <View style={styles.visualSection}>
-            <DiverseCommunityFace size={FACE_SIZE} shouldAnimate={isFocused} />
-            <Text style={styles.manifesto}>
-              "Communication is the bridge between isolation and community."
-            </Text>
-          </View>
-
-          <View style={styles.featuresSection}>
-            <Text style={styles.sectionHeading}>Experience the Future</Text>
-
-            <ScrollView
-              horizontal
-              pagingEnabled={false}
-              showsHorizontalScrollIndicator={false}
-              onScroll={(e) => {
-                const x = e.nativeEvent.contentOffset.x;
-                const index = Math.round(x / SNAP_INTERVAL);
-                if (index !== carouselIndex) setCarouselIndex(index);
-              }}
-              scrollEventThrottle={16}
-              snapToInterval={SNAP_INTERVAL}
-              snapToAlignment="start"
-              decelerationRate="fast"
-              style={styles.carousel}
-              contentContainerStyle={{
-                paddingHorizontal: SIDE_PADDING,
-              }}
-            >
-              {features.map((item, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.slide,
-                    {
-                      width: CARD_WIDTH,
-                      marginRight: i === features.length - 1 ? 0 : GAP,
-                    },
-                  ]}
-                >
-                  <FeatureCard {...item} />
+            {/* Bottom Content Area (Transparent container, Text moves) */}
+            <View style={styles.bottomContainer}>
+              <View style={styles.content}>
+                <View style={styles.textContent}>
+                  <Text style={styles.title}>{page.title}</Text>
+                  <Text style={styles.description}>{page.description}</Text>
                 </View>
-              ))}
-            </ScrollView>
 
-            <View style={styles.pagination}>
-              {features.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    carouselIndex === i ? styles.activeDot : styles.inactiveDot,
-                  ]}
-                />
-              ))}
+                {i === pages.length - 1 && (
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity activeOpacity={0.9} style={styles.button}>
+                      <Text style={styles.buttonText}>GET STERTED</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
+        ))}
+      </ScrollView>
 
-          <View style={styles.ctaWrapper}>
-            <LinearGradient
-              colors={["rgba(255,255,255,0.08)", "rgba(255,255,255,0.03)"]}
-              style={styles.ctaCard}
-            >
-              <Text style={styles.ctaTitle}>Claim Founding Status</Text>
-              <Text style={styles.ctaSubtitle}>
-                Secure early-access perks and your legacy member badge.
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.waitlistInput}
-                  placeholder="name@email.com"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                />
-                <TouchableOpacity
-                  style={styles.reserveButton}
-                  onPress={handleJoinWaitlist}
-                >
-                  <LinearGradient
-                    colors={["#2563EB", "#1D4ED8"]}
-                    style={styles.reserveGradient}
-                  >
-                    <Text style={styles.reserveText}>Join</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.spotsLeft}>
-                ✨ Strictly limited founding spots remaining.
-              </Text>
-            </LinearGradient>
-          </View>
+      {/* FIXED PAGINATION MARKERS */}
+      <View style={styles.fixedMarkersContainer}>
+        <View style={styles.markers}>
+          {pages.map((_, dotIdx) => (
+            <View
+              key={dotIdx}
+              style={[
+                styles.marker,
+                activeIndex === dotIdx
+                  ? styles.markerActive
+                  : styles.markerInactive,
+              ]}
+            />
+          ))}
         </View>
-      </CustomScrollView>
+      </View>
     </ScreenView>
   );
 };
@@ -284,245 +114,131 @@ const Community = () => {
 export default Community;
 
 const styles = StyleSheet.create({
-  screenView: { flex: 1, backgroundColor: "#0F172A" },
-  scrollContent: { paddingBottom: 120, paddingTop: 60 },
-  glowTopRight: {
+  screenView: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
+  fixedBackgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
+  },
+  fixedRedBlock: {
     position: "absolute",
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: "rgba(37, 99, 235, 0.15)",
-  },
-  glowBottomLeft: {
-    position: "absolute",
-    bottom: -150,
-    left: -100,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: "rgba(129, 140, 248, 0.1)",
-  },
-  header: {
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 32,
-    paddingHorizontal: 20,
-  },
-  comingSoonTag: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#38BDF8",
-    letterSpacing: 2,
-  },
-  mainTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: "#FFFFFF",
-    textAlign: "center",
-  },
-  tagline: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.6)",
-    textAlign: "center",
-  },
-  mainContainer: { gap: 40 },
-  // Counter
-  counterCard: {
-    marginHorizontal: 20,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "rgba(255,255,255,0.02)",
-    overflow: "hidden",
-  },
-  counterGradient: { padding: 24, alignItems: "center", gap: 16 },
-  counterTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 2,
-  },
-  digitsContainer: { flexDirection: "row", gap: 6 },
-  digitBox: {
-    width: 44,
-    height: 60,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  digitText: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  digitDivider: {
-    position: "absolute",
-    top: "50%",
-    width: "100%",
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-  },
-  counterLabel: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.4)",
-    fontStyle: "italic",
-  },
-  // Visuals
-  visualSection: { alignItems: "center", gap: 20, paddingHorizontal: 20 },
-  manifesto: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    fontStyle: "italic",
-    paddingHorizontal: 30,
-  },
-  // Features Carousel
-  featuresSection: { gap: 20 },
-  sectionHeading: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-    paddingHorizontal: 24,
-  },
-  carousel: {
+    bottom: 0,
     width: width,
-  },
-  carouselContainer: {
-    paddingHorizontal: 20,
-  },
-  slide: {
-    marginRight: 0,
-  },
-  featureCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.02)",
+    height: "55%",
+    backgroundColor: RED_COLOR,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     overflow: "hidden",
+  },
+  page: { width: width, height: height },
+  topContainer: {
+    height: "45%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  illustrationPlaceholder: {
+    width: width * 0.8,
     height: 180,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  featureGradient: { flex: 1, padding: 20, position: "relative" },
-  featureWatermark: {
+  bottomContainer: {
+    height: "55%",
+    backgroundColor: "transparent",
+  },
+  circle1: {
     position: "absolute",
-    bottom: -20,
-    right: -20,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    top: -50,
+    left: -80,
   },
-  featureContent: { zIndex: 1, flex: 1, gap: 12 },
-  featureHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  circle2: {
+    position: "absolute",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: 40,
+    right: -40,
   },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  content: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    paddingBottom: 110, // Clear floating tab bar (menu dock)
   },
-  soonBadge: {
-    backgroundColor: "rgba(37, 99, 235, 0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(37, 99, 235, 0.3)",
+  textContent: {
+    paddingHorizontal: 50,
+    alignItems: "center",
   },
-  soonText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#38BDF8",
-    letterSpacing: 0.5,
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFF",
+    textAlign: "center",
+    marginBottom: 20,
   },
-  featureTextWrapper: { gap: 4, flex: 1 },
-  featureTitleText: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  featureDescText: {
+  description: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.5)",
-    lineHeight: 20,
+    color: "#FFF",
+    textAlign: "center",
+    lineHeight: 22,
+    opacity: 0.9,
   },
-  pagination: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
+  buttonContainer: {
+    width: "100%",
+    paddingHorizontal: 50,
+    marginTop: 40,
   },
-  dot: {
-    height: 4,
-    borderRadius: 2,
-  },
-  activeDot: {
-    width: 20,
-    backgroundColor: "#38BDF8",
-  },
-  inactiveDot: {
-    width: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  // CTA
-  ctaWrapper: { marginTop: 10, paddingHorizontal: 20 },
-  ctaCard: {
-    padding: 28,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+  button: {
+    backgroundColor: "#FFF",
+    width: "100%",
+    height: 54,
+    borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonText: {
+    color: RED_COLOR,
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  fixedMarkersContainer: {
+    position: "absolute",
+    bottom: 15, // Below the menu dock
+    width: "100%",
+    alignItems: "center",
+  },
+  markers: {
+    flexDirection: "row",
     gap: 12,
   },
-  ctaTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFFFFF",
-    textAlign: "center",
+  marker: {
+    height: 6,
+    borderRadius: 3,
   },
-  ctaSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.5)",
-    textAlign: "center",
-    marginBottom: 8,
+  markerActive: {
+    width: 28,
+    backgroundColor: "#FFF",
   },
-  inputContainer: {
-    flexDirection: "row",
-    width: "100%",
-    gap: 10,
-  },
-  waitlistInput: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    color: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  reserveButton: {
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  reserveGradient: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reserveText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 16,
-  },
-  spotsLeft: {
-    fontSize: 12,
-    color: "#38BDF8",
-    fontWeight: "600",
-    marginTop: 8,
+  markerInactive: {
+    width: 10,
+    backgroundColor: "rgba(255,255,255,0.4)",
   },
 });
