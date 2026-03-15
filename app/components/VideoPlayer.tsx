@@ -30,12 +30,16 @@ import Slider from "@react-native-community/slider";
 
 const volumeThumbImage = require("../assets/images/volume_thumb.png");
 import { useFocusEffect } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 import Button from "./Button";
 import SkeletonLoader from "./SkeletonLoader";
+
+const iconHitSlop = { top: 12, bottom: 12, left: 12, right: 12 };
 
 interface VideoPlayerProps {
   uri: string;
@@ -127,6 +131,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Animations
   const controlsAnim = useRef(new Animated.Value(0)).current;
   const centerIconOpacity = useRef(new Animated.Value(0)).current;
+  const centerIconScale = useRef(new Animated.Value(0.8)).current;
   const metaAnim = useRef(new Animated.Value(1)).current;
 
   // Double Tap State
@@ -199,11 +204,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const flashCenterIcon = () => {
     centerIconOpacity.setValue(1);
-    Animated.timing(centerIconOpacity, {
-      toValue: 0,
-      duration: 700,
-      useNativeDriver: true,
-    }).start();
+    centerIconScale.setValue(0.8);
+    Animated.parallel([
+      Animated.timing(centerIconOpacity, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.spring(centerIconScale, {
+        toValue: 1.2,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handleSkipTap = (dir: "left" | "right") => {
@@ -400,15 +415,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Center Icon Animation */}
+      {/* Center Icon Animation - Pulse Effect */}
       <Animated.View
         pointerEvents="none"
-        style={[styles.centerIcon, { opacity: centerIconOpacity }]}
+        style={[
+          styles.centerIcon, 
+          { 
+            opacity: centerIconOpacity,
+            transform: [{ scale: centerIconScale }]
+          }
+        ]}
       >
         <Icon
-          name={paused ? "pause" : "play"}
-          size={50}
-          color="rgba(255,255,255,0.8)"
+          name={paused ? "play" : "pause"}
+          size={60}
+          color="rgba(255,255,255,0.9)"
           solid
         />
       </Animated.View>
@@ -435,7 +456,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Metadata Overlay (Title/Subtitle) - visible when controls are HIDDEN */}
+      {/* Metadata Overlay (Title/Subtitle) - Top Cinematic Gradient */}
       {(title || subtitle) && (
         <Animated.View
           style={[
@@ -444,11 +465,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               transform: [{ translateY: metaTranslateY }],
               opacity: metaOpacity,
             },
-            isLocked && styles.videoMetaLocked,
           ]}
+          pointerEvents="none"
         >
-          {title && <Text style={styles.videoMetaTitleText}>{title}</Text>}
-          {subtitle && <Text style={styles.videoMetaDescText}>{subtitle}</Text>}
+          <LinearGradient
+            colors={["rgba(0,0,0,0.7)", "rgba(0,0,0,0)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.metaTextContent}>
+            {title && <Text style={styles.videoMetaTitleText}>{title}</Text>}
+            {subtitle && <Text style={styles.videoMetaDescText}>{subtitle}</Text>}
+          </View>
         </Animated.View>
       )}
 
@@ -465,77 +492,105 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ]}
           pointerEvents={controlsVisible ? "auto" : "none"}
         >
-          {/* Row 1: Progress */}
-          <View style={styles.progressContainer}>
-            <Slider
-              style={{ flex: 1 }}
-              minimumValue={0}
-              maximumValue={Math.max(duration, 0.01)}
-              value={seeking ? tempSeekTime : currentTime}
-              minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="rgba(255,255,255,0.3)"
-              thumbTintColor={theme.colors.actionPrimary.default}
-              onSlidingStart={onSlidingStart}
-              onValueChange={onSliderValueChange}
-              onSlidingComplete={onSlidingComplete}
-            />
-            <Text style={styles.timeText}>
-              {formatTime(seeking ? tempSeekTime : currentTime)} /{" "}
-              {formatTime(duration)}
-            </Text>
-          </View>
-
-          {/* Row 2: Buttons */}
-          <View style={styles.buttonsRow}>
-            <View style={styles.bottomLeftControls}>
-              {/* Rate Toggle */}
-              <TouchableOpacity
-                onPress={cyclePlaybackRate}
-                style={styles.rateButton}
-              >
-                <Text style={styles.rateText}>{playbackRate}x</Text>
-              </TouchableOpacity>
+          <LinearGradient
+            colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <BlurView intensity={Platform.OS === 'ios' ? 40 : 80} tint="dark" style={StyleSheet.absoluteFill} />
+          
+          <View style={styles.controlsContent}>
+            {/* Row 1: Progress */}
+            <View style={styles.progressContainer}>
+              <Slider
+                style={{ flex: 1 }}
+                minimumValue={0}
+                maximumValue={Math.max(duration, 0.01)}
+                value={seeking ? tempSeekTime : currentTime}
+                minimumTrackTintColor={theme.colors.actionPrimary.default}
+                maximumTrackTintColor="rgba(255,255,255,0.2)"
+                thumbTintColor={theme.colors.actionPrimary.default}
+                onSlidingStart={onSlidingStart}
+                onValueChange={onSliderValueChange}
+                onSlidingComplete={onSlidingComplete}
+                accessibilityLabel="Video progress slider"
+                accessibilityRole="adjustable"
+              />
+              <Text style={styles.timeText}>
+                {formatTime(seeking ? tempSeekTime : currentTime)} /{" "}
+                {formatTime(duration)}
+              </Text>
             </View>
 
-            <View style={styles.centerControls}>
-              {/* Back 10s */}
-              <TouchableOpacity
-                onPress={() => handleSkipTap("left")}
-                style={styles.fixedActionButton}
-              >
-                <Icon name="backward" size={20} color="white" />
-              </TouchableOpacity>
+            {/* Row 2: Buttons */}
+            <View style={styles.buttonsRow}>
+              <View style={styles.bottomLeftControls}>
+                {/* Rate Toggle */}
+                <TouchableOpacity
+                  onPress={cyclePlaybackRate}
+                  style={styles.rateButton}
+                  hitSlop={iconHitSlop}
+                  accessibilityLabel={`Playback speed ${playbackRate}x`}
+                  accessibilityRole="button"
+                >
+                  <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
+                  <Text style={styles.rateText}>{playbackRate}x</Text>
+                </TouchableOpacity>
+              </View>
 
-              {/* Play/Pause */}
-              <TouchableOpacity onPress={onPressPlayPause}>
-                <Icon
-                  name={paused ? "play-circle" : "pause-circle"}
-                  size={54}
-                  color="white"
-                />
-              </TouchableOpacity>
+              <View style={styles.centerControls}>
+                {/* Back 10s */}
+                <TouchableOpacity
+                  onPress={() => handleSkipTap("left")}
+                  style={styles.fixedActionButton}
+                  hitSlop={iconHitSlop}
+                  accessibilityLabel="Skip backward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Icon name="backward" size={20} color="white" />
+                </TouchableOpacity>
 
-              {/* Fwd 10s */}
-              <TouchableOpacity
-                onPress={() => handleSkipTap("right")}
-                style={styles.fixedActionButton}
-              >
-                <Icon name="forward" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
+                {/* Play/Pause */}
+                <TouchableOpacity 
+                  onPress={onPressPlayPause}
+                  hitSlop={iconHitSlop}
+                  accessibilityLabel={paused ? "Play video" : "Pause video"}
+                  accessibilityRole="button"
+                >
+                  <Icon
+                    name={paused ? "play-circle" : "pause-circle"}
+                    size={54}
+                    color="white"
+                  />
+                </TouchableOpacity>
 
-            <View style={styles.bottomRightControls}>
-              {/* FullScreen Toggle */}
-              <TouchableOpacity
-                onPress={toggleFullScreen}
-                style={styles.rightSideIcon}
-              >
-                <Icon
-                  name={isFullScreen ? "compress" : "expand"}
-                  size={18}
-                  color="white"
-                />
-              </TouchableOpacity>
+                {/* Fwd 10s */}
+                <TouchableOpacity
+                  onPress={() => handleSkipTap("right")}
+                  style={styles.fixedActionButton}
+                  hitSlop={iconHitSlop}
+                  accessibilityLabel="Skip forward 10 seconds"
+                  accessibilityRole="button"
+                >
+                  <Icon name="forward" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.bottomRightControls}>
+                {/* FullScreen Toggle */}
+                <TouchableOpacity
+                  onPress={toggleFullScreen}
+                  style={styles.rightSideIcon}
+                  hitSlop={iconHitSlop}
+                  accessibilityLabel={isFullScreen ? "Exit full screen" : "Enter full screen"}
+                  accessibilityRole="button"
+                >
+                  <Icon
+                    name={isFullScreen ? "compress" : "expand"}
+                    size={18}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Animated.View>
@@ -585,11 +640,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               }
               startAutoHide();
             }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={iconHitSlop}
+            accessibilityLabel={muted ? "Unmute" : "Mute"}
+            accessibilityRole="button"
           >
             <Icon
               name={muted || volume === 0 ? "volume-mute" : "volume-up"}
-              size={12}
+              size={18}
               color="rgba(255,255,255,0.85)"
             />
           </TouchableOpacity>
@@ -680,15 +737,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.actionPrimary.default,
   },
 
-  // Meta Overlay
+   // Meta Overlay
   videoMeta: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    height: 80,
     zIndex: 50,
+  },
+  metaTextContent: {
+    padding: 16,
   },
   videoMetaLocked: {
     backgroundColor: "rgba(0,0,0,0.25)",
@@ -709,15 +768,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 20,
+    overflow: 'hidden',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  controlsContent: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    zIndex: 20,
     paddingBottom: Platform.OS === "ios" ? 24 : 16,
   },
   controlsContainerFullScreen: {
-    paddingBottom: 40,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   progressContainer: {
     flexDirection: "row",
@@ -759,10 +822,13 @@ const styles = StyleSheet.create({
   },
   rateButton: {
     paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    minWidth: 42,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    minWidth: 46,
     alignItems: "center",
   },
   rateText: {
