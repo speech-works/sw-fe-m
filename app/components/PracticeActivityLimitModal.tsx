@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
@@ -126,95 +132,126 @@ const PracticeActivityLimitModal = () => {
 
       {modalType === "upsell" && (
         <View style={styles.warningBanner}>
-          <Text style={styles.bannerTitle}>{modalTitle}</Text>
-          <Text style={styles.bannerMessage}>{modalMessage}</Text>
+          <View style={styles.bannerTextContent}>
+            <Text style={styles.bannerTitle}>{modalTitle}</Text>
+            <Text style={styles.bannerMessage}>{modalMessage}</Text>
+          </View>
+
+          {/* Face Watermark - Bottom Right */}
+          <View style={styles.faceWatermark}>
+            {modalType === "upsell" ? (
+              <TherapistFace size={160} transparentBg shouldAnimate />
+            ) : modalType === "error" ? (
+              <ErrorFace size={160} />
+            ) : (
+              <HappyScreamFace size={160} />
+            )}
+          </View>
         </View>
       )}
 
-      <View
-        style={[
-          styles.modalContent,
-          modalType === "upsell" && { paddingTop: 24 },
-        ]}
-      >
+      <View style={styles.modalContent}>
         {modalType !== "upsell" && (
           <>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
             <Text style={styles.modalMessage}>{modalMessage}</Text>
+
+            <View style={styles.faceWrapper}>
+              <Animated.View style={animatedFaceStyle}>
+                {modalType === "error" ? (
+                  <ErrorFace size={120} />
+                ) : (
+                  <HappyScreamFace size={120} />
+                )}
+              </Animated.View>
+            </View>
           </>
         )}
-        <Animated.View style={animatedFaceStyle}>
-          {modalType === "error" ? (
-            <ErrorFace size={152} />
-          ) : modalType === "upsell" ? (
-            <TherapistFace size={152} shouldAnimate />
-          ) : (
-            <HappyScreamFace size={152} />
-          )}
-        </Animated.View>
 
         {modalType === "upsell" && (
-          <>
-            {/* Value Proposition */}
-            <View style={styles.upsellBadge}>
-              <Text style={styles.upsellBadgeText}>MOST POPULAR</Text>
-            </View>
-
-            {/* Mini Pro Benefits - Pill Style */}
-            <View style={styles.upsellBenefitsGrid}>
+          <View style={styles.upsellSection}>
+            {/* Fresh Benefit Cards - Horizontal Scroll */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.premiumBenefitsContainer}
+              decelerationRate="fast"
+              snapToInterval={140 + 12} // card width + gap
+            >
               {[
-                { label: "Break Daily Caps", icon: "infinity" },
-                { label: "AI Phone Calls", icon: "robot" },
-                { label: "Clinical Roadmap", icon: "map-check" },
-                { label: "Expert Tutorials", icon: "play-circle" },
+                {
+                  title: "Unlimited",
+                  subtitle: "Daily Practice",
+                  icon: "infinity",
+                },
+                {
+                  title: "AI Calls",
+                  subtitle: "Real-time Voice",
+                  icon: "phone",
+                },
+                {
+                  title: "Roadmap",
+                  subtitle: "Clinical Tracks",
+                  icon: "map-marked-alt",
+                },
               ].map((benefit, index) => (
-                <View key={index} style={styles.upsellBenefitPill}>
-                  <View style={styles.pillIconBox}>
-                    <Icon
-                      name={benefit.icon}
-                      size={10}
-                      color={theme.colors.actionPrimary.default}
-                    />
-                  </View>
-                  <Text style={styles.upsellBenefitText}>{benefit.label}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* CTA Button + Trust Row grouped so trust text stays close to button */}
-            <View style={styles.ctaGroup}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => {
-                  setModalVisible(false);
-                  navigation.navigate("PremiumModal" as never);
-                }}
-                style={styles.upsellButtonContainer}
-              >
                 <LinearGradient
-                  colors={[theme.colors.library.orange[400], "#DB2777"]}
+                  key={index}
+                  colors={[
+                    "rgba(255, 255, 255, 0.9)",
+                    "rgba(255, 255, 255, 0.4)",
+                  ]}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.upsellButton}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.premiumBenefitCard}
                 >
-                  <Text style={styles.upsellButtonText}>
-                    Unlock Your Full Potential
+                  <View style={styles.premiumIconBox}>
+                    <Icon name={benefit.icon} size={24} color="#FF5858" />
+                  </View>
+                  <Text style={styles.premiumCardTitle}>{benefit.title}</Text>
+                  <Text style={styles.premiumCardSubtitle}>
+                    {benefit.subtitle}
                   </Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-              <View style={styles.trustRow}>
-                <Icon
-                  name="shield-alt"
-                  size={10}
-                  color={theme.colors.text.disabled}
-                />
-                <Text style={styles.trustText}>
-                  30-Day Money-Back Guarantee • Cancel Anytime
-                </Text>
+            {/* CTA Button + Trust Row - Wrapped in a padded container to match carousel */}
+            <View style={styles.ctaGroupContainer}>
+              <View style={styles.ctaGroup}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    setModalVisible(false);
+                    navigation.navigate("PremiumModal" as never);
+                  }}
+                  style={styles.upsellButtonContainer}
+                >
+                  <LinearGradient
+                    colors={[theme.colors.library.orange[400], "#DB2777"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.upsellButton}
+                  >
+                    <Text style={styles.upsellButtonText}>
+                      Unlock Full Access
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <View style={styles.trustRow}>
+                  <Icon
+                    name="shield-alt"
+                    size={14}
+                    color={theme.colors.feedback.success}
+                  />
+                  <Text style={styles.trustText}>
+                    Cancel anytime. 30-day money-back guarantee.
+                  </Text>
+                </View>
               </View>
             </View>
-          </>
+          </View>
         )}
       </View>
     </BottomSheetModal>
@@ -225,13 +262,18 @@ export default PracticeActivityLimitModal;
 
 const styles = StyleSheet.create({
   modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 24, // Keep bottom padding for safe area
+  },
+  faceWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
-    gap: 16,
-    paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40,
+    marginBottom: 16,
+    zIndex: 10,
+  },
+  faceWrapperUpsell: {
+    marginTop: -24, // Adjusted for smaller face
   },
   modalTitle: {
     color: theme.colors.text.title,
@@ -246,13 +288,26 @@ const styles = StyleSheet.create({
     maxWidth: "85%",
   },
   warningBanner: {
-    backgroundColor: "#FF5858", // Red from Community screen
-    paddingTop: 56, // Clearance for handle and close button
-    paddingBottom: 32,
+    backgroundColor: "#FF5858",
+    paddingTop: 48,
+    paddingBottom: 48,
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    overflow: "hidden", // Clip the watermark
+    position: "relative",
+  },
+  bannerTextContent: {
+    alignItems: "center",
+    zIndex: 2,
+  },
+  faceWatermark: {
+    position: "absolute",
+    bottom: -28,
+    right: -10,
+    opacity: 0.15,
+    zIndex: 1,
   },
   bannerTitle: {
     color: "#FFF",
@@ -266,62 +321,69 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.95)",
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
     fontWeight: "500",
-    maxWidth: "90%",
+    maxWidth: "95%",
   },
-  upsellBadge: {
-    backgroundColor: theme.colors.library.gray[100],
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  upsellBadgeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.disabled,
-    fontWeight: "700",
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-  },
-  upsellBenefitsGrid: {
+  upsellSection: {
     width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  upsellBenefitPill: {
-    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 100,
-    gap: 6,
+    marginTop: 20,
+    backgroundColor: "#F0F4FF",
+    borderRadius: 32,
+    paddingVertical: 24,
+  },
+  premiumBenefitsContainer: {
+    paddingHorizontal: 20,
+    gap: 16,
+    marginBottom: 24,
+  },
+  premiumBenefitCard: {
+    width: 140,
+    borderRadius: 24,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  premiumIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 88, 88, 0.08)", // Faint red tint matching the banner
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    backgroundColor: theme.colors.library.gray[100],
+    borderColor: "rgba(255, 88, 88, 0.15)",
   },
-  pillIconBox: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.library.gray[200],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  upsellBenefitText: {
+  premiumCardTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  premiumCardSubtitle: {
+    ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.text.default,
-    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 14,
     fontSize: 11,
+    opacity: 0.7,
+  },
+  ctaGroupContainer: {
+    width: "100%",
+    paddingHorizontal: 20, // Match carousel horizontal alignment
+    marginTop: 8,
   },
   ctaGroup: {
     width: "100%",
-    gap: 8,
+    alignItems: "center",
+    gap: 12,
   },
   upsellButtonContainer: {
     width: "100%",
