@@ -163,7 +163,7 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
               <View style={[styles.socialIcon, { backgroundColor: "#EFF6FF" }]}>
                 <Icon name="facebook-f" size={16} color="#2563EB" />
               </View>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, styles.flex1]}>
                 <TextInput
                   value={socialLinks.facebook}
                   onChangeText={(text) =>
@@ -181,7 +181,7 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
               <View style={[styles.socialIcon, { backgroundColor: "#FDF2F8" }]}>
                 <Icon name="instagram" size={16} color="#DB2777" />
               </View>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, styles.flex1]}>
                 <TextInput
                   value={socialLinks.instagram}
                   onChangeText={(text) =>
@@ -199,7 +199,7 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
               <View style={[styles.socialIcon, { backgroundColor: "#F0FDF4" }]}>
                 <Icon name="whatsapp" size={16} color="#16A34A" />
               </View>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, styles.flex1]}>
                 <TextInput
                   value={socialLinks.whatsapp}
                   onChangeText={(text) =>
@@ -310,6 +310,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 48,
     justifyContent: "center",
+  },
+  flex1: {
     flex: 1,
   },
   bioInputWrapper: {
@@ -321,6 +323,7 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     fontSize: 16,
     fontWeight: "500",
+    height: "100%",
   },
   bioInput: {
     textAlignVertical: "top", // Android fix
