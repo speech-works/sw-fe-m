@@ -35,6 +35,9 @@ import BottomSheetModal from "../../../components/BottomSheetModal";
 import { useUserStore } from "../../../stores/user";
 import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
 import LibrarySection from "./components/LibrarySection";
+import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
+import SkeletonLoader from "../../../components/SkeletonLoader";
+import { ActivityIndicator } from "react-native";
 
 // --- Data Definitions ---
 
@@ -110,6 +113,8 @@ const Library = () => {
     Array<TransformedTechnique>
   >([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Selection Modal State
   const [selectedTechnique, setSelectedTechnique] =
@@ -138,24 +143,34 @@ const Library = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   }, [activeFilter]);
 
+  const fetchLibraryDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const libData = await getLibraryDetails();
+      const flat: TransformedTechnique[] = [];
+      libData.forEach((cat) => {
+        flat.push(...cat.techniques);
+      });
+      const unique = Array.from(
+        new Map(flat.map((item) => [item.id, item])).values(),
+      );
+      setAllTechniques(unique);
+      setLoading(false);
+    } catch (e) {
+      console.error("Failed to fetch library", e);
+      setError(e instanceof Error ? e.message : "Failed to load library");
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchLibraryDetails = async () => {
-      try {
-        const libData = await getLibraryDetails();
-        const flat: TransformedTechnique[] = [];
-        libData.forEach((cat) => {
-          flat.push(...cat.techniques);
-        });
-        const unique = Array.from(
-          new Map(flat.map((item) => [item.id, item])).values(),
-        );
-        setAllTechniques(unique);
-      } catch (e) {
-        console.error("Failed to fetch library", e);
-      }
-    };
     fetchLibraryDetails();
   }, []);
+
+  const handleRetry = () => {
+    fetchLibraryDetails();
+  };
 
   useEffect(() => {
     if (isSearching && inputFieldRef.current) {
@@ -408,7 +423,25 @@ const Library = () => {
       >
         <View style={styles.contentSpacer} />
 
-        {groupedData.length > 0 ? (
+        {loading && allTechniques.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="large"
+              color={theme.colors.actionPrimary.default}
+            />
+            <Text style={styles.loadingText}>Fetching techniques...</Text>
+          </View>
+        ) : error && allTechniques.length === 0 ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <ErrorStateCard
+              onRetry={handleRetry}
+              variant="light"
+              title="Library unavailable"
+              message="We couldn't load the technique library. Check your connection and try again."
+              style={{ marginVertical: 20 }}
+            />
+          </View>
+        ) : groupedData.length > 0 ? (
           groupedData.map((group) => (
             <LibrarySection
               key={group.id}
@@ -748,5 +781,15 @@ const styles = StyleSheet.create({
     fontWeight: "700", // Match strength
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  loadingContainer: {
+    padding: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  loadingText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.disabled,
   },
 });
