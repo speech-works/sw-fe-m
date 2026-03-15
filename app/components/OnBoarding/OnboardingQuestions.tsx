@@ -5,6 +5,7 @@ import CustomScrollView from "../CustomScrollView";
 import ProgressBar from "../ProgressBar";
 import ScreenView from "../ScreenView";
 import OnboardingQuestion from "./OnboardingQuestion";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface OnboardingQuestionsProps {
   questions: OnboardingQuestionType[]; // Renamed to avoid conflict with component name
@@ -50,27 +51,36 @@ const OnboardingQuestions = ({
     return null;
   }
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScreenView>
-      <ProgressBar
-        currentStep={currentQuestionIndex + 1}
-        totalSteps={questions.length}
-        showStepIndicator={true}
-        showPercentage={true}
-        style={styles.progressBar}
-      />
+    <ScreenView style={styles.screenInner}>
+      <View style={{ paddingTop: insets.top + 16 }}>
+        <ProgressBar
+          currentStep={currentQuestionIndex + 1}
+          totalSteps={questions.length}
+          showStepIndicator={true}
+          showPercentage={true}
+          style={styles.progressBar}
+        />
+      </View>
       <CustomScrollView contentContainerStyle={styles.scrollContent}>
         <OnboardingQuestion
           id={currentQuestion.id}
           question={currentQuestion.question}
           options={currentQuestion.options}
           description={currentQuestion.description}
-          questionType="single"
+          questionType="SINGLE"
           onChange={onAnswer}
         />
       </CustomScrollView>
       {/* Button container now overlays */}
-      <View style={styles.buttonOverlayContainer}>
+      <View
+        style={[
+          styles.buttonOverlayContainer,
+          { paddingBottom: Math.max(insets.bottom + 16, 40) },
+        ]}
+      >
         <Button
           text={isLastQuestion ? "Complete" : "Next"}
           onPress={handleNext}
@@ -85,13 +95,14 @@ const OnboardingQuestions = ({
 export default OnboardingQuestions;
 
 const styles = StyleSheet.create({
+  screenInner: {
+    paddingHorizontal: 24,
+  },
   progressBar: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   scrollContent: {
-    gap: 32,
-    backgroundColor: "red",
-    paddingBottom: 130, // Space for Custom Tab Bar
+    paddingBottom: 200, // More space for the fixed CTA
   },
   buttonOverlayContainer: {
     position: "absolute",
@@ -99,7 +110,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingTop: 24,
+    backgroundColor: "rgba(253, 251, 247, 0.98)", // Match ScreenView background
   },
   nextButton: {
     width: "100%",

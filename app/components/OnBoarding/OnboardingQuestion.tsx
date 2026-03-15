@@ -186,16 +186,18 @@ export default OnboardingQuestion;
 
 const styles = StyleSheet.create({
   container: {
-    gap: 18,
-    padding: 16,
+    gap: 32, // Increase gap between Title and content
+    paddingVertical: 12,
   },
   question: {
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
+    lineHeight: 42,
   },
   description: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+    lineHeight: 24,
   },
   sliderBlock: {
     marginTop: 12,
@@ -219,15 +221,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
   },
   nonSliderBlock: {
-    gap: 12,
+    gap: 20, // Clearer separation between description and options
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    gap: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderStyle: "solid",
     borderColor: theme.colors.border.default,

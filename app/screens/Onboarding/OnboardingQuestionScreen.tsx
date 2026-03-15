@@ -9,6 +9,7 @@ import ScreenView from "../../components/ScreenView";
 import OnboardingQuestion from "../../components/OnBoarding/OnboardingQuestion";
 
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
@@ -169,12 +170,16 @@ const OnboardingQuestionScreen: React.FC = () => {
     });
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScreenView>
-      {/* Skip Button */}
-      <TouchableOpacity style={styles.closeBtn} onPress={handleSkip}>
-        <Icon name="times" size={16} color={theme.colors.text.title} />
-      </TouchableOpacity>
+    <ScreenView style={styles.screenInner}>
+      {/* Header with Close Btn */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <TouchableOpacity style={styles.closeBtn} onPress={handleSkip}>
+          <Icon name="times" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+      </View>
 
       <ProgressBar
         currentStep={screenNumber}
@@ -207,9 +212,7 @@ const OnboardingQuestionScreen: React.FC = () => {
               }))}
               // use storageKey for UI selection
               value={
-                q.questionType !== "MULTI"
-                  ? (answers[storageKey] ?? "")
-                  : undefined
+                q.questionType !== "MULTI" ? (answers[storageKey] ?? "") : undefined
               }
               values={
                 q.questionType === "MULTI" && Array.isArray(answers[storageKey])
@@ -222,7 +225,12 @@ const OnboardingQuestionScreen: React.FC = () => {
         })}
       </CustomScrollView>
 
-      <View style={styles.footerButton}>
+      <View
+        style={[
+          styles.footerButton,
+          { paddingBottom: Math.max(insets.bottom + 8, 24) },
+        ]}
+      >
         <Button
           text={isLast ? "Complete" : "Next"}
           variant="normal"
@@ -237,11 +245,17 @@ const OnboardingQuestionScreen: React.FC = () => {
 export default OnboardingQuestionScreen;
 
 const styles = StyleSheet.create({
+  screenInner: {
+    paddingHorizontal: 24,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginBottom: 16, // Increased gap to ProgressBar
+    minHeight: 40,
+  },
   closeBtn: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    zIndex: 10,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -253,15 +267,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.05)",
   },
   scrollContent: {
-    gap: 48,
+    gap: 40,
     paddingBottom: 40,
   },
   progressBar: {
-    marginTop: 48,
-    marginBottom: 32,
+    marginTop: 0, // Managed by header marginBottom and insets
+    marginBottom: 24,
   },
   footerButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingTop: 16,
   },
 });

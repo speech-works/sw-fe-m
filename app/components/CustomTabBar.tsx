@@ -76,7 +76,7 @@ const CustomTabBar = ({
           // Color mapping
           let activeColor = theme.colors.library.orange[400];
           if (routeName === ROUTE_NAMES.COMMUNITY) {
-            activeColor = "#1e1e20ff";
+            activeColor = "#D4AF37";
           }
 
           return (
