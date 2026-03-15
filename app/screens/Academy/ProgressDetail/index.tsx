@@ -43,7 +43,7 @@ const ProgressDetail = () => {
   }, [route.params?.scrollTo]);
 
   return (
-    <ScreenView style={styles.screenView}>
+    <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
       {/* Background Gradient */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
@@ -100,8 +100,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
+    zIndex: 10,
   },
   backButton: {
     width: 32,
@@ -121,6 +122,6 @@ const styles = StyleSheet.create({
   scrollView: {
     gap: 16,
     paddingVertical: 16,
-    paddingHorizontal: 6,
+    paddingHorizontal: 16,
   },
 });
