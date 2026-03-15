@@ -37,7 +37,17 @@ const CustomTabBar = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
+      <View
+        style={[
+          styles.tabBar,
+          focusedRoute.name === ROUTE_NAMES.COMMUNITY && {
+            backgroundColor: "#0A0A0B",
+            borderColor: "rgba(255, 255, 255, 0.1)",
+            borderWidth: 1,
+            shadowColor: "#000000",
+          },
+        ]}
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;

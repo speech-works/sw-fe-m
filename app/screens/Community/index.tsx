@@ -11,48 +11,70 @@ import Animated, {
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  parseTextStyle,
+  parseShadowStyle,
+} from "../../util/functions/parseStyles";
 import { theme } from "../../Theme/tokens";
 
 const { width } = Dimensions.get("window");
 
 // Mock Data for the Current Tier
 const CURRENT_TIER = {
-  name: "The First 100 Pioneers",
+  name: "THE FIRST 100 PIONEERS",
   totalSpots: 100,
   filledSpots: 64,
   perks: [
-    "Direct voice access to the founding team",
-    "Lifetime 'Pioneer' status & badge",
-    "Priority access to new AI models",
+    "Priority access to the private network",
+    "Lifetime digital 'Pioneer' signature",
+    "Direct product roadmap influence",
+    "Complimentary with Annual Pro membership",
   ],
 };
 
+const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
+
 const Community = () => {
-  // Animation value for the progress bar
+  const navigation = useNavigation<any>();
+
+  // Animation for the glow effect
+  const glowOpacity = useSharedValue(0.3);
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
-    // Animate the progress bar on mount
+    // Elegant pulsing glow
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.8, { duration: 2000 }),
+        withTiming(0.3, { duration: 2000 }),
+      ),
+      -1,
+      true,
+    );
+
+    // Animate the progress bar
     progressWidth.value = withTiming(
       (CURRENT_TIER.filledSpots / CURRENT_TIER.totalSpots) * 100,
-      { duration: 1500 },
+      { duration: 2000 },
     );
   }, []);
 
-  const animatedProgressStyle = useAnimatedStyle(() => {
-    return {
-      width: `${progressWidth.value}%`,
-    };
-  });
+  const animatedGlow = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
 
-  // State for button to show interaction
-  const [hasRequested, setHasRequested] = useState(false);
+  const animatedProgress = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
 
   return (
     <ScreenView style={styles.screenView}>
@@ -61,306 +83,316 @@ const Community = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          {/* Top Subtle Header */}
+          {/* Subtle Branding */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(100)}
-            style={styles.topHeader}
+            entering={FadeInDown.duration(800).delay(100)}
+            style={styles.brandingHeader}
           >
-            <Text style={styles.topHeaderText}>SPEECHWORKS</Text>
-            <Text style={styles.topHeaderSub}>COMMUNITY (BETA)</Text>
+            <View style={styles.brandingDot} />
+            <Text style={styles.brandingText}>MEMBERS ONLY</Text>
           </Animated.View>
 
-          {/* Massive Editorial Hero */}
+          {/* Scarcity Hero */}
           <Animated.View
-            entering={FadeInDown.duration(800).delay(200)}
+            entering={FadeInDown.duration(1000).delay(200)}
             style={styles.heroSection}
           >
-            <Text style={styles.heroText}>Speech is</Text>
-            <Text style={styles.heroText}>a journey.</Text>
-            <Text style={[styles.heroText, styles.heroTextItalic]}>
-              Not a destination.
+            <Text style={styles.heroTitle}>Access is reserved.</Text>
+            <Text style={styles.heroTitle}>Growth is</Text>
+            <Text style={[styles.heroTitle, styles.heroTitleAccent]}>
+              Intentional.
             </Text>
           </Animated.View>
 
-          {/* The Mission Statement */}
           <Animated.View
-            entering={FadeInDown.duration(800).delay(300)}
-            style={styles.missionSection}
+            entering={FadeInDown.duration(1000).delay(300)}
+            style={styles.subtextSection}
           >
-            <Text style={styles.missionText}>
-              We are building a private sanctuary for those committed to
-              mastering their voice. No noise, no judgment. Just authentic
-              growth alongside driven peers.
+            <Text style={styles.subtext}>
+              Speechworks is an invite-only space for those committed to the art
+              of communication. Founding seats are available exclusively to our
+              Annual Pro members.
             </Text>
           </Animated.View>
 
-          {/* The Tier Tracker */}
+          {/* Digital Tracker Card */}
           <Animated.View
-            entering={FadeInDown.duration(800).delay(400)}
-            style={styles.trackerSection}
+            entering={FadeInDown.duration(1000).delay(400)}
+            style={styles.trackerCard}
           >
-            <View style={styles.trackerHeader}>
-              <Text style={styles.tierName}>{CURRENT_TIER.name}</Text>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>INVITE ONLY</Text>
+            <View style={styles.trackerTop}>
+              <Text style={styles.trackerLabel}>{CURRENT_TIER.name}</Text>
+              <Text style={styles.liveIndicator}>• LIVE</Text>
+            </View>
+
+            <View style={styles.countContainer}>
+              <Text style={styles.countNumber}>{CURRENT_TIER.filledSpots}</Text>
+              <Text style={styles.countTotal}>/ {CURRENT_TIER.totalSpots}</Text>
+              <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
+            </View>
+
+            {/* Glowing Progress Indicator */}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressTrack}>
+                <Animated.View
+                  style={[styles.progressFill, animatedProgress]}
+                />
+                {/* Glow Overlay */}
+                <Animated.View
+                  style={[styles.progressGlow, animatedProgress, animatedGlow]}
+                />
               </View>
             </View>
 
-            <View style={styles.progressCounterContainer}>
-              <Text style={styles.progressNumberMain}>
-                {String(CURRENT_TIER.filledSpots).padStart(3, "0")}
-              </Text>
-              <Text style={styles.progressNumberTotal}>
-                / {CURRENT_TIER.totalSpots}
-              </Text>
-            </View>
-
-            {/* Stark Progress Bar */}
-            <View style={styles.progressBarTrack}>
-              <Animated.View
-                style={[styles.progressBarFill, animatedProgressStyle]}
-              />
-            </View>
-            <Text style={styles.progressCaption}>
-              Spots remaining in current tier.
+            <Text style={styles.spotsLeft}>
+              ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots}{" "}
+              RESERVATIONS LEFT
             </Text>
           </Animated.View>
 
-          {/* The Perks */}
+          {/* Benefits List */}
           <Animated.View
-            entering={FadeInDown.duration(800).delay(500)}
-            style={styles.perksSection}
+            entering={FadeInDown.duration(1000).delay(500)}
+            style={styles.benefitsSection}
           >
-            <Text style={styles.perksTitle}>TIER BENEFITS</Text>
-            <View style={styles.perksList}>
+            <Text style={styles.benefitsTitle}>EXCLUSIVE BENEFITS</Text>
+            <View style={styles.benefitsList}>
               {CURRENT_TIER.perks.map((perk, index) => (
-                <View key={index} style={styles.perkItem}>
-                  <Icon
-                    name="check"
-                    size={20}
-                    color={theme.colors.text.title}
-                  />
-                  <Text style={styles.perkText}>{perk}</Text>
+                <View key={index} style={styles.benefitItem}>
+                  <View style={styles.benefitIconWrapper}>
+                    <Icon name="crown-outline" size={18} color="#D4AF37" />
+                  </View>
+                  <Text style={styles.benefitText}>{perk}</Text>
                 </View>
               ))}
             </View>
           </Animated.View>
         </View>
-      </CustomScrollView>
 
-      {/* Fixed Footer CTA */}
-      <Animated.View
-        entering={FadeInUp.duration(600).delay(600)}
-        style={styles.footerCTA}
-      >
-        <TouchableOpacity
-          style={[styles.ctaButton, hasRequested && styles.ctaButtonSuccess]}
-          activeOpacity={0.8}
-          onPress={() => setHasRequested(true)}
+        {/* GO PRO CTA - Integrated Layout */}
+        <Animated.View
+          entering={FadeInUp.duration(800).delay(600)}
+          style={styles.ctaContainer}
         >
-          <Text
-            style={[
-              styles.ctaButtonText,
-              hasRequested && styles.ctaButtonTextSuccess,
-            ]}
+          <TouchableOpacity
+            style={styles.ctaButton}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate("PremiumModal")}
           >
-            {hasRequested ? "REQUEST RECEIVED" : "APPLY FOR ACCESS"}
-          </Text>
-          {hasRequested && (
-            <Icon
-              name="check-circle"
-              size={20}
-              color={"#FFFFFF"}
-              style={{ marginLeft: 8 }}
-            />
-          )}
-        </TouchableOpacity>
-        {!hasRequested && (
+            <LinearGradient
+              colors={GOLD_GRADIENT}
+              style={styles.ctaGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.ctaText}>GET PRO & RESERVE SPOT</Text>
+            </LinearGradient>
+          </TouchableOpacity>
           <Text style={styles.ctaFooterText}>
-            Review process typically takes 24 hours.
+            Requires Annual Pro Subscription. Cancel anytime.
           </Text>
-        )}
-      </Animated.View>
+        </Animated.View>
+      </CustomScrollView>
     </ScreenView>
   );
 };
 
 const styles = StyleSheet.create({
   screenView: {
-    backgroundColor: "#FFFFFF", // Pure white for stark contrast
+    backgroundColor: "#0A0A0B", // Deep charcoal/black
   },
   scrollContent: {
-    paddingBottom: 160, // Space for fixed footer
+    paddingBottom: 220, // Increased to avoid hiding behind dock
   },
   container: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingTop: 60,
   },
-  topHeader: {
+  brandingHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 60,
+    marginBottom: 40,
+    gap: 8,
   },
-  topHeaderText: {
+  brandingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#D4AF37", // Gold dot for premium
+  },
+  brandingText: {
     ...parseTextStyle(theme.typography.LabelSmall),
-    fontWeight: "800",
+    color: "rgba(255,255,255,0.6)",
     letterSpacing: 2,
-    color: theme.colors.text.title,
-  },
-  topHeaderSub: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    fontWeight: "600",
-    color: theme.colors.text.disabled,
+    fontWeight: "700",
   },
   heroSection: {
-    marginBottom: 40,
+    marginBottom: 24,
   },
-  heroText: {
-    fontSize: 48,
-    fontWeight: "900",
-    color: theme.colors.text.title,
-    lineHeight: 56,
+  heroTitle: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    lineHeight: 46,
     letterSpacing: -1,
   },
-  heroTextItalic: {
-    fontStyle: "italic",
-    color: theme.colors.text.disabled, // Subtle contrast
+  heroTitleAccent: {
+    color: "#D4AF37", // Gold highlight
   },
-  missionSection: {
-    marginBottom: 60,
+  subtextSection: {
+    marginBottom: 40,
   },
-  missionText: {
-    ...parseTextStyle(theme.typography.BodyLarge),
-    color: theme.colors.text.default,
-    lineHeight: 28,
-    maxWidth: "90%",
+  subtext: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.5)",
+    lineHeight: 26,
+    fontWeight: "400",
   },
-  trackerSection: {
-    marginBottom: 60,
-    backgroundColor: theme.colors.surface.default,
-    padding: 24, // Added padding since it's now wrapped in a surface
-    borderRadius: 16,
+  trackerCard: {
+    backgroundColor: "rgba(212, 175, 55, 0.03)", // Translucent gold hint
+    borderRadius: 24,
+    padding: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: "rgba(212, 175, 55, 0.1)",
+    marginBottom: 40,
   },
-  trackerHeader: {
+  trackerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
-  },
-  tierName: {
-    ...parseTextStyle(theme.typography.Heading4),
-    fontWeight: "800",
-    letterSpacing: -0.5,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "#111215", // Stark black badge
-    borderRadius: 4,
-  },
-  statusText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
-  progressCounterContainer: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: 16,
-  },
-  progressNumberMain: {
-    fontSize: 56,
-    fontWeight: "900",
-    color: theme.colors.text.title,
-    fontVariant: ["tabular-nums"], // Keeps characters aligned
-    letterSpacing: -2,
-  },
-  progressNumberTotal: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: theme.colors.text.disabled,
-    marginLeft: 4,
-  },
-  progressBarTrack: {
-    height: 4,
-    backgroundColor: theme.colors.border.default,
-    width: "100%",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: "#111215", // Stark black fill
-    borderRadius: 2,
-  },
-  progressCaption: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-  },
-  perksSection: {
-    marginBottom: 40,
-  },
-  perksTitle: {
-    ...parseTextStyle(theme.typography.Label),
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: theme.colors.text.disabled,
     marginBottom: 20,
   },
-  perksList: {
-    gap: 16,
-  },
-  perkItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  perkText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    flex: 1,
-    fontWeight: "500",
-  },
-  footerCTA: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    padding: 24,
-    paddingBottom: 40,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border.default,
-  },
-  ctaButton: {
-    backgroundColor: "#111215", // Stark black
-    paddingVertical: 20,
-    borderRadius: 12, // Slightly rounded for touch friendliness
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    marginBottom: 12,
-  },
-  ctaButtonSuccess: {
-    backgroundColor: theme.colors.library.green[600],
-  },
-  ctaButtonText: {
-    color: "#FFFFFF",
-    ...parseTextStyle(theme.typography.BodyLarge),
+  trackerLabel: {
+    fontSize: 12,
     fontWeight: "800",
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1.5,
+  },
+  liveIndicator: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#D4AF37",
     letterSpacing: 1,
   },
-  ctaButtonTextSuccess: {
+  countContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+  countNumber: {
+    fontSize: 64,
+    fontWeight: "900",
     color: "#FFFFFF",
+    letterSpacing: -2,
+    lineHeight: 70,
+  },
+  countTotal: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.2)",
+    marginLeft: 8,
+  },
+  countLabel: {
+    width: "100%",
+    fontSize: 11,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 1,
+    marginTop: -4,
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#D4AF37",
+    borderRadius: 2,
+    zIndex: 1,
+  },
+  progressGlow: {
+    position: "absolute",
+    height: "100%",
+    backgroundColor: "#D4AF37",
+    borderRadius: 2,
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  spotsLeft: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 0.5,
+  },
+  benefitsSection: {
+    marginBottom: 20,
+  },
+  benefitsTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 2,
+    marginBottom: 24,
+  },
+  benefitsList: {
+    gap: 20,
+  },
+  benefitItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  benefitIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.8)",
+    flex: 1,
+  },
+  ctaContainer: {
+    padding: 28,
+    paddingTop: 0,
+    paddingBottom: 80, // Generous padding for dock
+  },
+  ctaButton: {
+    height: 64,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation4),
+  },
+  ctaGradient: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: 1,
   },
   ctaFooterText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
+    color: "rgba(255,255,255,0.4)",
     textAlign: "center",
+    marginTop: 16,
   },
 });
 
