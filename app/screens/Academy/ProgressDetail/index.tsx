@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import ScreenView from "../../../components/ScreenView";
 import {
   PDStackNavigationProp,
@@ -32,6 +34,8 @@ import { LinearGradient } from "expo-linear-gradient";
 const ProgressDetail = () => {
   const navigation =
     useNavigation<PDStackNavigationProp<keyof PDStackParamList>>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const route = useRoute<PDStackRouteProp<"ProgressDetail">>();
   const scrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
@@ -98,7 +102,16 @@ const ProgressDetail = () => {
           style={{ flex: 1 }}
         />
       </View>
-      <View style={styles.header}>
+
+      {/* Header */}
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -106,12 +119,15 @@ const ProgressDetail = () => {
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Progress Report</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        <View style={{ width: 32 }} />
+      </BlurView>
       <View style={styles.container}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollView,
+            { paddingTop: HEADER_HEIGHT + insets.top + 16 },
+          ]}
           showsVerticalScrollIndicator={false}
           decelerationRate={0.9}
           refreshControl={
@@ -169,12 +185,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    zIndex: 10,
+    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
@@ -200,9 +219,6 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
     marginTop: 2,
-    marginLeft: 32, // Offset for back button to center title somewhat
-    flex: 1,
-    textAlign: "center",
   },
   scrollView: {
     gap: 16,

@@ -3,6 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../components/CustomScrollView";
 import ScreenView from "../../../../components/ScreenView";
@@ -38,6 +40,8 @@ const LivelyIcon = ({
 
 const Support = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [openSettingType, setOpenSettingType] = useState<SettingType | null>(
     null,
@@ -55,15 +59,22 @@ const Support = () => {
         {/* Aurora Background */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
-            colors={[theme.colors.library.orange[100], "#FFF"]}
-            locations={[0, 1]}
+            colors={["#FFF7ED", "#FFF", "#FFF"] as const}
+            locations={[0, 0.4, 1]}
             style={{ flex: 1 }}
           />
         </View>
 
         <View style={styles.container}>
           {/* Header */}
-          <View style={styles.header}>
+          <BlurView
+            intensity={80}
+            tint="light"
+            style={[
+              styles.header,
+              { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+            ]}
+          >
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backButton}
@@ -76,9 +87,14 @@ const Support = () => {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Help & Support</Text>
             <View style={{ width: 32 }} />
-          </View>
+          </BlurView>
 
-          <CustomScrollView contentContainerStyle={styles.scrollView}>
+          <CustomScrollView
+            contentContainerStyle={[
+              styles.scrollView,
+              { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+            ]}
+          >
             {/* Report Problem Card */}
             <TouchableOpacity
               activeOpacity={0.9}
@@ -294,12 +310,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 24,
+    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
