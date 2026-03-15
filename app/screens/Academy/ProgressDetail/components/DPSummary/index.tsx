@@ -95,12 +95,12 @@ const DPSummary = () => {
   return (
     <View style={styles.shadowContainer}>
       <LinearGradient
-        colors={["#3B82F6", "#2563EB"]} // Deep Blue Gradient
+        colors={["#3B82F6", "#1D4ED8"]} // Vibrant Blue Gradient inspired by profile card
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        {/* Watermark Bubbles */}
+        {/* Background Watermark Bubbles (Inspired by profile card) */}
         <View style={styles.bubbleTopRight} />
         <View style={styles.bubbleBottomLeft} />
 
@@ -113,12 +113,14 @@ const DPSummary = () => {
                 Category breakdown this week
               </Text>
             </View>
-            <Icon name="chart-pie" size={20} color="rgba(255,255,255,0.9)" />
+            <View style={styles.headerIconWrapper}>
+              <Icon name="chart-pie" size={16} color="#FFFFFF" />
+            </View>
           </View>
 
           {chartData.length > 0 && totalPracticeTime > 0 ? (
             <View style={styles.dataArea}>
-              {/* Modern Legends Capsules */}
+              {/* Modern Legends Capsules (Glassmorphic) */}
               <View style={styles.legendContainer}>
                 {chartData.map((item) => (
                   <View key={item.name} style={styles.legendCapsule}>
@@ -141,11 +143,11 @@ const DPSummary = () => {
                       name: item.name,
                       population: item.totalTime,
                       color: item.color,
-                      legendFontColor: "#FFF",
+                      legendFontColor: "rgba(255,255,255,0.9)",
                       legendFontSize: 12,
                     }))}
                     width={chartSize}
-                    height={220}
+                    height={240}
                     chartConfig={{
                       color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                     }}
@@ -164,7 +166,7 @@ const DPSummary = () => {
                     </Text>
                   </View>
 
-                  {/* Percentage Badges (Pop out effect like user image) */}
+                  {/* Percentage Badges (Pop out effect) */}
                   {chartData.map((item, index) => {
                     const percentage = Math.round(
                       (item.totalTime / totalPracticeTime) * 100,
@@ -180,7 +182,7 @@ const DPSummary = () => {
                       (item.totalTime / totalPracticeTime) * 360;
                     const midAngle = startAngle + sliceAngle / 2;
                     const angleRad = ((midAngle - 90) * Math.PI) / 180;
-                    const labelRadius = 75; // Distance from center
+                    const labelRadius = 80; // Distance from center
 
                     return (
                       <View
@@ -189,7 +191,7 @@ const DPSummary = () => {
                           styles.percentageBadge,
                           {
                             left: 110 + labelRadius * Math.cos(angleRad), // offset to align with chart area
-                            top: 110 + labelRadius * Math.sin(angleRad),
+                            top: 120 + labelRadius * Math.sin(angleRad),
                           },
                         ]}
                       >
@@ -219,15 +221,12 @@ const DPSummary = () => {
                         { width: isLarge ? "100%" : BENTO_WIDTH },
                       ]}
                     >
+                      {/* Icon Watermark in background of the box */}
+                      <View style={styles.boxWatermark}>
+                        <Icon name={icon} size={60} color="rgba(255,255,255,0.08)" />
+                      </View>
+
                       <View style={styles.boxHeader}>
-                        <View
-                          style={[
-                            styles.iconCircle,
-                            { backgroundColor: `${color}25` },
-                          ]}
-                        >
-                          <Icon name={icon} size={14} color={color} />
-                        </View>
                         <View style={styles.boxInfo}>
                           <Text style={styles.boxLabel}>{item.name}</Text>
                           <Text style={styles.boxTime}>
@@ -235,7 +234,7 @@ const DPSummary = () => {
                           </Text>
                         </View>
                       </View>
-                      {/* Subtle category bar */}
+                      {/* Category track bar */}
                       <View style={styles.progressBarBg}>
                         <View
                           style={[
@@ -269,12 +268,12 @@ export default DPSummary;
 const styles = StyleSheet.create({
   shadowContainer: {
     borderRadius: 24,
-    shadowColor: "#2563EB",
+    shadowColor: "#1D4ED8",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
-    backgroundColor: "#DBEAFE",
+    backgroundColor: "#1e3a8a",
     overflow: "hidden",
   },
   gradient: {
@@ -290,7 +289,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   bubbleBottomLeft: {
     position: "absolute",
@@ -299,7 +298,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   contentLayer: {
     flex: 1,
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase",
     marginBottom: 2,
@@ -324,6 +323,14 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.7)",
     fontSize: 13,
+  },
+  headerIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   dataArea: {
     gap: 24,
@@ -338,8 +345,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
@@ -353,7 +360,7 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#FFF",
+    color: "#FFFFFF",
   },
   chartWrapper: {
     alignItems: "center",
@@ -362,34 +369,34 @@ const styles = StyleSheet.create({
   chartInner: {
     position: "relative",
     width: 220,
-    height: 220,
+    height: 240,
     justifyContent: "center",
     alignItems: "center",
   },
   donutHole: {
     position: "absolute",
     backgroundColor: "#FFF",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
   totalLabel: {
     fontSize: 9,
     fontWeight: "800",
-    color: theme.colors.text.default,
+    color: "#94A3B8",
     letterSpacing: 1,
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "900",
-    color: theme.colors.text.title,
+    color: "#1E293B",
   },
   percentageBadge: {
     position: "absolute",
@@ -399,15 +406,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
     transform: [{ translateX: -15 }, { translateY: -10 }],
   },
   percentageText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: "#333",
+    fontWeight: "900",
+    color: "#1E293B",
   },
   grid: {
     flexDirection: "row",
@@ -421,41 +428,42 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
+    overflow: "hidden", // Crucial for watermark
+    position: "relative",
+  },
+  boxWatermark: {
+    position: "absolute",
+    bottom: -15,
+    right: -10,
+    opacity: 0.8,
   },
   boxHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-  },
-  iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+    zIndex: 1,
   },
   boxInfo: {
     gap: 2,
   },
   boxLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "rgba(255,255,255,0.8)",
   },
   boxTime: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#FFF",
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   progressBarBg: {
-    height: 4,
+    height: 5,
     backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    borderRadius: 2,
+    borderRadius: 3,
   },
   emptyState: {
     alignItems: "center",
@@ -465,7 +473,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#FFF",
-    opacity: 0.7,
+    color: "rgba(255,255,255,0.7)",
   },
 });
+
+
