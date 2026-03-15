@@ -1,264 +1,392 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
+import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
+import { theme } from "../../Theme/tokens";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-const RED_COLOR = "#FF5858";
+// Mock Data for the Current Tier
+const CURRENT_TIER = {
+  name: "THE FIRST 100 PIONEERS",
+  totalSpots: 100,
+  filledSpots: 64,
+  perks: [
+    "Priority access to the private network",
+    "Lifetime digital 'Pioneer' signature",
+    "Direct product roadmap influence",
+    "Complimentary with Annual Pro membership",
+  ],
+};
 
-const PAGES = [
-  {
-    title: "Peer Support Feed",
-    description:
-      "Share your journey, vent, or celebrate wins with others who understand. Join a supportive space built for real conversations.",
-    icon: "chat-processing",
-  },
-  {
-    title: "Live Voice Rooms",
-    description:
-      "Connect in real-time. Join live audio discussion rooms to practice techniques or simply chat with the community.",
-    icon: "microphone",
-  },
-  {
-    title: "Challenges & Growth",
-    description:
-      "Participate in weekly speech challenges and discover career opportunities tailored for our community.",
-    icon: "trophy",
-  },
-];
+const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
 
 const Community = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isAutoSliding, setIsAutoSliding] = useState(true);
-  const scrollRef = useRef<ScrollView>(null);
+  const navigation = useNavigation<any>();
+  
+  // Animation for the glow effect
+  const glowOpacity = useSharedValue(0.3);
+  const progressWidth = useSharedValue(0);
 
   useEffect(() => {
-    if (!isAutoSliding) return;
+    // Elegant pulsing glow
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.8, { duration: 2000 }),
+        withTiming(0.3, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
 
-    const interval = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % PAGES.length;
-      scrollRef.current?.scrollTo({
-        x: nextIndex * width,
-        animated: true,
-      });
-    }, 3000);
+    // Animate the progress bar
+    progressWidth.value = withTiming(
+      (CURRENT_TIER.filledSpots / CURRENT_TIER.totalSpots) * 100,
+      { duration: 2000 }
+    );
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [activeIndex, isAutoSliding]);
+  const animatedGlow = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
+  const animatedProgress = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
 
   return (
     <ScreenView style={styles.screenView}>
-      {/* FIXED BACKGROUND LAYER */}
-      <View style={styles.fixedBackgroundContainer}>
-        <View style={styles.fixedRedBlock}>
-          {/* Static decorative circles matching reference */}
-          <View style={styles.circle1} />
-          <View style={styles.circle2} />
-        </View>
-      </View>
-
-      {/* SLIDING CONTENT LAYER */}
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / width);
-          if (index !== activeIndex) setActiveIndex(index);
-        }}
-        onScrollBeginDrag={() => setIsAutoSliding(false)}
-        scrollEventThrottle={16}
+      <CustomScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {PAGES.map((page, i) => (
-          <View key={i} style={styles.page}>
-            {/* Top Illustration (Moves) */}
-            <View style={styles.topContainer}>
-              <View style={styles.illustrationPlaceholder}>
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonText}>COMING SOON</Text>
-                </View>
-                <Icon name={page.icon} size={150} color="#CBD5E1" />
+        <View style={styles.container}>
+          {/* Subtle Branding */}
+          <Animated.View
+            entering={FadeInDown.duration(800).delay(100)}
+            style={styles.brandingHeader}
+          >
+            <View style={styles.brandingDot} />
+            <Text style={styles.brandingText}>MEMBERS ONLY</Text>
+          </Animated.View>
+
+          {/* Scarcity Hero */}
+          <Animated.View
+            entering={FadeInDown.duration(1000).delay(200)}
+            style={styles.heroSection}
+          >
+            <Text style={styles.heroTitle}>Access is reserved.</Text>
+            <Text style={styles.heroTitle}>Growth is</Text>
+            <Text style={[styles.heroTitle, styles.heroTitleAccent]}>Intentional.</Text>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInDown.duration(1000).delay(300)}
+            style={styles.subtextSection}
+          >
+            <Text style={styles.subtext}>
+              Speechworks is an invite-only space for those committed to the
+              art of communication. Founding seats are available exclusively
+              to our Annual Pro members.
+            </Text>
+          </Animated.View>
+
+          {/* Digital Tracker Card */}
+          <Animated.View
+            entering={FadeInDown.duration(1000).delay(400)}
+            style={styles.trackerCard}
+          >
+            <View style={styles.trackerTop}>
+              <Text style={styles.trackerLabel}>{CURRENT_TIER.name}</Text>
+              <Text style={styles.liveIndicator}>• LIVE</Text>
+            </View>
+
+            <View style={styles.countContainer}>
+              <Text style={styles.countNumber}>
+                {CURRENT_TIER.filledSpots}
+              </Text>
+              <Text style={styles.countTotal}>/ {CURRENT_TIER.totalSpots}</Text>
+              <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
+            </View>
+
+            {/* Glowing Progress Indicator */}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressTrack}>
+                <Animated.View style={[styles.progressFill, animatedProgress]} />
+                {/* Glow Overlay */}
+                <Animated.View style={[styles.progressGlow, animatedProgress, animatedGlow]} />
               </View>
             </View>
 
-            {/* Bottom Content Area (Transparent container, Text moves) */}
-            <View style={styles.bottomContainer}>
-              <View style={styles.content}>
-                <View style={styles.textContent}>
-                  <Text style={styles.title}>{page.title}</Text>
-                  <Text style={styles.description}>{page.description}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+            <Text style={styles.spotsLeft}>
+              ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots} RESERVATIONS LEFT
+            </Text>
+          </Animated.View>
 
-      {/* FIXED PAGINATION MARKERS */}
-      <View style={styles.fixedMarkersContainer}>
-        <View style={styles.markers}>
-          {PAGES.map((_, dotIdx) => (
-            <View
-              key={dotIdx}
-              style={[
-                styles.marker,
-                activeIndex === dotIdx
-                  ? styles.markerActive
-                  : styles.markerInactive,
-              ]}
-            />
-          ))}
+          {/* Benefits List */}
+          <Animated.View
+            entering={FadeInDown.duration(1000).delay(500)}
+            style={styles.benefitsSection}
+          >
+            <Text style={styles.benefitsTitle}>EXCLUSIVE BENEFITS</Text>
+            <View style={styles.benefitsList}>
+              {CURRENT_TIER.perks.map((perk, index) => (
+                <View key={index} style={styles.benefitItem}>
+                  <View style={styles.benefitIconWrapper}>
+                    <Icon name="crown-outline" size={18} color="#D4AF37" />
+                  </View>
+                  <Text style={styles.benefitText}>{perk}</Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
         </View>
-      </View>
+
+        {/* GO PRO CTA - Integrated Layout */}
+        <Animated.View
+          entering={FadeInUp.duration(800).delay(600)}
+          style={styles.ctaContainer}
+        >
+          <TouchableOpacity
+            style={styles.ctaButton}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate("PremiumModal")}
+          >
+            <LinearGradient
+              colors={GOLD_GRADIENT}
+              style={styles.ctaGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.ctaText}>GET PRO & RESERVE SPOT</Text>
+              <Icon name="arrow-right" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+            </LinearGradient>
+          </TouchableOpacity>
+          <Text style={styles.ctaFooterText}>
+            Requires Annual Pro Subscription. Cancel anytime.
+          </Text>
+        </Animated.View>
+      </CustomScrollView>
     </ScreenView>
   );
 };
 
-export default Community;
-
 const styles = StyleSheet.create({
   screenView: {
-    flex: 1,
-    backgroundColor: "#FFF",
-    paddingHorizontal: 0,
-    paddingTop: 0,
+    backgroundColor: "#0A0A0B", // Deep charcoal/black
   },
-  fixedBackgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: -1,
+  scrollContent: {
+    paddingBottom: 100,
   },
-  fixedRedBlock: {
-    position: "absolute",
-    bottom: 0,
-    width: width,
-    height: "55%",
-    backgroundColor: RED_COLOR,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: "hidden",
+  container: {
+    paddingHorizontal: 28,
+    paddingTop: 60,
   },
-  page: { width: width, height: height },
-  topContainer: {
-    height: "45%",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-  },
-  illustrationPlaceholder: {
-    width: width * 0.8,
-    height: 180,
-    backgroundColor: "#EFF6FF", // Slightly deeper blue/gray
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#DBEAFE", // Subtle border for definition
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    // overflow: "hidden", // Removed to allow badge to sit on border
-  },
-  comingSoonBadge: {
-    position: "absolute",
-    top: -10, // Sits on the border
-    right: -10, // Sits on the border
-    backgroundColor: "#FF5858", // Solid red
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    // Shadow for premium feel
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 10,
-  },
-  comingSoonText: {
-    color: "#FFFFFF", // White text
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-  },
-  bottomContainer: {
-    height: "55%",
-    backgroundColor: "transparent",
-  },
-  circle1: {
-    position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    top: -50,
-    left: -80,
-  },
-  circle2: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    bottom: 40,
-    right: -40,
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 110, // Clear floating tab bar (menu dock)
-  },
-  textContent: {
-    paddingHorizontal: 50,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFF",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 14,
-    color: "#FFF",
-    textAlign: "center",
-    lineHeight: 22,
-    opacity: 0.9,
-  },
-  buttonText: {
-    color: RED_COLOR,
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 1,
-  },
-  fixedMarkersContainer: {
-    position: "absolute",
-    bottom: 15, // Below the menu dock
-    width: "100%",
-    alignItems: "center",
-  },
-  markers: {
+  brandingHeader: {
     flexDirection: "row",
-    gap: 12,
+    alignItems: "center",
+    marginBottom: 40,
+    gap: 8,
   },
-  marker: {
+  brandingDot: {
+    width: 6,
     height: 6,
     borderRadius: 3,
+    backgroundColor: "#D4AF37", // Gold dot for premium
   },
-  markerActive: {
-    width: 28,
-    backgroundColor: "#FFF",
+  brandingText: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 2,
+    fontWeight: "700",
   },
-  markerInactive: {
-    width: 10,
-    backgroundColor: "rgba(255,255,255,0.4)",
+  heroSection: {
+    marginBottom: 24,
+  },
+  heroTitle: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    lineHeight: 46,
+    letterSpacing: -1,
+  },
+  heroTitleAccent: {
+    color: "#D4AF37", // Gold highlight
+  },
+  subtextSection: {
+    marginBottom: 40,
+  },
+  subtext: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.5)",
+    lineHeight: 26,
+    fontWeight: "400",
+  },
+  trackerCard: {
+    backgroundColor: "rgba(212, 175, 55, 0.03)", // Translucent gold hint
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.1)",
+    marginBottom: 40,
+  },
+  trackerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  trackerLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1.5,
+  },
+  liveIndicator: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#D4AF37",
+    letterSpacing: 1,
+  },
+  countContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+  countNumber: {
+    fontSize: 64,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: -2,
+    lineHeight: 70,
+  },
+  countTotal: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.2)",
+    marginLeft: 8,
+  },
+  countLabel: {
+    width: "100%",
+    fontSize: 11,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 1,
+    marginTop: -4,
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#D4AF37",
+    borderRadius: 2,
+    zIndex: 1,
+  },
+  progressGlow: {
+    position: "absolute",
+    height: "100%",
+    backgroundColor: "#D4AF37",
+    borderRadius: 2,
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  spotsLeft: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 0.5,
+  },
+  benefitsSection: {
+    marginBottom: 20,
+  },
+  benefitsTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 2,
+    marginBottom: 24,
+  },
+  benefitsList: {
+    gap: 20,
+  },
+  benefitItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  benefitIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  benefitText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.8)",
+    flex: 1,
+  },
+  ctaContainer: {
+    padding: 28,
+    paddingTop: 0,
+    paddingBottom: 60,
+  },
+  ctaButton: {
+    height: 64,
+    borderRadius: 16,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation4),
+  },
+  ctaGradient: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  ctaFooterText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.4)",
+    textAlign: "center",
+    marginTop: 16,
   },
 });
+
+export default Community;

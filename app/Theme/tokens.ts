@@ -8,13 +8,18 @@ export const mobileTypography = {
   Heading2: "600 24px/32px Inter_600SemiBold, sans-serif",
   // used for navigation and inbody headers
   Heading3: "600 18px/24px Inter_600SemiBold, sans-serif",
+  Heading4: "600 16px/22px Inter_600SemiBold, sans-serif",
   BodyHighLight: "700 24px/32px Inter_700Bold, sans-serif",
   Body: "400 16px/22px Inter_400Regular, sans-serif",
+  BodyLarge: "400 18px/26px Inter_400Regular, sans-serif",
   BodySmall: "400 14px/20px Inter_400Regular, sans-serif",
   BodyDetails: "400 12px/16px Inter_400Regular, sans-serif",
+  Label: "500 14px/20px Inter_500Medium, sans-serif",
+  LabelSmall: "500 12px/16px Inter_500Medium, sans-serif",
   Button: "500 16px/22px Inter_500Medium, sans-serif",
   XL: "700 32px/42px Inter_700Bold, sans-serif",
 };
+
 
 export const shadow = {
   elevation1: "0px 2px 5px 0px rgba(0, 0, 0, 0.1)",
