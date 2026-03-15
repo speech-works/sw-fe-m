@@ -1,15 +1,20 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getUserStats } from "../../../../../api";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
     parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const CARD_PADDING = 20; // inner padding of the outer card
+const GRID_GAP = 10;
+const BENTO_CARD_WIDTH =
+  (SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2 - GRID_GAP) / 2; // 16px page padding, 20px card padding both sides
 
 type ContentTypeKey =
   | "COGNITIVE_PRACTICE"
@@ -106,170 +111,177 @@ const DPSummary = () => {
     }
   };
 
+  // Pie chart width that fits inside the outer card
+  const chartWidth = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <View style={styles.outerCard}>
+      {/* Watermark Bubbles (matching other cards) */}
+      <View style={styles.bubbleTopRight} />
+      <View style={styles.bubbleBottomLeft} />
+
+      {/* Header Row (matching other cards) */}
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.headerLabel}>Practice Distribution</Text>
+          <Text style={styles.headerLabel}>PRACTICE DISTRIBUTION</Text>
           <Text style={styles.headerSubtitle}>Time spent by category</Text>
         </View>
+        <Icon name="chart-pie" size={20} color="rgba(255,255,255,0.9)" />
       </View>
 
       {chartData.length > 0 && totalPracticeTime > 0 ? (
-        <View style={styles.bentoGrid}>
-          {/* Large Chart Card - 3D Style */}
-          <View style={styles.chartCard}>
-            <View style={styles.chartContainer}>
-              {/* Legend at top */}
-              <View style={styles.chartLegend}>
-                {chartData.map((item) => (
-                  <View key={item.name} style={styles.legendItem}>
-                    <View
-                      style={[
-                        styles.legendDot,
-                        { backgroundColor: item.color },
-                      ]}
-                    />
-                    <Text style={styles.legendText}>{item.name}</Text>
+        <View style={styles.contentContainer}>
+          {/* Legend */}
+          <View style={styles.chartLegend}>
+            {chartData.map((item) => (
+              <View key={item.name} style={styles.legendItem}>
+                <View
+                  style={[
+                    styles.legendDot,
+                    { backgroundColor: item.color },
+                  ]}
+                />
+                <Text style={styles.legendText}>{item.name}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Pie Chart */}
+          <View style={styles.chartWrapper}>
+            <View style={styles.chartArea}>
+              <PieChart
+                data={chartData.map((item) => ({
+                  name: item.name,
+                  population: item.totalTime,
+                  color: item.color,
+                  legendFontColor: "#FFFFFF",
+                  legendFontSize: 16,
+                }))}
+                width={chartWidth}
+                height={240}
+                chartConfig={{
+                  backgroundColor: "transparent",
+                  backgroundGradientFrom: "transparent",
+                  backgroundGradientTo: "transparent",
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) =>
+                    `rgba(255, 255, 255, ${opacity})`,
+                }}
+                accessor={"population"}
+                backgroundColor={"transparent"}
+                paddingLeft={"50"}
+                hasLegend={false}
+                center={[0, 0]}
+                absolute
+              />
+
+              {/* Percentage labels on slices */}
+              {chartData.map((item, index) => {
+                const percentage = Math.round(
+                  (item.totalTime / totalPracticeTime) * 100
+                );
+                if (percentage < 5) return null;
+
+                let startAngle = 0;
+                for (let i = 0; i < index; i++) {
+                  startAngle +=
+                    (chartData[i].totalTime / totalPracticeTime) * 360;
+                }
+                const sliceAngle =
+                  (item.totalTime / totalPracticeTime) * 360;
+                const midAngle = startAngle + sliceAngle / 2;
+                const angleRad = ((midAngle - 90) * Math.PI) / 180;
+
+                const chartSize = 240;
+                const centerX = chartSize / 2;
+                const centerY = chartSize / 2;
+                const labelRadius = chartSize / 3.2;
+
+                const x = centerX + labelRadius * Math.cos(angleRad);
+                const y = centerY + labelRadius * Math.sin(angleRad);
+
+                return (
+                  <View
+                    key={`label-${index}`}
+                    style={[styles.percentageBadge, { left: x, top: y }]}
+                  >
+                    <Text style={styles.percentageBadgeText}>
+                      {percentage}%
+                    </Text>
                   </View>
-                ))}
-              </View>
-
-              {/* Chart with 3D effect */}
-              <View style={styles.chartWrapper}>
-                <View style={styles.chartArea}>
-                  <PieChart
-                    data={chartData.map((item) => ({
-                      name: item.name,
-                      population: item.totalTime,
-                      color: item.color,
-                      legendFontColor: "#FFFFFF",
-                      legendFontSize: 16,
-                    }))}
-                    width={280}
-                    height={280}
-                    chartConfig={{
-                      backgroundColor: "transparent",
-                      backgroundGradientFrom: "transparent",
-                      backgroundGradientTo: "transparent",
-                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(255, 255, 255, ${opacity})`,
-                    }}
-                    accessor={"population"}
-                    backgroundColor={"transparent"}
-                    paddingLeft={"70"}
-                    hasLegend={false}
-                    center={[0, 0]}
-                    absolute
-                  />
-
-                  {/* Custom percentage labels */}
-                  {chartData.map((item, index) => {
-                    const percentage = Math.round(
-                      (item.totalTime / totalPracticeTime) * 100
-                    );
-                    if (percentage < 4) return null;
-
-                    let startAngle = 0;
-                    for (let i = 0; i < index; i++) {
-                      startAngle +=
-                        (chartData[i].totalTime / totalPracticeTime) * 360;
-                    }
-                    const sliceAngle =
-                      (item.totalTime / totalPracticeTime) * 360;
-                    const midAngle = startAngle + sliceAngle / 2;
-
-                    // Convert to radians
-                    // -90 degrees because chart starts at 12 o'clock, but 0 degrees in trig is 3 o'clock
-                    const angleRad = ((midAngle - 90) * Math.PI) / 180;
-
-                    // Chart dimensions
-                    const chartSize = 280;
-                    const centerX = chartSize / 2;
-                    const centerY = chartSize / 2;
-
-                    // Radius for label placement
-                    const labelRadius = chartSize / 3.5;
-
-                    const x = centerX + labelRadius * Math.cos(angleRad);
-                    const y = centerY + labelRadius * Math.sin(angleRad);
-
-                    return (
-                      <View
-                        key={`label-${index}`}
-                        style={[styles.percentageBadge, { left: x, top: y }]}
-                      >
-                        <Text style={styles.percentageBadgeText}>
-                          {percentage}%
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
+                );
+              })}
             </View>
           </View>
 
-          {/* Practice Type Cards - Bento Grid */}
-          {chartData.map((item, index) => {
-            const contentType = Object.keys(contentTypeLabels).find(
-              (key) => contentTypeLabels[key as ContentTypeKey] === item.name
-            ) as ContentTypeKey;
-            const gradient = contentType
-              ? gradients[contentType]
-              : (["#E5E7EB", "#D1D5DB"] as const);
-            const icon = contentType ? icons[contentType] : "circle";
+          {/* Bento Grid — Gradient Cards (same look as original) */}
+          <View style={styles.bentoGrid}>
+            {chartData.map((item, idx) => {
+              const contentType = Object.keys(contentTypeLabels).find(
+                (key) => contentTypeLabels[key as ContentTypeKey] === item.name
+              ) as ContentTypeKey;
+              const gradient = contentType
+                ? gradients[contentType]
+                : (["#E5E7EB", "#D1D5DB"] as const);
+              const icon = contentType ? icons[contentType] : "circle";
 
-            return (
-              <View
-                key={item.name}
-                style={[
-                  styles.practiceCard,
-                  index === 0 && styles.practiceCardLarge, // First card is larger
-                ]}
-              >
-                <LinearGradient
-                  colors={gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.practiceGradient}
+              // If odd number of cards make the first one full width
+              const isOddFirst =
+                chartData.length % 2 !== 0 && idx === 0;
+
+              return (
+                <View
+                  key={item.name}
+                  style={[
+                    styles.practiceCard,
+                    isOddFirst
+                      ? { width: "100%" }
+                      : { width: BENTO_CARD_WIDTH },
+                  ]}
                 >
-                  {/* Watermark Icon */}
-                  <View style={styles.practiceWatermark}>
-                    <Icon
-                      name={icon}
-                      size={60}
-                      color="rgba(255,255,255,0.15)"
-                    />
-                  </View>
-
-                  {/* Content */}
-                  <View style={styles.practiceContent}>
-                    <View style={styles.practiceHeader}>
-                      <View style={styles.practiceIconBadge}>
-                        <Icon name={icon} size={16} color="#FFF" />
-                      </View>
-                      <Text style={styles.practiceName}>{item.name}</Text>
+                  <LinearGradient
+                    colors={gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                      styles.practiceGradient,
+                      isOddFirst && styles.practiceGradientWide,
+                    ]}
+                  >
+                    {/* Watermark Icon */}
+                    <View style={styles.practiceWatermark}>
+                      <Icon
+                        name={icon}
+                        size={52}
+                        color="rgba(255,255,255,0.15)"
+                      />
                     </View>
 
-                    <Text style={styles.practiceTime}>
-                      {formatTime(item.totalTime)}
-                    </Text>
-                    <Text style={styles.practicePercentage}>
-                      {((item.totalTime / totalPracticeTime) * 100).toFixed(0)}%
-                      of total
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </View>
-            );
-          })}
+                    {/* Content */}
+                    <View style={styles.practiceContent}>
+                      <View style={styles.practiceHeader}>
+                        <View style={styles.practiceIconBadge}>
+                          <Icon name={icon} size={14} color="#FFF" />
+                        </View>
+                        <Text style={styles.practiceName}>{item.name}</Text>
+                      </View>
+
+                      <Text style={styles.practiceTime}>
+                        {formatTime(item.totalTime)}
+                      </Text>
+                      <Text style={styles.practicePercentage}>
+                        {((item.totalTime / totalPracticeTime) * 100).toFixed(0)}% of total
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </View>
+              );
+            })}
+          </View>
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Icon name="chart-pie" size={48} color={theme.colors.text.default} />
+          <Icon name="chart-pie" size={40} color="rgba(255,255,255,0.6)" />
           <Text style={styles.emptyText}>No practice data available</Text>
           <Text style={styles.emptySubtext}>
             Complete some practices to see your distribution
@@ -283,134 +295,155 @@ const DPSummary = () => {
 export default DPSummary;
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 20,
+  // Outer card — same shape as DetailedWeeklySummary & MoodSummary
+  outerCard: {
+    borderRadius: 24,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+    backgroundColor: "#3B82F6",
+    overflow: "hidden",
+    paddingHorizontal: CARD_PADDING,
+    paddingVertical: 22,
+    position: "relative",
   },
+  // Matching watermark bubbles
+  bubbleTopRight: {
+    position: "absolute",
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -50,
+    left: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  // Header — same pattern as other cards
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    marginBottom: 16,
+    zIndex: 1,
   },
   headerLabel: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
     marginBottom: 4,
   },
   headerSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.75)",
     fontSize: 13,
   },
-  bentoGrid: {
+  contentContainer: {
+    gap: 16,
+    zIndex: 1,
+  },
+  // Legend
+  chartLegend: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
   },
-  // 3D Style Chart Card
-  chartCard: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  chartContainer: {
-    gap: 20,
-  },
-  chartLegend: {
-    width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    justifyContent: "flex-start",
-  },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   legendDot: {
-    width: 10,
-    height: 10,
+    width: 9,
+    height: 9,
     borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
   },
   legendText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.9)",
   },
+  // Pie Chart
   chartWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
-    paddingVertical: 30,
   },
   chartArea: {
     position: "relative",
-    width: 280,
-    height: 280,
-    alignSelf: "center",
+    width: "100%",
+    height: 240,
   },
   percentageBadge: {
     position: "absolute",
     backgroundColor: "rgba(255, 255, 255, 0.95)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
-    transform: [{ translateX: -20 }, { translateY: -15 }],
+    transform: [{ translateX: -18 }, { translateY: -12 }],
     zIndex: 10,
   },
   percentageBadgeText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "800",
     color: theme.colors.text.title,
   },
-  // Practice Cards
-  practiceCard: {
-    width: "48%", // Approximately half width with gap
-    borderRadius: 20,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation1),
+  // Bento Grid — no gap between rows or columns except GRID_GAP
+  bentoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: GRID_GAP,
   },
-  practiceCardLarge: {
-    // First card gets more height
-    height: 200, // Example fixed height for larger card
+  practiceCard: {
+    borderRadius: 18,
+    overflow: "hidden",
   },
   practiceGradient: {
-    padding: 20,
-    minHeight: 140,
-    flex: 1, // Ensure gradient fills the card
+    padding: 16,
+    minHeight: 120,
     position: "relative",
+    justifyContent: "space-between",
+  },
+  practiceGradientWide: {
+    minHeight: 100,
   },
   practiceWatermark: {
     position: "absolute",
-    right: -10,
-    bottom: -10,
+    right: -8,
+    bottom: -8,
     opacity: 0.8,
   },
   practiceContent: {
-    gap: 8,
+    gap: 6,
     zIndex: 1,
   },
   practiceHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   practiceIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
@@ -418,7 +451,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.3)",
   },
   practiceName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: "#FFF",
     textShadowColor: "rgba(0,0,0,0.1)",
@@ -426,33 +459,35 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   practiceTime: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "900",
     color: "#FFF",
-    letterSpacing: -1,
+    letterSpacing: -0.5,
     textShadowColor: "rgba(0,0,0,0.1)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   practicePercentage: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.9)",
+    color: "rgba(255,255,255,0.85)",
   },
+  // Empty State
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 48,
-    gap: 12,
+    paddingVertical: 40,
+    gap: 10,
+    zIndex: 1,
   },
   emptyText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    color: "rgba(255,255,255,0.9)",
     fontWeight: "600",
   },
   emptySubtext: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: "rgba(255,255,255,0.7)",
     textAlign: "center",
   },
 });
