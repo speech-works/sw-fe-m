@@ -1,31 +1,64 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getWeeklyMoodReport } from "../../../../../api";
 import Angry1 from "../../../../../assets/mood-check/Angry1";
 import Calm1 from "../../../../../assets/mood-check/Calm1";
 import Happy1 from "../../../../../assets/mood-check/Happy1";
 import Sad1 from "../../../../../assets/mood-check/Sad1";
 import { useUserStore } from "../../../../../stores/user";
+import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
 import {
     parseTextStyle
 } from "../../../../../util/functions/parseStyles";
 import { getMoodRemark } from "./helper";
+import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
+import SkeletonLoader from "../../../../../components/SkeletonLoader";
+
+const MoodSummarySkeleton = () => (
+  <View style={styles.shadowContainer}>
+    <LinearGradient
+      colors={["#2DD4BF", "#0D9488"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.gradient}
+    >
+      <View style={styles.contentLayer}>
+        <View style={styles.headerRow}>
+          <View style={{ gap: 6 }}>
+            <SkeletonLoader width={100} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+            <SkeletonLoader width={160} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+          </View>
+          <View style={styles.headerIconWrapper}>
+            <SkeletonLoader width={16} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+          </View>
+        </View>
+
+        <View style={styles.moodGrid}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={[styles.moodItemSkeleton, { minWidth: 80, flex: 0 }]}>
+              <SkeletonLoader width={36} height={36} style={{ borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              <View style={{ gap: 4, alignItems: "center" }}>
+                <SkeletonLoader width={40} height={8} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <SkeletonLoader width={20} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </LinearGradient>
+  </View>
+);
 
 const MoodSummary = () => {
   const { user } = useUserStore();
-  const [moodStats, setMoodStats] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchMoodStats = async () => {
-      const moods = await getWeeklyMoodReport(user.id);
-      setMoodStats(moods);
-    };
-    fetchMoodStats();
-  }, [user]);
+  const { 
+    moodReport: moodStats, 
+    loading, 
+    fetchErrors, 
+    fetchAllData 
+  } = useProgressReportStore();
 
   const icons = {
     ANGRY: Angry1,
@@ -34,9 +67,32 @@ const MoodSummary = () => {
     SAD: Sad1,
   };
 
-  const nonZeroMoods = Object.entries(moodStats).filter(
+  const handleRetry = () => {
+    if (user?.id) {
+       fetchAllData(user.id, true);
+    }
+  };
+
+  // Show error if we have no data and it's not refreshing
+  if (!moodStats && fetchErrors.moodReport && !loading) {
+    return (
+      <ErrorStateCard 
+        onRetry={handleRetry}
+        variant="light"
+        title="Mood insights unavailable"
+        message="We couldn't fetch your mood trends for this week. Give it another shot?"
+        style={{ marginVertical: 0 }}
+      />
+    );
+  }
+
+  if (loading && !moodStats) {
+    return <MoodSummarySkeleton />;
+  }
+
+  const nonZeroMoods = moodStats ? Object.entries(moodStats).filter(
     ([, percentage]) => percentage > 0
-  );
+  ) : [];
 
   return (
     <View style={styles.shadowContainer}>
@@ -60,12 +116,17 @@ const MoodSummary = () => {
           {/* Header */}
           <View style={styles.headerRow}>
             <Text style={styles.headerLabel}>MOOD SUMMARY</Text>
-            <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
+            <View style={styles.headerRight}>
+               {fetchErrors.moodReport && (
+                <Icon name="exclamation-circle" size={14} color="rgba(255,255,255,0.6)" style={{ marginRight: 8 }} />
+              )}
+              <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
+            </View>
           </View>
 
           {/* Mood Grid */}
           <View style={styles.moodGrid}>
-            {nonZeroMoods.map(([mood, percentage]) => {
+            {moodStats ? nonZeroMoods.map(([mood, percentage]) => {
               const Icon = icons[mood as keyof typeof icons];
               if (!Icon) return null;
 
@@ -82,14 +143,18 @@ const MoodSummary = () => {
                   </Text>
                 </View>
               );
-            })}
+            }) : (
+              <Text style={styles.loadingText}>Loading...</Text>
+            )}
           </View>
 
           {/* Remark Pill */}
-          <View style={styles.remarkPill}>
-            <Icon name="lightbulb" size={14} color="rgba(255,255,255,0.9)" />
-            <Text style={styles.remarkText}>{getMoodRemark(moodStats)}</Text>
-          </View>
+          {moodStats && (
+            <View style={styles.remarkPill}>
+              <Icon name="lightbulb" size={14} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.remarkText}>{getMoodRemark(moodStats)}</Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
     </View>
@@ -151,6 +216,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   headerLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
@@ -163,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   moodCard: {
     backgroundColor: "rgba(255,255,255,0.15)",
@@ -197,6 +266,17 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#FFF",
     letterSpacing: -0.5,
+  },
+  moodItemSkeleton: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: "18%",
   },
   remarkPill: {
     backgroundColor: "rgba(255,255,255,0.2)",

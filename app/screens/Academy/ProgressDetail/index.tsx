@@ -1,11 +1,13 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../components/ScreenView";
@@ -20,6 +22,8 @@ import Achievements from "./components/Achievements";
 import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
 import DPSummary from "./components/DPSummary";
 import MoodSummary from "./components/MoodSummary";
+import { useUserStore } from "../../../stores/user";
+import { useProgressReportStore } from "../../../stores/progressReport";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -29,6 +33,24 @@ const ProgressDetail = () => {
   const route = useRoute<PDStackRouteProp<"ProgressDetail">>();
   const scrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
+  
+  const { user } = useUserStore();
+  const { fetchAllData, loading } = useProgressReportStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  React.useEffect(() => {
+    if (user?.id) {
+      fetchAllData(user.id);
+    }
+  }, [user?.id]);
+
+  const onRefresh = async () => {
+    if (user?.id) {
+      setRefreshing(true);
+      await fetchAllData(user.id, true);
+      setRefreshing(false);
+    }
+  };
 
   React.useEffect(() => {
     if (route.params?.scrollTo === "achievements") {
@@ -60,7 +82,7 @@ const ProgressDetail = () => {
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Progress Report</Text>
-        <View style={{ width: 32 }} />
+        <View style={{ width: 40 }} />
       </View>
       <View style={styles.container}>
         <ScrollView
@@ -68,6 +90,14 @@ const ProgressDetail = () => {
           contentContainerStyle={styles.scrollView}
           showsVerticalScrollIndicator={false}
           decelerationRate={0.9}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.actionPrimary.default}
+              colors={[theme.colors.actionPrimary.default]}
+            />
+          }
         >
           <DetailedWeeklySummary />
           <DPSummary />
@@ -114,10 +144,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
     marginTop: 2,
+    marginLeft: 32, // Offset for back button to center title somewhat
+    flex: 1,
+    textAlign: "center",
   },
   scrollView: {
     gap: 16,

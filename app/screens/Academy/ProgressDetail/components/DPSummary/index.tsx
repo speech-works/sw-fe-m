@@ -1,12 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getUserStats } from "../../../../../api";
 import { useUserStore } from "../../../../../stores/user";
+import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
+import SkeletonLoader from "../../../../../components/SkeletonLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_PADDING = 20;
@@ -19,24 +21,65 @@ type ContentTypeKey =
   | "FUN_PRACTICE"
   | "READING_PRACTICE";
 
-interface PracticeStatSummary {
-  contentType: string;
-  itemsCompleted: number;
-  totalTime: number;
-}
+const DPSummarySkeleton = () => {
+    const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
+    return (
+      <View style={styles.shadowContainer}>
+        <LinearGradient
+          colors={["#60A5FA", "#3B82F6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View style={styles.contentLayer}>
+            <View style={styles.headerRow}>
+              <View style={{ gap: 6 }}>
+                <SkeletonLoader width={140} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <SkeletonLoader width={180} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+              </View>
+              <View style={styles.headerIconWrapper}>
+                <SkeletonLoader width={16} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+              </View>
+            </View>
+
+            <View style={styles.dataArea}>
+              <View style={styles.legendContainer}>
+                 {[1,2].map(i => (
+                    <SkeletonLoader key={i} width={70} height={24} style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 20 }} />
+                 ))}
+              </View>
+
+              <View style={styles.chartWrapper}>
+                  <View style={[styles.chartInner, { opacity: 0.3, width: 180, height: 180 }]}>
+                      <SkeletonLoader width={160} height={160} style={{ borderRadius: 80, backgroundColor: "rgba(255,255,255,0.2)" }} />
+                      <View style={[styles.donutHole, { backgroundColor: "rgba(255,255,255,0.4)", width: 80, height: 80, borderRadius: 40 }]} />
+                  </View>
+              </View>
+
+              <View style={styles.grid}>
+                 {[1,2].map(i => (
+                    <View key={i} style={[styles.gridBox, { width: BENTO_WIDTH, backgroundColor: "rgba(255,255,255,0.1)" }]}>
+                       <SkeletonLoader width={60} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                       <SkeletonLoader width={40} height={20} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginTop: 4 }} />
+                       <SkeletonLoader width={"100%"} height={5} style={{ backgroundColor: "rgba(255,255,255,0.1)", marginTop: 8 }} />
+                    </View>
+                 ))}
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+};
 
 const DPSummary = () => {
   const { user } = useUserStore();
-  const [chartData, setChartData] = useState<
-    Array<{
-      name: string;
-      totalTime: number;
-      color: string;
-      legendFontColor: string;
-      legendFontSize: number;
-    }>
-  >([]);
-  const [totalPracticeTime, setTotalPracticeTime] = useState(0);
+  const { 
+    practiceStats: stats, 
+    loading, 
+    fetchErrors, 
+    fetchAllData 
+  } = useProgressReportStore();
 
   const chartColors: Record<ContentTypeKey, string> = {
     READING_PRACTICE: "#FCD34D",
@@ -59,31 +102,33 @@ const DPSummary = () => {
     READING_PRACTICE: "book-open",
   };
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchSummary = async () => {
-      const stats: PracticeStatSummary[] = await getUserStats(user.id);
-      const overallTotalTime = stats.reduce(
-        (sum, item) => sum + item.totalTime,
-        0,
-      );
+  const { chartData, totalPracticeTime } = useMemo(() => {
+    if (!stats || stats.length === 0) return { chartData: [], totalPracticeTime: 0 };
+    
+    const overallTotalTime = stats.reduce(
+      (sum, item) => sum + item.totalTime,
+      0,
+    );
 
-      const dataForChart = stats.map((item) => {
-        const contentType = item.contentType as ContentTypeKey;
-        return {
-          name: contentTypeLabels[contentType] || item.contentType,
-          totalTime: item.totalTime,
-          color: chartColors[contentType] || "#CCCCCC",
-          legendFontColor: "rgba(255,255,255,0.9)",
-          legendFontSize: 12,
-        };
-      });
+    const dataForChart = stats.map((item) => {
+      const contentType = item.contentType as ContentTypeKey;
+      return {
+        name: contentTypeLabels[contentType] || item.contentType,
+        totalTime: item.totalTime,
+        color: chartColors[contentType] || "#CCCCCC",
+        legendFontColor: "rgba(255,255,255,0.9)",
+        legendFontSize: 12,
+      };
+    });
 
-      setChartData(dataForChart);
-      setTotalPracticeTime(overallTotalTime);
-    };
-    fetchSummary();
-  }, [user]);
+    return { chartData: dataForChart, totalPracticeTime: overallTotalTime };
+  }, [stats]);
+
+  const handleRetry = () => {
+    if (user?.id) {
+       fetchAllData(user.id, true);
+    }
+  };
 
   const formatTime = (timeInMinutes: number) => {
     if (timeInMinutes < 60) return `${Math.round(timeInMinutes)}m`;
@@ -91,6 +136,23 @@ const DPSummary = () => {
   };
 
   const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
+
+  // Show error if we have no data and it's not refreshing
+  if (!stats?.length && fetchErrors.practiceStats && !loading) {
+    return (
+      <ErrorStateCard 
+        onRetry={handleRetry}
+        variant="light"
+        title="Practice breakdown unavailable"
+        message="We're having trouble showing your activity mix for this week."
+        style={{ marginVertical: 0 }}
+      />
+    );
+  }
+
+  if (loading && (!stats || stats.length === 0)) {
+    return <DPSummarySkeleton />;
+  }
 
   return (
     <View style={styles.shadowContainer}>

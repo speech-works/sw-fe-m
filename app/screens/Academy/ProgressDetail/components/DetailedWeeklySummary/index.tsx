@@ -1,15 +1,14 @@
 import { addDays, format, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { StyleSheet, Text, TextStyle, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getDetailedWeeklySummary } from "../../../../../api";
-import { DetailedWeeklySummaryResponse } from "../../../../../api/progressReport/types";
 import { useUserStore } from "../../../../../stores/user";
+import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
-import {
-    parseTextStyle
-} from "../../../../../util/functions/parseStyles";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
+import SkeletonLoader from "../../../../../components/SkeletonLoader";
 
 export const formatDelta = (delta: number, unit: string) => {
   const value = delta.toFixed(1);
@@ -29,19 +28,53 @@ export const formatDelta = (delta: number, unit: string) => {
   );
 };
 
+const WeeklySummarySkeleton = () => (
+  <View style={styles.shadowContainer}>
+    <LinearGradient
+      colors={["#8B5CF6", "#6D28D9"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.gradient}
+    >
+      <View style={styles.contentLayer}>
+        <View style={styles.headerRow}>
+          <View style={{ gap: 8 }}>
+            <SkeletonLoader width={120} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+            <SkeletonLoader width={180} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+          </View>
+          <View style={styles.headerIconWrapper}>
+            <SkeletonLoader width={20} height={20} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+          </View>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statBadgeSkeleton}>
+             <SkeletonLoader width={40} height={40} style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20 }} />
+             <View style={{ gap: 6, flex: 1 }}>
+                <SkeletonLoader width={"60%"} height={24} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <SkeletonLoader width={"40%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+             </View>
+          </View>
+          <View style={styles.statBadgeSkeleton}>
+             <SkeletonLoader width={40} height={40} style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20 }} />
+             <View style={{ gap: 6, flex: 1 }}>
+                <SkeletonLoader width={"60%"} height={24} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <SkeletonLoader width={"40%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+             </View>
+          </View>
+        </View>
+      </View>
+    </LinearGradient>
+  </View>
+);
+
 const DetailedWeeklySummary = () => {
   const { user } = useUserStore();
-  const [weeklyData, setWeeklyData] =
-    useState<DetailedWeeklySummaryResponse | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchWeeklyStats = async () => {
-      const stats = await getDetailedWeeklySummary(user.id);
-      setWeeklyData(stats);
-    };
-    fetchWeeklyStats();
-  }, [user]);
+  const {
+    detailedSummary: weeklyData,
+    loading,
+    fetchErrors,
+    fetchAllData,
+  } = useProgressReportStore();
 
   const getWeekRangeLabel = () => {
     const now = new Date();
@@ -68,6 +101,29 @@ const DetailedWeeklySummary = () => {
   const sessionsStats = weeklyData
     ? formatChange(weeklyData.percentageSessionsChange)
     : null;
+
+  const handleRetry = () => {
+    if (user?.id) {
+      fetchAllData(user.id, true);
+    }
+  };
+
+  // Show error if we have no data and it's not refreshing
+  if (!weeklyData && fetchErrors.detailedSummary && !loading) {
+    return (
+      <ErrorStateCard
+        onRetry={handleRetry}
+        variant="dark"
+        title="Weekly Summary unavailable"
+        message="We couldn't load your progress overview for this week. Check your connection and try again."
+        style={{ marginVertical: 0 }}
+      />
+    );
+  }
+
+  if (loading && !weeklyData) {
+    return <WeeklySummarySkeleton />;
+  }
 
   return (
     <View style={styles.shadowContainer}>
@@ -98,11 +154,21 @@ const DetailedWeeklySummary = () => {
               <Text style={styles.headerLabel}>WEEKLY SUMMARY</Text>
               <Text style={styles.dateRangeText}>{getWeekRangeLabel()}</Text>
             </View>
-            <Icon name="chart-line" size={20} color="rgba(255,255,255,0.9)" />
+            <View style={styles.headerRight}>
+              {fetchErrors.detailedSummary && (
+                <Icon
+                  name="exclamation-circle"
+                  size={14}
+                  color="rgba(255,255,255,0.6)"
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Icon name="chart-line" size={20} color="rgba(255,255,255,0.9)" />
+            </View>
           </View>
 
           {/* Stats Badges */}
-          {weeklyData ? (
+          {weeklyData && (
             <View style={styles.statsRow}>
               {/* Practice Time Badge */}
               <View style={styles.statBadge}>
@@ -113,7 +179,7 @@ const DetailedWeeklySummary = () => {
                       {weeklyData.totalPracticeMinutes < 60
                         ? `${weeklyData.totalPracticeMinutes}m`
                         : `${(weeklyData.totalPracticeMinutes / 60).toFixed(
-                            1
+                            1,
                           )}h`}
                     </Text>
                     {minutesStats && (
@@ -186,8 +252,6 @@ const DetailedWeeklySummary = () => {
                 </View>
               </View>
             </View>
-          ) : (
-            <Text style={styles.loadingText}>Loading...</Text>
           )}
         </View>
       </LinearGradient>
@@ -249,7 +313,11 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   headerLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
@@ -273,6 +341,16 @@ const styles = StyleSheet.create({
   },
   statBadge: {
     backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  statBadgeSkeleton: {
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
