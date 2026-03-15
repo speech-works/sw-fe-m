@@ -279,10 +279,11 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingTop: 32,
-    paddingBottom: 16,
+    paddingBottom: 20,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
+    zIndex: 10,
   },
   headerText: {
     color: theme.colors.text.title,

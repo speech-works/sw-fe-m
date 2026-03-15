@@ -255,11 +255,13 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   headerContainer: {
-    paddingVertical: 16,
+    paddingTop: 32, // More padding for bottom sheet context
+    paddingBottom: 20,
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
+    zIndex: 10, // Ensure it stays on top of scrolling content
   },
   headerText: {
     color: theme.colors.text.title,
