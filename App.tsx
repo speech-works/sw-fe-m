@@ -3,7 +3,7 @@ import { Audio } from "expo-av";
 import React, { useEffect } from "react";
 import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import GlobalModal from "./app/components/GlobalModal";
+import PracticeActivityLimitModal from "./app/components/PracticeActivityLimitModal";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
@@ -167,7 +167,7 @@ const App: React.FC = () => {
               <FontLoader />
               <NavigationContainer>
                 <MainNavigator />
-                <GlobalModal />
+                <PracticeActivityLimitModal />
               </NavigationContainer>
             </SafeAreaView>
             <TourTooltip />

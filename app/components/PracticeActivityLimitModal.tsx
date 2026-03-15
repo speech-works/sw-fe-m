@@ -26,7 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
 
-const GlobalModal = () => {
+const PracticeActivityLimitModal = () => {
   const navigation = useNavigation<any>();
   const { events, clear } = useEventStore();
   const { getCurrentStep } = useTourGuideController();
@@ -71,7 +71,7 @@ const GlobalModal = () => {
         event.name === EVENT_NAMES.SHOW_STAMINA_UPSELL ||
         event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL
       ) {
-        console.log(`[GlobalModal] Handling event: ${event.name}`);
+        console.log(`[GlobalBottomSheet] Handling event: ${event.name}`);
 
         let type: "error" | "success" | "upsell" = "error";
         if (event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL) type = "success";
@@ -208,7 +208,7 @@ const GlobalModal = () => {
   );
 };
 
-export default GlobalModal;
+export default PracticeActivityLimitModal;
 
 const styles = StyleSheet.create({
   modalContent: {
