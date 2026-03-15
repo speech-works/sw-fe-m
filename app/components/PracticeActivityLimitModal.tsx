@@ -3,7 +3,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
-import ExplorerFace from "../assets/sw-faces/ExplorerFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
@@ -122,14 +121,28 @@ const PracticeActivityLimitModal = () => {
       maxHeight={modalType === "upsell" ? "92%" : "55%"}
       showCloseButton={true}
     >
-      {modalType === "error" ? (
-        <BgPattern_404 />
-      ) : (
-        <BgPattern_GradientSpheres />
+      {modalType === "error" && <BgPattern_404 />}
+      {modalType === "success" && <BgPattern_GradientSpheres />}
+
+      {modalType === "upsell" && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.bannerTitle}>{modalTitle}</Text>
+          <Text style={styles.bannerMessage}>{modalMessage}</Text>
+        </View>
       )}
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>{modalTitle}</Text>
-        <Text style={styles.modalMessage}>{modalMessage}</Text>
+
+      <View
+        style={[
+          styles.modalContent,
+          modalType === "upsell" && { paddingTop: 24 },
+        ]}
+      >
+        {modalType !== "upsell" && (
+          <>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
+            <Text style={styles.modalMessage}>{modalMessage}</Text>
+          </>
+        )}
         <Animated.View style={animatedFaceStyle}>
           {modalType === "error" ? (
             <ErrorFace size={152} />
@@ -221,9 +234,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   modalTitle: {
-    color: theme.colors.text.title, // Changed to red for warning emphasis
-    ...parseTextStyle(theme.typography.Heading2), // Increased size
-    fontWeight: "800",
+    color: theme.colors.text.title,
+    ...parseTextStyle(theme.typography.Heading3),
     textAlign: "center",
   },
   modalMessage: {
@@ -231,6 +243,31 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
     lineHeight: 22,
+    maxWidth: "85%",
+  },
+  warningBanner: {
+    backgroundColor: "#FF5858", // Red from Community screen
+    paddingTop: 56, // Clearance for handle and close button
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  bannerTitle: {
+    color: "#FFF",
+    ...parseTextStyle(theme.typography.Heading2),
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    textAlign: "center",
+  },
+  bannerMessage: {
+    color: "rgba(255, 255, 255, 0.95)",
+    ...parseTextStyle(theme.typography.Body),
+    textAlign: "center",
+    lineHeight: 22,
+    fontWeight: "500",
     maxWidth: "90%",
   },
   upsellBadge: {
@@ -243,10 +280,11 @@ const styles = StyleSheet.create({
   },
   upsellBadgeText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    fontWeight: "800",
-    fontSize: 9,
-    letterSpacing: 1,
+    color: theme.colors.text.disabled,
+    fontWeight: "700",
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   upsellBenefitsGrid: {
     width: "100%",
@@ -264,7 +302,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     gap: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: "rgba(0,0,0,0.05)",
     backgroundColor: theme.colors.library.gray[100],
   },
   pillIconBox: {
