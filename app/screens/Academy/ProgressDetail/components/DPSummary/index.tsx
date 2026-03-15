@@ -95,7 +95,7 @@ const DPSummary = () => {
   return (
     <View style={styles.shadowContainer}>
       <LinearGradient
-        colors={["#3B82F6", "#1D4ED8"]} // Vibrant Blue Gradient inspired by profile card
+        colors={["#60A5FA", "#3B82F6"]} // Medium Blue Gradient - lighter than before but still vibrant
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -143,7 +143,7 @@ const DPSummary = () => {
                       name: item.name,
                       population: item.totalTime,
                       color: item.color,
-                      legendFontColor: "rgba(255,255,255,0.9)",
+                      legendFontColor: "rgba(255,255,255,0.95)",
                       legendFontSize: 12,
                     }))}
                     width={chartSize}
@@ -268,12 +268,12 @@ export default DPSummary;
 const styles = StyleSheet.create({
   shadowContainer: {
     borderRadius: 24,
-    shadowColor: "#1D4ED8",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    backgroundColor: "#1e3a8a",
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    backgroundColor: "#EFF6FF",
     overflow: "hidden",
   },
   gradient: {
