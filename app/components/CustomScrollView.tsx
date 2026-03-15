@@ -32,7 +32,7 @@ interface CustomScrollViewProps {
   [key: string]: any;
 }
 
-const BUTTON_AREA_HEIGHT = 100;
+const BUTTON_AREA_HEIGHT = 180;
 
 const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
   (
@@ -112,23 +112,25 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       };
     });
 
+    const { style, contentContainerStyle, ...otherProps } = rest as any;
+
     return (
       <View style={[styles.container, { overflow: "visible" }]}>
         <Animated.ScrollView
-          ref={internalRef} // Use internal ref for our local logic
+          ref={internalRef}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
-          style={{ overflow: "visible" }}
+          style={[{ flex: 1, overflow: "visible" }, style]}
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingBottom: BUTTON_AREA_HEIGHT,
               padding: SHADOW_BUFFER,
+              paddingBottom: BUTTON_AREA_HEIGHT,
             },
+            contentContainerStyle,
           ]}
           showsVerticalScrollIndicator={false}
-          decelerationRate={0.9}
-          {...rest}
+          {...otherProps}
         >
           {children}
         </Animated.ScrollView>
@@ -187,9 +189,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
+  scrollContent: {},
   baseButton: {
     position: "absolute",
     justifyContent: "center",

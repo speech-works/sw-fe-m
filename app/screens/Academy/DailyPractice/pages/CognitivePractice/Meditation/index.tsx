@@ -1,7 +1,13 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -509,11 +515,12 @@ const Meditation = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-        <CustomScrollView
-          contentContainerStyle={[
-            styles.scrollContainer,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
-          ]}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: HEADER_HEIGHT + insets.top + 20,
+          }}
+          showsVerticalScrollIndicator={false}
         >
           <>
             {selectedIndex !== null && meditationScenarios[selectedIndex] && (
@@ -567,7 +574,7 @@ const Meditation = () => {
               ) : null}
             </View>
           </>
-        </CustomScrollView>
+        </ScrollView>
 
         {/* Start Button at bottom */}
         <View
@@ -722,7 +729,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     gap: 32,
     padding: SHADOW_BUFFER,
-    paddingBottom: 120,
+    paddingBottom: 180,
     flexGrow: 1,
   },
 

@@ -1,7 +1,13 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
   createPracticeActivity,
@@ -301,11 +307,12 @@ const Reframe = () => {
         <View style={{ width: 32 }} />
       </BlurView>
 
-      <CustomScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
-        ]}
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: HEADER_HEIGHT + insets.top + 20,
+        }}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.cardContainer}>
           {/* 1. Indigo/Blurple Gradient Header */}
@@ -425,7 +432,7 @@ const Reframe = () => {
             </View>
           </View>
         </View>
-      </CustomScrollView>
+      </ScrollView>
 
       {/* Start Button Overlay if not started - MOVED OUTSIDE SCROLL VIEW */}
       {!currentActivityId && (

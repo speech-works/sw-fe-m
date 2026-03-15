@@ -390,12 +390,13 @@ const PoemPractice = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-        <CustomScrollView
+        <ScrollView
           key="tips-scroll"
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20, paddingBottom: 120 },
-          ]}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: HEADER_HEIGHT + insets.top + 20,
+          }}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.noteHeaderBanner}>
             <LinearGradient
@@ -412,7 +413,7 @@ const PoemPractice = () => {
           </View>
 
           <MasonryTips tips={readingTips.poem} />
-        </CustomScrollView>
+        </ScrollView>
 
         {/* Fixed Start Button at bottom */}
         <View

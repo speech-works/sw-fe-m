@@ -483,7 +483,6 @@ const RealLifeChallenge = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingTop: HEADER_HEIGHT + insets.top + 20,
-          paddingBottom: 100,
         }}
       >
         <Text style={styles.stepHeader}>Step 2: Reflection</Text>

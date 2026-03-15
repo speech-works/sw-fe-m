@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120, // Increased to clear bottom nav
+    paddingBottom: 20, // Increased to clear bottom nav
   },
   sectionSubtitle: {
     ...parseTextStyle(theme.typography.Body),

@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 120, // Increased for bottom nav clearance
+    paddingBottom: 180, // Increased for bottom nav clearance
     gap: 32,
   },
   heroSection: {

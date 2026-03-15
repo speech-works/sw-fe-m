@@ -1,7 +1,13 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -145,11 +151,12 @@ const Briefing = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-        <CustomScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
-          ]}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: HEADER_HEIGHT + insets.top + 20,
+          }}
+          showsVerticalScrollIndicator={false}
         >
           {/* Hero Briefing Card - Matte Modern Orange */}
           <LinearGradient
@@ -211,9 +218,7 @@ const Briefing = () => {
             {/* Masonry Tips Grid */}
             <MasonryTips tips={data?.stage.userCharacter || []} />
           </View>
-
-          {/* Button removed from scroll */}
-        </CustomScrollView>
+        </ScrollView>
 
         {/* Fixed Start Button at the bottom */}
         <View
@@ -259,7 +264,7 @@ const styles = StyleSheet.create({
     gap: 32,
     flexGrow: 1,
     padding: SHADOW_BUFFER,
-    paddingBottom: 120,
+    paddingBottom: 180,
   },
   topNavigationContainer: {
     position: "absolute",

@@ -5,7 +5,13 @@ import {
 } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ScreenView from "../../../../../../components/ScreenView";
 import { theme } from "../../../../../../Theme/tokens";
@@ -523,11 +529,12 @@ const Breathing = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-        <CustomScrollView
-          contentContainerStyle={[
-            styles.scrollContainer,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
-          ]}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: HEADER_HEIGHT + insets.top + 20,
+          }}
+          showsVerticalScrollIndicator={false}
         >
           <View>
             {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
@@ -559,7 +566,7 @@ const Breathing = () => {
               />
             </View>
           </View>
-        </CustomScrollView>
+        </ScrollView>
 
         {/* Fixed Start Button at the bottom */}
         <View

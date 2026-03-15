@@ -182,7 +182,8 @@ const styles = StyleSheet.create({
     gap: 32,
     flexGrow: 1,
     padding: SHADOW_BUFFER,
-    paddingBottom: 120, // Increased for bottom nav clearance
+    paddingBottom: 200, // Increased for bottom nav clearance
+    paddingHorizontal: 20,
   },
   topNavigationContainer: {
     position: "absolute",
