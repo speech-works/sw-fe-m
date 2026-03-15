@@ -6,7 +6,9 @@ import {
     Easing,
     Image,
     LayoutAnimation,
+    Modal,
     Platform,
+    StatusBar,
     StyleProp,
     StyleSheet,
     Text,
@@ -25,6 +27,8 @@ if (
 }
 
 import Slider from "@react-native-community/slider";
+
+const volumeThumbImage = require("../assets/images/volume_thumb.png");
 import { useFocusEffect } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Video, { VideoRef } from "react-native-video";
@@ -114,6 +118,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Controls State
   const [seeking, setSeeking] = useState(false);
   const [tempSeekTime, setTempSeekTime] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [volume, setVolume] = useState(1.0);
   const controlsVisibleRef = useRef(false);
   const [controlsVisible, setControlsVisible] = useState(false);
 
@@ -143,6 +150,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     useCallback(() => {
       return () => {
         setPaused(true);
+        setIsFullScreen(false);
       };
     }, []),
   );
@@ -235,6 +243,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     startAutoHide();
   };
 
+  const cyclePlaybackRate = () => {
+    const rates = [1.0, 1.5, 2.0, 0.5];
+    const nextIdx = (rates.indexOf(playbackRate) + 1) % rates.length;
+    setPlaybackRate(rates[nextIdx]);
+    startAutoHide();
+  };
+
+  const toggleFullScreen = () => {
+    setIsFullScreen((prev) => !prev);
+    startAutoHide();
+  };
+
   const onSlidingStart = () => {
     setSeeking(true);
     clearAutoHide();
@@ -298,9 +318,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     maxVideoHeight,
   );
 
-  return (
+  const renderPlayer = () => (
     <View
-      style={[styles.container, { height: computedHeight }, style]}
+      style={[
+        styles.container,
+        { height: isFullScreen ? "100%" : computedHeight },
+        isFullScreen ? styles.fullScreenContainer : style,
+      ]}
       onLayout={onContainerLayout}
     >
       <Video
@@ -310,8 +334,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           type: uri.includes(".m3u8") ? "m3u8" : undefined,
         }}
         style={[styles.video, { opacity: isVideoLoaded ? 1 : 0 }]}
-        resizeMode="cover"
+        resizeMode={isFullScreen ? "contain" : "cover"}
         paused={isLocked ? false : paused}
+        rate={playbackRate}
+        volume={volume}
         muted={isLocked ? true : muted}
         repeat={isLocked}
         poster={poster}
@@ -435,6 +461,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               transform: [{ translateY: controlsTranslateY }],
               opacity: controlsOpacity,
             },
+            isFullScreen && styles.controlsContainerFullScreen,
           ]}
           pointerEvents={controlsVisible ? "auto" : "none"}
         >
@@ -446,7 +473,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               maximumValue={Math.max(duration, 0.01)}
               value={seeking ? tempSeekTime : currentTime}
               minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="#aaa"
+              maximumTrackTintColor="rgba(255,255,255,0.3)"
               thumbTintColor={theme.colors.actionPrimary.default}
               onSlidingStart={onSlidingStart}
               onValueChange={onSliderValueChange}
@@ -460,61 +487,139 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Row 2: Buttons */}
           <View style={styles.buttonsRow}>
-            {/* Restart */}
-            <TouchableOpacity
-              onPress={() => {
-                videoRef.current?.seek(0);
-                setCurrentTime(0);
-                startAutoHide();
-              }}
-              style={styles.fixedActionButton}
-            >
-              <Icon name="redo-alt" size={22} color="white" />
-            </TouchableOpacity>
+            <View style={styles.bottomLeftControls}>
+              {/* Rate Toggle */}
+              <TouchableOpacity
+                onPress={cyclePlaybackRate}
+                style={styles.rateButton}
+              >
+                <Text style={styles.rateText}>{playbackRate}x</Text>
+              </TouchableOpacity>
+            </View>
 
-            {/* Back 10s */}
-            <TouchableOpacity
-              onPress={() => handleSkipTap("left")}
-              style={styles.fixedActionButton}
-            >
-              <Icon name="backward" size={22} color="white" />
-            </TouchableOpacity>
+            <View style={styles.centerControls}>
+              {/* Back 10s */}
+              <TouchableOpacity
+                onPress={() => handleSkipTap("left")}
+                style={styles.fixedActionButton}
+              >
+                <Icon name="backward" size={20} color="white" />
+              </TouchableOpacity>
 
-            {/* Play/Pause */}
-            <TouchableOpacity onPress={onPressPlayPause}>
-              <Icon
-                name={paused ? "play-circle" : "pause-circle"}
-                size={52}
-                color="white"
-              />
-            </TouchableOpacity>
+              {/* Play/Pause */}
+              <TouchableOpacity onPress={onPressPlayPause}>
+                <Icon
+                  name={paused ? "play-circle" : "pause-circle"}
+                  size={54}
+                  color="white"
+                />
+              </TouchableOpacity>
 
-            {/* Fwd 10s */}
-            <TouchableOpacity
-              onPress={() => handleSkipTap("right")}
-              style={styles.fixedActionButton}
-            >
-              <Icon name="forward" size={22} color="white" />
-            </TouchableOpacity>
+              {/* Fwd 10s */}
+              <TouchableOpacity
+                onPress={() => handleSkipTap("right")}
+                style={styles.fixedActionButton}
+              >
+                <Icon name="forward" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
 
-            {/* Mute */}
-            <TouchableOpacity
-              onPress={() => {
-                setMuted(!muted);
-                startAutoHide();
-              }}
-              style={styles.fixedActionButton}
-            >
-              <Icon
-                name={muted ? "volume-mute" : "volume-up"}
-                size={22}
-                color="white"
-              />
-            </TouchableOpacity>
+            <View style={styles.bottomRightControls}>
+              {/* FullScreen Toggle */}
+              <TouchableOpacity
+                onPress={toggleFullScreen}
+                style={styles.rightSideIcon}
+              >
+                <Icon
+                  name={isFullScreen ? "compress" : "expand"}
+                  size={18}
+                  color="white"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
       )}
+
+      {/* Vertical Volume Bar - Right Edge */}
+      {!isLocked && !hideControls && (
+        <Animated.View
+          style={[
+            styles.volumeBarOuter,
+            {
+              transform: [{ translateX: controlsAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }) }],
+              opacity: controlsOpacity,
+            },
+          ]}
+        >
+          {/* Rotated slider wrapper */}
+          <View style={styles.volumeSliderWrapper}>
+            <Slider
+              style={styles.volumeSlider}
+              minimumValue={0}
+              maximumValue={1}
+              value={muted ? 0 : volume}
+              onValueChange={(val: number) => {
+                setVolume(val);
+                if (val === 0) setMuted(true);
+                else if (muted) setMuted(false);
+                startAutoHide();
+              }}
+              minimumTrackTintColor={theme.colors.actionPrimary.default}
+              maximumTrackTintColor="rgba(255,255,255,0.25)"
+              thumbImage={volumeThumbImage}
+            />
+          </View>
+
+          {/* Clickable mute/unmute icon */}
+          <TouchableOpacity
+            onPress={() => {
+              if (muted) {
+                setMuted(false);
+                if (volume === 0) setVolume(1.0);
+              } else {
+                setMuted(true);
+              }
+              startAutoHide();
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon
+              name={muted || volume === 0 ? "volume-mute" : "volume-up"}
+              size={12}
+              color="rgba(255,255,255,0.85)"
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
+  );
+
+  return (
+    <>
+      <StatusBar hidden={isFullScreen} />
+      {isFullScreen ? (
+        <Modal
+          visible={true}
+          transparent={false}
+          animationType="fade"
+          supportedOrientations={[
+            "portrait",
+            "landscape",
+            "landscape-left",
+            "landscape-right",
+          ]}
+          onRequestClose={() => setIsFullScreen(false)}
+        >
+          {renderPlayer()}
+        </Modal>
+      ) : (
+        renderPlayer()
+      )}
+    </>
   );
 };
 
@@ -527,6 +632,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     minHeight: 220, // Strict fallback until aspect ratio propagates
+  },
+  fullScreenContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    zIndex: 1000,
+    borderRadius: 0,
   },
   video: {
     width: "100%",
@@ -594,10 +710,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     backgroundColor: "rgba(0,0,0,0.45)",
     zIndex: 20,
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === "ios" ? 24 : 16,
+  },
+  controlsContainerFullScreen: {
+    paddingBottom: 40,
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   progressContainer: {
     flexDirection: "row",
@@ -615,13 +735,79 @@ const styles = StyleSheet.create({
   buttonsRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
-    marginTop: 8,
+    justifyContent: "space-between",
+    marginTop: 4,
   },
-  fixedActionButton: {
-    width: 40,
+  bottomLeftControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  centerControls: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 28,
+    flex: 1.5,
+  },
+  bottomRightControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 16,
+    flex: 1,
+  },
+  rateButton: {
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    minWidth: 42,
+    alignItems: "center",
+  },
+  rateText: {
+    color: "white",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  rightSideIcon: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fullScreenButton: {
+    padding: 10,
+  },
+  fixedActionButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  /* ── Vertical Volume ── */
+  volumeBarOuter: {
+    position: "absolute",
+    right: 10,
+    top: "15%",
+    width: 28,
+    height: 170,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    gap: 4,
+    zIndex: 30,
+  },
+  volumeSliderWrapper: {
+    width: 28,
+    height: 130,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  volumeSlider: {
+    width: 130,
+    height: 28,
+    transform: [{ rotate: "-90deg" }],
   },
   skipOverlay: {
     position: "absolute",
