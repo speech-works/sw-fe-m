@@ -20,7 +20,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
-import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
+import {
+  parseTextStyle,
+  parseShadowStyle,
+} from "../../util/functions/parseStyles";
 import { theme } from "../../Theme/tokens";
 
 const { width } = Dimensions.get("window");
@@ -42,7 +45,7 @@ const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
 
 const Community = () => {
   const navigation = useNavigation<any>();
-  
+
   // Animation for the glow effect
   const glowOpacity = useSharedValue(0.3);
   const progressWidth = useSharedValue(0);
@@ -52,16 +55,16 @@ const Community = () => {
     glowOpacity.value = withRepeat(
       withSequence(
         withTiming(0.8, { duration: 2000 }),
-        withTiming(0.3, { duration: 2000 })
+        withTiming(0.3, { duration: 2000 }),
       ),
       -1,
-      true
+      true,
     );
 
     // Animate the progress bar
     progressWidth.value = withTiming(
       (CURRENT_TIER.filledSpots / CURRENT_TIER.totalSpots) * 100,
-      { duration: 2000 }
+      { duration: 2000 },
     );
   }, []);
 
@@ -96,7 +99,9 @@ const Community = () => {
           >
             <Text style={styles.heroTitle}>Access is reserved.</Text>
             <Text style={styles.heroTitle}>Growth is</Text>
-            <Text style={[styles.heroTitle, styles.heroTitleAccent]}>Intentional.</Text>
+            <Text style={[styles.heroTitle, styles.heroTitleAccent]}>
+              Intentional.
+            </Text>
           </Animated.View>
 
           <Animated.View
@@ -104,9 +109,9 @@ const Community = () => {
             style={styles.subtextSection}
           >
             <Text style={styles.subtext}>
-              Speechworks is an invite-only space for those committed to the
-              art of communication. Founding seats are available exclusively
-              to our Annual Pro members.
+              Speechworks is an invite-only space for those committed to the art
+              of communication. Founding seats are available exclusively to our
+              Annual Pro members.
             </Text>
           </Animated.View>
 
@@ -121,9 +126,7 @@ const Community = () => {
             </View>
 
             <View style={styles.countContainer}>
-              <Text style={styles.countNumber}>
-                {CURRENT_TIER.filledSpots}
-              </Text>
+              <Text style={styles.countNumber}>{CURRENT_TIER.filledSpots}</Text>
               <Text style={styles.countTotal}>/ {CURRENT_TIER.totalSpots}</Text>
               <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
             </View>
@@ -131,14 +134,19 @@ const Community = () => {
             {/* Glowing Progress Indicator */}
             <View style={styles.progressContainer}>
               <View style={styles.progressTrack}>
-                <Animated.View style={[styles.progressFill, animatedProgress]} />
+                <Animated.View
+                  style={[styles.progressFill, animatedProgress]}
+                />
                 {/* Glow Overlay */}
-                <Animated.View style={[styles.progressGlow, animatedProgress, animatedGlow]} />
+                <Animated.View
+                  style={[styles.progressGlow, animatedProgress, animatedGlow]}
+                />
               </View>
             </View>
 
             <Text style={styles.spotsLeft}>
-              ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots} RESERVATIONS LEFT
+              ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots}{" "}
+              RESERVATIONS LEFT
             </Text>
           </Animated.View>
 
@@ -178,7 +186,6 @@ const Community = () => {
               end={{ x: 1, y: 0 }}
             >
               <Text style={styles.ctaText}>GET PRO & RESERVE SPOT</Text>
-              <Icon name="arrow-right" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
             </LinearGradient>
           </TouchableOpacity>
           <Text style={styles.ctaFooterText}>
