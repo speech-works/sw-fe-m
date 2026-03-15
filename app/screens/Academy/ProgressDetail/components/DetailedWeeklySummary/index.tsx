@@ -150,8 +150,8 @@ const DetailedWeeklySummary = () => {
             </View>
           </View>
 
-          {/* Stats Badges */}
-          {weeklyData && (
+          {/* Stats Badges or Empty State */}
+          {weeklyData && (weeklyData.totalPracticeMinutes > 0 || weeklyData.totalSessions > 0) ? (
             <View style={styles.statsRow}>
               {/* Practice Time Badge */}
               <View style={styles.statBadge}>
@@ -233,6 +233,21 @@ const DetailedWeeklySummary = () => {
                   </View>
                   <Text style={styles.statLabel}>Days Active</Text>
                 </View>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyHeaderRow}>
+                <Text style={styles.emptyTitle}>Build Your Streak</Text>
+              </View>
+              <Text style={styles.emptySubtitle}>
+                Start practicing to track your stats.
+              </Text>
+              <View style={styles.tipPill}>
+                <Icon name="lightbulb" size={12} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.tipText}>
+                  Tip: Consistency is king.
+                </Text>
               </View>
             </View>
           )}
@@ -380,5 +395,42 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
+  },
+  emptyContainer: {
+    gap: 8,
+  },
+  emptyHeaderRow: {
+    marginBottom: 2,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#FFF",
+    letterSpacing: -0.5,
+  },
+  emptySubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  tipPill: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  tipText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });

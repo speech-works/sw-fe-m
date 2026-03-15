@@ -136,31 +136,43 @@ const MoodSummary = () => {
                   style={{ marginRight: 8 }}
                 />
               )}
-              <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
+            <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
             </View>
           </View>
 
-          {/* Mood Grid */}
+          {/* Mood Grid or Empty State */}
           <View style={styles.moodGrid}>
             {moodStats ? (
-              nonZeroMoods.map(([mood, percentage]) => {
-                const Icon = icons[mood as keyof typeof icons];
-                if (!Icon) return null;
+              nonZeroMoods.length > 0 ? (
+                nonZeroMoods.map(([mood, percentage]) => {
+                  const Icon = icons[mood as keyof typeof icons];
+                  if (!Icon) return null;
 
-                return (
-                  <View key={mood} style={styles.moodCard}>
-                    <View style={styles.moodIconContainer}>
-                      <Icon width={48} height={48} />
+                  return (
+                    <View key={mood} style={styles.moodCard}>
+                      <View style={styles.moodIconContainer}>
+                        <Icon width={48} height={48} />
+                      </View>
+                      <Text style={styles.moodName}>
+                        {mood.charAt(0) + mood.slice(1).toLowerCase()}
+                      </Text>
+                      <Text style={styles.moodPercentage}>
+                        {percentage.toFixed(1)}%
+                      </Text>
                     </View>
-                    <Text style={styles.moodName}>
-                      {mood.charAt(0) + mood.slice(1).toLowerCase()}
-                    </Text>
-                    <Text style={styles.moodPercentage}>
-                      {percentage.toFixed(1)}%
-                    </Text>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyMoodContainer}>
+                  <View style={styles.emptyMoodIconWrapper}>
+                    <Icon name="chart-bar" size={32} color="rgba(255,255,255,0.6)" />
                   </View>
-                );
-              })
+                  <Text style={styles.emptyMoodTitle}>Track Your Flow</Text>
+                  <Text style={styles.emptyMoodSubtitle}>
+                    Log your first mood to see trends.
+                  </Text>
+                </View>
+              )
             ) : (
               <Text style={styles.loadingText}>Loading...</Text>
             )}
@@ -168,7 +180,7 @@ const MoodSummary = () => {
 
           {/* Remark Pill */}
           {moodStats && (
-            <View style={styles.remarkPill}>
+            <View style={[styles.remarkPill, nonZeroMoods.length === 0 && styles.remarkPillEmpty]}>
               <Icon name="lightbulb" size={14} color="rgba(255,255,255,0.9)" />
               <Text style={styles.remarkText}>{getMoodRemark(moodStats)}</Text>
             </View>
@@ -320,5 +332,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     width: "100%",
+  },
+  emptyMoodContainer: {
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    width: "100%",
+  },
+  emptyMoodIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    marginBottom: 4,
+  },
+  emptyMoodTitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 18,
+  },
+  emptyMoodSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+    paddingHorizontal: 30,
+    lineHeight: 18,
+  },
+  remarkPillEmpty: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.15)",
   },
 });
