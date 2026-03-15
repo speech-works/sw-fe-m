@@ -124,7 +124,7 @@ const PracticeActivityLimitModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? "92%" : "55%"}
+      maxHeight={modalType === "upsell" ? undefined : "55%"}
       showCloseButton={true}
     >
       {modalType === "error" && <BgPattern_404 />}
@@ -264,6 +264,7 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     paddingHorizontal: 20,
+    marginBottom: 20,
   },
   faceWrapper: {
     alignItems: "center",
@@ -330,8 +331,9 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   premiumBenefitsContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
+    paddingLeft: 20,
+    paddingRight: 40,
+    gap: 12,
     marginBottom: 24,
   },
   premiumBenefitCard: {
