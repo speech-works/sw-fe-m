@@ -238,13 +238,13 @@ const PackFormScreen = () => {
 
   // Check if all required fields have answers
   const allRequiredFilled = useMemo(() => {
-    return configuration.fields
+    return (configuration?.fields || [])
       .filter((f) => f.required)
       .every((f) => {
         const val = answers[f.id];
         return val !== undefined && val !== null && val !== "";
       });
-  }, [answers, configuration.fields]);
+  }, [answers, configuration?.fields]);
 
   const handleSubmit = async () => {
     if (!allRequiredFilled) {
@@ -363,11 +363,11 @@ const PackFormScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {configuration.description ? (
+          {configuration?.description ? (
             <Text style={styles.description}>{configuration.description}</Text>
           ) : null}
 
-          {configuration.fields.map((field) => (
+          {(configuration?.fields || []).map((field) => (
             <View key={field.id} style={styles.fieldCard}>
               <View style={styles.fieldHeader}>
                 <Text style={styles.fieldLabel}>{field.label}</Text>

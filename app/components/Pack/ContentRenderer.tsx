@@ -282,11 +282,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
     case ContentBlockType.FORM: {
       const formContent = block.content as FormBlockContent;
-      const config = formContent.configuration;
+      const config = formContent?.configuration;
 
       const handleStartForm = () => {
         if (!packId || !moduleId) {
           Alert.alert("Error", "Pack context missing");
+          return;
+        }
+        if (!config) {
+          Alert.alert("Error", "Form configuration is missing");
           return;
         }
         (navigation as any).navigate("PackForm", {
@@ -337,9 +341,9 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
 
               <View style={styles.textContainer}>
                 <Text style={styles.activityTitle}>
-                  {formContent.titleOverride || config.title || "Reflection"}
+                  {formContent?.titleOverride || config?.title || "Reflection"}
                 </Text>
-                {config.description ? (
+                {config?.description ? (
                   <Text style={styles.activityInstructions}>
                     {config.description}
                   </Text>
