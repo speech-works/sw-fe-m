@@ -124,7 +124,7 @@ const PracticeActivityLimitModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? undefined : "55%"}
+      maxHeight={modalType === "upsell" ? "82%" : "55%"}
       showCloseButton={true}
     >
       {modalType === "error" && <BgPattern_404 />}
@@ -269,6 +269,7 @@ const styles = StyleSheet.create({
   faceWrapper: {
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 20,
     zIndex: 10,
   },
 
