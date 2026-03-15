@@ -264,17 +264,13 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 24, // Keep bottom padding for safe area
   },
   faceWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
     zIndex: 10,
   },
-  faceWrapperUpsell: {
-    marginTop: -24, // Adjusted for smaller face
-  },
+
   modalTitle: {
     color: theme.colors.text.title,
     ...parseTextStyle(theme.typography.Heading3),
