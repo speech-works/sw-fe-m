@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/Feather";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTodayOasesQuestions, submitOasesBatch } from "../../../api/oases";
 import {
   OasesAnswerSubmission,
@@ -30,6 +31,7 @@ import {
 
 const OASESQuestions = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { dailyBatch, answers, setAnswer, setDailyBatch, resetOases } =
     useOasesStore();
 
@@ -177,9 +179,9 @@ const OASESQuestions = () => {
   // Reverse map for selection: Component returns ID (value), we store that directly.
 
   return (
-    <ScreenView>
+    <ScreenView style={styles.screenInner}>
       {/* Header Info */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>OASES Assessment</Text>
         <TouchableOpacity
           onPress={() => setIsStopModalVisible(true)}
@@ -224,7 +226,12 @@ const OASESQuestions = () => {
         />
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom + 8, 24) },
+        ]}
+      >
         <Button
           text={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
           onPress={handleNext}
@@ -279,12 +286,14 @@ const OASESQuestions = () => {
 };
 
 const styles = StyleSheet.create({
+  screenInner: {
+    paddingHorizontal: 24,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-    paddingHorizontal: 4,
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -322,7 +331,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   footer: {
-    paddingVertical: 20,
+    paddingTop: 16,
   },
   modalContent: {
     padding: 24,

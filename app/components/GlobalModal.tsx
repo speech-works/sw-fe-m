@@ -168,36 +168,38 @@ const GlobalModal = () => {
               ))}
             </View>
 
-            {/* CTA Button */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setModalVisible(false);
-                navigation.navigate("PremiumModal" as never);
-              }}
-              style={styles.upsellButtonContainer}
-            >
-              <LinearGradient
-                colors={[theme.colors.library.orange[400], "#DB2777"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.upsellButton}
+            {/* CTA Button + Trust Row grouped so trust text stays close to button */}
+            <View style={styles.ctaGroup}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate("PremiumModal" as never);
+                }}
+                style={styles.upsellButtonContainer}
               >
-                <Text style={styles.upsellButtonText}>
-                  Unlock Your Full Potential
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={[theme.colors.library.orange[400], "#DB2777"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.upsellButton}
+                >
+                  <Text style={styles.upsellButtonText}>
+                    Unlock Your Full Potential
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
-            <View style={styles.trustRow}>
-              <Icon
-                name="shield-alt"
-                size={10}
-                color={theme.colors.text.disabled}
-              />
-              <Text style={styles.trustText}>
-                30-Day Money-Back Guarantee • Cancel Anytime
-              </Text>
+              <View style={styles.trustRow}>
+                <Icon
+                  name="shield-alt"
+                  size={10}
+                  color={theme.colors.text.disabled}
+                />
+                <Text style={styles.trustText}>
+                  30-Day Money-Back Guarantee • Cancel Anytime
+                </Text>
+              </View>
             </View>
           </>
         )}
@@ -278,11 +280,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
   },
+  ctaGroup: {
+    width: "100%",
+    gap: 8,
+  },
   upsellButtonContainer: {
     width: "100%",
     borderRadius: 20,
     overflow: "hidden",
-    marginTop: 8,
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   upsellButton: {

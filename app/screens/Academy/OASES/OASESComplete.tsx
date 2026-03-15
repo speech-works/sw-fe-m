@@ -9,10 +9,12 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getOasesProgress } from "../../../api/oases";
 import { OasesProgress } from "../../../api/oases/types";
 import Button from "../../../components/Button";
 import ConfettiAnimation from "../../../components/ConfettiAnimation";
+import ScreenView from "../../../components/ScreenView";
 import { theme } from "../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -23,6 +25,7 @@ const { width } = Dimensions.get("window");
 
 const OASESComplete = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<OasesProgress | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +59,7 @@ const OASESComplete = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenView style={styles.container}>
       {/* Confetti Celebration */}
       <ConfettiAnimation />
 
@@ -121,11 +124,16 @@ const OASESComplete = () => {
         )}
 
         {/* Action Button */}
-        <View style={styles.footerButton}>
+        <View
+          style={[
+            styles.footerButton,
+            { paddingBottom: Math.max(insets.bottom, 20) },
+          ]}
+        >
           <Button text="Back to Dashboard" onPress={handleDone} />
         </View>
       </View>
-    </View>
+    </ScreenView>
   );
 };
 
