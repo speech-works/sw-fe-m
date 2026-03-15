@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { StyleSheet, Text, View, Animated, Dimensions } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
@@ -28,9 +28,21 @@ const Achievements = () => {
     if (!user?.totalXp) return;
     const levelsUnlocked = getUnlockedLevelsFromXP(user.totalXp);
     const progress = getProgressToNextLevel(user.totalXp);
-    setUnlockedLevels(levelsUnlocked);
+    setUnlockedLevels([...levelsUnlocked].reverse());
     setLevelProgress(progress);
   }, [user?.totalXp]);
+
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const slideWidth = Dimensions.get("window").width - 100; // Account for container padding and small preview
+  const spacing = 12;
+
+  const scrollHandler = useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+        useNativeDriver: true,
+      }),
+    [scrollX]
+  );
 
   return (
     <View style={styles.shadowContainer}>
@@ -93,19 +105,90 @@ const Achievements = () => {
             </View>
           </View>
 
-          {/* Levels List */}
-          <View style={styles.levelsContainer}>
-            {unlockedLevels.map(({ level, data }) => (
-              <View key={level} style={styles.levelRow}>
-                <View style={styles.levelBadge}>{data.icon(32)}</View>
-                <View style={styles.levelInfo}>
-                  <Text style={styles.levelTitle}>
-                    Level {level}: {data.levelTitle}
-                  </Text>
-                  <Text style={styles.levelDesc}>{data.levelDescription}</Text>
-                </View>
+          {/* Levels Carousel */}
+          <View style={styles.carouselContainer}>
+            <Animated.ScrollView
+              horizontal
+              pagingEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={slideWidth + spacing}
+              decelerationRate="fast"
+              snapToAlignment="start"
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
+              contentContainerStyle={styles.carouselContent}
+              style={{ overflow: "visible" }} // Ensure badge doesn't get cut
+            >
+              {unlockedLevels.map(({ level, data }, index) => {
+                const isCurrentLevel = level === Math.max(...unlockedLevels.map((l) => l.level));
+                return (
+                  <View
+                    key={level}
+                    style={[
+                      styles.levelRow,
+                      {
+                        width: slideWidth,
+                        marginRight:
+                          index === unlockedLevels.length - 1 ? 0 : spacing,
+                      },
+                    ]}
+                  >
+                    {isCurrentLevel && (
+                      <View style={styles.currentBadge}>
+                        <Text style={styles.currentBadgeText}>You're here</Text>
+                      </View>
+                    )}
+                    <View style={styles.levelBadge}>{data.icon(32)}</View>
+                    <View style={styles.levelInfo}>
+                      <Text style={styles.levelTitle}>
+                        Level {level}: {data.levelTitle}
+                      </Text>
+                      <Text numberOfLines={2} style={styles.levelDesc}>
+                        {data.levelDescription}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </Animated.ScrollView>
+
+            {/* Pagination Dots */}
+            {unlockedLevels.length > 1 && (
+              <View style={styles.dotsContainer}>
+                {unlockedLevels.map((_, index) => {
+                  const inputRange = [
+                    (index - 1) * (slideWidth + spacing),
+                    index * (slideWidth + spacing),
+                    (index + 1) * (slideWidth + spacing),
+                  ];
+
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.4, 1, 0.4],
+                    extrapolate: "clamp",
+                  });
+
+                  const scale = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [1, 1.25, 1],
+                    extrapolate: "clamp",
+                  });
+
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.dot,
+                        {
+                          opacity,
+                          transform: [{ scale }],
+                        },
+                      ]}
+                    />
+                   );
+                })}
               </View>
-            ))}
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -222,8 +305,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  levelsContainer: {
-    gap: 12,
+  carouselContainer: {
+    marginHorizontal: -4,
+    paddingTop: 12, // Add space for the popped badge
+    marginTop: -8, // Compensate for padding to maintain visual balance
+  },
+  carouselContent: {
+    paddingRight: 20,
+    paddingTop: 4, // Inner padding for smooth overlap
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FFF",
+    marginHorizontal: 4,
+  },
+  dotsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 16,
+    gap: 4,
   },
   levelRow: {
     flexDirection: "row",
@@ -234,11 +336,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
+    position: "relative",
+  },
+  currentBadge: {
+    position: "absolute",
+    top: -10,
+    right: -6,
+    backgroundColor: "#F43F5E", // Vibrant coral color
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    zIndex: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  currentBadgeText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#FFF", 
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   levelBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48, // Slightly smaller icons for carousel fit
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
@@ -247,19 +373,19 @@ const styles = StyleSheet.create({
   },
   levelInfo: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   levelTitle: {
     ...parseTextStyle(theme.typography.Body),
     color: "#FFF",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
   levelDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "500",
-    lineHeight: 16,
+    lineHeight: 14,
   },
 });
