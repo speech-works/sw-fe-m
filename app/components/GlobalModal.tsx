@@ -31,7 +31,7 @@ import Animated, {
 } from "react-native-reanimated";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
 
-const PracticeActivityLimitModal = () => {
+const GlobalModal = () => {
   const navigation = useNavigation<any>();
   const { events, clear } = useEventStore();
   const { getCurrentStep } = useTourGuideController();
@@ -258,7 +258,7 @@ const PracticeActivityLimitModal = () => {
   );
 };
 
-export default PracticeActivityLimitModal;
+export default GlobalModal;
 
 const styles = StyleSheet.create({
   modalContent: {
