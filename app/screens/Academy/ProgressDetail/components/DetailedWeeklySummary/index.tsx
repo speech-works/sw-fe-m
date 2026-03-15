@@ -7,7 +7,6 @@ import { useUserStore } from "../../../../../stores/user";
 import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
 
 export const formatDelta = (delta: number, unit: string) => {
@@ -28,7 +27,7 @@ export const formatDelta = (delta: number, unit: string) => {
   );
 };
 
-const WeeklySummarySkeleton = () => (
+export const WeeklySummarySkeleton = () => (
   <View style={styles.shadowContainer}>
     <LinearGradient
       colors={["#8B5CF6", "#6D28D9"]}
@@ -42,7 +41,7 @@ const WeeklySummarySkeleton = () => (
             <SkeletonLoader width={120} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
             <SkeletonLoader width={180} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
           </View>
-          <View style={styles.headerIconWrapper}>
+          <View style={styles.headerRight}>
             <SkeletonLoader width={20} height={20} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
           </View>
         </View>
@@ -73,7 +72,6 @@ const DetailedWeeklySummary = () => {
     detailedSummary: weeklyData,
     loading,
     fetchErrors,
-    fetchAllData,
   } = useProgressReportStore();
 
   const getWeekRangeLabel = () => {
@@ -102,27 +100,12 @@ const DetailedWeeklySummary = () => {
     ? formatChange(weeklyData.percentageSessionsChange)
     : null;
 
-  const handleRetry = () => {
-    if (user?.id) {
-      fetchAllData(user.id, true);
-    }
-  };
-
-  // Show error if we have no data and it's not refreshing
-  if (!weeklyData && fetchErrors.detailedSummary && !loading) {
-    return (
-      <ErrorStateCard
-        onRetry={handleRetry}
-        variant="dark"
-        title="Weekly Summary unavailable"
-        message="We couldn't load your progress overview for this week. Check your connection and try again."
-        style={{ marginVertical: 0 }}
-      />
-    );
-  }
-
   if (loading && !weeklyData) {
     return <WeeklySummarySkeleton />;
+  }
+
+  if (!weeklyData) {
+    return null;
   }
 
   return (

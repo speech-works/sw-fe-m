@@ -7,7 +7,6 @@ import { useUserStore } from "../../../../../stores/user";
 import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -21,7 +20,7 @@ type ContentTypeKey =
   | "FUN_PRACTICE"
   | "READING_PRACTICE";
 
-const DPSummarySkeleton = () => {
+export const DPSummarySkeleton = () => {
     const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
     return (
       <View style={styles.shadowContainer}>
@@ -78,7 +77,6 @@ const DPSummary = () => {
     practiceStats: stats, 
     loading, 
     fetchErrors, 
-    fetchAllData 
   } = useProgressReportStore();
 
   const chartColors: Record<ContentTypeKey, string> = {
@@ -124,12 +122,6 @@ const DPSummary = () => {
     return { chartData: dataForChart, totalPracticeTime: overallTotalTime };
   }, [stats]);
 
-  const handleRetry = () => {
-    if (user?.id) {
-       fetchAllData(user.id, true);
-    }
-  };
-
   const formatTime = (timeInMinutes: number) => {
     if (timeInMinutes < 60) return `${Math.round(timeInMinutes)}m`;
     return `${(timeInMinutes / 60).toFixed(1)}h`;
@@ -137,21 +129,12 @@ const DPSummary = () => {
 
   const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
 
-  // Show error if we have no data and it's not refreshing
-  if (!stats?.length && fetchErrors.practiceStats && !loading) {
-    return (
-      <ErrorStateCard 
-        onRetry={handleRetry}
-        variant="light"
-        title="Practice breakdown unavailable"
-        message="We're having trouble showing your activity mix for this week."
-        style={{ marginVertical: 0 }}
-      />
-    );
-  }
-
   if (loading && (!stats || stats.length === 0)) {
     return <DPSummarySkeleton />;
+  }
+
+  if (!stats?.length) {
+    return null;
   }
 
   return (

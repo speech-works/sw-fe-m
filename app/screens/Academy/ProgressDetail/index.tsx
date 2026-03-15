@@ -19,12 +19,14 @@ import {
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 import Achievements from "./components/Achievements";
-import DetailedWeeklySummary from "./components/DetailedWeeklySummary";
-import DPSummary from "./components/DPSummary";
-import MoodSummary from "./components/MoodSummary";
+import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
+import DetailedWeeklySummary, {
+  WeeklySummarySkeleton,
+} from "./components/DetailedWeeklySummary";
+import DPSummary, { DPSummarySkeleton } from "./components/DPSummary";
+import MoodSummary, { MoodSummarySkeleton } from "./components/MoodSummary";
 import { useUserStore } from "../../../stores/user";
 import { useProgressReportStore } from "../../../stores/progressReport";
-
 import { LinearGradient } from "expo-linear-gradient";
 
 const ProgressDetail = () => {
@@ -33,9 +35,16 @@ const ProgressDetail = () => {
   const route = useRoute<PDStackRouteProp<"ProgressDetail">>();
   const scrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
-  
+
   const { user } = useUserStore();
-  const { fetchAllData, loading } = useProgressReportStore();
+  const {
+    fetchAllData,
+    loading,
+    detailedSummary,
+    practiceStats,
+    moodReport,
+    fetchErrors,
+  } = useProgressReportStore();
   const [refreshing, setRefreshing] = useState(false);
 
   React.useEffect(() => {
@@ -51,6 +60,21 @@ const ProgressDetail = () => {
       setRefreshing(false);
     }
   };
+
+  const handleRetry = () => {
+    if (user?.id) {
+      fetchAllData(user.id, true);
+    }
+  };
+
+  const hasAnyData =
+    detailedSummary ||
+    (practiceStats && practiceStats.length > 0) ||
+    moodReport;
+  const anyFetchError =
+    fetchErrors.detailedSummary ||
+    fetchErrors.practiceStats ||
+    fetchErrors.moodReport;
 
   React.useEffect(() => {
     if (route.params?.scrollTo === "achievements") {
@@ -99,9 +123,27 @@ const ProgressDetail = () => {
             />
           }
         >
-          <DetailedWeeklySummary />
-          <DPSummary />
-          <MoodSummary />
+          {loading && !hasAnyData ? (
+            <View style={{ gap: 16 }}>
+              <WeeklySummarySkeleton />
+              <DPSummarySkeleton />
+              <MoodSummarySkeleton />
+            </View>
+          ) : !hasAnyData && anyFetchError ? (
+            <ErrorStateCard
+              onRetry={handleRetry}
+              variant="light"
+              title="Progress Summary Unavailable"
+              message="We're having trouble loading your progress reports right now. Check your connection or try again."
+              style={{ marginVertical: 0 }}
+            />
+          ) : (
+            <>
+              <DetailedWeeklySummary />
+              <DPSummary />
+              <MoodSummary />
+            </>
+          )}
           <View
             onLayout={(e) => {
               achievementsY.current = e.nativeEvent.layout.y;

@@ -9,14 +9,11 @@ import Sad1 from "../../../../../assets/mood-check/Sad1";
 import { useUserStore } from "../../../../../stores/user";
 import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
-import {
-    parseTextStyle
-} from "../../../../../util/functions/parseStyles";
-import { getMoodRemark } from "./helper";
-import ErrorStateCard from "../../../../../components/Dashboard/ErrorStateCard";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
+import { getMoodRemark } from "./helper";
 
-const MoodSummarySkeleton = () => (
+export const MoodSummarySkeleton = () => (
   <View style={styles.shadowContainer}>
     <LinearGradient
       colors={["#2DD4BF", "#0D9488"]}
@@ -27,21 +24,51 @@ const MoodSummarySkeleton = () => (
       <View style={styles.contentLayer}>
         <View style={styles.headerRow}>
           <View style={{ gap: 6 }}>
-            <SkeletonLoader width={100} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-            <SkeletonLoader width={160} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+            <SkeletonLoader
+              width={100}
+              height={12}
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            />
+            <SkeletonLoader
+              width={160}
+              height={14}
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            />
           </View>
-          <View style={styles.headerIconWrapper}>
-            <SkeletonLoader width={16} height={16} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+          <View style={styles.headerRight}>
+            <SkeletonLoader
+              width={16}
+              height={16}
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            />
           </View>
         </View>
 
         <View style={styles.moodGrid}>
           {[1, 2, 3].map((i) => (
-            <View key={i} style={[styles.moodItemSkeleton, { minWidth: 80, flex: 0 }]}>
-              <SkeletonLoader width={36} height={36} style={{ borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)" }} />
+            <View
+              key={i}
+              style={[styles.moodItemSkeleton, { minWidth: 80, flex: 0 }]}
+            >
+              <SkeletonLoader
+                width={36}
+                height={36}
+                style={{
+                  borderRadius: 18,
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                }}
+              />
               <View style={{ gap: 4, alignItems: "center" }}>
-                <SkeletonLoader width={40} height={8} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-                <SkeletonLoader width={20} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+                <SkeletonLoader
+                  width={40}
+                  height={8}
+                  style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+                />
+                <SkeletonLoader
+                  width={20}
+                  height={12}
+                  style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+                />
               </View>
             </View>
           ))}
@@ -53,11 +80,10 @@ const MoodSummarySkeleton = () => (
 
 const MoodSummary = () => {
   const { user } = useUserStore();
-  const { 
-    moodReport: moodStats, 
-    loading, 
-    fetchErrors, 
-    fetchAllData 
+  const {
+    moodReport: moodStats,
+    loading,
+    fetchErrors,
   } = useProgressReportStore();
 
   const icons = {
@@ -67,32 +93,17 @@ const MoodSummary = () => {
     SAD: Sad1,
   };
 
-  const handleRetry = () => {
-    if (user?.id) {
-       fetchAllData(user.id, true);
-    }
-  };
-
-  // Show error if we have no data and it's not refreshing
-  if (!moodStats && fetchErrors.moodReport && !loading) {
-    return (
-      <ErrorStateCard 
-        onRetry={handleRetry}
-        variant="light"
-        title="Mood insights unavailable"
-        message="We couldn't fetch your mood trends for this week. Give it another shot?"
-        style={{ marginVertical: 0 }}
-      />
-    );
-  }
-
   if (loading && !moodStats) {
     return <MoodSummarySkeleton />;
   }
 
-  const nonZeroMoods = moodStats ? Object.entries(moodStats).filter(
-    ([, percentage]) => percentage > 0
-  ) : [];
+  if (!moodStats) {
+    return null;
+  }
+
+  const nonZeroMoods = moodStats
+    ? Object.entries(moodStats).filter(([, percentage]) => percentage > 0)
+    : [];
 
   return (
     <View style={styles.shadowContainer}>
@@ -117,8 +128,13 @@ const MoodSummary = () => {
           <View style={styles.headerRow}>
             <Text style={styles.headerLabel}>MOOD SUMMARY</Text>
             <View style={styles.headerRight}>
-               {fetchErrors.moodReport && (
-                <Icon name="exclamation-circle" size={14} color="rgba(255,255,255,0.6)" style={{ marginRight: 8 }} />
+              {fetchErrors.moodReport && (
+                <Icon
+                  name="exclamation-circle"
+                  size={14}
+                  color="rgba(255,255,255,0.6)"
+                  style={{ marginRight: 8 }}
+                />
               )}
               <Icon name="smile" size={20} color="rgba(255,255,255,0.9)" />
             </View>
@@ -126,24 +142,26 @@ const MoodSummary = () => {
 
           {/* Mood Grid */}
           <View style={styles.moodGrid}>
-            {moodStats ? nonZeroMoods.map(([mood, percentage]) => {
-              const Icon = icons[mood as keyof typeof icons];
-              if (!Icon) return null;
+            {moodStats ? (
+              nonZeroMoods.map(([mood, percentage]) => {
+                const Icon = icons[mood as keyof typeof icons];
+                if (!Icon) return null;
 
-              return (
-                <View key={mood} style={styles.moodCard}>
-                  <View style={styles.moodIconContainer}>
-                    <Icon width={48} height={48} />
+                return (
+                  <View key={mood} style={styles.moodCard}>
+                    <View style={styles.moodIconContainer}>
+                      <Icon width={48} height={48} />
+                    </View>
+                    <Text style={styles.moodName}>
+                      {mood.charAt(0) + mood.slice(1).toLowerCase()}
+                    </Text>
+                    <Text style={styles.moodPercentage}>
+                      {percentage.toFixed(1)}%
+                    </Text>
                   </View>
-                  <Text style={styles.moodName}>
-                    {mood.charAt(0) + mood.slice(1).toLowerCase()}
-                  </Text>
-                  <Text style={styles.moodPercentage}>
-                    {percentage.toFixed(1)}%
-                  </Text>
-                </View>
-              );
-            }) : (
+                );
+              })
+            ) : (
               <Text style={styles.loadingText}>Loading...</Text>
             )}
           </View>
@@ -295,5 +313,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flex: 1,
     lineHeight: 18,
+  },
+  loadingText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    textAlign: "center",
+    width: "100%",
   },
 });
