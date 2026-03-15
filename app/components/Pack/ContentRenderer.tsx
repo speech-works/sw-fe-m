@@ -15,6 +15,9 @@ import {
     PracticeActivityContentType,
 } from "../../api";
 import {
+    startPracticeActivity,
+} from "../../api/practiceActivities";
+import {
     ContentBlockType,
     FormBlockContent,
     ModuleContentBlock,
@@ -26,6 +29,7 @@ import { theme } from "../../Theme/tokens";
 import { SimpleMarkdown } from "./SimpleMarkdown";
 
 import { useActivityStore } from "../../stores/activity";
+import { useUserStore } from "../../stores/user";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { triggerToast } from "../../util/functions/toast";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
@@ -130,7 +134,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             throw new Error("Content type is missing");
           }
 
-          // NEW WORKFLOW: Always use POST /practice-activities to create a unique record
+          // Step 1: Create the activity record
           console.log(
             ">> Pack: Creating activity via POST /practice-activities",
             {
@@ -144,36 +148,54 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             packId,
             moduleId,
             contentType: contentType as PracticeActivityContentType,
-
             contentId: content.refId,
           });
           console.log("<< Pack: Activity created successfully", activity.id);
-          console.log("[ContentRenderer Debug] Created activity:", activity);
+
+          // Step 2: Start the activity (stamina check happens here)
+          // If stamina is exhausted, this throws and the GlobalModal shows the upsell.
+          // Navigation is blocked because we are still in the try block.
+          const userId = useUserStore.getState().user?.id;
+          if (!userId) {
+            throw new Error("User not authenticated");
+          }
+          console.log(">> Pack: Starting activity (stamina check)", activity.id);
+          const startedActivity = await startPracticeActivity({
+            id: activity.id,
+            userId,
+          });
+          console.log("<< Pack: Activity started successfully (stamina OK)", startedActivity.id);
 
           // Notify parent that activity was created
           onActivityCreated?.(block.id, activity.id);
 
-          // Add to store so completion updates work
-          useActivityStore.getState().addActivity(activity);
+          // Add to store so completion updates work (use the started version)
+          useActivityStore.getState().addActivity(startedActivity);
 
-          navigateToPackActivity(navigation, activity, {
+          // Step 3: Navigate ONLY after stamina check passes
+          navigateToPackActivity(navigation, startedActivity, {
             blockId: block.id,
             moduleId,
             packId,
-            blockIndex, // Passed from parent
+            blockIndex,
+            alreadyStarted: true, // Tell the activity screen to skip its own start call
           });
         } catch (error: any) {
-          console.error("Failed to load activity:", error);
+          console.error("Failed to start activity:", error);
           if (error.response) {
             console.error("Error status:", error.response.status);
             console.error("Error data:", error.response.data);
           }
 
-          triggerToast(
-            "error",
-            "Something went wrong",
-            "We had trouble loading that activity. Please try again.",
-          );
+          // Only show toast for non-stamina errors (stamina errors are handled by GlobalModal)
+          const errorCode = error?.response?.data?.errorCode;
+          if (errorCode !== "INSUFFICIENT_STAMINA") {
+            triggerToast(
+              "error",
+              "Something went wrong",
+              "We had trouble loading that activity. Please try again.",
+            );
+          }
         } finally {
           setLoading(false);
         }

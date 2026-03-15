@@ -11,6 +11,8 @@ export interface PackContext {
   moduleId: string;
   packId: string;
   blockIndex?: number;
+  /** If true, the activity was already started (stamina checked) by ContentRenderer. Skip the start call. */
+  alreadyStarted?: boolean;
 }
 
 /**
