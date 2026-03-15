@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import ScreenView from "../../../components/ScreenView";
 
 import { useNavigation } from "@react-navigation/native";
@@ -103,6 +105,8 @@ type LibraryScreenNavigationProp = CompositeNavigationProp<
 
 const Library = () => {
   const navigationAcademy = useNavigation<LibraryScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { user } = useUserStore();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -308,21 +312,31 @@ const Library = () => {
       <StatusBar barStyle="dark-content" />
 
       {/* --- Floating Glass Header --- */}
-      <View style={styles.fixedHeaderContainer}>
+      <View
+        style={[
+          styles.fixedHeaderContainer,
+          { paddingTop: insets.top + 10 },
+        ]}
+      >
         {/* Dynamic Frosted Background Layer */}
         <Animated.View
           style={[
             StyleSheet.absoluteFillObject,
-            styles.glassBackground,
             { opacity: headerBgOpacity },
           ]}
-        />
+        >
+          <BlurView
+            intensity={80}
+            tint="light"
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
 
         {/* Top Bar */}
         <Animated.View
           style={[
             styles.headerTopBar,
-            { transform: [{ scale: searchBarScale }] },
+            { transform: [{ scale: searchBarScale }], height: HEADER_HEIGHT },
           ]}
         >
           {isSearching ? (
@@ -411,9 +425,11 @@ const Library = () => {
         </View>
       </View>
 
-      {/* --- Content --- */}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + HEADER_HEIGHT + 96 }, // Significant gap after filters
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -421,7 +437,6 @@ const Library = () => {
         )}
         scrollEventThrottle={16}
       >
-        <View style={styles.contentSpacer} />
 
         {loading && allTechniques.length === 0 ? (
           <View style={styles.loadingContainer}>
@@ -575,12 +590,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    paddingTop: Platform.OS === "ios" ? 48 : 24, // Status bar safe area approx
   },
   glassBackground: {
     backgroundColor: "rgba(255,255,255,0.85)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   headerTopBar: {
     paddingHorizontal: 24,
