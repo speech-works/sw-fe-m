@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A0A0B", // Deep charcoal/black
   },
   scrollContent: {
-    paddingBottom: 220, // Increased to avoid hiding behind dock
+    paddingBottom: 120, // Reduced to avoid hiding behind dock
   },
   container: {
     paddingHorizontal: 28,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   ctaContainer: {
     padding: 28,
     paddingTop: 0,
-    paddingBottom: 80, // Generous padding for dock
+    paddingBottom: 20, // Reduced gap for tighter layout
   },
   ctaButton: {
     height: 64,
