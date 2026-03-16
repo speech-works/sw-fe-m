@@ -157,15 +157,51 @@ const Community = () => {
             style={styles.benefitsSection}
           >
             <Text style={styles.benefitsTitle}>EXCLUSIVE BENEFITS</Text>
-            <View style={styles.benefitsList}>
-              {CURRENT_TIER.perks.map((perk, index) => (
-                <View key={index} style={styles.benefitItem}>
-                  <View style={styles.benefitIconWrapper}>
-                    <Icon name="crown-outline" size={18} color="#D4AF37" />
-                  </View>
-                  <Text style={styles.benefitText}>{perk}</Text>
+            <View style={styles.bentoContainer}>
+              {/* Row 1: Hero Perk */}
+              <View style={styles.heroCard}>
+                <View style={[styles.benefitIconWrapper, styles.heroIconWrapper]}>
+                  <Icon name="account-group" size={24} color="#D4AF37" />
                 </View>
-              ))}
+                <View style={styles.heroCardContent}>
+                  <Text style={styles.heroCardTitle}>
+                    Connect with Experts & Peers
+                  </Text>
+                  <Text style={styles.heroCardSubtext}>
+                    Direct access to a vetted, elite network.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Row 2: Supporting Perks */}
+              <View style={styles.perkRow}>
+                <View style={styles.perkCard}>
+                  <Icon name="medal" size={20} color="#D4AF37" />
+                  <View style={styles.perkCardContent}>
+                    <Text style={styles.perkCardText}>Pioneer Recognition</Text>
+                    <Text style={styles.perkCardSubtext}>
+                      Elite profile badge & status.
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.perkCard}>
+                  <Icon name="eye-outline" size={20} color="#D4AF37" />
+                  <View style={styles.perkCardContent}>
+                    <Text style={styles.perkCardText}>Product Vision</Text>
+                    <Text style={styles.perkCardSubtext}>
+                      Vote on future features.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Row 3: Membership Status */}
+              <View style={styles.membershipBanner}>
+                <Icon name="crown-outline" size={16} color="#D4AF37" />
+                <Text style={styles.membershipText}>
+                  Free with Annual Pro
+                </Text>
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -335,36 +371,105 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   benefitsSection: {
-    marginBottom: 20,
+    marginBottom: 32,
   },
   benefitsTitle: {
     fontSize: 12,
     fontWeight: "800",
     color: "rgba(255,255,255,0.3)",
     letterSpacing: 2,
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  benefitsList: {
-    gap: 20,
+  bentoContainer: {
+    gap: 12,
   },
-  benefitItem: {
+  heroCard: {
+    width: "100%",
+    backgroundColor: "rgba(212, 175, 55, 0.05)",
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.15)",
     flexDirection: "row",
     alignItems: "center",
+    gap: 20,
+  },
+  heroCardContent: {
+    flex: 1,
+  },
+  heroCardTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  heroCardSubtext: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.4)",
+  },
+  perkRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  perkCard: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.05)",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
     gap: 16,
+    minHeight: 130,
+  },
+  perkCardContent: {
+    gap: 4,
+  },
+  perkCardText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  perkCardSubtext: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.4)",
+  },
+  membershipBanner: {
+    width: "100%",
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.03)",
+  },
+  membershipText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.3)",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   benefitIconWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(212, 175, 55, 0.08)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
-  benefitText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.8)",
-    flex: 1,
+  heroIconWrapper: {
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   ctaContainer: {
     padding: 28,
