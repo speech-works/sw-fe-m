@@ -1,10 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import React from "react";
 import { StyleProp, StyleSheet, ViewStyle } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import BgWrapper from "../util/components/BgWrapper";
 
 interface ScreenViewProps {
@@ -16,17 +13,14 @@ const ScreenView = ({ children, style }: ScreenViewProps) => {
   const isFocused = useIsFocused();
 
   const animatedStyle = useAnimatedStyle(() => {
+    const duration = 100;
+    const easing = Easing.out(Easing.quad);
+
     return {
-      opacity: withSpring(isFocused ? 1 : 0, {
-        stiffness: 100,
-        damping: 20,
-      }),
+      opacity: withTiming(isFocused ? 1 : 0, { duration, easing }),
       transform: [
         {
-          translateY: withSpring(isFocused ? 0 : 20, {
-            stiffness: 100,
-            damping: 20,
-          }),
+          translateY: withTiming(isFocused ? 0 : 10, { duration, easing }),
         },
       ],
     };

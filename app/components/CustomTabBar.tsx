@@ -1,13 +1,20 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, {
+  Easing,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
@@ -112,12 +119,9 @@ const TabItem = ({
   routeName,
 }: any) => {
   const focusedValue = useDerivedValue(() => {
-    return withSpring(isFocused ? 1 : 0, {
-      stiffness: 450,
-      damping: 24,
-      mass: 0.5,
-      restDisplacementThreshold: 0.01,
-      restSpeedThreshold: 2,
+    return withTiming(isFocused ? 1 : 0, {
+      duration: 100,
+      easing: Easing.out(Easing.quad),
     });
   }, [isFocused]);
 
@@ -146,7 +150,7 @@ const TabItem = ({
       paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]),
       borderWidth: 0,
       borderColor: "transparent",
-      overflow: "hidden", 
+      overflow: "hidden",
     };
   });
 
@@ -194,12 +198,7 @@ const TabItem = ({
       >
         <Animated.View style={pillStyle}>
           {isCommunity && (
-            <Animated.View
-              style={[
-                StyleSheet.absoluteFill,
-                gradientStyle,
-              ]}
-            >
+            <Animated.View style={[StyleSheet.absoluteFill, gradientStyle]}>
               <LinearGradient
                 colors={GOLD_GRADIENT}
                 start={{ x: 0, y: 0 }}
