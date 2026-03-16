@@ -34,10 +34,10 @@ const CURRENT_TIER = {
   totalSpots: 100,
   filledSpots: 64,
   perks: [
-    "Priority access to the private network",
-    "Lifetime digital 'Pioneer' signature",
-    "Direct product roadmap influence",
-    "Complimentary with Annual Pro membership",
+    "Connect with Experts & Peers",
+    "Earn Pioneer Recognition",
+    "Direct the Product Vision",
+    "Free with Annual Pro",
   ],
 };
 
@@ -97,10 +97,10 @@ const Community = () => {
             entering={FadeInDown.duration(1000).delay(200)}
             style={styles.heroSection}
           >
-            <Text style={styles.heroTitle}>Access is reserved.</Text>
-            <Text style={styles.heroTitle}>Growth is</Text>
+            <Text style={styles.heroTitle}>Your journey</Text>
+            <Text style={styles.heroTitle}>can guide</Text>
             <Text style={[styles.heroTitle, styles.heroTitleAccent]}>
-              Intentional.
+              others.
             </Text>
           </Animated.View>
 
@@ -109,9 +109,10 @@ const Community = () => {
             style={styles.subtextSection}
           >
             <Text style={styles.subtext}>
-              Speechworks is an invite-only space for those committed to the art
-              of communication. Founding seats are available exclusively to our
-              Annual Pro members.
+              Connect directly with vetted therapists and peers who understand.
+              This is the first curated space of its kind. Become a founding
+              member to offer support, shape our culture, and protect this
+              community's integrity.
             </Text>
           </Animated.View>
 
@@ -230,11 +231,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   heroTitle: {
-    fontSize: 40,
-    fontWeight: "800",
+    fontSize: 48,
+    fontWeight: "900",
     color: "#FFFFFF",
-    lineHeight: 46,
-    letterSpacing: -1,
+    lineHeight: 52,
+    letterSpacing: -1.5,
   },
   heroTitleAccent: {
     color: "#D4AF37", // Gold highlight
