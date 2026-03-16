@@ -78,6 +78,13 @@ const SubscribeScreen = () => {
           navigation.goBack();
         })
         .catch((error: any) => {
+          // Check if it's a user cancellation (error code 2)
+          console.log("Razorpay Error:", error.code, error.description);
+          if (error.code === 2) {
+            // User cancelled, do nothing
+            return;
+          }
+
           triggerToast(
             "error",
             "Payment Failed",

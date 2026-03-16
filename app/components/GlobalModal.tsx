@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import BgPattern_404 from "../assets/sw-bg/BgPattern_404";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import ErrorFace from "../assets/sw-faces/ErrorFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
@@ -30,6 +29,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
+import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
 
 const GlobalModal = () => {
   const navigation = useNavigation<any>();
@@ -127,7 +127,7 @@ const GlobalModal = () => {
       maxHeight={modalType === "upsell" ? "82%" : "55%"}
       showCloseButton={true}
     >
-      {modalType === "error" && <BgPattern_404 />}
+      {modalType === "error" && <BgPattern_DriftingPieces />}
       {modalType === "success" && <BgPattern_GradientSpheres />}
 
       {modalType === "upsell" && (
