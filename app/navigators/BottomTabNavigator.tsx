@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
-import React from "react";
+import React from "react"; // Rebuild trigger
 
 import { ROUTE_NAMES } from "../constants/routes";
 import Community from "../screens/Community";

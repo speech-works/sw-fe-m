@@ -5,7 +5,6 @@ import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   interpolate,
   interpolateColor,
-  useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
   withSpring,
@@ -14,7 +13,6 @@ import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 
-const AnimatedIcon = Animated.createAnimatedComponent(MaterialCommunityIcons);
 const { width } = Dimensions.get("window");
 
 const CustomTabBar = ({
@@ -40,6 +38,10 @@ const CustomTabBar = ({
       <View
         style={[
           styles.tabBar,
+          focusedRoute.name === ROUTE_NAMES.COMMUNITY && {
+            backgroundColor: "#0A0A0B",
+            shadowColor: "#000000",
+          },
         ]}
       >
         {state.routes.map((route, index) => {
@@ -78,7 +80,10 @@ const CustomTabBar = ({
           else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
 
           // Color mapping
-          const activeColor = theme.colors.library.orange[400];
+          let activeColor = theme.colors.library.orange[400];
+          if (routeName === ROUTE_NAMES.COMMUNITY) {
+            activeColor = "rgba(212, 175, 55, 0.15)";
+          }
 
           return (
             <TabItem
@@ -87,6 +92,7 @@ const CustomTabBar = ({
               label={(options.tabBarLabel as string) || route.name}
               iconName={iconName}
               activeColor={activeColor}
+              color={routeName === ROUTE_NAMES.COMMUNITY ? "#D4AF37" : "#FFFFFF"}
               onPress={onPress}
               onLongPress={onLongPress}
             />
@@ -104,10 +110,8 @@ const TabItem = ({
   onPress,
   onLongPress,
   activeColor,
+  color,
 }: any) => {
-  // Animation Values - Using useDerivedValue instead of useEffect
-  // This triggers the spring synchronously during the commit phase
-  // instead of waiting for useEffect (which gets blocked by the new screen's heavy JS render)
   const focusedValue = useDerivedValue(() => {
     return withSpring(isFocused ? 1 : 0, {
       stiffness: 450,
@@ -118,10 +122,9 @@ const TabItem = ({
     });
   }, [isFocused]);
 
-  // Animated Styles
   const containerStyle = useAnimatedStyle(() => {
     return {
-      flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]), // Fluid width
+      flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]),
     };
   });
 
@@ -129,29 +132,28 @@ const TabItem = ({
     const backgroundColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["transparent", activeColor], // Transparent -> Dynamic Active Color
+      ["transparent", activeColor],
     );
     return {
       backgroundColor,
-      borderRadius: 100, // Maximum rounding
+      borderRadius: 100,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      height: 48, // Fixed height keeps padding predictable
-      alignSelf: "center", // Center vertically inside tabBar cell
-      paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]), // Perfect inner bubble padding
+      height: 48,
+      alignSelf: "center",
+      paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]),
       borderWidth: 0,
       borderColor: "transparent",
     };
   });
 
-  // Wraps the text so the layout expands left-to-right perfectly
   const textWrapperStyle = useAnimatedStyle(() => {
     return {
-      width: interpolate(focusedValue.value, [0, 1], [0, 85]), // Reveal text space
-      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 2]), // Reduce gap
-      overflow: "hidden", // Never bleed
-      opacity: focusedValue.value, // Fade in alongside expansion
+      width: interpolate(focusedValue.value, [0, 1], [0, 85]),
+      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 2]),
+      overflow: "hidden",
+      opacity: focusedValue.value,
       justifyContent: "center",
       alignItems: "center",
     };
@@ -160,12 +162,11 @@ const TabItem = ({
   const textStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { scale: interpolate(focusedValue.value, [0, 1], [0.85, 1]) }, // Slight pop up effect
+        { scale: interpolate(focusedValue.value, [0, 1], [0.85, 1]) },
       ],
     };
   });
 
-  // Icon Cross-fade Animation Styles
   const inactiveIconStyle = useAnimatedStyle(() => ({
     position: "absolute",
     opacity: 1 - focusedValue.value,
@@ -184,7 +185,6 @@ const TabItem = ({
         style={styles.touchable}
       >
         <Animated.View style={pillStyle}>
-          {/* Cross-fading icons for reliable Reanimated color transition */}
           <View
             style={{
               width: 24,
@@ -204,14 +204,16 @@ const TabItem = ({
               <MaterialCommunityIcons
                 name={iconName}
                 size={24}
-                color="#FFFFFF"
+                color={color}
               />
             </Animated.View>
           </View>
 
-          {/* Wrapper dictates layout shift precisely */}
           <Animated.View style={textWrapperStyle}>
-            <Animated.Text style={[styles.label, textStyle]} numberOfLines={1}>
+            <Animated.Text
+              style={[styles.label, textStyle, { color: color }]}
+              numberOfLines={1}
+            >
               {label}
             </Animated.Text>
           </Animated.View>
@@ -224,19 +226,18 @@ const TabItem = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 30, // Floating from bottom
+    bottom: 30,
     left: 20,
     right: 20,
     alignItems: "center",
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF", // White Bar
+    backgroundColor: "#FFFFFF",
     borderRadius: 35,
     height: 70,
     padding: 8,
     width: "100%",
-    // Shadow
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF", // White text inside Orange Pill
+    color: "#FFFFFF",
     textAlign: "center",
   },
 });
