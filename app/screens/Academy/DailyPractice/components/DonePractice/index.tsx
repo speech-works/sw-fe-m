@@ -97,8 +97,9 @@ const DonePractice = ({
               style={styles.exploreButton}
               activeOpacity={0.9}
               onPress={() => {
-                navigation.navigate(ROUTE_NAMES.EXPLORE, {
-                  screen: "Explore",
+                navigation.navigate("Root", {
+                  screen: ROUTE_NAMES.EXPLORE,
+                  params: { screen: "Explore" },
                 });
               }}
             >
