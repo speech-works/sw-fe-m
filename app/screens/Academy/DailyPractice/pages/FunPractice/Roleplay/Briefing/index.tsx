@@ -3,14 +3,17 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
   RoleplayFDPStackNavigationProp,
@@ -71,11 +74,12 @@ const Briefing = () => {
       </BlurView>
 
       <View style={styles.container}>
-        <CustomScrollView
+        <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
             { paddingTop: HEADER_HEIGHT + insets.top + 20 },
           ]}
+          showsVerticalScrollIndicator={false}
         >
           {/* Hero Briefing Card - Matte Modern Orange */}
           <LinearGradient
@@ -162,7 +166,7 @@ const Briefing = () => {
             {/* Masonry Tips Grid */}
             <MasonryTips tips={tips} />
           </View>
-        </CustomScrollView>
+        </ScrollView>
       </View>
     </ScreenView>
   );
@@ -172,6 +176,7 @@ export default Briefing;
 
 const styles = StyleSheet.create({
   screenView: {
+    flex: 1,
     paddingBottom: 0,
     backgroundColor: "#FFFFFF", // Pure White
   },
@@ -181,9 +186,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     gap: 32,
     flexGrow: 1,
-    padding: SHADOW_BUFFER,
-    paddingBottom: 200, // Increased for bottom nav clearance
     paddingHorizontal: 24,
+    paddingBottom: 80, // Matches fixed briefing screens (Interview/Social Challenge)
   },
   topNavigationContainer: {
     position: "absolute",
