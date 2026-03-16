@@ -141,11 +141,7 @@ const Briefing = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.title}
-          />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Social Challenge</Text>
         <View style={{ width: 32 }} />
@@ -155,10 +151,10 @@ const Briefing = () => {
         <CustomScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { 
+            {
               paddingTop: HEADER_HEIGHT + insets.top + 20,
               paddingBottom: 260, // Ensure clearance of bottom button
-            }
+            },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -267,10 +263,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    gap: 32,
     flexGrow: 1,
     paddingHorizontal: 24,
-    padding: SHADOW_BUFFER,
+    paddingBottom: 80,
   },
   topNavigationContainer: {
     position: "absolute",

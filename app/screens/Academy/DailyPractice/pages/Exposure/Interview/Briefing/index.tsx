@@ -151,11 +151,13 @@ const Briefing = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: 24,
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
               paddingTop: HEADER_HEIGHT + insets.top + 20,
-            }}
+            },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Hero Briefing Card - Matte Modern Orange */}
@@ -254,17 +256,17 @@ export default Briefing;
 
 const styles = StyleSheet.create({
   screenView: {
+    flex: 1,
     paddingBottom: 0,
+    backgroundColor: "#FFFFFF",
   },
   container: {
-    gap: 32,
     flex: 1,
   },
   scrollContent: {
-    gap: 32,
     flexGrow: 1,
-    padding: SHADOW_BUFFER,
-    paddingBottom: 180,
+    paddingHorizontal: 24,
+    paddingBottom: 80,
   },
   topNavigationContainer: {
     position: "absolute",
