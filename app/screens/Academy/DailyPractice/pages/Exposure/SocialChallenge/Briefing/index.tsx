@@ -19,9 +19,6 @@ import {
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { createSession } from "../../../../../../../api/practiceSessions";
 import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
   SCEDPStackNavigationProp,
@@ -148,12 +145,11 @@ const Briefing = () => {
       </BlurView>
 
       <View style={styles.container}>
-        <CustomScrollView
+        <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
             {
               paddingTop: HEADER_HEIGHT + insets.top + 20,
-              paddingBottom: 260, // Ensure clearance of bottom button
             },
           ]}
           showsVerticalScrollIndicator={false}
@@ -213,10 +209,9 @@ const Briefing = () => {
               <TherapistFace size={72} />
             </View>
 
-            {/* Masonry Tips Grid */}
             <MasonryTips tips={data?.stage?.userCharacter || []} />
           </View>
-        </CustomScrollView>
+        </ScrollView>
 
         {/* Fixed Start Button at the bottom */}
         <View
