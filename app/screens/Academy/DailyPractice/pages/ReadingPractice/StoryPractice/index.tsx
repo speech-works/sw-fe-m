@@ -222,7 +222,7 @@ const StoryPractice = () => {
         <ScrollView
           key="tips-scroll"
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
           }}
           showsVerticalScrollIndicator={false}
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
 
   // Reading Mode Styles
   readingScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 10,
     // paddingBottom handled dynamically
   },
@@ -821,6 +821,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
 });

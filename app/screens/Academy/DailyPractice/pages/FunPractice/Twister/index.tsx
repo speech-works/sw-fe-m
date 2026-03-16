@@ -434,7 +434,7 @@ const Twister = () => {
         <ScrollView
           key="tips-scroll"
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
           }}
           showsVerticalScrollIndicator={false}
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   // Tips Styles
   scrollContent: {
     paddingBottom: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   noteHeaderBanner: {
     marginVertical: 20,
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
 
   // Reading Mode Styles
   readingScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 10,
   },
   textArea: {
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -40, // Overlap
-    padding: 32,
+    padding: 24,
     paddingBottom: 40,
     minHeight: 300,
     alignItems: "center",
@@ -938,6 +938,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
 });

@@ -129,34 +129,37 @@ const Briefing = () => {
 
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.topNavigationContainer,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
         >
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Social Challenge</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
+          <Icon
+            name="chevron-left"
+            size={16}
+            color={theme.colors.text.title}
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Social Challenge</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-          }}
+      <View style={styles.container}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { 
+              paddingTop: HEADER_HEIGHT + insets.top + 20,
+              paddingBottom: 260, // Ensure clearance of bottom button
+            }
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Hero Briefing Card - Matte Modern Orange */}
@@ -217,7 +220,7 @@ const Briefing = () => {
             {/* Masonry Tips Grid */}
             <MasonryTips tips={data?.stage?.userCharacter || []} />
           </View>
-        </ScrollView>
+        </CustomScrollView>
 
         {/* Fixed Start Button at the bottom */}
         <View
@@ -253,17 +256,21 @@ export default Briefing;
 
 const styles = StyleSheet.create({
   screenView: {
+    flex: 1,
     paddingBottom: 0,
+    backgroundColor: "#FFFFFF",
   },
   container: {
-    gap: 32,
+    flex: 1,
+  },
+  scrollContainer: {
     flex: 1,
   },
   scrollContent: {
     gap: 32,
     flexGrow: 1,
+    paddingHorizontal: 24,
     padding: SHADOW_BUFFER,
-    paddingBottom: 180,
   },
   topNavigationContainer: {
     position: "absolute",
@@ -371,6 +378,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     overflow: "hidden",
     position: "relative",
+    marginHorizontal: 0,
   },
   noteHeaderTextContainer: {
     flex: 1,
@@ -407,7 +415,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     position: "absolute",
     bottom: 0,
     left: 0,

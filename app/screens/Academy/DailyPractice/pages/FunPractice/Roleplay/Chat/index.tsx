@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     gap: 24,
     flexGrow: 1,
-    paddingHorizontal: SHADOW_BUFFER,
+    paddingHorizontal: 24,
     paddingTop: SHADOW_BUFFER,
   },
   topNavigationContainer: {

@@ -514,10 +514,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 12,
   },
   backButton: {
@@ -540,7 +545,7 @@ const styles = StyleSheet.create({
   },
   // Tips Styles
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   noteHeaderBanner: {
     marginVertical: 20,
@@ -587,11 +592,11 @@ const styles = StyleSheet.create({
 
   // Reading Mode Styles
   readingScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     // paddingTop handled dynamically
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   textArea: {
     marginTop: 16,

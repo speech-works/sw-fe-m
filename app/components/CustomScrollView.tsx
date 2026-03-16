@@ -115,12 +115,12 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     const { style, contentContainerStyle, ...otherProps } = rest as any;
 
     return (
-      <View style={[styles.container, { overflow: "visible" }]}>
+      <View style={[styles.container, { overflow: "hidden" }]}>
         <Animated.ScrollView
           ref={internalRef}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
-          style={[{ flex: 1, overflow: "visible" }, style]}
+          style={[{ flex: 1, overflow: "hidden" }, style]}
           contentContainerStyle={[
             styles.scrollContent,
             {

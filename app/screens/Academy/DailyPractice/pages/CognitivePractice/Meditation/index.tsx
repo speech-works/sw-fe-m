@@ -517,7 +517,7 @@ const Meditation = () => {
 
         <ScrollView
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
           }}
           showsVerticalScrollIndicator={false}

@@ -309,7 +309,7 @@ const Reframe = () => {
 
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: 24,
           paddingTop: HEADER_HEIGHT + insets.top + 20,
         }}
         showsVerticalScrollIndicator={false}
@@ -473,11 +473,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
+    zIndex: 30,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   backButton: {
     width: 36,

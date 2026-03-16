@@ -284,7 +284,7 @@ const CVExercise = () => {
             <ScrollView
               key="tips-scroll"
               contentContainerStyle={{
-                paddingHorizontal: 20,
+                paddingHorizontal: 24,
                 paddingTop: HEADER_HEIGHT + insets.top + 20,
               }}
               showsVerticalScrollIndicator={false}
@@ -493,9 +493,8 @@ const styles = StyleSheet.create({
     gap: 32,
   },
   scrollContent: {
-    gap: 32,
-    flexGrow: 1,
-    padding: SHADOW_BUFFER,
+    paddingVertical: SHADOW_BUFFER,
+    paddingHorizontal: 24,
     // Bottom padding inserted dynamically via style prop
   },
   topNavigationContainer: {
@@ -600,7 +599,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -40, // Overlap
-    padding: 32,
+    padding: 24,
     paddingBottom: 40,
     minHeight: 300,
     alignItems: "center",
@@ -694,6 +693,6 @@ const styles = StyleSheet.create({
   // Recorder Dock
   actionDockWrapper: {},
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
 });

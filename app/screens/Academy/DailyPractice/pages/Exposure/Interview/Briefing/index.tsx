@@ -151,11 +151,11 @@ const Briefing = () => {
           <View style={{ width: 32 }} />
         </BlurView>
 
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-          }}
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: 24,
+              paddingTop: HEADER_HEIGHT + insets.top + 20,
+            }}
           showsVerticalScrollIndicator={false}
         >
           {/* Hero Briefing Card - Matte Modern Orange */}
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     position: "absolute",
     bottom: 0,
     left: 0,

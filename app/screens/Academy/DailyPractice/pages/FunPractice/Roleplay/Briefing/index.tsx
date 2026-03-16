@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: SHADOW_BUFFER,
     paddingBottom: 200, // Increased for bottom nav clearance
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   topNavigationContainer: {
     position: "absolute",

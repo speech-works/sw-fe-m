@@ -393,7 +393,7 @@ const PoemPractice = () => {
         <ScrollView
           key="tips-scroll"
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
           }}
           showsVerticalScrollIndicator={false}
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
 
   // Reading Mode Styles
   readingScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     // paddingBottom handled dynamically
   },
   textArea: {
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   bottomActionContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   dockTools: {
     flexDirection: "row",

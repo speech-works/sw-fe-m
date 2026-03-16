@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FixedRolePlayNode,
   FixedRolePlayNodeOption,
@@ -45,6 +47,8 @@ import { AcademyStackNavigationProp } from "../../../../../../../navigators/stac
 const Chat = () => {
   const navigation = useNavigation<AcademyStackNavigationProp<"SCChat">>();
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { sc, practiceActivityId, packContext } = route.params;
   const data = sc.practiceData || sc.socialChallengeData;
 
@@ -334,8 +338,14 @@ const Chat = () => {
     <ScreenView style={styles.screenView}>
       <Background />
 
-      {/* Header */}
-      <View style={styles.topNavigationContainer}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.topNavigationContainer,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -346,15 +356,25 @@ const Chat = () => {
           {sc.name}
         </Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       {/* Chat Area - Expands */}
       <View style={styles.chatAreaContainer}>
         <CustomScrollView
           ref={chatScrollRef}
-          contentContainerStyle={styles.chatsScrollView}
+          contentContainerStyle={[
+            styles.chatsScrollView,
+            {
+              paddingTop: HEADER_HEIGHT + insets.top + 10,
+              paddingBottom: 220, // Increased padding to clear dock
+            },
+          ]}
           style={styles.chatsView}
           scrollEventThrottle={16}
+          onContentSizeChange={() =>
+            chatScrollRef.current?.scrollToEnd({ animated: true })
+          }
+          keyboardShouldPersistTaps="handled"
         >
           {/* Initial Spacer for top padding */}
           <View style={{ height: 24 }} />
@@ -449,12 +469,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   topNavigationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 10,
   },
   backButton: {
     width: 32,
