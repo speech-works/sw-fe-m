@@ -35,15 +35,7 @@ const CustomTabBar = ({
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.tabBar,
-          focusedRoute.name === ROUTE_NAMES.COMMUNITY && {
-            backgroundColor: "#0A0A0B",
-            shadowColor: "#000000",
-          },
-        ]}
-      >
+      <View style={styles.tabBar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -81,8 +73,9 @@ const CustomTabBar = ({
 
           // Color mapping
           let activeColor = theme.colors.library.orange[400];
+
           if (routeName === ROUTE_NAMES.COMMUNITY) {
-            activeColor = "rgba(212, 175, 55, 0.15)";
+            activeColor = "#29291cff"; // Slightly more opaque for visibility on white
           }
 
           return (
@@ -92,7 +85,7 @@ const CustomTabBar = ({
               label={(options.tabBarLabel as string) || route.name}
               iconName={iconName}
               activeColor={activeColor}
-              color={routeName === ROUTE_NAMES.COMMUNITY ? "#D4AF37" : "#FFFFFF"}
+              activeContentColor="#FFFFFF" // Always white as requested
               onPress={onPress}
               onLongPress={onLongPress}
             />
@@ -110,7 +103,7 @@ const TabItem = ({
   onPress,
   onLongPress,
   activeColor,
-  color,
+  activeContentColor,
 }: any) => {
   const focusedValue = useDerivedValue(() => {
     return withSpring(isFocused ? 1 : 0, {
@@ -204,14 +197,14 @@ const TabItem = ({
               <MaterialCommunityIcons
                 name={iconName}
                 size={24}
-                color={color}
+                color={activeContentColor}
               />
             </Animated.View>
           </View>
 
           <Animated.View style={textWrapperStyle}>
             <Animated.Text
-              style={[styles.label, textStyle, { color: color }]}
+              style={[styles.label, textStyle, { color: activeContentColor }]}
               numberOfLines={1}
             >
               {label}
