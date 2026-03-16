@@ -84,6 +84,7 @@
     "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.17.0",
+    "react-native-volume-manager": "^2.0.8",
     "react-native-websocket": "^1.0.2",
     "rn-tourguide": "^3.3.2",
     "zustand": "^5.0.5"

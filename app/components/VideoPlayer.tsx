@@ -144,8 +144,81 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const hideTimer = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoContainerWidth = useRef<number>(0);
 
+  // Defensive check for VolumeManager presence
+  const hasVolumeManager = useRef<boolean | null>(null);
+
+  const checkVolumeManager = () => {
+    if (hasVolumeManager.current !== null) return hasVolumeManager.current;
+    try {
+      // Check if the native module is actually present in NativeModules
+      const { NativeModules } = require('react-native');
+      const isAvailable = !!(NativeModules.VolumeManager || NativeModules.RNVolumeManager);
+      hasVolumeManager.current = isAvailable;
+      return isAvailable;
+    } catch (e) {
+      hasVolumeManager.current = false;
+      return false;
+    }
+  };
+
+  const getVolumeManager = () => {
+    if (!checkVolumeManager()) return null;
+    try {
+      return require("react-native-volume-manager").VolumeManager;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Safe VolumeManager wrappers
+  const safeGetVolume = async () => {
+    try {
+      const VM = getVolumeManager();
+      if (!VM) return 1.0;
+      const res = await VM.getVolume();
+      return typeof res === 'number' ? res : res.volume;
+    } catch (e) {
+      return 1.0;
+    }
+  };
+
+  const safeSetVolume = (val: number) => {
+    try {
+      const VM = getVolumeManager();
+      if (VM && typeof VM.setVolume === 'function') {
+        VM.setVolume(val);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const volumeListenerRef = useRef<any>(null);
+
+  // Sync System Volume
   useEffect(() => {
+    safeGetVolume().then((v) => {
+      setVolume(v);
+    });
+
+    try {
+      const VM = getVolumeManager();
+      if (VM && typeof VM.addVolumeListener === 'function') {
+        volumeListenerRef.current = VM.addVolumeListener((res: any) => {
+          const newVol = typeof res === 'number' ? res : res.volume;
+          setVolume(newVol);
+          if (newVol > 0) setMuted(false);
+          else setMuted(true);
+        });
+      }
+    } catch (e) {
+      // ignore
+    }
+
     return () => {
+      if (volumeListenerRef.current && typeof volumeListenerRef.current.remove === 'function') {
+        volumeListenerRef.current.remove();
+      }
       clearAutoHide();
       if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
     };
@@ -521,7 +594,43 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </Text>
             </View>
 
-            {/* Row 2: Buttons */}
+            {/* Row 2: Volume Bar (Separated for spacing) */}
+            <View style={styles.volumeRowContainer}>
+               <TouchableOpacity
+                  onPress={() => {
+                    const newMuted = !muted;
+                    setMuted(newMuted);
+                    safeSetVolume(newMuted ? 0 : (volume || 0.5));
+                    startAutoHide();
+                  }}
+                  hitSlop={iconHitSlop}
+                  style={styles.volumeIconContainer}
+                >
+                  <Icon
+                    name={muted || volume === 0 ? "volume-mute" : "volume-up"}
+                    size={12}
+                    color="white"
+                  />
+                </TouchableOpacity>
+                <Slider
+                   style={styles.horizontalVolumeSlider}
+                   minimumValue={0}
+                   maximumValue={1}
+                   value={muted ? 0 : volume}
+                   onValueChange={(val: number) => {
+                     setVolume(val);
+                     safeSetVolume(val);
+                     if (val === 0) setMuted(true);
+                     else if (muted) setMuted(false);
+                     startAutoHide();
+                   }}
+                   minimumTrackTintColor={theme.colors.actionPrimary.default}
+                   maximumTrackTintColor="rgba(255,255,255,0.2)"
+                   thumbTintColor="white"
+                />
+            </View>
+
+            {/* Row 3: Buttons */}
             <View style={styles.buttonsRow}>
               <View style={styles.bottomLeftControls}>
                 {/* Rate Toggle */}
@@ -596,62 +705,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </Animated.View>
       )}
 
-      {/* Vertical Volume Bar - Right Edge */}
-      {!isLocked && !hideControls && (
-        <Animated.View
-          style={[
-            styles.volumeBarOuter,
-            {
-              transform: [{ translateX: controlsAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [50, 0],
-              }) }],
-              opacity: controlsOpacity,
-            },
-          ]}
-        >
-          {/* Rotated slider wrapper */}
-          <View style={styles.volumeSliderWrapper}>
-            <Slider
-              style={styles.volumeSlider}
-              minimumValue={0}
-              maximumValue={1}
-              value={muted ? 0 : volume}
-              onValueChange={(val: number) => {
-                setVolume(val);
-                if (val === 0) setMuted(true);
-                else if (muted) setMuted(false);
-                startAutoHide();
-              }}
-              minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="rgba(255,255,255,0.25)"
-              thumbImage={volumeThumbImage}
-            />
-          </View>
-
-          {/* Clickable mute/unmute icon */}
-          <TouchableOpacity
-            onPress={() => {
-              if (muted) {
-                setMuted(false);
-                if (volume === 0) setVolume(1.0);
-              } else {
-                setMuted(true);
-              }
-              startAutoHide();
-            }}
-            hitSlop={iconHitSlop}
-            accessibilityLabel={muted ? "Unmute" : "Mute"}
-            accessibilityRole="button"
-          >
-            <Icon
-              name={muted || volume === 0 ? "volume-mute" : "volume-up"}
-              size={18}
-              color="rgba(255,255,255,0.85)"
-            />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+      {/* No more vertical volume bar */}
     </View>
   );
 
@@ -817,8 +871,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 16,
+    gap: 12,
     flex: 1,
+  },
+  volumeRowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 4,
+    paddingHorizontal: 8,
+  },
+  volumeIconContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+  },
+  horizontalVolumeSlider: {
+    flex: 1,
+    height: 30,
   },
   rateButton: {
     paddingVertical: 5,
