@@ -49,6 +49,8 @@ const Community = () => {
   // Animation for the glow effect
   const glowOpacity = useSharedValue(0.3);
   const progressWidth = useSharedValue(0);
+  const tipOscillation = useSharedValue(0);
+  const tipPulse = useSharedValue(1);
 
   useEffect(() => {
     // Elegant pulsing glow
@@ -66,6 +68,26 @@ const Community = () => {
       (CURRENT_TIER.filledSpots / CURRENT_TIER.totalSpots) * 100,
       { duration: 2000 },
     );
+
+    // Tip oscillation (move to and fro)
+    tipOscillation.value = withRepeat(
+      withSequence(
+        withTiming(4, { duration: 1500 }),
+        withTiming(0, { duration: 1500 }),
+      ),
+      -1,
+      true,
+    );
+
+    // Tip pulse (glow intensity)
+    tipPulse.value = withRepeat(
+      withSequence(
+        withTiming(2.5, { duration: 800 }),
+        withTiming(1, { duration: 800 }),
+      ),
+      -1,
+      true,
+    );
   }, []);
 
   const animatedGlow = useAnimatedStyle(() => ({
@@ -74,6 +96,15 @@ const Community = () => {
 
   const animatedProgress = useAnimatedStyle(() => ({
     width: `${progressWidth.value}%`,
+  }));
+
+  const animatedTip = useAnimatedStyle(() => ({
+    left: `${progressWidth.value}%`,
+    transform: [
+      { translateX: -5 + tipOscillation.value },
+      { scale: tipPulse.value },
+    ],
+    opacity: tipPulse.value - 0.1,
   }));
 
   return (
@@ -142,6 +173,8 @@ const Community = () => {
                 <Animated.View
                   style={[styles.progressGlow, animatedProgress, animatedGlow]}
                 />
+                {/* Visual "Tip" and Pulse */}
+                <Animated.View style={[styles.progressTip, animatedTip]} />
               </View>
             </View>
 
@@ -363,6 +396,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     elevation: 10,
+  },
+  progressTip: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#FFFFFF",
+    top: -3,
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 20,
   },
   spotsLeft: {
     fontSize: 11,
