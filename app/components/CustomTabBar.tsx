@@ -40,12 +40,6 @@ const CustomTabBar = ({
       <View
         style={[
           styles.tabBar,
-          focusedRoute.name === ROUTE_NAMES.COMMUNITY && {
-            backgroundColor: "#0A0A0B",
-            borderColor: "rgba(255, 255, 255, 0.1)",
-            borderWidth: 1,
-            shadowColor: "#000000",
-          },
         ]}
       >
         {state.routes.map((route, index) => {
@@ -84,10 +78,7 @@ const CustomTabBar = ({
           else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
 
           // Color mapping
-          let activeColor = theme.colors.library.orange[400];
-          if (routeName === ROUTE_NAMES.COMMUNITY) {
-            activeColor = "#D4AF37";
-          }
+          const activeColor = theme.colors.library.orange[400];
 
           return (
             <TabItem
@@ -149,6 +140,8 @@ const TabItem = ({
       height: 48, // Fixed height keeps padding predictable
       alignSelf: "center", // Center vertically inside tabBar cell
       paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]), // Perfect inner bubble padding
+      borderWidth: 0,
+      borderColor: "transparent",
     };
   });
 
