@@ -25,6 +25,7 @@ import {
   parseShadowStyle,
 } from "../../util/functions/parseStyles";
 import { theme } from "../../Theme/tokens";
+import ButterflyFace from "../../assets/sw-faces/ButterflyFace";
 
 const { width } = Dimensions.get("window");
 
@@ -148,41 +149,64 @@ const Community = () => {
           </Animated.View>
 
           {/* Digital Tracker Card */}
-          <Animated.View
-            entering={FadeInDown.duration(1000).delay(400)}
-            style={styles.trackerCard}
-          >
-            <View style={styles.trackerTop}>
-              <Text style={styles.trackerLabel}>{CURRENT_TIER.name}</Text>
-              <Text style={styles.liveIndicator}>• LIVE</Text>
+          <View style={{ position: "relative" }}>
+            <View
+              style={{
+                position: "absolute",
+                top: -100,
+                right: 0,
+                zIndex: 1,
+                width: 160,
+                height: 100,
+                overflow: "hidden",
+              }}
+            >
+              <ButterflyFace size={160} shouldAnimate={true} transparentBg />
             </View>
-
-            <View style={styles.countContainer}>
-              <Text style={styles.countNumber}>{CURRENT_TIER.filledSpots}</Text>
-              <Text style={styles.countTotal}>/ {CURRENT_TIER.totalSpots}</Text>
-              <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
-            </View>
-
-            {/* Glowing Progress Indicator */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressTrack}>
-                <Animated.View
-                  style={[styles.progressFill, animatedProgress]}
-                />
-                {/* Glow Overlay */}
-                <Animated.View
-                  style={[styles.progressGlow, animatedProgress, animatedGlow]}
-                />
-                {/* Visual "Tip" and Pulse */}
-                <Animated.View style={[styles.progressTip, animatedTip]} />
+            <Animated.View
+              entering={FadeInDown.duration(1000).delay(400)}
+              style={styles.trackerCard}
+            >
+              <View style={styles.trackerTop}>
+                <Text style={styles.trackerLabel}>{CURRENT_TIER.name}</Text>
+                <Text style={styles.liveIndicator}>• LIVE</Text>
               </View>
-            </View>
 
-            <Text style={styles.spotsLeft}>
-              ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots}{" "}
-              RESERVATIONS LEFT
-            </Text>
-          </Animated.View>
+              <View style={styles.countContainer}>
+                <Text style={styles.countNumber}>
+                  {CURRENT_TIER.filledSpots}
+                </Text>
+                <Text style={styles.countTotal}>
+                  / {CURRENT_TIER.totalSpots}
+                </Text>
+                <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
+              </View>
+
+              {/* Glowing Progress Indicator */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressTrack}>
+                  <Animated.View
+                    style={[styles.progressFill, animatedProgress]}
+                  />
+                  {/* Glow Overlay */}
+                  <Animated.View
+                    style={[
+                      styles.progressGlow,
+                      animatedProgress,
+                      animatedGlow,
+                    ]}
+                  />
+                  {/* Visual "Tip" and Pulse */}
+                  <Animated.View style={[styles.progressTip, animatedTip]} />
+                </View>
+              </View>
+
+              <Text style={styles.spotsLeft}>
+                ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots}{" "}
+                RESERVATIONS LEFT
+              </Text>
+            </Animated.View>
+          </View>
 
           {/* Benefits List */}
           <Animated.View
@@ -193,7 +217,9 @@ const Community = () => {
             <View style={styles.bentoContainer}>
               {/* Row 1: Hero Perk */}
               <View style={styles.heroCard}>
-                <View style={[styles.benefitIconWrapper, styles.heroIconWrapper]}>
+                <View
+                  style={[styles.benefitIconWrapper, styles.heroIconWrapper]}
+                >
                   <Icon name="account-group" size={24} color="#D4AF37" />
                 </View>
                 <View style={styles.heroCardContent}>
@@ -231,9 +257,7 @@ const Community = () => {
               {/* Row 3: Membership Status */}
               <View style={styles.membershipBanner}>
                 <Icon name="crown-outline" size={16} color="#D4AF37" />
-                <Text style={styles.membershipText}>
-                  Free with Annual Pro
-                </Text>
+                <Text style={styles.membershipText}>Free with Annual Pro</Text>
               </View>
             </View>
           </Animated.View>

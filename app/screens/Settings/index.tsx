@@ -30,7 +30,6 @@ import {
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
 import ExplorerFace from "../../assets/sw-faces/ExplorerFace";
-import ButterflyFace from "../../assets/sw-faces/ButterflyFace";
 
 const Settings = () => {
   const navigation = useNavigation<any>();
@@ -263,12 +262,7 @@ const Settings = () => {
             ))}
           </View>
 
-          <View>
-            <View style={styles.faceContainer}>
-              <ButterflyFace size={160} shouldAnimate={true} transparentBg />
-            </View>
-            <BuyPro />
-          </View>
+          <BuyPro />
 
           {/* Minimal Footer */}
           <View style={styles.footer}>
@@ -526,13 +520,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  faceContainer: {
-    position: "absolute",
-    top: -120,
-    right: 5,
-    zIndex: -1,
-    opacity: 1,
-  },
 
   // Footer
   footer: {
