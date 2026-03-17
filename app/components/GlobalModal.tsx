@@ -29,12 +29,12 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
-import RewiringFace from "../assets/sw-faces/RewiringFace";
 import SlotMachineFace from "../assets/sw-faces/SlotMachineFace";
+import { BlurView } from "expo-blur";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
+const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.45, 180);
 const CARD_GAP = 12;
 
 const GlobalModal = () => {
@@ -72,7 +72,6 @@ const GlobalModal = () => {
 
   useEffect(() => {
     if (!events || events.length === 0) return;
-    // Suppress popups during app tours
     if (isTourActive) return;
 
     for (const event of events) {
@@ -82,8 +81,6 @@ const GlobalModal = () => {
         event.name === EVENT_NAMES.SHOW_STAMINA_UPSELL ||
         event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL
       ) {
-        console.log(`[GlobalBottomSheet] Handling event: ${event.name}`);
-
         let type: "error" | "success" | "upsell" = "error";
         if (event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL) type = "success";
         if (
@@ -92,7 +89,6 @@ const GlobalModal = () => {
         )
           type = "upsell";
 
-        // Extract content with fallbacks for triggerToast compatibility
         let title =
           event.detail?.modalTitle ||
           event.detail?.title ||
@@ -108,7 +104,6 @@ const GlobalModal = () => {
           event.detail?.desc ||
           "";
 
-        // Specific overrides for Premium Upsell
         if (event.name === EVENT_NAMES.SHOW_PREMIUM_UPSELL) {
           title = "Master Speech Management";
           message =
@@ -119,8 +114,6 @@ const GlobalModal = () => {
         setModalTitle(title);
         setModalMessage(message);
         setModalVisible(true);
-
-        // Clear the event so it doesn't process again
         clear(event.name);
       }
     }
@@ -130,10 +123,11 @@ const GlobalModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? "82%" : "55%"}
+      maxHeight={modalType === "upsell" ? "88%" : "55%"}
       showCloseButton={true}
     >
-      {modalType === "error" && <BgPattern_DriftingPieces />}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {modalType === "error" && <BgPattern_DriftingPieces />}
       {modalType === "success" && <BgPattern_GradientSpheres />}
       {(modalType === "upsell" || modalType === "error") && (
         <View
@@ -149,7 +143,6 @@ const GlobalModal = () => {
             <Text style={styles.bannerMessage}>{modalMessage}</Text>
           </View>
 
-          {/* Face Watermark - Bottom Right */}
           <View style={styles.faceWatermark}>
             {modalType === "upsell" || modalType === "error" ? (
               <SlotMachineFace
@@ -170,7 +163,6 @@ const GlobalModal = () => {
           <>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
             <Text style={styles.modalMessage}>{modalMessage}</Text>
-
             <View style={styles.faceWrapper}>
               <Animated.View style={animatedFaceStyle}>
                 <HappyScreamFace size={120} />
@@ -181,7 +173,13 @@ const GlobalModal = () => {
 
         {modalType === "upsell" && (
           <View style={styles.upsellSection}>
-            {/* Fresh Benefit Cards - Horizontal Scroll */}
+             {/* Explore Pattern: Large rotated watermark icons in background */}
+            <View style={styles.watermarkContainer} pointerEvents="none">
+              <Icon name="crown" size={120} color="rgba(255,255,255,0.03)" style={styles.watermark1} />
+              <Icon name="medal" size={100} color="rgba(255,255,255,0.02)" style={styles.watermark2} />
+              <Icon name="lock-open" size={80} color="rgba(255,255,255,0.02)" style={styles.watermark3} />
+            </View>
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -192,42 +190,72 @@ const GlobalModal = () => {
               {[
                 {
                   title: "Unlimited",
-                  subtitle: "Daily Practice",
+                  subtitle: "Daily Flow",
                   icon: "infinity",
+                  colors: ["rgba(255, 216, 181, 1)", "rgba(255, 171, 118, 0.95)"], // Warm Orange
+                  shadow: "#FFAB76",
                 },
                 {
                   title: "AI Calls",
-                  subtitle: "Real-time Voice",
-                  icon: "phone",
+                  subtitle: "Real-time",
+                  icon: "phone-alt",
+                  colors: ["rgba(203, 240, 240, 1)", "rgba(152, 230, 230, 0.95)"], // Teal
+                  shadow: "#98E6E6",
                 },
                 {
-                  title: "Roadmap",
+                  title: "Expert",
                   subtitle: "Clinical Tracks",
-                  icon: "map-marked-alt",
+                  icon: "user-md",
+                  colors: ["rgba(235, 203, 245, 1)", "rgba(216, 167, 240, 0.95)"], // Lavender
+                  shadow: "#D8A7F0",
                 },
               ].map((benefit, index) => (
-                <LinearGradient
+                <View
                   key={index}
-                  colors={[
-                    "rgba(255, 255, 255, 0.9)",
-                    "rgba(255, 255, 255, 0.4)",
+                  style={[
+                    styles.premiumBenefitCard,
+                    {
+                      width: CARD_WIDTH,
+                      shadowColor: benefit.shadow,
+                    },
                   ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.premiumBenefitCard, { width: CARD_WIDTH }]}
                 >
-                  <View style={styles.premiumIconBox}>
-                    <Icon name={benefit.icon} size={24} color="#FF5858" />
-                  </View>
-                  <Text style={styles.premiumCardTitle}>{benefit.title}</Text>
-                  <Text style={styles.premiumCardSubtitle}>
-                    {benefit.subtitle}
-                  </Text>
-                </LinearGradient>
+                  <LinearGradient
+                    colors={benefit.colors as any}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
+                  >
+                    {/* Library Pattern: Decorative bubbling textures */}
+                    <View style={[styles.bubble, { width: 80, height: 80, top: -20, right: -20, opacity: 0.25 }]} />
+                    <View style={[styles.bubble, { width: 50, height: 50, bottom: 0, left: -10, opacity: 0.15 }]} />
+                    <View style={[styles.bubble, { width: 30, height: 30, top: 40, right: 60, opacity: 0.1 }]} />
+
+                    <View style={styles.cardHeader}>
+                      {/* Library Pattern: Glassy Badge for subtitles */}
+                      <View style={styles.glassyBadge}>
+                        <Text style={styles.premiumCardSubtitle}>
+                          {benefit.subtitle}
+                        </Text>
+                      </View>
+                      <Text style={styles.premiumCardTitle}>
+                        {benefit.title}
+                      </Text>
+                    </View>
+
+                    {/* Library Pattern: Icon Circle with shadow */}
+                    <View style={styles.iconCircle}>
+                      <Icon
+                        name={benefit.icon}
+                        size={22}
+                        color="rgba(0,0,0,0.6)"
+                      />
+                    </View>
+                  </LinearGradient>
+                </View>
               ))}
             </ScrollView>
 
-            {/* CTA Button + Trust Row - Wrapped in a padded container to match carousel */}
             <View style={styles.ctaGroupContainer}>
               <View style={styles.ctaGroup}>
                 <TouchableOpacity
@@ -239,7 +267,7 @@ const GlobalModal = () => {
                   style={styles.upsellButtonContainer}
                 >
                   <LinearGradient
-                    colors={[theme.colors.library.orange[400], "#DB2777"]}
+                    colors={["#F97316", "#DC2626"]} 
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.upsellButton}
@@ -251,11 +279,7 @@ const GlobalModal = () => {
                 </TouchableOpacity>
 
                 <View style={styles.trustRow}>
-                  <Icon
-                    name="shield-alt"
-                    size={14}
-                    color={theme.colors.feedback.success}
-                  />
+                  <Icon name="shield-alt" size={12} color="#10B981" />
                   <Text style={styles.trustText}>
                     Cancel anytime. 30-day money-back guarantee.
                   </Text>
@@ -265,6 +289,8 @@ const GlobalModal = () => {
           </View>
         )}
       </View>
+      <View style={{ height: 80 }} />
+      </ScrollView>
     </BottomSheetModal>
   );
 };
@@ -275,6 +301,7 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingHorizontal: 20,
     marginBottom: 20,
+    paddingBottom: 32,
   },
   faceWrapper: {
     alignItems: "center",
@@ -282,7 +309,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     zIndex: 10,
   },
-
   modalTitle: {
     color: theme.colors.text.title,
     ...parseTextStyle(theme.typography.Heading3),
@@ -303,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    overflow: "hidden", // Clip the watermark
+    overflow: "hidden",
     position: "relative",
   },
   bannerTextContent: {
@@ -314,7 +340,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -32,
     right: -10,
-    //opacity: 0.15,
     zIndex: 1,
   },
   bannerTitle: {
@@ -337,89 +362,140 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     marginTop: 20,
-    backgroundColor: "#F0F4FF",
+    marginBottom: 24,
+    backgroundColor: "#1E1B4B",
     borderRadius: 32,
-    paddingVertical: 24,
+    paddingVertical: 32,
+    position: "relative",
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation4),
+  },
+  watermarkContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  watermark1: {
+    position: "absolute",
+    top: -20,
+    left: -30,
+    transform: [{ rotate: "-15deg" }],
+  },
+  watermark2: {
+    position: "absolute",
+    bottom: 40,
+    right: -20,
+    transform: [{ rotate: "15deg" }],
+  },
+  watermark3: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    transform: [{ rotate: "10deg" }],
   },
   premiumBenefitsContainer: {
     paddingLeft: 20,
     paddingRight: 40,
     gap: 12,
     marginBottom: 24,
+    zIndex: 2,
   },
   premiumBenefitCard: {
+    aspectRatio: 1.05,
     borderRadius: 24,
-    padding: 20,
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowOpacity: 0.1,
+    backgroundColor: "#FFF",
+    overflow: "hidden",
+    shadowOpacity: 0.4,
     shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
-  premiumIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255, 88, 88, 0.08)", // Faint red tint matching the banner
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
+  cardGradient: {
+    flex: 1,
+    padding: 18,
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  bubble: {
+    position: "absolute",
+    backgroundColor: "white",
+    borderRadius: 999,
+  },
+  cardHeader: {
+    zIndex: 2,
+    gap: 6,
+  },
+  glassyBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.3)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 88, 88, 0.15)",
-  },
-  premiumCardTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 4,
+    borderColor: "rgba(255,255,255,0.4)",
   },
   premiumCardSubtitle: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    lineHeight: 14,
-    fontSize: 11,
-    opacity: 0.7,
+    color: "rgba(0,0,0,0.6)",
+    fontWeight: "800",
+    textTransform: "uppercase",
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+  premiumCardTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "rgba(0,0,0,0.85)",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    zIndex: 2,
   },
   ctaGroupContainer: {
     width: "100%",
-    paddingHorizontal: 20, // Match carousel horizontal alignment
+    paddingHorizontal: 20,
     marginTop: 8,
+    zIndex: 2,
   },
   ctaGroup: {
     width: "100%",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
   },
   upsellButtonContainer: {
     width: "100%",
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    ...parseShadowStyle(theme.shadow.elevation4),
   },
   upsellButton: {
-    paddingVertical: 18,
+    paddingVertical: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   upsellButtonText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   trustRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 4,
+    opacity: 0.8,
   },
   trustText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.disabled,
+    color: "#94A3B8",
     fontSize: 10,
     fontWeight: "500",
   },
