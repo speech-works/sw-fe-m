@@ -5,6 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
+import { theme } from "../Theme/tokens";
 
 interface Props {
   onPress: () => void;
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: -30,
     zIndex: 1,
-    opacity: 0.2,
+    //opacity: 0.2,
   },
   content: {
     gap: 12,
@@ -192,13 +193,13 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(94, 98, 107, 0.2)",
     borderRadius: 3,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "white",
+    backgroundColor: theme.colors.library.orange[600],
     borderRadius: 3,
   },
   actionButton: {
