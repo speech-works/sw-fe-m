@@ -26,6 +26,7 @@ interface CommunityProps extends SvgProps {
   roles?: ProfessionalRole[]; // Pass 4 roles to shuffle
   bgType?: BackgroundStyle;
   shouldAnimate?: boolean;
+  transparentBg?: boolean;
 }
 
 const SCENE_ORDER: BackgroundStyle[] = [
@@ -562,6 +563,7 @@ const DiverseCommunityFace = ({
   roles = ["teacher", "doctor", "engineer", "student"],
   bgType = "city", // Initial BG
   shouldAnimate,
+  transparentBg = false,
   ...props
 }: CommunityProps) => {
   const activeWidth = width || size;
@@ -618,6 +620,7 @@ const DiverseCommunityFace = ({
         height: activeHeight as any,
         borderRadius: (Number(activeWidth) || 150) / 2, // Ensure activeWidth is number for borderRadius
         overflow: "hidden",
+        backgroundColor: transparentBg ? "transparent" : undefined,
       }}
     >
       <Svg
@@ -628,14 +631,18 @@ const DiverseCommunityFace = ({
         {...props}
       >
         {/* Background Vertical Slider */}
-        <AnimatedG animatedProps={currentBgStyle}>
-          <BackgroundLayer type={SCENE_ORDER[activeIndex]} />
-        </AnimatedG>
-        <AnimatedG animatedProps={nextBgStyle}>
-          <BackgroundLayer
-            type={SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length]}
-          />
-        </AnimatedG>
+        {!transparentBg && (
+          <>
+            <AnimatedG animatedProps={currentBgStyle}>
+              <BackgroundLayer type={SCENE_ORDER[activeIndex]} />
+            </AnimatedG>
+            <AnimatedG animatedProps={nextBgStyle}>
+              <BackgroundLayer
+                type={SCENE_ORDER[(activeIndex + 1) % SCENE_ORDER.length]}
+              />
+            </AnimatedG>
+          </>
+        )}
 
         {/* Static Faces on Top */}
         <FacesLayer roles={roles} shouldAnimate={shouldAnimate} />

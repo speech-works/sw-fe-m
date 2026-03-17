@@ -13,13 +13,14 @@ import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 
-const RobotoicPhoneFace = ({
+const RoboticPhoneFace = ({
   size = 48,
   shouldAnimate = false,
   ...props
 }: SvgProps & {
   size?: number | string;
   shouldAnimate?: boolean;
+  transparentBg?: boolean;
 }) => {
   const rotation = useSharedValue(0);
   const pulse = useSharedValue(1);
@@ -76,7 +77,14 @@ const RobotoicPhoneFace = ({
   }));
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      fill="none"
+      style={{ backgroundColor: transparentBg ? "transparent" : undefined }}
+      {...props}
+    >
       <Defs>
         <Mask id="robM">
           <Path
@@ -86,10 +94,12 @@ const RobotoicPhoneFace = ({
         </Mask>
       </Defs>
       <G mask="url(#robM)">
-        <Path
-          fill="#F0E68C"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
+        {!transparentBg && (
+          <Path
+            fill="#F0E68C"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+        )}
         <Path
           fill="#212121"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
@@ -122,4 +132,4 @@ const RobotoicPhoneFace = ({
     </Svg>
   );
 };
-export default React.memo(RobotoicPhoneFace);
+export default React.memo(RoboticPhoneFace);

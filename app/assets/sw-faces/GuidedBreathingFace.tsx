@@ -36,6 +36,7 @@ interface SvgIconProps extends SvgProps {
   height?: number | string;
   phase?: BreathingPhase;
   shouldAnimate?: boolean;
+  transparentBg?: boolean;
 }
 
 const GuidedBreathingFace = ({
@@ -44,6 +45,7 @@ const GuidedBreathingFace = ({
   height,
   phase = "idle",
   shouldAnimate = true,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -176,6 +178,7 @@ const GuidedBreathingFace = ({
         height: activeHeight as any,
         borderRadius: (typeof activeWidth === "number" ? activeWidth : 48) / 2,
         overflow: "hidden",
+        backgroundColor: transparentBg ? "transparent" : undefined,
       }}
     >
       <Svg
@@ -210,7 +213,7 @@ const GuidedBreathingFace = ({
         {/* Main Face Group - Scaling animation applied here */}
         <AnimatedG origin="24, 24" animatedProps={animatedGroupProps}>
           {/* 1. SKY BACKGROUND - Using Path instead of Rect to ensure compatibility */}
-          <Path d="M0 0 H48 V48 H0 Z" fill="url(#night_sky)" />
+          {!transparentBg && <Path d="M0 0 H48 V48 H0 Z" fill="url(#night_sky)" />}
 
           {/* 2. STARS (Static) */}
           <Circle cx="10" cy="10" r="0.5" fill="#FFF" opacity="0.8" />

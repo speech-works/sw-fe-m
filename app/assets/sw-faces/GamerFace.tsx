@@ -30,6 +30,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const GamerFace = ({
@@ -37,6 +38,7 @@ const GamerFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -119,10 +121,12 @@ const GamerFace = ({
           </Mask>
         </Defs>
         <G mask="url(#gamM)">
-          <Path
-            fill="#A259FB"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
+          {!transparentBg && (
+            <Path
+              fill="#A259FB"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          )}
           <Path
             fill="#FFDABF"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

@@ -30,6 +30,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const HeadphoneFace = ({
@@ -37,6 +38,7 @@ const HeadphoneFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -116,7 +118,7 @@ const HeadphoneFace = ({
           </Mask>
         </Defs>
         <G mask="url(#headM)">
-          <Circle cx="24" cy="24" r="24" fill="#AD1457" />
+          {!transparentBg && <Circle cx="24" cy="24" r="24" fill="#AD1457" />}
           <AnimatedG animatedProps={thumbProps}>
             <Rect
               x="6"

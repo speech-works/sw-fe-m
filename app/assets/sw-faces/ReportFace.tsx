@@ -5,11 +5,11 @@ import Animated, {
     useSharedValue,
     withRepeat,
     withSequence,
-    withTiming
-,
+    withTiming,
+    Easing,
     cancelAnimation} from "react-native-reanimated";
 
-import { Easing, View } from "react-native";
+import { View } from "react-native";
 import Svg, {
     Circle,
     Defs,
@@ -29,6 +29,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const ReportFace = ({
@@ -36,6 +37,7 @@ const ReportFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -89,7 +91,7 @@ const ReportFace = ({
             <Circle cx="24" cy="24" r="24" fill="#fff" />
           </Mask>
         </Defs>
-        <Circle cx="24" cy="24" r="24" fill="#FFF59D" />
+        {!transparentBg && <Circle cx="24" cy="24" r="24" fill="#FFF59D" />}
         <G mask="url(#repM)">
           <Rect x="4" y="24" width="8" height="20" rx="2" fill="#FF7043" />
           <Rect x="16" y="10" width="8" height="34" rx="2" fill="#FF7043" />

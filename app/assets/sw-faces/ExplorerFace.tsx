@@ -22,6 +22,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const GlassesGroup = () => (
@@ -62,6 +63,7 @@ const ExcitedTouristMapFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -218,7 +220,7 @@ const ExcitedTouristMapFace = ({
         fill="none"
         {...props}
       >
-        <Path fill="#01579B" d="M0 0h48v48H0z" />
+        {!transparentBg && <Path fill="#01579B" d="M0 0h48v48H0z" />}
         <AnimatedG animatedProps={map1Props}>
           <G fill="#4CAF50" opacity="0.9">
             <Path d="M2 2l10-2l6 5l-4 7l-6 3l-6-3zM22 1l4-1l2 4l-4 2zM30 5l5-3l10 2l3 8l-8 6l-8-3zM42 22l6 2l-2 11l-6 3l-2-8zM4 35l8 3l-2 10H2V35zM38 42l6-2l2 5l-4 3H36l2-6z" />

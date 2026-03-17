@@ -26,6 +26,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
+  transparentBg?: boolean;
 }
 
 const TongueTwisterFace = ({
@@ -33,6 +34,7 @@ const TongueTwisterFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -92,6 +94,7 @@ const TongueTwisterFace = ({
         height: activeHeight as any,
         borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
+        backgroundColor: transparentBg ? "transparent" : undefined,
       }}
     >
       <Svg
@@ -101,10 +104,12 @@ const TongueTwisterFace = ({
         fill="none"
         {...props}
       >
-        <Path
-          fill="#6A1B9A"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
+        {!transparentBg && (
+          <Path
+            fill="#6A1B9A"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+        )}
         <Path
           fill="#FFCCBC"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

@@ -22,6 +22,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const ListenerFace = ({
@@ -29,6 +30,7 @@ const ListenerFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -111,10 +113,12 @@ const ListenerFace = ({
           </Mask>
         </Defs>
         <G mask="url(#lisM)">
-          <Path
-            fill="#5C6BC0"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
+          {!transparentBg && (
+            <Path
+              fill="#5C6BC0"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          )}
           <AnimatedG animatedProps={headProps}>
             <Path
               fill="#FFCCBC"

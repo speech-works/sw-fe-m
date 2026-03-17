@@ -30,6 +30,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const MovieFace = ({
@@ -39,6 +40,7 @@ const MovieFace = ({
   shouldAnimate = false,
   loop = false,
   repeatCount = 1,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -104,7 +106,7 @@ const MovieFace = ({
             <Rect x="26" y="22" width="10" height="6" rx="1" />
           </ClipPath>
         </Defs>
-        <Circle cx="24" cy="24" r="24" fill="#5200B7" />
+        {!transparentBg && <Circle cx="24" cy="24" r="24" fill="#5200B7" />}
         <G clipPath="url(#faceClip)">
           <Path
             fill="black"

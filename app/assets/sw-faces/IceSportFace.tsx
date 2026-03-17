@@ -22,6 +22,7 @@ interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   repeatCount?: number;
+  transparentBg?: boolean;
 }
 
 const IceSportFace = ({
@@ -29,6 +30,7 @@ const IceSportFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -103,7 +105,7 @@ const IceSportFace = ({
           </Mask>
         </Defs>
         <G mask="url(#iceM)">
-          <Circle cx="24" cy="24" r="24" fill="#0277BD" />
+          {!transparentBg && <Circle cx="24" cy="24" r="24" fill="#0277BD" />}
           <G>
             <Path
               d="M0 48L0 28l8-10l8 6l8-12l8 8l8-12l6 8l2-2v34z"

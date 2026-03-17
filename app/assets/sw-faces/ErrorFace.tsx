@@ -20,6 +20,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
+  transparentBg?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ const ErrorFace = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -166,7 +168,7 @@ const ErrorFace = ({
         height: activeHeight as any,
         borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
-        backgroundColor: "#B0BEC5",
+        backgroundColor: transparentBg ? "transparent" : "#B0BEC5",
       }}
     >
       {/* Tier 2: slides on the native compositor thread */}

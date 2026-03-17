@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Easing, View } from "react-native";
+import { View } from "react-native";
 import Animated, {
     useAnimatedProps,
     useDerivedValue,
@@ -8,6 +8,7 @@ import Animated, {
     withRepeat,
     withSequence,
     withTiming,
+    Easing,
  cancelAnimation} from "react-native-reanimated";
 import Svg, {
     Circle,
@@ -28,6 +29,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
+  transparentBg?: boolean;
 }
 
 const WiseFace_RoadCaptain = ({
@@ -35,6 +37,7 @@ const WiseFace_RoadCaptain = ({
   width,
   height,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -116,10 +119,12 @@ const WiseFace_RoadCaptain = ({
             <Circle cx="1.75" cy="1.75" r="0.7" fill="#212121" opacity="0.6" />
           </Pattern>
         </Defs>
-        <Path
-          fill="#424242"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
+        {!transparentBg && (
+          <Path
+            fill="#424242"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+        )}
         <Path
           fill="#FFCC80"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

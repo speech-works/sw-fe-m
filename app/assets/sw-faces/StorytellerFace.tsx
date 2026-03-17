@@ -22,6 +22,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
+  transparentBg?: boolean;
 }
 
 const StorytellerFace = ({
@@ -31,6 +32,7 @@ const StorytellerFace = ({
   shouldAnimate,
   loop,
   repeatCount,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -94,6 +96,7 @@ const StorytellerFace = ({
         height: activeHeight as any,
         borderRadius: (Number(activeWidth) || 48) / 2,
         overflow: "hidden",
+        backgroundColor: transparentBg ? "transparent" : undefined,
       }}
     >
       <Svg
@@ -103,16 +106,20 @@ const StorytellerFace = ({
         fill="none"
         {...props}
       >
-        <Path
-          fill="#80CBC4"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24C37.255 48 48 37.255 48 24z"
-        />
-        <Path
-          fill="black"
-          opacity={0.25}
-          transform="translate(1, 1)"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
+        {!transparentBg && (
+          <>
+            <Path
+              fill="#80CBC4"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24C37.255 48 48 37.255 48 24z"
+            />
+            <Path
+              fill="black"
+              opacity={0.25}
+              transform="translate(1, 1)"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+          </>
+        )}
         <Path
           fill="#FFCCBC"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

@@ -20,6 +20,7 @@ interface SvgIconProps extends SvgProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
+  transparentBg?: boolean;
 }
 
 const PulsingRing = ({ delay, size }: { delay: number; size: number }) => {
@@ -85,6 +86,7 @@ const MeditationFace = ({
   shouldAnimate,
   loop,
   repeatCount,
+  transparentBg = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
@@ -102,12 +104,17 @@ const MeditationFace = ({
         height: activeHeight as any,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: transparentBg ? "transparent" : undefined,
       }}
     >
-      <PulsingRing delay={0} size={parsedWidth} />
-      <PulsingRing delay={1000} size={parsedWidth} />
-      <PulsingRing delay={2000} size={parsedWidth} />
-      <PulsingRing delay={3000} size={parsedWidth} />
+        {!transparentBg && (
+          <>
+            <PulsingRing delay={0} size={parsedWidth} />
+            <PulsingRing delay={1000} size={parsedWidth} />
+            <PulsingRing delay={2000} size={parsedWidth} />
+            <PulsingRing delay={3000} size={parsedWidth} />
+          </>
+        )}
 
       <View
         style={{
@@ -124,10 +131,12 @@ const MeditationFace = ({
           fill="none"
           {...props}
         >
-          <Path
-            fill="#3F51B5"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
+          {!transparentBg && (
+            <Path
+              fill="#3F51B5"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          )}
           <Path
             fill="#FFDAB9" // Changed to a more neutral skin tone
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"

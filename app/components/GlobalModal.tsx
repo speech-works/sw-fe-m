@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
-import ErrorFace from "../assets/sw-faces/ErrorFace";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
@@ -29,8 +28,9 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import TherapistFace from "../assets/sw-faces/TherapistFace";
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
+import { ReadingFace } from "../assets/sw-faces/ReadingFace";
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
@@ -136,10 +136,14 @@ const GlobalModal = () => {
       {modalType === "success" && <BgPattern_GradientSpheres />}
 
       {(modalType === "upsell" || modalType === "error") && (
-        <View style={[
-          styles.warningBanner,
-          modalType === "error" && { backgroundColor: theme.colors.feedback.error }
-        ]}>
+        <View
+          style={[
+            styles.warningBanner,
+            modalType === "error" && {
+              backgroundColor: theme.colors.feedback.error,
+            },
+          ]}
+        >
           <View style={styles.bannerTextContent}>
             <Text style={styles.bannerTitle}>{modalTitle}</Text>
             <Text style={styles.bannerMessage}>{modalMessage}</Text>
@@ -147,10 +151,8 @@ const GlobalModal = () => {
 
           {/* Face Watermark - Bottom Right */}
           <View style={styles.faceWatermark}>
-            {modalType === "upsell" ? (
-              <TherapistFace size={160} transparentBg shouldAnimate />
-            ) : modalType === "error" ? (
-              <ErrorFace size={160} />
+            {modalType === "upsell" || modalType === "error" ? (
+              <ReadingFace size={160} transparentBg shouldAnimate />
             ) : (
               <HappyScreamFace size={160} />
             )}
@@ -159,7 +161,7 @@ const GlobalModal = () => {
       )}
 
       <View style={styles.modalContent}>
-        {(modalType === "success") && (
+        {modalType === "success" && (
           <>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
             <Text style={styles.modalMessage}>{modalMessage}</Text>
@@ -178,7 +180,7 @@ const GlobalModal = () => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-               contentContainerStyle={styles.premiumBenefitsContainer}
+              contentContainerStyle={styles.premiumBenefitsContainer}
               decelerationRate="fast"
               snapToInterval={CARD_WIDTH + CARD_GAP}
             >
@@ -305,9 +307,9 @@ const styles = StyleSheet.create({
   },
   faceWatermark: {
     position: "absolute",
-    bottom: -28,
+    bottom: -32,
     right: -10,
-    opacity: 0.15,
+    //opacity: 0.15,
     zIndex: 1,
   },
   bannerTitle: {
