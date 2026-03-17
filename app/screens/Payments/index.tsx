@@ -1,7 +1,8 @@
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native"; 
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -33,11 +34,16 @@ const SubscribeScreen = () => {
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
+    if (loading) return;
+
     try {
+      setLoading(true);
       if (!user?.id) {
         triggerToast("error", "Error", "User not found. Please log in.");
+        setLoading(false);
         return;
       }
 
@@ -48,7 +54,10 @@ const SubscribeScreen = () => {
       });
 
       const order = response;
-      if (!order?.orderId) return;
+      if (!order?.orderId) {
+        setLoading(false);
+        return;
+      }
 
       const options: CheckoutOptions = {
         description: "SpeechWorks Premium Subscription",
@@ -64,12 +73,13 @@ const SubscribeScreen = () => {
           name: user.name || "User",
         },
         theme: {
-          color: "#D4AF37",
+          color: theme.colors.actionPrimary.default || "#D4AF37",
         },
       };
 
       RazorpayCheckout.open(options)
         .then((paymentData: any) => {
+          setLoading(false);
           triggerToast(
             "success",
             "Welcome to Premium!",
@@ -78,9 +88,10 @@ const SubscribeScreen = () => {
           navigation.goBack();
         })
         .catch((error: any) => {
+          setLoading(false);
           // Check if it's a user cancellation (error code 2)
           console.log("Razorpay Error:", error.code, error.description);
-          if (error.code === 2) {
+          if (error.code === 2 || String(error.code) === "2") {
             // User cancelled, do nothing
             return;
           }
@@ -92,11 +103,12 @@ const SubscribeScreen = () => {
           );
         });
     } catch (err) {
+      setLoading(false);
       triggerToast("error", "Payment Failed", "Something went wrong.");
     }
   };
 
-  return (
+    return (
     <ScreenView style={styles.screenView}>
       {/* Background Layer */}
       <View style={StyleSheet.absoluteFillObject}>
@@ -314,6 +326,7 @@ const SubscribeScreen = () => {
             <TouchableOpacity
               onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.ANNUALLY)}
               activeOpacity={0.9}
+              disabled={loading}
               style={[
                 styles.planCard,
                 paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
@@ -361,6 +374,7 @@ const SubscribeScreen = () => {
             <TouchableOpacity
               onPress={() => setPaymentPlan(PAYMENT_PLAN_TYPE.MONTHLY)}
               activeOpacity={0.9}
+              disabled={loading}
               style={[
                 styles.planCard,
                 paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
@@ -398,9 +412,10 @@ const SubscribeScreen = () => {
       {/* Persistent Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.upgradeBtnWrapper}
+          style={[styles.upgradeBtnWrapper, loading && { opacity: 0.7 }]}
           activeOpacity={0.85}
           onPress={handlePayment}
+          disabled={loading}
         >
           <LinearGradient
             colors={["#D4AF37", "#B8860B", "#996515"]}
@@ -408,11 +423,15 @@ const SubscribeScreen = () => {
             end={{ x: 1, y: 1 }}
             style={styles.upgradeBtn}
           >
-            <Text style={styles.upgradeBtnText}>
-              {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                ? "Start 7-Day Free Trial"
-                : "Unlock Full Access"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.upgradeBtnText}>
+                {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                  ? "Start 7-Day Free Trial"
+                  : "Unlock Full Access"}
+              </Text>
+            )}
             <View style={styles.btnShine} />
           </LinearGradient>
         </TouchableOpacity>
@@ -816,3 +835,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+// bundle refresh

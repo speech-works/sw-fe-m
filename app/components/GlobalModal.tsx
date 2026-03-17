@@ -130,8 +130,11 @@ const GlobalModal = () => {
       {modalType === "error" && <BgPattern_DriftingPieces />}
       {modalType === "success" && <BgPattern_GradientSpheres />}
 
-      {modalType === "upsell" && (
-        <View style={styles.warningBanner}>
+      {(modalType === "upsell" || modalType === "error") && (
+        <View style={[
+          styles.warningBanner,
+          modalType === "error" && { backgroundColor: theme.colors.feedback.error }
+        ]}>
           <View style={styles.bannerTextContent}>
             <Text style={styles.bannerTitle}>{modalTitle}</Text>
             <Text style={styles.bannerMessage}>{modalMessage}</Text>
@@ -151,18 +154,14 @@ const GlobalModal = () => {
       )}
 
       <View style={styles.modalContent}>
-        {modalType !== "upsell" && (
+        {(modalType === "success") && (
           <>
             <Text style={styles.modalTitle}>{modalTitle}</Text>
             <Text style={styles.modalMessage}>{modalMessage}</Text>
 
             <View style={styles.faceWrapper}>
               <Animated.View style={animatedFaceStyle}>
-                {modalType === "error" ? (
-                  <ErrorFace size={120} />
-                ) : (
-                  <HappyScreamFace size={120} />
-                )}
+                <HappyScreamFace size={120} />
               </Animated.View>
             </View>
           </>

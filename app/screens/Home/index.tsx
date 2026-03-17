@@ -66,6 +66,20 @@ const Home = () => {
   // Resume Modal State
   const [showResumeModal, setShowResumeModal] = useState(false);
 
+  // Pagination & Visibility Logic (Derived State)
+  const showOnboarding = user && !user.hasCompletedOnboarding;
+  const showOases = !!oasesProgress && !showOnboarding;
+  const showMoodCheck = !hasRecordedToday;
+
+  const cards = [];
+  if (showOnboarding) cards.push("onboarding");
+  else if (showOases) cards.push("oases");
+
+  if (showMoodCheck) cards.push("mood");
+
+  const totalPages = cards.length;
+  const paginationData = Array.from({ length: totalPages }, (_, i) => i);
+
   // Resume Handler
   const handleResumeOnboarding = () => {
     setShowResumeModal(false);
@@ -91,7 +105,10 @@ const Home = () => {
 
   // --- OASES Rapid Collection Auto-Start ---
   React.useEffect(() => {
-    if (!user?.hasCompletedOnboarding) return;
+    if (!user?.hasCompletedOnboarding) {
+      setLoadingOases(false);
+      return;
+    }
 
     const initOases = async () => {
       try {
@@ -171,7 +188,10 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (!loadingOases && interactionsDone && isZone1Measured) {
+    // If there are no cards, we don't need to wait for Zone 1 measurement
+    const isCarouselReady = totalPages > 0 ? isZone1Measured : true;
+
+    if (!loadingOases && interactionsDone && isCarouselReady) {
       // Extended stability pause - wait for UI to fully settle in native layer
       const timer = setTimeout(() => {
         setIsTourReady(true);
@@ -180,7 +200,7 @@ const Home = () => {
     } else {
       setIsTourReady(false);
     }
-  }, [loadingOases, interactionsDone, isZone1Measured]);
+  }, [loadingOases, interactionsDone, isZone1Measured, totalPages]);
 
   // --- Tour Setup ---
   const verticalScrollRef = useRef<ScrollView>(null);
@@ -242,26 +262,6 @@ const Home = () => {
     [scrollX],
   );
 
-  // Calculate total pages logic
-  const showOnboarding = user && !user.hasCompletedOnboarding;
-  const showOases = !!oasesProgress && !showOnboarding;
-  const showMoodCheck = !hasRecordedToday;
-
-  const cards = [];
-  if (showOnboarding) cards.push("onboarding");
-  else if (showOases) cards.push("oases");
-
-  if (showMoodCheck) cards.push("mood");
-
-  const totalPages = cards.length;
-  const paginationData = Array.from({ length: totalPages }, (_, i) => i);
-
-  if (totalPages === 0) {
-    // If no cards, hide the whole carousel section?
-    // Or just render nothing inside.
-    // The View container has margins, might want to return null or hide it.
-    // For now, let's just let it be empty or hide if totalPages 0
-  }
 
   const currentHour = new Date().getHours();
   const greeting =

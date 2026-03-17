@@ -50,8 +50,9 @@ export const useAppTour = (
         // Initial start to initialize the state
         start();
 
-        // All tours now start at step 1
-        const startingStep = 1;
+        // If the first zone isn't available (e.g. no carousel), skip to step 3
+        const startingStep =
+          tourKey === "home" && !zoneLayouts.current?.[1] ? 3 : 1;
         const maxSteps = tourKey === "home" ? 8 : 3;
 
         setTimeout(() => {
