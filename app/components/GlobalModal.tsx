@@ -205,34 +205,22 @@ const GlobalModal = () => {
               >
                 {[
                   {
-                    title: "Unlimited",
-                    subtitle: "Daily Flow",
+                    title: "Unlimited Exercises",
+                    subtitle: "ACCESS",
                     icon: "infinity",
-                    colors: [
-                      "rgba(255, 255, 255, 0.05)",
-                      "rgba(255, 255, 255, 0.01)",
-                    ],
-                    borderColor: "rgba(212, 175, 55, 0.15)",
+                    description: "Practice without restriction.",
                   },
                   {
-                    title: "AI Calls",
-                    subtitle: "Real-time",
+                    title: "AI Calls Feature",
+                    subtitle: "MASTERY",
                     icon: "phone-alt",
-                    colors: [
-                      "rgba(255, 255, 255, 0.05)",
-                      "rgba(255, 255, 255, 0.01)",
-                    ],
-                    borderColor: "rgba(212, 175, 55, 0.15)",
+                    description: "Real telephonic simulations.",
                   },
                   {
-                    title: "Expert",
-                    subtitle: "Clinical Tracks",
-                    icon: "user-md",
-                    colors: [
-                      "rgba(255, 255, 255, 0.05)",
-                      "rgba(255, 255, 255, 0.01)",
-                    ],
-                    borderColor: "rgba(212, 175, 55, 0.15)",
+                    title: "Full Access Library",
+                    subtitle: "LIBRARY",
+                    icon: "folder-open",
+                    description: "Tutorials by expert SLPs.",
                   },
                 ].map((benefit, index) => (
                   <View
@@ -241,17 +229,10 @@ const GlobalModal = () => {
                       styles.premiumBenefitCard,
                       {
                         width: CARD_WIDTH,
-                        borderColor: benefit.borderColor,
-                        borderWidth: 1,
                       },
                     ]}
                   >
-                    <LinearGradient
-                      colors={benefit.colors as any}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.cardGradient}
-                    >
+                    <View style={styles.cardGradient}>
                       <View style={styles.cardHeader}>
                         <View style={styles.glassyBadge}>
                           <Text style={styles.premiumCardSubtitle}>
@@ -261,12 +242,21 @@ const GlobalModal = () => {
                         <Text style={styles.premiumCardTitle}>
                           {benefit.title}
                         </Text>
+                        <Text style={styles.premiumCardDescription}>
+                          {benefit.description}
+                        </Text>
                       </View>
 
-                      <View style={styles.iconBox}>
-                        <Icon name={benefit.icon} size={22} color="#D4AF37" />
+                      {/* Subtle Watermark Icon */}
+                      <View style={styles.cardWatermarkContainer}>
+                        <Icon
+                          name={benefit.icon}
+                          size={100}
+                          color="#D4AF37"
+                          style={styles.watermarkIcon}
+                        />
                       </View>
-                    </LinearGradient>
+                    </View>
                   </View>
                 ))}
               </ScrollView>
@@ -382,9 +372,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 0,
     marginBottom: 0,
-    backgroundColor: "#0F172A",
-    paddingTop: 32,
-    paddingBottom: 60,
+    backgroundColor: "#F5F0EA", // Deeper cream for high-contrast white card framing
+    paddingTop: 40,
+    paddingBottom: 64,
     position: "relative",
     overflow: "hidden",
   },
@@ -398,14 +388,14 @@ const styles = StyleSheet.create({
     top: -20,
     left: -30,
     transform: [{ rotate: "-15deg" }],
-    opacity: 0.02,
+    opacity: 0.05,
   },
   watermark2: {
     position: "absolute",
     bottom: 20,
     right: -20,
     transform: [{ rotate: "15deg" }],
-    opacity: 0.015,
+    opacity: 0.04,
   },
 
   premiumBenefitsContainer: {
@@ -416,55 +406,66 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   premiumBenefitCard: {
-    aspectRatio: 1.05,
+    aspectRatio: 1.05, // Original proportions restored
     borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "#FFFFFF",
     overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#D4AF37",
+    ...parseShadowStyle(theme.shadow.elevation4),
   },
   cardGradient: {
     flex: 1,
-    padding: 18,
-    justifyContent: "space-between",
+    padding: 16, // Reduced from 18/24 for better content fit coverage
+    justifyContent: "flex-start",
     position: "relative",
   },
-  iconBox: {
-    alignSelf: "flex-end",
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-    zIndex: 2,
+  cardWatermarkContainer: {
+    position: "absolute",
+    right: -10,
+    bottom: -10,
+    opacity: 0.1,
+    transform: [{ rotate: "-15deg" }],
+  },
+  watermarkIcon: {
+    // Subtle Large Icon
   },
   cardHeader: {
     zIndex: 2,
-    gap: 6,
+    gap: 0,
   },
   glassyBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
+    backgroundColor: "#D4AF37",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginBottom: 8, // Reduced from 12 to save vertical space
   },
   premiumCardSubtitle: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#D4AF37",
+    color: "#FFFFFF",
     fontWeight: "900",
     textTransform: "uppercase",
     fontSize: 9,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   premiumCardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-    fontSize: 20,
+    color: "#1A202C",
+    fontSize: 16, // Balanced for the 1.05 aspect ratio and tight spacing
     fontWeight: "800",
+    letterSpacing: -0.5,
+    lineHeight: 20, // Tightened from 24 to save space for description
+    marginBottom: 4, // Tightened from 8 to fit descriptions below
+  },
+  premiumCardDescription: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "rgba(26, 32, 44, 0.7)",
+    fontSize: 12, // Sufficient for readability while fitting 3 lines
+    lineHeight: 16, // Tightened from 18 for compact description wrapping
+    fontWeight: "500",
+    maxWidth: "95%",
   },
 
   ctaGroupContainer: {
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
   },
   trustText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#94A3B8",
+    color: theme.colors.text.default,
     fontSize: 10,
     fontWeight: "500",
   },
