@@ -313,6 +313,7 @@ const LoginScreen = () => {
 
           {/* Footer / Legal */}
           <View style={styles.legalContainer}>
+{/* 
             <Text style={styles.legalText}>
               By continuing, you agree to our{" "}
               <Text
@@ -323,6 +324,7 @@ const LoginScreen = () => {
               </Text>
             </Text>
             <View style={{ height: 16 }} />
+            */}
             <Text style={styles.legalText}>
               Need help?{" "}
               <Text
