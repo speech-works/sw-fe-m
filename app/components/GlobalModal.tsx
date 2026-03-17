@@ -173,28 +173,20 @@ const GlobalModal = () => {
 
           {modalType === "upsell" && (
             <View style={styles.upsellSection}>
-              {/* Explore Pattern: Large rotated watermark icons in background */}
               <View style={styles.watermarkContainer} pointerEvents="none">
                 <Icon
                   name="crown"
-                  size={120}
-                  color="rgba(255,255,255,0.03)"
+                  size={140}
+                  color="#D4AF37"
                   style={styles.watermark1}
                 />
                 <Icon
-                  name="medal"
+                  name="gem"
                   size={100}
-                  color="rgba(255,255,255,0.02)"
+                  color="#D4AF37"
                   style={styles.watermark2}
                 />
-                <Icon
-                  name="lock-open"
-                  size={80}
-                  color="rgba(255,255,255,0.02)"
-                  style={styles.watermark3}
-                />
               </View>
-
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -207,31 +199,22 @@ const GlobalModal = () => {
                     title: "Unlimited",
                     subtitle: "Daily Flow",
                     icon: "infinity",
-                    colors: [
-                      "rgba(255, 216, 181, 1)",
-                      "rgba(255, 171, 118, 0.95)",
-                    ], // Warm Orange
-                    shadow: "#FFAB76",
+                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                   {
                     title: "AI Calls",
                     subtitle: "Real-time",
                     icon: "phone-alt",
-                    colors: [
-                      "rgba(203, 240, 240, 1)",
-                      "rgba(152, 230, 230, 0.95)",
-                    ], // Teal
-                    shadow: "#98E6E6",
+                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                   {
                     title: "Expert",
                     subtitle: "Clinical Tracks",
                     icon: "user-md",
-                    colors: [
-                      "rgba(235, 203, 245, 1)",
-                      "rgba(216, 167, 240, 0.95)",
-                    ], // Lavender
-                    shadow: "#D8A7F0",
+                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                 ].map((benefit, index) => (
                   <View
@@ -240,7 +223,8 @@ const GlobalModal = () => {
                       styles.premiumBenefitCard,
                       {
                         width: CARD_WIDTH,
-                        shadowColor: benefit.shadow,
+                        borderColor: benefit.borderColor,
+                        borderWidth: 1,
                       },
                     ]}
                   >
@@ -250,46 +234,7 @@ const GlobalModal = () => {
                       end={{ x: 1, y: 1 }}
                       style={styles.cardGradient}
                     >
-                      {/* Library Pattern: Decorative bubbling textures */}
-                      <View
-                        style={[
-                          styles.bubble,
-                          {
-                            width: 80,
-                            height: 80,
-                            top: -20,
-                            right: -20,
-                            opacity: 0.25,
-                          },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.bubble,
-                          {
-                            width: 50,
-                            height: 50,
-                            bottom: 0,
-                            left: -10,
-                            opacity: 0.15,
-                          },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.bubble,
-                          {
-                            width: 30,
-                            height: 30,
-                            top: 40,
-                            right: 60,
-                            opacity: 0.1,
-                          },
-                        ]}
-                      />
-
                       <View style={styles.cardHeader}>
-                        {/* Library Pattern: Glassy Badge for subtitles */}
                         <View style={styles.glassyBadge}>
                           <Text style={styles.premiumCardSubtitle}>
                             {benefit.subtitle}
@@ -300,12 +245,11 @@ const GlobalModal = () => {
                         </Text>
                       </View>
 
-                      {/* Library Pattern: Icon Circle with shadow */}
-                      <View style={styles.iconCircle}>
+                      <View style={styles.iconBox}>
                         <Icon
                           name={benefit.icon}
                           size={22}
-                          color="rgba(0,0,0,0.6)"
+                          color="#D4AF37"
                         />
                       </View>
                     </LinearGradient>
@@ -324,14 +268,15 @@ const GlobalModal = () => {
                     style={styles.upsellButtonContainer}
                   >
                     <LinearGradient
-                      colors={["#F97316", "#DC2626"]}
+                      colors={["#D4AF37", "#B8860B", "#996515"]}
                       start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
+                      end={{ x: 1, y: 1 }}
                       style={styles.upsellButton}
                     >
                       <Text style={styles.upsellButtonText}>
                         Unlock Full Access
                       </Text>
+                      <View style={styles.btnShine} />
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -355,8 +300,7 @@ export default GlobalModal;
 
 const styles = StyleSheet.create({
   modalContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 60, // Increased gap to ensure visibility
+    paddingBottom: 0,
   },
   faceWrapper: {
     alignItems: "center",
@@ -413,39 +357,37 @@ const styles = StyleSheet.create({
     maxWidth: "95%",
   },
   upsellSection: {
-    width: "100%",
+    width: SCREEN_WIDTH,
     alignItems: "center",
-    marginTop: 12, // Reduced from 20
-    marginBottom: 20,
-    backgroundColor: "#1E1B4B",
-    borderRadius: 32,
-    paddingVertical: 28, // Reduced from 32
+    marginTop: 0,
+    marginBottom: 0,
+    backgroundColor: "#0F172A",
+    paddingTop: 32,
+    paddingBottom: 60,
     position: "relative",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation4),
   },
   watermarkContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
+    overflow: "hidden",
   },
   watermark1: {
     position: "absolute",
     top: -20,
     left: -30,
     transform: [{ rotate: "-15deg" }],
+    opacity: 0.02,
   },
   watermark2: {
     position: "absolute",
-    bottom: 40,
+    bottom: 20,
     right: -20,
     transform: [{ rotate: "15deg" }],
+    opacity: 0.015,
   },
-  watermark3: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    transform: [{ rotate: "10deg" }],
-  },
+
+
   premiumBenefitsContainer: {
     paddingLeft: 20,
     paddingRight: 40,
@@ -456,11 +398,8 @@ const styles = StyleSheet.create({
   premiumBenefitCard: {
     aspectRatio: 1.05,
     borderRadius: 24,
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(255, 255, 255, 0.05)", 
     overflow: "hidden",
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
   },
   cardGradient: {
     flex: 1,
@@ -468,10 +407,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     position: "relative",
   },
-  bubble: {
-    position: "absolute",
-    backgroundColor: "white",
-    borderRadius: 999,
+  iconBox: {
+    alignSelf: "flex-end",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.2)",
+    zIndex: 2,
   },
   cardHeader: {
     zIndex: 2,
@@ -479,38 +425,28 @@ const styles = StyleSheet.create({
   },
   glassyBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(212, 175, 55, 0.1)",
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderColor: "rgba(212, 175, 55, 0.2)",
   },
   premiumCardSubtitle: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(0,0,0,0.6)",
-    fontWeight: "800",
+    color: "#D4AF37",
+    fontWeight: "900",
     textTransform: "uppercase",
     fontSize: 9,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   premiumCardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: "rgba(0,0,0,0.85)",
+    color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: "900",
+    fontWeight: "800",
   },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    zIndex: 2,
-  },
+
   ctaGroupContainer: {
     width: "100%",
     paddingHorizontal: 20,
@@ -529,9 +465,20 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation4),
   },
   upsellButton: {
-    paddingVertical: 16, // Reduced from 20
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  btnShine: {
+    position: "absolute",
+    top: 0,
+    left: "-100%",
+    width: "50%",
+    height: "100%",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    transform: [{ skewX: "-25deg" }],
   },
   upsellButtonText: {
     ...parseTextStyle(theme.typography.Heading3),
