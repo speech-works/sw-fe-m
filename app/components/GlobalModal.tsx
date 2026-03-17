@@ -31,6 +31,9 @@ import Animated, {
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
 import { ReadingFace } from "../assets/sw-faces/ReadingFace";
 import LoaderFace from "../assets/sw-faces/LoaderFace";
+import VoidFace from "../assets/sw-faces/VoidFace";
+import FireFly from "../assets/sw-faces/FireFly";
+import ButterflyFace from "../assets/sw-faces/ButterflyFace";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -153,7 +156,7 @@ const GlobalModal = () => {
           {/* Face Watermark - Bottom Right */}
           <View style={styles.faceWatermark}>
             {modalType === "upsell" || modalType === "error" ? (
-              <LoaderFace size={160} transparentBg shouldAnimate />
+              <ButterflyFace size={160} transparentBg shouldAnimate />
             ) : (
               <HappyScreamFace size={160} />
             )}
