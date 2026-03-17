@@ -149,7 +149,7 @@ const Community = () => {
           </Animated.View>
 
           {/* Digital Tracker Card */}
-          <View style={{ position: "relative" }}>
+          <View style={{ position: "relative", marginTop: 40 }}>
             <View
               style={{
                 position: "absolute",
@@ -161,7 +161,14 @@ const Community = () => {
                 overflow: "hidden",
               }}
             >
-              <ButterflyFace size={160} shouldAnimate={true} transparentBg />
+              <ButterflyFace
+                size={160}
+                shouldAnimate={true}
+                transparentBg
+                skinColor="#7A4A2A"
+                inkColor="#1A0A00"
+                butterflyColor="#D4AF37"
+              />
             </View>
             <Animated.View
               entering={FadeInDown.duration(1000).delay(400)}

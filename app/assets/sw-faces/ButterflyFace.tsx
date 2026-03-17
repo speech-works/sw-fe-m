@@ -35,6 +35,9 @@ export interface FaceProps extends SvgProps {
   size?: number | string;
   shouldAnimate?: boolean;
   transparentBg?: boolean;
+  skinColor?: string;
+  inkColor?: string;
+  butterflyColor?: string;
 }
 
 /**
@@ -46,6 +49,9 @@ export const ButterflyFace: React.FC<FaceProps> = ({
   size = 100,
   shouldAnimate = true,
   transparentBg = false,
+  skinColor = SKIN_COLOR,
+  inkColor = INK_COLOR,
+  butterflyColor = "#D946EF",
   style,
   ...props
 }) => {
@@ -172,44 +178,18 @@ export const ButterflyFace: React.FC<FaceProps> = ({
           {!transparentBg && (
             <Circle cx="24" cy="24" r="24" fill="#FDF4FF" />
           )}
-          <Path d={FACE_PATH} fill={SKIN_COLOR} />
+          <Path d={FACE_PATH} fill={skinColor} />
 
-          <Circle
-            cx="16"
-            cy="24"
-            r="4.5"
-            fill="#FFF"
-            stroke={INK_COLOR}
-            strokeWidth="2"
-          />
-          <Circle
-            cx="32"
-            cy="24"
-            r="4.5"
-            fill="#FFF"
-            stroke={INK_COLOR}
-            strokeWidth="2"
-          />
+          <Circle cx="16" cy="24" r="4.5" fill="#FFF" stroke={inkColor} strokeWidth="2" />
+          <Circle cx="32" cy="24" r="4.5" fill="#FFF" stroke={inkColor} strokeWidth="2" />
 
-          <AnimatedCircle
-            cx="16"
-            cy="24"
-            r="2"
-            fill={INK_COLOR}
-            animatedProps={leftPupilProps}
-          />
-          <AnimatedCircle
-            cx="32"
-            cy="24"
-            r="2"
-            fill={INK_COLOR}
-            animatedProps={rightPupilProps}
-          />
+          <AnimatedCircle cx="16" cy="24" r="2" fill={inkColor} animatedProps={leftPupilProps} />
+          <AnimatedCircle cx="32" cy="24" r="2" fill={inkColor} animatedProps={rightPupilProps} />
 
           <AnimatedPath
             d="M 20 34 Q 24 37 28 34"
             fill="none"
-            stroke={INK_COLOR}
+            stroke={inkColor}
             strokeWidth="1.5"
             strokeLinecap="round"
             animatedProps={smileProps}
@@ -219,10 +199,10 @@ export const ButterflyFace: React.FC<FaceProps> = ({
           {!transparentBg && (
             <AnimatedG animatedProps={flyProps}>
               <AnimatedG animatedProps={flapProps}>
-                <Path d="M 24 23 L 16 17 L 18 27 Z" fill="#D946EF" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
-                <Path d="M 24 23 L 32 17 L 30 27 Z" fill="#F472B6" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+                <Path d="M 24 23 L 16 17 L 18 27 Z" fill={butterflyColor} stroke={inkColor} strokeWidth="1" strokeLinejoin="round" />
+                <Path d="M 24 23 L 32 17 L 30 27 Z" fill={butterflyColor} stroke={inkColor} strokeWidth="1" strokeLinejoin="round" />
               </AnimatedG>
-              <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill="#4A044E" />
+              <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill={inkColor} />
             </AnimatedG>
           )}
         </G>
@@ -231,10 +211,10 @@ export const ButterflyFace: React.FC<FaceProps> = ({
         {transparentBg && (
           <AnimatedG animatedProps={flyProps}>
             <AnimatedG animatedProps={flapProps}>
-              <Path d="M 24 23 L 16 17 L 18 27 Z" fill="#D946EF" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
-              <Path d="M 24 23 L 32 17 L 30 27 Z" fill="#F472B6" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+              <Path d="M 24 23 L 16 17 L 18 27 Z" fill={butterflyColor} stroke={inkColor} strokeWidth="1" strokeLinejoin="round" />
+              <Path d="M 24 23 L 32 17 L 30 27 Z" fill={butterflyColor} stroke={inkColor} strokeWidth="1" strokeLinejoin="round" />
             </AnimatedG>
-            <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill="#4A044E" />
+            <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill={inkColor} />
           </AnimatedG>
         )}
       </Svg>
