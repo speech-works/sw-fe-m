@@ -16,6 +16,7 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 const RoboticPhoneFace = ({
   size = 48,
   shouldAnimate = false,
+  transparentBg = false,
   ...props
 }: SvgProps & {
   size?: number | string;

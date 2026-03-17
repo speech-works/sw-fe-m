@@ -103,7 +103,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         <Animated.View
           style={[
             styles.modal,
-            resolvedSheetHeight != null ? { maxHeight: resolvedSheetHeight } : {},
+            resolvedSheetHeight != null ? { height: resolvedSheetHeight } : {},
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
