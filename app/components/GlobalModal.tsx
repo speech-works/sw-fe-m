@@ -138,11 +138,6 @@ const GlobalModal = () => {
               },
             ]}
           >
-            <View style={styles.bannerTextContent}>
-              <Text style={styles.bannerTitle}>{modalTitle}</Text>
-              <Text style={styles.bannerMessage}>{modalMessage}</Text>
-            </View>
-
             <View style={styles.faceWatermark}>
               {modalType === "upsell" || modalType === "error" ? (
                 <SlotMachineFace
@@ -154,6 +149,20 @@ const GlobalModal = () => {
               ) : (
                 <HappyScreamFace size={160} />
               )}
+            </View>
+
+            {/* Subtle Legibility Overlay (Horizontal Scrim) */}
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.25)", "transparent"]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+            />
+
+            <View style={styles.bannerTextContent}>
+              <Text style={styles.bannerTitle}>{modalTitle}</Text>
+              <Text style={styles.bannerMessage}>{modalMessage}</Text>
             </View>
           </View>
         )}
@@ -199,21 +208,30 @@ const GlobalModal = () => {
                     title: "Unlimited",
                     subtitle: "Daily Flow",
                     icon: "infinity",
-                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    colors: [
+                      "rgba(255, 255, 255, 0.05)",
+                      "rgba(255, 255, 255, 0.01)",
+                    ],
                     borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                   {
                     title: "AI Calls",
                     subtitle: "Real-time",
                     icon: "phone-alt",
-                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    colors: [
+                      "rgba(255, 255, 255, 0.05)",
+                      "rgba(255, 255, 255, 0.01)",
+                    ],
                     borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                   {
                     title: "Expert",
                     subtitle: "Clinical Tracks",
                     icon: "user-md",
-                    colors: ["rgba(255, 255, 255, 0.05)", "rgba(255, 255, 255, 0.01)"],
+                    colors: [
+                      "rgba(255, 255, 255, 0.05)",
+                      "rgba(255, 255, 255, 0.01)",
+                    ],
                     borderColor: "rgba(212, 175, 55, 0.15)",
                   },
                 ].map((benefit, index) => (
@@ -246,11 +264,7 @@ const GlobalModal = () => {
                       </View>
 
                       <View style={styles.iconBox}>
-                        <Icon
-                          name={benefit.icon}
-                          size={22}
-                          color="#D4AF37"
-                        />
+                        <Icon name={benefit.icon} size={22} color="#D4AF37" />
                       </View>
                     </LinearGradient>
                   </View>
@@ -339,6 +353,7 @@ const styles = StyleSheet.create({
     bottom: -32,
     right: -10,
     zIndex: 1,
+    opacity: 0.35, // Balanced for visibility
   },
   bannerTitle: {
     color: "#FFF",
@@ -347,14 +362,20 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1.5,
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.25)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   bannerMessage: {
     color: "rgba(255, 255, 255, 0.95)",
     ...parseTextStyle(theme.typography.Body),
     textAlign: "center",
     lineHeight: 20,
-    fontWeight: "500",
+    fontWeight: "700", // Increased for readability
     maxWidth: "95%",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   upsellSection: {
     width: SCREEN_WIDTH,
@@ -387,7 +408,6 @@ const styles = StyleSheet.create({
     opacity: 0.015,
   },
 
-
   premiumBenefitsContainer: {
     paddingLeft: 20,
     paddingRight: 40,
@@ -398,7 +418,7 @@ const styles = StyleSheet.create({
   premiumBenefitCard: {
     aspectRatio: 1.05,
     borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.05)", 
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     overflow: "hidden",
   },
   cardGradient: {

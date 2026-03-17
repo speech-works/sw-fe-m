@@ -77,77 +77,81 @@ export const SlotMachineFace: React.FC<SlotMachineProps> = ({
         false
       );
 
-      // 2. Jitter Animation: Shakes during the spin (approx 400ms to 4000ms)
+      // 2. Jitter Animation: Shakes after lever pull (1000ms to 2000ms)
       jitterX.value = withRepeat(
         withSequence(
-          withDelay(400, withTiming(-0.8, { duration: 50 })),
+          withDelay(1000, withTiming(-0.8, { duration: 50 })),
           withRepeat(
             withSequence(
               withTiming(0.8, { duration: 50 }),
               withTiming(-0.8, { duration: 50 })
             ),
-            30, // Approx 3 seconds of jitter
+            9, // 9 * 100ms = 900ms + initial 50ms + final 50ms = 1000ms total jerk
             true
           ),
           withTiming(0, { duration: 50 }),
-          withDelay(CYCLE_DURATION - 4000, withTiming(0, { duration: 0 }))
+          withDelay(CYCLE_DURATION - 2000, withTiming(0, { duration: 0 }))
         ),
         -1,
         false
       );
       jitterY.value = withRepeat(
         withSequence(
-          withDelay(400, withTiming(0.8, { duration: 50 })),
+          withDelay(1000, withTiming(0.8, { duration: 50 })),
           withRepeat(
             withSequence(
               withTiming(-0.8, { duration: 50 }),
               withTiming(0.8, { duration: 50 })
             ),
-            30,
+            9,
             true
           ),
           withTiming(0, { duration: 50 }),
-          withDelay(CYCLE_DURATION - 4000, withTiming(0, { duration: 0 }))
+          withDelay(CYCLE_DURATION - 2000, withTiming(0, { duration: 0 }))
         ),
         -1,
         false
       );
 
-      // 3. Reels: Start at T=400ms when lever hits bottom
-      // Reel 1: Lands at T=3000ms
+      // 3. Reels: Start at T=2000ms after jerk stops
+      // Reel 1: Lands at T=4000ms
       reel1Y.value = withRepeat(
         withSequence(
-          withDelay(400, withTiming(-(SPIN_BASE + digits[0] * REEL_HEIGHT), { 
-            duration: 2600, 
+          // Hold the current target digit at index 0 (visual offset) during lever and jerk
+          withTiming(-(digits[0] * REEL_HEIGHT), { duration: 0 }),
+          withDelay(2000, withTiming(-(SPIN_BASE + digits[0] * REEL_HEIGHT), { 
+            duration: 2000, 
             easing: Easing.bezier(0.45, 0.05, 0.55, 0.95) 
           })),
-          withDelay(CYCLE_DURATION - 3000, withTiming(0, { duration: 0 }))
+          withDelay(CYCLE_DURATION - 4000, withTiming(-(SPIN_BASE + digits[0] * REEL_HEIGHT), { duration: 0 }))
         ),
         -1,
         false
       );
 
-      // Reel 2: Lands at T=3500ms
+      // Reel 2: Lands at T=4500ms
       reel2Y.value = withRepeat(
         withSequence(
-          withDelay(400, withTiming(-(SPIN_BASE + digits[1] * REEL_HEIGHT), { 
-            duration: 3100, 
+          withTiming(-(digits[1] * REEL_HEIGHT), { duration: 0 }),
+          withDelay(2000, withTiming(-(SPIN_BASE + digits[1] * REEL_HEIGHT), { 
+            duration: 2500, 
             easing: Easing.bezier(0.45, 0.05, 0.55, 0.95) 
           })),
-          withDelay(CYCLE_DURATION - 3500, withTiming(0, { duration: 0 }))
+          withDelay(CYCLE_DURATION - 4500, withTiming(-(SPIN_BASE + digits[1] * REEL_HEIGHT), { duration: 0 }))
         ),
         -1,
         false
       );
 
-      // Reel 3: Lands at T=4000ms
+      // Reel 3: Lands at T=5000ms
       reel3Y.value = withRepeat(
         withSequence(
-          withDelay(400, withTiming(-(SPIN_BASE + digits[2] * REEL_HEIGHT), { 
-            duration: 3600, 
+          withTiming(-(digits[2] * REEL_HEIGHT), { duration: 0 }),
+          withDelay(2000, withTiming(-(SPIN_BASE + digits[2] * REEL_HEIGHT), { 
+            duration: 3000, 
             easing: Easing.bezier(0.45, 0.05, 0.55, 0.95) 
           })),
-          withDelay(CYCLE_DURATION - 4000, withTiming(0, { duration: 0 }))
+          withDelay(CYCLE_DURATION - 5000, withTiming(-(SPIN_BASE + digits[2] * REEL_HEIGHT), { duration: 0 }))
         ),
         -1,
         false
