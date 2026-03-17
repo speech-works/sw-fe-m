@@ -51,7 +51,7 @@ const OnboardingReminderCard: React.FC<Props> = ({
 
           {/* Watermark Image - Restored Face */}
           <View style={styles.faceContainer}>
-            <FinishLineFace size={160} transparentBg shouldAnimate={false} />
+            <FinishLineFace size={160} transparentBg shouldAnimate />
           </View>
 
           {/* Header Section */}
