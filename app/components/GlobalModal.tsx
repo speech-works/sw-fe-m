@@ -123,7 +123,7 @@ const GlobalModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? "77%" : "55%"}
+      maxHeight={modalType === "upsell" ? "80%" : "55%"}
       showCloseButton={true}
     >
       <View style={{ flex: 1 }}>
@@ -160,9 +160,11 @@ const GlobalModal = () => {
               end={{ x: 1, y: 0.5 }}
             />
 
-            <View style={styles.bannerTextContent}>
-              <Text style={styles.bannerTitle}>{modalTitle}</Text>
-              <Text style={styles.bannerMessage}>{modalMessage}</Text>
+            <View style={styles.bannerTextContainer}>
+              <View style={styles.bannerTextContent}>
+                <Text style={styles.bannerTitle}>{modalTitle}</Text>
+                <Text style={styles.bannerMessage}>{modalMessage}</Text>
+              </View>
             </View>
           </View>
         )}
@@ -326,43 +328,56 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: "#FF5858",
-    paddingVertical: 24, // Reduced from 32/48
-    paddingHorizontal: 24,
-    alignItems: "center",
+    paddingVertical: 18, // Reduced from 24 to maintain height if text wraps
+    paddingLeft: 12,
+    paddingRight: 24,
+    alignItems: "flex-start",
     justifyContent: "center",
     gap: 4,
     overflow: "hidden",
     position: "relative",
   },
-  bannerTextContent: {
-    alignItems: "center",
+  bannerTextContainer: {
+    alignItems: "flex-start",
     zIndex: 2,
+    width: "100%",
+  },
+  bannerTextContent: {
+    alignItems: "flex-start",
+    //backgroundColor: "rgba(0, 0, 0, 0.44)", // Restored as backdrop is needed for white text legibility
+    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 18,
+    borderRadius: 16,
+    maxWidth: "75%", // Further increased to fit larger 20px title on one line
   },
   faceWatermark: {
     position: "absolute",
     bottom: -32,
-    right: -10,
+    right: -10, // Shifted further right to avoid collision with larger text
     zIndex: 1,
-    opacity: 0.35, // Balanced for visibility
+    opacity: 1, // Balanced for visibility
   },
   bannerTitle: {
     color: "#FFF",
     ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 20, // Increased from 18px for better readability while fitting one line
     fontWeight: "900",
     textTransform: "uppercase",
-    letterSpacing: 1.5,
-    textAlign: "center",
+    letterSpacing: 0.2, // Tighter to ensure single-line fit
+    textAlign: "left",
     textShadowColor: "rgba(0, 0, 0, 0.25)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
   bannerMessage: {
-    color: "rgba(255, 255, 255, 0.95)",
-    ...parseTextStyle(theme.typography.Body),
-    textAlign: "center",
-    lineHeight: 20,
-    fontWeight: "700", // Increased for readability
+    color: "rgba(255, 255, 255, 0.75)", // Greyish/Transparent white for contrast
+    ...parseTextStyle(theme.typography.BodyDetails), // Smaller typography token
+    textAlign: "left",
+    fontSize: 13, // Increased from 11px for better readability
+    lineHeight: 16, // Adjusted for 13px font
     maxWidth: "95%",
+    marginTop: 2,
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
