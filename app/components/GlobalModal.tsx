@@ -30,6 +30,7 @@ import Animated, {
 } from "react-native-reanimated";
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
 import { ReadingFace } from "../assets/sw-faces/ReadingFace";
+import LoaderFace from "../assets/sw-faces/LoaderFace";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -152,7 +153,7 @@ const GlobalModal = () => {
           {/* Face Watermark - Bottom Right */}
           <View style={styles.faceWatermark}>
             {modalType === "upsell" || modalType === "error" ? (
-              <ReadingFace size={160} transparentBg shouldAnimate />
+              <LoaderFace size={160} transparentBg shouldAnimate />
             ) : (
               <HappyScreamFace size={160} />
             )}
