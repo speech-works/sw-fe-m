@@ -142,9 +142,9 @@ const styles = StyleSheet.create({
   faceContainer: {
     position: "absolute",
     right: -20,
-    bottom: -20,
+    bottom: -25,
     zIndex: 1,
-    opacity: 0.15,
+    //opacity: 0.15,
   },
   content: {
     gap: 12,
