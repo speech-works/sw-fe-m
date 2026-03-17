@@ -21,7 +21,6 @@ import Svg, {
   SvgProps,
 } from "react-native-svg";
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -90,7 +89,8 @@ export const LoaderFace: React.FC<FaceProps> = ({
   const isDizzy = useDerivedValue(() => {
     // 0 to 0.66 (5s) is normal, 0.66 to 0.93 (2s) is dizzy, 0.93 to 1.0 (0.5s) is reset
     const p = dizzyProgress.value;
-    if (p > 0.66 && p < 0.93) return interpolate(p, [0.66, 0.7, 0.89, 0.93], [0, 1, 1, 0]);
+    if (p > 0.66 && p < 0.93)
+      return interpolate(p, [0.66, 0.7, 0.89, 0.93], [0, 1, 1, 0]);
     return 0;
   });
 
@@ -117,11 +117,11 @@ export const LoaderFace: React.FC<FaceProps> = ({
   const pupilProps = useAnimatedProps(() => {
     const angle = (spin.value * Math.PI) / 180;
     const dizzy = isDizzy.value;
-    
+
     // Normal follow movement
     const followX = Math.cos(angle) * 1.5;
     const followY = Math.sin(angle) * 1.5;
-    
+
     // Dizzy spiral movement (much faster and erratic)
     const dizzyAngle = angle * 4;
     const dizzyX = Math.cos(dizzyAngle) * 2.5;
@@ -142,7 +142,9 @@ export const LoaderFace: React.FC<FaceProps> = ({
         { translateX: 24 },
         { translateY: 37.5 },
         { scaleX: interpolate(dizzy, [0, 1], [1, 1.5]) },
-        { rotate: `${interpolate(dizzy, [0, 1], [0, Math.sin(spin.value * 0.1) * 10])}deg` },
+        {
+          rotate: `${interpolate(dizzy, [0, 1], [0, Math.sin(spin.value * 0.1) * 10])}deg`,
+        },
         { translateX: -24 },
         { translateY: -37.5 },
       ] as any,
@@ -193,7 +195,7 @@ export const LoaderFace: React.FC<FaceProps> = ({
             strokeDasharray="10 5"
             opacity={0.3}
           />
-          
+
           {/* Animated Loading Ring */}
           <AnimatedG animatedProps={spinProps}>
             <Circle
