@@ -123,174 +123,230 @@ const GlobalModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? "88%" : "55%"}
+      maxHeight={modalType === "upsell" ? "77%" : "55%"}
       showCloseButton={true}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={{ flex: 1 }}>
         {modalType === "error" && <BgPattern_DriftingPieces />}
-      {modalType === "success" && <BgPattern_GradientSpheres />}
-      {(modalType === "upsell" || modalType === "error") && (
-        <View
-          style={[
-            styles.warningBanner,
-            modalType === "error" && {
-              backgroundColor: theme.colors.feedback.error,
-            },
-          ]}
-        >
-          <View style={styles.bannerTextContent}>
-            <Text style={styles.bannerTitle}>{modalTitle}</Text>
-            <Text style={styles.bannerMessage}>{modalMessage}</Text>
-          </View>
-
-          <View style={styles.faceWatermark}>
-            {modalType === "upsell" || modalType === "error" ? (
-              <SlotMachineFace
-                size={160}
-                transparentBg
-                shouldAnimate
-                targetNumber="404"
-              />
-            ) : (
-              <HappyScreamFace size={160} />
-            )}
-          </View>
-        </View>
-      )}
-
-      <View style={styles.modalContent}>
-        {modalType === "success" && (
-          <>
-            <Text style={styles.modalTitle}>{modalTitle}</Text>
-            <Text style={styles.modalMessage}>{modalMessage}</Text>
-            <View style={styles.faceWrapper}>
-              <Animated.View style={animatedFaceStyle}>
-                <HappyScreamFace size={120} />
-              </Animated.View>
+        {modalType === "success" && <BgPattern_GradientSpheres />}
+        {(modalType === "upsell" || modalType === "error") && (
+          <View
+            style={[
+              styles.warningBanner,
+              modalType === "error" && {
+                backgroundColor: theme.colors.feedback.error,
+              },
+            ]}
+          >
+            <View style={styles.bannerTextContent}>
+              <Text style={styles.bannerTitle}>{modalTitle}</Text>
+              <Text style={styles.bannerMessage}>{modalMessage}</Text>
             </View>
-          </>
+
+            <View style={styles.faceWatermark}>
+              {modalType === "upsell" || modalType === "error" ? (
+                <SlotMachineFace
+                  size={160}
+                  transparentBg
+                  shouldAnimate
+                  targetNumber="404"
+                />
+              ) : (
+                <HappyScreamFace size={160} />
+              )}
+            </View>
+          </View>
         )}
 
-        {modalType === "upsell" && (
-          <View style={styles.upsellSection}>
-             {/* Explore Pattern: Large rotated watermark icons in background */}
-            <View style={styles.watermarkContainer} pointerEvents="none">
-              <Icon name="crown" size={120} color="rgba(255,255,255,0.03)" style={styles.watermark1} />
-              <Icon name="medal" size={100} color="rgba(255,255,255,0.02)" style={styles.watermark2} />
-              <Icon name="lock-open" size={80} color="rgba(255,255,255,0.02)" style={styles.watermark3} />
-            </View>
+        <View style={styles.modalContent}>
+          {modalType === "success" && (
+            <>
+              <Text style={styles.modalTitle}>{modalTitle}</Text>
+              <Text style={styles.modalMessage}>{modalMessage}</Text>
+              <View style={styles.faceWrapper}>
+                <Animated.View style={animatedFaceStyle}>
+                  <HappyScreamFace size={120} />
+                </Animated.View>
+              </View>
+            </>
+          )}
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.premiumBenefitsContainer}
-              decelerationRate="fast"
-              snapToInterval={CARD_WIDTH + CARD_GAP}
-            >
-              {[
-                {
-                  title: "Unlimited",
-                  subtitle: "Daily Flow",
-                  icon: "infinity",
-                  colors: ["rgba(255, 216, 181, 1)", "rgba(255, 171, 118, 0.95)"], // Warm Orange
-                  shadow: "#FFAB76",
-                },
-                {
-                  title: "AI Calls",
-                  subtitle: "Real-time",
-                  icon: "phone-alt",
-                  colors: ["rgba(203, 240, 240, 1)", "rgba(152, 230, 230, 0.95)"], // Teal
-                  shadow: "#98E6E6",
-                },
-                {
-                  title: "Expert",
-                  subtitle: "Clinical Tracks",
-                  icon: "user-md",
-                  colors: ["rgba(235, 203, 245, 1)", "rgba(216, 167, 240, 0.95)"], // Lavender
-                  shadow: "#D8A7F0",
-                },
-              ].map((benefit, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.premiumBenefitCard,
-                    {
-                      width: CARD_WIDTH,
-                      shadowColor: benefit.shadow,
-                    },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={benefit.colors as any}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.cardGradient}
+          {modalType === "upsell" && (
+            <View style={styles.upsellSection}>
+              {/* Explore Pattern: Large rotated watermark icons in background */}
+              <View style={styles.watermarkContainer} pointerEvents="none">
+                <Icon
+                  name="crown"
+                  size={120}
+                  color="rgba(255,255,255,0.03)"
+                  style={styles.watermark1}
+                />
+                <Icon
+                  name="medal"
+                  size={100}
+                  color="rgba(255,255,255,0.02)"
+                  style={styles.watermark2}
+                />
+                <Icon
+                  name="lock-open"
+                  size={80}
+                  color="rgba(255,255,255,0.02)"
+                  style={styles.watermark3}
+                />
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.premiumBenefitsContainer}
+                decelerationRate="fast"
+                snapToInterval={CARD_WIDTH + CARD_GAP}
+              >
+                {[
+                  {
+                    title: "Unlimited",
+                    subtitle: "Daily Flow",
+                    icon: "infinity",
+                    colors: [
+                      "rgba(255, 216, 181, 1)",
+                      "rgba(255, 171, 118, 0.95)",
+                    ], // Warm Orange
+                    shadow: "#FFAB76",
+                  },
+                  {
+                    title: "AI Calls",
+                    subtitle: "Real-time",
+                    icon: "phone-alt",
+                    colors: [
+                      "rgba(203, 240, 240, 1)",
+                      "rgba(152, 230, 230, 0.95)",
+                    ], // Teal
+                    shadow: "#98E6E6",
+                  },
+                  {
+                    title: "Expert",
+                    subtitle: "Clinical Tracks",
+                    icon: "user-md",
+                    colors: [
+                      "rgba(235, 203, 245, 1)",
+                      "rgba(216, 167, 240, 0.95)",
+                    ], // Lavender
+                    shadow: "#D8A7F0",
+                  },
+                ].map((benefit, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.premiumBenefitCard,
+                      {
+                        width: CARD_WIDTH,
+                        shadowColor: benefit.shadow,
+                      },
+                    ]}
                   >
-                    {/* Library Pattern: Decorative bubbling textures */}
-                    <View style={[styles.bubble, { width: 80, height: 80, top: -20, right: -20, opacity: 0.25 }]} />
-                    <View style={[styles.bubble, { width: 50, height: 50, bottom: 0, left: -10, opacity: 0.15 }]} />
-                    <View style={[styles.bubble, { width: 30, height: 30, top: 40, right: 60, opacity: 0.1 }]} />
+                    <LinearGradient
+                      colors={benefit.colors as any}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.cardGradient}
+                    >
+                      {/* Library Pattern: Decorative bubbling textures */}
+                      <View
+                        style={[
+                          styles.bubble,
+                          {
+                            width: 80,
+                            height: 80,
+                            top: -20,
+                            right: -20,
+                            opacity: 0.25,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.bubble,
+                          {
+                            width: 50,
+                            height: 50,
+                            bottom: 0,
+                            left: -10,
+                            opacity: 0.15,
+                          },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.bubble,
+                          {
+                            width: 30,
+                            height: 30,
+                            top: 40,
+                            right: 60,
+                            opacity: 0.1,
+                          },
+                        ]}
+                      />
 
-                    <View style={styles.cardHeader}>
-                      {/* Library Pattern: Glassy Badge for subtitles */}
-                      <View style={styles.glassyBadge}>
-                        <Text style={styles.premiumCardSubtitle}>
-                          {benefit.subtitle}
+                      <View style={styles.cardHeader}>
+                        {/* Library Pattern: Glassy Badge for subtitles */}
+                        <View style={styles.glassyBadge}>
+                          <Text style={styles.premiumCardSubtitle}>
+                            {benefit.subtitle}
+                          </Text>
+                        </View>
+                        <Text style={styles.premiumCardTitle}>
+                          {benefit.title}
                         </Text>
                       </View>
-                      <Text style={styles.premiumCardTitle}>
-                        {benefit.title}
-                      </Text>
-                    </View>
 
-                    {/* Library Pattern: Icon Circle with shadow */}
-                    <View style={styles.iconCircle}>
-                      <Icon
-                        name={benefit.icon}
-                        size={22}
-                        color="rgba(0,0,0,0.6)"
-                      />
-                    </View>
-                  </LinearGradient>
-                </View>
-              ))}
-            </ScrollView>
+                      {/* Library Pattern: Icon Circle with shadow */}
+                      <View style={styles.iconCircle}>
+                        <Icon
+                          name={benefit.icon}
+                          size={22}
+                          color="rgba(0,0,0,0.6)"
+                        />
+                      </View>
+                    </LinearGradient>
+                  </View>
+                ))}
+              </ScrollView>
 
-            <View style={styles.ctaGroupContainer}>
-              <View style={styles.ctaGroup}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    setModalVisible(false);
-                    navigation.navigate("PremiumModal" as never);
-                  }}
-                  style={styles.upsellButtonContainer}
-                >
-                  <LinearGradient
-                    colors={["#F97316", "#DC2626"]} 
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.upsellButton}
+              <View style={styles.ctaGroupContainer}>
+                <View style={styles.ctaGroup}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      setModalVisible(false);
+                      navigation.navigate("PremiumModal" as never);
+                    }}
+                    style={styles.upsellButtonContainer}
                   >
-                    <Text style={styles.upsellButtonText}>
-                      Unlock Full Access
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <LinearGradient
+                      colors={["#F97316", "#DC2626"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.upsellButton}
+                    >
+                      <Text style={styles.upsellButtonText}>
+                        Unlock Full Access
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
 
-                <View style={styles.trustRow}>
-                  <Icon name="shield-alt" size={12} color="#10B981" />
-                  <Text style={styles.trustText}>
-                    Cancel anytime. 30-day money-back guarantee.
-                  </Text>
+                  <View style={styles.trustRow}>
+                    <Icon name="shield-alt" size={12} color="#10B981" />
+                    <Text style={styles.trustText}>
+                      Cancel anytime. 30-day money-back guarantee.
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        )}
+          )}
+        </View>
       </View>
-      <View style={{ height: 80 }} />
-      </ScrollView>
     </BottomSheetModal>
   );
 };
@@ -300,8 +356,7 @@ export default GlobalModal;
 const styles = StyleSheet.create({
   modalContent: {
     paddingHorizontal: 20,
-    marginBottom: 20,
-    paddingBottom: 32,
+    paddingBottom: 60, // Increased gap to ensure visibility
   },
   faceWrapper: {
     alignItems: "center",
@@ -323,12 +378,11 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: "#FF5858",
-    paddingTop: 48,
-    paddingBottom: 48,
+    paddingVertical: 24, // Reduced from 32/48
     paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 4,
     overflow: "hidden",
     position: "relative",
   },
@@ -361,11 +415,11 @@ const styles = StyleSheet.create({
   upsellSection: {
     width: "100%",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 12, // Reduced from 20
+    marginBottom: 20,
     backgroundColor: "#1E1B4B",
     borderRadius: 32,
-    paddingVertical: 32,
+    paddingVertical: 28, // Reduced from 32
     position: "relative",
     overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation4),
@@ -475,7 +529,7 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation4),
   },
   upsellButton: {
-    paddingVertical: 20,
+    paddingVertical: 16, // Reduced from 20
     alignItems: "center",
     justifyContent: "center",
   },
