@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,6 +31,10 @@ import Animated, {
 } from "react-native-reanimated";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.4, 160);
+const CARD_GAP = 12;
 
 const GlobalModal = () => {
   const navigation = useNavigation<any>();
@@ -173,9 +178,9 @@ const GlobalModal = () => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.premiumBenefitsContainer}
+               contentContainerStyle={styles.premiumBenefitsContainer}
               decelerationRate="fast"
-              snapToInterval={140 + 12} // card width + gap
+              snapToInterval={CARD_WIDTH + CARD_GAP}
             >
               {[
                 {
@@ -202,7 +207,7 @@ const GlobalModal = () => {
                   ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.premiumBenefitCard}
+                  style={[styles.premiumBenefitCard, { width: CARD_WIDTH }]}
                 >
                   <View style={styles.premiumIconBox}>
                     <Icon name={benefit.icon} size={24} color="#FF5858" />
@@ -261,7 +266,6 @@ export default GlobalModal;
 
 const styles = StyleSheet.create({
   modalContent: {
-    flex: 1,
     paddingHorizontal: 20,
     marginBottom: 20,
   },
@@ -337,7 +341,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   premiumBenefitCard: {
-    width: 140,
     borderRadius: 24,
     padding: 20,
     alignItems: "center",
