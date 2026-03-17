@@ -116,8 +116,7 @@ export const OvergrowthFace: React.FC<FaceProps> = ({
 
   // Derived values for eye tracking
   const eyeTrackX = useDerivedValue(() => {
-    // Average X of fireflies for tracking
-    const avgX = (firefly1X.value + firefly2X.value + 48) / 3; // +48 to offset center a bit
+    const avgX = (firefly1X.value + firefly2X.value + 48) / 3;
     return interpolate(avgX, [0, 48], [-2, 2]);
   });
   const eyeTrackY = useDerivedValue(() => {
@@ -273,7 +272,6 @@ export const OvergrowthFace: React.FC<FaceProps> = ({
               animatedProps={vinePathProps}
             />
             <G opacity={shouldAnimate ? undefined : 1}>
-               {/* These leaves should probably follow the vine growth or just fade in */}
                <Path d="M 10 38 Q 12 35 15 38" fill="#10B981" />
                <Path d="M 35 44 Q 38 41 40 44" fill="#10B981" />
             </G>

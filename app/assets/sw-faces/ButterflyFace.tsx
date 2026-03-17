@@ -173,7 +173,6 @@ export const ButterflyFace: React.FC<FaceProps> = ({
           )}
           <Path d={FACE_PATH} fill={SKIN_COLOR} />
 
-          {/* Eyes */}
           <Circle
             cx="16"
             cy="24"
@@ -191,7 +190,6 @@ export const ButterflyFace: React.FC<FaceProps> = ({
             strokeWidth="2"
           />
 
-          {/* Crossing Pupils */}
           <AnimatedCircle
             cx="16"
             cy="24"
@@ -207,7 +205,6 @@ export const ButterflyFace: React.FC<FaceProps> = ({
             animatedProps={rightPupilProps}
           />
 
-          {/* Dynamic Smile */}
           <AnimatedPath
             d="M 20 34 Q 24 37 28 34"
             fill="none"
@@ -217,12 +214,10 @@ export const ButterflyFace: React.FC<FaceProps> = ({
             animatedProps={smileProps}
           />
 
-          {/* Butterfly Prop */}
           <AnimatedG animatedProps={flyProps}>
             <AnimatedG
               animatedProps={flapProps}
             >
-              {/* Left Wing */}
               <Path
                 d="M 24 23 L 16 17 L 18 27 Z"
                 fill="#D946EF"
@@ -230,7 +225,6 @@ export const ButterflyFace: React.FC<FaceProps> = ({
                 strokeWidth="1"
                 strokeLinejoin="round"
               />
-              {/* Right Wing */}
               <Path
                 d="M 24 23 L 32 17 L 30 27 Z"
                 fill="#F472B6"
@@ -239,7 +233,6 @@ export const ButterflyFace: React.FC<FaceProps> = ({
                 strokeLinejoin="round"
               />
             </AnimatedG>
-            {/* Body */}
             <Rect
               x="23.5"
               y="20"

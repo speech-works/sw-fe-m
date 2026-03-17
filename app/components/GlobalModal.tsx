@@ -29,9 +29,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import BgPattern_DriftingPieces from "../assets/sw-bg/BgPattern_DriftingPieces";
-import { ReadingFace } from "../assets/sw-faces/ReadingFace";
-import SeveredConnectionFace from "../assets/sw-faces/SeveredConnectionFace";
-import OvergrowthFace from "../assets/sw-faces/OvergrowthFace";
+import RewiringFace from "../assets/sw-faces/RewiringFace";
+import SlotMachineFace from "../assets/sw-faces/SlotMachineFace";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -136,7 +135,6 @@ const GlobalModal = () => {
     >
       {modalType === "error" && <BgPattern_DriftingPieces />}
       {modalType === "success" && <BgPattern_GradientSpheres />}
-
       {(modalType === "upsell" || modalType === "error") && (
         <View
           style={[
@@ -154,7 +152,12 @@ const GlobalModal = () => {
           {/* Face Watermark - Bottom Right */}
           <View style={styles.faceWatermark}>
             {modalType === "upsell" || modalType === "error" ? (
-              <OvergrowthFace size={160} transparentBg shouldAnimate />
+              <SlotMachineFace
+                size={160}
+                transparentBg
+                shouldAnimate
+                targetNumber="404"
+              />
             ) : (
               <HappyScreamFace size={160} />
             )}

@@ -49,7 +49,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
 
   useEffect(() => {
     if (shouldAnimate) {
-      // Blink animation (4s cycle)
       blink.value = withRepeat(
         withSequence(
           withDelay(
@@ -62,7 +61,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
         false,
       );
 
-      // Main cycle animation (5s cycle for everything else)
       cycleProgress.value = withRepeat(
         withTiming(1, { duration: 5000 }),
         -1,
@@ -79,7 +77,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
     };
   }, [shouldAnimate]);
 
-  // Derived values for animations based on cycleProgress (0 to 1)
   const phoneY = useDerivedValue(() => {
     return interpolate(cycleProgress.value, [0, 0.15, 0.25, 0.75, 0.85, 1], [25, 25, 0, 0, 25, 25]);
   });
@@ -127,7 +124,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
     return interpolate(cycleProgress.value, [0, 0.15, 0.25, 0.75, 0.85, 1], [1, 1, 0.5, 0.5, 1, 1]);
   });
 
-  // Animated Props
   const phoneProps = useAnimatedProps(() => ({
     opacity: phoneOpacity.value,
     transform: [
@@ -147,7 +143,7 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
   const leftBrowProps = useAnimatedProps(() => ({
     transform: [
       { translateX: 15 },
-      { translateY: 17 }, // Updated from 18
+      { translateY: 17 },
       { rotate: `${leftBrowRotation.value}deg` },
       { translateY: leftBrowY.value },
       { translateX: -15 },
@@ -158,7 +154,7 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
   const rightBrowProps = useAnimatedProps(() => ({
     transform: [
       { translateX: 33 },
-      { translateY: 17 }, // Updated from 18
+      { translateY: 17 },
       { rotate: `${rightBrowRotation.value}deg` },
       { translateY: rightBrowY.value },
       { translateX: -33 },
@@ -215,12 +211,11 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
       >
         <Defs>
           <ClipPath id="eyeball-clip">
-            <Circle cx="15" cy="23" r="5" /> {/* Updated from 3.5 */}
-            <Circle cx="33" cy="23" r="5" /> {/* Updated from 3.5 */}
+            <Circle cx="15" cy="23" r="5" />
+            <Circle cx="33" cy="23" r="5" />
           </ClipPath>
         </Defs>
 
-        {/* Background Circle */}
         {!transparentBg && (
           <Path
             fill="#E2E8F0"
@@ -228,7 +223,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
           />
         )}
 
-        {/* Face Shadow */}
         <Path
           fill="black"
           opacity={0.25}
@@ -236,16 +230,14 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
         />
 
-        {/* Face Base */}
         <Path
           fill="#FFDABF"
           d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
         />
 
-        {/* Eyebrows */}
         <AnimatedG animatedProps={leftBrowProps}>
           <Path
-            d="M 11 17 L 19 17" // Updated from 18, 18
+            d="M 11 17 L 19 17"
             stroke="#111215"
             strokeWidth="2.5"
             strokeLinecap="round"
@@ -253,19 +245,18 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
         </AnimatedG>
         <AnimatedG animatedProps={rightBrowProps}>
           <Path
-            d="M 29 17 L 37 17" // Updated from 18, 18
+            d="M 29 17 L 37 17"
             stroke="#111215"
             strokeWidth="2.5"
             strokeLinecap="round"
           />
         </AnimatedG>
 
-        {/* Eyes & Pupils */}
         <AnimatedG animatedProps={blinkProps}>
           <Circle
             cx="15"
             cy="23"
-            r="5" // Updated from 3.5
+            r="5"
             fill="#FFF"
             stroke="#111215"
             strokeWidth="1.5"
@@ -273,7 +264,7 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
           <Circle
             cx="33"
             cy="23"
-            r="5" // Updated from 3.5
+            r="5"
             fill="#FFF"
             stroke="#111215"
             strokeWidth="1.5"
@@ -281,53 +272,51 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
 
           <G clipPath="url(#eyeball-clip)">
             <AnimatedG animatedProps={pupilProps}>
-              <Circle cx="15" cy="23" r="2.2" fill="#111215" /> {/* Updated from 1.5 */}
-              <Circle cx="33" cy="23" r="2.2" fill="#111215" /> {/* Updated from 1.5 */}
+              <Circle cx="15" cy="23" r="2.2" fill="#111215" />
+              <Circle cx="33" cy="23" r="2.2" fill="#111215" />
             </AnimatedG>
           </G>
         </AnimatedG>
 
-        {/* Reading Glasses */}
         <AnimatedG animatedProps={glassesProps}>
           <Path
             d="M 10 22 L 20 22 C 20 26.5, 18 28, 15 28 C 12 28, 10 26.5, 10 22 Z"
-            fill="#DBEAFE" // Updated from #FFF
+            fill="#DBEAFE"
             fillOpacity={0.4}
-            stroke="#93C5FD" // Updated from #FFFFFF
+            stroke="#93C5FD"
             strokeWidth={1.5}
             strokeLinejoin="round"
           />
           <Path
             d="M 28 22 L 38 22 C 38 26.5, 36 28, 33 28 C 30 28, 28 26.5, 28 22 Z"
-            fill="#DBEAFE" // Updated from #FFF
+            fill="#DBEAFE"
             fillOpacity={0.4}
-            stroke="#93C5FD" // Updated from #FFFFFF
+            stroke="#93C5FD"
             strokeWidth={1.5}
             strokeLinejoin="round"
           />
           <Path
             d="M 20 22 Q 24 20, 28 22"
-            stroke="#93C5FD" // Updated from #FFFFFF
+            stroke="#93C5FD"
             strokeWidth={1.5}
             fill="none"
           />
           <Path
             d="M 10 22 L 4 19"
-            stroke="#93C5FD" // Updated from #FFFFFF
+            stroke="#93C5FD"
             strokeWidth={1.5}
             strokeLinecap="round"
             fill="none"
           />
           <Path
             d="M 38 22 L 44 19"
-            stroke="#93C5FD" // Updated from #FFFFFF
+            stroke="#93C5FD"
             strokeWidth={1.5}
             strokeLinecap="round"
             fill="none"
           />
         </AnimatedG>
 
-        {/* Mouth */}
         <AnimatedG animatedProps={mouthProps}>
           <Path
             d="M 20 34 Q 24 34.5, 28 34"
@@ -338,7 +327,6 @@ export const ReadingFace: React.FC<ReadingFaceProps> = ({
           />
         </AnimatedG>
 
-        {/* Phone Prop */}
         <AnimatedG animatedProps={phoneProps}>
           <Rect
             x="6"

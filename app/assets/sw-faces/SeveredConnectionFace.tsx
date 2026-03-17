@@ -162,7 +162,6 @@ export const SeveredConnectionFace: React.FC<FaceProps> = ({
             <Circle cx="24" cy="24" r="24" fill="#F1F5F9" />
           )}
 
-          {/* PROP 1: Fading WiFi Icon */}
           <G
             transform="translate(34, 12)"
             stroke="#94A3B8"
@@ -189,14 +188,12 @@ export const SeveredConnectionFace: React.FC<FaceProps> = ({
 
           <Path d={FACE_PATH} fill="#E2E8F0" />
 
-          {/* Bored/Drooping Eyes */}
           <G>
             <Circle cx="16" cy="24" r="3" fill="#0F172A" />
             <Circle cx="32" cy="24" r="3" fill="#0F172A" />
             <Circle cx="15" cy="23" r="1" fill="#FFF" />
             <Circle cx="31" cy="23" r="1" fill="#FFF" />
 
-            {/* Heavy Eyelid Overlays */}
             <Rect x="12" y="20" width="8" height="4" fill="#E2E8F0" />
             <Line
               x1="12"
@@ -228,7 +225,6 @@ export const SeveredConnectionFace: React.FC<FaceProps> = ({
             strokeLinecap="round"
           />
 
-          {/* PROP 2: Severed Dangling Tech Cord */}
           <AnimatedG animatedProps={cordProps}>
             <Path
               d="M 12 0 Q 10 15 14 25"
@@ -245,7 +241,6 @@ export const SeveredConnectionFace: React.FC<FaceProps> = ({
               strokeLinecap="round"
             />
 
-            {/* Frayed Wires */}
             <Line
               x1="14"
               y1="25"
@@ -263,7 +258,6 @@ export const SeveredConnectionFace: React.FC<FaceProps> = ({
               strokeWidth="1"
             />
 
-            {/* Spark */}
             <AnimatedPath
               d="M 15 28 L 13 31 L 16 32 L 14 35"
               fill="none"
