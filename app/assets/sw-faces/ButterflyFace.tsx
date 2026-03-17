@@ -150,7 +150,7 @@ export const ButterflyFace: React.FC<FaceProps> = ({
           width: size as any,
           height: size as any,
           borderRadius: (Number(size) || 100) / 2,
-          overflow: "hidden",
+          ...(transparentBg ? {} : { overflow: "hidden" }),
         },
         style as any,
       ]}
@@ -160,6 +160,7 @@ export const ButterflyFace: React.FC<FaceProps> = ({
         width="100%"
         height="100%"
         fill="none"
+        {...({ overflow: transparentBg ? "visible" : "hidden" } as any)}
         {...props}
       >
         <Defs>
@@ -214,35 +215,28 @@ export const ButterflyFace: React.FC<FaceProps> = ({
             animatedProps={smileProps}
           />
 
-          <AnimatedG animatedProps={flyProps}>
-            <AnimatedG
-              animatedProps={flapProps}
-            >
-              <Path
-                d="M 24 23 L 16 17 L 18 27 Z"
-                fill="#D946EF"
-                stroke="#86198F"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M 24 23 L 32 17 L 30 27 Z"
-                fill="#F472B6"
-                stroke="#86198F"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
+          {/* Only clip the butterfly inside the container when it has a bg */}
+          {!transparentBg && (
+            <AnimatedG animatedProps={flyProps}>
+              <AnimatedG animatedProps={flapProps}>
+                <Path d="M 24 23 L 16 17 L 18 27 Z" fill="#D946EF" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+                <Path d="M 24 23 L 32 17 L 30 27 Z" fill="#F472B6" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+              </AnimatedG>
+              <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill="#4A044E" />
             </AnimatedG>
-            <Rect
-              x="23.5"
-              y="20"
-              width="1"
-              height="6"
-              rx="0.5"
-              fill="#4A044E"
-            />
-          </AnimatedG>
+          )}
         </G>
+
+        {/* When transparent, butterfly renders OUTSIDE the clip group - free to fly anywhere */}
+        {transparentBg && (
+          <AnimatedG animatedProps={flyProps}>
+            <AnimatedG animatedProps={flapProps}>
+              <Path d="M 24 23 L 16 17 L 18 27 Z" fill="#D946EF" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+              <Path d="M 24 23 L 32 17 L 30 27 Z" fill="#F472B6" stroke="#86198F" strokeWidth="1" strokeLinejoin="round" />
+            </AnimatedG>
+            <Rect x="23.5" y="20" width="1" height="6" rx="0.5" fill="#4A044E" />
+          </AnimatedG>
+        )}
       </Svg>
     </View>
   );

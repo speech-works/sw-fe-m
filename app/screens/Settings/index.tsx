@@ -30,6 +30,7 @@ import {
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
 import ExplorerFace from "../../assets/sw-faces/ExplorerFace";
+import ButterflyFace from "../../assets/sw-faces/ButterflyFace";
 
 const Settings = () => {
   const navigation = useNavigation<any>();
@@ -262,7 +263,12 @@ const Settings = () => {
             ))}
           </View>
 
-          <BuyPro />
+          <View>
+            <View style={styles.faceContainer}>
+              <ButterflyFace size={160} shouldAnimate={true} transparentBg />
+            </View>
+            <BuyPro />
+          </View>
 
           {/* Minimal Footer */}
           <View style={styles.footer}>
@@ -486,7 +492,7 @@ const styles = StyleSheet.create({
   menuTile: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    //backgroundColor: "#FFF",
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1.2,
@@ -518,6 +524,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     letterSpacing: 0.2,
+  },
+
+  faceContainer: {
+    position: "absolute",
+    top: -120,
+    right: 5,
+    zIndex: -1,
+    opacity: 1,
   },
 
   // Footer
