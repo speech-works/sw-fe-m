@@ -146,7 +146,7 @@ const SubscribeScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="close" size={20} color="#FFFFFF" />
+          <Icon name="close" size={20} color={theme.colors.text.title} />
         </TouchableOpacity>
       </View>
 
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,

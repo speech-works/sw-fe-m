@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     ...parseShadowStyle(theme.shadow.elevation1),
