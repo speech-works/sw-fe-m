@@ -34,7 +34,10 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name={ROUTE_NAMES.HOME}
         component={HomeStackNavigator}
-        options={{ tabBarLabel: "Home" }}
+        options={({ route }) => ({
+          tabBarLabel: "Home",
+          tabBarStyle: getTabBarVisibility(route, "Home"),
+        })}
       />
 
       <Tab.Screen
