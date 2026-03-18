@@ -34,6 +34,10 @@ import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
 import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../util/functions/parseStyles";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -50,35 +54,35 @@ const METRIC_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#4ADE80", // Modern Green
+    color: "#00FF00", // Neon Green
     icon: "shield-check",
     description: "Belief in your ability to speak freely.",
     profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#F472B6", // Modern Pink/Orange
+    color: "#FF00FF", // Neon Pink
     icon: "fire",
     description: "Facing situations without holding back.",
     profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery", // Was Control
-    color: "#60A5FA", // Modern Blue
+    color: "#00FFFF", // Neon Cyan
     icon: "target",
     description: "Managing speech techniques effectively.",
     profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease", // Was Flow
-    color: "#A78BFA", // Modern Purple
+    color: "#BC13FE", // Neon Purple
     icon: "water",
     description: "Smoothness in daily communication.",
     profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#F87171", // Modern Red
+    color: "#FB923C", // Neon-ish Orange (Orange 400)
     icon: "account-group",
     description: "Active participation in social life.",
     profileKey: "social",
@@ -362,8 +366,69 @@ const ClinicalStatsWidget = () => {
   // Safe guard for early render
   if (loading || !growthProfile || !chartData || !weeklyBreakthroughs) {
     return (
-      <View style={styles.card}>
-        <SkeletonLoader width={"100%"} height={300} />
+      <View style={styles.container}>
+        {/* Header Skeleton */}
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <SkeletonLoader
+              width={80}
+              height={24}
+              style={{ borderRadius: 20 }}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <SkeletonLoader
+              width={180}
+              height={34}
+              style={{ borderRadius: 6 }}
+            />
+            <SkeletonLoader
+              width={240}
+              height={18}
+              style={{ borderRadius: 4 }}
+            />
+          </View>
+        </View>
+
+        {/* Content Panel Skeleton */}
+        <View style={styles.contentPanel}>
+          <SkeletonLoader
+            width="100%"
+            height={SIZE}
+            style={{ marginBottom: 8, borderRadius: 24 }}
+          />
+          <View style={styles.breakthroughContainer}>
+            <SkeletonLoader
+              width={120}
+              height={16}
+              style={{ marginBottom: 16 }}
+            />
+            <View style={styles.heroChartContainer}>
+              <SkeletonLoader
+                width="100%"
+                height={140}
+                style={{ borderRadius: 24 }}
+              />
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <SkeletonLoader
+                  width="48%"
+                  height={100}
+                  style={{ borderRadius: 20, flex: 1 }}
+                />
+                <SkeletonLoader
+                  width="48%"
+                  height={100}
+                  style={{ borderRadius: 20, flex: 1 }}
+                />
+              </View>
+              <SkeletonLoader
+                width="100%"
+                height={52}
+                style={{ marginTop: 24, borderRadius: 16 }}
+              />
+            </View>
+          </View>
+        </View>
       </View>
     );
   }
@@ -385,241 +450,234 @@ const ClinicalStatsWidget = () => {
         <View style={styles.decorBubble3} />
 
         {/* Header */}
-        {/* Header */}
         <View style={styles.header}>
-          {/* Top Row: Chip + Refresh */}
           <View style={styles.headerTopRow}>
-            <View style={styles.chip}>
-              <MaterialCommunityIcons
-                name="chart-donut"
-                size={12}
-                color={theme.colors.library.orange[500]}
-              />
-              <Text style={styles.chipText}>Tracking</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={onRefresh}
-              disabled={isRefreshing}
-              activeOpacity={0.8}
-              style={[
-                styles.refreshBtn,
-                isRefreshing && styles.refreshBtnActive,
-              ]}
-            >
-              <Animated.View style={refreshIconStyle}>
+            {isRefreshing ? (
+              <SkeletonLoader width={80} height={22} style={{ borderRadius: 20 }} />
+            ) : (
+              <View style={styles.chip}>
                 <MaterialCommunityIcons
-                  name="sync"
-                  size={14}
-                  color={
-                    isRefreshing
-                      ? theme.colors.library.blue[500]
-                      : theme.colors.text.default
-                  }
+                  name="chart-donut"
+                  size={12}
+                  color={theme.colors.library.orange[500]}
                 />
-              </Animated.View>
-              <Text style={styles.refreshText}>Refresh</Text>
-            </TouchableOpacity>
+                <Text style={styles.chipText}>TRACKING</Text>
+              </View>
+            )}
           </View>
 
-          {/* Title & Subtitle */}
           <View style={styles.textContainer}>
-            <Text style={styles.bigTitle}>Growth Profile</Text>
-            <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+            {isRefreshing ? (
+              <>
+                <SkeletonLoader width={180} height={34} style={{ borderRadius: 6 }} />
+                <SkeletonLoader width={240} height={18} style={{ borderRadius: 4 }} />
+              </>
+            ) : (
+              <>
+                <Text style={styles.bigTitle}>Growth Profile</Text>
+                <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+              </>
+            )}
           </View>
         </View>
 
         {/* Main Content Panel (White) */}
         <View style={styles.contentPanel}>
           {/* Radar Chart Section - Step 7 */}
-          <View style={styles.chartContainer}>
-            <Svg
-              height={SIZE}
-              width={CHART_WIDTH}
-              viewBox={`0 0 ${SIZE} ${SIZE}`}
-            >
-              <Defs>
-                <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop
-                    offset="0"
-                    stopColor={theme.colors.library.orange[300]}
-                    stopOpacity="0.7"
-                  />
-                  <Stop
-                    offset="1"
-                    stopColor={theme.colors.library.red[200]}
-                    stopOpacity="0.4"
-                  />
-                </SvgGradient>
-              </Defs>
-
-              {/* Organic Grid (Concentric Blobs) */}
-              {gridPaths.map((pathD, i) => (
-                <Path
-                  key={`grid-${i}`}
-                  d={pathD}
-                  stroke={theme.colors.library.gray[200]}
-                  strokeWidth="0.5" // Thinner grid
-                  strokeDasharray="4,2" // Tighter dash
-                  fill="none"
-                  opacity={0.6} // Subtler
-                />
-              ))}
-
-              {/* Axes */}
-              {chartData.allDomains.map((_, i) => {
-                const end = POLAR_TO_CARTESIAN(
-                  CENTER,
-                  CENTER,
-                  RADIUS,
-                  i * angleStep,
-                );
-                return (
-                  <Line
-                    key={i}
-                    x1={CENTER}
-                    y1={CENTER}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke={theme.colors.library.gray[200]} // Lighter axis
-                    strokeWidth="1"
-                    strokeDasharray="2,2" // Tighter dash
-                  />
-                );
-              })}
-
-              {/* Main Chart Layer */}
-              <G>
-                {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
-                {historicalPathD && (
-                  <>
-                    <Path
-                      d={historicalPathD}
-                      fill="rgba(200, 200, 200, 0.15)"
-                      stroke="none"
+        <View style={[styles.chartContainer, { height: SIZE }]}>
+          {isRefreshing ? (
+            <SkeletonLoader width="100%" height={SIZE} />
+          ) : (
+              <Svg
+                height={SIZE}
+                width={CHART_WIDTH}
+                viewBox={`0 0 ${SIZE} ${SIZE}`}
+              >
+                <Defs>
+                  <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <Stop
+                      offset="0"
+                      stopColor={theme.colors.library.orange[300]}
+                      stopOpacity="0.6"
                     />
-                    <Path
-                      d={historicalPathD}
-                      fill="none"
-                      stroke="#94A3B8"
-                      strokeWidth="2"
-                      strokeDasharray="6,4"
-                      strokeLinecap="round"
-                      opacity={0.6}
+                    <Stop
+                      offset="1"
+                      stopColor={theme.colors.library.orange[100]}
+                      stopOpacity="0.2"
                     />
-                  </>
-                )}
+                  </SvgGradient>
+                </Defs>
 
-                {/* Average Baseline Chart (Grey) */}
-                <Path
-                  d={baselinePathD}
-                  fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
-                  stroke={theme.colors.library.gray[400]}
-                  strokeWidth="2"
-                  strokeDasharray="4,4"
-                  opacity={0.8}
-                />
+                {/* Organic Grid (Concentric Blobs) */}
+                {gridPaths.map((pathD, i) => (
+                  <Path
+                    key={`grid-${i}`}
+                    d={pathD}
+                    stroke={theme.colors.library.gray[200]}
+                    strokeWidth="0.5" // Thinner grid
+                    strokeDasharray="4,2" // Tighter dash
+                    fill="none"
+                    opacity={0.6} // Subtler
+                  />
+                ))}
 
-                {/* 1. GLOW Effect */}
-                <AnimatedPath
-                  d={currentPathD}
-                  fill="none"
-                  stroke={theme.colors.library.orange[300]}
-                  strokeWidth="12"
-                  strokeOpacity={0.1} // Reduced glow opacity
-                />
-
-                {/* 2. FILL Path */}
-                <AnimatedPath
-                  d={currentPathD}
-                  fill="url(#radarGrad)"
-                  stroke="none"
-                  opacity={0.9}
-                />
-                {/* 3. STROKE Path */}
-                <Path
-                  d={currentPathD}
-                  fill="none"
-                  stroke={theme.colors.library.orange[400]} // Darker orange stroke
-                  strokeWidth="2.5" // Slightly thinner stroke
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Dots */}
-                {currentPoints.map((coord, i) => {
+                {/* Axes */}
+                {chartData.allDomains.map((_, i) => {
+                  const end = POLAR_TO_CARTESIAN(
+                    CENTER,
+                    CENTER,
+                    RADIUS,
+                    i * angleStep,
+                  );
                   return (
-                    <Circle
-                      key={`dot-${i}`}
-                      cx={coord.x}
-                      cy={coord.y}
-                      r="4" // Smaller dots
-                      fill="white"
-                      stroke={theme.colors.library.orange[400]}
-                      strokeWidth="2" // Thinner dot stroke
+                    <Line
+                      key={i}
+                      x1={CENTER}
+                      y1={CENTER}
+                      x2={end.x}
+                      y2={end.y}
+                      stroke={theme.colors.library.gray[200]} // Lighter axis
+                      strokeWidth="1"
+                      strokeDasharray="2,2" // Tighter dash
                     />
                   );
                 })}
-              </G>
 
-              {/* Labels (Simplified) */}
-              {chartData.allDomains.map((domain, i) => {
-                const pos = POLAR_TO_CARTESIAN(
-                  CENTER,
-                  CENTER,
-                  RADIUS + 28, // More breathing room
-                  i * angleStep,
-                );
-                const config = METRIC_CONFIG[domain];
-                const isSelected = selectedMetric === domain;
+                {/* Main Chart Layer */}
+                <G>
+                  {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
+                  {historicalPathD && (
+                    <>
+                      <Path
+                        d={historicalPathD}
+                        fill="rgba(200, 200, 200, 0.15)"
+                        stroke="none"
+                      />
+                      <Path
+                        d={historicalPathD}
+                        fill="none"
+                        stroke="#94A3B8"
+                        strokeWidth="2"
+                        strokeDasharray="6,4"
+                        strokeLinecap="round"
+                        opacity={0.6}
+                      />
+                    </>
+                  )}
 
-                // Determine text anchor based on horizontal position
-                type TextAnchor = "start" | "middle" | "end";
-                let anchor: TextAnchor = "middle";
-                if (pos.x < CENTER - 10) anchor = "end";
-                if (pos.x > CENTER + 10) anchor = "start";
+                  {/* Average Baseline Chart (Grey) */}
+                  <Path
+                    d={baselinePathD}
+                    fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
+                    stroke={theme.colors.library.gray[400]}
+                    strokeWidth="2"
+                    strokeDasharray="4,4"
+                    opacity={0.8}
+                  />
 
-                // Check if this is the SOCIAL domain (Particption Restriction)
-                const isSocial =
-                  domain === ClinicalDomain.PARTICIPATION_RESTRICTION;
+                  {/* 1. GLOW Effect */}
+                  <AnimatedPath
+                    d={currentPathD}
+                    fill="none"
+                    stroke={theme.colors.library.orange[300]}
+                    strokeWidth="12"
+                    strokeOpacity={0.15}
+                  />
 
-                return (
-                  <G
-                    key={i}
-                    onPress={() => {
-                      setSelectedMetric(domain);
-                      setModalVisible(true);
-                    }}
-                  >
-                    {/* Hit Area */}
-                    <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
+                  {/* 2. FILL Path */}
+                  <AnimatedPath
+                    d={currentPathD}
+                    fill="url(#radarGrad)"
+                    stroke="none"
+                    opacity={0.9}
+                  />
+                  {/* 3. STROKE Path */}
+                  <Path
+                    d={currentPathD}
+                    fill="none"
+                    stroke={theme.colors.library.orange[500]} // Orange stroke
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
 
-                    {/* Text Label */}
-                    <SvgText
-                      key={`text-${i}`}
-                      x={pos.x}
-                      y={pos.y}
-                      fill={
-                        isSelected ? config.color : theme.colors.text.default
-                      }
-                      fontSize={isSelected ? "11" : "10"}
-                      fontWeight={isSelected ? "800" : "600"}
-                      textAnchor={anchor}
-                      alignmentBaseline="middle"
+                  {/* Dots */}
+                  {currentPoints.map((coord, i) => {
+                    return (
+                      <Circle
+                        key={`dot-${i}`}
+                        cx={coord.x}
+                        cy={coord.y}
+                        r="4" // Smaller dots
+                        fill="white"
+                        stroke={theme.colors.library.orange[500]}
+                        strokeWidth="2"
+                      />
+                    );
+                  })}
+                </G>
+
+                {/* Labels (Simplified) */}
+                {chartData.allDomains.map((domain, i) => {
+                  const pos = POLAR_TO_CARTESIAN(
+                    CENTER,
+                    CENTER,
+                    RADIUS + 28, // More breathing room
+                    i * angleStep,
+                  );
+                  const config = METRIC_CONFIG[domain];
+                  const isSelected = selectedMetric === domain;
+
+                  // Determine text anchor based on horizontal position
+                  type TextAnchor = "start" | "middle" | "end";
+                  let anchor: TextAnchor = "middle";
+                  if (pos.x < CENTER - 10) anchor = "end";
+                  if (pos.x > CENTER + 10) anchor = "start";
+
+                  // Check if this is the SOCIAL domain (Particption Restriction)
+                  const isSocial =
+                    domain === ClinicalDomain.PARTICIPATION_RESTRICTION;
+
+                  return (
+                    <G
+                      key={i}
+                      onPress={() => {
+                        setSelectedMetric(domain);
+                        setModalVisible(true);
+                      }}
                     >
-                      {config.label.toUpperCase()}
-                    </SvgText>
-                  </G>
-                );
-              })}
-            </Svg>
+                      {/* Hit Area */}
+                      <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
 
-            {socialPos && (
+                      {/* Text Label */}
+                      <SvgText
+                        key={`text-${i}`}
+                        x={pos.x}
+                        y={pos.y}
+                        fill={
+                          isSelected
+                            ? theme.colors.library.orange[500]
+                            : "#666666"
+                        }
+                        fontSize={isSelected ? "11" : "10"}
+                        fontWeight={isSelected ? "800" : "600"}
+                        textAnchor={anchor}
+                        alignmentBaseline="middle"
+                        letterSpacing={1}
+                      >
+                        {config.label.toUpperCase()}
+                      </SvgText>
+                    </G>
+                  );
+                })}
+              </Svg>
+            )}
+            {!isRefreshing && socialPos && (
               <View
                 style={{
                   position: "absolute",
                   left: socialPos.x * svgScale - 45,
-                  top: socialPos.y - 12,
+                  top: socialPos.y * svgScale - 12,
                   width: 90,
                   height: 24,
                   backgroundColor: "transparent",
@@ -646,214 +704,255 @@ const ClinicalStatsWidget = () => {
 
           {/* Weekly Breakthroughs */}
           <View style={styles.breakthroughContainer}>
-            <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
-
-            {(() => {
-              // 1. Sort & Top 3
-              const sortedKeys = domainBreakthroughs
-                .sort((a, b) => {
-                  const scoreA = weeklyBreakthroughs[a]?.current || 0;
-                  const scoreB = weeklyBreakthroughs[b]?.current || 0;
-                  return scoreB - scoreA;
-                })
-                .slice(0, 3);
-
-              if (sortedKeys.length === 0) return null;
-
-              const topKey = sortedKeys[0];
-              const secondaryKeys = sortedKeys.slice(1);
-
-              // Helper to get config & data
-              const getItem = (key: keyof typeof weeklyBreakthroughs) => {
-                const data = weeklyBreakthroughs[key];
-                const domain = (
-                  Object.keys(METRIC_CONFIG) as ClinicalDomain[]
-                ).find((d) => METRIC_CONFIG[d].profileKey === key);
-                const config = domain ? METRIC_CONFIG[domain] : null;
-                return { data, config, domain };
-              };
-
-              const heroItem = getItem(topKey);
-
-              return (
+            {isRefreshing ? (
+              <>
+                <SkeletonLoader width={120} height={16} style={{ marginBottom: 16 }} />
                 <View style={styles.heroChartContainer}>
-                  {/* Left Col: Hero Card */}
-                  {heroItem.data && heroItem.config && heroItem.domain && (
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={() => {
-                        setSelectedMetric(heroItem.domain as ClinicalDomain);
-                        setModalVisible(true);
-                      }}
-                      style={[
-                        styles.miniCard,
-                        styles.heroCard,
-                        {
-                          borderWidth: 1,
-                          borderColor: theme.colors.library.gray[100],
-                        },
-                      ]}
-                    >
-                      <View style={styles.heroHeader}>
-                        <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
-                          {heroItem.config.label}
-                        </Text>
-                        <MaterialCommunityIcons
-                          name={heroItem.config.icon as any}
-                          size={18}
-                          color={heroItem.config.color}
-                        />
-                      </View>
-                      <Text style={styles.heroValue}>
-                        {Math.round(heroItem.data.current)}
-                      </Text>
-                      <View style={styles.btChangeRow}>
-                        {heroItem.data.change !== 0 && (
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.btChange,
-                                heroItem.data.trend === "IMPROVING"
-                                  ? styles.textSuccess
-                                  : styles.textNeutral,
-                              ]}
-                            >
-                              {heroItem.data.change > 0 ? "+" : ""}
-                              {heroItem.data.change.toFixed(1)}%
-                            </Text>
-
-                            <MaterialCommunityIcons
-                              name={
-                                heroItem.data.trend === "IMPROVING"
-                                  ? "trending-up"
-                                  : "trending-down"
-                              }
-                              size={16}
-                              color={
-                                heroItem.data.trend === "IMPROVING"
-                                  ? theme.colors.library.green[400]
-                                  : theme.colors.library.red[400]
-                              }
-                              style={{ marginLeft: 4 }}
-                            />
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Bottom Row: 2 Mini Cards Side-by-Side */}
+                  <SkeletonLoader width="100%" height={140} style={{ borderRadius: 24 }} />
                   <View style={{ flexDirection: "row", gap: 12 }}>
-                    {secondaryKeys.map((key) => {
-                      const { data, config, domain } = getItem(key);
-                      if (!data || !config || !domain) return null;
-                      const isImp = data.trend === "IMPROVING";
+                    <SkeletonLoader width="48%" height={100} style={{ borderRadius: 20, flex: 1 }} />
+                    <SkeletonLoader width="48%" height={100} style={{ borderRadius: 20, flex: 1 }} />
+                  </View>
+                  {/* Button skeleton MUST be inside heroChartContainer to match layout */}
+                  <SkeletonLoader width="100%" height={52} style={{ marginTop: 24, borderRadius: 16 }} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
 
-                      return (
+                {(() => {
+                  // 1. Sort & Top 3
+                  const sortedKeys = domainBreakthroughs
+                    .sort((a, b) => {
+                      const scoreA = weeklyBreakthroughs[a]?.current || 0;
+                      const scoreB = weeklyBreakthroughs[b]?.current || 0;
+                      return scoreB - scoreA;
+                    })
+                    .slice(0, 3);
+
+                  if (sortedKeys.length === 0) return null;
+
+                  const topKey = sortedKeys[0];
+                  const secondaryKeys = sortedKeys.slice(1);
+
+                  // Helper to get config & data
+                  const getItem = (key: keyof typeof weeklyBreakthroughs) => {
+                    const data = weeklyBreakthroughs[key];
+                    const domain = (
+                      Object.keys(METRIC_CONFIG) as ClinicalDomain[]
+                    ).find((d) => METRIC_CONFIG[d].profileKey === key);
+                    const config = domain ? METRIC_CONFIG[domain] : null;
+                    return { data, config, domain };
+                  };
+
+                  const heroItem = getItem(topKey);
+
+                  return (
+                    <View style={styles.heroChartContainer}>
+                      {/* Left Col: Hero Card */}
+                      {heroItem.data && heroItem.config && heroItem.domain && (
                         <TouchableOpacity
-                          key={key}
                           activeOpacity={0.7}
                           onPress={() => {
-                            setSelectedMetric(domain);
+                            setSelectedMetric(heroItem.domain as ClinicalDomain);
                             setModalVisible(true);
                           }}
                           style={[
                             styles.miniCard,
+                            styles.heroCard,
                             {
-                              // Override defaults for Grid layout
                               borderWidth: 1,
                               borderColor: theme.colors.library.gray[100],
-                              flex: 1,
-                              height: 100, // Fixed height for alignment
-                              padding: 12,
                             },
                           ]}
                         >
-                          <View
-                            style={{
-                              flexDirection: "column",
-                              justifyContent: "space-between",
-                              height: "100%",
-                            }}
-                          >
-                            <View>
+                          <View style={styles.heroHeader}>
+                            <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                              {heroItem.config.label}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name={heroItem.config.icon as any}
+                              size={18}
+                              color={heroItem.config.color}
+                            />
+                          </View>
+                          <Text style={styles.heroValue}>
+                            {Math.round(heroItem.data.current)}
+                          </Text>
+                          <View style={styles.btChangeRow}>
+                            {heroItem.data.change !== 0 && (
                               <View
                                 style={{
                                   flexDirection: "row",
-                                  justifyContent: "space-between",
-                                  alignItems: "flex-start",
-                                  width: "100%",
+                                  alignItems: "center",
                                 }}
                               >
                                 <Text
                                   style={[
-                                    styles.cardTitle,
-                                    { marginBottom: 0 },
+                                    {
+                                      color: theme.colors.library.orange[500],
+                                      fontWeight: "700",
+                                    },
                                   ]}
                                 >
-                                  {config.label}
+                                  {heroItem.data.change > 0 ? "+" : ""}
+                                  {heroItem.data.change.toFixed(1)}%
                                 </Text>
+
                                 <MaterialCommunityIcons
-                                  name={config.icon as any}
+                                  name={
+                                    heroItem.data.trend === "IMPROVING"
+                                      ? "trending-up"
+                                      : "trending-down"
+                                  }
                                   size={16}
-                                  color={config.color}
+                                  color={
+                                    heroItem.data.trend === "IMPROVING"
+                                      ? theme.colors.library.green[400]
+                                      : theme.colors.library.red[400]
+                                  }
+                                  style={{ marginLeft: 4 }}
                                 />
                               </View>
-
-                              {/* Change Trend */}
-                              {data.change !== 0 && (
-                                <View
-                                  style={{
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    marginTop: 4,
-                                  }}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.btChange,
-                                      isImp
-                                        ? styles.textSuccess
-                                        : styles.textNeutral,
-                                      { fontSize: 11, fontWeight: "700" },
-                                    ]}
-                                  >
-                                    {data.change > 0 ? "+" : ""}
-                                    {data.change.toFixed(1)}%
-                                  </Text>
-                                  <MaterialCommunityIcons
-                                    name={
-                                      isImp ? "trending-up" : "trending-down"
-                                    }
-                                    size={14}
-                                    color={
-                                      isImp
-                                        ? theme.colors.library.green[400]
-                                        : theme.colors.library.red[400]
-                                    }
-                                    style={{ marginLeft: 2 }}
-                                  />
-                                </View>
-                              )}
-                            </View>
-
-                            {/* Score */}
-                            <Text style={styles.miniValue}>
-                              {Math.round(data.current)}
-                            </Text>
+                            )}
                           </View>
                         </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })()}
+                      )}
+
+                      {/* Bottom Row: 2 Mini Cards Side-by-Side */}
+                      <View style={{ flexDirection: "row", gap: 12 }}>
+                        {secondaryKeys.map((key) => {
+                          const { data, config, domain } = getItem(key);
+                          if (!data || !config || !domain) return null;
+                          const isImp = data.trend === "IMPROVING";
+
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                setSelectedMetric(domain);
+                                setModalVisible(true);
+                              }}
+                              style={[
+                                styles.miniCard,
+                                {
+                                  // Override defaults for Grid layout
+                                  borderWidth: 1,
+                                  borderColor: theme.colors.library.gray[100],
+                                  flex: 1,
+                                  height: 100, // Fixed height for alignment
+                                  padding: 12,
+                                },
+                              ]}
+                            >
+                              <View
+                                style={{
+                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  height: "100%",
+                                }}
+                              >
+                                <View>
+                                  <View
+                                    style={{
+                                      flexDirection: "row",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      width: "100%",
+                                    }}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.cardTitle,
+                                        { marginBottom: 0 },
+                                      ]}
+                                    >
+                                      {config.label}
+                                    </Text>
+                                    <MaterialCommunityIcons
+                                      name={config.icon as any}
+                                      size={16}
+                                      color={config.color}
+                                    />
+                                  </View>
+
+                                  {/* Change Trend */}
+                                  {data.change !== 0 && (
+                                    <View
+                                      style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        marginTop: 4,
+                                      }}
+                                    >
+                                      <Text
+                                        style={[
+                                          styles.btChange,
+                                          isImp
+                                            ? styles.textSuccess
+                                            : styles.textNeutral,
+                                          { fontSize: 11, fontWeight: "700" },
+                                        ]}
+                                      >
+                                        {data.change > 0 ? "+" : ""}
+                                        {data.change.toFixed(1)}%
+                                      </Text>
+                                      <MaterialCommunityIcons
+                                        name={
+                                          isImp ? "trending-up" : "trending-down"
+                                        }
+                                        size={14}
+                                        color={
+                                          isImp
+                                            ? theme.colors.library.green[400]
+                                            : theme.colors.library.red[400]
+                                        }
+                                        style={{ marginLeft: 2 }}
+                                      />
+                                    </View>
+                                  )}
+                                </View>
+
+                                {/* Score */}
+                                <Text style={styles.miniValue}>
+                                  {Math.round(data.current)}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {/* Refresh Button - Moved to bottom for better approachability */}
+                      <TouchableOpacity
+                        onPress={onRefresh}
+                        disabled={isRefreshing}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.refreshBtn,
+                          isRefreshing && styles.refreshBtnActive,
+                        ]}
+                      >
+                        <Animated.View style={refreshIconStyle}>
+                          <MaterialCommunityIcons
+                            name="sync"
+                            size={16}
+                            color={
+                              isRefreshing
+                                ? theme.colors.library.blue[500]
+                                : "#FFFFFF"
+                            }
+                          />
+                        </Animated.View>
+                        <Text style={styles.refreshText}>Refresh Data</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
+              </>
+            )}
           </View>
         </View>
 
@@ -894,7 +993,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     marginVertical: 12,
-    backgroundColor: "white",
+    backgroundColor: "white", // Restored White
     overflow: "hidden", // Clip bubbles
     borderWidth: 1,
     borderColor: theme.colors.library.gray[200],
@@ -941,67 +1040,59 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.library.orange[100], // Orange Theme
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingVertical: 4,
+    height: 24,
+    justifyContent: "center",
     gap: 6,
     alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: theme.colors.library.orange[200],
   },
   chipText: {
-    color: theme.colors.library.orange[400],
-    fontSize: 12,
+    color: theme.colors.library.orange[500], // Orange for tracking
+    fontSize: 11,
     fontWeight: "700",
+    letterSpacing: 1,
   },
   textContainer: {
     gap: 4,
   },
   bigTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.text.title, // Dark
+    fontSize: 28,
+    fontWeight: "700",
+    color: theme.colors.text.title, // Dark title
     letterSpacing: -0.5,
+    lineHeight: 34,
   },
   subtitle: {
-    fontSize: 14,
-    color: theme.colors.text.default, // Gray
-    lineHeight: 20,
+    fontSize: 13,
+    color: theme.colors.text.default, // Standard gray
+    lineHeight: 18,
   },
   refreshBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8, // More "tech" look than fully round pill
-    borderWidth: 1,
-    borderColor: "#E2E8F0", // Slate 200 - subtle border
-    gap: 6,
-    // Subtle shadow for lift
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
+    justifyContent: "center",
+    backgroundColor: theme.colors.actionPrimary.default, // Standard Orange
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    height: 52,
+    marginTop: 24,
+    gap: 12,
+    // Standard Elevation 1
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   refreshBtnActive: {
-    backgroundColor: "#F1F5F9", // Slate 100
-    borderColor: "#CBD5E1", // Slate 300
-    transform: [{ scale: 0.98 }], // Micro-interaction squeeze
+    backgroundColor: theme.colors.actionPrimary.default,
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   refreshText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#475569", // Slate 600 - crisp text
-    letterSpacing: 0.2,
-    textTransform: "uppercase",
+    ...parseTextStyle(theme.typography.Button),
+    color: theme.colors.text.onDark,
   },
   chartContainer: {
     alignItems: "center",
     justifyContent: "center",
-    height: 220,
+    // Height updated dynamically in JSX to match CHART_WIDTH
     marginBottom: 8,
   },
   iconCircle: {
@@ -1069,9 +1160,9 @@ const styles = StyleSheet.create({
   miniCard: {
     flex: 1, // Equal width
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F8FAFC", // Light blue/gray tint
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 20, // Curved
     height: 110, // Fixed height for Mini cards
   },
   miniContent: {
@@ -1089,20 +1180,20 @@ const styles = StyleSheet.create({
     borderTopColor: "#F1F5F9",
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#1E293B",
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.text.default,
     marginBottom: 16,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 2,
   },
 
   btChange: {
     fontSize: 11,
     fontWeight: "700",
   },
-  textSuccess: { color: theme.colors.library.green[400] },
-  textError: { color: theme.colors.library.red[400] },
+  textSuccess: { color: "#00FF00" },
+  textError: { color: "#FF0000" },
   textNeutral: { color: theme.colors.text.default },
 
   // Decorative Bubbles
@@ -1113,8 +1204,8 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: theme.colors.library.purple[100],
-    opacity: 0.5,
+    backgroundColor: theme.colors.library.orange[500],
+    opacity: 0.05,
   },
   decorBubble2: {
     position: "absolute",
@@ -1123,8 +1214,8 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: theme.colors.library.orange[100],
-    opacity: 0.4,
+    backgroundColor: theme.colors.library.orange[500],
+    opacity: 0.03,
   },
   decorBubble3: {
     position: "absolute",
@@ -1133,8 +1224,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.library.blue[100],
-    opacity: 0.3,
+    backgroundColor: theme.colors.library.orange[500],
+    opacity: 0.02,
   },
 });
 
