@@ -377,8 +377,8 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     color: "#D4AF37",
     fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
+    fontWeight: "700", // Refined from 900 for a more sophisticated look
+    letterSpacing: 2, // Increased from 1 for a premium tag feel
   },
   bannerTextContainer: {
     alignItems: "flex-start",
@@ -403,14 +403,15 @@ const styles = StyleSheet.create({
   bannerTitle: {
     color: "#FFF",
     ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 20, // Increased from 18px for better readability while fitting one line
-    fontWeight: "900",
-    textTransform: "uppercase",
-    letterSpacing: 0.2, // Tighter to ensure single-line fit
+    fontSize: 22, // Increased from 20px for better impact in title case
+    fontWeight: "800", // Reduced from 900 for a more premium feel
+    textTransform: "none", // Switched from uppercase for a more expert, user-friendly vibe
+    letterSpacing: -0.2, // Tighter leading for title case
     textAlign: "left",
     textShadowColor: "rgba(0, 0, 0, 0.25)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
+    lineHeight: 28, // Adjusted for 22px title
   },
   bannerMessage: {
     color: "rgba(255, 255, 255, 0.75)", // Greyish/Transparent white for contrast
