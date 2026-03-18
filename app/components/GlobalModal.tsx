@@ -145,6 +145,7 @@ const GlobalModal = () => {
                 backgroundColor: theme.colors.feedback.error,
                 paddingBottom: Math.max(insets.bottom, 18),
               },
+              modalType === "upsell" && styles.upsellHeader,
             ]}
           >
             <View style={styles.faceWatermark}>
@@ -170,6 +171,12 @@ const GlobalModal = () => {
             />
 
             <View style={styles.bannerTextContainer}>
+              {modalType === "upsell" && (
+                <View style={styles.statusBadge}>
+                  <Icon name="lock" size={10} color="#D4AF37" />
+                  <Text style={styles.statusBadgeText}>LIMITED ACCESS</Text>
+                </View>
+              )}
               <View style={styles.bannerTextContent}>
                 <Text style={styles.bannerTitle}>{modalTitle}</Text>
                 <Text style={styles.bannerMessage}>{modalMessage}</Text>
@@ -349,6 +356,30 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     position: "relative",
   },
+  upsellHeader: {
+    backgroundColor: "#1A2533", // Deep Navy for premium feel
+    minHeight: 160,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(212, 175, 55, 0.3)", // Subtle gold separator
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
+    marginBottom: 10,
+    gap: 6,
+  },
+  statusBadgeText: {
+    color: "#D4AF37",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
   bannerTextContainer: {
     alignItems: "flex-start",
     zIndex: 2,
@@ -358,7 +389,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     //backgroundColor: "rgba(0, 0, 0, 0.44)", // Restored as backdrop is needed for white text legibility
     paddingVertical: 10,
-    paddingLeft: 12,
     paddingRight: 18,
     borderRadius: 16,
     maxWidth: "75%", // Further increased to fit larger 20px title on one line
@@ -437,9 +467,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "#D4AF37",
-    ...parseShadowStyle(theme.shadow.elevation4),
+    borderWidth: 1.5,
+    borderColor: "rgba(212, 175, 55, 0.4)",
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   cardGradient: {
     flex: 1,
