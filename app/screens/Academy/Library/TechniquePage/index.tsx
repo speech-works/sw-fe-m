@@ -2,6 +2,7 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { TECHNIQUES_ENUM } from "../../../../api/library/types";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
@@ -62,6 +63,7 @@ const getIconForTechnique = (id: string): string => {
 };
 
 const TechniquePage = () => {
+  const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
@@ -229,7 +231,10 @@ const TechniquePage = () => {
         {/* Reusing Premium Style for Info Modal as well */}
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]}
-          style={styles.modalGradientContainer}
+          style={[
+            styles.modalGradientContainer,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
         >
           {/* Watermark */}
           <View style={styles.modalWatermark} pointerEvents="none">

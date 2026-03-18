@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Feather";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
@@ -19,6 +20,7 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
   onContinue,
   onSaveForLater,
 }) => {
+  const insets = useSafeAreaInsets();
   // If assessment is complete, don't show this modal
   if (remainingQuestions === 0) {
     return null;
@@ -31,7 +33,12 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
       showCloseButton={true}
       fitContent={true}
     >
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          { paddingBottom: Math.max(insets.bottom, 40) },
+        ]}
+      >
         {/* Celebration Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>

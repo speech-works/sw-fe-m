@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   TECHNIQUE_LEVEL_ENUM,
   TransformedTechnique,
@@ -45,6 +46,7 @@ const LibrarySection = ({
   isPaidUser,
   onTechniqueSelect,
 }: LibrarySectionProps) => {
+  const insets = useSafeAreaInsets();
   const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
 
   // Bento Logic:
@@ -168,7 +170,10 @@ const LibrarySection = ({
         {/* Redesigned Premium Glassmorphic Modal Content */}
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
-          style={styles.modalGradientContainer}
+          style={[
+            styles.modalGradientContainer,
+            { paddingBottom: Math.max(insets.bottom, 32) },
+          ]}
         >
           {/* Watermark Background */}
           <View style={styles.modalWatermark} pointerEvents="none">

@@ -245,7 +245,12 @@ const OASESQuestions = () => {
         showCloseButton={true}
         fitContent={true}
       >
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           <Text style={styles.modalTitle}>Stop Check-in?</Text>
           <Text style={styles.modalText}>
             Your progress will be saved for later. You can continue anytime from

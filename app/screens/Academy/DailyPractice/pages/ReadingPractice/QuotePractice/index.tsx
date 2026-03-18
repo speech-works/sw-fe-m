@@ -482,7 +482,10 @@ const QuotePractice = () => {
         fitContent={true}
       >
         <ScrollView
-          contentContainerStyle={styles.sheetContent}
+          contentContainerStyle={[
+            styles.sheetContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.sheetTitle}>

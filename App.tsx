@@ -15,6 +15,7 @@ import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
 import { useMoodCheckStore } from "./app/stores/mood";
 import { useReminderStore } from "./app/stores/reminders";
 import { useUserStore } from "./app/stores/user";
+import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
   setupNotificationHandlers,
@@ -22,8 +23,8 @@ import {
 
 import { NativeModules } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { TourGuideProvider } from "rn-tourguide";
-import TourTooltip, { LocalTourTooltipStub } from "./app/components/Tour";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
 console.log("NativeModules keys:", Object.keys(NativeModules));
 
@@ -58,9 +59,8 @@ const App: React.FC = () => {
       //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
       // );
       // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_TOUR);
+      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
+      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
       console.log(".................checkToken................");
       console.log("accessToken", accessToken);
       console.log("refreshToken", refreshToken);
@@ -139,39 +139,20 @@ const App: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <TourGuideProvider
-        tooltipComponent={LocalTourTooltipStub}
-        tooltipStyle={{
-          backgroundColor: "transparent",
-        }}
-        androidStatusBarVisible
-        backdropColor="rgba(0, 0, 0, 0.85)"
-        preventOutsideInteraction={true}
-        borderRadius={24}
-        maskOffset={10}
-        labels={{
-          skip: "Skip Tour",
-          previous: "Back",
-          next: "Next",
-          finish: "Got it!",
-        }}
-      >
-        <AuthProvider>
-          <SafeAreaProvider style={{ flex: 1 }}>
-            <SafeAreaView
-              style={styles.safeAreaView}
-              edges={["top", "left", "right"]}
-            >
-              <FontLoader />
-              <NavigationContainer>
-                <MainNavigator />
-                <GlobalModal />
-              </NavigationContainer>
-            </SafeAreaView>
-            <TourTooltip />
-          </SafeAreaProvider>
-        </AuthProvider>
-      </TourGuideProvider>
+      <AuthProvider>
+        <SafeAreaProvider style={{ flex: 1 }}>
+          <SafeAreaView
+            style={styles.safeAreaView}
+            edges={["top", "left", "right"]}
+          >
+            <FontLoader />
+            <NavigationContainer ref={navigationRef}>
+              <MainNavigator />
+            </NavigationContainer>
+            <GlobalModal />
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 };

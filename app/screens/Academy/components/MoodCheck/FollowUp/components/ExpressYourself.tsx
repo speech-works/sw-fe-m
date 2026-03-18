@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 
 import { logMood } from "../../../../../../api/moodCheck";
@@ -41,6 +42,7 @@ const ExpressYourself = ({
   onClose,
   onSubmit,
 }: ExpressYourselfProps) => {
+  const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -135,10 +137,12 @@ const ExpressYourself = ({
         onClose={onClose}
         showCloseButton={true}
         fitContent={true}
+        backgroundColor={config.gradient[1]}
+        hasBottomSafePadding={false}
       >
         <LinearGradient
           colors={config.gradient}
-          style={styles.container}
+          style={[styles.container, { paddingBottom: Math.max(insets.bottom, 24) }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
@@ -217,10 +221,10 @@ export default ExpressYourself;
 const styles = StyleSheet.create({
   container: {
     padding: 24,
-    paddingBottom: 24,
     paddingTop: 54,
     position: "relative",
-    borderRadius: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     overflow: "hidden",
   },
   bubbleTopRight: {

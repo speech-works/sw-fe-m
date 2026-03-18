@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import Button from "../../../../../components/Button";
 import CustomScrollView from "../../../../../components/CustomScrollView";
@@ -30,6 +31,7 @@ interface ReminderProps {
 }
 
 const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
+  const insets = useSafeAreaInsets();
   const addReminder = useReminderStore((state) => state.addReminder);
   const [isVisible, setIsVisible] = useState(false);
   const [reminderType, setReminderType] =
@@ -213,7 +215,10 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
           <CustomScrollView
             style={styles.scrollView}
             nestedScrollEnabled={true}
-            contentContainerStyle={styles.scrollContainer}
+            contentContainerStyle={[
+              styles.scrollContainer,
+              { paddingBottom: Math.max(insets.bottom, 40) },
+            ]}
           >
             <>
               <View style={styles.pickerSection}>

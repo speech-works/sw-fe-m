@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../../../components/BottomSheetModal"; // update the path as needed
 import { theme } from "../../../../../Theme/tokens";
@@ -13,6 +14,7 @@ interface SpeechToolsProps {
 }
 
 const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
+  const insets = useSafeAreaInsets();
   const [isVisible, setIsVisible] = useState(false);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
@@ -84,7 +86,12 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
         showCloseButton={true}
         fitContent={true}
       >
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           <View style={styles.modalTitleContainer}>
             <Text style={styles.modalTiteText}>Speech Tools</Text>
             <Text style={styles.modalDescText}>

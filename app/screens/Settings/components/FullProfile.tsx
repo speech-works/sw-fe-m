@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../Theme/tokens";
 import CustomScrollView from "../../../components/CustomScrollView";
@@ -40,6 +41,7 @@ const LivelyIcon = ({
 );
 
 const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
+  const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const [mode, setMode] = React.useState<"view" | "edit">("view");
   const onProfileEdit = () => {
@@ -108,7 +110,12 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                 </View>
               </LinearGradient>
             </View>
-            <View style={styles.infoContainer}>
+            <View
+              style={[
+                styles.infoContainer,
+                { paddingBottom: Math.max(insets.bottom, 40) },
+              ]}
+            >
               {/* Personal Info Section */}
               <View style={styles.cardContainer}>
                 <View style={styles.sectionHeader}>

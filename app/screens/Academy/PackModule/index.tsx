@@ -726,7 +726,10 @@ const PackModuleScreen = () => {
       >
         <LinearGradient
           colors={["#FFF7ED", "#FFEDD5"]}
-          style={styles.skipModalContainer}
+          style={[
+            styles.skipModalContainer,
+            { paddingBottom: Math.max(24, insets.bottom) },
+          ]}
         >
           {/* Watermark */}
           <View style={styles.skipModalWatermark} pointerEvents="none">

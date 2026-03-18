@@ -276,7 +276,12 @@ const PhoneCall = () => {
           end={{ x: 0.5, y: 1 }}
           style={{ flex: 1, width: "100%" }}
         >
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: Math.max(insets.bottom, 24) },
+            ]}
+          >
             <View style={styles.modalTitleContainer}>
               <Text style={styles.modalTitleText}>Practice Scenarios</Text>
               <Text style={styles.modalDescText}>

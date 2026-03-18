@@ -456,7 +456,12 @@ const Preferences = () => {
         showCloseButton={true}
         fitContent={true}
       >
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           {(() => {
             const isTimer = openSettingType === "TIMER";
             const iconName = isTimer ? "clock" : "tasks";

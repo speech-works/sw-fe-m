@@ -488,7 +488,10 @@ const Library = () => {
       >
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
-          style={styles.modalGradientContainer}
+          style={[
+            styles.modalGradientContainer,
+            { paddingBottom: Math.max(insets.bottom, 48) },
+          ]}
         >
           {/* Watermark Background */}
           <View style={styles.modalWatermark} pointerEvents="none">

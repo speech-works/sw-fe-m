@@ -33,9 +33,7 @@ import { parseTextStyle } from "../../util/functions/parseStyles";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
-import { TourGuideZone, TourGuideZoneByPosition } from "rn-tourguide";
-import { useAppTour } from "../../hooks/useAppTour";
-import { useTourStore } from "../../stores/tour";
+
 
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");
@@ -45,7 +43,7 @@ const Home = () => {
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
-  const { hasCompletedHomeTour } = useTourStore();
+
 
   const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
@@ -59,12 +57,11 @@ const Home = () => {
     totalRemaining: number;
   } | null>(null);
   const [loadingOases, setLoadingOases] = useState(true);
-  const [isZone1Measured, setIsZone1Measured] = useState(false);
-  const [interactionsDone, setInteractionsDone] = useState(false);
-  const [isTourReady, setIsTourReady] = useState(false);
+
 
   // Resume Modal State
   const [showResumeModal, setShowResumeModal] = useState(false);
+  const [interactionsDone, setInteractionsDone] = useState(false);
 
   // Pagination & Visibility Logic (Derived State)
   const showOnboarding = user && !user.hasCompletedOnboarding;
@@ -187,47 +184,7 @@ const Home = () => {
     return () => task.cancel();
   }, []);
 
-  useEffect(() => {
-    // If there are no cards, we don't need to wait for Zone 1 measurement
-    const isCarouselReady = totalPages > 0 ? isZone1Measured : true;
 
-    if (!loadingOases && interactionsDone && isCarouselReady) {
-      // Extended stability pause - wait for UI to fully settle in native layer
-      const timer = setTimeout(() => {
-        setIsTourReady(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setIsTourReady(false);
-    }
-  }, [loadingOases, interactionsDone, isZone1Measured, totalPages]);
-
-  // --- Tour Setup ---
-  const verticalScrollRef = useRef<ScrollView>(null);
-  const horizontalScrollRef = useRef<ScrollView>(null);
-  const zoneLayouts = useRef<{ [key: number]: any }>({});
-
-  const captureLayout = (order: number) => (event: any) => {
-    const { x, y, width, height } = event.nativeEvent.layout;
-    // Only accept measurement if it's non-zero
-    if (width > 0 && height > 0) {
-      zoneLayouts.current[order] = { x, y, width, height };
-      if (order === 1) {
-        setIsZone1Measured(true);
-      }
-    }
-  };
-
-  const {
-    isActive: isTourActive,
-    start,
-    getCurrentStep,
-  } = useAppTour(
-    "home",
-    { vertical: verticalScrollRef, horizontal: horizontalScrollRef },
-    zoneLayouts,
-    isTourReady,
-  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -272,17 +229,16 @@ const Home = () => {
         : "Good Evening,";
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
-  // Show a full-screen loader to block interaction until tour initializes
-  const shouldShowTourBlocker = !hasCompletedHomeTour && !isTourActive;
+
+
 
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
-      {/* Suppress MoodCheck and other Modals unless tour is finished */}
-      {hasCompletedHomeTour && interactionsDone && <MoodCheckPopup />}
+
+      {interactionsDone && <MoodCheckPopup />}
 
       <ScrollView
-        ref={verticalScrollRef}
-        scrollEnabled={hasCompletedHomeTour && !isTourActive}
+        scrollEnabled={true}
         contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -299,9 +255,8 @@ const Home = () => {
         {totalPages > 0 && (
           <View style={{ marginHorizontal: -16 }}>
             <Animated.ScrollView
-              ref={horizontalScrollRef as any}
               horizontal
-              scrollEnabled={hasCompletedHomeTour && !isTourActive}
+              scrollEnabled={true}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{
                 paddingHorizontal: sidePadding,
@@ -314,101 +269,86 @@ const Home = () => {
               scrollEventThrottle={16}
             >
               {/* Card 1: Onboarding or OASES */}
-              <TourGuideZone
-                zone={1}
-                text="Daily Focus: Quickly access your most important tasks, like assessments or onboarding, to keep your progress on track."
-                shape="rectangle"
+              <View
+                style={[
+                  styles.carouselItem,
+                  { width: carouselItemWidth, marginRight: carouselSpacing },
+                ]}
               >
-                <View
-                  onLayout={captureLayout(1)}
-                  collapsable={false}
-                  style={[
-                    styles.carouselItem,
-                    { width: carouselItemWidth, marginRight: carouselSpacing },
-                  ]}
-                >
-                  <View collapsable={false} style={{ flex: 1 }}>
-                    {showOnboarding ? (
-                      <OnboardingReminderCard
-                        currentStep={currentOnboardingScreen - 1}
-                        totalSteps={totalOnboardingScreens}
-                        style={{ marginBottom: 0 }}
-                        onPress={async () => {
-                          try {
-                            const state = useOnboardingStore.getState();
-                            if (
-                              state.flow &&
-                              (state.currentScreen > 1 ||
-                                Object.keys(state.answers).length > 0)
-                            ) {
-                              setShowResumeModal(true);
-                              return;
-                            }
-                            const flow = await getActiveOnboardingFlow();
-                            state.startFresh(flow);
-                            emit(EVENT_NAMES.START_ONBOARDING);
-                          } catch (err) {
-                            console.error(
-                              "Failed to load onboarding flow:",
-                              err,
-                            );
+                <View style={{ flex: 1 }}>
+                  {showOnboarding ? (
+                    <OnboardingReminderCard
+                      currentStep={currentOnboardingScreen - 1}
+                      totalSteps={totalOnboardingScreens}
+                      style={{ marginBottom: 0 }}
+                      onPress={async () => {
+                        try {
+                          const state = useOnboardingStore.getState();
+                          if (
+                            state.flow &&
+                            (state.currentScreen > 1 ||
+                              Object.keys(state.answers).length > 0)
+                          ) {
+                            setShowResumeModal(true);
+                            return;
                           }
-                        }}
-                      />
-                    ) : showOases ? (
-                      <OASESWidget
-                        dayNumber={oasesProgress?.dayNumber}
-                        totalDays={oasesProgress?.totalDays}
-                        totalRemaining={oasesProgress?.totalRemaining}
-                        style={{ marginBottom: 0 }}
-                        onPress={() => {
-                          navigation.navigate("AcademyStack", {
-                            screen: "DailyPracticeStack",
-                            params: { screen: "OASESIntro" },
-                          });
-                        }}
-                      />
-                    ) : (
-                      <View
-                        style={{
-                          height: 220,
-                          backgroundColor: "rgba(0,0,0,0.02)",
-                          borderRadius: 24,
-                        }}
-                      />
-                    )}
-                  </View>
+                          const flow = await getActiveOnboardingFlow();
+                          state.startFresh(flow);
+                          emit(EVENT_NAMES.START_ONBOARDING);
+                        } catch (err) {
+                          console.error(
+                            "Failed to load onboarding flow:",
+                            err,
+                          );
+                        }
+                      }}
+                    />
+                  ) : showOases ? (
+                    <OASESWidget
+                      dayNumber={oasesProgress?.dayNumber}
+                      totalDays={oasesProgress?.totalDays}
+                      totalRemaining={oasesProgress?.totalRemaining}
+                      style={{ marginBottom: 0 }}
+                      onPress={() => {
+                        navigation.navigate("AcademyStack", {
+                          screen: "DailyPracticeStack",
+                          params: { screen: "OASESIntro" },
+                        });
+                      }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        height: 220,
+                        backgroundColor: "rgba(0,0,0,0.02)",
+                        borderRadius: 24,
+                      }}
+                    />
+                  )}
                 </View>
-              </TourGuideZone>
+              </View>
 
               {/* Card 2: Mood Check */}
               {showMoodCheck && (
                 <View
-                  onLayout={captureLayout(2)}
                   style={[
                     styles.carouselItem,
                     { width: carouselItemWidth, marginRight: carouselSpacing },
                   ]}
                 >
-                  <TourGuideZone
-                    zone={2}
-                    text="Mood Check: Log your daily vibes to see how your feelings influence your speech journey over time."
-                    shape="rectangle"
-                  >
-                    <View collapsable={false}>
-                      {interactionsDone ? (
-                        <MoodCheckBanner style={{ marginBottom: 0 }} />
-                      ) : (
-                        <View
-                          style={{
-                            height: 260,
-                            borderRadius: 24,
-                            backgroundColor: "rgba(0,0,0,0.02)",
-                          }}
-                        />
-                      )}
-                    </View>
-                  </TourGuideZone>
+                  <View collapsable={false}>
+                    {interactionsDone ? (
+                      <MoodCheckBanner style={{ marginBottom: 0 }} />
+                    ) : (
+                      <View
+                        style={{
+                          height: 260,
+                          borderRadius: 24,
+                          backgroundColor: "rgba(0,0,0,0.02)",
+                        }}
+                      />
+                    )}
+                  </View>
                 </View>
               )}
             </Animated.ScrollView>
@@ -454,81 +394,31 @@ const Home = () => {
         )}
         {/* ------------------- */}
 
-        <View onLayout={captureLayout(3)} collapsable={false}>
-          <ResourceStats
-            refreshing={refreshing}
-            onLayoutCapture={(order, event) => {
-              const { x, y, width, height } = event.nativeEvent.layout;
-              const parentLayout = zoneLayouts.current[3];
-              // ResourceStats now provides true internal coordinates
-              const absoluteY = y + (parentLayout?.y || 0);
-              const customEvent = {
-                nativeEvent: { layout: { x, y: absoluteY, width, height } },
-              };
-              captureLayout(order)(customEvent);
-            }}
-          />
+        <View>
+          <ResourceStats refreshing={refreshing} />
         </View>
 
         <View style={{ height: 24 }} />
 
-        <View onLayout={captureLayout(6)} collapsable={false}>
-          <SmartRecommendationCard
-            key={`rec-${refreshKey}`}
-            onLayoutCapture={(order, event) => {
-              const { x, y, width, height } = event.nativeEvent.layout;
-              const parentLayout = zoneLayouts.current[6];
-              const absoluteY = y + (parentLayout?.y || 0);
-              const customEvent = {
-                nativeEvent: { layout: { x, y: absoluteY, width, height } },
-              };
-              captureLayout(order)(customEvent);
-            }}
-          />
+        <View>
+          <SmartRecommendationCard key={`rec-${refreshKey}`} />
         </View>
 
-        <View onLayout={captureLayout(7)} collapsable={false}>
-          <ClinicalStatsWidget
-            onLayoutCapture={(order, event) => {
-              const { x, y, width, height } = event.nativeEvent.layout;
-              const parentLayout = zoneLayouts.current[7];
-              const absoluteY = y + (parentLayout?.y || 0);
-              const customEvent = {
-                nativeEvent: { layout: { x, y: absoluteY, width, height } },
-              };
-              captureLayout(order)(customEvent);
-            }}
-          />
+        <View>
+          <ClinicalStatsWidget />
         </View>
-        {/* Spacer for tour deep-scrolling */}
-        {isTourActive && <View style={{ height: 600 }} />}
       </ScrollView>
 
-      {/* Resume Modal Overlay - Suppressed until tour is done */}
-      {hasCompletedHomeTour && (
-        <OnboardingResumeModal
-          visible={showResumeModal}
-          onResume={handleResumeOnboarding}
-          onStartOver={handleStartOverOnboarding}
-          onDismiss={() => setShowResumeModal(false)}
-        />
-      )}
+      {/* Resume Modal Overlay */}
+      <OnboardingResumeModal
+        visible={showResumeModal}
+        onResume={handleResumeOnboarding}
+        onStartOver={handleStartOverOnboarding}
+        onDismiss={() => setShowResumeModal(false)}
+      />
 
-      {/* Tour Blocker Overlay - Using Modal to cover everything including Tab Bar */}
-      <Modal
-        visible={shouldShowTourBlocker}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-      >
-        <View style={styles.tourBlocker}>
-          <ActivityIndicator
-            size="large"
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.tourBlockerText}>Loading guided tour…</Text>
-        </View>
-      </Modal>
+
+
     </ScreenView>
   );
 };
@@ -570,18 +460,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: theme.colors.background.default,
   },
-  tourBlocker: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.background.default,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 99999,
-    gap: 16,
-  },
-  tourBlockerText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    fontWeight: "600",
-  },
+
 });
 export default Home;

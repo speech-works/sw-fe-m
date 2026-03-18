@@ -252,7 +252,13 @@ const Support = () => {
               );
             })()}
 
-          <View style={[styles.modalBody, openSettingType === "Success" && { flex: 0 }]}>
+          <View
+            style={[
+              styles.modalBody,
+              openSettingType === "Success" && { flex: 0 },
+              { paddingBottom: insets.bottom },
+            ]}
+          >
             {openSettingType === "Contact Support" && <ContactSupport />}
             {openSettingType === "Feedback" && (
               <Feedback onFeedbackSubmit={handleSuccess} />
@@ -261,7 +267,12 @@ const Support = () => {
               <ReportProblem onReportSubmit={handleSuccess} />
             )}
             {openSettingType === "Success" && (
-              <View style={styles.successContainer}>
+              <View
+                style={[
+                  styles.successContainer,
+                  { paddingBottom: Math.max(insets.bottom, 60) },
+                ]}
+              >
                 <View style={styles.successIconBox}>
                   <LinearGradient
                     colors={["#10B981", "#059669"]}

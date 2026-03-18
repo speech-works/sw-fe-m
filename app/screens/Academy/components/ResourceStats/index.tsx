@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { TourGuideZone } from "rn-tourguide";
 import { getProgressToNextLevel } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
@@ -56,10 +55,8 @@ const AnimatedBar = ({
 
 const ResourceStats = ({
   refreshing,
-  onLayoutCapture,
 }: {
   refreshing?: boolean;
-  onLayoutCapture?: (order: number, event: any) => void;
 }) => {
   const { width } = useWindowDimensions();
   const { user } = useUserStore();
@@ -195,58 +192,52 @@ const ResourceStats = ({
           {/* Glass Data Card - MAXIMALIST STACK */}
           <View style={styles.glassCard}>
             {/* 1. Energy Section (Full Width) */}
-            <TourGuideZone
-              zone={3}
-              text="Your daily fuel for practice! It recharges over time, so plan your sessions to keep the momentum going."
-              shape="rectangle"
-            >
-              <View style={{ paddingVertical: 12, marginVertical: -12 }}>
-                <View style={styles.energySection}>
-                  <View style={styles.energyHeader}>
+            <View style={{ paddingVertical: 12, marginVertical: -12 }}>
+              <View style={styles.energySection}>
+                <View style={styles.energyHeader}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: "#FFF7ED" },
+                      ]}
                     >
-                      <View
-                        style={[
-                          styles.iconCircle,
-                          { backgroundColor: "#FFF7ED" },
-                        ]}
-                      >
-                        <Icon name="bolt" size={16} color="#F97316" solid />
-                      </View>
-                      <Text style={styles.sectionLabel}>Energy Tank</Text>
+                      <Icon name="bolt" size={16} color="#F97316" solid />
                     </View>
-                    <Text style={styles.energyValue}>{staminaPercentage}%</Text>
+                    <Text style={styles.sectionLabel}>Energy Tank</Text>
                   </View>
+                  <Text style={styles.energyValue}>{staminaPercentage}%</Text>
+                </View>
 
-                  <AnimatedBar percentage={staminaPercentage} color="#F97316" />
+                <AnimatedBar percentage={staminaPercentage} color="#F97316" />
 
-                  <View style={styles.energyFooter}>
-                    {!user?.isPaid ? (
-                      <TouchableOpacity
-                        onPress={() => navigation.navigate("PremiumModal")}
-                      >
-                        <Text style={[styles.footerText, { color: "#3B82F6" }]}>
-                          Upgrade Energy
-                        </Text>
-                      </TouchableOpacity>
-                    ) : staminaPercentage === 100 ? (
-                      <Text style={styles.footerText}>Fully Charged</Text>
-                    ) : (
-                      <Text style={styles.footerText}>
-                        {rechargeTimeLeft
-                          ? `~${rechargeTimeLeft} until full`
-                          : "Recharging..."}
+                <View style={styles.energyFooter}>
+                  {!user?.isPaid ? (
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("PremiumModal")}
+                    >
+                      <Text style={[styles.footerText, { color: "#3B82F6" }]}>
+                        Upgrade Energy
                       </Text>
-                    )}
-                  </View>
+                    </TouchableOpacity>
+                  ) : staminaPercentage === 100 ? (
+                    <Text style={styles.footerText}>Fully Charged</Text>
+                  ) : (
+                    <Text style={styles.footerText}>
+                      {rechargeTimeLeft
+                        ? `~${rechargeTimeLeft} until full`
+                        : "Recharging..."}
+                    </Text>
+                  )}
                 </View>
               </View>
-            </TourGuideZone>
+            </View>
 
             <View
               style={[
@@ -264,77 +255,60 @@ const ResourceStats = ({
                 ]}
               >
                 {/* Task Card - HUGE */}
-                <TourGuideZone
-                  zone={4}
-                  text="Daily Practice: Track your completed free activities here. Completing your daily goal earns you bonus XP and helps build a solid speech habit."
-                  shape="rectangle"
-                  style={{ flex: 1 }}
+                <View
+                  style={[
+                    styles.bigCard,
+                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                  ]}
                 >
+                  {/* Watermark Icon */}
                   <View
-                    onLayout={(e) => {
-                      const { x, y, width, height } = e.nativeEvent.layout;
-                      const relativeY = y + gridOriginY.current;
-                      const customEvent = {
-                        nativeEvent: {
-                          layout: { x, y: relativeY, width, height },
-                        },
-                      };
-                      onLayoutCapture?.(4, customEvent);
-                    }}
                     style={[
-                      styles.bigCard,
-                      { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                      styles.watermarkContainer,
+                      { transform: [{ rotate: "-20deg" }] },
                     ]}
                   >
-                    {/* Watermark Icon */}
-                    <View
-                      style={[
-                        styles.watermarkContainer,
-                        { transform: [{ rotate: "-20deg" }] },
-                      ]}
-                    >
-                      <Icon
-                        name="check-circle"
-                        size={90}
-                        color="#10B981"
-                        style={{ opacity: 0.05 }}
-                      />
-                    </View>
+                    <Icon
+                      name="check-circle"
+                      size={90}
+                      color="#10B981"
+                      style={{ opacity: 0.05 }}
+                    />
+                  </View>
 
-                    <View style={styles.cardHeader}>
-                      <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                        Free Activity
-                      </Text>
-                    </View>
-                    <View style={styles.cardBody}>
-                      <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                        {tasksRemaining}
-                      </Text>
-                      <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
-                        / {tasksTotal}
-                      </Text>
-                    </View>
-                    {/* Mini Bar */}
+                  <View style={styles.cardHeader}>
+                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                      Free Activity
+                    </Text>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                      {tasksRemaining}
+                    </Text>
+                    <Text style={[styles.unitLabel, { color: "#94A3B8" }]}>
+                      / {tasksTotal}
+                    </Text>
+                  </View>
+                  {/* Mini Bar */}
+                  <View
+                    style={{
+                      marginTop: 8,
+                      height: 6,
+                      backgroundColor: "rgba(16, 185, 129, 0.1)",
+                      borderRadius: 3,
+                      width: "100%",
+                    }}
+                  >
                     <View
                       style={{
-                        marginTop: 8,
-                        height: 6,
-                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        height: "100%",
+                        backgroundColor: "#10B981",
                         borderRadius: 3,
-                        width: "100%",
+                        width: `${taskPercentage}%`,
                       }}
-                    >
-                      <View
-                        style={{
-                          height: "100%",
-                          backgroundColor: "#10B981",
-                          borderRadius: 3,
-                          width: `${taskPercentage}%`,
-                        }}
-                      />
-                    </View>
+                    />
                   </View>
-                </TourGuideZone>
+                </View>
               </View>
 
               <View
@@ -344,46 +318,19 @@ const ResourceStats = ({
                 ]}
               >
                 {/* Level Card - HUGE */}
-                <TourGuideZone
-                  zone={5}
-                  text="Your Progress: Watch your level rise as you practice. Higher levels unlock new insights and demonstrate your commitment to mastering your speech."
-                  shape="rectangle"
-                  style={{ flex: 1 }}
+                <TouchableOpacity
+                  style={[
+                    styles.bigCard,
+                    { backgroundColor: "#F1F5F9", borderWidth: 0 },
+                  ]}
                 >
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() =>
-                      navigation.navigate("AcademyStack", {
-                        screen: "ProgressDetailStack",
-                        params: {
-                          screen: "ProgressDetail",
-                          params: { scrollTo: "achievements" },
-                        },
-                      })
-                    }
-                    onLayout={(e) => {
-                      const { x, y, width, height } = e.nativeEvent.layout;
-                      const relativeY = y + gridOriginY.current;
-                      const customEvent = {
-                        nativeEvent: {
-                          layout: { x, y: relativeY, width, height },
-                        },
-                      };
-                      onLayoutCapture?.(5, customEvent);
-                    }}
+                  {/* Watermark Icon */}
+                  <View
                     style={[
-                      styles.bigCard,
-                      { backgroundColor: "#F1F5F9", borderWidth: 0 },
-                      width < 320 && { flex: 0, width: "100%" },
+                      styles.watermarkContainer,
+                      { transform: [{ rotate: "-20deg" }] },
                     ]}
                   >
-                    {/* Watermark Icon */}
-                    <View
-                      style={[
-                        styles.watermarkContainer,
-                        { transform: [{ rotate: "-20deg" }] },
-                      ]}
-                    >
                       <Icon
                         name="star"
                         size={90}
@@ -414,7 +361,6 @@ const ResourceStats = ({
                         : "0 XP"}
                     </Text>
                   </TouchableOpacity>
-                </TourGuideZone>
               </View>
             </View>
           </View>

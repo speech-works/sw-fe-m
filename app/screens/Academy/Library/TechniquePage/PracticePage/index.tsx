@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getAllExerciseItems } from "../../../../../api/library";
 import {
@@ -41,6 +42,7 @@ const PracticePage = ({
   techniqueId,
   setActiveStageIndex,
 }: PracticePageProps) => {
+  const insets = useSafeAreaInsets();
   // Data State
   const [exerciseItems, setExerciseItems] = useState<ExerciseItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -307,7 +309,10 @@ const PracticePage = ({
         showCloseButton={true}
       >
         <ScrollView
-          contentContainerStyle={styles.sheetContent}
+          contentContainerStyle={[
+            styles.sheetContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.sheetTitle}>

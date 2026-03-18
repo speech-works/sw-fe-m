@@ -50,6 +50,11 @@ interface BottomSheetModalProps {
    * Note: Children must NOT use flex: 1 for this to work correctly.
    */
   fitContent?: boolean;
+  /**
+   * If false, the bottom safe area padding will be disabled.
+   * Useful when children want to fill the entire space (e.g. gradient backgrounds).
+   */
+  hasBottomSafePadding?: boolean;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
@@ -61,6 +66,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   showCloseButton = false,
   backgroundColor = "white",
   fitContent = false,
+  hasBottomSafePadding = false,
 }) => {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -128,7 +134,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           style={[
             styles.modal,
             { backgroundColor },
-            { paddingBottom: Math.max(insets.bottom, 20) },
+            hasBottomSafePadding && { paddingBottom: Math.max(insets.bottom, 20) },
             resolvedSheetHeight != null
               ? fitContent
                 ? { maxHeight: resolvedSheetHeight }

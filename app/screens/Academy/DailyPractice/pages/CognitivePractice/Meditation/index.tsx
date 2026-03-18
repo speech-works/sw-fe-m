@@ -609,7 +609,12 @@ const Meditation = () => {
         maxHeight="80%"
         showCloseButton={true}
       >
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitleText}>Meditation Library</Text>
             <Text style={styles.modalSubtitleText}>

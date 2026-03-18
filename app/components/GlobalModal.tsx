@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BgPattern_GradientSpheres from "../assets/sw-bg/BgPattern_GradientSpheres";
 import HappyScreamFace from "../assets/sw-faces/HappyScreamFace";
 import { useEventStore } from "../stores/events";
@@ -17,8 +18,8 @@ import {
   parseTextStyle,
 } from "../util/functions/parseStyles";
 import BottomSheetModal from "./BottomSheetModal";
-import { useTourGuideController } from "rn-tourguide";
-import { useNavigation } from "@react-navigation/native";
+
+import { navigationRef } from "../util/functions/navigation";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import Animated, {
@@ -38,10 +39,8 @@ const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.45, 180);
 const CARD_GAP = 12;
 
 const GlobalModal = () => {
-  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { events, clear } = useEventStore();
-  const { getCurrentStep } = useTourGuideController();
-  const isTourActive = !!getCurrentStep();
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<
     "error" | "success" | "upsell" | null
@@ -72,9 +71,10 @@ const GlobalModal = () => {
 
   useEffect(() => {
     if (!events || events.length === 0) return;
-    if (isTourActive) return;
 
     for (const event of events) {
+
+
       if (
         event.name === EVENT_NAMES.SHOW_ERROR_MODAL ||
         event.name === EVENT_NAMES.SHOW_SUCCESS_MODAL ||
@@ -117,7 +117,7 @@ const GlobalModal = () => {
         clear(event.name);
       }
     }
-  }, [events, clear, isTourActive]);
+  }, [events, clear]);
 
   return (
     <BottomSheetModal
@@ -125,6 +125,8 @@ const GlobalModal = () => {
       onClose={() => setModalVisible(false)}
       showCloseButton={true}
       fitContent={true}
+      hasBottomSafePadding={false}
+      maxHeight={modalType === "success" ? undefined : "90%"}
       backgroundColor={
         modalType === "upsell"
           ? "#F5F0EA"
@@ -133,14 +135,15 @@ const GlobalModal = () => {
             : "white"
       }
     >
-        {modalType === "error" && <BgPattern_DriftingPieces />}
-        {modalType === "success" && <BgPattern_GradientSpheres />}
-        {(modalType === "upsell" || modalType === "error") && (
+      {modalType === "error" && <BgPattern_DriftingPieces />}
+      {modalType === "success" && <BgPattern_GradientSpheres />}
+      {(modalType === "upsell" || modalType === "error") && (
           <View
             style={[
               styles.warningBanner,
               modalType === "error" && {
                 backgroundColor: theme.colors.feedback.error,
+                paddingBottom: Math.max(insets.bottom, 18),
               },
             ]}
           >
@@ -175,41 +178,41 @@ const GlobalModal = () => {
           </View>
         )}
 
-          {modalType === "success" && (
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{modalTitle}</Text>
-              <Text style={styles.modalMessage}>{modalMessage}</Text>
-              <View style={styles.faceWrapper}>
-                <Animated.View style={animatedFaceStyle}>
-                  <HappyScreamFace size={120} />
-                </Animated.View>
-              </View>
-            </View>
-          )}
+      {modalType === "success" && (
+        <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 32) }]}>
+          <Text style={styles.modalTitle}>{modalTitle}</Text>
+          <Text style={styles.modalMessage}>{modalMessage}</Text>
+          <View style={styles.faceWrapper}>
+            <Animated.View style={animatedFaceStyle}>
+              <HappyScreamFace size={120} />
+            </Animated.View>
+          </View>
+        </View>
+      )}
 
-          {modalType === "upsell" && (
-            <View style={styles.upsellSection}>
-              <View style={styles.watermarkContainer} pointerEvents="none">
-                <Icon
-                  name="crown"
-                  size={140}
-                  color="#D4AF37"
-                  style={styles.watermark1}
-                />
-                <Icon
-                  name="gem"
-                  size={100}
-                  color="#D4AF37"
-                  style={styles.watermark2}
-                />
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.premiumBenefitsContainer}
-                decelerationRate="fast"
-                snapToInterval={CARD_WIDTH + CARD_GAP}
-              >
+      {modalType === "upsell" && (
+        <View style={styles.upsellSection}>
+          <View style={styles.watermarkContainer} pointerEvents="none">
+            <Icon
+              name="crown"
+              size={140}
+              color="#D4AF37"
+              style={styles.watermark1}
+            />
+            <Icon
+              name="gem"
+              size={100}
+              color="#D4AF37"
+              style={styles.watermark2}
+            />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.premiumBenefitsContainer}
+            decelerationRate="fast"
+            snapToInterval={CARD_WIDTH + CARD_GAP}
+          >
                 {[
                   {
                     title: "Unlimited Exercises",
@@ -268,13 +271,13 @@ const GlobalModal = () => {
                 ))}
               </ScrollView>
 
-              <View style={styles.ctaGroupContainer}>
+              <View style={[styles.ctaGroupContainer, { paddingBottom: Math.max(insets.bottom, 40) }]}>
                 <View style={styles.ctaGroup}>
                   <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => {
                       setModalVisible(false);
-                      navigation.navigate("PremiumModal" as never);
+                      navigationRef.navigate("PremiumModal" as never);
                     }}
                     style={styles.upsellButtonContainer}
                   >
@@ -398,7 +401,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     backgroundColor: "#F5F0EA",
     paddingTop: 40,
-    paddingBottom: 40,
+    paddingBottom: 0, // Removed to avoid doubling with ctaGroupContainer
     position: "relative",
     overflow: "hidden",
   },
@@ -497,6 +500,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 8,
     zIndex: 2,
+    backgroundColor: "#F5F0EA", // Explicit background to ensure no gaps
   },
   ctaGroup: {
     width: "100%",

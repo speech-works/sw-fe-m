@@ -38,9 +38,7 @@ import BuyPro from "../Settings/components/BuyPro";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
-import { TourGuideZone } from "rn-tourguide";
-import { useAppTour } from "../../hooks/useAppTour";
-import { useTourStore } from "../../stores/tour";
+
 
 const Explore = () => {
   const { user } = useUserStore();
@@ -50,51 +48,11 @@ const Explore = () => {
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 100;
 
-  // --- NEW: Local State for Error Modal ---
-  const [errorModalVisible, setErrorModalVisible] = useState(false);
-  const [errorTitle, setErrorTitle] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  // ----------------------------------------
+
 
   const [interactionsDone, setInteractionsDone] = useState(false);
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      setInteractionsDone(true);
-    });
-    return () => task.cancel();
-  }, []);
 
-  const verticalScrollRef = useRef<ScrollView>(null);
-  const zoneLayouts = useRef<{ [key: number]: any }>({});
-  const [isTourReady, setIsTourReady] = useState(false);
-  const { hasCompletedHomeTour, hasCompletedExploreTour } = useTourStore();
 
-  const captureLayout = (order: number) => (event: any) => {
-    const { x, y, width, height } = event.nativeEvent.layout;
-    if (width > 0 && height > 0) {
-      // In flattened layout, y is directly absolute to ScrollView content
-      zoneLayouts.current[order] = { x, y, width, height };
-      if (order === 1) {
-        setIsTourReady(true);
-      }
-    }
-  };
-
-  const {
-    isActive: isTourActive,
-    start,
-    getCurrentStep,
-  } = useAppTour(
-    "explore",
-    { vertical: verticalScrollRef },
-    zoneLayouts,
-    hasCompletedHomeTour && isTourReady && interactionsDone,
-  );
-
-  // Show a full-screen loader to block interaction until tour initializes
-  // Visible if user hasn't finished Explore tour AND tour isn't active yet (measuring/settling)
-  const shouldShowTourBlocker =
-    hasCompletedHomeTour && !hasCompletedExploreTour && !isTourActive;
 
   // --- NEW: Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
@@ -146,23 +104,7 @@ const Explore = () => {
 
   const { refreshControl } = usePullToRefresh(handleScreenRefresh); // Removed refreshing since not used directly in new layout
 
-  // --- Listen for Modal Events ---
-  useEffect(() => {
-    if (!events || events.length === 0) return;
-    // Suppress popups if tour is active or blocker is showing
-    if (isTourActive || shouldShowTourBlocker) return;
 
-    for (const event of events) {
-      if (event.name === EVENT_NAMES.SHOW_ERROR_MODAL) {
-        setErrorTitle(event.detail.modalTitle || "Something went wrong");
-        setErrorMessage(
-          event.detail.errorMessage || "An unexpected error occurred.",
-        );
-        setErrorModalVisible(true);
-        clear(EVENT_NAMES.SHOW_ERROR_MODAL);
-      }
-    }
-  }, [events, clear, isTourActive, shouldShowTourBlocker]);
 
   useEffect(() => {
     if (!user) return;
@@ -202,16 +144,13 @@ const Explore = () => {
             Discover new ways to improve your speech.
           </Text>
         </BlurView>
-
         <ScrollView
-          ref={verticalScrollRef}
           refreshControl={refreshControl}
           contentContainerStyle={[
             styles.scrollContent,
             { paddingTop: HEADER_HEIGHT + insets.top + 20 },
           ]}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={!isTourActive}
           onScrollBeginDrag={() => setIsScrolling(true)}
           onMomentumScrollBegin={() => setIsScrolling(true)}
           onScrollEndDrag={(e: any) => {
@@ -225,79 +164,22 @@ const Explore = () => {
           onMomentumScrollEnd={() => setIsScrolling(false)}
         >
           {/* World Exploration Map */}
-          <View onLayout={captureLayout(1)} collapsable={false}>
-            <TourGuideZone
-              zone={1}
-              text="Your Journey Map: Visualize your weekly practice rhythm and see how you explore different areas of speech improvement."
-              shape="rectangle"
-            >
-              <WorldExplorationGraph onLayoutCapture={() => {}} />
-            </TourGuideZone>
-          </View>
+          <WorldExplorationGraph />
 
           {/* 4 Types of Practice Grid */}
-          <View onLayout={captureLayout(2)} collapsable={false}>
-            <TourGuideZone
-              zone={2}
-              text="Practice Zones: Choose from Story, Social, Interview, or Daily challenges to target specific speech goals."
-              shape="rectangle"
-            >
-              <View collapsable={false}>
-                <PracticeGrid isScrolling={isScrolling} />
-              </View>
-            </TourGuideZone>
-          </View>
+          <PracticeGrid isScrolling={isScrolling} />
 
           {/* Upgrade CTA */}
           <BuyPro onLayoutCapture={() => {}} />
 
           {/* Inline Library Section */}
-          <View onLayout={captureLayout(3)} collapsable={false}>
-            <TourGuideZone
-              zone={3}
-              text="Tutorial Library: Deepen your knowledge with our curated video collection on speech techniques and mindset."
-              shape="rectangle"
-            >
-              <LibrarySection onLayoutCapture={() => {}} />
-            </TourGuideZone>
-          </View>
-
-          {/* Spacer for tour deep-scrolling */}
-          {isTourActive && <View style={{ height: 600 }} />}
+          <LibrarySection onLayoutCapture={() => {}} />
         </ScrollView>
       </View>
 
-      {/* Error Modal */}
-      <BottomSheetModal
-        visible={errorModalVisible}
-        onClose={() => setErrorModalVisible(false)}
-        maxHeight="40%"
-        showCloseButton={true}
-        fitContent={true}
-      >
-        <BgPattern_404 />
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{errorTitle}</Text>
-          <Text style={styles.modalMessage}>{errorMessage}</Text>
-          <ErrorFace size={152} />
-        </View>
-      </BottomSheetModal>
 
-      {/* Tour Blocker Overlay - Using Modal to cover everything */}
-      <Modal
-        visible={shouldShowTourBlocker}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-      >
-        <View style={styles.tourBlocker}>
-          <ActivityIndicator
-            size="large"
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.tourBlockerText}>Preparing your guide…</Text>
-        </View>
-      </Modal>
+
+
     </ScreenView>
   );
 };
@@ -355,17 +237,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
   },
-  tourBlocker: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.background.default,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 99999,
-    gap: 16,
-  },
-  tourBlockerText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    fontWeight: "600",
-  },
+
 });

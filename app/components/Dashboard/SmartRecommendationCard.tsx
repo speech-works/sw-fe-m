@@ -8,23 +8,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getPack, getPackProgress, getRecommendedPack } from "../../api/packs";
 import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import BottomSheetModal from "../BottomSheetModal";
 import ErrorStateCard from "./ErrorStateCard";
-import { TourGuideZone } from "rn-tourguide";
+
 
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 interface SmartRecommendationCardProps {
-  onLayoutCapture?: (order: number, event: any) => void;
 }
 
-const SmartRecommendationCard = ({
-  onLayoutCapture,
-}: SmartRecommendationCardProps) => {
+const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
+  const insets = useSafeAreaInsets();
   const navigationAcademy = useNavigation<any>();
   const [recommendation, setRecommendation] =
     useState<PackRecommendation | null>(null);
@@ -210,17 +209,7 @@ const SmartRecommendationCard = ({
           <View style={styles.bubbleTopRight} />
           <View style={styles.bubbleBottomLeft} />
 
-          {/* Header & Progress Wrapper for Tour Step 6 */}
-          <TourGuideZone
-            zone={6}
-            text="Recommended Packs: These are curated learning paths designed specifically for your goals. Complete the modules sequentially to master new speech techniques."
-            shape="rectangle"
-          >
-            <View
-              onLayout={(e) => {
-                onLayoutCapture?.(6, e);
-              }}
-            >
+            <View>
               {/* 1. Header Section */}
               <View style={styles.headerRow}>
                 <View style={styles.headerTextContainer}>
@@ -267,7 +256,6 @@ const SmartRecommendationCard = ({
                 </View>
               </View>
             </View>
-          </TourGuideZone>
 
           {/* 3. Next Module Card (Glassmorphism) or Pack Completion Card */}
           {percentComplete >= 1 ? (
@@ -361,7 +349,10 @@ const SmartRecommendationCard = ({
       >
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]}
-          style={styles.modalGradientContainer}
+          style={[
+            styles.modalGradientContainer,
+            { paddingBottom: Math.max(insets.bottom, 48) },
+          ]}
         >
           {/* Watermark Background */}
           <View style={styles.modalWatermark} pointerEvents="none">
