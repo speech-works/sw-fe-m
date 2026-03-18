@@ -30,6 +30,7 @@ import TongueTwister from "../../../screens/Academy/DailyPractice/pages/FunPract
 import PoemPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
 import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
 import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
+import ProgressDetail from "../../../screens/Academy/ProgressDetail";
 
 const Stack = createNativeStackNavigator<AcademyStackParamList>();
 
@@ -41,6 +42,7 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
       <Stack.Screen name="ChallengesStack" component={ChalStackNavigator} />
       <Stack.Screen name="ProgressDetailStack" component={PDStackNavigator} />
+      <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />
       <Stack.Screen name="PackForm" component={PackFormScreen} />

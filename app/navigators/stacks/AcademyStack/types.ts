@@ -9,7 +9,7 @@ export type AcademyStackParamList = {
   LibraryStack: undefined;
   ChallengesStack: undefined;
   ProgressDetailStack: undefined;
-  Progress: undefined;
+  ProgressDetail: { scrollTo?: "achievements" } | undefined;
   PaymentStack: undefined;
   PackModule: {
     module?: PackModule;

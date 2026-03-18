@@ -4,9 +4,9 @@ import React from "react"; // Rebuild trigger
 
 import { ROUTE_NAMES } from "../constants/routes";
 import Community from "../screens/Community";
-import Home from "../screens/Home";
 import ExploreStackNavigator from "./stacks/ExploreStack";
 import SettingsStackNavigator from "./stacks/SettingsStack";
+import HomeStackNavigator from "./stacks/HomeStackNavigator";
 
 import CustomTabBar from "../components/CustomTabBar";
 
@@ -33,7 +33,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen
         name={ROUTE_NAMES.HOME}
-        component={Home}
+        component={HomeStackNavigator}
         options={{ tabBarLabel: "Home" }}
       />
 

@@ -15,6 +15,7 @@ import { getProgressToNextLevel } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import { ROUTE_NAMES } from "../../../../constants/routes";
 
 // Animated Bar Component
 const AnimatedBar = ({
@@ -53,11 +54,7 @@ const AnimatedBar = ({
   );
 };
 
-const ResourceStats = ({
-  refreshing,
-}: {
-  refreshing?: boolean;
-}) => {
+const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const { width } = useWindowDimensions();
   const { user } = useUserStore();
   const isFocused = useIsFocused();
@@ -155,7 +152,7 @@ const ResourceStats = ({
 
   // Derived Values for Bars
   const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
-  const tasksTotal = 5;
+  const tasksTotal = 1;
   const taskPercentage = (tasksRemaining / tasksTotal) * 100;
 
   return (
@@ -317,8 +314,12 @@ const ResourceStats = ({
                   width < 320 && { flex: 0, width: "100%" },
                 ]}
               >
-                {/* Level Card - HUGE */}
                 <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("ProgressDetail", {
+                      scrollTo: "achievements",
+                    })
+                  }
                   style={[
                     styles.bigCard,
                     { backgroundColor: "#F1F5F9", borderWidth: 0 },
@@ -331,36 +332,36 @@ const ResourceStats = ({
                       { transform: [{ rotate: "-20deg" }] },
                     ]}
                   >
-                      <Icon
-                        name="star"
-                        size={90}
-                        color="#3B82F6"
-                        style={{ opacity: 0.05 }}
-                      />
-                    </View>
+                    <Icon
+                      name="star"
+                      size={90}
+                      color="#3B82F6"
+                      style={{ opacity: 0.05 }}
+                    />
+                  </View>
 
-                    <View style={styles.cardHeader}>
-                      <Text style={[styles.cardLabel, { color: "#64748B" }]}>
-                        Level
-                      </Text>
-                    </View>
-                    <View style={styles.cardBody}>
-                      <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                        {userLevel}
-                      </Text>
-                    </View>
-                    {/* XP Text */}
-                    <Text
-                      style={[
-                        styles.xpText,
-                        { color: theme.colors.library.orange[600] },
-                      ]}
-                    >
-                      {userProgress
-                        ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
-                        : "0 XP"}
+                  <View style={styles.cardHeader}>
+                    <Text style={[styles.cardLabel, { color: "#64748B" }]}>
+                      Level
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={[styles.bigValue, { color: "#1E293B" }]}>
+                      {userLevel}
+                    </Text>
+                  </View>
+                  {/* XP Text */}
+                  <Text
+                    style={[
+                      styles.xpText,
+                      { color: theme.colors.library.orange[600] },
+                    ]}
+                  >
+                    {userProgress
+                      ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
+                      : "0 XP"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>

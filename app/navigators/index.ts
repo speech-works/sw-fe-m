@@ -26,10 +26,7 @@ export type AuthStackRouteProp<T extends keyof AuthStackParamList> = RouteProp<
 
 export type HomeStackParamList = {
   Home: undefined;
-  PracticeBreathing: undefined;
-  PracticeAffirmation: undefined;
-  PracticeSmoothSpeech: undefined;
-  PracticeExposure: undefined;
+  ProgressDetail: { scrollTo?: "achievements" } | undefined;
 };
 
 export type HomeStackNavigationProp<T extends keyof HomeStackParamList> =
