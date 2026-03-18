@@ -243,6 +243,7 @@ const OASESQuestions = () => {
         visible={isStopModalVisible}
         onClose={() => setIsStopModalVisible(false)}
         showCloseButton={true}
+        fitContent={true}
       >
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Stop Check-in?</Text>

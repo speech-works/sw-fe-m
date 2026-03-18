@@ -484,6 +484,7 @@ const Library = () => {
         visible={isSelectionModalVisible}
         onClose={() => setIsSelectionModalVisible(false)}
         showCloseButton={true}
+        fitContent={true}
       >
         <LinearGradient
           colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient

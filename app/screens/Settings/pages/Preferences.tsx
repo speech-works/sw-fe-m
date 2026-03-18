@@ -454,6 +454,7 @@ const Preferences = () => {
         onClose={closeModal}
         maxHeight="70%"
         showCloseButton={true}
+        fitContent={true}
       >
         <View style={styles.modalContent}>
           {(() => {
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   disabledCard: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
     borderColor: "transparent",
     elevation: 0,
     shadowColor: "transparent",

@@ -1,18 +1,23 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
-  Animated,
-  Dimensions,
   Modal,
   StyleSheet,
   TouchableWithoutFeedback,
   View,
   TouchableOpacity,
+  useWindowDimensions,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+  Easing,
+} from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../Theme/tokens";
 import { parseShadowStyle } from "../util/functions/parseStyles";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface BottomSheetModalProps {
   visible: boolean;
@@ -36,6 +41,15 @@ interface BottomSheetModalProps {
    * If true, displays a circular close button at the top right.
    */
   showCloseButton?: boolean;
+  /**
+   * Optional background color to override default 'white'
+   */
+  backgroundColor?: string;
+  /**
+   * If true, the sheet will only be as tall as its content needs (up to maxHeight).
+   * Note: Children must NOT use flex: 1 for this to work correctly.
+   */
+  fitContent?: boolean;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
@@ -45,41 +59,55 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   maxHeight,
   showHandle = true,
   showCloseButton = false,
+  backgroundColor = "white",
+  fitContent = false,
 }) => {
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const [isMounted, setIsMounted] = useState(visible);
+  
+  // Start the sheet off-screen
+  const translateY = useSharedValue(windowHeight);
 
   // Compute a _fixed pixel height_ from maxHeight (whether it's a number or "xx%")
-  const resolvedSheetHeight = React.useMemo(() => {
+  const resolvedSheetHeight = useMemo(() => {
     if (maxHeight == null) {
       return undefined; // let content + minHeight:200 drive it
     }
     if (typeof maxHeight === "string" && maxHeight.endsWith("%")) {
       const pct = parseFloat(maxHeight) / 100;
-      return SCREEN_HEIGHT * pct;
+      return windowHeight * pct;
     }
     // otherwise it's a number in px
     return maxHeight;
-  }, [maxHeight]);
+  }, [maxHeight, windowHeight]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   useEffect(() => {
     if (visible) {
       setIsMounted(true);
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setIsMounted(false);
+      translateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.quad),
       });
+    } else {
+      translateY.value = withTiming(
+        windowHeight,
+        {
+          duration: 300,
+          easing: Easing.in(Easing.quad),
+        },
+        (finished) => {
+          if (finished) {
+            runOnJS(setIsMounted)(false);
+          }
+        }
+      );
     }
-  }, [visible, slideAnim]);
+  }, [visible, windowHeight, translateY]);
 
   if (!isMounted) return null;
 
@@ -96,15 +124,19 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           <View style={styles.backgroundTouchableArea} />
         </TouchableWithoutFeedback>
 
-        {/* 
-          Now we explicitly set height: resolvedSheetHeight (if defined).
-          That way, any child using flex:1 can fill that exact pixel height.
-        */}
         <Animated.View
           style={[
             styles.modal,
-            resolvedSheetHeight != null ? { height: resolvedSheetHeight } : {},
-            { transform: [{ translateY: slideAnim }] },
+            { backgroundColor },
+            { paddingBottom: Math.max(insets.bottom, 20) },
+            resolvedSheetHeight != null
+              ? fitContent
+                ? { maxHeight: resolvedSheetHeight }
+                : { height: resolvedSheetHeight }
+              : fitContent
+                ? { maxHeight: windowHeight * 0.9 } // Default safety cap for fitContent
+                : { minHeight: 200 }, // Keep minHeight only if NOT fitContent and no height set
+            animatedStyle,
           ]}
         >
           {children}
@@ -129,21 +161,19 @@ export default BottomSheetModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
   backgroundTouchableArea: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   modal: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    // padding: 24,
-    // paddingBottom: 36,
-    minHeight: 200,
-    // NOTE: no "maxHeight" here. We are now assigning "height" explicitly if maxHeight was provided.
+    width: "100%",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     overflow: "hidden",
+    elevation: 20,
+    ...parseShadowStyle(theme.shadow.elevation4),
   },
   handle: {
     position: "absolute",
@@ -163,7 +193,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.7)
     alignItems: "center",
     justifyContent: "center",
     ...parseShadowStyle(theme.shadow.elevation1),

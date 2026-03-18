@@ -273,6 +273,7 @@ const Explore = () => {
         onClose={() => setErrorModalVisible(false)}
         maxHeight="40%"
         showCloseButton={true}
+        fitContent={true}
       >
         <BgPattern_404 />
         <View style={styles.modalContent}>

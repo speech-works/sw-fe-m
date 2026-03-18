@@ -29,6 +29,7 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
       visible={visible}
       onClose={onSaveForLater}
       showCloseButton={true}
+      fitContent={true}
     >
       <View style={styles.container}>
         {/* Celebration Icon */}

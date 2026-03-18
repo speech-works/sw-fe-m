@@ -722,6 +722,7 @@ const PackModuleScreen = () => {
         visible={showSkipConfirmation}
         onClose={() => setShowSkipConfirmation(false)}
         showCloseButton={true}
+        fitContent={true}
       >
         <LinearGradient
           colors={["#FFF7ED", "#FFEDD5"]}

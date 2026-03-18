@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   inputWrapper: {
-    backgroundColor: "#F8FAFC", // Light slate bg
+    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",

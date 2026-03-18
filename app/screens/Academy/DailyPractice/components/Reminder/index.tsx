@@ -165,6 +165,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
         onClose={closeModal}
         maxHeight="80%"
         showCloseButton={true}
+        fitContent={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
@@ -498,8 +499,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   input: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 0,
+    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
+    borderWidth: 1, // Added border for visibility
+    borderColor: "#E2E8F0", // Added border for visibility
     borderRadius: 20,
     padding: 20,
     ...parseTextStyle(theme.typography.Body),

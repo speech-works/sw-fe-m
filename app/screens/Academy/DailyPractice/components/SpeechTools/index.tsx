@@ -82,6 +82,7 @@ const SpeechTools = ({ onToolSelect }: SpeechToolsProps) => {
         visible={isVisible}
         onClose={closeModal}
         showCloseButton={true}
+        fitContent={true}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>

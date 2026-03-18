@@ -224,6 +224,7 @@ const TechniquePage = () => {
         visible={isModalVisible}
         onClose={closeModal}
         showCloseButton={true}
+        fitContent={true}
       >
         {/* Reusing Premium Style for Info Modal as well */}
         <LinearGradient

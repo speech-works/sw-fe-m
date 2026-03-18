@@ -132,7 +132,7 @@ const UniversalImageUploader = ({
     <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
       <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={["rgba(255,255,255,0.7)", "rgba(255,255,255,0.4)"]}
+        colors={["#FFFFFF", "#FFFFFF"]}
         style={styles.cardGradient}
       >
         <TouchableOpacity
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 180,
     borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.4)",
+    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.4)
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.6)",
     borderStyle: "dashed",

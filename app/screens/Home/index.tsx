@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 16,
-    minHeight: 60,
+    minHeight: 104, // Increased from 60 to accommodate 2-line name wrapping
   },
   greeting: {
     ...parseTextStyle(theme.typography.Heading3),

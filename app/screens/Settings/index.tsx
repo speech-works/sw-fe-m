@@ -2,7 +2,8 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
@@ -33,6 +34,7 @@ import ExplorerFace from "../../assets/sw-faces/ExplorerFace";
 
 const Settings = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { logout } = useContext(AuthContext);
   const { user } = useUserStore();
 
@@ -155,12 +157,17 @@ const Settings = () => {
         </View>
 
         <CustomScrollView
-          style={styles.screenContainer}
+          style={[
+            styles.screenContainer,
+            { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 10 : 0, 20) },
+          ]}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 130 }}
         >
           {/* Header Title */}
-          <Text style={styles.pageTitle}>Settings</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.pageTitle}>Settings</Text>
+          </View>
 
           {/* Aurora Glass Identity Card (Concept A) */}
           <LinearGradient
@@ -284,6 +291,7 @@ const Settings = () => {
         maxHeight="75%"
         showHandle={true}
         showCloseButton={true}
+        fitContent={true}
       >
         <View style={styles.tourModalContent}>
           <ExplorerFace size={100} shouldAnimate />
@@ -351,13 +359,17 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
-    paddingTop: 20,
     paddingHorizontal: 16,
+  },
+  headerContainer: {
+    minHeight: 80,
+    justifyContent: "center",
+    marginBottom: 24, // Restored from original pageTitle margin
   },
   pageTitle: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   // Aurora Glass Card Styles
   profileSection: {
@@ -486,7 +498,7 @@ const styles = StyleSheet.create({
   menuTile: {
     flexDirection: "row",
     alignItems: "center",
-    //backgroundColor: "#FFF",
+    backgroundColor: "#FFF",
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1.2,

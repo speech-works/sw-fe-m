@@ -123,10 +123,16 @@ const GlobalModal = () => {
     <BottomSheetModal
       visible={modalVisible}
       onClose={() => setModalVisible(false)}
-      maxHeight={modalType === "upsell" ? "80%" : "55%"}
       showCloseButton={true}
+      fitContent={true}
+      backgroundColor={
+        modalType === "upsell"
+          ? "#F5F0EA"
+          : modalType === "error"
+            ? theme.colors.feedback.error
+            : "white"
+      }
     >
-      <View style={{ flex: 1 }}>
         {modalType === "error" && <BgPattern_DriftingPieces />}
         {modalType === "success" && <BgPattern_GradientSpheres />}
         {(modalType === "upsell" || modalType === "error") && (
@@ -169,7 +175,6 @@ const GlobalModal = () => {
           </View>
         )}
 
-        <View style={styles.modalContent}>
           {modalType === "success" && (
             <>
               <Text style={styles.modalTitle}>{modalTitle}</Text>
@@ -296,8 +301,6 @@ const GlobalModal = () => {
               </View>
             </View>
           )}
-        </View>
-      </View>
     </BottomSheetModal>
   );
 };
@@ -307,6 +310,7 @@ export default GlobalModal;
 const styles = StyleSheet.create({
   modalContent: {
     paddingBottom: 0,
+    flexShrink: 1,
   },
   faceWrapper: {
     alignItems: "center",
@@ -328,7 +332,8 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: "#FF5858",
-    paddingVertical: 18, // Reduced from 24 to maintain height if text wraps
+    minHeight: 120, // Consistent height whether title is 1 or 2 lines
+    paddingVertical: 18,
     paddingLeft: 12,
     paddingRight: 24,
     alignItems: "flex-start",
@@ -387,9 +392,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 0,
     marginBottom: 0,
-    backgroundColor: "#F5F0EA", // Deeper cream for high-contrast white card framing
+    backgroundColor: "#F5F0EA",
     paddingTop: 40,
-    paddingBottom: 64,
+    paddingBottom: 40,
     position: "relative",
     overflow: "hidden",
   },

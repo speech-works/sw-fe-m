@@ -163,6 +163,7 @@ const LibrarySection = ({
         visible={isInfoModalVisible}
         onClose={() => setIsInfoModalVisible(false)}
         showCloseButton={true}
+        fitContent={true}
       >
         {/* Redesigned Premium Glassmorphic Modal Content */}
         <LinearGradient

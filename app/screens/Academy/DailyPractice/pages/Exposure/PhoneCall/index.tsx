@@ -268,6 +268,7 @@ const PhoneCall = () => {
         onClose={closeModal}
         maxHeight="80%"
         showCloseButton={true}
+        fitContent={true}
       >
         <LinearGradient
           colors={["#0f172a", "#1e1b4b", "#2e1065"] as const}

@@ -134,6 +134,7 @@ const ExpressYourself = ({
         visible={expressionType !== null}
         onClose={onClose}
         showCloseButton={true}
+        fitContent={true}
       >
         <LinearGradient
           colors={config.gradient}

@@ -208,8 +208,9 @@ const Support = () => {
         onClose={closeModal}
         maxHeight="90%"
         showCloseButton={true}
+        fitContent={openSettingType === "Success"}
       >
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, openSettingType === "Success" && { flex: 0 }]}>
           {openSettingType !== "Success" &&
             (() => {
               const isReport = openSettingType === "Report Problem";
@@ -251,7 +252,7 @@ const Support = () => {
               );
             })()}
 
-          <View style={styles.modalBody}>
+          <View style={[styles.modalBody, openSettingType === "Success" && { flex: 0 }]}>
             {openSettingType === "Contact Support" && <ContactSupport />}
             {openSettingType === "Feedback" && (
               <Feedback onFeedbackSubmit={handleSuccess} />
@@ -481,7 +482,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingTop: 40, // Added significant top padding
+    paddingBottom: 60, // Increased bottom padding for balance
   },
   successIconBox: {
     width: 100,

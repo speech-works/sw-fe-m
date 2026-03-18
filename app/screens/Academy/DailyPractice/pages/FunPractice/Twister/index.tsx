@@ -684,6 +684,7 @@ const Twister = () => {
         onClose={() => setActiveToolSheet(null)}
         maxHeight={500}
         showCloseButton={true}
+        fitContent={true}
       >
         <ScrollView
           contentContainerStyle={styles.sheetContent}

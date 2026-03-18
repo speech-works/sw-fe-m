@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.8)
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
 
   // Toggle
   toggleCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.8)
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",

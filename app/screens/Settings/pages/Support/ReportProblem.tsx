@@ -161,41 +161,24 @@ const ReportProblem = ({ onReportSubmit }: ReportProblemProps) => {
           label="screenshots (optional)"
         />
 
-        {/* Device Info Card */}
-        <View style={styles.deviceCardWrapper}>
-          <LinearGradient
-            colors={["#F0FDF4", "#DCFCE7"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.deviceCardGradient}
-          >
-            {/* Watermark Icon */}
-            <View style={styles.deviceWatermark}>
-              <Icon
-                name="mobile-alt"
-                size={80}
-                color="rgba(22, 163, 74, 0.08)"
-              />
+        {/* Device Info Card (Restyled to match Feedback Toggle) */}
+        <View style={styles.deviceCard}>
+          <View style={styles.deviceRow}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.deviceLabel}>{deviceInfo}</Text>
+              <Text style={styles.deviceSub}>
+                System Diagnostics Verified
+              </Text>
             </View>
-
-            {/* Decorative Bubbles */}
-            <View style={styles.deviceBubble} />
-
-            <View style={styles.deviceInfoRow}>
-              <View style={styles.deviceIconCircle}>
-                <Icon name="mobile-alt" size={12} color="#166534" />
-              </View>
-              <View style={styles.deviceTextCol}>
-                <Text style={styles.deviceInfoText}>{deviceInfo}</Text>
-                <Text style={styles.deviceStatusText}>
-                  System Diagnostics Verified
-                </Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <Icon name="check-circle" size={14} color="white" solid />
-              </View>
+            <View style={styles.verifiedBadge}>
+              <Icon name="check-circle" size={18} color="#10B981" solid />
             </View>
-          </LinearGradient>
+          </View>
+          
+          <View style={styles.deviceIconBox}>
+            <Icon name="mobile-alt" size={13} color="#64748B" />
+            <Text style={styles.deviceIconText}>Hardware info logged</Text>
+          </View>
         </View>
 
         {/* CTA */}
@@ -319,7 +302,7 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.8)
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",
@@ -336,83 +319,55 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Device Info Card
-  deviceCardWrapper: {
-    borderRadius: 24,
+  // Device Info Card (Matched with Feedback toggleCard)
+  deviceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.6)",
+    borderColor: "rgba(0,0,0,0.05)",
+    padding: 20,
+    gap: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-    overflow: "hidden",
   },
-  deviceCardGradient: {
-    padding: 24,
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 100,
-    justifyContent: "center",
-  },
-  deviceWatermark: {
-    position: "absolute",
-    right: -10,
-    bottom: -25,
-    transform: [{ rotate: "15deg" }],
-  },
-  deviceBubble: {
-    position: "absolute",
-    top: -40,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-  },
-  deviceInfoRow: {
+  deviceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
-    zIndex: 1,
+    justifyContent: "space-between",
   },
-  deviceIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  deviceTextCol: {
-    flex: 1,
-    gap: 4,
-  },
-  deviceInfoText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#166534",
-    letterSpacing: -0.4,
-  },
-  deviceStatusText: {
-    fontSize: 12,
+  deviceLabel: {
+    fontSize: 15,
     fontWeight: "700",
-    color: "#166534",
-    opacity: 0.5,
-    letterSpacing: 0.2,
+    color: theme.colors.text.title,
   },
-  statusBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#10B981",
+  deviceSub: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    marginTop: 2,
+  },
+  verifiedBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
+  },
+  deviceIconBox: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  deviceIconText: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "600",
   },
 
   // CTA
