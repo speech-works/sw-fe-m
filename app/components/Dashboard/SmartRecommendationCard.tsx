@@ -227,13 +227,16 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
                   <Text style={styles.packTitle}>{pack.title}</Text>
                   <Text style={styles.packSubtitle}>{pack.description}</Text>
                 </View>
-                <View style={styles.iconBox}>
-                  <MaterialCommunityIcons
-                    name={isSafetyMode ? "spa" : "lightning-bolt"}
-                    size={32}
-                    color="white"
-                  />
-                </View>
+              </View>
+
+              {/* Large Watermark Icon */}
+              <View style={styles.mainWatermarkContainer}>
+                <MaterialCommunityIcons
+                  name={isSafetyMode ? "spa" : "lightning-bolt"}
+                  size={140}
+                  color="white"
+                  style={{ opacity: 0.25 }}
+                />
               </View>
 
               {/* 2. Progress Section */}
@@ -499,16 +502,12 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255, 255, 255, 0.9)",
   },
-  iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+  mainWatermarkContainer: {
     position: "absolute",
-    top: 0,
-    right: 0,
+    top: -5,
+    right: -5,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
   },
   progressSection: {
     marginBottom: 24,

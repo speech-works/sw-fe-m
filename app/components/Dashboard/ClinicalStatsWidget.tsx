@@ -449,11 +449,25 @@ const ClinicalStatsWidget = () => {
         <View style={styles.decorBubble2} />
         <View style={styles.decorBubble3} />
 
+        {/* Large Watermark Icon */}
+        <View style={styles.mainWatermarkContainer}>
+          <MaterialCommunityIcons
+            name="trending-up"
+            size={120}
+            color={theme.colors.library.orange[400]}
+            style={{ opacity: 0.15 }}
+          />
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             {isRefreshing ? (
-              <SkeletonLoader width={80} height={22} style={{ borderRadius: 20 }} />
+              <SkeletonLoader
+                width={80}
+                height={22}
+                style={{ borderRadius: 20 }}
+              />
             ) : (
               <View style={styles.chip}>
                 <MaterialCommunityIcons
@@ -469,8 +483,16 @@ const ClinicalStatsWidget = () => {
           <View style={styles.textContainer}>
             {isRefreshing ? (
               <>
-                <SkeletonLoader width={180} height={34} style={{ borderRadius: 6 }} />
-                <SkeletonLoader width={240} height={18} style={{ borderRadius: 4 }} />
+                <SkeletonLoader
+                  width={180}
+                  height={34}
+                  style={{ borderRadius: 6 }}
+                />
+                <SkeletonLoader
+                  width={240}
+                  height={18}
+                  style={{ borderRadius: 4 }}
+                />
               </>
             ) : (
               <>
@@ -484,10 +506,10 @@ const ClinicalStatsWidget = () => {
         {/* Main Content Panel (White) */}
         <View style={styles.contentPanel}>
           {/* Radar Chart Section - Step 7 */}
-        <View style={[styles.chartContainer, { height: SIZE }]}>
-          {isRefreshing ? (
-            <SkeletonLoader width="100%" height={SIZE} />
-          ) : (
+          <View style={[styles.chartContainer, { height: SIZE }]}>
+            {isRefreshing ? (
+              <SkeletonLoader width="100%" height={SIZE} />
+            ) : (
               <Svg
                 height={SIZE}
                 width={CHART_WIDTH}
@@ -704,17 +726,46 @@ const ClinicalStatsWidget = () => {
 
           {/* Weekly Breakthroughs */}
           <View style={styles.breakthroughContainer}>
+            {/* Breakthrough Watermark Icon */}
+            <View style={styles.breakthroughWatermarkContainer}>
+              <MaterialCommunityIcons
+                name="trophy-variant"
+                size={160}
+                color={theme.colors.library.orange[500]}
+                style={{ opacity: 0.08 }}
+              />
+            </View>
             {isRefreshing ? (
               <>
-                <SkeletonLoader width={120} height={16} style={{ marginBottom: 16 }} />
+                <SkeletonLoader
+                  width={120}
+                  height={16}
+                  style={{ marginBottom: 16 }}
+                />
                 <View style={styles.heroChartContainer}>
-                  <SkeletonLoader width="100%" height={140} style={{ borderRadius: 24 }} />
+                  <SkeletonLoader
+                    width="100%"
+                    height={140}
+                    style={{ borderRadius: 24 }}
+                  />
                   <View style={{ flexDirection: "row", gap: 12 }}>
-                    <SkeletonLoader width="48%" height={100} style={{ borderRadius: 20, flex: 1 }} />
-                    <SkeletonLoader width="48%" height={100} style={{ borderRadius: 20, flex: 1 }} />
+                    <SkeletonLoader
+                      width="48%"
+                      height={100}
+                      style={{ borderRadius: 20, flex: 1 }}
+                    />
+                    <SkeletonLoader
+                      width="48%"
+                      height={100}
+                      style={{ borderRadius: 20, flex: 1 }}
+                    />
                   </View>
                   {/* Button skeleton MUST be inside heroChartContainer to match layout */}
-                  <SkeletonLoader width="100%" height={52} style={{ marginTop: 24, borderRadius: 16 }} />
+                  <SkeletonLoader
+                    width="100%"
+                    height={52}
+                    style={{ marginTop: 24, borderRadius: 16 }}
+                  />
                 </View>
               </>
             ) : (
@@ -755,7 +806,9 @@ const ClinicalStatsWidget = () => {
                         <TouchableOpacity
                           activeOpacity={0.7}
                           onPress={() => {
-                            setSelectedMetric(heroItem.domain as ClinicalDomain);
+                            setSelectedMetric(
+                              heroItem.domain as ClinicalDomain,
+                            );
                             setModalVisible(true);
                           }}
                           style={[
@@ -768,7 +821,9 @@ const ClinicalStatsWidget = () => {
                           ]}
                         >
                           <View style={styles.heroHeader}>
-                            <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+                            <Text
+                              style={[styles.cardTitle, { marginBottom: 0 }]}
+                            >
                               {heroItem.config.label}
                             </Text>
                             <MaterialCommunityIcons
@@ -901,7 +956,9 @@ const ClinicalStatsWidget = () => {
                                       </Text>
                                       <MaterialCommunityIcons
                                         name={
-                                          isImp ? "trending-up" : "trending-down"
+                                          isImp
+                                            ? "trending-up"
+                                            : "trending-down"
                                         }
                                         size={14}
                                         color={
@@ -1024,6 +1081,13 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginVertical: 12,
     padding: 20,
+  },
+  mainWatermarkContainer: {
+    position: "absolute",
+    top: 20,
+    right: 25,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
   },
   // Decorative Elements (White transparent overlays)
 
@@ -1178,6 +1242,14 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
+    position: "relative",
+  },
+  breakthroughWatermarkContainer: {
+    position: "absolute",
+    bottom: 100,
+    left: -80,
+    zIndex: 0,
+    transform: [{ rotate: "15deg" }],
   },
   sectionLabel: {
     fontSize: 10,

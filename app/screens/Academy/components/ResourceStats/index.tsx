@@ -181,9 +181,11 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
               <Text style={styles.cardTitle}>Daily Progress</Text>
               <Text style={styles.cardSubtitle}>Your energy and growth</Text>
             </View>
-            <View style={styles.iconBox}>
-              <Icon name="fire" size={24} color="white" />
-            </View>
+          </View>
+
+          {/* Large Watermark Icon */}
+          <View style={styles.mainWatermarkContainer}>
+            <Icon name="fire" size={120} color="white" style={{ opacity: 0.2 }} />
           </View>
 
           {/* Glass Data Card - MAXIMALIST STACK */}
@@ -442,13 +444,12 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255, 255, 255, 0.9)",
   },
-  iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+  mainWatermarkContainer: {
+    position: "absolute",
+    top: 0,
+    right: -10,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
   },
 
   // Glass Card - Stack Layout
