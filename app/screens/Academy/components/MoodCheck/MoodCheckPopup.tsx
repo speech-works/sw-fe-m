@@ -245,7 +245,8 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   gradientContainer: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 54,
     paddingBottom: 50,
   },
   handle: {

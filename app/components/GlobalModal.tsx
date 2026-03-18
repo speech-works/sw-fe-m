@@ -176,7 +176,7 @@ const GlobalModal = () => {
         )}
 
           {modalType === "success" && (
-            <>
+            <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>{modalTitle}</Text>
               <Text style={styles.modalMessage}>{modalMessage}</Text>
               <View style={styles.faceWrapper}>
@@ -184,7 +184,7 @@ const GlobalModal = () => {
                   <HappyScreamFace size={120} />
                 </Animated.View>
               </View>
-            </>
+            </View>
           )}
 
           {modalType === "upsell" && (
@@ -308,20 +308,23 @@ const GlobalModal = () => {
 export default GlobalModal;
 
 const styles = StyleSheet.create({
-  modalContent: {
-    paddingBottom: 0,
-    flexShrink: 1,
-  },
   faceWrapper: {
     alignItems: "center",
     justifyContent: "center",
     marginTop: 20,
     zIndex: 10,
   },
+  modalContent: {
+    paddingTop: 54,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
   modalTitle: {
-    color: theme.colors.text.title,
-    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.default,
+    ...parseTextStyle(theme.typography.Heading2),
     textAlign: "center",
+    marginBottom: 8,
   },
   modalMessage: {
     color: theme.colors.text.default,
@@ -332,8 +335,9 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: "#FF5858",
-    minHeight: 120, // Consistent height whether title is 1 or 2 lines
-    paddingVertical: 18,
+    minHeight: 140, // Increased to accommodate 54px top space
+    paddingTop: 54,
+    paddingBottom: 18,
     paddingLeft: 12,
     paddingRight: 24,
     alignItems: "flex-start",

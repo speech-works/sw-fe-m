@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 24,
     paddingBottom: 24,
+    paddingTop: 54,
     position: "relative",
     borderRadius: 24,
     overflow: "hidden",

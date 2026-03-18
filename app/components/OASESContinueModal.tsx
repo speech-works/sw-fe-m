@@ -74,7 +74,7 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingTop: 54,
     paddingBottom: 40,
     alignItems: "center",
   },

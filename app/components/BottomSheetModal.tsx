@@ -65,7 +65,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [isMounted, setIsMounted] = useState(visible);
-  
+
   // Start the sheet off-screen
   const translateY = useSharedValue(windowHeight);
 
@@ -104,7 +104,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
           if (finished) {
             runOnJS(setIsMounted)(false);
           }
-        }
+        },
       );
     }
   }, [visible, windowHeight, translateY]);

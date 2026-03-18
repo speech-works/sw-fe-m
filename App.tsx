@@ -20,10 +20,8 @@ import {
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeModules } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 import { TourGuideProvider } from "rn-tourguide";
 import TourTooltip, { LocalTourTooltipStub } from "./app/components/Tour";
 

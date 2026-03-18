@@ -336,7 +336,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingVertical: 32,
+    paddingTop: 54,
     alignItems: "center",
   },
   modalTitle: {
