@@ -31,8 +31,8 @@ export default function AppNavigator() {
         name="PremiumModal"
         component={SubscribeScreen}
         options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
+          presentation: "transparentModal",
+          animation: "none",
         }}
       />
     </Stack.Navigator>

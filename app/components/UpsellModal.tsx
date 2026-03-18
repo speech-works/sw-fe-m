@@ -280,8 +280,11 @@ const UpsellModal = () => {
   const upsellOpacity = useSharedValue(0);
   const upsellTranslateY = useSharedValue(Dimensions.get("window").height);
 
-  const animatedUpsellStyle = useAnimatedStyle(() => ({
+  const animatedBackdropStyle = useAnimatedStyle(() => ({
     opacity: upsellOpacity.value,
+  }));
+
+  const animatedSheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: upsellTranslateY.value }],
   }));
 
@@ -510,11 +513,13 @@ const UpsellModal = () => {
       style={[
         StyleSheet.absoluteFill,
         { zIndex: 1000, backgroundColor: "rgba(0,0,0,0.75)" },
-        animatedUpsellStyle,
+        animatedBackdropStyle,
       ]}
       pointerEvents={modalVisible ? "auto" : "none"}
     >
-      {renderPortalContent()}
+      <Animated.View style={[{ flex: 1 }, animatedSheetStyle]}>
+        {renderPortalContent()}
+      </Animated.View>
     </Animated.View>
   );
 };
