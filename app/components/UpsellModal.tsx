@@ -250,7 +250,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "50%",
-    backgroundColor: "rgba(255,255,255,0.1)",
   },
   buyProTrustRow: {
     flexDirection: "row",
@@ -501,9 +500,18 @@ const UpsellModal = () => {
             style={styles.buyProCtaGradient}
           >
             <Text style={styles.buyProCtaText}>{modalCta}</Text>
-            <View style={styles.buyProBtnShine} />
+            <LinearGradient
+              colors={["rgba(255,255,255,0.15)", "transparent"]}
+              style={StyleSheet.absoluteFill}
+            />
           </LinearGradient>
         </TouchableOpacity>
+        <View style={styles.buyProTrustRow}>
+          <Icon name="lock" size={12} color="rgba(255,255,255,0.4)" />
+          <Text style={styles.buyProTrustText}>
+            Secure payment via Apple/Google Pay
+          </Text>
+        </View>
       </View>
     </View>
   );

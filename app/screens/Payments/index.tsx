@@ -470,7 +470,10 @@ const SubscribeScreen = () => {
                       : "Unlock Full Access"}
                   </Text>
                 )}
-                <View style={styles.btnShine} />
+                <LinearGradient
+                  colors={["rgba(255,255,255,0.15)", "transparent"]}
+                  style={StyleSheet.absoluteFill}
+                />
               </LinearGradient>
             </TouchableOpacity>
             <View style={styles.guaranteeRow}>
@@ -877,7 +880,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "50%",
-    backgroundColor: "rgba(255,255,255,0.1)",
   },
   guaranteeRow: {
     flexDirection: "row",
