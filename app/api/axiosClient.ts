@@ -125,9 +125,13 @@ axiosClient.interceptors.response.use(
             },
           },
         );
-        const { token: newAccessToken } = refreshResponse.data;
+        console.log("REFRESH RESPONSE:", refreshResponse.data);
+        const { token: newAccessToken, error: backendError } =
+          refreshResponse.data;
 
-        console.log("REFRESH RESPONSE:", { newAccessToken });
+        if (backendError) {
+          throw new Error(`Refresh failed: ${backendError}`);
+        }
 
         if (typeof newAccessToken !== "string") {
           console.error(

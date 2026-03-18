@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   completeModule,
   getModule,
@@ -54,6 +55,7 @@ type PackModuleScreenRouteProp = RouteProp<
 const { width } = Dimensions.get("window");
 
 const PackModuleScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<AcademyStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
   const {
