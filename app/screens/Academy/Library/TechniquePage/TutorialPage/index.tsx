@@ -20,11 +20,10 @@ import {
 } from "react-native";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { VideoPlayer } from "../../../../../components/VideoPlayer";
-import {
-  LibStackNavigationProp,
-  LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { LibStackNavigationProp, LibStackParamList } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
+import { useEventStore } from "../../../../../stores/events";
+import { EVENT_NAMES } from "../../../../../stores/events/constants";
 
 interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
@@ -38,6 +37,7 @@ const TutorialPage = ({
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { user } = useUserStore();
+  const { emit } = useEventStore();
 
   const [tutorial, setTutorial] = useState<Tutorial | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +110,7 @@ const TutorialPage = ({
             subtitle={isLocked ? "15-Second Glimpse" : "Full Lesson"}
             isLocked={isLocked}
             autoPlay={true}
-            onPressGoPremium={() => navigation.navigate("PremiumModal" as any)}
+            onPressGoPremium={() => emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL)}
           />
         </View>
 

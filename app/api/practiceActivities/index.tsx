@@ -150,7 +150,6 @@ export async function startPracticeActivity({
     );
     return response.data;
   } catch (error) {
-    //console.error("Error starting practice activity:", error);
     if (axios.isAxiosError(error) && error.response) {
       const { errorCode, error: backendError } = error.response.data;
 

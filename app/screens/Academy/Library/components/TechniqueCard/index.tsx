@@ -41,7 +41,7 @@ const TechniqueCard = ({
 
   const handlePress = () => {
     if (isLocked) {
-      emit(EVENT_NAMES.SHOW_PREMIUM_UPSELL);
+      emit(EVENT_NAMES.SHOW_LIBRARY_UPSELL);
     } else {
       onPressStart();
     }
