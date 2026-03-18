@@ -73,12 +73,13 @@ const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 12,
     paddingBottom: 40,
     alignItems: "center",
   },
   iconContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   iconCircle: {
     width: 72,

@@ -335,19 +335,20 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   modalContent: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
     alignItems: "center",
   },
   modalTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   modalText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 32,
   },
   modalButtons: {
     width: "100%",
