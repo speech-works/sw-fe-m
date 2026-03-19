@@ -137,6 +137,7 @@ const ClinicalStatsWidget = () => {
   }, [loading, growthProfile]);
 
   // --- Refresh Handler ---
+  const [lastUpdated, setLastUpdated] = useState<number | null>(Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const rotationAnim = useSharedValue(0);
   const pulseAnim = useSharedValue(1);
@@ -174,6 +175,7 @@ const ClinicalStatsWidget = () => {
       rotationAnim.value = withTiming(0, { duration: 200 });
       pulseAnim.value = withTiming(1, { duration: 200 });
       setIsRefreshing(false);
+      setLastUpdated(Date.now());
     }
   };
 
@@ -422,9 +424,9 @@ const ClinicalStatsWidget = () => {
                 />
               </View>
               <SkeletonLoader
-                width="100%"
-                height={52}
-                style={{ marginTop: 24, borderRadius: 16 }}
+                width={140}
+                height={20}
+                style={{ marginTop: 16, alignSelf: "center", borderRadius: 10 }}
               />
             </View>
           </View>
@@ -762,9 +764,13 @@ const ClinicalStatsWidget = () => {
                   </View>
                   {/* Button skeleton MUST be inside heroChartContainer to match layout */}
                   <SkeletonLoader
-                    width="100%"
-                    height={52}
-                    style={{ marginTop: 24, borderRadius: 16 }}
+                    width={140}
+                    height={20}
+                    style={{
+                      marginTop: 16,
+                      alignSelf: "center",
+                      borderRadius: 10,
+                    }}
                   />
                 </View>
               </>
@@ -982,28 +988,27 @@ const ClinicalStatsWidget = () => {
                         })}
                       </View>
 
-                      {/* Refresh Button - Moved to bottom for better approachability */}
+                      {/* Subtle Sync Link */}
                       <TouchableOpacity
                         onPress={onRefresh}
                         disabled={isRefreshing}
-                        activeOpacity={0.8}
-                        style={[
-                          styles.refreshBtn,
-                          isRefreshing && styles.refreshBtnActive,
-                        ]}
+                        activeOpacity={0.7}
+                        style={styles.syncLink}
                       >
-                        <Animated.View style={refreshIconStyle}>
+                        <Animated.View
+                          style={isRefreshing ? refreshIconStyle : null}
+                        >
                           <MaterialCommunityIcons
                             name="sync"
                             size={16}
-                            color={
-                              isRefreshing
-                                ? theme.colors.library.blue[500]
-                                : "#FFFFFF"
-                            }
+                            color={theme.colors.library.gray[400]}
                           />
                         </Animated.View>
-                        <Text style={styles.refreshText}>Refresh Data</Text>
+                        <Text style={styles.syncText}>
+                          {isRefreshing
+                            ? "Syncing data..."
+                            : `Last synced at ${new Date(lastUpdated || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -1131,27 +1136,19 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default, // Standard gray
     lineHeight: 18,
   },
-  refreshBtn: {
+  syncLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.actionPrimary.default, // Standard Orange
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    height: 52,
-    marginTop: 24,
-    gap: 12,
-    // Standard Elevation 1
-    ...parseShadowStyle(theme.shadow.elevation1),
+    marginTop: 16,
+    gap: 6,
+    paddingVertical: 8,
   },
-  refreshBtnActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
-  },
-  refreshText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.onDark,
+  syncText: {
+    fontSize: 12,
+    color: theme.colors.library.gray[400],
+    fontWeight: "500",
+    width: "100%",
   },
   chartContainer: {
     alignItems: "center",
