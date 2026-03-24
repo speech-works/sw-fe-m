@@ -1,6 +1,9 @@
 // api/overallState/types.ts
 
-import { ClinicalDomain } from "../userBehaviorTrends/types";
+import {
+  ClinicalDomain,
+  GrowthProfileMetrics,
+} from "../userBehaviorTrends/types";
 
 // Re-export ClinicalDomain for convenience
 export { ClinicalDomain };
@@ -34,6 +37,13 @@ export interface EngagementSummary {
   exposurePracticeCount: number;
   avgSelfReportedAnxiety: number | null;
   avgSelfReportedConfidence: number | null;
+  avgStress: number | null;
+  avgTensionSeverity: number | null;
+  avgProprioception: number | null;
+  avgAvoidanceUrge: number | null;
+  recentSecondaryCount: number | null;
+  previousSecondaryCount: number | null;
+  secondaryCountDelta: number | null;
   activeDaysThisWeek: number;
 }
 
@@ -44,6 +54,7 @@ export interface CombinedView {
   overallProgressScore: number; // 0-100, higher = better
   recommendedFocus: ClinicalDomain;
   isStale: boolean;
+  axes?: GrowthProfileMetrics;
 }
 
 /**

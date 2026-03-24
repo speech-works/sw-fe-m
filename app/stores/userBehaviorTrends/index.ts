@@ -48,7 +48,18 @@ export const useUserBehaviorTrendsStore = create<UserBehaviorTrendsState>()(
             // Get the oldest record (4 weeks ago)
             if (history && history.length > 0) {
               const oldest = history[history.length - 1];
-              if (oldest.clinical?.domains) {
+              if (oldest.combined?.axes) {
+                const axes = oldest.combined.axes;
+                historicalProfile = {
+                  mastery: axes.mastery ?? 50,
+                  ease: axes.ease ?? 50,
+                  courage: axes.courage ?? 50,
+                  confidence: axes.confidence ?? 50,
+                  social: axes.social ?? 50,
+                  lastUpdated: oldest.computedAt || null,
+                };
+              } else if (oldest.clinical?.domains) {
+                // Return to old computation fallback
                 // Convert clinical scores to growth profile (invert: 100 - score)
                 const domains = oldest.clinical.domains;
                 historicalProfile = {

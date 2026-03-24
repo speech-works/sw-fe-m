@@ -28,16 +28,13 @@ import Svg, {
 import {
   ClinicalDomain,
   GrowthProfile,
+  GrowthProfileMetrics,
 } from "../../api/userBehaviorTrends/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
 import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -49,7 +46,7 @@ const METRIC_CONFIG: Record<
     color: string;
     icon: string;
     description: string;
-    profileKey: Exclude<keyof GrowthProfile, "lastUpdated">;
+    profileKey: keyof GrowthProfileMetrics;
   }
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
@@ -141,6 +138,29 @@ const ClinicalStatsWidget = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const rotationAnim = useSharedValue(0);
   const pulseAnim = useSharedValue(1);
+  const downfallAnim = useSharedValue(0);
+
+  useEffect(() => {
+    if (growthProfile?.dataSource === "aggregate_leaked") {
+      downfallAnim.value = withRepeat(
+        withSequence(
+          withTiming(15, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      downfallAnim.value = 0;
+    }
+  }, [growthProfile?.dataSource]);
+
+  const downfallStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ translateY: downfallAnim.value }],
+    }),
+    [],
+  );
 
   const onRefresh = async () => {
     if (isRefreshing) return;
@@ -453,12 +473,23 @@ const ClinicalStatsWidget = () => {
 
         {/* Large Watermark Icon */}
         <View style={styles.mainWatermarkContainer}>
-          <MaterialCommunityIcons
-            name="trending-up"
-            size={120}
-            color={theme.colors.library.orange[400]}
-            style={{ opacity: 0.15 }}
-          />
+          {growthProfile?.dataSource === "aggregate_leaked" ? (
+            <Animated.View style={downfallStyle}>
+              <MaterialCommunityIcons
+                name="trending-down"
+                size={120}
+                color={theme.colors.library.gray[400]}
+                style={{ opacity: 0.15 }}
+              />
+            </Animated.View>
+          ) : (
+            <MaterialCommunityIcons
+              name="trending-up"
+              size={120}
+              color={theme.colors.library.orange[400]}
+              style={{ opacity: 0.15 }}
+            />
+          )}
         </View>
 
         {/* Header */}
@@ -471,13 +502,43 @@ const ClinicalStatsWidget = () => {
                 style={{ borderRadius: 20 }}
               />
             ) : (
-              <View style={styles.chip}>
-                <MaterialCommunityIcons
-                  name="chart-donut"
-                  size={12}
-                  color={theme.colors.library.orange[500]}
-                />
-                <Text style={styles.chipText}>TRACKING</Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <View style={styles.chip}>
+                  <MaterialCommunityIcons
+                    name="chart-donut"
+                    size={12}
+                    color={theme.colors.library.orange[500]}
+                  />
+                  <Text style={styles.chipText}>TRACKING</Text>
+                </View>
+                {growthProfile?.dataSource === "aggregate_leaked" && (
+                  <View
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: theme.colors.library.gray[100],
+                        borderRadius: 12,
+                        paddingHorizontal: 8,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="alert-circle-outline"
+                      size={12}
+                      color={theme.colors.library.gray[500]}
+                    />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: theme.colors.library.gray[600] },
+                      ]}
+                    >
+                      SLIPPING MOMENTUM
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>

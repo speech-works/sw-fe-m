@@ -41,13 +41,22 @@ export type UserBehaviorTrendsResponse = Array<{
 // ============================================================================
 // GROWTH PROFILE TYPES (NEW)
 // ============================================================================
-export interface GrowthProfile {
+export type GrowthProfileMetrics = {
   mastery: number; // 0-100
   ease: number;
   courage: number;
   confidence: number;
   social: number;
+};
+
+export interface GrowthProfile extends GrowthProfileMetrics {
   lastUpdated: Date | string | null;
+  dataSource?:
+    | "aggregate"
+    | "aggregate_leaked"
+    | "domain_state"
+    | "raw_trends"
+    | "default";
 }
 
 export interface Breakthrough {
