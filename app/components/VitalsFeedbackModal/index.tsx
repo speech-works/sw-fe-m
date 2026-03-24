@@ -159,7 +159,7 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
               step={1}
               value={effort}
               onValueChange={setEffort}
-              minimumTrackTintColor={theme.colors.library.green[500]}
+              minimumTrackTintColor={theme.colors.actionPrimary.default}
               maximumTrackTintColor="#E0E0E0"
             />
           </View>
@@ -178,7 +178,7 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
               step={1}
               value={autonomy}
               onValueChange={setAutonomy}
-              minimumTrackTintColor={theme.colors.library.blue[500]}
+              minimumTrackTintColor={theme.colors.actionPrimary.default}
               maximumTrackTintColor="#E0E0E0"
             />
           </View>
