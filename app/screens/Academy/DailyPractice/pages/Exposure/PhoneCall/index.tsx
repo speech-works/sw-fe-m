@@ -38,6 +38,7 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
+import DonePractice from "../../../components/DonePractice";
 
 const PhoneCall = () => {
   const navigation =
@@ -62,6 +63,7 @@ const PhoneCall = () => {
   );
 
   // State for bottom sheet visibility
+  const [isDone, setIsDone] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const closeModal = () => setIsModalVisible(false);
@@ -92,6 +94,11 @@ const PhoneCall = () => {
       if (!userId) {
         console.error("Missing userId");
         return null;
+      }
+
+      if (packContext?.alreadyStarted && currentActivityId) {
+        console.log("PhoneCall - Already started by pack");
+        return currentActivityId;
       }
 
       let activityIdToStart = currentActivityId;
@@ -165,18 +172,7 @@ const PhoneCall = () => {
 
       // Clear the local activity ID state so starting another call creates a new one
       setCurrentActivityId(null);
-
-      // If in pack, maybe auto-navigate back?
-      // For now, we leave the user on the screen or let them end the call manually
-      if (packContext && navigation.canGoBack()) {
-        navigation.goBack();
-      } else if (packContext) {
-        navigation.navigate("PackModule", {
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          initialBlockIndex: packContext.blockIndex,
-        });
-      }
+      setIsDone(true);
     } catch (error) {
       console.error("Failed to complete phone call activity", error);
     }
@@ -217,6 +213,29 @@ const PhoneCall = () => {
     };
     fetchScenarios();
   }, []);
+
+  if (isDone) {
+    return (
+      <DonePractice
+        practiceName="AI conversation"
+        onDone={
+          packContext
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
+            : () => navigation.goBack()
+        }
+      />
+    );
+  }
 
   return (
     <>

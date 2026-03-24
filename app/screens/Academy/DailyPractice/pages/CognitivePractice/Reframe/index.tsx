@@ -295,7 +295,12 @@ const Reframe = () => {
   }, []);
 
   if (isDone) {
-    return <DonePractice practiceName="reframe practice" />;
+    return (
+      <DonePractice
+        practiceName="reframe practice"
+        onDone={() => navigation.goBack()}
+      />
+    );
   }
 
   const currentScenario = scenarios[selectedScenarioIndex];

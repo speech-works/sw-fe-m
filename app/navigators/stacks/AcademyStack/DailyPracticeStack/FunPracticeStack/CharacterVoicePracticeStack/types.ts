@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CharacterVoiceData } from "../../../../../../api/dailyPractice/types";
 import { PracticeActivity } from "../../../../../../api/practiceActivities/types";
 import { AcademyStackParamList } from "../../../types";
+import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type CharacterVoiceFDPStackParamList = {
   CVHome: undefined;
@@ -10,7 +11,7 @@ export type CharacterVoiceFDPStackParamList = {
     id?: string;
     name?: string;
     cvData?: CharacterVoiceData;
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    packContext?: PackContext;
     practiceActivity?: PracticeActivity;
   };
 };

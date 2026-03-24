@@ -1,10 +1,12 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AcademyStackParamList } from "../../types";
+
+import { PackContext } from "../../../../../../utils/packActivityNavigation";
+import { AcademyStackParamList } from "../../../types";
 
 export type TwisterFDPStackParamList = {
   TwisterExercise: {
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    packContext?: PackContext;
     practiceActivity?: any;
   };
 };

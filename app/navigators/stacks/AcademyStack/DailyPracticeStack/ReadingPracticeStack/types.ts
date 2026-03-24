@@ -1,24 +1,25 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AcademyStackParamList } from "../../types";
+import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type RDPStackParamList = {
   ReadingPractice: undefined;
   StoryPractice:
     | {
-        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+        packContext?: PackContext;
         practiceActivity?: any;
       }
     | undefined;
   PoemPractice:
     | {
-        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+        packContext?: PackContext;
         practiceActivity?: any;
       }
     | undefined;
   QuotePractice:
     | {
-        packContext?: { packId: string; moduleId: string; blockIndex?: number };
+        packContext?: PackContext;
       }
     | undefined;
 };

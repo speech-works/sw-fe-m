@@ -21,13 +21,6 @@ export default function AppNavigator() {
       <Stack.Screen name="Root" component={BottomTabNavigator} />
       <Stack.Screen name="AcademyStack" component={AcademyStackNavigator} />
       <Stack.Screen
-        name="PhoneCallScreen"
-        component={PhoneCall}
-        options={{
-          animation: "slide_from_bottom",
-        }}
-      />
-      <Stack.Screen
         name="PremiumModal"
         component={SubscribeScreen}
         options={{

@@ -311,8 +311,13 @@ const Breathing = () => {
         console.log(
           "Breathing Screen - Using passed activity mode (wait for start)",
         );
-        // In the new workflow, we wait for the user to click "Start Exercise"
+        // In the new workflow, we wait for the user to click "Start Exercise" unless it was already started by the pack system
         setCognitivePracticeId(passedActivity.id);
+        
+        if (packContext?.alreadyStarted) {
+          console.log("Breathing Screen - Autostarting since already started by pack");
+          setCurrentActivityId(passedActivity.id);
+        }
         return;
       }
 
@@ -497,7 +502,12 @@ const Breathing = () => {
   }
 
   if (isDone) {
-    return <DonePractice practiceName="breathing exercise" />;
+    return (
+      <DonePractice
+        practiceName="breathing exercise"
+        onDone={() => navigation.goBack()}
+      />
+    );
   }
 
   return (

@@ -1,10 +1,11 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AcademyStackParamList } from "../../../types";
+import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type PhoneCallEDPStackParamList = {
   PhoneCallScreen: {
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    packContext?: PackContext;
     practiceActivity?: any;
   };
 };

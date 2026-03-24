@@ -61,12 +61,13 @@ const Meditation = () => {
   const HEADER_HEIGHT = 60;
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
+  const { packContext, practiceActivity } = route.params || {};
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, ensureActiveSession } = useSessionStore();
   const { user } = useUserStore();
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    practiceActivity?.id || null,
   );
 
   // Mute toggle for both background and hover audio
@@ -75,14 +76,13 @@ const Meditation = () => {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   // Use existing route params
-  const { packContext, practiceActivity } = route.params || {};
 
   // All fetched meditation scenarios
   const [meditationScenarios, setMeditationScenarios] = useState<
     CognitivePractice[]
   >([]);
   const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
-    null,
+    practiceActivity?.cognitivePractice?.id || null,
   );
 
   // meditation scenarios
@@ -97,9 +97,10 @@ const Meditation = () => {
   const [hoverVolume, setHoverVolume] = useState<number>(0.8);
 
   // Exercise playback states
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(packContext?.alreadyStarted || false);
   const [progress, setProgress] = useState<number>(0); // in seconds
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isStarted, setIsStarted] = useState(packContext?.alreadyStarted || false);
 
   const TOTAL_SESSION_SECONDS = 5 * 60; // 5 minutes in seconds
 
@@ -229,6 +230,11 @@ const Meditation = () => {
 
     try {
       let activityIdToStart = currentActivityId;
+
+      if (packContext?.alreadyStarted) {
+        console.log("Meditation - Already started by pack");
+        return;
+      }
 
       // New Workflow: If we don't have an instance ID, create one
       if (!activityIdToStart) {
@@ -392,11 +398,7 @@ const Meditation = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, TOTAL_SESSION_SECONDS]);
-
-  const [isStarted, setIsStarted] = useState(false);
-
-  // ... (previous state variables remain if needed)
+  }, [isPlaying]);
 
   const handleStart = async () => {
     try {
@@ -516,7 +518,12 @@ const Meditation = () => {
   }
 
   if (isDone) {
-    return <DonePractice practiceName="meditation" />;
+    return (
+      <DonePractice
+        practiceName="meditation"
+        onDone={() => navigation.goBack()}
+      />
+    );
   }
 
   return (

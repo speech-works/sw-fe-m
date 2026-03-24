@@ -397,7 +397,7 @@ const Twister = () => {
                   });
                 }
               }
-            : undefined
+            : () => navigation.goBack()
         }
       />
     );

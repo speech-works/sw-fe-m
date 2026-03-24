@@ -2,6 +2,7 @@ import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MoodType } from "../../../api/moodCheck/types";
 import { FormConfiguration, PackModule } from "../../../api/packs/types";
+import { PackContext } from "../../../utils/packActivityNavigation";
 
 export type AcademyStackParamList = {
   Academy: undefined;
@@ -24,26 +25,29 @@ export type AcademyStackParamList = {
     moduleId: string;
     blockId: string;
   };
-  Breathing: { guidedActivity?: any; packContext?: any } | undefined;
-  Meditation: { guidedActivity?: any; packContext?: any } | undefined;
-  Reframe: { guidedActivity?: any; packContext?: any } | undefined;
-  RealLifeChallenge: { guidedActivity?: any; packContext?: any } | undefined;
+  Breathing: { guidedActivity?: any; packContext?: PackContext } | undefined;
+  Meditation: { guidedActivity?: any; packContext?: PackContext } | undefined;
+  Reframe: { guidedActivity?: any; packContext?: PackContext } | undefined;
+  RealLifeChallenge:
+    | { guidedActivity?: any; packContext?: PackContext }
+    | undefined;
   // Exposure screens for pack navigation
   SCBriefing:
-    | { sc?: any; practiceActivity?: any; packContext?: any }
+    | { sc?: any; practiceActivity?: any; packContext?: PackContext }
     | undefined;
   SCChat:
-    | { sc?: any; practiceActivityId?: string; packContext?: any }
+    | { sc?: any; practiceActivityId?: string; packContext?: PackContext }
     | undefined;
   InterviewBriefing:
-    | { interview?: any; practiceActivity?: any; packContext?: any }
+    | { interview?: any; practiceActivity?: any; packContext?: PackContext }
     | undefined;
   InterviewChat:
-    | { interview?: any; practiceActivityId?: string; packContext?: any }
+    | { interview?: any; practiceActivityId?: string; packContext?: PackContext }
     | undefined;
-  PhoneCall: { practiceActivity?: any; packContext?: any } | undefined;
+  PhoneCall: { practiceActivity?: any; packContext?: PackContext } | undefined;
   // Fun practice screens for pack navigation
-  TongueTwister: { practiceActivity?: any; packContext?: any } | undefined;
+  TongueTwister:
+    { practiceActivity?: any; packContext?: PackContext } | undefined;
   RoleplayBriefing:
     | {
         id?: string;
@@ -51,7 +55,7 @@ export type AcademyStackParamList = {
         description?: string;
         roleplay?: any;
         practiceActivity?: any;
-        packContext?: any;
+        packContext?: PackContext;
       }
     | undefined;
   RoleplayPackBriefing:
@@ -61,7 +65,7 @@ export type AcademyStackParamList = {
         description?: string;
         roleplay?: any;
         practiceActivity?: any;
-        packContext?: any;
+        packContext?: PackContext;
       }
     | undefined;
   RoleplayChat:
@@ -71,14 +75,14 @@ export type AcademyStackParamList = {
         roleplay?: any;
         selectedRoleName?: string;
         practiceActivity?: any;
-        packContext?: any;
+        packContext?: PackContext;
       }
     | undefined;
-  CVExercise: { practiceActivity?: any; packContext?: any } | undefined;
+  CVExercise: { practiceActivity?: any; packContext?: PackContext } | undefined;
   // Reading practice screens for pack navigation
-  Poem: { practiceActivity?: any; packContext?: any } | undefined;
+  Poem: { practiceActivity?: any; packContext?: PackContext } | undefined;
   Story: { practiceActivity?: any; packContext?: any } | undefined;
-  Quote: { practiceActivity?: any; packContext?: any } | undefined;
+  Quote: { practiceActivity?: any; packContext?: PackContext } | undefined;
   MoodCheckStack:
     | { screen: "FollowUpStack"; params: { mood: MoodType } }
     | { screen: "CheckIn" };

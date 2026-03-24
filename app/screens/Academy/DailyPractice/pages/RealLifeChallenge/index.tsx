@@ -41,10 +41,11 @@ enum ChallengeStep {
 }
 
 import { PracticeActivity } from "../../../../../api/practiceActivities/types";
+import { PackContext } from "../../../../../utils/packActivityNavigation";
 
 type RealLifeChallengeParams = {
   practiceActivity?: PracticeActivity;
-  packContext?: { packId: string; moduleId: string; blockIndex?: number };
+  packContext?: PackContext;
 };
 
 const RealLifeChallenge = () => {
@@ -68,9 +69,12 @@ const RealLifeChallenge = () => {
     practiceActivity?.cognitivePractice?.realLifeChallengeData ||
     practiceActivity?.exposurePractice?.realLifeChallengeData;
 
-  const [currentStep, setCurrentStep] = useState<ChallengeStep>(
-    ChallengeStep.START,
-  );
+  // Derived initial step based on whether it was already started by Pack
+  const initialStep = packContext?.alreadyStarted
+    ? ChallengeStep.INSTRUCTION
+    : ChallengeStep.START;
+
+  const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
   const [reflectionText, setReflectionText] = useState("");
   const [showVitalsModal, setShowVitalsModal] = useState(false);
 
@@ -128,6 +132,11 @@ const RealLifeChallenge = () => {
 
       if (!userId) {
         console.error("Missing userId for activity start");
+        return;
+      }
+
+      if (packContext?.alreadyStarted) {
+        console.log("RealLifeChallenge - Already started by pack");
         return;
       }
 
@@ -518,7 +527,7 @@ const RealLifeChallenge = () => {
   const renderSummaryScreen = () => (
     <DonePractice
       practiceName="real-life challenge"
-      onDone={packContext ? handleDone : undefined}
+      onDone={handleDone}
     />
   );
 

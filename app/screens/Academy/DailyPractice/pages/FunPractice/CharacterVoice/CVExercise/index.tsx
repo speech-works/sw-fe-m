@@ -249,7 +249,7 @@ const CVExercise = () => {
                   });
                 }
               }
-            : undefined
+            : () => navigation.goBack()
         }
       />
     );

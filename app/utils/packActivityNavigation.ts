@@ -7,7 +7,7 @@ import {
 } from "../api";
 
 export interface PackContext {
-  blockId: string;
+  blockId?: string;
   moduleId: string;
   packId: string;
   blockIndex?: number;
@@ -115,7 +115,7 @@ const navigateToExposure = (
       });
       break;
     case ExposurePracticeType.PHONE_CALL_SIMULATION:
-      nav.navigate("PhoneCall", {
+      nav.navigate("PhoneCallStack", {
         practiceActivity: activity,
         packContext: ctx,
       });

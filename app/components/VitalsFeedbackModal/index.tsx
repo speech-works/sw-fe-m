@@ -40,13 +40,11 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
   const [autonomy, setAutonomy] = useState(60);
   const [accuracy, setAccuracy] = useState(60);
 
-  const [isMounted, setIsMounted] = useState(false);
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current; // Subtle slide up
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     if (visible) {
-      setIsMounted(true);
       Animated.parallel([
         Animated.timing(opacityAnim, {
           toValue: 1,
@@ -60,20 +58,8 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
         }),
       ]).start();
     } else {
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 20,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsMounted(false);
-      });
+      opacityAnim.setValue(0);
+      slideAnim.setValue(20);
     }
   }, [visible]);
 
@@ -86,11 +72,9 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
     onSubmit(vitals);
   };
 
-  if (!isMounted) return null;
-
   return (
     <Modal
-      visible={isMounted}
+      visible={visible}
       transparent
       animationType="none"
       onRequestClose={onSkip}

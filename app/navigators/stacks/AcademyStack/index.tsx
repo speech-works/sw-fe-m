@@ -55,7 +55,6 @@ export default function AcademyStackNavigator() {
       <Stack.Screen name="SCChat" component={SCChat} />
       <Stack.Screen name="InterviewBriefing" component={InterviewBriefing} />
       <Stack.Screen name="InterviewChat" component={InterviewChat} />
-      <Stack.Screen name="PhoneCall" component={PhoneCall} />
       {/* Fun practice screens for pack navigation */}
       <Stack.Screen name="TongueTwister" component={TongueTwister} />
       <Stack.Screen name="RoleplayBriefing" component={RoleplayBriefing} />

@@ -1,17 +1,18 @@
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ExposurePractice } from "../../../../../../api/dailyPractice/types";
+import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type InterviewEDPStackParamList = {
   InterviewList: undefined;
   InterviewBriefing: {
     interview: ExposurePractice;
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    packContext?: PackContext;
   };
   InterviewChat: {
     interview: ExposurePractice;
     practiceActivityId: string;
-    packContext?: { packId: string; moduleId: string; blockIndex?: number };
+    packContext?: PackContext;
   };
 };
 export type InterviewEDPStackNavigationProp<
