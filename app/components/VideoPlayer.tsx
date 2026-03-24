@@ -144,6 +144,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const hideTimer = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoContainerWidth = useRef<number>(0);
   const isRestoringRef = useRef(false);
+  const lastSetVolumeRef = useRef<number>(-1);
 
   // Defensive check for VolumeManager presence
   const hasVolumeManager = useRef<boolean | null>(null);
@@ -207,6 +208,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (VM && typeof VM.addVolumeListener === 'function') {
         volumeListenerRef.current = VM.addVolumeListener((res: any) => {
           const newVol = typeof res === 'number' ? res : res.volume;
+          
+          // If the change is coming from our own manual slider change, ignore it to avoid feedback jitter
+          if (lastSetVolumeRef.current !== -1 && Math.abs(newVol - lastSetVolumeRef.current) < 0.05) {
+            return;
+          }
+          
+          // Clear the ref once we've seen an external change or enough time has passed
+          lastSetVolumeRef.current = -1;
+          
           setVolume(newVol);
           if (newVol > 0) setMuted(false);
           else setMuted(true);
@@ -426,7 +436,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         resizeMode={isFullScreen ? "contain" : "cover"}
         paused={isLocked ? false : paused}
         rate={playbackRate}
-        volume={volume}
+        volume={muted || isLocked ? 0 : 1.0}
         muted={isLocked ? true : muted}
         repeat={isLocked}
         poster={poster}
@@ -634,6 +644,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                    maximumValue={1}
                    value={muted ? 0 : volume}
                    onValueChange={(val: number) => {
+                     lastSetVolumeRef.current = val;
                      setVolume(val);
                      safeSetVolume(val);
                      if (val === 0) setMuted(true);
