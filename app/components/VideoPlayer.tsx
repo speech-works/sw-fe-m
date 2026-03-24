@@ -430,6 +430,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         repeat={isLocked}
         poster={poster}
         posterResizeMode="cover"
+        progressUpdateInterval={100}
         onLoad={(meta) => {
           setDuration(meta.duration);
           if (meta.naturalSize) {
@@ -443,6 +444,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             setVideoAspectRatio(newAspectRatio);
           }
           setIsVideoLoaded(true);
+
+          // Restore playback position after remount (fullscreen toggle)
+          if (currentTime > 0) {
+            videoRef.current?.seek(currentTime);
+          }
 
           if (autoPlay && !isLocked) {
             setPaused(false);
