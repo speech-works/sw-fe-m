@@ -45,7 +45,7 @@ import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
-import { triggerToast } from "../../../../../../util/functions/toast";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { BlurView } from "expo-blur";
@@ -358,8 +358,7 @@ const Meditation = () => {
       // Navigation handled externally now
     } catch (e) {
       console.error("Failed to complete activity", e);
-      triggerToast(
-        "error",
+      showErrorBottomSheet(
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );

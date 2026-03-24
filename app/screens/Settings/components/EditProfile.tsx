@@ -16,7 +16,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
-import { triggerToast } from "../../../util/functions/toast";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
 
 interface EditProfileProps {
   onSave: () => void;
@@ -64,8 +64,7 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
           },
         },
       });
-      triggerToast(
-        "success",
+      showSuccessBottomSheet(
         "Profile Updated",
         "Your changes have been saved successfully.",
       );
@@ -84,7 +83,7 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
       });
       onSave();
     } catch (error) {
-      triggerToast("Error", "Update Failed", "Could not update profile.");
+      showErrorBottomSheet("Update Failed", "Could not update profile.");
       console.error(error);
     }
   };

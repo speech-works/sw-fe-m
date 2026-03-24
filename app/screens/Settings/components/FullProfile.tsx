@@ -18,7 +18,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
-import { triggerToast } from "../../../util/functions/toast";
+import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import EditProfile from "./EditProfile";
 
 interface FullProfileProps {
@@ -193,8 +193,7 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                     onPress={() => {
                       const link = user?.links?.social.facebook;
                       if (!link)
-                        return triggerToast(
-                          "Error",
+                        return showErrorBottomSheet(
                           "Can't open Facebook",
                           "No link provided",
                         );
@@ -218,8 +217,7 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                     onPress={() => {
                       const link = user?.links?.social.instagram;
                       if (!link)
-                        return triggerToast(
-                          "Error",
+                        return showErrorBottomSheet(
                           "Can't open Instagram",
                           "No link provided",
                         );
@@ -243,8 +241,7 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                     onPress={() => {
                       const link = user?.links?.social.whatsapp;
                       if (!link)
-                        return triggerToast(
-                          "Error",
+                        return showErrorBottomSheet(
                           "Can't open Whatsapp",
                           "No link provided",
                         );

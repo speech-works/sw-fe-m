@@ -25,7 +25,7 @@ import {
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
 import { theme } from "../../../Theme/tokens";
 import { parseShadowStyle } from "../../../util/functions/parseStyles";
-import { triggerToast } from "../../../util/functions/toast";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
 
 type PackFormRouteProp = RouteProp<
   {
@@ -263,16 +263,14 @@ const PackFormScreen = () => {
       const storageKey = `pack-${packId}-module-${moduleId}-form-${blockId}`;
       await AsyncStorage.setItem(storageKey, "true");
 
-      triggerToast(
-        "success",
+      showSuccessBottomSheet(
         "Reflection Saved",
         "Your response has been recorded.",
       );
       navigation.goBack();
     } catch (error: any) {
       console.error("Form submission failed:", error);
-      triggerToast(
-        "error",
+      showErrorBottomSheet(
         "Submission Failed",
         "Something went wrong. Please try again.",
       );

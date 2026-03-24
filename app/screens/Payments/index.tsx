@@ -24,7 +24,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 
-import { triggerToast } from "../../util/functions/toast";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -59,7 +59,7 @@ const SubscribeScreen = () => {
     try {
       setLoading(true);
       if (!user?.id) {
-        triggerToast("error", "Error", "User not found. Please log in.");
+        showErrorBottomSheet("Error", "User not found. Please log in.");
         setLoading(false);
         return;
       }
@@ -97,8 +97,7 @@ const SubscribeScreen = () => {
       RazorpayCheckout.open(options)
         .then((paymentData: any) => {
           setLoading(false);
-          triggerToast(
-            "success",
+          showSuccessBottomSheet(
             "Welcome to Premium!",
             "Your subscription is now active.",
           );
@@ -113,15 +112,14 @@ const SubscribeScreen = () => {
             return;
           }
 
-          triggerToast(
-            "error",
+          showErrorBottomSheet(
             "Payment Failed",
             "Please try again or contact support.",
           );
         });
     } catch (err) {
       setLoading(false);
-      triggerToast("error", "Payment Failed", "Something went wrong.");
+      showErrorBottomSheet("Payment Failed", "Something went wrong.");
     }
   };
 

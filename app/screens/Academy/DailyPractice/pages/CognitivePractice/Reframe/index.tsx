@@ -50,7 +50,7 @@ import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import { triggerToast } from "../../../../../../util/functions/toast";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
@@ -126,8 +126,7 @@ const Reframe = () => {
         console.log("Active session ensured:", sessionToUse.id);
       } catch (err) {
         console.error("Failed to ensure active session", err);
-        triggerToast(
-          "error",
+        showErrorBottomSheet(
           "Session Error",
           "We couldn't initialize your practice session. Please try again.",
         );
@@ -262,8 +261,7 @@ const Reframe = () => {
       }
     } catch (err) {
       console.error("Failed to complete activity", err);
-      triggerToast(
-        "error",
+      showErrorBottomSheet(
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );

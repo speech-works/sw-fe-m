@@ -19,7 +19,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import { triggerToast } from "../../../../../../util/functions/toast";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import MasonryTips from "../../../components/MasonryTips";
 import { BreathingHalo } from "./components/BreathingHalo";
 import { BlurView } from "expo-blur";
@@ -134,7 +134,7 @@ const Breathing = () => {
   }) => {
     const validation = validateVitals(vitals);
     if (!validation.valid) {
-      triggerToast("error", "Invalid Input", validation.error);
+      showErrorBottomSheet("Invalid Input", validation.error);
       return;
     }
 
@@ -168,8 +168,7 @@ const Breathing = () => {
       }
     } catch (error) {
       console.error("Failed to complete activity:", error);
-      triggerToast(
-        "error",
+      showErrorBottomSheet(
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );
@@ -216,8 +215,7 @@ const Breathing = () => {
       }
     } catch (error) {
       console.error("Failed to complete activity:", error);
-      triggerToast(
-        "error",
+      showErrorBottomSheet(
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );

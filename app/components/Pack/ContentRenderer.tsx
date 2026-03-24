@@ -31,7 +31,7 @@ import { SimpleMarkdown } from "./SimpleMarkdown";
 import { useActivityStore } from "../../stores/activity";
 import { useUserStore } from "../../stores/user";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
-import { triggerToast } from "../../util/functions/toast";
+import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
 import { VideoPlayer } from "../VideoPlayer";
@@ -190,8 +190,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           // Only show toast for non-stamina errors (stamina errors are handled by GlobalModal)
           const errorCode = error?.response?.data?.errorCode;
           if (errorCode !== "INSUFFICIENT_STAMINA") {
-            triggerToast(
-              "error",
+            showErrorBottomSheet(
               "Something went wrong",
               "We had trouble loading that activity. Please try again.",
             );

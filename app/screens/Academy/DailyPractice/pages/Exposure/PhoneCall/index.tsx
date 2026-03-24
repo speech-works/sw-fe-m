@@ -25,7 +25,7 @@ import {
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
-import { triggerToast } from "../../../../../../util/functions/toast";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import {
@@ -207,8 +207,7 @@ const PhoneCall = () => {
         }
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
-          triggerToast(
-            "error",
+          showErrorBottomSheet(
             "Try Later",
             error.response.data.error ||
               "An error occurred while fetching call scenarios.",
