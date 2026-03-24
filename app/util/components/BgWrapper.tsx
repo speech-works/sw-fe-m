@@ -13,13 +13,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../Theme/tokens";
 
-interface BgWrapperrProps {
-  children: React.ReactNode;
+interface BgWrapperProps {
+  children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   edges?: ("top" | "bottom" | "left" | "right")[]; // default to all edges
 }
 
-const BgWrapper: React.FC<BgWrapperrProps> = ({
+const BgWrapper: React.FC<BgWrapperProps> = ({
   children,
   style,
   edges = ["left", "right"],

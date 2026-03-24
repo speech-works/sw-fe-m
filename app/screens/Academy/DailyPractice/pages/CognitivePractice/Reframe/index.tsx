@@ -311,6 +311,7 @@ const Reframe = () => {
         contentContainerStyle={{
           paddingHorizontal: 24,
           paddingTop: HEADER_HEIGHT + insets.top + 20,
+          paddingBottom: insets.bottom + 80,
         }}
         showsVerticalScrollIndicator={false}
       >

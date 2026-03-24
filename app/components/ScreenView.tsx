@@ -5,7 +5,7 @@ import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-rea
 import BgWrapper from "../util/components/BgWrapper";
 
 interface ScreenViewProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
