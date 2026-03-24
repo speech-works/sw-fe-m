@@ -24,7 +24,7 @@ import Svg, {
 } from "react-native-svg";
 
 const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
@@ -59,7 +59,7 @@ const SadFace = ({
         true,
       );
       rain.value = withRepeat(
-        withTiming(1, { duration: 600, easing: Easing.linear }),
+        withTiming(1, { duration: 450, easing: Easing.linear }),
         -1,
         false,
       );
@@ -86,13 +86,13 @@ const SadFace = ({
     };
   }, [shouldAnimate]);
 
-  const rainY = useDerivedValue(() => rain.value * 20);
+  const rainOffset = useDerivedValue(() => -rain.value * 20);
   const mouthX = useDerivedValue(() => quiver.value * 0.5);
   const tY = useDerivedValue(() => 12 - 4 * tear.value);
   const tOp = useDerivedValue(() => 0.9 * tear.value);
 
   const rainProps = useAnimatedProps(() => ({
-    transform: [{ translateY: rainY.value }] as any,
+    strokeDashoffset: rainOffset.value,
   }));
   const mouthProps = useAnimatedProps(() => ({
     transform: [{ translateX: mouthX.value }] as any,
@@ -131,33 +131,18 @@ const SadFace = ({
           <Mask id="RMask">
             <Circle cx="31.2" cy="24" r="7.2" fill="white" />
           </Mask>
-          <Pattern
-            id="rainP"
-            x="0"
-            y="0"
-            width="12"
-            height="20"
-            patternUnits="userSpaceOnUse"
-          >
-            <Path
-              d="M6 4v6"
-              stroke="#000"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-              opacity="0.2"
-            />
-          </Pattern>
         </Defs>
         <Path
           fill="#E6E8FF"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        <AnimatedRect
-          x="0"
-          y="-20"
-          width="48"
-          height="88"
-          fill="url(#rainP)"
+        <AnimatedPath
+          d="M6 -10v68 M18 -10v68 M30 -10v68 M42 -10v68"
+          stroke="#000"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          opacity="0.25"
+          strokeDasharray="6 14"
           animatedProps={rainProps}
         />
         <Path
