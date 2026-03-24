@@ -143,6 +143,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const skipOverlayTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const hideTimer = useRef<NodeJS.Timeout | undefined>(undefined);
   const videoContainerWidth = useRef<number>(0);
+  const isRestoringRef = useRef(false);
 
   // Defensive check for VolumeManager presence
   const hasVolumeManager = useRef<boolean | null>(null);
@@ -443,15 +444,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             }
             setVideoAspectRatio(newAspectRatio);
           }
-          setIsVideoLoaded(true);
 
           // Restore playback position after remount (fullscreen toggle)
           if (currentTime > 0) {
+            isRestoringRef.current = true;
+            setIsVideoLoaded(false); 
             videoRef.current?.seek(currentTime);
+          } else {
+            setIsVideoLoaded(true);
           }
 
           if (autoPlay && !isLocked) {
             setPaused(false);
+          }
+        }}
+        onSeek={() => {
+          if (isRestoringRef.current) {
+            isRestoringRef.current = false;
+            setIsVideoLoaded(true);
           }
         }}
         onError={(e) => {
