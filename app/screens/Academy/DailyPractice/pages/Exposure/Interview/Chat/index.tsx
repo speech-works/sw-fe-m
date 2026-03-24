@@ -31,6 +31,7 @@ import {
 } from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -56,6 +57,7 @@ const Chat = () => {
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
   const [isDone, setIsDone] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const chatScrollRef = useRef<Animated.ScrollView>(null);
 
@@ -156,7 +158,14 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId); // Move to the next dialogue node
   };
 
-  const markActivityComplete = async (activityId: string) => {
+  const markActivityComplete = async (
+    activityId: string,
+    vitals?: {
+      effortScore: number;
+      autonomyScore: number;
+      accuracyScore?: number;
+    },
+  ) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
       return;
 
@@ -173,6 +182,7 @@ const Chat = () => {
       userId: userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
+      vitals,
     });
     updateActivity(activityId, {
       ...completedActivity,
@@ -181,11 +191,25 @@ const Chat = () => {
   };
 
   const onDonePress = async () => {
+    if (!practiceActivityId) {
+      console.error("Activity could not be started");
+      return;
+    }
+    setShowVitalsModal(true);
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    setIsLoading(true);
     try {
       if (!practiceActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(practiceActivityId);
+      await markActivityComplete(practiceActivityId, vitals);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
         activityId: practiceActivityId,
@@ -193,6 +217,8 @@ const Chat = () => {
       setIsDone(true);
     } catch (error) {
       console.error("❌ Failed to mark the activity complete:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -339,18 +365,19 @@ const Chat = () => {
           onRecorded={setVoiceRecordingUri}
           prevRecordingUri={voiceRecordingUri || undefined}
           onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
+            await onDonePress();
           }}
           onDiscard={() => {
             setVoiceRecordingUri(null);
           }}
         />
       </View>
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </ScreenView>
   );
 };

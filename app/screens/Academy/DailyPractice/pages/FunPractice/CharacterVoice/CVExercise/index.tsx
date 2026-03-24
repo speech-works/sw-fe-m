@@ -52,7 +52,13 @@ const CVExercise = () => {
   const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
-  const { id, name, cvData, packContext } = route.params;
+  const { id, name, cvData, packContext, practiceActivity } = route.params;
+
+  const effectiveCvData =
+    cvData || practiceActivity?.funPractice?.characterVoiceData;
+  const effectiveName = name || practiceActivity?.funPractice?.name;
+  const effectiveId = id || practiceActivity?.funPractice?.id;
+
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, setSession } = useSessionStore();
   const { user } = useUserStore();
@@ -107,18 +113,22 @@ const CVExercise = () => {
         return;
       }
 
-      let activityIdToStart =
-        currentActivityId || (route.params as any).practiceActivity?.id;
+      let activityIdToStart = currentActivityId || practiceActivity?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
+        if (!effectiveId) {
+          console.error("CVExercise - Missing effectiveId, cannot create activity");
+          return;
+        }
+
         if (isPackContext) {
           console.log("CVExercise - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: id,
+            contentId: effectiveId,
           });
           activityIdToStart = newActivity.id;
         } else {
@@ -128,7 +138,7 @@ const CVExercise = () => {
           const newActivity = await createPracticeActivity({
             sessionId,
             contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: id,
+            contentId: effectiveId,
           });
           activityIdToStart = newActivity.id;
         }
@@ -201,10 +211,10 @@ const CVExercise = () => {
   };
 
   useEffect(() => {
-    if (cvData?.texts) {
-      setTexts(cvData.texts);
+    if (effectiveCvData?.texts) {
+      setTexts(effectiveCvData.texts);
     }
-  }, [cvData]);
+  }, [effectiveCvData]);
 
   useEffect(() => {
     const parent = navigation.getParent();
@@ -305,7 +315,7 @@ const CVExercise = () => {
                 <TherapistFace size={72} />
               </View>
 
-              <MasonryTips tips={cvData.hints} />
+              <MasonryTips tips={effectiveCvData?.hints || []} />
             </ScrollView>
 
             {/* Fixed Start Button at bottom */}
@@ -415,9 +425,9 @@ const CVExercise = () => {
                 </View>
 
                 <View style={styles.titleContainer}>
-                  <Text style={styles.articleTitle}>{name}</Text>
+                  <Text style={styles.articleTitle}>{effectiveName}</Text>
                   <AudioPlaybackButton
-                    audioUrl={cvData.exampleAudioUrl}
+                    audioUrl={effectiveCvData?.exampleAudioUrl}
                     iconSize={14}
                     activeColor="#FFF"
                     style={styles.playbackButton}
@@ -439,7 +449,7 @@ const CVExercise = () => {
                 {/* Internal Watermark */}
                 <View style={styles.sheetWatermarkContainer}>
                   <Icon
-                    name={cvData.icon || "user"}
+                    name={effectiveCvData?.icon || "user"}
                     size={120}
                     color={theme.colors.library.orange[200]}
                   />

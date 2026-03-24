@@ -84,6 +84,11 @@ const Briefing = () => {
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
+      if (!sc?.id) {
+        console.error("SocialChallenge - Missing contentId (sc.id), cannot create activity");
+        return;
+      }
+
       if (isPackContext) {
         console.log("SocialChallenge - Creating Activity via POST (Pack)");
         const newActivity = await createPracticeActivityFromPack({
@@ -96,9 +101,7 @@ const Briefing = () => {
       } else {
         if (!sessionId)
           throw new Error("No session ID for standalone activity");
-        console.log(
-          "SocialChallenge - Creating Activity via POST (Standalone)",
-        );
+        console.log("SocialChallenge - Creating Activity via POST (Standalone)");
         const newActivity = await createPracticeActivity({
           sessionId,
           contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,

@@ -43,13 +43,14 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import { triggerToast } from "../../../../../../util/functions/toast";
 import DonePractice from "../../../components/DonePractice";
+import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import RainOverlay from "./components/RainOverlay";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { triggerToast } from "../../../../../../util/functions/toast";
 
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
@@ -81,6 +82,7 @@ const Reframe = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   const onBackPress = () => {
     navigation.goBack();
@@ -193,11 +195,16 @@ const Reframe = () => {
     }
   };
 
-  const markActivityDone = async () => {
+  const markActivityDone = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
     console.log("markActivityDone [Reframe] called", {
       cognitivePracticeId,
       currentActivityId,
       userId: user?.id || practiceSession?.user?.id,
+      vitals,
     });
 
     if (!cognitivePracticeId || !currentActivityId) {
@@ -229,6 +236,7 @@ const Reframe = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        vitals,
       });
 
       console.log("Reframe Activity COMPLETED:", completedActivity);
@@ -259,6 +267,20 @@ const Reframe = () => {
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );
+      throw err;
+    }
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    try {
+      await markActivityDone(vitals);
+    } catch (e) {
+      console.error("Failed to submit vitals and complete activity", e);
     }
   };
 
@@ -422,10 +444,7 @@ const Reframe = () => {
                 {(selectedReframe || writtenReframe.length > 0) && (
                   <Button
                     text="Submit Reframe"
-                    onPress={async () => {
-                      await markActivityDone();
-                      // Navigation handled in markActivityDone
-                    }}
+                    onPress={() => setShowVitalsModal(true)}
                     style={{ marginTop: 24 }}
                   />
                 )}
@@ -459,6 +478,12 @@ const Reframe = () => {
           </View>
         </View>
       )}
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </ScreenView>
   );
 };

@@ -31,6 +31,7 @@ import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import DonePractice from "../../components/DonePractice";
+import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 
 enum ChallengeStep {
   START = 0,
@@ -71,6 +72,7 @@ const RealLifeChallenge = () => {
     ChallengeStep.START,
   );
   const [reflectionText, setReflectionText] = useState("");
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   if (!challengeData) {
     return (
@@ -186,7 +188,11 @@ const RealLifeChallenge = () => {
     }
   };
 
-  const markActivityComplete = async () => {
+  const markActivityComplete = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
     if (!currentActivityId) return;
     try {
       // If we are in a pack, we rely on the backend handling the "pack-session" logic or similar
@@ -202,6 +208,7 @@ const RealLifeChallenge = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        vitals,
       });
 
       updateActivity(currentActivityId, {
@@ -223,9 +230,17 @@ const RealLifeChallenge = () => {
   };
 
   const handleReflectionComplete = async () => {
-    // Here you would typically save the reflection to the backend
     console.log("Saving reflection:", reflectionText);
-    await markActivityComplete();
+    setShowVitalsModal(true);
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    await markActivityComplete(vitals);
     setCurrentStep(ChallengeStep.SUMMARY);
   };
 
@@ -621,6 +636,12 @@ const RealLifeChallenge = () => {
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
       {renderBottomAction()}
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </View>
   );
 };

@@ -240,13 +240,19 @@ const Twister = () => {
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
+        const contentId = twisters[currentIndex]?.id;
+        if (!contentId) {
+          console.error("Twister - Missing contentId, cannot create activity");
+          return;
+        }
+
         if (isPackContext) {
           console.log("Twister - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: twisters[currentIndex].id,
+            contentId,
           });
           activityIdToStart = newActivity.id;
         } else {
@@ -256,7 +262,7 @@ const Twister = () => {
           const newActivity = await createPracticeActivity({
             sessionId,
             contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: twisters[currentIndex].id,
+            contentId,
           });
           activityIdToStart = newActivity.id;
         }

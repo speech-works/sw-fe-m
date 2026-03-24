@@ -195,13 +195,19 @@ const PoemPractice = () => {
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
+      const contentId = allPoems[selectedIndex]?.id;
+      if (!contentId) {
+        console.error("PoemPractice - Missing contentId, cannot create activity");
+        return;
+      }
+
       if (isPackContext) {
         console.log("PoemPractice - Creating Activity via POST (Pack)");
         const newActivity = await createPracticeActivityFromPack({
           packId: packContext.packId,
           moduleId: packContext.moduleId,
           contentType: PracticeActivityContentType.READING_PRACTICE,
-          contentId: allPoems[selectedIndex]?.id,
+          contentId,
         });
         activityIdToStart = newActivity.id;
       } else {
@@ -211,7 +217,7 @@ const PoemPractice = () => {
         const newActivity = await createPracticeActivity({
           sessionId,
           contentType: PracticeActivityContentType.READING_PRACTICE,
-          contentId: allPoems[selectedIndex]?.id,
+          contentId,
         });
         activityIdToStart = newActivity.id;
       }

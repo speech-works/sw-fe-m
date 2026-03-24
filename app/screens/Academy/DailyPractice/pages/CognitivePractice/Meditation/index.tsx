@@ -47,6 +47,7 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { triggerToast } from "../../../../../../util/functions/toast";
 import DonePractice from "../../../components/DonePractice";
+import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -71,6 +72,7 @@ const Meditation = () => {
   // Mute toggle for both background and hover audio
   const [mute, setMute] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   // Use existing route params
   const { packContext, practiceActivity } = route.params || {};
@@ -230,18 +232,23 @@ const Meditation = () => {
 
       // New Workflow: If we don't have an instance ID, create one
       if (!activityIdToStart) {
+        if (!cognitivePracticeId) {
+          console.error("Meditation Screen - Missing cognitivePracticeId, cannot create activity");
+          return;
+        }
+
         if (packContext?.packId) {
           console.log("Meditation - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: cognitivePracticeId!,
+            contentId: cognitivePracticeId,
           });
           activityIdToStart = newActivity.id;
         } else {
           console.log("Meditation - Creating Activity via POST (Standalone)");
-          if (!cognitivePracticeId || selectedIndex === null) {
+          if (selectedIndex === null) {
             console.warn("Missing requirements for standalone start", {
               cognitivePracticeId,
               selectedIndex,
@@ -292,12 +299,17 @@ const Meditation = () => {
     }
   };
 
-  const markActivityComplete = async () => {
+  const markActivityComplete = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
     console.log("markActivityComplete [Meditation] called", {
       currentActivityId,
       practiceSession: practiceSession?.id,
       packContext,
       selectedIndex,
+      vitals,
     });
 
     if (
@@ -332,6 +344,7 @@ const Meditation = () => {
         userId: userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        vitals,
       });
 
       console.log("Activity COMPLETED:", completedActivity);
@@ -341,6 +354,8 @@ const Meditation = () => {
         cognitivePractice: meditationScenarios[selectedIndex],
       });
       useUserStore.getState().fetchUser();
+
+      // Navigation handled externally now
     } catch (e) {
       console.error("Failed to complete activity", e);
       triggerToast(
@@ -348,6 +363,7 @@ const Meditation = () => {
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );
+      throw e; // Rethrow to let calling function handle navigation stop
     }
   };
 
@@ -359,8 +375,8 @@ const Meditation = () => {
           if (prevProgress >= TOTAL_SESSION_SECONDS) {
             clearInterval(intervalRef.current!);
             setIsPlaying(false); // Stop playing when session is complete
-            // mark activity complete
-            markActivityComplete();
+            // Show vitals modal instead of completing immediately
+            setShowVitalsModal(true);
             return TOTAL_SESSION_SECONDS;
           }
           return prevProgress + 1;
@@ -395,21 +411,35 @@ const Meditation = () => {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     setIsPlaying(false);
-    await markActivityComplete();
-    if (packContext) {
-      if (navigation.canGoBack()) {
-        navigation.goBack();
+    setShowVitalsModal(true);
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    try {
+      await markActivityComplete(vitals);
+      if (packContext) {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate("PackModule", {
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            initialBlockIndex: packContext.blockIndex,
+          } as any);
+        }
       } else {
-        navigation.navigate("PackModule", {
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          initialBlockIndex: packContext.blockIndex,
-        } as any);
+        setIsDone(true);
       }
-    } else {
-      setIsDone(true);
+    } catch (e) {
+      // Error is handled in markActivityComplete
+      console.error("Failed to submit vitals and complete activity", e);
     }
   };
 
@@ -691,6 +721,12 @@ const Meditation = () => {
           </CustomScrollView>
         </View>
       </BottomSheetModal>
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </>
   );
 };

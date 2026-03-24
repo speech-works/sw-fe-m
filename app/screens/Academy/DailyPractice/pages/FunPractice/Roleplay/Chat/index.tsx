@@ -213,6 +213,11 @@ const Chat = () => {
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
+      if (!id) {
+        console.error("RoleplayChat - Missing contentId (id), cannot create activity");
+        return;
+      }
+
       if (isPackContext) {
         console.log("RoleplayChat - Creating Activity via POST (Pack)");
         const newActivity = await createPracticeActivityFromPack({

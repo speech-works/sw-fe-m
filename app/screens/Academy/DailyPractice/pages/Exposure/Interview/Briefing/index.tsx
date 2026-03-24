@@ -88,6 +88,11 @@ const Briefing = () => {
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
+      if (!interview?.id) {
+        console.error("Interview - Missing contentId (interview.id), cannot create activity");
+        return;
+      }
+
       if (isPackContext) {
         console.log("Interview - Creating Activity via POST (Pack)");
         const newActivity = await createPracticeActivityFromPack({

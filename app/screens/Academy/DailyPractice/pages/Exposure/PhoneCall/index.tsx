@@ -37,6 +37,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
+import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 
 const PhoneCall = () => {
   const navigation =
@@ -62,6 +63,7 @@ const PhoneCall = () => {
 
   // State for bottom sheet visibility
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
   const markActivityStart = async (): Promise<string | null> => {
@@ -137,7 +139,11 @@ const PhoneCall = () => {
     }
   };
 
-  const markActivityComplete = async () => {
+  const markActivityComplete = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
     if (!currentActivityId) return;
     const userId = user?.id; // Always use real ID from store if available
 
@@ -149,6 +155,7 @@ const PhoneCall = () => {
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
+        vitals,
       });
 
       updateActivity(currentActivityId, {
@@ -173,6 +180,20 @@ const PhoneCall = () => {
     } catch (error) {
       console.error("Failed to complete phone call activity", error);
     }
+  };
+
+  const handleCallEnd = () => {
+    if (!currentActivityId) return;
+    setShowVitalsModal(true);
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    await markActivityComplete(vitals);
   };
 
   useEffect(() => {
@@ -258,7 +279,7 @@ const PhoneCall = () => {
             }
             ringtoneAsset={RINGING_SOUND_FILE}
             onCallStart={markActivityStart}
-            onCallEnd={markActivityComplete}
+            onCallEnd={handleCallEnd}
           />
         </View>
       </View>
@@ -341,6 +362,12 @@ const PhoneCall = () => {
           </View>
         </LinearGradient>
       </BottomSheetModal>
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </>
   );
 };

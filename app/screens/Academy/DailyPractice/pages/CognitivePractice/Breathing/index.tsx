@@ -347,23 +347,23 @@ const Breathing = () => {
 
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {
+        const contentId = apiContentId || cognitivePracticeId;
+        if (!contentId) {
+          console.error("Breathing Screen - Missing contentId, cannot create activity");
+          return;
+        }
+
         if (packContext?.packId) {
           console.log("Breathing - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: apiContentId || cognitivePracticeId!,
+            contentId,
           });
           activityIdToStart = newActivity.id;
         } else {
           console.log("Breathing - Creating Activity via POST (Standalone)");
-          if (!apiContentId) {
-            console.error(
-              "Breathing Screen - Missing apiContentId for standalone creation",
-            );
-            return;
-          }
 
           let sessionToUse: any = practiceSession;
           try {
@@ -386,7 +386,7 @@ const Breathing = () => {
           const newActivity = await createPracticeActivity({
             sessionId: sessionToUse.id,
             contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: apiContentId,
+            contentId,
           });
           activityIdToStart = newActivity.id;
         }

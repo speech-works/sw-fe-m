@@ -134,16 +134,22 @@ export const useQuotePractice = () => {
       }
 
       let activityIdToStart = currentActivityId || initialActivity?.id;
+      const contentId = allQuotes[selectedIndex]?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
+        if (!contentId) {
+          console.error("useQuotePractice - Missing contentId, cannot create activity");
+          return;
+        }
+
         if (isPackContext) {
           console.log("useQuotePractice - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: allQuotes[selectedIndex]?.id,
+            contentId: contentId,
           });
           activityIdToStart = newActivity.id;
         } else {
@@ -155,7 +161,7 @@ export const useQuotePractice = () => {
           const newActivity = await createPracticeActivity({
             sessionId,
             contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: allQuotes[selectedIndex]?.id,
+            contentId: contentId,
           });
           activityIdToStart = newActivity.id;
         }

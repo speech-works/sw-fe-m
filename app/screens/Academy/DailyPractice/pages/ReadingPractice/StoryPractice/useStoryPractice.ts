@@ -148,16 +148,22 @@ export const useStoryPractice = () => {
       }
 
       let activityIdToStart = currentActivityId || initialActivity?.id;
+      const contentId = allStories[selectedIndex]?.id;
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
+        if (!contentId) {
+          console.error("useStoryPractice - Missing contentId, cannot create activity");
+          return;
+        }
+
         if (isPackContext) {
           console.log("useStoryPractice - Creating Activity via POST (Pack)");
           const newActivity = await createPracticeActivityFromPack({
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: allStories[selectedIndex]?.id,
+            contentId: contentId,
           });
           activityIdToStart = newActivity.id;
         } else {
@@ -169,7 +175,7 @@ export const useStoryPractice = () => {
           const newActivity = await createPracticeActivity({
             sessionId,
             contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: allStories[selectedIndex]?.id,
+            contentId: contentId,
           });
           activityIdToStart = newActivity.id;
         }

@@ -19,13 +19,13 @@ export enum PracticeActivityContentType {
 export interface PracticeActivity {
   id: string;
   session?: PracticeSession;
-  status: "ONGOING" | "COMPLETED" | "ABORTED";
+  status: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "ABORTED";
   contentType: PracticeActivityContentType;
   funPractice?: FunPractice;
   readingPractice?: ReadingPractice;
   cognitivePractice?: CognitivePractice;
   exposurePractice?: ExposurePractice;
-  startedAt: Date;
+  startedAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
