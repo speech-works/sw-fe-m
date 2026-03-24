@@ -259,11 +259,26 @@ const Twister = () => {
           if (!sessionId)
             throw new Error("No session ID for standalone activity");
           console.log("Twister - Creating Activity via POST (Standalone)");
-          const newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId,
+              contentType: PracticeActivityContentType.FUN_PRACTICE,
+              contentId,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> Twister: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.FUN_PRACTICE,
+                contentId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

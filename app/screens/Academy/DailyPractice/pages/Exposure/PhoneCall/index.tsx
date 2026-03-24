@@ -120,11 +120,26 @@ const PhoneCall = () => {
             return null;
           }
           console.log("PhoneCall - Creating Activity via POST (Standalone)");
-          const newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-            contentId: selectedScenario.id,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId,
+              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+              contentId: selectedScenario.id,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> PhoneCall: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+                contentId: selectedScenario.id,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

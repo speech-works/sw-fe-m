@@ -231,11 +231,26 @@ const Chat = () => {
         if (!sessionId)
           throw new Error("No session ID for standalone activity");
         console.log("RoleplayChat - Creating Activity via POST (Standalone)");
-        const newActivity = await createPracticeActivity({
-          sessionId,
-          contentType: PracticeActivityContentType.FUN_PRACTICE,
-          contentId: id,
-        });
+        let newActivity;
+        try {
+          newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.FUN_PRACTICE,
+            contentId: id,
+          });
+        } catch (createErr: any) {
+          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+            console.log(">> RoleplayChat: Stale session detected (404), refreshing...");
+            sessionToUse = await ensureActiveSession(userId, true);
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.FUN_PRACTICE,
+              contentId: id,
+            });
+          } else {
+            throw createErr;
+          }
+        }
         activityIdToStart = newActivity.id;
       }
     }

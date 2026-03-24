@@ -3,6 +3,7 @@ import React from "react";
 import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 import Animated, { Easing, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import BgWrapper from "../util/components/BgWrapper";
+import SyncLoader from "./SyncLoader";
 
 interface ScreenViewProps {
   children?: React.ReactNode;
@@ -28,6 +29,7 @@ const ScreenView = ({ children, style }: ScreenViewProps) => {
 
   return (
     <BgWrapper style={[styles.container, style]}>
+      <SyncLoader />
       <Animated.View style={[{ flex: 1 }, animatedStyle]}>
         {children}
       </Animated.View>

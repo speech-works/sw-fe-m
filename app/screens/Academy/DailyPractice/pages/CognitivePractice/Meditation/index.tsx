@@ -100,6 +100,7 @@ const Meditation = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(packContext?.alreadyStarted || false);
   const [progress, setProgress] = useState<number>(0); // in seconds
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // isStarted tracks if the activity is active (immersive view)
   const [isStarted, setIsStarted] = useState(packContext?.alreadyStarted || false);
 
   const TOTAL_SESSION_SECONDS = 5 * 60; // 5 minutes in seconds
@@ -275,11 +276,27 @@ const Meditation = () => {
             return;
           }
 
-          const newActivity = await createPracticeActivity({
-            sessionId: sessionToUse.id,
-            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: cognitivePracticeId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+              contentId: cognitivePracticeId,
+            });
+          } catch (createErr: any) {
+            // Handle 404: Session found in local storage but missing in backend
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> Meditation: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+                contentId: cognitivePracticeId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }
@@ -414,6 +431,7 @@ const Meditation = () => {
 
   const handleComplete = () => {
     setIsPlaying(false);
+    setIsStarted(false); // Add this to exit immersive view when showing vitals
     setShowVitalsModal(true);
   };
 

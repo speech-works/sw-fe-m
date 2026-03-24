@@ -60,7 +60,7 @@ const CVExercise = () => {
   const effectiveId = id || practiceActivity?.funPractice?.id;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -89,10 +89,10 @@ const CVExercise = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure session", err);
         return;
       }
     }
@@ -135,11 +135,26 @@ const CVExercise = () => {
           if (!sessionId)
             throw new Error("No session ID for standalone activity");
           console.log("CVExercise - Creating Activity via POST (Standalone)");
-          const newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: effectiveId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId,
+              contentType: PracticeActivityContentType.FUN_PRACTICE,
+              contentId: effectiveId,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> CVExercise: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.FUN_PRACTICE,
+                contentId: effectiveId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

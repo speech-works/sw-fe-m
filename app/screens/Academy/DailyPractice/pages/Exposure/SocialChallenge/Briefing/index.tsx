@@ -36,7 +36,7 @@ import MasonryTips from "../../../../components/MasonryTips";
 
 const Briefing = () => {
   const { user } = useUserStore();
-  const { practiceSession, setSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } = useSessionStore();
   const { addActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
@@ -59,10 +59,10 @@ const Briefing = () => {
 
     if (!isPackContext && !sessionToUse && user?.id) {
       try {
-        sessionToUse = await createSession({ userId: user.id });
+        sessionToUse = await ensureActiveSession(user.id);
         setSession(sessionToUse);
       } catch (err) {
-        console.error("Failed to create session", err);
+        console.error("Failed to ensure active session", err);
         return;
       }
     }
@@ -101,13 +101,27 @@ const Briefing = () => {
       } else {
         if (!sessionId)
           throw new Error("No session ID for standalone activity");
-        console.log("SocialChallenge - Creating Activity via POST (Standalone)");
-        const newActivity = await createPracticeActivity({
-          sessionId,
-          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-          contentId: sc.id,
-        });
-        activityIdToStart = newActivity.id;
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId,
+              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+              contentId: sc.id,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> SocialChallengeBriefing: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+                contentId: sc.id,
+              });
+            } else {
+              throw createErr;
+            }
+          }
+          activityIdToStart = newActivity.id;
       }
     }
     const startedActivity = await startPracticeActivity({

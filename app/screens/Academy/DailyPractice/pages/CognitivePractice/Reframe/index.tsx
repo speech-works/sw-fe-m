@@ -24,7 +24,7 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import Button from "../../../../../../components/Button";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
+import { useSessionStore } from "../../../../../../stores/session";
 import ScreenView from "../../../../../../components/ScreenView";
 import TextArea from "../../../../../../components/TextArea";
 import {
@@ -36,7 +36,6 @@ import {
   AcademyStackParamList,
 } from "../../../../../../navigators/stacks/AcademyStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import {
@@ -51,6 +50,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import SyncLoader from "../../../../../../components/SyncLoader";
 
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
@@ -139,8 +139,18 @@ const Reframe = () => {
       return;
     }
 
+    const userId = isPackContext
+      ? user?.id
+      : (sessionToUse!.user?.id ?? user?.id);
+
+    if (!userId) {
+      console.error("Missing userId for activity start");
+      return;
+    }
+
     try {
-      let activityIdToStart = currentActivityId || practiceActivity?.id;
+      let activityIdToStart =
+        currentActivityId || (route.params as any).practiceActivity?.id;
 
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {
@@ -159,25 +169,39 @@ const Reframe = () => {
             console.error("Missing session for standalone activity");
             return;
           }
-          const newActivity = await createPracticeActivity({
-            sessionId: sessionToUse.id,
-            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: cognitivePracticeId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+              contentId: cognitivePracticeId,
+            });
+          } catch (createErr: any) {
+            if (
+              createErr?.response?.status === 404 &&
+              createErr?.response?.data?.error
+                ?.toLowerCase()
+                .includes("session")
+            ) {
+              console.log(
+                ">> Reframe: Stale session detected (404), refreshing...",
+              );
+              sessionToUse = await ensureActiveSession(userId!, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+                contentId: cognitivePracticeId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }
 
       // Fallback to user from store if session is missing (e.g. in pack mode)
       // Note: ensure user is available in store
-      const userId = isPackContext
-        ? user?.id
-        : (sessionToUse!.user?.id ?? user?.id); // Corrected to use user?.id for packContext
-
-      if (!userId) {
-        console.error("Missing userId for activity start");
-        return;
-      }
       const startedActivity = await startPracticeActivity({
         id: activityIdToStart,
         userId: userId,
@@ -315,6 +339,7 @@ const Reframe = () => {
           style={{ flex: 1 }}
         />
       </View>
+      <SyncLoader />
 
       {/* Header */}
       <BlurView

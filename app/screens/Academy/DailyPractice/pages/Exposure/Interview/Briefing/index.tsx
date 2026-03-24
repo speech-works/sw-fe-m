@@ -106,11 +106,26 @@ const Briefing = () => {
         if (!sessionId)
           throw new Error("No session ID for standalone activity");
         console.log("Interview - Creating Activity via POST (Standalone)");
-        const newActivity = await createPracticeActivity({
-          sessionId,
-          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-          contentId: interview.id,
-        });
+        let newActivity;
+        try {
+          newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+            contentId: interview.id,
+          });
+        } catch (createErr: any) {
+          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+            console.log(">> InterviewBriefing: Stale session detected (404), refreshing...");
+            sessionToUse = await ensureActiveSession(userId, true);
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+              contentId: interview.id,
+            });
+          } else {
+            throw createErr;
+          }
+        }
         activityIdToStart = newActivity.id;
       }
     }

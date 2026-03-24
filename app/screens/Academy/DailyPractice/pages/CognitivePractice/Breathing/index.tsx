@@ -386,11 +386,26 @@ const Breathing = () => {
             return;
           }
 
-          const newActivity = await createPracticeActivity({
-            sessionId: sessionToUse.id,
-            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+              contentId,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> Breathing: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+                contentId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

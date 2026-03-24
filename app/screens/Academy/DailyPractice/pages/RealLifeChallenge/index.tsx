@@ -173,11 +173,26 @@ const RealLifeChallenge = () => {
           console.log(
             "RealLifeChallenge - Creating Activity via POST (Standalone)",
           );
-          const newActivity = await createPracticeActivity({
-            sessionId: sessionToUse.id,
-            contentType,
-            contentId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType,
+              contentId,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> RealLifeChallenge: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType,
+                contentId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

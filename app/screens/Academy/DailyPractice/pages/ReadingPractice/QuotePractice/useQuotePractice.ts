@@ -158,11 +158,26 @@ export const useQuotePractice = () => {
           console.log(
             "useQuotePractice - Creating Activity via POST (Standalone)",
           );
-          const newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: contentId,
-          });
+          let newActivity;
+          try {
+            newActivity = await createPracticeActivity({
+              sessionId,
+              contentType: PracticeActivityContentType.READING_PRACTICE,
+              contentId: contentId,
+            });
+          } catch (createErr: any) {
+            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+              console.log(">> useQuotePractice: Stale session detected (404), refreshing...");
+              sessionToUse = await ensureActiveSession(userId, true);
+              newActivity = await createPracticeActivity({
+                sessionId: sessionToUse.id,
+                contentType: PracticeActivityContentType.READING_PRACTICE,
+                contentId: contentId,
+              });
+            } else {
+              throw createErr;
+            }
+          }
           activityIdToStart = newActivity.id;
         }
       }

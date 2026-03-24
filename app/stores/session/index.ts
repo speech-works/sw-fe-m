@@ -13,9 +13,10 @@ import { reviveDatesInObject } from "../../util/functions/date";
 interface PracticeSessionState {
   practiceSession: PracticeSession | null;
   hasHydrated: boolean;
+  isSyncing: boolean;
   setSession: (session: PracticeSession) => void;
   clearSession: () => void;
-  ensureActiveSession: (userId: string) => Promise<PracticeSession>;
+  ensureActiveSession: (userId: string, forceRefresh?: boolean) => Promise<PracticeSession>;
 }
 
 export const useSessionStore = create<PracticeSessionState>()(
@@ -23,6 +24,7 @@ export const useSessionStore = create<PracticeSessionState>()(
     (set, get) => ({
       practiceSession: null,
       hasHydrated: false,
+      isSyncing: false,
 
       setSession: (practiceSession) => {
         set({ practiceSession });
@@ -32,41 +34,25 @@ export const useSessionStore = create<PracticeSessionState>()(
         set({ practiceSession: null });
       },
 
-      ensureActiveSession: async (userId: string) => {
+      ensureActiveSession: async (userId: string, forceRefresh = false) => {
         const { practiceSession } = get();
 
         const isSessionToday = practiceSession?.createdAt
           ? isToday(new Date(practiceSession.createdAt))
           : false;
 
-        console.log("ensureActiveSession: Checking session status...", {
-          currentSessionId: practiceSession?.id,
-          status: practiceSession?.status,
-          createdAt: practiceSession?.createdAt,
-          isToday: isSessionToday,
-          userId,
-        });
-
         if (
+          !forceRefresh &&
           practiceSession &&
           practiceSession.status === "ONGOING" &&
           isSessionToday
         ) {
-          console.log(
-            "ensureActiveSession: Session is valid and active. Reusing:",
-            practiceSession.id,
-          );
           return practiceSession;
         }
 
-        console.log(
-          "ensureActiveSession: Session is stale, missing, or completed. Attempting to recover existing session or create a new one for user:",
-          userId,
-        );
+        set({ isSyncing: true });
         try {
           // 1. First, check if there's already an ONGOING session on the backend
-          // This prevents the 400 Bad Request: "already has an ongoing session for today"
-          // if the local storage was wiped or lost sync.
           const activeSessions = await getAllSessionsOfUser({
             userId,
             sessionStatus: "ONGOING",
@@ -75,20 +61,12 @@ export const useSessionStore = create<PracticeSessionState>()(
           if (activeSessions && activeSessions.length > 0) {
             const existingSession = activeSessions[0];
             set({ practiceSession: existingSession });
-            console.log(
-              "ensureActiveSession: Recovered existing active session from backend:",
-              existingSession.id,
-            );
             return existingSession;
           }
 
           // 2. If no active session exists on the backend, create a new one
           const newSession = await createSession({ userId });
           set({ practiceSession: newSession });
-          console.log(
-            "ensureActiveSession: New session created and set:",
-            newSession.id,
-          );
           return newSession;
         } catch (error) {
           console.error(
@@ -96,6 +74,8 @@ export const useSessionStore = create<PracticeSessionState>()(
             error,
           );
           throw error;
+        } finally {
+          set({ isSyncing: false });
         }
       },
     }),
