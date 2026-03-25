@@ -105,12 +105,20 @@ const LoginBackground = () => {
           {
             width: 300,
             height: 300,
-            //opacity: 1,
+            backgroundColor: "rgba(255, 247, 237, 0.5)", // Subtle peach glow
+            justifyContent: "center",
+            alignItems: "center",
             ...getOrbStyle(floatAnim2, width - 220, height / 1.7, -40, 20),
           },
         ]}
       >
-        <Butterfly2Face size={300} />
+        <Butterfly2Face
+          size={260}
+          transparentBg
+          skinColor="#FFFFFF"
+          butterflyColor="#F97316"
+          inkColor="#334155"
+        />
       </Animated.View>
 
       {/* Orb 3: Bottom Left - Subtle Orange */}
