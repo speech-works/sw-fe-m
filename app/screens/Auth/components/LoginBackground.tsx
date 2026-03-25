@@ -103,14 +103,14 @@ const LoginBackground = () => {
         style={[
           styles.orb,
           {
-            width: 250,
-            height: 250,
-            opacity: 0.8,
-            ...getOrbStyle(floatAnim2, width - 150, height / 2, -40, 20),
+            width: 300,
+            height: 300,
+            //opacity: 1,
+            ...getOrbStyle(floatAnim2, width - 220, height / 1.7, -40, 20),
           },
         ]}
       >
-        <Butterfly2Face size={250} />
+        <Butterfly2Face size={300} />
       </Animated.View>
 
       {/* Orb 3: Bottom Left - Subtle Orange */}
@@ -122,7 +122,7 @@ const LoginBackground = () => {
             width: 350,
             height: 350,
             borderRadius: 175,
-            opacity: 0.5,
+            opacity: 0,
             ...getOrbStyle(floatAnim3, -50, height - 200, 20, -30),
           },
         ]}
