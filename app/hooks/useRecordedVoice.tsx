@@ -20,16 +20,14 @@ export function useRecordedVoice(userId?: string) {
   ) => {
     if (!voiceRecordingUri || !userId) return;
     try {
-      const file = await getFileFromUri(voiceRecordingUri, "audio/mp4");
-      // ✅ upload to s3 and create a record in DB
+      // ✅ Pass URI directly; createRecording now handles S3 upload via expo-file-system
       const uploadedRecording = await createRecording(
         {
           userId: userId,
           sourceType: params.recordingSource,
-          // Only add activityId if it exists in params
           ...("activityId" in params ? { activityId: params.activityId } : {}),
         },
-        file
+        voiceRecordingUri
       );
       if (!uploadedRecording?.audioUrl) {
         throw new Error("Voice recording upload to S3 failed");

@@ -2,9 +2,9 @@ import axiosClient from "../axiosClient";
 import { generateUploadUrl } from "../file-handling";
 
 import {
-    CreateRecordingPayload,
-    Recording,
-    RecordingQueryParams,
+  CreateRecordingPayload,
+  Recording,
+  RecordingQueryParams,
 } from "./types";
 
 /**
@@ -43,46 +43,51 @@ export async function getRecordingById(id: string): Promise<Recording> {
   }
 }
 
+import { uploadToS3 } from "../../util/functions/fileHandling";
+
 /**
  * Create a new recording
  */
 export async function createRecording(
   payload: Omit<CreateRecordingPayload, "audioUrl">,
-  file: File,
+  fileUri: string,
 ): Promise<Recording> {
-  console.log("in createRecording", { payload, file });
+  console.log("in createRecording", { payload, fileUri });
   try {
     const userId = payload?.userId;
     const activityId = payload?.activityId;
     const sourceType = payload?.sourceType;
 
+    console.log(
+      `[createRecording] Starting for User: ${userId}, Activity: ${activityId}, Source: ${sourceType}`,
+    );
     if (!userId) throw new Error("Missing userId in payload");
 
-    const fileName = `${sourceType}-${userId}-${new Date().toISOString()}`;
+    const fileName = `${sourceType}-${userId}-${new Date().toISOString()}.mp4`;
     const mimeType = "audio/mp4";
+
+    console.log(`[createRecording] Requesting upload URL for: ${fileName}`);
     const uploadUrl = await generateUploadUrl(
       fileName,
       mimeType,
       "sw-voice-recording",
     );
+
     if (!uploadUrl) {
+      console.error("[createRecording] Failed to get upload URL");
       throw new Error("Voice recording upload url generation failed");
     }
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": mimeType,
-      },
-      body: file,
-    });
+    console.log(
+      `[createRecording] Got upload URL: ${uploadUrl.substring(0, 50)}...`,
+    );
 
-    if (!uploadResponse.ok) {
-      throw new Error("Voice recording upload failed");
-    }
+    // ✅ Use expo-file-system via uploadToS3 utility
+    await uploadToS3(fileUri, uploadUrl, mimeType);
+    console.log(
+      "[createRecording] S3 upload successful. Creating DB record...",
+    );
 
     const audioUrlKey = fileName;
-
-    // const script = await transcribeAudio(audioUrlKey);
 
     const requestBody: CreateRecordingPayload = {
       userId,
@@ -91,16 +96,17 @@ export async function createRecording(
       mimeType,
       audioUrl: audioUrlKey,
     };
+
     const response = await axiosClient.post<Recording>(
       "/recordings",
       requestBody,
     );
+    console.log(
+      `[createRecording] DB record created successfully: ${response.data}`,
+    );
     return response.data;
   } catch (error) {
-    console.error(
-      "There was a problem with the createRecording API call:",
-      error,
-    );
+    console.error("[createRecording] API call sequence failed:", error);
     throw error;
   }
 }
