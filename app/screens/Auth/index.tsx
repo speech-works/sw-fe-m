@@ -34,6 +34,7 @@ import { useUserStore } from "../../stores/user";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import LoginBackground from "./components/LoginBackground";
+import Butterfly2Face from "../../assets/sw-faces/Butterfly2Face";
 
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];
@@ -244,7 +245,11 @@ const LoginScreen = () => {
           </Animated.View>
           <Animated.View style={{ opacity: logoFadeAnim }}>
             <Text style={styles.companyName}>{COMPANY_NAME}</Text>
-            <Text style={isSmallDevice ? styles.captionTextSmall : styles.captionText}>
+            <Text
+              style={
+                isSmallDevice ? styles.captionTextSmall : styles.captionText
+              }
+            >
               {COMPANY_SLOGAN}
             </Text>
           </Animated.View>
@@ -320,7 +325,12 @@ const LoginScreen = () => {
           </View>
 
           {/* Footer / Legal */}
-          <View style={[styles.legalContainer, { marginBottom: isSmallDevice ? 24 : 20 }]}>
+          <View
+            style={[
+              styles.legalContainer,
+              { marginBottom: isSmallDevice ? 24 : 20 },
+            ]}
+          >
             <Text style={styles.legalText}>
               By continuing, you agree to our{" "}
               <Text

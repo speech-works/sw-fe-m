@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { theme } from "../../../Theme/tokens";
+import Butterfly2Face from "../../../assets/sw-faces/Butterfly2Face";
 
 const { width, height } = Dimensions.get("window");
 
@@ -97,20 +98,20 @@ const LoginBackground = () => {
         ]}
       />
 
-      {/* Orb 2: Middle Right - Soft Red/Pink */}
+      {/* Orb 2: Middle Right - Animated Butterfly Face */}
       <Animated.View
         style={[
           styles.orb,
           {
-            backgroundColor: theme.colors.library.red[200],
             width: 250,
             height: 250,
-            borderRadius: 125,
-            opacity: 0.4,
+            opacity: 0.8,
             ...getOrbStyle(floatAnim2, width - 150, height / 2, -40, 20),
           },
         ]}
-      />
+      >
+        <Butterfly2Face size={250} />
+      </Animated.View>
 
       {/* Orb 3: Bottom Left - Subtle Orange */}
       <Animated.View
