@@ -312,6 +312,7 @@ const LoginScreen = () => {
                     borderColor: btnBorderColor,
                     marginBottom: isSmallDevice ? 12 : 16, // Adaptive spacing
                     height: isSmallDevice ? 50 : 56, // Adaptive height
+                    paddingVertical: isSmallDevice ? 8 : 16, // Prevent icon clipping
                   }}
                 />
               );
