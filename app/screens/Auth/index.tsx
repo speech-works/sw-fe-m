@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -53,6 +54,9 @@ WebBrowser.maybeCompleteAuthSession();
 const { height } = Dimensions.get("window");
 
 const LoginScreen = () => {
+  const { height } = useWindowDimensions();
+  const isSmallDevice = height < 700;
+
   const { login } = useContext(AuthContext);
   const { setUser } = useUserStore();
 
@@ -228,6 +232,7 @@ const LoginScreen = () => {
               {
                 opacity: logoFadeAnim,
                 transform: [{ scale: logoScaleAnim }],
+                height: isSmallDevice ? 100 : 120, // Adaptive logo height
               },
             ]}
           >
@@ -239,7 +244,9 @@ const LoginScreen = () => {
           </Animated.View>
           <Animated.View style={{ opacity: logoFadeAnim }}>
             <Text style={styles.companyName}>{COMPANY_NAME}</Text>
-            <Text style={styles.captionText}>{COMPANY_SLOGAN}</Text>
+            <Text style={isSmallDevice ? styles.captionTextSmall : styles.captionText}>
+              {COMPANY_SLOGAN}
+            </Text>
           </Animated.View>
         </SafeAreaView>
       </View>
@@ -303,8 +310,8 @@ const LoginScreen = () => {
                   style={{
                     borderWidth: btnBorderWidth,
                     borderColor: btnBorderColor,
-                    marginBottom: 16, // More spacing
-                    height: 56, // Taller buttons
+                    marginBottom: isSmallDevice ? 12 : 16, // Adaptive spacing
+                    height: isSmallDevice ? 50 : 56, // Adaptive height
                   }}
                 />
               );
@@ -313,7 +320,6 @@ const LoginScreen = () => {
 
           {/* Footer / Legal */}
           <View style={styles.legalContainer}>
-{/* 
             <Text style={styles.legalText}>
               By continuing, you agree to our{" "}
               <Text
@@ -324,7 +330,6 @@ const LoginScreen = () => {
               </Text>
             </Text>
             <View style={{ height: 16 }} />
-            */}
             <Text style={styles.legalText}>
               Need help?{" "}
               <Text
@@ -350,7 +355,7 @@ const styles = StyleSheet.create({
   },
   // Top Section
   topSection: {
-    flex: 0.45, // 45% height
+    flex: 0.4, // Reduced from 0.45
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
@@ -360,13 +365,13 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 20,
-    gap: 16,
+    paddingBottom: 10, // Reduced from 20
+    gap: 8, // Reduced from 16
   },
   logoWrapper: {
     // Large logo area
     width: 200,
-    height: 120, // Increased size
+    height: 120, // Base height, overridden by inline style
     justifyContent: "center",
     alignItems: "center",
   },
@@ -375,7 +380,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   companyName: {
-    ...parseTextStyle(theme.typography.Heading1), // BIGGER
+    ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
     textAlign: "center",
   },
@@ -384,28 +389,33 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     opacity: 0.8,
   },
+  captionTextSmall: {
+    ...parseTextStyle(theme.typography.BodyDetails), // Smaller font
+    color: theme.colors.text.default,
+    opacity: 0.8,
+    textAlign: "center",
+  },
 
   // Bottom Sheet
   bottomSheet: {
-    flex: 0.55, // 55% height
+    flex: 0.6, // Increased from 0.55
     backgroundColor: "transparent",
-    // Removed border radius and shadow as requested
     overflow: "hidden",
   },
   sheetContent: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 24, // Reduced from 40
     justifyContent: "flex-start",
   },
   sheetHeader: {
-    marginBottom: 32,
+    marginBottom: 16, // Reduced from 32
     alignItems: "center",
   },
   sheetTitle: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
-    marginBottom: 8,
+    marginBottom: 4, // Reduced from 8
   },
   sheetSubtitle: {
     ...parseTextStyle(theme.typography.Body),
@@ -414,13 +424,13 @@ const styles = StyleSheet.create({
 
   loginButtons: {
     width: "100%",
-    marginBottom: 24,
+    marginBottom: 12, // Reduced from 24
   },
 
   legalContainer: {
     alignItems: "center",
     marginTop: "auto",
-    marginBottom: 20,
+    marginBottom: 12, // Reduced from 20
   },
   legalText: {
     textAlign: "center",
