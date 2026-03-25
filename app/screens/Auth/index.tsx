@@ -320,7 +320,7 @@ const LoginScreen = () => {
           </View>
 
           {/* Footer / Legal */}
-          <View style={styles.legalContainer}>
+          <View style={[styles.legalContainer, { marginBottom: isSmallDevice ? 24 : 20 }]}>
             <Text style={styles.legalText}>
               By continuing, you agree to our{" "}
               <Text
@@ -431,7 +431,6 @@ const styles = StyleSheet.create({
   legalContainer: {
     alignItems: "center",
     marginTop: "auto",
-    marginBottom: 12, // Reduced from 20
   },
   legalText: {
     textAlign: "center",
