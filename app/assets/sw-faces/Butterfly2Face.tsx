@@ -280,7 +280,7 @@ export const Butterfly2Face: React.FC<FaceProps> = ({
               <AnimatedPath
                 d="M 0 3 C -6 -6, -10 2, 0 7 Z"
                 fill={butterflyColor}
-                stroke="#431407"
+                stroke={inkColor}
                 strokeWidth="0.5"
                 animatedProps={wingProps}
               />
@@ -288,7 +288,7 @@ export const Butterfly2Face: React.FC<FaceProps> = ({
               <AnimatedPath
                 d="M 0 3 C 6 -6, 10 2, 0 7 Z"
                 fill={butterflyColor}
-                stroke="#431407"
+                stroke={inkColor}
                 strokeWidth="0.5"
                 animatedProps={wingProps}
               />
@@ -298,7 +298,7 @@ export const Butterfly2Face: React.FC<FaceProps> = ({
                 y1="-1"
                 x2="0"
                 y2="7"
-                stroke="#431407"
+                stroke={inkColor}
                 strokeWidth="1.5"
                 strokeLinecap="round"
               />

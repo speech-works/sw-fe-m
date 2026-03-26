@@ -93,18 +93,18 @@ const LoginBackground = () => {
         style={[
           styles.orb,
           {
-            //backgroundColor: theme.colors.library.orange[200],
             width: 300,
             height: 300,
-            //opacity: 0.6,
+            opacity: 0.7, // Vibrant but integrated
             ...getOrbStyle(floatAnim1, -50, -50, 30, 40),
           },
         ]}
       >
         <VoidFace
-          size={420}
+          size={380}
           transparentBg
           skinColor="rgba(255, 255, 255, 0.05)"
+          inkColor="#78350F"
         />
       </Animated.View>
 
@@ -116,6 +116,7 @@ const LoginBackground = () => {
             width: 300,
             height: 300,
             backgroundColor: "rgba(255, 247, 237, 0.5)", // Subtle peach glow
+            opacity: 0.8, // Vibrant but integrated
             justifyContent: "center",
             alignItems: "center",
             ...getOrbStyle(floatAnim2, width - 220, height / 1.7, -40, 20),
@@ -127,7 +128,7 @@ const LoginBackground = () => {
           transparentBg
           skinColor="#FFFFFF"
           butterflyColor="#F97316"
-          inkColor="#334155"
+          inkColor="#78350F"
         />
       </Animated.View>
 
@@ -150,7 +151,7 @@ const LoginBackground = () => {
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(255,255,255,0.3)" },
+          { backgroundColor: "rgba(255, 255, 255, 0.3)" },
         ]}
       />
     </View>

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { theme } from "../../Theme/tokens";
+import { BlurView } from "expo-blur";
 import {
   COMPANY_NAME,
   COMPANY_SLOGAN,
@@ -225,6 +226,7 @@ const LoginScreen = () => {
            - Now transparent to show through to root background
       */}
       <View style={styles.topSection}>
+        <BlurView intensity={40} tint="light" style={styles.blurAbsolute} />
         {/* Logo Content */}
         <SafeAreaView edges={["top"]} style={styles.brandContent}>
           <Animated.View
@@ -266,6 +268,7 @@ const LoginScreen = () => {
           { transform: [{ translateY: sheetSlideAnim }] },
         ]}
       >
+        <BlurView intensity={70} tint="light" style={styles.blurAbsolute} />
         <SafeAreaView
           edges={["bottom", "left", "right"]}
           style={styles.sheetContent}
@@ -411,7 +414,12 @@ const styles = StyleSheet.create({
   bottomSheet: {
     flex: 0.6, // Increased from 0.55
     backgroundColor: "transparent",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     overflow: "hidden",
+  },
+  blurAbsolute: {
+    ...StyleSheet.absoluteFillObject,
   },
   sheetContent: {
     flex: 1,
