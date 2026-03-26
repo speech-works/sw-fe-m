@@ -237,11 +237,11 @@ const LoginScreen = () => {
               },
             ]}
           >
-            <Image
+            {/* <Image
               style={styles.logoImg}
               source={speechworksLogo}
               resizeMode="contain"
-            />
+            /> */}
           </Animated.View>
           <Animated.View style={{ opacity: logoFadeAnim }}>
             <Text style={styles.companyName}>{COMPANY_NAME}</Text>
