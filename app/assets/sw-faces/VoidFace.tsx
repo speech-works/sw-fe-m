@@ -19,6 +19,7 @@ import Svg, {
   G,
   Line,
   Path,
+  Rect,
   SvgProps,
 } from "react-native-svg";
 
@@ -54,31 +55,49 @@ export const VoidFace: React.FC<SvgIconProps> = ({
 }) => {
   const blink = useSharedValue(1);
   const cycleProgress = useSharedValue(0); // 4s cycle for leaf and tracking
+  const flap = useSharedValue(1);
 
   useEffect(() => {
     if (shouldAnimate) {
       blink.value = withRepeat(
         withSequence(
-          withDelay(Math.random() * 2000 + 2000, withTiming(0.1, { duration: 120 })),
+          withDelay(
+            Math.random() * 2000 + 2000,
+            withTiming(0.1, { duration: 120 }),
+          ),
           withTiming(1, { duration: 120 }),
         ),
         -1,
-        false
+        false,
       );
 
       cycleProgress.value = withRepeat(
-        withTiming(1, { duration: 4000, easing: Easing.bezier(0.4, 0, 0.2, 1) }),
+        withTiming(1, {
+          duration: 4000,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+        }),
         -1,
-        false
+        false,
+      );
+
+      flap.value = withRepeat(
+        withSequence(
+          withTiming(0.1, { duration: 100 }),
+          withTiming(1, { duration: 100 }),
+        ),
+        -1,
+        true,
       );
     } else {
       blink.value = 1;
       cycleProgress.value = 0;
+      flap.value = 1;
     }
 
     return () => {
       cancelAnimation(blink);
       cancelAnimation(cycleProgress);
+      cancelAnimation(flap);
     };
   }, [shouldAnimate]);
 
@@ -104,13 +123,21 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     return interpolate(cycleProgress.value, [0, 0.5, 1], [0, 0.5, 0]);
   });
 
-  const leafProps = useAnimatedProps(() => ({
+  const butterflyProps = useAnimatedProps(() => ({
     transform: [
       { translateX: leafX.value },
       { translateY: leafY.value },
       { rotate: `${leafRotate.value}deg` },
     ] as any,
     opacity: leafOpacity.value,
+  }));
+
+  const flapProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 0 },
+      { scaleX: flap.value },
+      { translateX: 0 },
+    ] as any,
   }));
 
   // Magnifying glass search movement (from SearchingFace)
@@ -124,7 +151,11 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [0, -3, 3, 0]);
   });
   const eyeZoom = useDerivedValue(() => {
-    return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [1.4, 1.55, 1.35, 1.4]);
+    return interpolate(
+      cycleProgress.value,
+      [0, 0.3, 0.6, 1],
+      [1.4, 1.55, 1.35, 1.4],
+    );
   });
 
   const searchProps = useAnimatedProps(() => ({
@@ -153,7 +184,9 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     return {
       transform: [
         { translateX: interpolate(cycleProgress.value, [0, 1], [-3, 3]) },
-        { translateY: interpolate(cycleProgress.value, [0, 0.5, 1], [1, -1, 1]) },
+        {
+          translateY: interpolate(cycleProgress.value, [0, 0.5, 1], [1, -1, 1]),
+        },
       ] as any,
     };
   });
@@ -291,29 +324,65 @@ export const VoidFace: React.FC<SvgIconProps> = ({
           </AnimatedG>
 
           {!transparentBg && (
-            <AnimatedG animatedProps={leafProps}>
-              <Path
-                d="M 0 0 C 4 -6 10 -2 12 4 C 10 10 4 6 0 0 Z"
-                fill="#F59E0B"
-                stroke="#D97706"
-                strokeWidth="1"
-                strokeLinejoin="round"
+            <AnimatedG animatedProps={butterflyProps}>
+              {/* Left Wing */}
+              <AnimatedPath
+                d="M 0 0 C -6 -6, -10 2, 0 7 Z"
+                fill="#FF9040"
+                stroke={inkColor}
+                strokeWidth="0.5"
+                animatedProps={flapProps}
               />
-              <Line x1="0" y1="0" x2="8" y2="2" stroke="#D97706" strokeWidth="1" strokeLinecap="round" />
+              {/* Right Wing */}
+              <AnimatedPath
+                d="M 0 0 C 6 -6, 10 2, 0 7 Z"
+                fill="#FF9040"
+                stroke={inkColor}
+                strokeWidth="0.5"
+                animatedProps={flapProps}
+              />
+              {/* Butterfly Body */}
+              <Line
+                x1="0"
+                y1="-1"
+                x2="0"
+                y2="7"
+                stroke={inkColor}
+                strokeWidth="1"
+                strokeLinecap="round"
+              />
             </AnimatedG>
           )}
         </G>
 
         {transparentBg && (
-          <AnimatedG animatedProps={leafProps}>
-            <Path
-              d="M 0 0 C 4 -6 10 -2 12 4 C 10 10 4 6 0 0 Z"
-              fill="#F59E0B"
-              stroke="#D97706"
-              strokeWidth="1"
-              strokeLinejoin="round"
+          <AnimatedG animatedProps={butterflyProps}>
+            {/* Left Wing */}
+            <AnimatedPath
+              d="M 0 0 C -6 -6, -10 2, 0 7 Z"
+              fill="#FF9040"
+              stroke={inkColor}
+              strokeWidth="0.5"
+              animatedProps={flapProps}
             />
-            <Line x1="0" y1="0" x2="8" y2="2" stroke="#D97706" strokeWidth="1" strokeLinecap="round" />
+            {/* Right Wing */}
+            <AnimatedPath
+              d="M 0 0 C 6 -6, 10 2, 0 7 Z"
+              fill="#FF9040"
+              stroke={inkColor}
+              strokeWidth="0.5"
+              animatedProps={flapProps}
+            />
+            {/* Butterfly Body */}
+            <Line
+              x1="0"
+              y1="-1"
+              x2="0"
+              y2="7"
+              stroke={inkColor}
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
           </AnimatedG>
         )}
       </Svg>
