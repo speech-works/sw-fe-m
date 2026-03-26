@@ -379,6 +379,13 @@ const styles = StyleSheet.create({
     paddingBottom: 10, // Reduced from 20
     gap: 8, // Reduced from 16
   },
+  companyName: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 42,
+    fontWeight: "800",
+    color: "#EA580C", // Deep, vibrant orange
+    textAlign: "center",
+  },
   logoWrapper: {
     // Large logo area
     width: 200,
@@ -390,21 +397,19 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  companyName: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    textAlign: "center",
-  },
   captionText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    opacity: 0.8,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#475569", // Slate-600 for contrast
+    opacity: 1,
+    textAlign: "center",
+    marginTop: 4,
   },
   captionTextSmall: {
-    ...parseTextStyle(theme.typography.BodyDetails), // Smaller font
-    color: theme.colors.text.default,
-    opacity: 0.8,
+    ...parseTextStyle(theme.typography.Label),
+    color: "#475569",
+    opacity: 1,
     textAlign: "center",
+    marginTop: 2,
   },
 
   // Bottom Sheet

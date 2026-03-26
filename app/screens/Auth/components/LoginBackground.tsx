@@ -104,7 +104,7 @@ const LoginBackground = () => {
           size={500}
           transparentBg
           skinColor="rgba(255, 255, 255, 0.05)"
-          inkColor="#334155"
+          inkColor="rgba(51, 65, 85, 0.15)"
         />
       </Animated.View>
 
