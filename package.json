@@ -26,7 +26,8 @@
     "build:ios:local": "eas build -p ios --local --profile preview",
     "build:android:production": "eas build -p android --profile production",
     "build:ios:production": "eas build -p ios --profile production",
-    "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'"
+    "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",

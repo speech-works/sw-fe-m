@@ -152,7 +152,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
 
   // Derived Values for Bars
   const tasksRemaining = Math.min(user?.freeTasksRemaining || 0, 5);
-  const tasksTotal = 1;
+  const tasksTotal = 5;
   const taskPercentage = (tasksRemaining / tasksTotal) * 100;
 
   return (
@@ -185,7 +185,12 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
 
           {/* Large Watermark Icon */}
           <View style={styles.mainWatermarkContainer}>
-            <Icon name="fire" size={120} color="white" style={{ opacity: 0.2 }} />
+            <Icon
+              name="fire"
+              size={120}
+              color="white"
+              style={{ opacity: 0.2 }}
+            />
           </View>
 
           {/* Glass Data Card - MAXIMALIST STACK */}
