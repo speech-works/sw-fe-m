@@ -112,9 +112,19 @@ export const VoidFace: React.FC<SvgIconProps> = ({
   });
 
   const butterflyProps = useAnimatedProps(() => {
-    const x = interpolate(cycleProgress.value, [0, 1], [-30, 30]);
-    const y = interpolate(cycleProgress.value, [0, 0.5, 1], [-15, -8, -15]);
-    const r = interpolate(cycleProgress.value, [0, 0.5, 1], [-45, 45, 135]);
+    const progress = cycleProgress.value;
+    // Expansive horizontal flight with smooth in-out easing
+    const x = interpolate(progress, [0, 1], [-35, 35]);
+
+    // Base arc (dipping in the middle)
+    const baseWaitY = interpolate(progress, [0, 0.5, 1], [-15, -5, -15]);
+
+    // Natural bobbing: 3 flutter cycles per flight pass
+    const bobbing = Math.sin(progress * Math.PI * 6) * 3;
+    const y = baseWaitY + bobbing;
+
+    // Rotation: Slight base tilt + dynamic flutter tilt
+    const r = interpolate(progress, [0, 1], [-15, 15]) + Math.cos(progress * Math.PI * 6) * 12;
 
     return {
       transform: [
@@ -122,7 +132,7 @@ export const VoidFace: React.FC<SvgIconProps> = ({
         { translateY: 24 + y },
         { rotate: `${r}deg` },
       ] as any,
-      opacity: 1, // Full visibility
+      opacity: 1, // Max visibility as requested
     };
   });
 
