@@ -88,7 +88,7 @@ const LoginBackground = () => {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Orb 1: Top Left - Warm Peach */}
+      {/* Orb 1: Top Left - Warm Peach Watermark */}
       <Animated.View
         style={[
           styles.orb,
@@ -96,43 +96,42 @@ const LoginBackground = () => {
             width: 300,
             height: 300,
             opacity: 0.7, // Vibrant but integrated
-            ...getOrbStyle(floatAnim1, -50, -50, 30, 40),
+            ...getOrbStyle(floatAnim1, -100, -80, 30, 40),
           },
         ]}
       >
         <VoidFace
-          size={380}
+          size={500}
           transparentBg
           skinColor="rgba(255, 255, 255, 0.05)"
-          inkColor="#78350F"
+          inkColor="#334155"
         />
       </Animated.View>
 
-      {/* Orb 2: Middle Right - Animated Butterfly Face */}
+      {/* Orb 2: Bottom Right - Butterfly Watermark */}
       <Animated.View
         style={[
           styles.orb,
           {
             width: 300,
             height: 300,
-            backgroundColor: "rgba(255, 247, 237, 0.5)", // Subtle peach glow
             opacity: 0.8, // Vibrant but integrated
             justifyContent: "center",
             alignItems: "center",
-            ...getOrbStyle(floatAnim2, width - 220, height / 1.7, -40, 20),
+            ...getOrbStyle(floatAnim2, width - 200, height - 250, -40, 20),
           },
         ]}
       >
         <Butterfly2Face
           size={260}
           transparentBg
-          skinColor="#FFFFFF"
+          skinColor="rgba(255, 255, 255, 0.05)"
           butterflyColor="#F97316"
-          inkColor="#78350F"
+          inkColor="#334155"
         />
       </Animated.View>
 
-      {/* Orb 3: Bottom Left - Subtle Orange */}
+      {/* Orb 3: Mid Orange Glow (Hidden) */}
       <Animated.View
         style={[
           styles.orb,
