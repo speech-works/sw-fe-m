@@ -69,6 +69,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
         name: "Cognitive",
         subtitle: "Focus",
         countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
+        badge: "FREE",
         faceType: "breathing" as const,
         route: "CognitivePracticeStack",
         colors: ["#EBCBF5", "#D8A7F0"],
@@ -153,6 +154,12 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
               </View>
               <View style={styles.iconWrapper}>{renderFace(p.faceType)}</View>
             </LinearGradient>
+
+            {p.badge && (
+              <View style={styles.cornerBadge}>
+                <Text style={styles.cornerBadgeText}>{p.badge}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </View>
@@ -224,5 +231,26 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "700",
     color: "rgba(0,0,0,0.6)",
+  },
+  cornerBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#10B981", // Stylish green (Emerald 500)
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  cornerBadgeText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase",
   },
 });

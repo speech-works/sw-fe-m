@@ -44,6 +44,7 @@ const CognitivePractice = () => {
       onPress: () => navigation.navigate("BreathingPractice"),
       icon: <GuidedBreathingFace size={80} shouldAnimate={false} />,
       colors: ["#F9A8D4", "#DB2777"] as const, // Pink/Rose
+      badge: "FREE",
     },
     {
       title: "Guided Meditation",
@@ -51,6 +52,7 @@ const CognitivePractice = () => {
       onPress: () => navigation.navigate("MeditationPractice"),
       icon: <MeditationFace size={80} />,
       colors: ["#A78BFA", "#7C3AED"] as const, // Violet
+      badge: "FREE",
     },
     {
       title: "Reframe Thoughts",
@@ -155,6 +157,12 @@ const CognitivePractice = () => {
                   </Text>
                 </View>
               </LinearGradient>
+
+              {item.badge && (
+                <View style={styles.cornerBadge}>
+                  <Text style={styles.cornerBadgeText}>{item.badge}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -431,5 +439,26 @@ const styles = StyleSheet.create({
     height: 32,
     backgroundColor: theme.colors.library.gray[300],
     marginHorizontal: 8, // Reduced from 16
+  },
+  cornerBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#10B981", // Stylish green (Emerald 500)
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  cornerBadgeText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase",
   },
 });
