@@ -122,13 +122,13 @@ const LoginBackground = () => {
           },
         ]}
       >
-        <Butterfly2Face
+        {/* <Butterfly2Face
           size={260}
           transparentBg
           skinColor="rgba(255, 255, 255, 0.05)"
           butterflyColor="#F97316"
           inkColor="#334155"
-        />
+        /> */}
       </Animated.View>
 
       {/* Orb 3: Mid Orange Glow (Hidden) */}
