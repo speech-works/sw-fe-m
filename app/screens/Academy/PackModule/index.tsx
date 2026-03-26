@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     borderRadius: 14,
-    overflow: "hidden",
+    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   nextButtonText: {
@@ -925,7 +925,6 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     borderRadius: 14,
-    overflow: "hidden",
     backgroundColor: "#FFF",
     ...parseStyleShadow(theme.shadow.elevation1),
     borderWidth: 1,
@@ -937,6 +936,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     gap: 8,
+    borderRadius: 14,
+    overflow: "hidden",
   },
   skipButtonText: {
     ...parseTextStyle(theme.typography.Button),
@@ -954,7 +955,7 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     borderRadius: 14,
-    overflow: "hidden",
+    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   gradientButton: {
@@ -963,6 +964,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     gap: 8,
+    borderRadius: 14,
+    overflow: "hidden",
   },
   completeButtonText: {
     ...parseTextStyle(theme.typography.Button),
