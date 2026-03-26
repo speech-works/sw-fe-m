@@ -3,6 +3,10 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { theme } from "../../../Theme/tokens";
 import Butterfly2Face from "../../../assets/sw-faces/Butterfly2Face";
+import SeveredConnectionFace from "../../../assets/sw-faces/SeveredConnectionFace";
+import ListenerFace from "../../../assets/sw-faces/ListenerFace";
+import SearchingFace from "../../../assets/sw-faces/SearchingFace";
+import VoidFace from "../../../assets/sw-faces/VoidFace";
 
 const { width, height } = Dimensions.get("window");
 
@@ -89,14 +93,20 @@ const LoginBackground = () => {
         style={[
           styles.orb,
           {
-            backgroundColor: theme.colors.library.orange[200],
+            //backgroundColor: theme.colors.library.orange[200],
             width: 300,
             height: 300,
-            opacity: 0.6,
+            //opacity: 0.6,
             ...getOrbStyle(floatAnim1, -50, -50, 30, 40),
           },
         ]}
-      />
+      >
+        <VoidFace
+          size={420}
+          transparentBg
+          skinColor="rgba(255, 255, 255, 0.05)"
+        />
+      </Animated.View>
 
       {/* Orb 2: Middle Right - Animated Butterfly Face */}
       <Animated.View

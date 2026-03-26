@@ -39,12 +39,16 @@ export interface SvgIconProps extends SvgProps {
   shouldAnimate?: boolean;
   loop?: boolean;
   transparentBg?: boolean;
+  skinColor?: string;
+  inkColor?: string;
 }
 
 export const VoidFace: React.FC<SvgIconProps> = ({
   size = 100,
   shouldAnimate = true,
   transparentBg = false,
+  skinColor = SKIN_COLOR,
+  inkColor = INK_COLOR,
   style,
   ...props
 }) => {
@@ -109,9 +113,43 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     opacity: leafOpacity.value,
   }));
 
+  // Magnifying glass search movement (from SearchingFace)
+  const searchX = useDerivedValue(() => {
+    return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [0, -3, 1, 0]);
+  });
+  const searchY = useDerivedValue(() => {
+    return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [0, 1, -2, 0]);
+  });
+  const searchRotation = useDerivedValue(() => {
+    return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [0, -3, 3, 0]);
+  });
+  const eyeZoom = useDerivedValue(() => {
+    return interpolate(cycleProgress.value, [0, 0.3, 0.6, 1], [1.4, 1.55, 1.35, 1.4]);
+  });
+
+  const searchProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 32 },
+      { translateY: 24 },
+      { translateX: searchX.value },
+      { translateY: searchY.value },
+      { rotate: `${searchRotation.value}deg` },
+      { translateX: -32 },
+      { translateY: -24 },
+    ] as any,
+  }));
+
+  const zoomProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: 32 },
+      { translateY: 24 },
+      { scale: eyeZoom.value },
+      { translateX: -32 },
+      { translateY: -24 },
+    ] as any,
+  }));
+
   const pupilProps = useAnimatedProps(() => {
-    // Track the leaf: cycleProgress goes 0 -> 1, leaf goes Left -> Right
-    // Pupils should move -3 to +3 horizontally
     return {
       transform: [
         { translateX: interpolate(cycleProgress.value, [0, 1], [-3, 3]) },
@@ -120,15 +158,17 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     };
   });
 
-  const blinkProps = useAnimatedProps(() => ({
-    transform: [
-      { translateX: 24 },
-      { translateY: 24 },
-      { scaleY: blink.value },
-      { translateX: -24 },
-      { translateY: -24 },
-    ] as any,
-  }));
+  const blinkProps = useAnimatedProps(() => {
+    return {
+      transform: [
+        { translateX: 24 },
+        { translateY: 24 },
+        { scaleY: blink.value },
+        { translateX: -24 },
+        { translateY: -24 },
+      ] as any,
+    };
+  });
 
   const breezeProps1 = useAnimatedProps(() => ({
     transform: [{ translateX: breezeX1.value }] as any,
@@ -142,7 +182,7 @@ export const VoidFace: React.FC<SvgIconProps> = ({
           width: size as any,
           height: size as any,
           borderRadius: (Number(size) || 100) / 2,
-          overflow: "hidden",
+          ...(transparentBg ? {} : { overflow: "hidden" }),
         },
         style as any,
       ]}
@@ -152,11 +192,15 @@ export const VoidFace: React.FC<SvgIconProps> = ({
         width="100%"
         height="100%"
         fill="none"
+        {...({ overflow: transparentBg ? "visible" : "hidden" } as any)}
         {...props}
       >
         <Defs>
           <ClipPath id="clip-void">
             <Circle cx="24" cy="24" r="24" />
+          </ClipPath>
+          <ClipPath id="eye-right-clip">
+            <Circle cx="32" cy="24" r="6" />
           </ClipPath>
         </Defs>
         <G clipPath="url(#clip-void)">
@@ -174,43 +218,93 @@ export const VoidFace: React.FC<SvgIconProps> = ({
             animatedProps={breezeProps1}
           />
 
-          <Path d={FACE_PATH} fill={SKIN_COLOR} />
+          <Path d={FACE_PATH} fill={skinColor} />
 
-          {/* Eyes tracking the leaf */}
+          {/* Left Eye */}
           <AnimatedG animatedProps={blinkProps}>
             <Circle
               cx="16"
               cy="24"
               r="4.5"
               fill="#FFF"
-              stroke={INK_COLOR}
+              stroke={inkColor}
               strokeWidth="2"
             />
-            <Circle
-              cx="32"
-              cy="24"
-              r="4.5"
-              fill="#FFF"
-              stroke={INK_COLOR}
-              strokeWidth="2"
-            />
-
             <AnimatedG animatedProps={pupilProps}>
-              <Circle cx="16" cy="24" r="2" fill={INK_COLOR} />
-              <Circle cx="32" cy="24" r="2" fill={INK_COLOR} />
+              <Circle cx="16" cy="24" r="2" fill={inkColor} />
             </AnimatedG>
           </AnimatedG>
 
-          {/* Neutral, slightly wistful mouth */}
+          {/* Right Eye (Magnified like SearchingFace) */}
+          <AnimatedG animatedProps={blinkProps}>
+            <Circle
+              cx="32"
+              cy="24"
+              r="6.5"
+              fill="#FFF"
+              stroke={inkColor}
+              strokeWidth="1.5"
+            />
+            <G clipPath="url(#eye-right-clip)">
+              <AnimatedG animatedProps={zoomProps}>
+                <AnimatedG animatedProps={pupilProps}>
+                  <Circle cx="32" cy="24" r="3.5" fill={inkColor} />
+                  <Circle cx="33.2" cy="22.8" r="1.2" fill="#FFF" />
+                </AnimatedG>
+              </AnimatedG>
+            </G>
+          </AnimatedG>
+
+          {/* Mouth */}
           <Path
             d="M 21 34 Q 24 33 27 34"
             fill="none"
-            stroke={INK_COLOR}
+            stroke={inkColor}
             strokeWidth="2"
             strokeLinecap="round"
           />
 
-          {/* Twirling Autumn Leaf */}
+          {/* Magnifying Glass Overlay */}
+          <AnimatedG animatedProps={searchProps}>
+            <Path
+              d="M 41 35 L 46 42"
+              stroke="#543829"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            <Circle
+              cx="32"
+              cy="24"
+              r="8.5"
+              stroke="#CBD5E1"
+              strokeWidth="2.5"
+              fill="#93C5FD"
+              fillOpacity={0.2}
+            />
+            <Path
+              d="M 27 20 Q 29 18, 32 18"
+              stroke="#FFF"
+              strokeWidth="2"
+              strokeLinecap="round"
+              opacity={0.5}
+            />
+          </AnimatedG>
+
+          {!transparentBg && (
+            <AnimatedG animatedProps={leafProps}>
+              <Path
+                d="M 0 0 C 4 -6 10 -2 12 4 C 10 10 4 6 0 0 Z"
+                fill="#F59E0B"
+                stroke="#D97706"
+                strokeWidth="1"
+                strokeLinejoin="round"
+              />
+              <Line x1="0" y1="0" x2="8" y2="2" stroke="#D97706" strokeWidth="1" strokeLinecap="round" />
+            </AnimatedG>
+          )}
+        </G>
+
+        {transparentBg && (
           <AnimatedG animatedProps={leafProps}>
             <Path
               d="M 0 0 C 4 -6 10 -2 12 4 C 10 10 4 6 0 0 Z"
@@ -219,17 +313,9 @@ export const VoidFace: React.FC<SvgIconProps> = ({
               strokeWidth="1"
               strokeLinejoin="round"
             />
-            <Line
-              x1="0"
-              y1="0"
-              x2="8"
-              y2="2"
-              stroke="#D97706"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
+            <Line x1="0" y1="0" x2="8" y2="2" stroke="#D97706" strokeWidth="1" strokeLinecap="round" />
           </AnimatedG>
-        </G>
+        )}
       </Svg>
     </View>
   );
