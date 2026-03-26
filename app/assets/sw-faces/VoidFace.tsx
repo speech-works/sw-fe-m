@@ -73,8 +73,8 @@ export const VoidFace: React.FC<SvgIconProps> = ({
 
       cycleProgress.value = withRepeat(
         withTiming(1, {
-          duration: 4000,
-          easing: Easing.bezier(0.4, 0, 0.2, 1),
+          duration: 3000,
+          easing: Easing.linear,
         }),
         -1,
         false,
@@ -101,19 +101,7 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     };
   }, [shouldAnimate]);
 
-  // Leaf path calculations
-  const leafX = useDerivedValue(() => {
-    return interpolate(cycleProgress.value, [0, 0.5, 1], [-10, 24, 58]);
-  });
-  const leafY = useDerivedValue(() => {
-    return interpolate(cycleProgress.value, [0, 0.5, 1], [15, 5, 15]);
-  });
-  const leafRotate = useDerivedValue(() => {
-    return interpolate(cycleProgress.value, [0, 0.5, 1], [-45, 45, 135]);
-  });
-  const leafOpacity = useDerivedValue(() => {
-    return interpolate(cycleProgress.value, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-  });
+  const leafOpacity = useSharedValue(1); // Keep visible during debug
 
   // Breeze calculations
   const breezeX1 = useDerivedValue(() => {
@@ -123,20 +111,26 @@ export const VoidFace: React.FC<SvgIconProps> = ({
     return interpolate(cycleProgress.value, [0, 0.5, 1], [0, 0.5, 0]);
   });
 
-  const butterflyProps = useAnimatedProps(() => ({
-    transform: [
-      { translateX: leafX.value },
-      { translateY: leafY.value },
-      { rotate: `${leafRotate.value}deg` },
-    ] as any,
-    opacity: leafOpacity.value,
-  }));
+  const butterflyProps = useAnimatedProps(() => {
+    const x = interpolate(cycleProgress.value, [0, 1], [-30, 30]);
+    const y = interpolate(cycleProgress.value, [0, 0.5, 1], [-15, -8, -15]);
+    const r = interpolate(cycleProgress.value, [0, 0.5, 1], [-45, 45, 135]);
 
-  const flapProps = useAnimatedProps(() => ({
+    return {
+      transform: [
+        { translateX: 24 + x },
+        { translateY: 24 + y },
+        { rotate: `${r}deg` },
+      ] as any,
+      opacity: 1, // Full visibility
+    };
+  });
+
+  const wingProps = useAnimatedProps(() => ({
     transform: [
-      { translateX: 0 },
+      { translateY: 3 },
       { scaleX: flap.value },
-      { translateX: 0 },
+      { translateY: -3 },
     ] as any,
   }));
 
@@ -322,65 +316,64 @@ export const VoidFace: React.FC<SvgIconProps> = ({
               opacity={0.5}
             />
           </AnimatedG>
-
-          {!transparentBg && (
-            <AnimatedG animatedProps={butterflyProps}>
-              {/* Left Wing */}
-              <AnimatedPath
-                d="M 0 0 C -6 -6, -10 2, 0 7 Z"
-                fill="#FF9040"
-                stroke={inkColor}
-                strokeWidth="0.5"
-                animatedProps={flapProps}
-              />
-              {/* Right Wing */}
-              <AnimatedPath
-                d="M 0 0 C 6 -6, 10 2, 0 7 Z"
-                fill="#FF9040"
-                stroke={inkColor}
-                strokeWidth="0.5"
-                animatedProps={flapProps}
-              />
-              {/* Butterfly Body */}
-              <Line
-                x1="0"
-                y1="-1"
-                x2="0"
-                y2="7"
-                stroke={inkColor}
-                strokeWidth="1"
-                strokeLinecap="round"
-              />
-            </AnimatedG>
-          )}
         </G>
+
+        {/* Butterfly mascot - Flies across the void */}
+        <AnimatedG animatedProps={butterflyProps}>
+          {/* Left Wing */}
+          <AnimatedPath
+            d="M 0 3 C -6 -6, -10 2, 0 7 Z"
+            fill="#FF6B00"
+            stroke={inkColor}
+            strokeWidth="0.8"
+            animatedProps={wingProps}
+          />
+          {/* Right Wing */}
+          <AnimatedPath
+            d="M 0 3 C 6 -6, 10 2, 0 7 Z"
+            fill="#FF6B00"
+            stroke={inkColor}
+            strokeWidth="0.8"
+            animatedProps={wingProps}
+          />
+          {/* Butterfly Body */}
+          <Line
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="7"
+            stroke={inkColor}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </AnimatedG>
 
         {transparentBg && (
           <AnimatedG animatedProps={butterflyProps}>
             {/* Left Wing */}
             <AnimatedPath
-              d="M 0 0 C -6 -6, -10 2, 0 7 Z"
-              fill="#FF9040"
+              d="M 0 3 C -6 -6, -10 2, 0 7 Z"
+              fill="#FF6B00"
               stroke={inkColor}
-              strokeWidth="0.5"
-              animatedProps={flapProps}
+              strokeWidth="0.8"
+              animatedProps={wingProps}
             />
             {/* Right Wing */}
             <AnimatedPath
-              d="M 0 0 C 6 -6, 10 2, 0 7 Z"
-              fill="#FF9040"
+              d="M 0 3 C 6 -6, 10 2, 0 7 Z"
+              fill="#FF6B00"
               stroke={inkColor}
-              strokeWidth="0.5"
-              animatedProps={flapProps}
+              strokeWidth="0.8"
+              animatedProps={wingProps}
             />
             {/* Butterfly Body */}
             <Line
               x1="0"
-              y1="-1"
+              y1="0"
               x2="0"
               y2="7"
               stroke={inkColor}
-              strokeWidth="1"
+              strokeWidth="1.2"
               strokeLinecap="round"
             />
           </AnimatedG>
