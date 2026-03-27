@@ -145,6 +145,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoContainerWidth = useRef<number>(0);
   const isRestoringRef = useRef(false);
   const lastSetVolumeRef = useRef<number>(-1);
+  const lastFullScreenToggleAt = useRef<number>(0);
+  const volumeBeforeToggle = useRef<number>(1.0);
+  const lastVolumeBeforeMute = useRef<number>(1.0);
 
   // Defensive check for VolumeManager presence
   const hasVolumeManager = useRef<boolean | null>(null);
@@ -213,13 +216,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (lastSetVolumeRef.current !== -1 && Math.abs(newVol - lastSetVolumeRef.current) < 0.05) {
             return;
           }
+
+          // TRANSITION PROTECTION: Ignore momentary 0 volume during full-screen transitions
+          const now = Date.now();
+          if (newVol === 0 && now - lastFullScreenToggleAt.current < 1000 && volumeBeforeToggle.current > 0) {
+            console.log("[VideoPlayer] Ignoring momentary mute during transition");
+            return;
+          }
           
           // Clear the ref once we've seen an external change or enough time has passed
           lastSetVolumeRef.current = -1;
           
           setVolume(newVol);
-          if (newVol > 0) setMuted(false);
-          else setMuted(true);
+          if (newVol > 0) {
+            setMuted(false);
+            lastVolumeBeforeMute.current = newVol;
+          } else {
+            setMuted(true);
+          }
         });
       }
     } catch (e) {
@@ -350,6 +364,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const toggleFullScreen = () => {
+    lastFullScreenToggleAt.current = Date.now();
+    volumeBeforeToggle.current = volume;
     setIsFullScreen((prev) => !prev);
     startAutoHide();
   };
@@ -436,7 +452,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         resizeMode={isFullScreen ? "contain" : "cover"}
         paused={isLocked ? false : paused}
         rate={playbackRate}
-        volume={muted || isLocked ? 0 : 1.0}
+        volume={muted || isLocked ? 0 : volume}
         muted={isLocked ? true : muted}
         repeat={isLocked}
         poster={poster}
@@ -624,9 +640,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <View style={styles.volumeRowContainer}>
                <TouchableOpacity
                   onPress={() => {
-                    const newMuted = !muted;
-                    setMuted(newMuted);
-                    safeSetVolume(newMuted ? 0 : (volume || 0.5));
+                    if (muted) {
+                      // Unmuting: restore last volume
+                      const restoreVol = lastVolumeBeforeMute.current || 0.5;
+                      setMuted(false);
+                      setVolume(restoreVol);
+                      safeSetVolume(restoreVol);
+                    } else {
+                      // Muting: save current volume and set to 0
+                      lastVolumeBeforeMute.current = volume;
+                      setMuted(true);
+                      setVolume(0);
+                      safeSetVolume(0);
+                    }
                     startAutoHide();
                   }}
                   hitSlop={iconHitSlop}
@@ -643,14 +669,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                    minimumValue={0}
                    maximumValue={1}
                    value={muted ? 0 : volume}
-                   onValueChange={(val: number) => {
-                     lastSetVolumeRef.current = val;
-                     setVolume(val);
-                     safeSetVolume(val);
-                     if (val === 0) setMuted(true);
-                     else if (muted) setMuted(false);
-                     startAutoHide();
-                   }}
+                    onValueChange={(val: number) => {
+                      lastSetVolumeRef.current = val;
+                      setVolume(val);
+                      safeSetVolume(val);
+                      if (val === 0) {
+                        setMuted(true);
+                      } else {
+                        setMuted(false);
+                        lastVolumeBeforeMute.current = val;
+                      }
+                      startAutoHide();
+                    }}
                    minimumTrackTintColor={theme.colors.actionPrimary.default}
                    maximumTrackTintColor="rgba(255,255,255,0.2)"
                    thumbTintColor="white"
@@ -750,7 +780,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             "landscape-left",
             "landscape-right",
           ]}
-          onRequestClose={() => setIsFullScreen(false)}
+          onRequestClose={toggleFullScreen}
         >
           {renderPlayer()}
         </Modal>
