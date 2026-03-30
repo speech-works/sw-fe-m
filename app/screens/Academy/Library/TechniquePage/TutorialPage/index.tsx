@@ -41,6 +41,7 @@ const TutorialPage = ({
 
   const [tutorial, setTutorial] = useState<Tutorial | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
@@ -62,23 +63,55 @@ const TutorialPage = ({
     const load = async () => {
       try {
         setIsLoading(true);
+        setError(null);
+        console.log(`[TutorialPage] Loading tutorial for technique: ${techniqueId}`);
+        
         const tut = await getTutorialByTechnique(techniqueId);
         if (cancelled) return;
 
-        setTutorial(tut);
-        if (!tut) throw new Error("No tutorial");
-
-        if (tut.isFree || user?.isPaid) {
-          const r = await getPremiumVideoUrl(tut.id);
-          if (cancelled) return;
-          setVideoUrl(r.videoUrl);
-          setIsLocked(false);
-        } else {
-          const r = await getGlimpseVideoUrl(tut.id);
-          if (cancelled) return;
-          setVideoUrl(r.videoUrl);
-          setIsLocked(true);
+        if (!tut) {
+          console.error(`[TutorialPage] No tutorial found for technique: ${techniqueId}`);
+          setError("Tutorial content not found.");
+          return;
         }
+
+        setTutorial(tut);
+
+        try {
+          if (tut.isFree || user?.isPaid) {
+            console.log(`[TutorialPage] Fetching premium video URL for tutorial: ${tut.id}`);
+            try {
+              const r = await getPremiumVideoUrl(tut.id);
+              if (cancelled) return;
+              setVideoUrl(r.videoUrl);
+              setIsLocked(false);
+            } catch (error: any) {
+              if (error?.response?.status === 403) {
+                console.log(
+                  `[TutorialPage] Premium access denied (403). Falling back to glimpse video for: ${tut.id}`,
+                );
+                const r = await getGlimpseVideoUrl(tut.id);
+                if (cancelled) return;
+                setVideoUrl(r.videoUrl);
+                setIsLocked(true);
+              } else {
+                throw error; // Re-throw other errors
+              }
+            }
+          } else {
+            console.log(`[TutorialPage] Fetching glimpse video URL for tutorial: ${tut.id}`);
+            const r = await getGlimpseVideoUrl(tut.id);
+            if (cancelled) return;
+            setVideoUrl(r.videoUrl);
+            setIsLocked(true);
+          }
+        } catch (err) {
+          console.error("[TutorialPage] Error fetching video URL:", err);
+          setError("Failed to load video. Please try again later.");
+        }
+      } catch (err) {
+        console.error("[TutorialPage] Error loading tutorial:", err);
+        setError("Failed to load tutorial data.");
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -95,6 +128,15 @@ const TutorialPage = ({
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.text.default} />
+      </View>
+    );
+  }
+
+  // Error
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -197,8 +239,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.default,
     justifyContent: "center",
     alignItems: "center",
+    minHeight: 200,
   },
-
+  errorContainer: {
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: theme.colors.background.default,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 200,
+  },
+  errorText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.library.orange[600],
+    textAlign: "center",
+  },
   videoContainer: {
     width: "100%",
     borderRadius: 16,

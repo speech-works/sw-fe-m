@@ -162,6 +162,7 @@ export interface PackRecommendation {
   tags: string[];
   strategy: "STABILIZE" | "CHALLENGE" | "MAINTAIN";
   matchScore: number;
+  isRefresher: boolean;
 }
 
 export enum PackStatus {

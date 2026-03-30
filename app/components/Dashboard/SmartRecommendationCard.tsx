@@ -224,6 +224,17 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
                     </View>
                   )}
 
+                  {recommendation.isRefresher && (
+                    <View style={[styles.chip, { backgroundColor: theme.colors.library.blue[400] }]}>
+                      <MaterialCommunityIcons
+                        name="refresh"
+                        size={14}
+                        color="white"
+                      />
+                      <Text style={styles.chipText}>Refresher</Text>
+                    </View>
+                  )}
+
                   <Text style={styles.packTitle}>{pack.title}</Text>
                   <Text style={styles.packSubtitle}>{pack.description}</Text>
                 </View>

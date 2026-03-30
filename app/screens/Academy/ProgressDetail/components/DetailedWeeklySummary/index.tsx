@@ -5,6 +5,7 @@ import { StyleSheet, Text, TextStyle, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useUserStore } from "../../../../../stores/user";
 import { useProgressReportStore } from "../../../../../stores/progressReport";
+import { getLevelStage, LevelStage } from "../../../../../api/users";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
@@ -73,6 +74,19 @@ const DetailedWeeklySummary = () => {
     loading,
     fetchErrors,
   } = useProgressReportStore();
+  const [levelStage, setLevelStage] = React.useState<LevelStage | null>(null);
+
+  React.useEffect(() => {
+    const fetchStage = async () => {
+      try {
+        const stage = await getLevelStage();
+        setLevelStage(stage);
+      } catch (err) {
+        console.error("Failed to fetch level stage:", err);
+      }
+    };
+    fetchStage();
+  }, []);
 
   const getWeekRangeLabel = () => {
     const now = new Date();
@@ -133,9 +147,13 @@ const DetailedWeeklySummary = () => {
         <View style={styles.contentLayer}>
           {/* Header */}
           <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.headerLabel}>WEEKLY SUMMARY</Text>
-              <Text style={styles.dateRangeText}>{getWeekRangeLabel()}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerLabel}>
+                {levelStage?.fullTitle || "WEEKLY SUMMARY"}
+              </Text>
+              <Text style={styles.dateRangeText}>
+                {levelStage?.progressReportCopy || getWeekRangeLabel()}
+              </Text>
             </View>
             <View style={styles.headerRight}>
               {fetchErrors.detailedSummary && (

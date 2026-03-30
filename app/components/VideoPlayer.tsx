@@ -445,8 +445,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <Video
         ref={videoRef}
         source={{
-          uri,
-          type: uri.includes(".m3u8") ? "m3u8" : undefined,
+          uri: uri || "",
+          type: uri?.includes(".m3u8") ? "m3u8" : undefined,
         }}
         style={[styles.video, { opacity: isVideoLoaded ? 1 : 0 }]}
         resizeMode={isFullScreen ? "contain" : "cover"}

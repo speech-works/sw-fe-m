@@ -80,6 +80,16 @@ const SLP_GROUPS = [
     ],
   },
   {
+    id: "BREATHING",
+    title: "Breath & Flow Control",
+    subtitle: "Respiratory Technique",
+    about:
+      "Breathing is the engine of speech. These tools help you control airflow and reduce muscular tension before you even start speaking.",
+    techniqueIds: [
+      TECHNIQUES_ENUM.DIAPHRAGMATIC_BREATHING,
+    ],
+  },
+  {
     id: "RELAXATION",
     title: "Voice & Throat Relaxation",
     subtitle: "Voice & Laryngeal Control",
@@ -88,7 +98,33 @@ const SLP_GROUPS = [
     techniqueIds: [
       TECHNIQUES_ENUM.YAWN_SIGH_TECHNIQUE,
       TECHNIQUES_ENUM.GLOTTAL_FRY,
-    ], // Glottal fry might not be in enum yet? Checking types.ts it is YAWN_SIGH_TECHNIQUE, GLOTTAL_FRY (Wait, GLOTTAL_FRY is in types.ts? Yes checked earlier)
+      TECHNIQUES_ENUM.VOCAL_WARMUP,
+    ],
+  },
+  {
+    id: "CBT_ACT",
+    title: "Mind & Mindset",
+    subtitle: "Cognitive-Behavioural & Acceptance",
+    about:
+      "Tools that address the thoughts, beliefs, and emotional patterns that maintain stuttering-related anxiety and avoidance.",
+    techniqueIds: [
+      TECHNIQUES_ENUM.COGNITIVE_RESTRUCTURING,
+      TECHNIQUES_ENUM.ACT_DEFUSION,
+      TECHNIQUES_ENUM.VALUES_CLARIFICATION,
+      TECHNIQUES_ENUM.ACCEPTANCE,
+    ],
+  },
+  {
+    id: "EXPOSURE",
+    title: "Facing Fear Head-On",
+    subtitle: "Desensitization & Exposure",
+    about:
+      "Systematic approaches to reducing fear, shame, and avoidance by gradually confronting speaking situations.",
+    techniqueIds: [
+      TECHNIQUES_ENUM.SELF_DISCLOSURE,
+      TECHNIQUES_ENUM.HIERARCHY_EXPOSURE,
+      TECHNIQUES_ENUM.FEARED_WORD_APPROACH,
+    ],
   },
 ];
 
@@ -504,13 +540,21 @@ const Library = () => {
                 );
                 switch (group?.id) {
                   case "UNDERSTANDING":
-                    return "brain";
+                    return "eye";
                   case "MODIFICATION":
                     return "tools";
                   case "FLUENCY":
-                    return "feather";
+                    return "feather-alt";
+                  case "BREATHING":
+                    return "wind";
                   case "RELAXATION":
                     return "spa";
+                  case "VOCAL":
+                    return "microphone-alt";
+                  case "CBT_ACT":
+                    return "brain";
+                  case "EXPOSURE":
+                    return "mountain";
                   default:
                     return "lightbulb";
                 }

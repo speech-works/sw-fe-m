@@ -59,6 +59,22 @@ export interface User {
   stripeCustomerId?: string;
 }
 
+export interface LevelStage {
+  level: number;
+  relativeLevel: number;
+  romanRelative: string;
+  title: string;
+  fullTitle: string;
+  shortDescription: string;
+  progressReportCopy: string;
+  minLevel: number;
+  maxLevel: number | null;
+  stamina: {
+    max: number;
+    regenMinutesPerPoint: number;
+  };
+}
+
 // Get user by ID
 export async function getUserById(id: string): Promise<User> {
   try {
@@ -101,6 +117,17 @@ export async function getMyUser(): Promise<User> {
     return response.data;
   } catch (error) {
     console.error("Error getting current user:", error);
+    throw error;
+  }
+}
+
+// Get level stage details for current user
+export async function getLevelStage(): Promise<LevelStage> {
+  try {
+    const response = await axiosClient.get("/users/me/level-stage");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting level stage:", error);
     throw error;
   }
 }

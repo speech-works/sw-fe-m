@@ -33,6 +33,7 @@ import { parseTextStyle } from "../../util/functions/parseStyles";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
+import Toast from "react-native-toast-message";
 
 
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
@@ -192,9 +193,20 @@ const Home = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [user] = await Promise.all([getMyUser(), fetchAllTrends()]);
-      setUser(user);
-      setRefreshKey((prev) => prev + 1); // Triggers re-mount/refresh of child components if needed
+      const oldLevel = user?.level;
+      const [freshUser] = await Promise.all([getMyUser(), fetchAllTrends()]);
+      setUser(freshUser);
+
+      // Detect regression
+      if (oldLevel && freshUser.level < oldLevel) {
+        Toast.show({
+          type: "info",
+          text1: "Level adjusted",
+          text2: "Your level has shifted based on recent activity. Keep practising to climb back!",
+        });
+      }
+
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to refresh home:", error);
     } finally {
