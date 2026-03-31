@@ -1,6 +1,6 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -38,6 +38,7 @@ import { MoodType } from "../../../../../../api/moodCheck/types";
 import {
   completePracticeActivity,
   startPracticeActivity,
+  abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
@@ -74,6 +75,8 @@ const Meditation = () => {
   const [mute, setMute] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [showEarlyExitPrompt, setShowEarlyExitPrompt] = useState(false);
+  const [isAborted, setIsAborted] = useState(false);
 
   // Use existing route params
 
@@ -204,14 +207,21 @@ const Meditation = () => {
     };
   }, [bgMusicUrl]);
 
-  // Control background audio based on `isPlaying` and `mute`
-  useEffect(() => {
-    if (isPlaying && !mute) {
-      toggleBackground(true);
-    } else {
-      toggleBackground(false);
-    }
-  }, [isPlaying, mute, toggleBackground]);
+  // Control background audio based on `isPlaying`, `mute` and screen focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isPlaying && !mute) {
+        toggleBackground(true);
+      } else {
+        toggleBackground(false);
+      }
+
+      return () => {
+        // Always pause audio when leaving screen
+        toggleBackground(false);
+      };
+    }, [isPlaying, mute, toggleBackground])
+  );
 
   const markActivityStart = async () => {
     console.log("markActivityStart [Meditation] called", {
@@ -429,6 +439,60 @@ const Meditation = () => {
     }
   };
 
+  const handleCompletePress = () => {
+    if (progress < 300) {
+      setShowEarlyExitPrompt(true);
+    } else {
+      handleComplete();
+    }
+  };
+
+  const confirmEarlyExit = () => {
+    setShowEarlyExitPrompt(false);
+    // Allow the BottomSheetModal to fully animate out (300ms) before
+    // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
+    setTimeout(() => {
+      handleAbort();
+    }, 400);
+  };
+
+  const handleAbort = async () => {
+    setIsPlaying(false);
+    setIsStarted(false);
+    
+    const userId = user?.id || practiceSession?.user?.id;
+    if (currentActivityId && userId) {
+      try {
+        const abortedActivity = await abortPracticeActivity({
+          id: currentActivityId,
+          userId: userId,
+          packId: packContext?.packId,
+          moduleId: packContext?.moduleId,
+        });
+        updateActivity(currentActivityId, {
+          ...abortedActivity,
+          cognitivePractice: meditationScenarios[selectedIndex as number],
+        });
+        useUserStore.getState().fetchUser();
+      } catch (e) {
+        console.error("Failed to abort activity", e);
+      }
+    }
+
+    if (packContext && navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (packContext) {
+      navigation.navigate("PackModule", {
+        packId: packContext.packId,
+        moduleId: packContext.moduleId,
+        initialBlockIndex: packContext.blockIndex,
+      } as any);
+    } else {
+      setIsAborted(true);
+      setIsDone(true);
+    }
+  };
+
   const handleComplete = () => {
     setIsPlaying(false);
     setIsStarted(false); // Add this to exit immersive view when showing vitals
@@ -528,9 +592,59 @@ const Meditation = () => {
               minWidth: 200,
             }}
             textColor="#F8FAFC"
-            onPress={handleComplete}
+            onPress={handleCompletePress}
           />
         </View>
+
+        {/* Early Exit Prompt Bottom Sheet */}
+        <BottomSheetModal
+          visible={showEarlyExitPrompt}
+          onClose={() => setShowEarlyExitPrompt(false)}
+          showCloseButton={true}
+          fitContent={true}
+        >
+          <LinearGradient
+            colors={["#EFF6FF", "#DBEAFE"]}
+            style={[styles.skipModalContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}
+          >
+            <View style={styles.skipModalWatermark} pointerEvents="none">
+              <Icon
+                name="clock"
+                solid
+                size={180}
+                color={theme.colors.library.blue[200]}
+                style={{ opacity: 0.2, transform: [{ rotate: "15deg" }] }}
+              />
+            </View>
+            <Text style={styles.skipModalTitle}>Finish early?</Text>
+            <Text style={styles.skipModalDesc}>
+              We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
+            </Text>
+            <View style={styles.skipModalActions}>
+              <TouchableOpacity
+                style={styles.skipModalPrimaryButton}
+                onPress={confirmEarlyExit}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[theme.colors.library.blue[500], theme.colors.library.blue[600]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.skipModalButtonGradient}
+                >
+                  <Text style={styles.skipModalPrimaryButtonText}>End Session</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.skipModalSecondaryButton}
+                onPress={() => setShowEarlyExitPrompt(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.skipModalSecondaryButtonText}>Continue Practice</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </BottomSheetModal>
       </View>
     );
   }
@@ -539,7 +653,8 @@ const Meditation = () => {
     return (
       <DonePractice
         practiceName="meditation"
-        onDone={() => navigation.goBack()}
+        onDone={undefined}
+        isAborted={isAborted}
       />
     );
   }
@@ -751,6 +866,8 @@ const Meditation = () => {
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
       />
+
+
     </>
   );
 };
@@ -796,6 +913,77 @@ const styles = StyleSheet.create({
     padding: SHADOW_BUFFER,
     paddingBottom: 180,
     flexGrow: 1,
+  },
+  skipModalContainer: {
+    padding: 32,
+    alignItems: "center",
+    paddingBottom: 48,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  skipModalWatermark: {
+    position: "absolute",
+    left: -50,
+    top: -30,
+    zIndex: 0,
+  },
+  skipModalTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#1E3A8A", // Blue-900
+    textAlign: "center",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 16,
+    zIndex: 1,
+  },
+  skipModalDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#1E3A8A",
+    opacity: 0.8,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+    zIndex: 1,
+  },
+  skipModalActions: {
+    width: "100%",
+    gap: 12,
+    zIndex: 1,
+  },
+  skipModalPrimaryButton: {
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  skipModalButtonGradient: {
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipModalPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  skipModalSecondaryButton: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(30,58,138,0.1)", // Border matching text blue
+  },
+  skipModalSecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#1E3A8A",
+    fontWeight: "600",
+    fontSize: 16,
   },
 
   tipsContainer: {

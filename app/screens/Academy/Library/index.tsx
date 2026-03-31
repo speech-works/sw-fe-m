@@ -148,6 +148,7 @@ const Library = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState("");
   const inputFieldRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [allTechniques, setAllTechniques] = useState<
     Array<TransformedTechnique>
@@ -218,6 +219,12 @@ const Library = () => {
     }
   }, [isSearching]);
 
+  useEffect(() => {
+    if (isSearching && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  }, [searchText, isSearching]);
+
   // --- Animation Handlers ---
   const handleSearchToggle = () => {
     Animated.sequence([
@@ -286,7 +293,10 @@ const Library = () => {
           (t) =>
             !searchText ||
             t.name.toLowerCase().includes(searchLower) ||
-            t.description.toLowerCase().includes(searchLower),
+            t.description.toLowerCase().includes(searchLower) ||
+            (t.tutorial?.title && t.tutorial.title.toLowerCase().includes(searchLower)) ||
+            group.title.toLowerCase().includes(searchLower) ||
+            group.subtitle.toLowerCase().includes(searchLower),
         )
         .filter((t) => {
           if (activeFilter === "ALL") return true;
@@ -462,6 +472,7 @@ const Library = () => {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingTop: insets.top + HEADER_HEIGHT + 96 }, // Significant gap after filters

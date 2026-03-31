@@ -412,7 +412,7 @@ const Twister = () => {
                   });
                 }
               }
-            : () => navigation.goBack()
+            : undefined
         }
       />
     );

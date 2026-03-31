@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Linking } from "react-native";
 import { theme } from "../../Theme/tokens";
 
 export const SimpleMarkdown = ({ content }: { content: string }) => {
@@ -46,7 +46,7 @@ export const SimpleMarkdown = ({ content }: { content: string }) => {
             <View key={index} style={styles.listItem}>
               <Text style={styles.bullet}>•</Text>
               <Text style={styles.body}>
-                {parseBold(line.trim().replace("- ", ""))}
+                {parseLinksAndBold(line.trim().replace("- ", ""))}
               </Text>
             </View>
           );
@@ -60,7 +60,7 @@ export const SimpleMarkdown = ({ content }: { content: string }) => {
           return (
             <View key={index} style={styles.listItem}>
               <Text style={styles.bullet}>{number}.</Text>
-              <Text style={styles.body}>{parseBold(text)}</Text>
+              <Text style={styles.body}>{parseLinksAndBold(text)}</Text>
             </View>
           );
         }
@@ -72,7 +72,7 @@ export const SimpleMarkdown = ({ content }: { content: string }) => {
 
         return (
           <Text key={index} style={styles.body}>
-            {parseBold(line)}
+            {parseLinksAndBold(line)}
           </Text>
         );
       })}
@@ -80,14 +80,26 @@ export const SimpleMarkdown = ({ content }: { content: string }) => {
   );
 };
 
-// Helper: **Bold** parsing
-const parseBold = (text: string) => {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+// Helper: **Bold** and [link](url) parsing
+const parseLinksAndBold = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
         <Text key={i} style={{ fontWeight: "700" }}>
           {part.slice(2, -2)}
+        </Text>
+      );
+    }
+    const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+    if (linkMatch) {
+      return (
+        <Text
+          key={i}
+          style={{ color: theme.colors.library.purple[500], textDecorationLine: "underline" }}
+          onPress={() => Linking.openURL(linkMatch[2])}
+        >
+          {linkMatch[1]}
         </Text>
       );
     }

@@ -68,7 +68,9 @@ const OutcomeModal = () => {
         </TouchableOpacity>
 
         <View style={styles.content}>
-          <Text style={styles.title}>{modalTitle}</Text>
+          <Text style={styles.title} adjustsFontSizeToFit={true} numberOfLines={2}>
+            {modalTitle}
+          </Text>
           {modalTag ? <Text style={styles.subtitle}>{modalTag}</Text> : null}
 
           <View style={styles.divider} />
@@ -129,7 +131,7 @@ const styles = StyleSheet.create({
   title: {
     ...parseTextStyle(theme.typography.Heading1),
     color: "#0F172A",
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "900",
     textAlign: "center",
     marginBottom: 4,

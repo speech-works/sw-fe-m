@@ -88,6 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await SecureStore.deleteItemAsync(
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
+    
+    // Clear Zustand stores to prevent leaked state or erroneous fetches on re-login
+    import("../stores/user").then(m => m.useUserStore.getState().clearUser());
+    import("../stores/userBehaviorTrends").then(m => m.useUserBehaviorTrendsStore.getState().clearTrends());
+
     setToken(null);
   };
 

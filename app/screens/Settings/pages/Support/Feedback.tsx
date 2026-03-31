@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
-import { BlurView } from "expo-blur";
 import { submitAppFeedback } from "../../../../api/settings/helpSupport";
 import { useUserStore } from "../../../../stores/user";
 import {
@@ -58,11 +57,6 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>FEATURE REQUESTS</Text>
           <View style={styles.inputCard}>
-            <BlurView
-              intensity={20}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
             <TextInput
               value={features}
               onChangeText={setFeatures}
@@ -80,11 +74,6 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>FRUSTRATIONS</Text>
           <View style={styles.inputCard}>
-            <BlurView
-              intensity={20}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
             <TextInput
               value={frustrations}
               onChangeText={setFrustrations}
@@ -102,11 +91,6 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>OTHER THOUGHTS</Text>
           <View style={styles.inputCard}>
-            <BlurView
-              intensity={20}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
             <TextInput
               value={otherThoughts}
               onChangeText={setOtherThoughts}
@@ -217,7 +201,7 @@ const styles = StyleSheet.create({
 
   // Input
   inputCard: {
-    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.8)
+    backgroundColor: "#F8FAFC",
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",

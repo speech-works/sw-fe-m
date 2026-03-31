@@ -914,7 +914,6 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     borderRadius: 14,
-    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   nextButtonText: {
@@ -955,7 +954,6 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     borderRadius: 14,
-    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   gradientButton: {
@@ -1022,7 +1020,6 @@ const styles = StyleSheet.create({
   },
   successPrimaryButton: {
     borderRadius: 16,
-    overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   successGradientButton: {
@@ -1031,6 +1028,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     gap: 8,
+    borderRadius: 16,
+    overflow: "hidden",
   },
   successPrimaryButtonText: {
     ...parseTextStyle(theme.typography.Button),
@@ -1088,13 +1087,14 @@ const styles = StyleSheet.create({
   skipModalPrimaryButton: {
     width: "100%",
     borderRadius: 20,
-    overflow: "hidden",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   skipModalButtonGradient: {
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 20,
+    overflow: "hidden",
   },
   skipModalPrimaryButtonText: {
     ...parseTextStyle(theme.typography.Button),

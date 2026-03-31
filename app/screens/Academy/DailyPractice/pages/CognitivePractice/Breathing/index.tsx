@@ -22,6 +22,7 @@ import {
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import MasonryTips from "../../../components/MasonryTips";
 import { BreathingHalo } from "./components/BreathingHalo";
+import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,6 +35,7 @@ import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types
 import {
   completePracticeActivity,
   startPracticeActivity,
+  abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
@@ -72,6 +74,8 @@ const Breathing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showAccuracy, setShowAccuracy] = useState(false);
+  const [showEarlyExitPrompt, setShowEarlyExitPrompt] = useState(false);
+  const [isAborted, setIsAborted] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<any>(null);
 
   const totalSessionDurationInSeconds = 5 * 60; // 5 minutes converted to seconds
@@ -219,6 +223,91 @@ const Breathing = () => {
         "Save Failed",
         "We couldn't save your progress. Please try again.",
       );
+    }
+  };
+
+  const handleComplete = async () => {
+    setIsLoading(true);
+    try {
+      // Check if vitals should be collected
+      if (currentActivity && shouldCollectVitals(currentActivity.contentType)) {
+        setShowAccuracy(shouldCollectAccuracy(currentActivity));
+        setShowVitalsModal(true);
+      } else {
+        console.log("[Breathing Debug] Marking activity done via manual completion");
+        await markActivityDone();
+
+        // Stop audio before navigating
+        await stopBackground();
+
+        if (packContext && navigation.canGoBack()) {
+          navigation.goBack();
+        } else if (packContext) {
+          navigation.navigate("PackModule", {
+            packId: packContext.packId,
+            moduleId: packContext.moduleId,
+            initialBlockIndex: packContext.blockIndex,
+          });
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompletePress = () => {
+    if (elapsedSeconds < 300) {
+      setShowEarlyExitPrompt(true);
+    } else {
+      handleComplete();
+    }
+  };
+
+  const confirmEarlyExit = () => {
+    setShowEarlyExitPrompt(false);
+    // Allow the BottomSheetModal to fully animate out (300ms) before
+    // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
+    setTimeout(() => {
+      handleAbort();
+    }, 400);
+  };
+
+  const handleAbort = async () => {
+    setIsLoading(true);
+    try {
+      const userId = practiceSession?.user?.id || user?.id;
+      if (currentActivityId && userId) {
+        console.log("[Breathing Debug] handleAbort: Aborting activity", currentActivityId);
+        const abortedActivity = await abortPracticeActivity({
+          id: currentActivityId,
+          userId: userId,
+          packId: packContext?.packId,
+          moduleId: packContext?.moduleId,
+        });
+        updateActivity(currentActivityId, abortedActivity);
+        setCurrentActivity(abortedActivity);
+        useUserStore.getState().fetchUser();
+      }
+
+      // Stop audio before navigating
+      await stopBackground();
+
+      if (packContext && navigation.canGoBack()) {
+        navigation.goBack();
+      } else if (packContext) {
+        navigation.navigate("PackModule", {
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          initialBlockIndex: packContext.blockIndex,
+        });
+      } else {
+        setIsAborted(true);
+        setIsDone(true);
+      }
+    } catch (e) {
+      console.error("Failed to abort activity", e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -468,39 +557,7 @@ const Breathing = () => {
               borderColor: "rgba(255,255,255,0.1)",
             }}
             textColor="#F8FAFC"
-            onPress={async () => {
-              setIsLoading(true);
-              try {
-                // Check if vitals should be collected
-                if (
-                  currentActivity &&
-                  shouldCollectVitals(currentActivity.contentType)
-                ) {
-                  setShowAccuracy(shouldCollectAccuracy(currentActivity));
-                  setShowVitalsModal(true);
-                } else {
-                  console.log(
-                    "[Breathing Debug] Marking activity done via manual completion",
-                  );
-                  await markActivityDone();
-
-                  // Stop audio before navigating
-                  await stopBackground();
-
-                  if (packContext && navigation.canGoBack()) {
-                    navigation.goBack();
-                  } else if (packContext) {
-                    navigation.navigate("PackModule", {
-                      packId: packContext.packId,
-                      moduleId: packContext.moduleId,
-                      initialBlockIndex: packContext.blockIndex,
-                    });
-                  }
-                }
-              } finally {
-                setIsLoading(false);
-              }
-            }}
+            onPress={handleCompletePress}
             disabled={isLoading}
           />
         </View>
@@ -512,6 +569,56 @@ const Breathing = () => {
           onSkip={handleVitalsSkip}
           showAccuracy={showAccuracy}
         />
+
+        {/* Early Exit Prompt Bottom Sheet */}
+        <BottomSheetModal
+          visible={showEarlyExitPrompt}
+          onClose={() => setShowEarlyExitPrompt(false)}
+          showCloseButton={true}
+          fitContent={true}
+        >
+          <LinearGradient
+            colors={["#EFF6FF", "#DBEAFE"]}
+            style={[styles.skipModalContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}
+          >
+            <View style={styles.skipModalWatermark} pointerEvents="none">
+              <Icon
+                name="clock"
+                solid
+                size={180}
+                color={theme.colors.library.blue[200]}
+                style={{ opacity: 0.2, transform: [{ rotate: "15deg" }] }}
+              />
+            </View>
+            <Text style={styles.skipModalTitle}>Finish early?</Text>
+            <Text style={styles.skipModalDesc}>
+              We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
+            </Text>
+            <View style={styles.skipModalActions}>
+              <TouchableOpacity
+                style={styles.skipModalPrimaryButton}
+                onPress={confirmEarlyExit}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[theme.colors.library.blue[500], theme.colors.library.blue[600]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.skipModalButtonGradient}
+                >
+                  <Text style={styles.skipModalPrimaryButtonText}>End Session</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.skipModalSecondaryButton}
+                onPress={() => setShowEarlyExitPrompt(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.skipModalSecondaryButtonText}>Continue Practice</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </BottomSheetModal>
       </View>
     );
   }
@@ -520,7 +627,8 @@ const Breathing = () => {
     return (
       <DonePractice
         practiceName="breathing exercise"
-        onDone={() => navigation.goBack()}
+        onDone={undefined}
+        isAborted={isAborted}
       />
     );
   }
@@ -798,6 +906,77 @@ const styles = StyleSheet.create({
   bottomActionContainer: {
     paddingHorizontal: 24,
     paddingBottom: 24,
+  },
+  skipModalContainer: {
+    padding: 32,
+    alignItems: "center",
+    paddingBottom: 48,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  skipModalWatermark: {
+    position: "absolute",
+    left: -50,
+    top: -30,
+    zIndex: 0,
+  },
+  skipModalTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#1E3A8A", // Blue-900
+    textAlign: "center",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 16,
+    zIndex: 1,
+  },
+  skipModalDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#1E3A8A",
+    opacity: 0.8,
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+    zIndex: 1,
+  },
+  skipModalActions: {
+    width: "100%",
+    gap: 12,
+    zIndex: 1,
+  },
+  skipModalPrimaryButton: {
+    width: "100%",
+    borderRadius: 20,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  skipModalButtonGradient: {
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipModalPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  skipModalSecondaryButton: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(30,58,138,0.1)", // Border matching text blue
+  },
+  skipModalSecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#1E3A8A",
+    fontWeight: "600",
+    fontSize: 16,
   },
   // Immersive Styles
   immersiveContainer: {

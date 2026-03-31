@@ -209,6 +209,31 @@ export async function completePracticeActivity({
   }
 }
 
+// Abort a practice activity (update its status to ABORTED)
+export async function abortPracticeActivity({
+  id,
+  userId,
+  packId,
+  moduleId,
+}: UpdateActivityReq): Promise<PracticeActivity> {
+  try {
+    const requestBody: any = { userId };
+    if (packId) requestBody.packId = packId;
+    if (moduleId) requestBody.moduleId = moduleId;
+
+    console.log(">> API: Aborting Practice Activity", { id });
+    const response = await axiosClient.patch(
+      `/practice-activities/${id}`,
+      { status: "ABORTED" }
+    );
+    console.log("<< API: Practice Activity Aborted Successfully", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error aborting practice activity:", error);
+    throw error;
+  }
+}
+
 // Fetch a specific practice activity by ID
 export async function getPracticeActivity(
   id: string,

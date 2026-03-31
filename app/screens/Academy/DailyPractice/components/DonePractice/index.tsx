@@ -23,46 +23,62 @@ const { width } = Dimensions.get("window");
 interface DonePracticeProps {
   practiceName?: string;
   onDone?: () => void;
+  isAborted?: boolean;
 }
 
 const DonePractice = ({
   practiceName = "practice",
   onDone,
+  isAborted = false,
 }: DonePracticeProps) => {
   const navigation = useNavigation<any>();
 
   return (
     <View style={styles.container}>
-      {/* Confetti Animation */}
-      <ConfettiAnimation />
+      {/* Confetti Animation (Only if completed) */}
+      {!isAborted && <ConfettiAnimation />}
 
       {/* Immersive Gradient Background */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
-          colors={["#FFF7ED", "#FFEDD5", "#FFF"]} // Peach -> Warm -> White
+          colors={
+            isAborted
+              ? ["#F8FAFC", "#F1F5F9", "#E2E8F0"] // Soft slate blues for aborted
+              : ["#FFF7ED", "#FFEDD5", "#FFF"] // Warm peach for completed
+          }
           locations={[0, 0.5, 1]}
           style={{ flex: 1 }}
         />
       </View>
 
       <View style={styles.content}>
-        {/* Checkmark */}
+        {/* Checkmark or Pause/Leaf Icon */}
         <View style={styles.checkmarkContainer}>
           <LinearGradient
-            colors={["#10B981", "#059669"]}
+            colors={
+              isAborted ? ["#94A3B8", "#64748B"] : ["#10B981", "#059669"]
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.checkmarkCircle}
           >
-            <Icon name="check" size={60} color="#FFFFFF" />
+            <Icon 
+              name={isAborted ? "leaf" : "check"} 
+              size={isAborted ? 50 : 60} 
+              color="#FFFFFF" 
+            />
           </LinearGradient>
         </View>
 
-        {/* Success Text */}
+        {/* Success / Encouraging Text */}
         <View style={styles.textContainer}>
-          <Text style={styles.titleText}>Great Job!</Text>
+          <Text style={styles.titleText}>
+            {isAborted ? "That's okay." : "Great Job!"}
+          </Text>
           <Text style={styles.descText}>
-            You've completed your daily {practiceName}. Keep up the momentum!
+            {isAborted 
+              ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.` 
+              : `You've completed your daily ${practiceName}. Keep up the momentum!`}
           </Text>
         </View>
 
@@ -99,7 +115,7 @@ const DonePractice = ({
               onPress={() => {
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.EXPLORE,
-                  params: { screen: "Explore" },
+                  params: { screen: "Explore", params: { scrollToJumpIn: true } },
                 });
               }}
             >

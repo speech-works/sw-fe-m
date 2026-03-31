@@ -203,8 +203,6 @@ const LoginScreen = () => {
     code = code.replace(/#.*$/, "");
 
     const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
-    setUser(user);
-
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
     await SecureStore.setItemAsync(
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
@@ -212,6 +210,7 @@ const LoginScreen = () => {
     );
 
     login(appJwt);
+    setUser(user);
   };
 
   const providers = getDisplayProviders();

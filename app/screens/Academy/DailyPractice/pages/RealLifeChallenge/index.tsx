@@ -542,7 +542,7 @@ const RealLifeChallenge = () => {
   const renderSummaryScreen = () => (
     <DonePractice
       practiceName="real-life challenge"
-      onDone={handleDone}
+      onDone={packContext ? handleDone : undefined}
     />
   );
 

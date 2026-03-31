@@ -354,7 +354,7 @@ const Chat = () => {
                   });
                 }
               }
-            : () => navigation.goBack()
+            : undefined
         }
       />
     );

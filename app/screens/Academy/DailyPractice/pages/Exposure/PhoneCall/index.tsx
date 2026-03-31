@@ -246,7 +246,7 @@ const PhoneCall = () => {
                   });
                 }
               }
-            : () => navigation.goBack()
+            : undefined
         }
       />
     );

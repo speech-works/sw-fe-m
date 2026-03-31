@@ -50,6 +50,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import { EVENT_NAMES } from "../../../../../../stores/events/constants";
+import { dispatchCustomEvent } from "../../../../../../util/functions/events";
 import SyncLoader from "../../../../../../components/SyncLoader";
 
 const Reframe = () => {
@@ -322,7 +324,7 @@ const Reframe = () => {
     return (
       <DonePractice
         practiceName="reframe practice"
-        onDone={() => navigation.goBack()}
+        onDone={undefined}
       />
     );
   }
@@ -496,9 +498,13 @@ const Reframe = () => {
               onPress={async () => {
                 try {
                   await markActivityStart();
-                } catch (error) {
+                } catch (error: any) {
                   console.error("Error starting reframe practice:", error);
-                  // Global stamina modal will be handled by the API layer event
+                  if (error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" || error?.response?.status === 402) {
+                    dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
+                  } else {
+                    showErrorBottomSheet("Failed to start", "An error occurred while starting the session.");
+                  }
                 }
               }}
               style={styles.startButton}

@@ -15,6 +15,7 @@ import {
     Text,
     TextInput,
     View,
+    Keyboard,
 } from "react-native";
 import { submitFormResponse } from "../../../api";
 import {
@@ -231,6 +232,21 @@ const PackFormScreen = () => {
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const updateAnswer = (fieldId: string, value: any) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -382,8 +398,9 @@ const PackFormScreen = () => {
         </ScrollView>
 
         {/* Submit Footer */}
-        <View style={styles.footer}>
-          <TactileTouchableOpacity
+        {!isKeyboardVisible && (
+          <View style={styles.footer}>
+            <TactileTouchableOpacity
             style={[
               styles.submitButton,
               !allRequiredFilled && styles.submitButtonDisabled,
@@ -423,6 +440,7 @@ const PackFormScreen = () => {
             </LinearGradient>
           </TactileTouchableOpacity>
         </View>
+        )}
       </SafeAreaView>
     </View>
   );

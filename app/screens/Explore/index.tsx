@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import React, {
   useCallback,
   useEffect,
@@ -47,8 +48,10 @@ const Explore = () => {
   const { events, clear } = useEventStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 100;
-
-
+  const scrollViewRef = useRef<ScrollView>(null);
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const [jumpInY, setJumpInY] = useState(400); // Default rough height
 
   const [interactionsDone, setInteractionsDone] = useState(false);
 
@@ -115,6 +118,15 @@ const Explore = () => {
     fetchUserStats();
   }, [user?.id, setPracticeStats]);
 
+  useEffect(() => {
+    if (route.params?.scrollToJumpIn) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: 0, y: Math.max(0, jumpInY - HEADER_HEIGHT - 60), animated: true });
+        navigation.setParams({ scrollToJumpIn: undefined });
+      }, 500);
+    }
+  }, [route.params?.scrollToJumpIn, jumpInY]);
+
   return (
     <ScreenView style={styles.screenView}>
       {/* Background Mesh/Gradient */}
@@ -145,6 +157,7 @@ const Explore = () => {
           </Text>
         </BlurView>
         <ScrollView
+          ref={scrollViewRef}
           refreshControl={refreshControl}
           contentContainerStyle={[
             styles.scrollContent,
@@ -167,7 +180,9 @@ const Explore = () => {
           <WorldExplorationGraph />
 
           {/* 4 Types of Practice Grid */}
-          <PracticeGrid isScrolling={isScrolling} />
+          <View onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}>
+            <PracticeGrid isScrolling={isScrolling} />
+          </View>
 
           {/* Upgrade CTA */}
           <BuyPro onLayoutCapture={() => {}} />

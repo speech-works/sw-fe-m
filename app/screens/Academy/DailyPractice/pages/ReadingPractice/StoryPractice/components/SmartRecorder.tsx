@@ -1,3 +1,4 @@
+import BottomSheetModal from "../../../../../../../components/BottomSheetModal";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -73,6 +74,24 @@ const SmartRecorder: React.FC<Props> = ({
   }, [waveform, isRecording, isPlaying, playbackPosition]);
 
   const [isPreparing, setIsPreparing] = useState(false);
+  const [showSmallAudioPrompt, setShowSmallAudioPrompt] = useState(false);
+
+  const handleSubmit = () => {
+    // If audio is < 1 second (1000ms), warn user.
+    if (duration > 0 && duration < 1000) {
+      setShowSmallAudioPrompt(true);
+    } else {
+      onSubmit?.();
+    }
+  };
+
+  const confirmSmallAudioSubmit = () => {
+    setShowSmallAudioPrompt(false);
+    onDiscard?.(); // This clears the URI and the internal audio state
+    setTimeout(() => {
+      onSubmit?.();
+    }, 400); // Ensure modal unmounts (300ms anim) before submitting
+  };
 
   const handleStartRecording = async () => {
     setIsPreparing(true);
@@ -225,7 +244,7 @@ const SmartRecorder: React.FC<Props> = ({
               <Icon name="stop" size={16} color={theme.colors.text.default} />
             </TouchableOpacity>
           ) : hasRecording ? (
-            <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
               <Icon name="check" size={20} color="#FFF" />
             </TouchableOpacity>
           ) : (
@@ -254,6 +273,50 @@ const SmartRecorder: React.FC<Props> = ({
           )}
         </View>
       </LinearGradient>
+
+      {/* Small Audio Prompt Bottom Sheet */}
+      <BottomSheetModal
+        visible={showSmallAudioPrompt}
+        onClose={() => setShowSmallAudioPrompt(false)}
+        showCloseButton={true}
+        fitContent={true}
+      >
+        <LinearGradient
+          colors={["#FFFCF9", "#FFF7ED"]}
+          style={styles.modalGradientContainer}
+        >
+          <View style={styles.modalIconContainer}>
+            <Icon name="exclamation-circle" size={48} color={theme.colors.library.orange[400]} />
+          </View>
+          <Text style={styles.premiumModalTitle}>Wait a moment</Text>
+          <Text style={styles.premiumModalSubtitle}>
+            The audio clip is absent or too small. Would you like to complete the task without submitting your voice recording?
+          </Text>
+
+          <View style={styles.premiumModalActions}>
+            <TouchableOpacity
+              style={styles.premiumButtonShadow}
+              activeOpacity={0.8}
+              onPress={confirmSmallAudioSubmit}
+            >
+              <LinearGradient
+                colors={[theme.colors.actionPrimary.default, theme.colors.actionPrimary.default]}
+                style={styles.premiumButtonGradient}
+              >
+                <Text style={styles.premiumButtonTextPrimary}>Yes, Complete Task</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.premiumButtonSecondary}
+              activeOpacity={0.7}
+              onPress={() => setShowSmallAudioPrompt(false)}
+            >
+              <Text style={styles.premiumButtonTextSecondary}>No, Record Again</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </BottomSheetModal>
     </View>
   );
 };
@@ -422,6 +485,60 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#FFF",
     ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  modalGradientContainer: {
+    padding: 32,
+    alignItems: "center",
+    paddingBottom: 48,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+  },
+  modalIconContainer: {
+    marginBottom: 16,
+  },
+  premiumModalTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#111827",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  premiumModalSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#374151",
+    textAlign: "center",
+    marginBottom: 32,
+    opacity: 0.9,
+  },
+  premiumModalActions: {
+    width: "100%",
+    gap: 16,
+  },
+  premiumButtonShadow: {
+    borderRadius: 16,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  premiumButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+  },
+  premiumButtonTextPrimary: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFF",
+  },
+  premiumButtonSecondary: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+  },
+  premiumButtonTextSecondary: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#4B5563",
   },
 });
 

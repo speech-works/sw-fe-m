@@ -264,7 +264,7 @@ const CVExercise = () => {
                   });
                 }
               }
-            : () => navigation.goBack()
+            : undefined
         }
       />
     );
