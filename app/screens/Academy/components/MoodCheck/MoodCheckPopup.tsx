@@ -182,16 +182,17 @@ const MoodCheckPopup = () => {
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.handle} />
+            
+            <TouchableOpacity onPress={handleSkip} style={styles.closeBtn}>
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={theme.colors.library.gray[500]}
+              />
+            </TouchableOpacity>
 
             <View style={styles.header}>
               <Text style={styles.title}>How do you feel today?</Text>
-              <TouchableOpacity onPress={handleSkip} style={styles.closeBtn}>
-                <MaterialCommunityIcons
-                  name="close"
-                  size={18}
-                  color={theme.colors.library.gray[500]}
-                />
-              </TouchableOpacity>
             </View>
 
             <View style={styles.grid}>
@@ -250,17 +251,15 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   handle: {
+    position: "absolute",
+    top: 12,
+    alignSelf: "center",
     width: 48,
     height: 6,
     backgroundColor: "rgba(0,0,0,0.1)", // Softer handle
     borderRadius: 3,
-    alignSelf: "center",
-    marginBottom: 32,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 24,
   },
   title: {
@@ -269,6 +268,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   closeBtn: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 10,
     width: 32,
     height: 32,
     borderRadius: 16,
