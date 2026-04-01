@@ -29,7 +29,7 @@ if (
 import Slider from "@react-native-community/slider";
 
 const volumeThumbImage = require("../assets/images/volume_thumb.png");
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -80,6 +80,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   hideControls = false,
   initialAspectRatio,
 }) => {
+  const isFocused = useIsFocused();
   // Video State
   const videoRef = useRef<VideoRef>(null);
   const [paused, setPaused] = useState(!autoPlay);
@@ -204,6 +205,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     safeGetVolume().then((v) => {
       setVolume(v);
+      if (v === 0) {
+        setMuted(true);
+      } else {
+        setMuted(false);
+        lastVolumeBeforeMute.current = v;
+      }
     });
 
     try {
@@ -450,11 +457,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }}
         style={[styles.video, { opacity: isVideoLoaded ? 1 : 0 }]}
         resizeMode={isFullScreen ? "contain" : "cover"}
-        paused={isLocked ? false : paused}
+        paused={!isFocused ? true : paused}
         rate={playbackRate}
-        volume={muted || isLocked ? 0 : volume}
+        volume={muted || isLocked ? 0 : 1.0}
         muted={isLocked ? true : muted}
         repeat={isLocked}
+        ignoreSilentSwitch="ignore"
+        playInBackground={false}
         poster={poster}
         posterResizeMode="cover"
         progressUpdateInterval={100}
@@ -485,18 +494,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }
 
           // Force-sync volume after video loads.
-          // react-native-video can silently ignore the initial `volume` prop
-          // when it matches the internal default (1.0), causing the slider to
-          // display full but no audio plays until the user changes it.
-          // Fix: (1) push system volume to match slider, and
-          //      (2) nudge the volume state to trigger a prop change cycle.
-          const effectiveVolume = muted || isLocked ? 0 : volume;
-          safeSetVolume(effectiveVolume);
-          // Nudge volume prop: briefly shift by epsilon then restore,
-          // forcing the native player to re-apply the value.
+          // Nudge volume prop locally to fix react-native-video's initialization bug
+          // without ever mutating the user's hardware system volume!
           setVolume((prev) => {
             const nudged = prev > 0.5 ? prev - 0.001 : prev + 0.001;
-            requestAnimationFrame(() => setVolume(effectiveVolume));
+            requestAnimationFrame(() => setVolume(prev));
             return nudged;
           });
         }}
