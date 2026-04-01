@@ -1,6 +1,6 @@
-import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   Animated,
   Easing,
@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { getProgressToNextLevel } from "../../../../api/users";
+import { getLevelStage, LevelStage } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
@@ -56,7 +56,7 @@ const AnimatedBar = ({
 
 const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const { width } = useWindowDimensions();
-  const { user } = useUserStore();
+  const { user, fetchUser } = useUserStore();
   const isFocused = useIsFocused();
   const navigation = useNavigation<any>();
   const [rechargeTimeLeft, setRechargeTimeLeft] = React.useState<string>("");
@@ -64,17 +64,71 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
     user?.currentStamina ?? 0,
   );
 
-  const userProgress = user
-    ? getProgressToNextLevel(user.totalXp ?? 0)
-    : undefined;
-  const userLevel = userProgress?.currentLevel || 1;
+  // Force-refresh user data every time the screen gains focus.
+  // This ensures stamina, XP, and level are always fresh after activities.
+  useFocusEffect(
+    useCallback(() => {
+      fetchUser();
+    }, [fetchUser])
+  );
+
+  const [levelStage, setLevelStage] = React.useState<LevelStage | null>(null);
+  const [isLoadingLevel, setIsLoadingLevel] = React.useState(true);
+
+  useEffect(() => {
+    if (user) {
+      setIsLoadingLevel(true);
+      getLevelStage()
+        .then(setLevelStage)
+        .catch((e) => {
+          console.error(e);
+          // Optional fallback logic here if needed
+        })
+        .finally(() => setIsLoadingLevel(false));
+    } else {
+      setIsLoadingLevel(false);
+    }
+  }, [user]);
+
+  const userLevel = levelStage?.level || user?.level || 1;
+  const xpIntoLevel = Math.max(
+    0,
+    (levelStage?.totalXp ?? user?.totalXp ?? 0) -
+      (levelStage?.currentLevelXpFloor || 0),
+  );
+  const xpForNextLevel = Math.max(
+    1,
+    (levelStage?.nextLevelXpCeiling || 100) -
+      (levelStage?.currentLevelXpFloor || 0),
+  );
+  const xpRemaining = xpForNextLevel - xpIntoLevel;
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const currentMaxStamina = user?.maxStaminaCap || 80;
-
   const staminaPercentage = Math.min(
     100,
     Math.round((estimatedStamina / currentMaxStamina) * 100),
   );
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ]),
+    ).start();
+  }, [pulseAnim]);
 
   useEffect(() => {
     if (user?.currentStamina !== undefined) {
@@ -354,20 +408,65 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
                   </View>
                   <View style={styles.cardBody}>
                     <Text style={[styles.bigValue, { color: "#1E293B" }]}>
-                      {userLevel}
+                      {isLoadingLevel ? "..." : userLevel}
                     </Text>
                   </View>
-                  {/* XP Text */}
-                  <Text
-                    style={[
-                      styles.xpText,
-                      { color: theme.colors.library.orange[600] },
-                    ]}
-                  >
-                    {userProgress
-                      ? `${userProgress.xpIntoLevel} / ${userProgress.xpForNextLevel} XP`
-                      : "0 XP"}
-                  </Text>
+                  {/* XP Text + Progress Bar */}
+                  <View style={{ marginTop: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {!isLoadingLevel && levelStage && (
+                        <Animated.View
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 3,
+                            backgroundColor: theme.colors.library.orange[500],
+                            transform: [{ scale: pulseAnim }],
+                          }}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          styles.xpText,
+                          { color: theme.colors.library.orange[600] },
+                        ]}
+                      >
+                        {isLoadingLevel
+                          ? "Calculating XP..."
+                          : levelStage
+                            ? `${xpIntoLevel} / ${xpForNextLevel} XP`
+                            : "Syncing..."}
+                      </Text>
+                    </View>
+
+                    {/* Mini Bar for XP */}
+                    {!isLoadingLevel && levelStage && (
+                      <View
+                        style={{
+                          height: 6,
+                          backgroundColor: "rgba(249, 115, 22, 0.1)",
+                          borderRadius: 3,
+                          width: "100%",
+                        }}
+                      >
+                        <View
+                          style={{
+                            height: "100%",
+                            backgroundColor: "#F97316",
+                            borderRadius: 3,
+                            width: `${Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))}%`,
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -378,7 +477,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   );
 };
 
-export default React.memo(ResourceStats);
+export default ResourceStats;
 
 const styles = StyleSheet.create({
   container: {
@@ -506,6 +605,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#94A3B8",
   },
+  xpText: {
+    fontSize: 12,
+    fontWeight: "700", // Bolder for clarity
+  },
 
   // Grid Section
   gridContainer: {
@@ -546,11 +649,6 @@ const styles = StyleSheet.create({
   },
   unitLabel: {
     fontSize: 16,
-    fontWeight: "600",
-  },
-  xpText: {
-    marginTop: 8,
-    fontSize: 12,
     fontWeight: "600",
   },
 

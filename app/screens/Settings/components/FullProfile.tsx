@@ -13,7 +13,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../Theme/tokens";
 import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
-import { LevelData } from "../../../util/functions/levels-xp";
+import { LevelStage } from "../../../api/users";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -22,8 +22,7 @@ import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import EditProfile from "./EditProfile";
 
 interface FullProfileProps {
-  userLevelData?: LevelData;
-  userLevel?: number;
+  levelStage?: LevelStage | null;
 }
 // Helper component for uniform lively icons
 const LivelyIcon = ({
@@ -40,7 +39,7 @@ const LivelyIcon = ({
   </View>
 );
 
-const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
+const FullProfile = ({ levelStage }: FullProfileProps) => {
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const [mode, setMode] = React.useState<"view" | "edit">("view");
@@ -81,7 +80,7 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                       style={styles.profileImage}
                     />
                     <View style={styles.levelBadge}>
-                      <Text style={styles.levelBadgeText}>{userLevel}</Text>
+                      <Text style={styles.levelBadgeText}>{levelStage?.level || user?.level || 1}</Text>
                     </View>
                   </View>
                   <View style={styles.profileDetails}>
@@ -92,10 +91,10 @@ const FullProfile = ({ userLevel, userLevelData }: FullProfileProps) => {
                         ? new Date(user.createdAt).getFullYear()
                         : new Date().getFullYear()}
                     </Text>
-                    {userLevelData && (
+                    {levelStage && (
                       <View style={styles.levelTitle}>
                         <Text style={styles.levelTitleText}>
-                          {userLevelData?.levelTitle}
+                          {levelStage.fullTitle}
                         </Text>
                       </View>
                     )}

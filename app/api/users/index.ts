@@ -1,11 +1,5 @@
-import {
-  getProgressToNextLevel,
-  getUnlockedLevelsFromXP,
-} from "../../util/functions/levels-xp";
 import axiosClient from "../axiosClient";
 import { XPLog } from "../userXP/types";
-
-export { getProgressToNextLevel, getUnlockedLevelsFromXP };
 
 export interface User {
   id: string;
@@ -73,6 +67,20 @@ export interface LevelStage {
     max: number;
     regenMinutesPerPoint: number;
   };
+  currentLevelXpFloor: number;
+  nextLevelXpCeiling: number;
+  totalXp: number;
+  stages: {
+    minLevel: number;
+    maxLevel: number | null;
+    title: string;
+    shortDescription: string;
+    progressReportCopy: string;
+    stamina: {
+      max: number;
+      regenMinutesPerPoint: number;
+    };
+  }[];
 }
 
 // Get user by ID

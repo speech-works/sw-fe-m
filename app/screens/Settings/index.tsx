@@ -19,10 +19,7 @@ import {
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 import { ROUTE_NAMES } from "../../constants/routes";
-import {
-  getUnlockedLevelsFromXP,
-  LevelData,
-} from "../../util/functions/levels-xp";
+import { getLevelStage, LevelStage } from "../../api/users";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -37,8 +34,7 @@ const Settings = () => {
   const { user } = useUserStore();
 
   const [sessionCount, setSessionCount] = useState<number>(0);
-  const [userLevel, setUserLevel] = useState<number>(0);
-  const [userLevelData, setUserLevelData] = useState<LevelData>();
+  const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
 
@@ -112,11 +108,16 @@ const Settings = () => {
   }, [user]);
 
   useEffect(() => {
-    if (user && user.totalXp) {
-      const levelData = getUnlockedLevelsFromXP(user.totalXp);
-      const latestLevel = levelData[levelData.length - 1];
-      setUserLevel(latestLevel.level);
-      setUserLevelData(latestLevel.data);
+    if (user && user.level) {
+      const fetchLevel = async () => {
+        try {
+          const res = await getLevelStage();
+          setLevelStage(res);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      fetchLevel();
     }
   }, [user]);
 
@@ -268,7 +269,7 @@ const Settings = () => {
         showHandle={true}
         showCloseButton={true}
       >
-        <FullProfile userLevel={userLevel} userLevelData={userLevelData} />
+        <FullProfile levelStage={levelStage} />
       </BottomSheetModal>
     </>
   );
