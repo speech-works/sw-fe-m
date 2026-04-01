@@ -131,7 +131,7 @@ const Chat = () => {
   // Effect to scroll to the bottom of the chat when messages update
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    if (chatScrollRef.current && messages.length > 0) {
+    if (chatScrollRef.current && messages.length > 1) {
       timer = setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);

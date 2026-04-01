@@ -64,7 +64,7 @@ const OutcomeModal = () => {
           style={styles.closeButton}
           onPress={() => setModalVisible(false)}
         >
-          <Icon name="close" size={20} color="#000" />
+          <Icon name="close" size={16} color="#000" />
         </TouchableOpacity>
 
         <View style={styles.content}>
@@ -96,12 +96,12 @@ const OutcomeModal = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFCF8", // Off-white/Cream matching the screenshot
+    backgroundColor: "#FFFCF8",
     paddingTop: 12,
-    paddingBottom: 40,
+    paddingBottom: 32,
     paddingHorizontal: 24,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     alignItems: "center",
   },
   handle: {
@@ -113,11 +113,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: 20,
-    right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    top: 16,
+    right: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -129,10 +129,10 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading1),
+    ...parseTextStyle(theme.typography.Heading3),
     color: "#0F172A",
-    fontSize: 28,
-    fontWeight: "900",
+    fontSize: 20,
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 4,
   },
@@ -147,32 +147,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   divider: {
-    width: 40,
+    width: 32,
     height: 2,
     backgroundColor: "#F1F5F9",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   message: {
     ...parseTextStyle(theme.typography.Body),
     color: "#475569",
     textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 40,
-    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 24,
+    fontSize: 15,
   },
   actionButton: {
     width: "100%",
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FF914D", // Vibrant orange matching the screenshot
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FF914D",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   actionButtonText: {
     color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

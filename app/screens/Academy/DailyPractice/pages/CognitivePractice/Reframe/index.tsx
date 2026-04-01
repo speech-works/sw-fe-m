@@ -82,7 +82,7 @@ const Reframe = () => {
   );
   const [isDone, setIsDone] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null,
+    practiceActivity?.id || null,
   );
   const [showVitalsModal, setShowVitalsModal] = useState(false);
 
@@ -151,8 +151,7 @@ const Reframe = () => {
     }
 
     try {
-      let activityIdToStart =
-        currentActivityId || (route.params as any).practiceActivity?.id;
+      let activityIdToStart = currentActivityId;
 
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {

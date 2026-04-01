@@ -158,7 +158,7 @@ const Chat = () => {
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-    if (chatScrollRef.current && messages.length > 0) {
+    if (chatScrollRef.current && messages.length > 1) {
       timer = setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);

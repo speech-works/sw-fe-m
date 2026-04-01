@@ -520,9 +520,7 @@ const RealLifeChallenge = () => {
     >
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingTop: HEADER_HEIGHT + insets.top + 20,
-        }}
+        contentContainerStyle={styles.scrollContent}
       >
         <Text style={styles.stepHeader}>Step 2: Reflection</Text>
         <Text style={styles.stepSubHeader}>{completionPrompt}</Text>

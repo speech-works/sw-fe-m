@@ -483,6 +483,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (autoPlay && !isLocked) {
             setPaused(false);
           }
+
+          // Force-sync volume after video loads.
+          // react-native-video can silently ignore the initial `volume` prop
+          // when it matches the internal default (1.0), causing the slider to
+          // display full but no audio plays until the user changes it.
+          // Fix: (1) push system volume to match slider, and
+          //      (2) nudge the volume state to trigger a prop change cycle.
+          const effectiveVolume = muted || isLocked ? 0 : volume;
+          safeSetVolume(effectiveVolume);
+          // Nudge volume prop: briefly shift by epsilon then restore,
+          // forcing the native player to re-apply the value.
+          setVolume((prev) => {
+            const nudged = prev > 0.5 ? prev - 0.001 : prev + 0.001;
+            requestAnimationFrame(() => setVolume(effectiveVolume));
+            return nudged;
+          });
         }}
         onSeek={() => {
           if (isRestoringRef.current) {

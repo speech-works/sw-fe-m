@@ -3,30 +3,33 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Slider from "@react-native-community/slider";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    Keyboard,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Keyboard,
 } from "react-native";
 import { submitFormResponse } from "../../../api";
 import {
-    FormConfiguration,
-    FormField,
-    FormFieldType,
+  FormConfiguration,
+  FormField,
+  FormFieldType,
 } from "../../../api/packs/types";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
 import { theme } from "../../../Theme/tokens";
 import { parseShadowStyle } from "../../../util/functions/parseStyles";
-import { showErrorBottomSheet, showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
+import {
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../../util/functions/bottomSheet";
 
 type PackFormRouteProp = RouteProp<
   {
@@ -401,45 +404,49 @@ const PackFormScreen = () => {
         {!isKeyboardVisible && (
           <View style={styles.footer}>
             <TactileTouchableOpacity
-            style={[
-              styles.submitButton,
-              !allRequiredFilled && styles.submitButtonDisabled,
-            ]}
-            onPress={handleSubmit}
-            disabled={submitting || !allRequiredFilled}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={
-                allRequiredFilled
-                  ? ["#6366F1", "#8B5CF6"]
-                  : ["#CBD5E1", "#CBD5E1"]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitGradient}
+              style={[
+                styles.submitButton,
+                !allRequiredFilled && styles.submitButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={submitting || !allRequiredFilled}
+              activeOpacity={0.8}
             >
-              {submitting && (
-                <ActivityIndicator
-                  color="white"
-                  size="small"
-                  style={StyleSheet.absoluteFill}
-                />
-              )}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  opacity: submitting ? 0 : 1,
-                }}
+              <LinearGradient
+                colors={
+                  allRequiredFilled
+                    ? ["#6366F1", "#8B5CF6"]
+                    : ["#CBD5E1", "#CBD5E1"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitGradient}
               >
-                <MaterialCommunityIcons name="check" size={20} color="white" />
-                <Text style={styles.submitText}>Complete</Text>
-              </View>
-            </LinearGradient>
-          </TactileTouchableOpacity>
-        </View>
+                {submitting && (
+                  <ActivityIndicator
+                    color="white"
+                    size="small"
+                    style={StyleSheet.absoluteFill}
+                  />
+                )}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    opacity: submitting ? 0 : 1,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={20}
+                    color="white"
+                  />
+                  <Text style={styles.submitText}>Complete</Text>
+                </View>
+              </LinearGradient>
+            </TactileTouchableOpacity>
+          </View>
         )}
       </SafeAreaView>
     </View>
