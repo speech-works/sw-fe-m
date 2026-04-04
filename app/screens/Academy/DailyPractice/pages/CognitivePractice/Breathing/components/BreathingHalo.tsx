@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 // import Svg, { Path } from "react-native-svg";
 import { theme } from "../../../../../../../Theme/tokens";
 import GuidedBreathingFace, {
-    BreathingPhase,
+  BreathingPhase,
 } from "../../../../../../../assets/sw-faces/GuidedBreathingFace";
 import { useBreathAudio } from "../../../../../../../hooks/useBreathAudio";
 import { parseTextStyle } from "../../../../../../../util/functions/parseStyles";

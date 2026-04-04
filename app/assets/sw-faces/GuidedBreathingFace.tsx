@@ -63,37 +63,29 @@ const GuidedBreathingFace = ({
       blink.value = 1;
       return;
     }
-    blink.value = withRepeat(
-      withSequence(
-        withDelay(
-          Math.random() * 2000 + 3000,
-          withTiming(0, { duration: 150, easing: Easing.out(Easing.exp) }),
-        ),
-        withTiming(1, { duration: 150, easing: Easing.out(Easing.exp) }),
-      ),
-      -1,
-      false,
-    );
+    blink.value = 1;
 
     const DURATION = 500; // Standard transition duration
+
+    const TRANSITION_DURATION = 600; // Balancing fluidity and response
 
     switch (phase) {
       case "idle":
         eyeTranslateY.value = withTiming(0, {
-          duration: DURATION,
-          easing: Easing.out(Easing.exp),
+          duration: TRANSITION_DURATION,
+          easing: Easing.inOut(Easing.ease),
         });
         breathOpacity.value = withTiming(0, {
-          duration: DURATION,
-          easing: Easing.out(Easing.exp),
+          duration: TRANSITION_DURATION,
+          easing: Easing.inOut(Easing.ease),
         });
         break;
 
       case "inhale":
-        // Eyes: Lift
-        eyeTranslateY.value = withTiming(-1.5, {
-          duration: DURATION,
-          easing: Easing.out(Easing.exp),
+        // Eyes: Lift subtly but noticeably (-2 units in a 48-unit viewBox)
+        eyeTranslateY.value = withTiming(-2, {
+          duration: TRANSITION_DURATION,
+          easing: Easing.inOut(Easing.ease),
         });
         // Breath: Invisible
         breathOpacity.value = withTiming(0, {
@@ -104,8 +96,8 @@ const GuidedBreathingFace = ({
 
       case "hold-in":
         // Eyes: Stay Lifted
-        eyeTranslateY.value = withTiming(-1.5, {
-          duration: DURATION,
+        eyeTranslateY.value = withTiming(-2, {
+          duration: 300,
           easing: Easing.out(Easing.exp),
         });
         // Breath: Invisible
@@ -116,12 +108,12 @@ const GuidedBreathingFace = ({
         break;
 
       case "exhale":
-        // Eyes: Relax
+        // Eyes: Relax back to original position (0)
         eyeTranslateY.value = withTiming(0, {
-          duration: DURATION,
-          easing: Easing.out(Easing.exp),
+          duration: TRANSITION_DURATION,
+          easing: Easing.inOut(Easing.ease),
         });
-        // Breath: Visible (fade in then pulse/stay)
+        // Breath: Visible (fade in)
         breathOpacity.value = withSequence(
           withTiming(1, { duration: 300, easing: Easing.out(Easing.exp) }),
         );
@@ -130,7 +122,7 @@ const GuidedBreathingFace = ({
       case "hold-out":
         // Eyes: Stay Relaxed
         eyeTranslateY.value = withTiming(0, {
-          duration: DURATION,
+          duration: 300,
           easing: Easing.out(Easing.exp),
         });
         // Breath: fade out
@@ -163,11 +155,10 @@ const GuidedBreathingFace = ({
 
   const animatedEyesProps = useAnimatedProps(() => {
     return {
+      // Minimal transform for steady, non-blinking eyes
       transform: [
         { translateY: eyeTranslateY.value },
-        { scaleY: blink.value },
       ] as any,
-      originY: 24,
     };
   });
 
@@ -254,7 +245,7 @@ const GuidedBreathingFace = ({
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
 
-          {/* Eyes (Closed with a gentle upward curve of relief) - Bolder Stroke Color */}
+          {/* Eyes - Consolidated group with manual origin math to prevent coordinate drift */}
           <AnimatedG animatedProps={animatedEyesProps}>
             <Path
               stroke="#000000" // Black
