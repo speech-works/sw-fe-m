@@ -115,7 +115,17 @@ const CVExercise = () => {
 
       let activityIdToStart = currentActivityId || practiceActivity?.id;
 
-      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted && (activityIdToStart || practiceActivity)) {
+        console.log(">> CVExercise: Activity already started by Pack, skipping API call...");
+        const activityToSync = practiceActivity || { id: activityIdToStart };
+        addActivity({
+          ...activityToSync,
+        });
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(activityIdToStart || practiceActivity?.id);
+        return;
+      }
       if (!activityIdToStart) {
         if (!effectiveId) {
           console.error("CVExercise - Missing effectiveId, cannot create activity");

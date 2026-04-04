@@ -32,6 +32,7 @@ import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
+import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
 
 enum ChallengeStep {
   START = 0,
@@ -137,6 +138,10 @@ const RealLifeChallenge = () => {
 
       if (packContext?.alreadyStarted) {
         console.log("RealLifeChallenge - Already started by pack");
+        if (practiceActivity) {
+          addActivity(practiceActivity);
+        }
+        setCurrentActivityId(currentActivityId || practiceActivity?.id || null);
         return;
       }
 
@@ -478,9 +483,10 @@ const RealLifeChallenge = () => {
             />
           </View>
 
-          <Text style={styles.premiumInstructionText}>
-            {challengeData.instructions}
-          </Text>
+          <SimpleMarkdown
+            content={challengeData.instructions}
+            variant="instruction"
+          />
         </LinearGradient>
       </View>
 

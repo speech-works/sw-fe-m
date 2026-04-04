@@ -211,7 +211,18 @@ const Chat = () => {
 
     let activityIdToStart = currentActivityId;
 
-    // If we don't have a unique activity ID yet, create one (Standalone mode)
+    // --- DOUBLE-START PREVENTION ---
+    const practiceActivity = (route.params as any).practiceActivity;
+    if (packContext?.alreadyStarted && (activityIdToStart || practiceActivity)) {
+      console.log(">> RoleplayChat: Activity already started by Pack, skipping API call...");
+      const activityToSync = practiceActivity || { id: activityIdToStart };
+      addActivity({
+        ...activityToSync,
+      });
+      useUserStore.getState().fetchUser();
+      setCurrentActivityId(activityIdToStart || practiceActivity?.id);
+      return;
+    }
     if (!activityIdToStart) {
       if (!id) {
         console.error("RoleplayChat - Missing contentId (id), cannot create activity");

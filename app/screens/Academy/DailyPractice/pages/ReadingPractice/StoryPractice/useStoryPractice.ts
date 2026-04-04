@@ -114,6 +114,18 @@ export const useStoryPractice = () => {
     setHighlightRange([-1, 0]);
   }, [selectedIndex, allStories]);
 
+  // If activity is already started (from Pack), sync local state immediately
+  useEffect(() => {
+    if (packContext?.alreadyStarted && initialActivity?.id) {
+      console.log(
+        ">> useStoryPractice: Activity already started by Pack. Initializing...",
+        initialActivity.id,
+      );
+      addActivity(initialActivity);
+      setCurrentActivityId(initialActivity.id);
+    }
+  }, [packContext, initialActivity, addActivity]);
+
   // --- Actions ---
 
   const onBackPress = () => navigation.goBack();
@@ -194,6 +206,16 @@ export const useStoryPractice = () => {
           }
           activityIdToStart = newActivity.id;
         }
+      }
+
+      // If activity is already started (via Pack pre-start), skip API call
+      if (packContext?.alreadyStarted && activityIdToStart) {
+        console.log(
+          ">> useStoryPractice: skipping startPracticeActivity (already started)",
+        );
+        addActivity(initialActivity);
+        setCurrentActivityId(activityIdToStart);
+        return;
       }
 
       const startedActivity = await startPracticeActivity({

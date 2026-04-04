@@ -242,8 +242,18 @@ const Meditation = () => {
     try {
       let activityIdToStart = currentActivityId;
 
-      if (packContext?.alreadyStarted) {
-        console.log("Meditation - Already started by pack");
+      // If activity is already started (via Pack pre-start), skip API call
+      if (packContext?.alreadyStarted && activityIdToStart) {
+        console.log(
+          ">> Meditation: skipping startPracticeActivity (already started)",
+        );
+        if (practiceActivity && selectedIndex !== null) {
+          addActivity({
+            ...practiceActivity,
+            cognitivePractice: meditationScenarios[selectedIndex],
+          });
+        }
+        setCurrentActivityId(activityIdToStart);
         return;
       }
 

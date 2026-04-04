@@ -153,6 +153,16 @@ const Reframe = () => {
     try {
       let activityIdToStart = currentActivityId;
 
+      // If activity is already started (via Pack pre-start), skip API call
+      if (packContext?.alreadyStarted && activityIdToStart) {
+        console.log(">> Reframe: skipping startPracticeActivity (already started)");
+        if (practiceActivity) {
+          addActivity(practiceActivity);
+        }
+        setCurrentActivityId(activityIdToStart);
+        return;
+      }
+
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {
         if (isPackContext) {

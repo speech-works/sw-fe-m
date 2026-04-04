@@ -84,6 +84,22 @@ const Briefing = () => {
       return;
     }
 
+    // --- DOUBLE-START PREVENTION ---
+    if (packContext?.alreadyStarted && practiceActivity) {
+      console.log(">> Interview: Activity already started by Pack, skipping API call...");
+      addActivity({
+        ...practiceActivity,
+      });
+      useUserStore.getState().fetchUser();
+      setCurrentActivityId(practiceActivity.id);
+      navigation.navigate("InterviewChat", {
+        interview,
+        practiceActivityId: practiceActivity.id,
+        packContext,
+      } as any);
+      return;
+    }
+
     let activityIdToStart = currentActivityId;
 
     // If we don't have a unique activity ID yet, create one (Standalone mode)

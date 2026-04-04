@@ -23,11 +23,8 @@ export enum PackPhilosophy {
 export enum ContentBlockType {
   TEXT = "TEXT",
   VIDEO = "VIDEO",
-  AUDIO = "AUDIO",
-  IMAGE = "IMAGE",
   FORM = "FORM",
   ACTIVITY = "ACTIVITY",
-  SIMULATION = "SIMULATION",
 }
 
 export type TextBlockContent = {
@@ -47,12 +44,7 @@ export type VideoBlockContent = {
   isLocked?: boolean; // Hydrated by backend based on user premium status
 };
 
-export type AudioBlockContent = {
-  fileUrl: string;
-  durationSeconds?: number;
-  titleOverride?: string;
-  descriptionOverride?: string;
-};
+
 
 // --- Form Block Types (hydrated by backend) ---
 
@@ -115,7 +107,6 @@ export type ReferenceBlockContent = {
 export type BlockContentPayload =
   | TextBlockContent
   | VideoBlockContent
-  | AudioBlockContent
   | FormBlockContent
   | ReferenceBlockContent;
 

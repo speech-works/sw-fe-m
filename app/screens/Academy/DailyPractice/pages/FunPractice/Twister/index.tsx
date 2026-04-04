@@ -238,7 +238,18 @@ const Twister = () => {
       let activityIdToStart =
         currentActivityId || route.params?.practiceActivity?.id;
 
-      // If we don't have a unique activity ID yet, create one (Standalone mode)
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted && (activityIdToStart || route.params?.practiceActivity)) {
+        console.log(">> Twister: Activity already started by Pack, skipping API call...");
+        const activityToSync = route.params?.practiceActivity || { id: activityIdToStart };
+        addActivity({
+          ...activityToSync,
+          funPractice: twisters[currentIndex],
+        });
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(activityIdToStart || route.params?.practiceActivity?.id);
+        return;
+      }
       if (!activityIdToStart) {
         const contentId = twisters[currentIndex]?.id;
         if (!contentId) {

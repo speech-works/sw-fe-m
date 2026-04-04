@@ -437,6 +437,17 @@ const Breathing = () => {
     try {
       let activityIdToStart = currentActivityId || passedActivity?.id;
 
+      // If activity is already started (via Pack pre-start), skip API call
+      if (packContext?.alreadyStarted && activityIdToStart) {
+        console.log(">> Breathing: skipping startPracticeActivity (already started)");
+        if (passedActivity) {
+          addActivity(passedActivity);
+          setCurrentActivity(passedActivity);
+        }
+        setCurrentActivityId(activityIdToStart);
+        return;
+      }
+
       // If we don't have a unique activity ID yet, create one
       if (!activityIdToStart) {
         const contentId = apiContentId || cognitivePracticeId;

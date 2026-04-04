@@ -149,6 +149,19 @@ const PoemPractice = () => {
     setCurrentPage(0);
   }, [selectedIndex, allPoems]);
 
+  // If activity is already started (from Pack), sync local state immediately
+  useEffect(() => {
+    if (packContext?.alreadyStarted && (route.params as any)?.practiceActivity) {
+      const initialActivity = (route.params as any).practiceActivity;
+      console.log(
+        ">> PoemPractice: Activity already started by Pack. Initializing...",
+        initialActivity.id,
+      );
+      addActivity(initialActivity);
+      setCurrentActivityId(initialActivity.id);
+    }
+  }, [packContext, route.params, addActivity]);
+
   // --- Actions ---
 
   const onBackPress = () => navigation.goBack();
@@ -237,6 +250,17 @@ const PoemPractice = () => {
           activityIdToStart = newActivity.id;
       }
     }
+    // If activity is already started (via Pack pre-start), skip API call
+    if (packContext?.alreadyStarted && activityIdToStart) {
+      console.log(
+        ">> PoemPractice: skipping startPracticeActivity (already started)",
+      );
+      const initialActivity = (route.params as any)?.practiceActivity;
+      addActivity(initialActivity);
+      setCurrentActivityId(activityIdToStart);
+      return;
+    }
+
     const startedActivity = await startPracticeActivity({
       id: activityIdToStart,
       userId,
@@ -359,7 +383,7 @@ const PoemPractice = () => {
     }
   };
 
-  const bottomPadding = 20; // 20px gap over the menu dock
+  const bottomPadding = 32; // Ultra-compact clearance, allows slight overlap with dock for tight feel
 
   // --- View: Done Practice ---
   if (practiceComplete) {
@@ -507,7 +531,7 @@ const PoemPractice = () => {
 
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
-        <CustomScrollView
+        <ScrollView
           key="practice-scroll"
           scrollEnabled={true}
           contentContainerStyle={[
@@ -634,7 +658,7 @@ const PoemPractice = () => {
               </View>
             </View>
           </View>
-        </CustomScrollView>
+        </ScrollView>
       </View>
 
       {/* Action Dock (Fixed Bottom) */}

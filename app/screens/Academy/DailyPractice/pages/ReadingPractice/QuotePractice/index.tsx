@@ -300,7 +300,7 @@ const QuotePractice = () => {
     );
   }
 
-  const bottomPadding = 20;
+  const bottomPadding = 32; // Ultra-compact clearance, allows slight overlap with dock for tight feel
 
   // Active Practice View
   return (
@@ -335,7 +335,7 @@ const QuotePractice = () => {
 
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
-        <CustomScrollView
+        <ScrollView
           key="practice-scroll"
           scrollEnabled={true}
           contentContainerStyle={[
@@ -415,7 +415,7 @@ const QuotePractice = () => {
               </View>
             </View>
           </View>
-        </CustomScrollView>
+        </ScrollView>
       </View>
 
       {/* Action Dock (Fixed Bottom) */}

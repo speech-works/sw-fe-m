@@ -301,7 +301,7 @@ const StoryPractice = () => {
   // Actually, VoiceRecorder expands when we interact.
   // The safest bet is: Always ample padding, OR if we want to be fancy, just use a large padding (350) which is safe for max expansion.
   // Given the "Immersive" goal, having extra scroll space at bottom is fine.
-  const bottomPadding = 20;
+  const bottomPadding = 32; // Ultra-compact clearance, allows slight overlap with dock for tight feel
 
   // Active Practice View
   return (
@@ -336,7 +336,7 @@ const StoryPractice = () => {
 
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
-        <CustomScrollView
+        <ScrollView
           key="practice-scroll"
           scrollEnabled={true}
           contentContainerStyle={[
@@ -460,7 +460,7 @@ const StoryPractice = () => {
               </View>
             </View>
           </View>
-        </CustomScrollView>
+        </ScrollView>
       </View>
 
       {/* Action Dock (Fixed Bottom) */}

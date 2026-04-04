@@ -96,9 +96,14 @@ const PhoneCall = () => {
         return null;
       }
 
-      if (packContext?.alreadyStarted && currentActivityId) {
-        console.log("PhoneCall - Already started by pack");
-        return currentActivityId;
+      if (packContext?.alreadyStarted && practiceActivity) {
+        console.log(">> PhoneCall: Activity already started by Pack, syncing state...");
+        addActivity({
+          ...practiceActivity,
+        });
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(practiceActivity.id);
+        return practiceActivity.id;
       }
 
       let activityIdToStart = currentActivityId;

@@ -100,6 +100,18 @@ export const useQuotePractice = () => {
     };
   }, []);
 
+  // If activity is already started (from Pack), sync local state immediately
+  useEffect(() => {
+    if (packContext?.alreadyStarted && initialActivity?.id) {
+      console.log(
+        ">> useQuotePractice: Activity already started by Pack. Initializing...",
+        initialActivity.id,
+      );
+      addActivity(initialActivity);
+      setCurrentActivityId(initialActivity.id);
+    }
+  }, [packContext, initialActivity, addActivity]);
+
   // --- Actions ---
 
   const onBackPress = () => navigation.goBack();
@@ -180,6 +192,16 @@ export const useQuotePractice = () => {
           }
           activityIdToStart = newActivity.id;
         }
+      }
+
+      // If activity is already started (via Pack pre-start), skip API call
+      if (packContext?.alreadyStarted && activityIdToStart) {
+        console.log(
+          ">> useQuotePractice: skipping startPracticeActivity (already started)",
+        );
+        addActivity(initialActivity);
+        setCurrentActivityId(activityIdToStart);
+        return;
       }
 
       const startedActivity = await startPracticeActivity({

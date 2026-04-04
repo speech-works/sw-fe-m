@@ -95,21 +95,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         </View>
       );
     }
-    case ContentBlockType.AUDIO: {
-      return (
-        <View style={styles.audioContainer}>
-          <MaterialCommunityIcons
-            name="headphones"
-            size={24}
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.audioText}>Audio Track</Text>
-          <TactileTouchableOpacity style={styles.playButton}>
-            <MaterialCommunityIcons name="play" size={20} color="white" />
-          </TactileTouchableOpacity>
-        </View>
-      );
-    }
+
 
     case ContentBlockType.ACTIVITY: {
       const content = block.content as ReferenceBlockContent;
@@ -258,10 +244,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 <Text style={styles.activityTitle}>
                   {content.titleOverride || "Practice Activity"}
                 </Text>
-                <Text style={styles.activityInstructions}>
-                  {content.descriptionOverride ||
-                    "Complete this activity to move forward."}
-                </Text>
+                <SimpleMarkdown
+                  content={
+                    content.descriptionOverride ||
+                    (block.type === ContentBlockType.ACTIVITY
+                      ? "Use your techniques in this clinical challenge."
+                      : "Complete this task to move forward.")
+                  }
+                  textColor="rgba(255, 255, 255, 0.9)"
+                />
               </View>
 
               {/* Action Button - Only show if not completed */}
