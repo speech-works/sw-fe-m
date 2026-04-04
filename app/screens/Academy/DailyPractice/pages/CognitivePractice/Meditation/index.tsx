@@ -102,6 +102,7 @@ const Meditation = () => {
   // Exercise playback states
   const [isPlaying, setIsPlaying] = useState<boolean>(packContext?.alreadyStarted || false);
   const [progress, setProgress] = useState<number>(0); // in seconds
+  const isInitialMount = useRef(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   // isStarted tracks if the activity is active (immersive view)
   const [isStarted, setIsStarted] = useState(packContext?.alreadyStarted || false);
@@ -130,7 +131,16 @@ const Meditation = () => {
   useEffect(() => {
     if (!meditationScenarios.length) return;
 
-    // If no route param, default to first scenario
+    // 1. Priority: Specific scenario ID from backend (especially for Packs)
+    if (cognitivePracticeId) {
+      const backendIndex = meditationScenarios.findIndex((s) => s.id === cognitivePracticeId);
+      if (backendIndex !== -1) {
+        setSelectedIndex(backendIndex);
+        return;
+      }
+    }
+
+    // 2. Fallback: Mood-based selection
     if (!route?.params?.mood) {
       setSelectedIndex(0);
       return;
@@ -155,16 +165,14 @@ const Meditation = () => {
       case MoodType.HAPPY:
         index = findScenarioIndex("Guided Visualization");
         break;
-      default: // Added a default case
+      default:
         index = 0;
         break;
     }
 
-    // If mood mapping failed, default to 0
     if (index === -1) index = 0;
-
     setSelectedIndex(index);
-  }, [route?.params?.mood, meditationScenarios]);
+  }, [route?.params?.mood, meditationScenarios, cognitivePracticeId]);
 
   // Whenever scenarios or selectedIndex changes, update both URLs
   // And reset playback state
@@ -182,9 +190,13 @@ const Meditation = () => {
 
     setCognitivePracticeId(meditationScenarios[selectedIndex]?.id || null);
 
-    // Reset playback when meditation type changes
-    setIsPlaying(false);
-    setProgress(0);
+    // Reset playback when meditation type changes, 
+    // BUT avoid resetting on the very first mount if the pack already started the session.
+    if (!isInitialMount.current || !packContext?.alreadyStarted) {
+      setIsPlaying(false);
+      setProgress(0);
+    }
+    isInitialMount.current = false;
   }, [meditationScenarios, selectedIndex]);
 
   // When bgMusicUrl changes: stop old, load new
