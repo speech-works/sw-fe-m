@@ -186,8 +186,15 @@ const RealLifeChallenge = () => {
               contentId,
             });
           } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> RealLifeChallenge: Stale session detected (404), refreshing...");
+            if (
+              createErr?.response?.status === 404 &&
+              createErr?.response?.data?.error
+                ?.toLowerCase()
+                .includes("session")
+            ) {
+              console.log(
+                ">> RealLifeChallenge: Stale session detected (404), refreshing...",
+              );
               sessionToUse = await ensureActiveSession(userId, true);
               newActivity = await createPracticeActivity({
                 sessionId: sessionToUse.id,
@@ -604,7 +611,7 @@ const RealLifeChallenge = () => {
               ]}
               style={styles.buttonGradient}
             >
-              <Text style={styles.primaryButtonText}>I'm Ready</Text>
+              <Text style={styles.primaryButtonText}>Log My Experience</Text>
             </LinearGradient>
           </TactileTouchableOpacity>
         </View>
