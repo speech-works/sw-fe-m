@@ -255,7 +255,7 @@ const ClinicalStatsWidget = () => {
         const key = METRIC_CONFIG[domain].profileKey;
         return growthProfile[key] || 50;
       }
-      
+
       const metricKey = METRIC_CONFIG[domain].profileKey;
       return overallState.combined.axes[metricKey] || 50;
     };
@@ -824,14 +824,18 @@ const ClinicalStatsWidget = () => {
               </>
             ) : (
               <>
-                <Text style={styles.sectionLabel}>WEEKLY BREAKTHROUGHS</Text>
+                <Text style={styles.sectionLabel}>BREAKTHROUGHS</Text>
 
                 {(() => {
                   // 1. Sort & Top 3
                   const sortedKeys = domainBreakthroughs
                     .sort((a, b) => {
-                      const changeA = Math.abs(weeklyBreakthroughs[a]?.change || 0);
-                      const changeB = Math.abs(weeklyBreakthroughs[b]?.change || 0);
+                      const changeA = Math.abs(
+                        weeklyBreakthroughs[a]?.change || 0,
+                      );
+                      const changeB = Math.abs(
+                        weeklyBreakthroughs[b]?.change || 0,
+                      );
                       return changeB - changeA;
                     })
                     .slice(0, 3);
@@ -843,11 +847,20 @@ const ClinicalStatsWidget = () => {
 
                   // Helper to get config & data
                   const getItem = (key: keyof typeof weeklyBreakthroughs) => {
-                    const data = weeklyBreakthroughs[key];
+                    const data = { ...weeklyBreakthroughs[key] };
                     const domain = (
                       Object.keys(METRIC_CONFIG) as ClinicalDomain[]
                     ).find((d) => METRIC_CONFIG[d].profileKey === key);
                     const config = domain ? METRIC_CONFIG[domain] : null;
+
+                    // Synchronize the 'current' score with our prioritized Combined logic
+                    if (
+                      key &&
+                      overallState?.combined?.axes?.[key] !== undefined
+                    ) {
+                      data.current = overallState.combined.axes[key];
+                    }
+
                     return { data, config, domain };
                   };
 
@@ -1073,17 +1086,17 @@ const ClinicalStatsWidget = () => {
           currentScore={(() => {
             if (!selectedMetric) return 0;
             const profileKey = METRIC_CONFIG[selectedMetric].profileKey;
-            
+
             // Priority 1: Use the combined axis score from overallState (The "Orange" layer)
             if (overallState?.combined?.axes?.[profileKey] !== undefined) {
               return overallState.combined.axes[profileKey];
             }
-            
+
             // Priority 2: Fallback to weekly breakthroughs current score
             if (weeklyBreakthroughs?.[profileKey]) {
               return weeklyBreakthroughs[profileKey].current;
             }
-            
+
             // Priority 3: Fallback to growth profile or default
             return growthProfile?.[profileKey] || 50;
           })()}
