@@ -35,16 +35,15 @@ import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import Toast from "react-native-toast-message";
 
-
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
-  const { user, setUser } = useUserStore();
+  const { user, setUser, fetchUser } = useUserStore();
+  console.log("[Home] Current User State:", JSON.stringify(user, null, 2));
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
-
 
   const currentOnboardingScreen = useOnboardingStore((s) => s.currentScreen);
   const onboardingFlow = useOnboardingStore((s) => s.flow);
@@ -58,16 +57,27 @@ const Home = () => {
     totalRemaining: number;
   } | null>(null);
   const [loadingOases, setLoadingOases] = useState(true);
-
+  const [forceShowOnboarding, setForceShowOnboarding] = useState(false);
 
   // Resume Modal State
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [interactionsDone, setInteractionsDone] = useState(false);
 
   // Pagination & Visibility Logic (Derived State)
-  const showOnboarding = user && !user.hasCompletedOnboarding;
+  const showOnboarding =
+    forceShowOnboarding || (user && !user.hasCompletedOnboarding);
   const showOases = !!oasesProgress && !showOnboarding;
   const showMoodCheck = !hasRecordedToday;
+  
+  console.log("[Home] Visibility Debug:", {
+    userExists: !!user,
+    hasCompletedOnboarding: user?.hasCompletedOnboarding,
+    showOnboarding,
+    showOases,
+    oasesProgress,
+    showMoodCheck,
+    hasRecordedToday
+  });
 
   const cards = [];
   if (showOnboarding) cards.push("onboarding");
@@ -76,6 +86,7 @@ const Home = () => {
   if (showMoodCheck) cards.push("mood");
 
   const totalPages = cards.length;
+  console.log("[Home] Carousel Cards:", cards);
   const paginationData = Array.from({ length: totalPages }, (_, i) => i);
 
   // Resume Handler
@@ -102,14 +113,15 @@ const Home = () => {
   };
 
   // --- OASES Rapid Collection Auto-Start ---
-  React.useEffect(() => {
-    if (!user?.hasCompletedOnboarding) {
-      setLoadingOases(false);
-      return;
-    }
+  const initOases = useCallback(
+    async (forceFetch = false) => {
+      if (!user?.hasCompletedOnboarding) {
+        setLoadingOases(false);
+        return;
+      }
 
-    const initOases = async () => {
       try {
+        setLoadingOases(true);
         // Step 1: Check Cache (Optimized Load)
         const state = useOasesStore.getState();
         const todayStr = new Date().toISOString().split("T")[0];
@@ -118,9 +130,10 @@ const Home = () => {
           : null;
 
         let batch = state.dailyBatch;
+        console.log("[Home] OASES Init Debug - Store Batch:", !!batch, "Last Fetched:", state.lastFetchedAt);
 
-        // If not fetched today, or no batch exists, fetch from API
-        if (todayStr !== lastFetchedStr || !batch) {
+        // If not fetched today, or no batch exists, or forced, fetch from API
+        if (forceFetch || todayStr !== lastFetchedStr || !batch) {
           try {
             // Initialize Collection (Idempotent)
             await startOasesCollection();
@@ -129,54 +142,70 @@ const Home = () => {
             // Update Store (timestamp updated in setter)
             state.setDailyBatch(batch);
           } catch (err: any) {
-            console.warn(
-              "[Home] Failed to fetch fresh OASES data:",
-              err.response?.data || err.message,
-            );
-            // Fallback to existing batch if any? No, better to hide if fresh fetch failed and might be stale
+            const errMsg =
+              err.response?.data?.message ||
+              err.response?.data?.error ||
+              err.message;
+            console.warn("[Home] Failed to fetch fresh OASES data:", errMsg);
+
+            if (errMsg?.includes("USER_ONBOARDING_INCOMPLETE")) {
+              console.log(
+                "[Home] Detected OASES/Onboarding desync. Reverting to onboarding.",
+              );
+              setForceShowOnboarding(true);
+              await fetchUser(); // Sync the store with the real state
+            }
           }
-        } else {
-          console.log("[Home] Using cached OASES data for today.");
         }
 
         // Step 2: Determine Visibility based on Assessment Progress
-        // With same-day progression, show widget as long as assessment is not complete
-        if (!batch || batch.isComplete) {
-          // Assessment fully complete -> Hide widget
-          setOasesProgress(null);
-          return;
-        }
+        const totalRemaining = batch?.metadata?.totalRemaining ?? 0;
+        const questionsCount = batch?.questions?.length ?? 0;
 
-        // Show widget if there are remaining questions (current batch or future batches)
-        const totalRemaining = batch.metadata?.totalRemaining ?? 0;
-        if (
+        // Only hide if the batch is explicitly complete AND no questions remain
+        // If batch is null but user is post-onboarding, we show the card to encourage starting
+        const isActuallyDone =
+          !!batch &&
+          batch.isComplete &&
           totalRemaining === 0 &&
-          (!batch.questions || batch.questions.length === 0)
-        ) {
-          // No remaining questions at all -> Hide widget
+          questionsCount === 0;
+
+        if (isActuallyDone) {
+          console.log("[Home] OASES assessment complete. Hiding card.");
           setOasesProgress(null);
           return;
         }
 
-        // Step 3: Set UI State
-        const safeDay = batch.dayNumber || 1;
+        // Step 3: Show widget if there are current questions OR if more remain for future days
+        // Or if batch is missing (fresh post-onboarding), show as Day 1
+        const safeDay = batch?.dayNumber || 1;
+        console.log("[Home] OASES Progress Setting:", { safeDay, totalRemaining });
         setOasesProgress({
           dayNumber: safeDay,
-          totalDays: 7, // Fixed 7-day flow (for progress display)
+          totalDays: 7, // Fixed 7-day flow
           totalRemaining: totalRemaining,
         });
-      } catch (err: any) {
-        console.error(
-          "[Home] Error in OASES init flow:",
-          err.response?.data || err.message,
-        );
-        setOasesProgress(null); // Ensure hidden on error
+      } catch (error: any) {
+        console.error("[Home] initOases Error:", error);
+        const errMsg = error.message || String(error);
+        if (!errMsg.includes("USER_ONBOARDING_INCOMPLETE")) {
+          Toast.show({
+            type: "error",
+            text1: "Assessment update failed",
+            text2: "We couldn't refresh your assessment progress. Swipe down to try again.",
+          });
+        }
+        setOasesProgress(null);
       } finally {
         setLoadingOases(false);
       }
-    };
+    },
+    [user?.hasCompletedOnboarding, fetchUser],
+  );
+
+  useEffect(() => {
     initOases();
-  }, [user?.hasCompletedOnboarding]);
+  }, [initOases]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -184,8 +213,6 @@ const Home = () => {
     });
     return () => task.cancel();
   }, []);
-
-
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -197,12 +224,22 @@ const Home = () => {
       const [freshUser] = await Promise.all([getMyUser(), fetchAllTrends()]);
       setUser(freshUser);
 
+      // Trigger OASES refresh if user is post-onboarding
+      if (freshUser.hasCompletedOnboarding) {
+        await initOases(true);
+      }
+
       // Detect regression
-      if (oldLevel && freshUser.level < oldLevel) {
+      if (
+        oldLevel &&
+        freshUser.level !== undefined &&
+        freshUser.level < oldLevel
+      ) {
         Toast.show({
           type: "info",
           text1: "Level adjusted",
-          text2: "Your level has shifted based on recent activity. Keep practising to climb back!",
+          text2:
+            "Your level has shifted based on recent activity. Keep practising to climb back!",
         });
       }
 
@@ -231,7 +268,6 @@ const Home = () => {
     [scrollX],
   );
 
-
   const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12
@@ -241,12 +277,8 @@ const Home = () => {
         : "Good Evening,";
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
-
-
-
   return (
     <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
-
       {interactionsDone && <MoodCheckPopup />}
 
       <ScrollView
@@ -287,7 +319,8 @@ const Home = () => {
                     styles.carouselItem,
                     {
                       width: carouselItemWidth,
-                      marginRight: index === totalPages - 1 ? 0 : carouselSpacing,
+                      marginRight:
+                        index === totalPages - 1 ? 0 : carouselSpacing,
                     },
                   ]}
                 >
@@ -412,9 +445,6 @@ const Home = () => {
         onStartOver={handleStartOverOnboarding}
         onDismiss={() => setShowResumeModal(false)}
       />
-
-
-
     </ScreenView>
   );
 };
@@ -456,6 +486,5 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: theme.colors.background.default,
   },
-
 });
 export default Home;
