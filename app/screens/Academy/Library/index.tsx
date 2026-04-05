@@ -426,7 +426,7 @@ const Library = () => {
           ) : (
             <View style={styles.normalHeader}>
               <TouchableOpacity
-                onPress={() => navigationAcademy.navigate("Explore" as never)}
+                onPress={() => navigationAcademy.goBack()}
                 style={styles.backButton}
               >
                 <Icon

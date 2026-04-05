@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -16,11 +15,10 @@ import { parseTextStyle } from "../../util/functions/parseStyles";
 import BottomSheetModal from "../BottomSheetModal";
 import ErrorStateCard from "./ErrorStateCard";
 
-
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-interface SmartRecommendationCardProps {
-}
+interface SmartRecommendationCardProps {}
 
 const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
   const insets = useSafeAreaInsets();
@@ -107,20 +105,104 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
     return null;
   }
 
+  // Softer Gradient: Orange 300 -> Red 300 (Peach/Salmon look)
+  const gradientColors = [
+    theme.colors.library.red[300],
+    theme.colors.library.orange[400],
+  ];
+
   // Empty State: No pack recommended (e.g. "Check back later")
   if (!recommendation.pack) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <MaterialCommunityIcons
-          name="check-circle-outline"
-          size={48}
-          color={theme.colors.library.green[400]}
-        />
-        <Text style={styles.packTitleEmpty}>All Caught Up!</Text>
-        <Text style={styles.packSubtitleEmpty}>
-          {recommendation.reason || "No new packs available at the moment."}
-        </Text>
-      </View>
+      <TouchableOpacity
+        style={styles.container}
+        activeOpacity={0.9}
+        onPress={() =>
+          navigationAcademy.navigate("AcademyStack", { screen: "LibraryStack" })
+        }
+      >
+        <LinearGradient
+          colors={gradientColors as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.gradient, { height: 220, justifyContent: "center" }]}
+        >
+          {/* Decorative Bubble Circles */}
+          <View style={styles.bubbleTopRight} />
+          <View style={styles.bubbleBottomLeft} />
+
+          {/* Large Watermark Icon */}
+          <View
+            style={[styles.mainWatermarkContainer, { top: -10, right: -10 }]}
+          >
+            <MaterialCommunityIcons
+              name="check-all"
+              size={140}
+              color="white"
+              style={{ opacity: 0.15 }}
+            />
+          </View>
+
+          <View style={{ alignItems: "center", zIndex: 1 }}>
+            <View
+              style={[
+                styles.chip,
+                { backgroundColor: "rgba(255, 255, 255, 0.25)", marginBottom: 16 },
+              ]}
+            >
+              <MaterialCommunityIcons name="star-outline" size={14} color="white" />
+              <Text style={styles.chipText}>Curated Recommendation</Text>
+            </View>
+
+            <Text
+              style={[
+                styles.packTitle,
+                { textAlign: "center", marginBottom: 8 },
+              ]}
+            >
+              All Caught Up!
+            </Text>
+            <Text
+              style={[
+                styles.packSubtitle,
+                { textAlign: "center", paddingHorizontal: 32, opacity: 0.9 },
+              ]}
+            >
+              {recommendation.reason ||
+                "Great work on your recommended pack! We're currently curating your next set of recovery goals based on your progress. Explore the library while you wait."}
+            </Text>
+
+            <View
+              style={[
+                styles.creamCardFooter,
+                {
+                  marginTop: 24,
+                  backgroundColor: "white",
+                  borderRadius: 20,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  flexDirection: "row",
+                  gap: 8,
+                  elevation: 4,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="video"
+                size={20}
+                color="#EA580C"
+              />
+              <Text style={[styles.creamCardButtonText, { fontSize: 14 }]}>
+                Browse Library
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     );
   }
 
@@ -155,12 +237,6 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
     : totalModules;
 
   const isSafetyMode = pack.category === "STABILIZATION";
-
-  // Softer Gradient: Orange 300 -> Red 300 (Peach/Salmon look)
-  const gradientColors = [
-    theme.colors.library.red[300],
-    theme.colors.library.orange[400],
-  ];
 
   const nextModuleProgress =
     nextModuleDisplay && progress
@@ -209,67 +285,72 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
           <View style={styles.bubbleTopRight} />
           <View style={styles.bubbleBottomLeft} />
 
-            <View>
-              {/* 1. Header Section */}
-              <View style={styles.headerRow}>
-                <View style={styles.headerTextContainer}>
-                  {tags && tags.length > 0 && (
-                    <View style={styles.chip}>
-                      <MaterialCommunityIcons
-                        name="fire"
-                        size={14}
-                        color="white"
-                      />
-                      <Text style={styles.chipText}>{tags[0]}</Text>
-                    </View>
-                  )}
+          <View>
+            {/* 1. Header Section */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerTextContainer}>
+                {tags && tags.length > 0 && (
+                  <View style={styles.chip}>
+                    <MaterialCommunityIcons
+                      name="fire"
+                      size={14}
+                      color="white"
+                    />
+                    <Text style={styles.chipText}>{tags[0]}</Text>
+                  </View>
+                )}
 
-                  {recommendation.isRefresher && (
-                    <View style={[styles.chip, { backgroundColor: theme.colors.library.blue[400] }]}>
-                      <MaterialCommunityIcons
-                        name="refresh"
-                        size={14}
-                        color="white"
-                      />
-                      <Text style={styles.chipText}>Refresher</Text>
-                    </View>
-                  )}
-
-                  <Text style={styles.packTitle}>{pack.title}</Text>
-                  <Text style={styles.packSubtitle}>{pack.description}</Text>
-                </View>
-              </View>
-
-              {/* Large Watermark Icon */}
-              <View style={styles.mainWatermarkContainer}>
-                <MaterialCommunityIcons
-                  name={isSafetyMode ? "spa" : "lightning-bolt"}
-                  size={140}
-                  color="white"
-                  style={{ opacity: 0.25 }}
-                />
-              </View>
-
-              {/* 2. Progress Section */}
-              <View style={styles.progressSection}>
-                <View style={styles.progressLabels}>
-                  <Text style={styles.progressText}>
-                    Module {nextModuleOrder} of {totalModules}
-                  </Text>
-                  <Text style={styles.progressText}>
-                    {Math.round(percentComplete * 100)}%
-                  </Text>
-                </View>
-                <View style={styles.progressBarBg}>
+                {recommendation.isRefresher && (
                   <View
                     style={[
-                      styles.progressBarFill,
-                      { width: `${percentComplete * 100}%` },
+                      styles.chip,
+                      { backgroundColor: theme.colors.library.blue[400] },
                     ]}
-                  />
-                </View>
+                  >
+                    <MaterialCommunityIcons
+                      name="refresh"
+                      size={14}
+                      color="white"
+                    />
+                    <Text style={styles.chipText}>Refresher</Text>
+                  </View>
+                )}
+
+                <Text style={styles.packTitle}>{pack.title}</Text>
+                <Text style={styles.packSubtitle}>{pack.description}</Text>
               </View>
             </View>
+
+            {/* Large Watermark Icon */}
+            <View style={styles.mainWatermarkContainer}>
+              <MaterialCommunityIcons
+                name={isSafetyMode ? "spa" : "lightning-bolt"}
+                size={140}
+                color="white"
+                style={{ opacity: 0.25 }}
+              />
+            </View>
+
+            {/* 2. Progress Section */}
+            <View style={styles.progressSection}>
+              <View style={styles.progressLabels}>
+                <Text style={styles.progressText}>
+                  Module {nextModuleOrder} of {totalModules}
+                </Text>
+                <Text style={styles.progressText}>
+                  {Math.round(percentComplete * 100)}%
+                </Text>
+              </View>
+              <View style={styles.progressBarBg}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${percentComplete * 100}%` },
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
 
           {/* 3. Next Module Card (Glassmorphism) or Pack Completion Card */}
           {percentComplete >= 1 ? (

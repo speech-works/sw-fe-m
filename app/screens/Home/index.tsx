@@ -280,15 +280,18 @@ const Home = () => {
               onScroll={scrollHandler}
               scrollEventThrottle={16}
             >
-              {/* Card 1: Onboarding or OASES */}
-              <View
-                style={[
-                  styles.carouselItem,
-                  { width: carouselItemWidth, marginRight: carouselSpacing },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  {showOnboarding ? (
+              {cards.map((cardType, index) => (
+                <View
+                  key={cardType}
+                  style={[
+                    styles.carouselItem,
+                    {
+                      width: carouselItemWidth,
+                      marginRight: index === totalPages - 1 ? 0 : carouselSpacing,
+                    },
+                  ]}
+                >
+                  {cardType === "onboarding" && (
                     <OnboardingReminderCard
                       currentStep={currentOnboardingScreen - 1}
                       totalSteps={totalOnboardingScreens}
@@ -308,14 +311,12 @@ const Home = () => {
                           state.startFresh(flow);
                           emit(EVENT_NAMES.START_ONBOARDING);
                         } catch (err) {
-                          console.error(
-                            "Failed to load onboarding flow:",
-                            err,
-                          );
+                          console.error("Failed to load onboarding flow:", err);
                         }
                       }}
                     />
-                  ) : showOases ? (
+                  )}
+                  {cardType === "oases" && (
                     <OASESWidget
                       dayNumber={oasesProgress?.dayNumber}
                       totalDays={oasesProgress?.totalDays}
@@ -328,41 +329,24 @@ const Home = () => {
                         });
                       }}
                     />
-                  ) : (
-                    <View
-                      style={{
-                        height: 220,
-                        backgroundColor: "rgba(0,0,0,0.02)",
-                        borderRadius: 24,
-                      }}
-                    />
+                  )}
+                  {cardType === "mood" && (
+                    <View collapsable={false}>
+                      {interactionsDone ? (
+                        <MoodCheckBanner style={{ marginBottom: 0 }} />
+                      ) : (
+                        <View
+                          style={{
+                            height: 260,
+                            borderRadius: 24,
+                            backgroundColor: "rgba(0,0,0,0.02)",
+                          }}
+                        />
+                      )}
+                    </View>
                   )}
                 </View>
-              </View>
-
-              {/* Card 2: Mood Check */}
-              {showMoodCheck && (
-                <View
-                  style={[
-                    styles.carouselItem,
-                    { width: carouselItemWidth, marginRight: carouselSpacing },
-                  ]}
-                >
-                  <View collapsable={false}>
-                    {interactionsDone ? (
-                      <MoodCheckBanner style={{ marginBottom: 0 }} />
-                    ) : (
-                      <View
-                        style={{
-                          height: 260,
-                          borderRadius: 24,
-                          backgroundColor: "rgba(0,0,0,0.02)",
-                        }}
-                      />
-                    )}
-                  </View>
-                </View>
-              )}
+              ))}
             </Animated.ScrollView>
 
             {/* Pagination Indicators */}
