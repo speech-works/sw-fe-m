@@ -103,6 +103,7 @@ const POLAR_TO_CARTESIAN = (
 const ClinicalStatsWidget = () => {
   const {
     growthProfile,
+    overallState,
     weeklyBreakthroughs,
     historicalProfile,
     fetchAllTrends,
@@ -240,7 +241,7 @@ const ClinicalStatsWidget = () => {
     }
 
     const best = improvements[0];
-    return `Your ${best.label} improved ${Math.abs(best.change).toFixed(0)}% this week!`;
+    return `Your ${best.label} improved ${Math.abs(best.change).toFixed(0)}%!`;
   };
 
   // --- Data Logic ---
@@ -248,17 +249,31 @@ const ClinicalStatsWidget = () => {
     if (!growthProfile) return null;
     const allDomains = Object.values(ClinicalDomain);
 
-    const currentData = allDomains.map((domain) => {
-      const key = METRIC_CONFIG[domain].profileKey;
-      // The API returns values 0-100 directly where 100 is GOOD.
-      // Radar chart usually plots higher val = further out.
-      return growthProfile[key] || 50;
+    const getScoreForDomain = (domain: ClinicalDomain) => {
+      if (!overallState?.combined?.axes) {
+        if (!growthProfile) return 50;
+        const key = METRIC_CONFIG[domain].profileKey;
+        return growthProfile[key] || 50;
+      }
+      
+      const metricKey = METRIC_CONFIG[domain].profileKey;
+      return overallState.combined.axes[metricKey] || 50;
+    };
+
+    // Current Progress (Combined Axis) - THE ORANGE LAYER
+    const currentData = allDomains.map((domain) => getScoreForDomain(domain));
+
+    // Clinical Baseline - THE GREEN LAYER
+    const baselineData = allDomains.map((domain) => {
+      if (overallState?.clinical?.domains?.[domain]) {
+        // Clinical scores are 0-100 where 100=bad, we invert to 100=good for radar
+        return 100 - overallState.clinical.domains[domain].score;
+      }
+      return 50; // Neutral if no baseline
     });
 
-    const baselineData = allDomains.map(() => 50); // Default middle if no baseline
-
     return { allDomains, currentData, baselineData };
-  }, [growthProfile]);
+  }, [growthProfile, overallState]);
 
   const width = Dimensions.get("window").width;
   const CHART_WIDTH = width - 48; // Padding 24 * 2
@@ -579,7 +594,7 @@ const ClinicalStatsWidget = () => {
                 viewBox={`0 0 ${SIZE} ${SIZE}`}
               >
                 <Defs>
-                  <SvgGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                  <SvgGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
                     <Stop
                       offset="0"
                       stopColor={theme.colors.library.orange[300]}
@@ -628,39 +643,19 @@ const ClinicalStatsWidget = () => {
                   );
                 })}
 
-                {/* Main Chart Layer */}
                 <G>
-                  {/* Ghost Overlay (4 Weeks Ago) - Rendered First (Behind) */}
-                  {historicalPathD && (
-                    <>
-                      <Path
-                        d={historicalPathD}
-                        fill="rgba(200, 200, 200, 0.15)"
-                        stroke="none"
-                      />
-                      <Path
-                        d={historicalPathD}
-                        fill="none"
-                        stroke="#94A3B8"
-                        strokeWidth="2"
-                        strokeDasharray="6,4"
-                        strokeLinecap="round"
-                        opacity={0.6}
-                      />
-                    </>
-                  )}
-
-                  {/* Average Baseline Chart (Grey) */}
-                  <Path
+                  {/* 2. Clinical Baseline Layer (Greenish) */}
+                  <AnimatedPath
                     d={baselinePathD}
-                    fill="rgba(156, 163, 175, 0.1)" // Gray-400 with opacity
-                    stroke={theme.colors.library.gray[400]}
-                    strokeWidth="2"
+                    fill="#4CAF50"
+                    fillOpacity={0.12}
+                    stroke="#4CAF50"
+                    strokeWidth={1.5}
                     strokeDasharray="4,4"
-                    opacity={0.8}
                   />
 
-                  {/* 1. GLOW Effect */}
+                  {/* 3. Current Combined Progress Layer (Orange) */}
+                  {/* Glow Effect */}
                   <AnimatedPath
                     d={currentPathD}
                     fill="none"
@@ -669,37 +664,29 @@ const ClinicalStatsWidget = () => {
                     strokeOpacity={0.15}
                   />
 
-                  {/* 2. FILL Path */}
+                  {/* Main Fill and Stroke */}
                   <AnimatedPath
                     d={currentPathD}
-                    fill="url(#radarGrad)"
-                    stroke="none"
-                    opacity={0.9}
-                  />
-                  {/* 3. STROKE Path */}
-                  <Path
-                    d={currentPathD}
-                    fill="none"
-                    stroke={theme.colors.library.orange[500]} // Orange stroke
-                    strokeWidth="2"
+                    fill="url(#radarGradient)"
+                    fillOpacity={0.6}
+                    stroke="#FF9800"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
 
-                  {/* Dots */}
-                  {currentPoints.map((coord, i) => {
-                    return (
-                      <Circle
-                        key={`dot-${i}`}
-                        cx={coord.x}
-                        cy={coord.y}
-                        r="4" // Smaller dots
-                        fill="white"
-                        stroke={theme.colors.library.orange[500]}
-                        strokeWidth="2"
-                      />
-                    );
-                  })}
+                  {/* Dots (Only for current) */}
+                  {currentPoints.map((coord, i) => (
+                    <Circle
+                      key={`dot-${i}`}
+                      cx={coord.x}
+                      cy={coord.y}
+                      r="4"
+                      fill="white"
+                      stroke="#FF9800"
+                      strokeWidth="2"
+                    />
+                  ))}
                 </G>
 
                 {/* Labels (Simplified) */}
@@ -843,9 +830,9 @@ const ClinicalStatsWidget = () => {
                   // 1. Sort & Top 3
                   const sortedKeys = domainBreakthroughs
                     .sort((a, b) => {
-                      const scoreA = weeklyBreakthroughs[a]?.current || 0;
-                      const scoreB = weeklyBreakthroughs[b]?.current || 0;
-                      return scoreB - scoreA;
+                      const changeA = Math.abs(weeklyBreakthroughs[a]?.change || 0);
+                      const changeB = Math.abs(weeklyBreakthroughs[b]?.change || 0);
+                      return changeB - changeA;
                     })
                     .slice(0, 3);
 
@@ -1083,12 +1070,31 @@ const ClinicalStatsWidget = () => {
         <DimensionDetailModal
           visible={modalVisible}
           domain={selectedMetric}
-          currentScore={
-            selectedMetric && weeklyBreakthroughs
-              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                  ?.current || 0
-              : 0
-          }
+          currentScore={(() => {
+            if (!selectedMetric) return 0;
+            const profileKey = METRIC_CONFIG[selectedMetric].profileKey;
+            
+            // Priority 1: Use the combined axis score from overallState (The "Orange" layer)
+            if (overallState?.combined?.axes?.[profileKey] !== undefined) {
+              return overallState.combined.axes[profileKey];
+            }
+            
+            // Priority 2: Fallback to weekly breakthroughs current score
+            if (weeklyBreakthroughs?.[profileKey]) {
+              return weeklyBreakthroughs[profileKey].current;
+            }
+            
+            // Priority 3: Fallback to growth profile or default
+            return growthProfile?.[profileKey] || 50;
+          })()}
+          baselineScore={(() => {
+            if (!selectedMetric) return null;
+            // Clinical baseline scores are 0-100 where 100=bad, we invert to 100=good for modal
+            if (overallState?.clinical?.domains?.[selectedMetric]) {
+              return 100 - overallState.clinical.domains[selectedMetric].score;
+            }
+            return null;
+          })()}
           change={
             selectedMetric && weeklyBreakthroughs
               ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]

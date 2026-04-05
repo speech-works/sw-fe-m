@@ -1,7 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { getOverallStateHistory } from "../../api/overallState";
+import { getCurrentOverallState, getOverallStateHistory } from "../../api/overallState";
+import { UserOverallStateAggregate } from "../../api/overallState/types";
 import {
     getGrowthProfile,
     getWeeklyBreakthroughs,
@@ -15,11 +15,12 @@ import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
 interface UserBehaviorTrendsState {
   growthProfile: GrowthProfile | null;
+  overallState: UserOverallStateAggregate | null;
   weeklyBreakthroughs: WeeklyBreakthroughs | null;
   historicalProfile: GrowthProfile | null; // 4-week-ago snapshot for ghost overlay
   loading: boolean;
   error: string | null;
-
+  
   fetchAllTrends: () => Promise<void>;
   clearTrends: () => void;
 }
@@ -28,6 +29,7 @@ export const useUserBehaviorTrendsStore = create<UserBehaviorTrendsState>()(
   persist(
     (set) => ({
       growthProfile: null,
+      overallState: null,
       weeklyBreakthroughs: null,
       historicalProfile: null,
       loading: false,
@@ -36,9 +38,10 @@ export const useUserBehaviorTrendsStore = create<UserBehaviorTrendsState>()(
       fetchAllTrends: async () => {
         set({ loading: true, error: null });
         try {
-          const [profile, breakthroughs] = await Promise.all([
+          const [profile, breakthroughs, overallState] = await Promise.all([
             getGrowthProfile(),
             getWeeklyBreakthroughs(),
+            getCurrentOverallState(),
           ]);
 
           // Fetch 4-week historical data for ghost overlay
@@ -94,6 +97,7 @@ export const useUserBehaviorTrendsStore = create<UserBehaviorTrendsState>()(
 
           set({
             growthProfile: profile,
+            overallState,
             weeklyBreakthroughs: breakthroughs,
             historicalProfile,
             loading: false,

@@ -92,6 +92,7 @@ interface DimensionDetailModalProps {
   visible: boolean;
   domain: ClinicalDomain | null;
   currentScore: number;
+  baselineScore: number | null;
   change: number;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
   onClose: () => void;
@@ -101,6 +102,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   visible,
   domain,
   currentScore,
+  baselineScore,
   change,
   trend,
   onClose,
@@ -214,27 +216,46 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               {/* Current Status */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>YOUR STATUS</Text>
-                <View style={styles.statusRow}>
-                  <Text style={styles.scoreValue}>
-                    {Math.round(currentScore)}
-                  </Text>
-                  <View
-                    style={[
-                      styles.trendBadge,
-                      { backgroundColor: `${trendColor}15` },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={trendIcon}
-                      size={18}
-                      color={trendColor}
-                    />
-                    <Text style={[styles.trendText, { color: trendColor }]}>
-                      {change > 0 ? "+" : ""}
-                      {change.toFixed(1)}% this week
-                    </Text>
+                
+                <View style={styles.statusBento}>
+                  {/* Current Combined Progress (Orange) */}
+                  <View style={[styles.statusCard, { backgroundColor: theme.colors.library.orange[100] + '30', borderColor: theme.colors.library.orange[100] }]}>
+                    <Text style={styles.statusCardLabel}>CURRENT TREND</Text>
+                    <View style={styles.statusValueRow}>
+                      <Text style={[styles.scoreValue, { color: theme.colors.library.orange[500] }]}>
+                        {Math.round(currentScore)}
+                      </Text>
+                      <View style={styles.trendRow}>
+                        <MaterialCommunityIcons name={trendIcon} size={14} color={trendColor} />
+                        <Text style={[styles.trendTextSmall, { color: trendColor }]}>
+                          {change > 0 ? "+" : ""}{change.toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Clinical Baseline (Green) */}
+                  <View style={[styles.statusCard, { backgroundColor: theme.colors.library.green[100] + '30', borderColor: theme.colors.library.green[100] }]}>
+                    <Text style={styles.statusCardLabel}>CLINICAL FOUNDATION</Text>
+                    <View style={styles.statusValueRow}>
+                      <Text style={[styles.scoreValue, { color: theme.colors.library.green[500] }]}>
+                        {baselineScore ? Math.round(baselineScore) : "--"}
+                      </Text>
+                      <Text style={styles.statusCardSubtext}>OASES BASELINE</Text>
+                    </View>
                   </View>
                 </View>
+
+                {/* Performance Comparison */}
+                {baselineScore !== null && (
+                  <View style={styles.comparisonBadge}>
+                    <Text style={styles.comparisonText}>
+                      {currentScore >= baselineScore 
+                        ? `Outperforming baseline by ${(currentScore - baselineScore).toFixed(0)} pts` 
+                        : `Building back to baseline`}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Recommendation */}
@@ -274,19 +295,18 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "80%",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: "90%",
     width: width,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingBottom: 20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     gap: 12,
   },
   iconCircle: {
@@ -330,37 +350,74 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     lineHeight: 22,
   },
-  statusRow: {
+  statusBento: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+    gap: 12,
+    marginTop: 4,
+  },
+  statusCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: "space-between",
+  },
+  statusCardLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: theme.colors.text.default,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  statusValueRow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
   },
   scoreValue: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: "900",
-    color: theme.colors.text.title,
+    lineHeight: 38,
   },
-  trendBadge: {
+  trendRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    gap: 4,
   },
-  trendText: {
-    fontSize: 13,
+  trendTextSmall: {
+    fontSize: 12,
     fontWeight: "700",
+  },
+  statusCardSubtext: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.text.default,
+    opacity: 0.6,
+  },
+  comparisonBadge: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  comparisonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#64748B",
   },
   recommendationCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: theme.colors.library.orange[100],
+    backgroundColor: theme.colors.library.orange[500] + '10', // Light tint of orange
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     gap: 12,
     borderWidth: 1,
-    borderColor: theme.colors.library.orange[100],
+    borderColor: theme.colors.library.orange[500] + '20',
   },
   recommendationText: {
     flex: 1,
@@ -371,7 +428,7 @@ const styles = StyleSheet.create({
   doneButton: {
     backgroundColor: theme.colors.library.orange[400],
     marginHorizontal: 20,
-    marginBottom: 32,
+    marginBottom: 40, // Increased for standard bottom sheet safe area
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",

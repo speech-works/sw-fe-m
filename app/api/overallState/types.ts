@@ -42,11 +42,15 @@ export interface EngagementSummary {
   avgProprioception: number | null;
   avgAvoidanceUrge: number | null;
   recentSecondaryCount: number | null;
+  lastSecondaryCount: number | null;
   previousSecondaryCount: number | null;
   secondaryCountDelta: number | null;
   activeDaysThisWeek: number;
+  totalActiveDays: number;
   avgPackConfidenceShift: number | null;
   avgPackFunctionalGain: number | null;
+  avgEffort: number | null;
+  avgAutonomy: number | null;
 }
 
 /**

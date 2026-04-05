@@ -40,7 +40,6 @@ const { width } = Dimensions.get("window");
 
 const Home = () => {
   const { user, setUser, fetchUser } = useUserStore();
-  console.log("[Home] Current User State:", JSON.stringify(user, null, 2));
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
   const { hasRecordedToday } = useMoodCheckStore();
@@ -68,16 +67,6 @@ const Home = () => {
     forceShowOnboarding || (user && !user.hasCompletedOnboarding);
   const showOases = !!oasesProgress && !showOnboarding;
   const showMoodCheck = !hasRecordedToday;
-  
-  console.log("[Home] Visibility Debug:", {
-    userExists: !!user,
-    hasCompletedOnboarding: user?.hasCompletedOnboarding,
-    showOnboarding,
-    showOases,
-    oasesProgress,
-    showMoodCheck,
-    hasRecordedToday
-  });
 
   const cards = [];
   if (showOnboarding) cards.push("onboarding");
@@ -86,7 +75,6 @@ const Home = () => {
   if (showMoodCheck) cards.push("mood");
 
   const totalPages = cards.length;
-  console.log("[Home] Carousel Cards:", cards);
   const paginationData = Array.from({ length: totalPages }, (_, i) => i);
 
   // Resume Handler
