@@ -45,6 +45,8 @@ export interface EngagementSummary {
   previousSecondaryCount: number | null;
   secondaryCountDelta: number | null;
   activeDaysThisWeek: number;
+  avgPackConfidenceShift: number | null;
+  avgPackFunctionalGain: number | null;
 }
 
 /**
