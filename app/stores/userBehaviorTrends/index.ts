@@ -1,17 +1,21 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { getCurrentOverallState, getOverallStateHistory } from "../../api/overallState";
+import {
+  getCurrentOverallState,
+  getOverallStateHistory,
+} from "../../api/overallState";
 import { UserOverallStateAggregate } from "../../api/overallState/types";
 import {
-    getGrowthProfile,
-    getWeeklyBreakthroughs,
+  getGrowthProfile,
+  getWeeklyBreakthroughs,
 } from "../../api/userBehaviorTrends";
 import {
-    ClinicalDomain,
-    GrowthProfile,
-    WeeklyBreakthroughs,
+  ClinicalDomain,
+  GrowthProfile,
+  WeeklyBreakthroughs,
 } from "../../api/userBehaviorTrends/types";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface UserBehaviorTrendsState {
   growthProfile: GrowthProfile | null;
@@ -20,7 +24,7 @@ interface UserBehaviorTrendsState {
   historicalProfile: GrowthProfile | null; // 4-week-ago snapshot for ghost overlay
   loading: boolean;
   error: string | null;
-  
+
   fetchAllTrends: () => Promise<void>;
   clearTrends: () => void;
 }
