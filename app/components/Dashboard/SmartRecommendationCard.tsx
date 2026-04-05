@@ -111,6 +111,12 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
     theme.colors.library.orange[400],
   ];
 
+  // Redesign: All Caught Up Gradient (Emerald -> Teal)
+  const allCaughtUpGradient = [
+    theme.colors.library.green[300],
+    "#2DD4BF", // Teal 400 equivalent for a premium look
+  ];
+
   // Empty State: No pack recommended (e.g. "Check back later")
   if (!recommendation.pack) {
     return (
@@ -122,7 +128,7 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
         }
       >
         <LinearGradient
-          colors={gradientColors as any}
+          colors={allCaughtUpGradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.gradient, { height: 220, justifyContent: "center" }]}
@@ -136,7 +142,7 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
             style={[styles.mainWatermarkContainer, { top: -10, right: -10 }]}
           >
             <MaterialCommunityIcons
-              name="check-all"
+              name="check-decagram"
               size={140}
               color="white"
               style={{ opacity: 0.15 }}
@@ -150,7 +156,7 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
                 { backgroundColor: "rgba(255, 255, 255, 0.25)", marginBottom: 16 },
               ]}
             >
-              <MaterialCommunityIcons name="star-outline" size={14} color="white" />
+              <MaterialCommunityIcons name="star" size={14} color="white" />
               <Text style={styles.chipText}>Curated Recommendation</Text>
             </View>
 
@@ -194,9 +200,14 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
               <MaterialCommunityIcons
                 name="video"
                 size={20}
-                color="#EA580C"
+                color="#065F46" // Forest Green
               />
-              <Text style={[styles.creamCardButtonText, { fontSize: 14 }]}>
+              <Text
+                style={[
+                  styles.creamCardButtonText,
+                  { fontSize: 14, color: "#065F46" },
+                ]}
+              >
                 Browse Library
               </Text>
             </View>
