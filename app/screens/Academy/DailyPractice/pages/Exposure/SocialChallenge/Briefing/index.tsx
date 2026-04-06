@@ -36,7 +36,8 @@ import MasonryTips from "../../../../components/MasonryTips";
 
 const Briefing = () => {
   const { user } = useUserStore();
-  const { practiceSession, setSession, ensureActiveSession } = useSessionStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { addActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
@@ -82,14 +83,16 @@ const Briefing = () => {
 
     // --- DOUBLE-START PREVENTION ---
     if (packContext?.alreadyStarted && practiceActivity) {
-      console.log(">> SocialChallenge: Activity already started by Pack, skipping API call...");
+      console.log(
+        ">> SocialChallenge: Activity already started by Pack, skipping API call...",
+      );
       addActivity({
         ...practiceActivity,
       });
       useUserStore.getState().fetchUser();
       setCurrentActivityId(practiceActivity.id);
       navigation.navigate("SCChat", {
-        socialChallenge,
+        sc,
         practiceActivityId: practiceActivity.id,
         packContext,
       } as any);
@@ -101,7 +104,9 @@ const Briefing = () => {
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
       if (!sc?.id) {
-        console.error("SocialChallenge - Missing contentId (sc.id), cannot create activity");
+        console.error(
+          "SocialChallenge - Missing contentId (sc.id), cannot create activity",
+        );
         return;
       }
 
@@ -117,27 +122,32 @@ const Briefing = () => {
       } else {
         if (!sessionId)
           throw new Error("No session ID for standalone activity");
-          let newActivity;
-          try {
+        let newActivity;
+        try {
+          newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+            contentId: sc.id,
+          });
+        } catch (createErr: any) {
+          if (
+            createErr?.response?.status === 404 &&
+            createErr?.response?.data?.error?.toLowerCase().includes("session")
+          ) {
+            console.log(
+              ">> SocialChallengeBriefing: Stale session detected (404), refreshing...",
+            );
+            sessionToUse = await ensureActiveSession(userId, true);
             newActivity = await createPracticeActivity({
-              sessionId,
+              sessionId: sessionToUse.id,
               contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
               contentId: sc.id,
             });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> SocialChallengeBriefing: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-                contentId: sc.id,
-              });
-            } else {
-              throw createErr;
-            }
+          } else {
+            throw createErr;
           }
-          activityIdToStart = newActivity.id;
+        }
+        activityIdToStart = newActivity.id;
       }
     }
     const startedActivity = await startPracticeActivity({
