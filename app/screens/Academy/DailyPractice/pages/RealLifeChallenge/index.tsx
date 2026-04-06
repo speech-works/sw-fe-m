@@ -33,6 +33,7 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
+import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
 
 enum ChallengeStep {
   START = 0,
@@ -78,6 +79,7 @@ const RealLifeChallenge = () => {
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
   const [reflectionText, setReflectionText] = useState("");
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [showIRLModal, setShowIRLModal] = useState(false);
 
   if (!challengeData) {
     return (
@@ -262,6 +264,11 @@ const RealLifeChallenge = () => {
   };
 
   const handleInstructionsComplete = () => {
+    setShowIRLModal(true);
+  };
+
+  const handleIRLConfirm = () => {
+    setShowIRLModal(false);
     setCurrentStep(ChallengeStep.REFLECTION);
   };
 
@@ -676,6 +683,12 @@ const RealLifeChallenge = () => {
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+      />
+
+      <IRLConfirmationModal
+        visible={showIRLModal}
+        onClose={() => setShowIRLModal(false)}
+        onConfirm={handleIRLConfirm}
       />
     </View>
   );

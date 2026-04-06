@@ -30,7 +30,7 @@ const DIMENSION_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#4ADE80",
+    color: "#059669", // Emerald 600
     icon: "shield-check",
     description: "How confident you feel about your speaking abilities.",
     recommendations: {
@@ -41,7 +41,7 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#F472B6",
+    color: "#E11D48", // Rose 600
     icon: "fire",
     description: "Your willingness to face challenging speaking situations.",
     recommendations: {
@@ -52,7 +52,7 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery",
-    color: "#60A5FA",
+    color: "#0284C7", // Sky 600
     icon: "target",
     description: "How naturally you speak without focusing on technique.",
     recommendations: {
@@ -64,7 +64,7 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease",
-    color: "#A78BFA",
+    color: "#8B5CF6", // Violet 500
     icon: "water",
     description: "How comfortable speaking feels in everyday situations.",
     recommendations: {
@@ -75,7 +75,7 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#F87171",
+    color: "#EA580C", // Orange 600
     icon: "account-group",
     description: "How freely you participate in social conversations.",
     recommendations: {

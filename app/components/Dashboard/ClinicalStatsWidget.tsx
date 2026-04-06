@@ -51,35 +51,35 @@ const METRIC_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#00FF00", // Neon Green
+    color: "#059669", // Emerald 600 - Highly visible green
     icon: "shield-check",
     description: "Belief in your ability to speak freely.",
     profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#FF00FF", // Neon Pink
+    color: "#E11D48", // Rose 600 - Warm and visible red/pink
     icon: "fire",
     description: "Facing situations without holding back.",
     profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery", // Was Control
-    color: "#00FFFF", // Neon Cyan
+    color: "#0284C7", // Sky 600 - Deep cyan/blue
     icon: "target",
     description: "Managing speech techniques effectively.",
     profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease", // Was Flow
-    color: "#BC13FE", // Neon Purple
+    color: "#8B5CF6", // Violet 500 - Solid purple
     icon: "water",
     description: "Smoothness in daily communication.",
     profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#FB923C", // Neon-ish Orange (Orange 400)
+    color: "#EA580C", // Orange 600 - Vibrant, visible orange
     icon: "account-group",
     description: "Active participation in social life.",
     profileKey: "social",
@@ -830,13 +830,15 @@ const ClinicalStatsWidget = () => {
                   // 1. Sort & Top 3
                   const sortedKeys = domainBreakthroughs
                     .sort((a, b) => {
-                      const changeA = Math.abs(
-                        weeklyBreakthroughs[a]?.change || 0,
-                      );
-                      const changeB = Math.abs(
-                        weeklyBreakthroughs[b]?.change || 0,
-                      );
-                      return changeB - changeA;
+                      const valA =
+                        overallState?.combined?.axes?.[a] ??
+                        weeklyBreakthroughs[a]?.current ??
+                        0;
+                      const valB =
+                        overallState?.combined?.axes?.[b] ??
+                        weeklyBreakthroughs[b]?.current ??
+                        0;
+                      return valB - valA;
                     })
                     .slice(0, 3);
 
