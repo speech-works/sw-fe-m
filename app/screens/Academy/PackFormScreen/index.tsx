@@ -23,6 +23,8 @@ import {
   FormField,
   FormFieldType,
 } from "../../../api/packs/types";
+import { BreakthroughMetadata } from "../../../api/forms/types";
+import BreakthroughModal from "../../../components/BreakthroughModal";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
 import { theme } from "../../../Theme/tokens";
 import { parseShadowStyle } from "../../../util/functions/parseStyles";
@@ -236,6 +238,7 @@ const PackFormScreen = () => {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [breakthroughData, setBreakthroughData] = useState<BreakthroughMetadata | null>(null);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
@@ -276,17 +279,23 @@ const PackFormScreen = () => {
 
     try {
       setSubmitting(true);
-      await submitFormResponse(formId, answers, { packId, moduleId });
+      const { breakthrough } = await submitFormResponse(formId, answers, { packId, moduleId });
 
       // Persist completion locally
       const storageKey = `pack-${packId}-module-${moduleId}-form-${blockId}`;
       await AsyncStorage.setItem(storageKey, "true");
 
-      showSuccessBottomSheet(
-        "Reflection Saved",
-        "Your response has been recorded.",
-      );
-      navigation.goBack();
+      if (breakthrough) {
+        // EXCLUSIVE SIGNALING: Breakthrough Modal takes precedence
+        setBreakthroughData(breakthrough);
+      } else {
+        // EXCLUSIVE SIGNALING: Fallback to standard snackbar
+        showSuccessBottomSheet(
+          "Reflection Saved",
+          "Your response has been recorded.",
+        );
+        navigation.goBack();
+      }
     } catch (error: any) {
       console.error("Form submission failed:", error);
       showErrorBottomSheet(
@@ -449,6 +458,15 @@ const PackFormScreen = () => {
           </View>
         )}
       </SafeAreaView>
+
+      <BreakthroughModal
+        visible={!!breakthroughData}
+        data={breakthroughData}
+        onClose={() => {
+          setBreakthroughData(null);
+          navigation.goBack();
+        }}
+      />
     </View>
   );
 };

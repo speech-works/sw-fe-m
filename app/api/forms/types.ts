@@ -28,3 +28,21 @@ export interface FormResponse {
   promotedAt: string | null;
   createdAt: string;
 }
+
+/**
+ * Breakthrough Metadata for progress pop-ups.
+ */
+export interface BreakthroughMetadata {
+  axis: "mastery" | "ease" | "courage" | "confidence" | "social";
+  delta: number; // Integer-rounded
+  message: string;
+  newScore: number;
+}
+
+/**
+ * Combined response from form submission.
+ */
+export interface FormSubmitResponse {
+  response: FormResponse;
+  breakthrough: BreakthroughMetadata | null;
+}

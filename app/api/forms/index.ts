@@ -1,7 +1,7 @@
 // api/forms/index.ts
 
 import axiosClient from "../axiosClient";
-import { FormContext, FormResponse, FormSubmitRequest } from "./types";
+import { FormContext, FormSubmitResponse, FormSubmitRequest } from "./types";
 
 /**
  * Submit a form response.
@@ -18,14 +18,14 @@ export async function submitFormResponse(
   formId: string,
   answers: Record<string, any>,
   context?: FormContext,
-): Promise<FormResponse> {
+): Promise<FormSubmitResponse> {
   try {
     const payload: FormSubmitRequest = { answers };
     if (context) {
       payload.context = context;
     }
 
-    const response = await axiosClient.post<FormResponse>(
+    const response = await axiosClient.post<FormSubmitResponse>(
       `/forms/${formId}/submit`,
       payload,
     );
