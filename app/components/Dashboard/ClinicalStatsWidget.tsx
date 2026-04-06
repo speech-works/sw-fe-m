@@ -990,16 +990,21 @@ const ClinicalStatsWidget = () => {
                                     <Text
                                       style={[
                                         styles.cardTitle,
-                                        { marginBottom: 0 },
+                                        { marginBottom: 0, flex: 1 },
                                       ]}
+                                      numberOfLines={1}
+                                      adjustsFontSizeToFit
+                                      minimumFontScale={0.8}
                                     >
                                       {config.label}
                                     </Text>
-                                    <MaterialCommunityIcons
-                                      name={config.icon as any}
-                                      size={16}
-                                      color={config.color}
-                                    />
+                                    <View style={{ marginLeft: 4 }}>
+                                      <MaterialCommunityIcons
+                                        name={config.icon as any}
+                                        size={14}
+                                        color={config.color}
+                                      />
+                                    </View>
                                   </View>
 
                                   {/* Change Trend */}
@@ -1282,12 +1287,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   cardTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#64748B",
     marginBottom: 4,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.2, // Reduced for tighter spaces
   },
   heroValue: {
     fontSize: 36, // Larger for Hero
