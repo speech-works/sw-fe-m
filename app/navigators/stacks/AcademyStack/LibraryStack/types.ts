@@ -12,11 +12,13 @@ export type LibStackParamList = {
     techniqueName: string;
     stage: LIBRARY_STAGE;
     hasFree: boolean;
+    from?: "HOME" | "EXPLORE";
   };
   SummaryPage: {
     techniqueId: TECHNIQUES_ENUM;
     techniqueName: string;
     finalAnswers: Array<FinalAnswer>;
+    from?: "HOME" | "EXPLORE";
   };
   PaymentStack: undefined;
 };

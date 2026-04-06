@@ -21,9 +21,10 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
   techniqueName: string;
+  from?: "HOME" | "EXPLORE";
 }
 
-const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
+const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
@@ -228,7 +229,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
                     navigation.navigate("SummaryPage", {
                       techniqueId,
                       techniqueName,
-                      finalAnswers: finalAnswersWithLast,
+                      finalAnswers: finalAnswersWithLast, from,
                     });
                   } else {
                     setAnswers((old) => [...old, currentAnswer]);
@@ -254,7 +255,7 @@ const QuizPage = ({ techniqueId, techniqueName }: QuizPageProps) => {
                     navigation.navigate("SummaryPage", {
                       techniqueId,
                       techniqueName,
-                      finalAnswers: finalAnswersWithLast,
+                      finalAnswers: finalAnswersWithLast, from,
                     });
                   } else {
                     setAnswers((old) => [...old, currentAnswer]);

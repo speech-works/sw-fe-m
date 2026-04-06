@@ -35,7 +35,7 @@ const SummaryPage = () => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const route = useRoute<RouteProp<LibStackParamList, "SummaryPage">>();
-  const { finalAnswers } = route.params;
+  const { finalAnswers, from } = route.params;
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const rotationAnim = useRef<Record<string, Animated.Value>>({}).current;
@@ -340,7 +340,7 @@ const SummaryPage = () => {
           {/* Back Button */}
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.navigate("Library")}
+            onPress={() => navigation.navigate("Library", { from })}
             activeOpacity={0.7}
           >
             <Text style={styles.backButtonText}>Back to Library</Text>

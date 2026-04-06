@@ -148,15 +148,21 @@ const Library = () => {
   const { from } = (route.params || {}) as { from?: "HOME" | "EXPLORE" };
 
   const handleBack = () => {
+    console.log("[Library] handleBack called. from:", from);
     if (from === "HOME") {
-      navigationAcademy.navigate(ROUTE_NAMES.HOME as any);
+      // Try navigating directly to the Home screen name
+      navigationAcademy.navigate("Home" as any);
     } else if (from === "EXPLORE") {
-      navigationAcademy.navigate(ROUTE_NAMES.EXPLORE as any);
+      // Try navigating directly to the Explore screen name
+      navigationAcademy.navigate("Explore" as any);
     } else {
-      // Fallback is still safer to go to HOME if we lost track, 
-      // but if the user wants goBack, we could do that. 
-      // Given the 'tutorial' bug, navigationAcademy.navigate('HOME') is safest.
-      navigationAcademy.navigate(ROUTE_NAMES.HOME as any);
+      console.log("[Library] Falling back to standard goBack");
+      if (navigationAcademy.canGoBack()) {
+        navigationAcademy.goBack();
+      } else {
+        // Last resort
+        navigationAcademy.navigate("Home" as any);
+      }
     }
   };
 
@@ -347,6 +353,7 @@ const Library = () => {
         techniqueDesc: selectedTechnique.description,
         techniqueLevel: selectedTechnique.level,
         stage: type,
+        from: from,
         hasFree: selectedTechnique.hasFree,
       });
     }, 300);

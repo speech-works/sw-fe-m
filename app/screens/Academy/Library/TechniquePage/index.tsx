@@ -70,8 +70,7 @@ const TechniquePage = () => {
 
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
 
-  // @ts-ignore
-  const { techniqueId, techniqueName, techniqueDesc, stage, hasFree } =
+  const { techniqueId, techniqueName, techniqueDesc, stage, hasFree, from } =
     route.params;
 
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -111,7 +110,11 @@ const TechniquePage = () => {
         techniqueId={techniqueId}
       />
     ) : activeStageIndex === 2 && isContentAccessible ? (
-      <QuizPage techniqueId={techniqueId} techniqueName={techniqueName} />
+      <QuizPage
+        techniqueId={techniqueId}
+        techniqueName={techniqueName}
+        from={from}
+      />
     ) : null;
 
   useEffect(() => {
@@ -151,7 +154,7 @@ const TechniquePage = () => {
           {/* Header */}
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("Library")}
+              onPress={() => navigation.navigate("Library", { from })}
               style={styles.backButton}
             >
               <Icon
