@@ -27,7 +27,12 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
 
       <TouchableOpacity
         style={styles.cardContainer}
-        onPress={() => navigation.navigate("LibraryStack")}
+        onPress={() =>
+          navigation.navigate("LibraryStack", {
+            screen: "Library",
+            params: { from: "EXPLORE" },
+          })
+        }
         activeOpacity={0.9}
       >
         <LinearGradient

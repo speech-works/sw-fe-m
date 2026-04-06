@@ -124,7 +124,10 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
         style={styles.container}
         activeOpacity={0.9}
         onPress={() =>
-          navigationAcademy.navigate("AcademyStack", { screen: "LibraryStack" })
+          navigationAcademy.navigate("AcademyStack", {
+            screen: "LibraryStack",
+            params: { screen: "Library", params: { from: "HOME" } },
+          })
         }
       >
         <LinearGradient

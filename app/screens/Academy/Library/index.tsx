@@ -21,6 +21,7 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
+import { ROUTE_NAMES } from "../../../constants/routes";
 
 import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -31,6 +32,7 @@ import {
 } from "../../../api/library/types";
 import { LibStackParamList } from "../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { useRoute } from "@react-navigation/native";
 
 // New Components
 import BottomSheetModal from "../../../components/BottomSheetModal";
@@ -140,8 +142,24 @@ type LibraryScreenNavigationProp = CompositeNavigationProp<
 >;
 
 const Library = () => {
-  const navigationAcademy = useNavigation<LibraryScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+  const navigationAcademy = useNavigation<LibraryScreenNavigationProp>();
+  const route = useRoute<any>();
+  const { from } = (route.params || {}) as { from?: "HOME" | "EXPLORE" };
+
+  const handleBack = () => {
+    if (from === "HOME") {
+      navigationAcademy.navigate(ROUTE_NAMES.HOME as any);
+    } else if (from === "EXPLORE") {
+      navigationAcademy.navigate(ROUTE_NAMES.EXPLORE as any);
+    } else {
+      // Fallback is still safer to go to HOME if we lost track, 
+      // but if the user wants goBack, we could do that. 
+      // Given the 'tutorial' bug, navigationAcademy.navigate('HOME') is safest.
+      navigationAcademy.navigate(ROUTE_NAMES.HOME as any);
+    }
+  };
+
   const HEADER_HEIGHT = 60;
   const { user } = useUserStore();
 
@@ -426,7 +444,7 @@ const Library = () => {
           ) : (
             <View style={styles.normalHeader}>
               <TouchableOpacity
-                onPress={() => navigationAcademy.goBack()}
+                onPress={handleBack}
                 style={styles.backButton}
               >
                 <Icon

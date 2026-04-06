@@ -4,7 +4,7 @@ import { FinalAnswer, TECHNIQUES_ENUM } from "../../../../api/library/types";
 import { LIBRARY_STAGE } from "../../../../screens/Academy/Library/TechniquePage/type";
 
 export type LibStackParamList = {
-  Library: undefined;
+  Library: { from?: "HOME" | "EXPLORE" } | undefined;
   TechniquePage: {
     techniqueId: TECHNIQUES_ENUM;
     techniqueDesc: string;
