@@ -51,7 +51,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   const totalWeeklyMinutes = Math.round(
     weeklyData.reduce((sum, d) => sum + d.totalTime, 0),
   );
-  const daysActive = weeklyData.filter((d) => d.totalTime > 0).length;
+  const daysActive = weeklyData.filter((d) => Math.round(d.totalTime) > 0).length;
 
   // Comparison Helpers
   const formatChange = (change: number, hasHistory: boolean) => {
@@ -106,6 +106,31 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     ...rhythmData.map((d) => d.minutes),
     DAILY_TARGET_MINUTES * 1.3,
   );
+
+  const isStreak = useMemo(() => {
+    const activeIndices = rhythmData
+      .map((d, i) => (Math.round(d.minutes) > 0 ? i : -1))
+      .filter((i) => i !== -1);
+
+    // A streak requires at least 2 consecutive days this week
+    if (activeIndices.length < 2) return false;
+
+    const minIndex = activeIndices[0];
+    const maxIndex = activeIndices[activeIndices.length - 1];
+
+    // 1. Continuity check: (max - min + 1) must equal the count
+    const isConsecutive = maxIndex - minIndex + 1 === activeIndices.length;
+    if (!isConsecutive) return false;
+
+    // 2. Recency check: Must not have a gap between last practice and today
+    const todayIndex = rhythmData.findIndex((d) => d.isToday);
+
+    // Safety: If today isn't in the range, we can't reliably call it a streak
+    if (todayIndex === -1) return false;
+
+    // Streak is alive if it ends today or ended exactly yesterday
+    return maxIndex === todayIndex || maxIndex === todayIndex - 1;
+  }, [rhythmData]);
 
   return (
     <View
@@ -280,7 +305,9 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                   <Text style={styles.statNumber}>{daysActive}</Text>
                   {/* Streak comparison is confusing/unavailable, removed for clarity */}
                 </View>
-                <Text style={styles.statLabel}>Day Streak</Text>
+                <Text style={styles.statLabel}>
+                  {isStreak ? "Day Streak" : "Days Active"}
+                </Text>
               </View>
             </View>
 
