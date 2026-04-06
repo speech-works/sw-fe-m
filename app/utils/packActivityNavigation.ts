@@ -115,7 +115,7 @@ const navigateToExposure = (
       });
       break;
     case ExposurePracticeType.PHONE_CALL_SIMULATION:
-      nav.navigate("PhoneCallStack", {
+      nav.navigate("PhoneCall", {
         practiceActivity: activity,
         packContext: ctx,
       });

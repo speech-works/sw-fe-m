@@ -137,9 +137,9 @@ export interface CognitivePractice {
 
 export enum ExposurePracticeType {
   // RANDOM_QUESTIONS = "RANDOM_QUESTIONS", // Uppercase values
-  INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
-  PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
-  SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE_SIMULATION",
+  INTERVIEW_SIMULATION = "INTERVIEW",
+  PHONE_CALL_SIMULATION = "PHONE_CALL",
+  SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE",
   REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
@@ -228,6 +228,12 @@ export interface ExposurePractice {
   practiceData?: FixedRolePlayData;
   socialChallengeData?: FixedRolePlayData;
   interviewPracticeData?: FixedRolePlayData;
+  phoneCallData?: {
+    agentName: string;
+    agentDesignation: string;
+    icon: string;
+    systemPrompt: string;
+  };
   realLifeChallengeData?: ExposureRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 

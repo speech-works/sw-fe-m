@@ -13,7 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { API_BASE_URL } from "../../../../../../api/constants";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
-import { PhoneCallScenario } from "../../../../../../api/dailyPractice/types";
+import {
+  ExposurePracticeType,
+  PhoneCallScenario,
+} from "../../../../../../api/dailyPractice/types";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CallingWidget from "../../../../../../components/CallingWidget";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
@@ -53,11 +56,26 @@ const PhoneCall = () => {
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
-  const { packContext, practiceActivity } = route.params || {};
+  const { packContext, practiceActivity } = (route.params as any) || {};
 
   const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
-  // State for the currently selected scenario, initialized with the first item
-  const [selectedScenario, setSelectedScenario] = useState<PhoneCallScenario>();
+  // State for the currently selected scenario, initialized with activity data if coming from a pack
+  const [selectedScenario, setSelectedScenario] = useState<
+    PhoneCallScenario | undefined
+  >(() => {
+    const ep = practiceActivity?.exposurePractice;
+    if (ep?.type === ExposurePracticeType.PHONE_CALL_SIMULATION && ep.phoneCallData) {
+      return {
+        id: ep.id,
+        name: ep.name,
+        description: ep.description,
+        difficulty: ep.difficulty,
+        type: ExposurePracticeType.PHONE_CALL_SIMULATION,
+        phoneCallData: ep.phoneCallData,
+      } as PhoneCallScenario;
+    }
+    return undefined;
+  });
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     practiceActivity?.id || null,
   );
@@ -213,10 +231,15 @@ const PhoneCall = () => {
   };
 
   useEffect(() => {
+    // If we're in a pack context and already have a selected scenario from the activity, skip fetching
+    if (packContext && selectedScenario) {
+      return;
+    }
+ 
     const fetchScenarios = async () => {
       try {
         const data = await getPhoneCallScenarios();
-
+ 
         setScenarioData(data);
         if (data.length > 0) {
           setSelectedScenario(data[0]);
