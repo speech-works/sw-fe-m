@@ -61,10 +61,7 @@ const Explore = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   // ----------------------------------------
 
-  // Memoize heavy children so they don't re-render on isScrolling changes
-  const memoizedWorldGraph = useMemo(() => <WorldExplorationGraph />, []);
-  const memoizedBuyPro = useMemo(() => <BuyPro />, []);
-  const memoizedLibrary = useMemo(() => <LibrarySection />, []);
+  // Unused memoizations removed
 
   const syncSessionWithBackend = useCallback(async () => {
     if (!user) {

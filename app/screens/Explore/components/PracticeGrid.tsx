@@ -36,7 +36,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
     getUserStats(user.id)
       .then((data) => setStats(data))
       .catch((err) => console.error("PracticeGrid stats error:", err));
-  }, [user]);
+  }, [user?.id]);
 
   const getCount = useCallback(
     (type: string) => {

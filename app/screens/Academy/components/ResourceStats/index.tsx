@@ -94,7 +94,7 @@ const ResourceStats = ({
     } else {
       setIsLoadingLevel(false);
     }
-  }, [user]);
+  }, [user?.id, user?.level]);
 
   const userLevel = levelStage?.level || user?.level || 1;
   const xpIntoLevel = Math.max(
@@ -118,7 +118,8 @@ const ResourceStats = ({
   );
 
   useEffect(() => {
-    Animated.loop(
+    if (!isFocused) return;
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.2,
@@ -133,8 +134,10 @@ const ResourceStats = ({
           easing: Easing.inOut(Easing.ease),
         }),
       ]),
-    ).start();
-  }, [pulseAnim]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim, isFocused]);
 
   useEffect(() => {
     if (user?.currentStamina !== undefined) {
@@ -150,9 +153,9 @@ const ResourceStats = ({
       (user.currentStamina ?? 0) >= currentMaxStamina ||
       !user.lastStaminaUpdate
     ) {
-      setRechargeTimeLeft("");
+      setRechargeTimeLeft((prev) => (prev !== "" ? "" : prev));
       if (user?.currentStamina !== undefined) {
-        setEstimatedStamina(user.currentStamina);
+        setEstimatedStamina((prev) => (prev !== user.currentStamina ? user.currentStamina! : prev));
       }
       return;
     }
@@ -170,10 +173,10 @@ const ResourceStats = ({
         (user.currentStamina ?? 0) + pointsRecharged,
       );
 
-      setEstimatedStamina(newEstimation);
+      setEstimatedStamina((prev) => (prev !== newEstimation ? newEstimation : prev));
 
       if (newEstimation >= currentMaxStamina) {
-        setRechargeTimeLeft("");
+        setRechargeTimeLeft((prev) => (prev !== "" ? "" : prev));
         return;
       }
 
@@ -190,11 +193,8 @@ const ResourceStats = ({
       const m = Math.floor((totalSeconds % 3600) / 60);
       const s = totalSeconds % 60;
 
-      if (h > 0) {
-        setRechargeTimeLeft(`${h}h ${m}m`);
-      } else {
-        setRechargeTimeLeft(`${m}m ${s}s`);
-      }
+      const newTime = h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+      setRechargeTimeLeft((prev) => (prev !== newTime ? newTime : prev));
     };
 
     updateTimerAndEstimation(); // Initial call

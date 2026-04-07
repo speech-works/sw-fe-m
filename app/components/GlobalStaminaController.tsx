@@ -96,8 +96,9 @@ const GlobalStaminaController: React.FC = () => {
 
   const handleClose = () => {
     setShowModal(false);
-    // Reset fully — re-arms the system for the next crossing event
-    resetAll();
+    // Note: Do NOT call resetAll() here. We must keep lowStaminaNotified=true
+    // so the UserStore doesn't immediately re-trigger the modal. It will
+    // automatically re-arm itself via resetAll() when stamina recovers >10%.
   };
 
   return <LowStaminaModal visible={showModal} onClose={handleClose} />;

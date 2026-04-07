@@ -45,7 +45,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
       })
       .catch((err) => console.error("Stats error:", err))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user?.id]);
 
   // --- Metrics ---
   const totalWeeklyMinutes = Math.round(
