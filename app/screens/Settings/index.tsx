@@ -1,8 +1,18 @@
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
-import React, { useContext, useEffect, useState } from "react";
-import { Image, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  Image,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -27,6 +37,7 @@ import {
 } from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
+import EditProfileFace from "../../assets/sw-faces/EditProfileFace";
 
 const HEADER_HEIGHT = 100;
 
@@ -40,6 +51,28 @@ const Settings = () => {
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 4000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [floatAnim]);
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
@@ -61,8 +94,6 @@ const Settings = () => {
   const closeModal = () => {
     setIsVisible(false);
   };
-
-
 
   const menuItems = [
     // {
@@ -119,7 +150,7 @@ const Settings = () => {
         } catch (e) {
           console.error(e);
         }
-      }
+      };
       fetchLevel();
     }
   }, [user]);
@@ -272,6 +303,28 @@ const Settings = () => {
 
           {/* Minimal Footer */}
           <View style={styles.footer}>
+            {/* Floating WaveFace watermark */}
+            <Animated.View
+              style={[
+                styles.voidFaceContainer, // Reusing existing style name for consistency, or we could rename to waveFaceContainer
+                {
+                  transform: [
+                    {
+                      translateY: floatAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 10],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <EditProfileFace
+                size={220}
+                transparentBg={true}
+              />
+            </Animated.View>
+
             <TouchableOpacity
               style={styles.signOutButton}
               onPress={handleLogout}
@@ -482,12 +535,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-
   // Footer
   footer: {
     alignItems: "center",
     gap: 16,
     marginTop: 12,
+    position: "relative", // Ensure children can be absolute relative to this
+  },
+  voidFaceContainer: {
+    position: "absolute",
+    bottom: -40,
+    right: -50,
+    zIndex: -1,
   },
   signOutButton: {
     flexDirection: "row",

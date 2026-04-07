@@ -20,6 +20,7 @@ import {
 } from "../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import EditProfile from "./EditProfile";
+import EditProfileFace from "../../../assets/sw-faces/EditProfileFace";
 
 interface FullProfileProps {
   levelStage?: LevelStage | null;
@@ -80,7 +81,9 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
                       style={styles.profileImage}
                     />
                     <View style={styles.levelBadge}>
-                      <Text style={styles.levelBadgeText}>{levelStage?.level || user?.level || 1}</Text>
+                      <Text style={styles.levelBadgeText}>
+                        {levelStage?.level || user?.level || 1}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.profileDetails}>
@@ -106,6 +109,11 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
                     <Text style={styles.editText}>Edit</Text>
                     <Icon solid name="user-edit" size={12} color="#FFF" />
                   </TouchableOpacity>
+                </View>
+
+                {/* Character Watermark on Card */}
+                <View style={styles.cardFaceContainer}>
+                  <EditProfileFace size={96} transparentBg />
                 </View>
               </LinearGradient>
             </View>
@@ -499,5 +507,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#475569",
+  },
+  cardFaceContainer: {
+    position: "absolute",
+    right: -15,
+    bottom: -15,
+    zIndex: 0,
+    opacity: 0.8,
+  },
+  faceContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    gap: 12,
+    opacity: 0.9,
+  },
+  faceLabel: {
+    fontSize: 14,
+    color: "#94A3B8",
+    fontWeight: "600",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
 });
