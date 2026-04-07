@@ -5,6 +5,8 @@ import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import UpsellModal from "./app/components/UpsellModal";
 import OutcomeModal from "./app/components/OutcomeModal";
+import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
+import GlobalStaminaController from "./app/components/GlobalStaminaController";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
@@ -152,6 +154,8 @@ const App: React.FC = () => {
             </NavigationContainer>
             <UpsellModal />
             <OutcomeModal />
+            <StaminaVignetteOverlay />
+            <GlobalStaminaController />
           </SafeAreaView>
         </SafeAreaProvider>
       </AuthProvider>
