@@ -36,10 +36,9 @@ import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
 import IRLConfirmationModal from "../../../../../components/IRLConfirmationModal";
 
 enum ChallengeStep {
-  START = 0,
-  INSTRUCTION = 1,
-  REFLECTION = 2,
-  SUMMARY = 3,
+  INSTRUCTION = 0,
+  REFLECTION = 1,
+  SUMMARY = 2,
 }
 
 import { PracticeActivity } from "../../../../../api/practiceActivities/types";
@@ -71,15 +70,20 @@ const RealLifeChallenge = () => {
     practiceActivity?.cognitivePractice?.realLifeChallengeData ||
     practiceActivity?.exposurePractice?.realLifeChallengeData;
 
-  // Derived initial step based on whether it was already started by Pack
-  const initialStep = packContext?.alreadyStarted
-    ? ChallengeStep.INSTRUCTION
-    : ChallengeStep.START;
+  // Always start with Instructions for Real Life Challenges
+  const initialStep = ChallengeStep.INSTRUCTION;
 
   const [currentStep, setCurrentStep] = useState<ChallengeStep>(initialStep);
   const [reflectionText, setReflectionText] = useState("");
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIRLModal, setShowIRLModal] = useState(false);
+
+  // Auto-start activity on mount if not already started
+  React.useEffect(() => {
+    if (!packContext?.alreadyStarted && currentStep === ChallengeStep.INSTRUCTION) {
+      markActivityStart();
+    }
+  }, []);
 
   if (!challengeData) {
     return (
@@ -307,7 +311,7 @@ const RealLifeChallenge = () => {
   };
 
   const handleBack = () => {
-    if (currentStep === ChallengeStep.START) {
+    if (currentStep === ChallengeStep.INSTRUCTION) {
       navigation.goBack();
     } else {
       setCurrentStep(currentStep - 1);
@@ -345,123 +349,6 @@ const RealLifeChallenge = () => {
     </BlurView>
   );
 
-  const renderStartScreen = () => (
-    <ScrollView
-      style={styles.scrollView}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <View style={styles.compactHero}>
-        <Text style={styles.compactSubtitleText}>{description}</Text>
-      </View>
-
-      <View style={styles.bentoGrid}>
-        {/* Row 1: Time & Reward */}
-        <View style={styles.bentoRow}>
-          <View style={[styles.bentoCard, styles.halfBento]}>
-            <LinearGradient
-              colors={["#E0F2FE", "#F0F9FF"]}
-              style={styles.cardGradient}
-            >
-              {/* Card Watermark */}
-              <View style={styles.cardWatermarkContainer} pointerEvents="none">
-                <Icon
-                  name="clock"
-                  size={80}
-                  color="#0284C7"
-                  style={styles.cardWatermark}
-                />
-              </View>
-
-              <View style={styles.cardHeader}>
-                <Text style={[styles.cardLabel, { color: "#0369A1" }]}>
-                  Duration
-                </Text>
-              </View>
-              <Text style={styles.cardValue}>
-                {challengeData.durationMinutes
-                  ? `${challengeData.durationMinutes} min`
-                  : "Self-paced"}
-              </Text>
-            </LinearGradient>
-          </View>
-
-          <View style={[styles.bentoCard, styles.halfBento]}>
-            <LinearGradient
-              colors={["#FFF7ED", "#FFFAF0"]}
-              style={styles.cardGradient}
-            >
-              {/* Card Watermark */}
-              <View style={styles.cardWatermarkContainer} pointerEvents="none">
-                <Icon
-                  name="star"
-                  size={80}
-                  color="#EA580C"
-                  style={styles.cardWatermark}
-                />
-              </View>
-
-              <View style={styles.cardHeader}>
-                <Text style={[styles.cardLabel, { color: "#9A3412" }]}>
-                  Reward
-                </Text>
-              </View>
-              <Text style={styles.cardValue}>
-                +{challengeData.xpReward || 50} XP
-              </Text>
-            </LinearGradient>
-          </View>
-        </View>
-
-        {/* Row 2: Focus Areas (Full Width Bento) */}
-        <View style={[styles.bentoCard, styles.fullBento]}>
-          <LinearGradient
-            colors={["#F0FDF4", "#F6FFFA"]}
-            style={styles.cardGradient}
-          >
-            {/* Card Watermark */}
-            <View style={styles.cardWatermarkContainer} pointerEvents="none">
-              <Icon
-                name="bullseye"
-                size={100}
-                color="#16A34A"
-                style={[styles.cardWatermark, { right: -10, bottom: -20 }]}
-              />
-            </View>
-
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardLabelInline}>Key Practice Focus</Text>
-            </View>
-            <View style={styles.focusPills}>
-              {[
-                {
-                  label: "Social Navigation",
-                  color: "rgba(220, 252, 231, 0.6)",
-                },
-                { label: "Cognitive Flex", color: "rgba(220, 252, 231, 0.6)" },
-                { label: "Real Success", color: "rgba(220, 252, 231, 0.6)" },
-              ].map((pill, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.pill,
-                    {
-                      backgroundColor: pill.color,
-                      borderColor: "rgba(22, 163, 74, 0.1)",
-                    },
-                  ]}
-                >
-                  <Text style={styles.pillText}>{pill.label}</Text>
-                </View>
-              ))}
-            </View>
-          </LinearGradient>
-        </View>
-      </View>
-
-      {/* Start Button removed from scroll */}
-    </ScrollView>
-  );
 
   const renderInstructionScreen = () => (
     <ScrollView
@@ -569,35 +456,6 @@ const RealLifeChallenge = () => {
   }
 
   const renderBottomAction = () => {
-    if (currentStep === ChallengeStep.START) {
-      return (
-        <View
-          style={[
-            styles.fixedBottomAction,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-        >
-          <TactileTouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleStart}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.library.orange[400],
-                theme.colors.library.orange[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.buttonGradient}
-            >
-              <Icon name="play" size={16} color="#FFF" />
-              <Text style={styles.primaryButtonText}>Start Practice</Text>
-            </LinearGradient>
-          </TactileTouchableOpacity>
-        </View>
-      );
-    }
     if (currentStep === ChallengeStep.INSTRUCTION) {
       return (
         <View
@@ -674,7 +532,6 @@ const RealLifeChallenge = () => {
       </View>
 
       {renderHeader()}
-      {currentStep === ChallengeStep.START && renderStartScreen()}
       {currentStep === ChallengeStep.INSTRUCTION && renderInstructionScreen()}
       {currentStep === ChallengeStep.REFLECTION && renderReflectionScreen()}
       {renderBottomAction()}
@@ -776,72 +633,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 0,
-    paddingBottom: 32,
+    paddingBottom: 160, // Increased to clear fixed bottom button
   },
 
-  // Compact Hero
-  compactHero: {
-    marginBottom: 20,
-    width: "100%",
+  // Instructions Styles
+  stepHeaderContainer: {
+    marginBottom: 24,
     paddingHorizontal: 4,
-  },
-  compactSubtitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    lineHeight: 22,
-    opacity: 0.85,
-    textAlign: "center",
-  },
-
-  // Bento Grid (Glass Edition)
-  bentoGrid: {
-    gap: 16,
-  },
-  bentoRow: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  bentoCard: {
-    borderRadius: 32,
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    backgroundColor: "rgba(255, 255, 255, 0.5)", // Glass effect
-    position: "relative",
-  },
-  startActionContainer: {
-    marginTop: 24,
-    width: "100%",
-  },
-
-  halfBento: {
-    flex: 1,
-    minHeight: 150,
-  },
-  fullBento: {
-    width: "100%",
-    minHeight: 140,
-  },
-  cardGradient: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "flex-end",
-  },
-  instructionCardGradient: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "center",
-  },
-
-  // Artifact Watermarks
-  cardWatermarkContainer: {
-    position: "absolute",
-    right: -10,
-    bottom: -15,
-    opacity: 0.15,
-  },
-  cardWatermark: {
-    transform: [{ rotate: "-15deg" }],
   },
 
   cardHeader: {
@@ -988,11 +786,6 @@ const styles = StyleSheet.create({
     height: 0,
   },
 
-  // Premium Step Header
-  stepHeaderContainer: {
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
   stepIndicator: {
     backgroundColor: theme.colors.library.orange[100],
     alignSelf: "flex-start",
@@ -1030,7 +823,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.9)",
     backgroundColor: "rgba(255, 255, 255, 0.6)", // Glass effect
     minHeight: 200,
-    marginBottom: 20,
+    marginBottom: 24,
     shadowColor: theme.colors.library.orange[200], // Subtle orange shadow
     shadowOffset: {
       width: 0,
@@ -1039,6 +832,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 10,
+  },
+  instructionCardGradient: {
+    padding: 24,
+    justifyContent: "center",
   },
   instructionWatermarkContainer: {
     position: "absolute",
