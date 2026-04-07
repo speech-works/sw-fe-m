@@ -161,7 +161,7 @@ const Explore = () => {
           refreshControl={refreshControl}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+            { paddingTop: HEADER_HEIGHT + insets.top + 28 },
           ]}
           showsVerticalScrollIndicator={false}
           onScrollBeginDrag={() => setIsScrolling(true)}
@@ -179,13 +179,19 @@ const Explore = () => {
           {/* World Exploration Map */}
           <WorldExplorationGraph />
 
+          <View style={{ height: 12 }} />
+
           {/* 4 Types of Practice Grid */}
           <View onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}>
             <PracticeGrid isScrolling={isScrolling} />
           </View>
 
+          <View style={{ height: 28 }} />
+
           {/* Upgrade CTA */}
           <BuyPro onLayoutCapture={() => {}} />
+
+          <View style={{ height: 28 }} />
 
           {/* Inline Library Section */}
           <LibrarySection onLayoutCapture={() => {}} />
@@ -210,8 +216,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 130, // Space for Custom Tab Bar
     paddingHorizontal: 16,
-    paddingTop: 20,
-    gap: 32, // Consistent space between sections
+    paddingTop: 0,
   },
   header: {
     position: "absolute",
