@@ -38,6 +38,14 @@ if (__DEV__) {
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
 
+// Bug Fix #3: Debounce guard for AppState-triggered fetchUser() calls.
+// Android foregrounds apps more aggressively than iOS (screen-on events,
+// notification dismissals, alt-tab, etc.). Without this guard, stamina
+// detection can fire multiple times in a short window, each one a candidate
+// for bypassing the lowStaminaNotified flag before it persists.
+const APPSTATE_FETCH_DEBOUNCE_MS = 5_000;
+let lastAppStateFetchTime = 0;
+
 const App: React.FC = () => {
   useEffect(() => {
     // reset mood log on frontend
@@ -123,6 +131,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
+        // Bug Fix #3: Debounce rapid foreground events (common on Android).
+        const now = Date.now();
+        if (now - lastAppStateFetchTime < APPSTATE_FETCH_DEBOUNCE_MS) {
+          console.log("App foregrounded: Skipping fetchUser (debounced)");
+          return;
+        }
+        lastAppStateFetchTime = now;
         console.log("App foregrounded: Refreshing user data...");
         useUserStore.getState().fetchUser();
       }

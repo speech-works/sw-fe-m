@@ -14,7 +14,7 @@ const SAFE_SCREENS = new Set([
   "Explore",
   "Settings",
   "Community",
-  "Academy", // the DailyPractice tab root  
+  "Academy", // the DailyPractice tab root
 ]);
 
 /**
@@ -29,17 +29,32 @@ const SAFE_SCREENS = new Set([
  *
  * After the modal is dismissed, resetAll() re-arms the system for the
  * next stamina crossing event.
+ *
+ * Bug Fix #1: The navigation listener is registered ONCE (empty dep array).
+ * All Zustand state is read via getState() inside the callback so there
+ * are never stale closures. Previously, having `staminaModalQueued` in
+ * the dep array caused the listener to be torn-down and re-mounted every
+ * time the flag flipped, and Android's extra navigation state events
+ * during that re-mount window caused the modal to fire multiple times.
  */
 const GlobalStaminaController: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
 
-  const { staminaModalQueued, setStaminaModalQueued, resetAll } =
-    useStaminaNotificationStore();
+  // Only `resetAll` is needed outside the listener (for the close handler).
+  // Everything else is read live from getState() inside the listener.
+  const resetAll = useStaminaNotificationStore((s) => s.resetAll);
 
   useEffect(() => {
     if (!navigationRef.isReady()) return;
 
     const unsubscribe = navigationRef.addListener("state", () => {
+      // Read live Zustand state every time — no stale closure risk.
+      const {
+        staminaModalQueued,
+        setStaminaModalQueued,
+        resetAll: resetNotification,
+      } = useStaminaNotificationStore.getState();
+
       if (!staminaModalQueued) return;
 
       const currentRoute = navigationRef.getCurrentRoute();
@@ -60,7 +75,7 @@ const GlobalStaminaController: React.FC = () => {
               pct.toFixed(1) +
               "%) — cancelling queued modal",
           );
-          resetAll();
+          resetNotification();
           return;
         }
       }
@@ -77,7 +92,7 @@ const GlobalStaminaController: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [staminaModalQueued, setStaminaModalQueued, resetAll]);
+  }, []); // Stable: registered once on mount; reads live store state inside.
 
   const handleClose = () => {
     setShowModal(false);

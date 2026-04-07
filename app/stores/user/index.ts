@@ -18,6 +18,13 @@ interface UserState {
 }
 
 /**
+ * Module-level in-flight guard — prevents concurrent fetchUser() calls from
+ * both reading lowStaminaNotified as false and double-firing the stamina event.
+ * (Bug Fix #4)
+ */
+let fetchUserInFlight = false;
+
+/**
  * `persist` saves the user data is saved to AsyncStorage.
  */
 export const useUserStore = create<UserState>()(
@@ -37,6 +44,16 @@ export const useUserStore = create<UserState>()(
         }),
 
       fetchUser: async () => {
+        // Bug Fix #4: Serialize concurrent fetchUser() calls.
+        // Multiple activity screens call fetchUser() at different lifecycle
+        // points. If two calls overlap, both can read lowStaminaNotified as
+        // false before either writes true, causing a double-fire.
+        if (fetchUserInFlight) {
+          console.log("[UserStore] fetchUser already in-flight, skipping");
+          return;
+        }
+        fetchUserInFlight = true;
+
         try {
           const { getMyUser } = await import("../../api/users");
           const user = await getMyUser();
@@ -45,6 +62,18 @@ export const useUserStore = create<UserState>()(
 
           // --- Low Stamina Threshold Detection (phone-battery style) ---
           if (user.currentStamina !== undefined && user.maxStaminaCap) {
+            // Bug Fix #2: Wait for the persisted notification store to finish
+            // loading from AsyncStorage before reading lowStaminaNotified.
+            // On Android cold starts, hydration can lag behind the first
+            // fetchUser() call (triggered by AppState or useFocusEffect),
+            // making lowStaminaNotified appear false and bypassing the guard.
+            if (!useStaminaNotificationStore.persist.hasHydrated()) {
+              console.log(
+                "[StaminaAlert] Notification store not yet hydrated — deferring detection",
+              );
+              return;
+            }
+
             const pct = (user.currentStamina / user.maxStaminaCap) * 100;
             const {
               lowStaminaNotified,
@@ -75,6 +104,9 @@ export const useUserStore = create<UserState>()(
           // ---------------------------------------------------------------
         } catch (error) {
           console.error("UserStore fetchUser error:", error);
+        } finally {
+          // Always release the lock so the next call can proceed.
+          fetchUserInFlight = false;
         }
       },
 
