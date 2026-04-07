@@ -11,6 +11,7 @@ import BottomSheetModal from "../../components/BottomSheetModal";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
+import { BlurView } from "expo-blur";
 import { AuthContext } from "../../contexts/AuthContext";
 import {
   SettingsStackNavigationProp,
@@ -26,6 +27,8 @@ import {
 } from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
+
+const HEADER_HEIGHT = 100;
 
 const Settings = () => {
   const navigation = useNavigation<any>();
@@ -124,7 +127,7 @@ const Settings = () => {
   return (
     <>
       <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-        {/* Unified Background Gradient */}
+        {/* Unified Background Mesh Gradient */}
         <View style={StyleSheet.absoluteFillObject}>
           <LinearGradient
             colors={["#FFF7ED", "#FFF", "#FFF"]}
@@ -133,20 +136,33 @@ const Settings = () => {
           />
         </View>
 
-        <CustomScrollView
+        {/* Floating Premium Header */}
+        <BlurView
+          intensity={80}
+          tint="light"
           style={[
-            styles.screenContainer,
-            { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 10 : 0, 20) },
+            styles.header,
+            {
+              paddingTop: insets.top + 20,
+              height: HEADER_HEIGHT + insets.top,
+            },
           ]}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 130 }}
         >
-          {/* Header Title */}
-          <View style={styles.headerContainer}>
-            <Text style={styles.pageTitle}>Settings</Text>
-          </View>
+          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.subtitle}>
+            Manage your profile and preferences.
+          </Text>
+        </BlurView>
 
-          {/* Aurora Glass Identity Card (Concept A) */}
+        <CustomScrollView
+          style={styles.screenContainer}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 130,
+            paddingTop: HEADER_HEIGHT + insets.top + 28,
+          }}
+        >
+          {/* Aurora Glass Identity Card */}
           <LinearGradient
             colors={["#0EA5E9", "#2563EB", "#312E81"]} // Sky -> Royal -> Deep Indigo
             start={{ x: 0, y: 0 }}
@@ -201,6 +217,8 @@ const Settings = () => {
             </View>
           </LinearGradient>
 
+          <View style={{ height: 28 }} />
+
           {/* Action Tiles Menu */}
           <View style={styles.menuSection}>
             {menuItems.map((item, index) => (
@@ -208,7 +226,7 @@ const Settings = () => {
                 key={index}
                 style={[
                   styles.menuTile,
-                  { borderColor: `${item.iconColor}20` }, // Subtle 12.5% opacity tint for Prism effect
+                  { borderColor: `${item.iconColor}20` }, // Subtle tint
                 ]}
                 onPress={item.onClick}
               >
@@ -217,7 +235,7 @@ const Settings = () => {
                   <MaterialCommunityIcons
                     name={item.icon as any}
                     size={100}
-                    color={`${item.iconColor}08`} // Extremely subtle 5% opacity
+                    color={`${item.iconColor}08`} // Extremely subtle
                   />
                 </View>
 
@@ -226,7 +244,7 @@ const Settings = () => {
                     styles.iconContainer,
                     {
                       backgroundColor: item.iconBg,
-                      borderColor: `${item.iconColor}40`, // Slightly stronger border for the icon box
+                      borderColor: `${item.iconColor}40`,
                     },
                   ]}
                 >
@@ -246,7 +264,11 @@ const Settings = () => {
             ))}
           </View>
 
+          <View style={{ height: 28 }} />
+
           <BuyPro />
+
+          <View style={{ height: 28 }} />
 
           {/* Minimal Footer */}
           <View style={styles.footer}>
@@ -283,17 +305,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  headerContainer: {
-    minHeight: 80,
-    justifyContent: "center",
-    marginBottom: 24, // Restored from original pageTitle margin
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 16,
+    gap: 4,
   },
-  pageTitle: {
+  title: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
-    marginBottom: 0,
   },
-  // Aurora Glass Card Styles
+  subtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+  },
   profileSection: {
     marginTop: 10,
     marginBottom: 24,
