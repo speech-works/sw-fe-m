@@ -231,17 +231,12 @@ const PhoneCall = () => {
   };
 
   useEffect(() => {
-    // If we're in a pack context and already have a selected scenario from the activity, skip fetching
-    if (packContext && selectedScenario) {
-      return;
-    }
- 
     const fetchScenarios = async () => {
       try {
         const data = await getPhoneCallScenarios();
  
         setScenarioData(data);
-        if (data.length > 0) {
+        if (data.length > 0 && !selectedScenario) {
           setSelectedScenario(data[0]);
         }
       } catch (error) {
@@ -350,7 +345,7 @@ const PhoneCall = () => {
         onClose={closeModal}
         maxHeight="80%"
         showCloseButton={true}
-        fitContent={true}
+        fitContent={false}
       >
         <LinearGradient
           colors={["#0f172a", "#1e1b4b", "#2e1065"] as const}
