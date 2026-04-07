@@ -324,22 +324,6 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                   </View>
                 )}
 
-                {recommendation.isRefresher && (
-                  <View
-                    style={[
-                      styles.chip,
-                      { backgroundColor: theme.colors.library.blue[400] },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="refresh"
-                      size={14}
-                      color="white"
-                    />
-                    <Text style={styles.chipText}>Refresher</Text>
-                  </View>
-                )}
-
                 <Text style={styles.packTitle}>{pack.title}</Text>
                 <Text style={styles.packSubtitle}>{pack.description}</Text>
               </View>
@@ -458,6 +442,11 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             )
           )}
         </LinearGradient>
+        {recommendation.isRefresher && (
+          <View style={styles.refresherBadge}>
+            <Text style={styles.refresherBadgeText}>Refresher</Text>
+          </View>
+        )}
       </TouchableOpacity>
 
       <BottomSheetModal
@@ -543,13 +532,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
-    overflow: "hidden",
   },
   loadingContainer: {
     height: 200,
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 24,
   },
   packTitleEmpty: {
     ...parseTextStyle(theme.typography.Heading2),
@@ -568,6 +557,29 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     position: "relative",
+    overflow: "hidden",
+  },
+  refresherBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#10B981", // Stylish green (Emerald 500)
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  refresherBadgeText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   bubbleTopRight: {
     position: "absolute",

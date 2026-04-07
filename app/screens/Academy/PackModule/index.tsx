@@ -914,6 +914,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     borderRadius: 14,
+    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   nextButtonText: {
@@ -954,6 +955,7 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     borderRadius: 14,
+    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   gradientButton: {
@@ -1020,6 +1022,7 @@ const styles = StyleSheet.create({
   },
   successPrimaryButton: {
     borderRadius: 16,
+    backgroundColor: "transparent",
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   successGradientButton: {
