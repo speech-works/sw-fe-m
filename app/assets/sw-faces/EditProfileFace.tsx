@@ -6,12 +6,14 @@ import Animated, {
   useAnimatedProps,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
+import Svg, { Circle, Ellipse, G, Path, SvgProps } from "react-native-svg";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path) as any;
 const AnimatedG = Animated.createAnimatedComponent(G) as any;
+const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse) as any;
 
 const FACE_BLOB =
   "M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736";
@@ -32,8 +34,11 @@ const EditProfileFace: React.FC<EditProfileFaceProps> = ({
   // Shared values for driving animations entirely on the UI thread
   const drawProgress = useSharedValue(0);
   const wobble = useSharedValue(0);
+  const blink = useSharedValue(1);
 
   useEffect(() => {
+    let blinkTimeout: NodeJS.Timeout;
+
     if (shouldAnimate) {
       // 1. Draw the line (progress 0 to 1 and back)
       drawProgress.value = withRepeat(
@@ -54,14 +59,28 @@ const EditProfileFace: React.FC<EditProfileFaceProps> = ({
         -1,
         true,
       );
+
+      // 3. Periodic Blink Animation
+      const triggerBlink = () => {
+        blink.value = withSequence(
+          withTiming(0, { duration: 100, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 100, easing: Easing.inOut(Easing.ease) }),
+        );
+        blinkTimeout = setTimeout(triggerBlink, 3000 + Math.random() * 5000);
+      };
+
+      triggerBlink();
     } else {
       drawProgress.value = withTiming(1, { duration: 300 });
       wobble.value = withTiming(0, { duration: 150 });
+      blink.value = withTiming(1, { duration: 300 });
     }
 
     return () => {
       cancelAnimation(drawProgress);
       cancelAnimation(wobble);
+      cancelAnimation(blink);
+      if (blinkTimeout) clearTimeout(blinkTimeout);
     };
   }, [shouldAnimate]);
 
@@ -105,6 +124,12 @@ const EditProfileFace: React.FC<EditProfileFaceProps> = ({
     };
   }, []);
 
+  const blinkProps = useAnimatedProps(() => {
+    return {
+      ry: 2 * blink.value,
+    };
+  }, []);
+
   return (
     <View
       style={[
@@ -129,8 +154,8 @@ const EditProfileFace: React.FC<EditProfileFaceProps> = ({
         <Path d={FACE_BLOB} fill="#FFF9C4" />
 
         {/* Eyes */}
-        <Circle cx="16" cy="24" r="2" fill="#3E2723" />
-        <Circle cx="32" cy="24" r="2" fill="#3E2723" />
+        <AnimatedEllipse cx="16" cy="24" rx="2" ry="2" fill="#3E2723" animatedProps={blinkProps} />
+        <AnimatedEllipse cx="32" cy="24" rx="2" ry="2" fill="#3E2723" animatedProps={blinkProps} />
 
         {/* Drawn Mouth Curve */}
         <AnimatedPath
