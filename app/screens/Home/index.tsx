@@ -118,7 +118,12 @@ const Home = () => {
           : null;
 
         let batch = state.dailyBatch;
-        console.log("[Home] OASES Init Debug - Store Batch:", !!batch, "Last Fetched:", state.lastFetchedAt);
+        console.log(
+          "[Home] OASES Init Debug - Store Batch:",
+          !!batch,
+          "Last Fetched:",
+          state.lastFetchedAt,
+        );
 
         // If not fetched today, or no batch exists, or forced, fetch from API
         if (forceFetch || todayStr !== lastFetchedStr || !batch) {
@@ -167,7 +172,10 @@ const Home = () => {
         // Step 3: Show widget if there are current questions OR if more remain for future days
         // Or if batch is missing (fresh post-onboarding), show as Day 1
         const safeDay = batch?.dayNumber || 1;
-        console.log("[Home] OASES Progress Setting:", { safeDay, totalRemaining });
+        console.log("[Home] OASES Progress Setting:", {
+          safeDay,
+          totalRemaining,
+        });
         setOasesProgress({
           dayNumber: safeDay,
           totalDays: 7, // Fixed 7-day flow
@@ -180,7 +188,8 @@ const Home = () => {
           Toast.show({
             type: "error",
             text1: "Assessment update failed",
-            text2: "We couldn't refresh your assessment progress. Swipe down to try again.",
+            text2:
+              "We couldn't refresh your assessment progress. Swipe down to try again.",
           });
         }
         setOasesProgress(null);
@@ -283,147 +292,152 @@ const Home = () => {
           ) : null}
         </View>
 
+        <View style={{ height: 28 }} />
+
         {/* --- Top Carousel --- */}
         {totalPages > 0 && (
-          <View style={{ marginHorizontal: -16 }}>
-            <Animated.ScrollView
-              horizontal
-              scrollEnabled={true}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                paddingHorizontal: sidePadding,
-                marginBottom: 16, // Reduced margin to fit dots
-              }}
-              snapToInterval={snapInterval}
-              decelerationRate="fast"
-              snapToAlignment="start"
-              onScroll={scrollHandler}
-              scrollEventThrottle={16}
-            >
-              {cards.map((cardType, index) => (
-                <View
-                  key={cardType}
+          <Animated.ScrollView
+            horizontal
+            scrollEnabled={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: sidePadding,
+              marginBottom: 0,
+            }}
+            style={{
+              marginHorizontal: -16,
+              marginBottom: 0,
+            }}
+            snapToInterval={snapInterval}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+          >
+            {cards.map((cardType, index) => (
+              <View
+                key={cardType}
+                style={[
+                  styles.carouselItem,
+                  {
+                    width: carouselItemWidth,
+                    marginRight:
+                      index === totalPages - 1 ? 0 : carouselSpacing,
+                  },
+                ]}
+              >
+                {cardType === "onboarding" && (
+                  <OnboardingReminderCard
+                    currentStep={currentOnboardingScreen - 1}
+                    totalSteps={totalOnboardingScreens}
+                    style={{ marginBottom: 0 }}
+                    onPress={async () => {
+                      try {
+                        const state = useOnboardingStore.getState();
+                        if (
+                          state.flow &&
+                          (state.currentScreen > 1 ||
+                            Object.keys(state.answers).length > 0)
+                        ) {
+                          setShowResumeModal(true);
+                          return;
+                        }
+                        const flow = await getActiveOnboardingFlow();
+                        state.startFresh(flow);
+                        emit(EVENT_NAMES.START_ONBOARDING);
+                      } catch (err) {
+                        console.error("Failed to load onboarding flow:", err);
+                      }
+                    }}
+                  />
+                )}
+                {cardType === "oases" && (
+                  <OASESWidget
+                    dayNumber={oasesProgress?.dayNumber}
+                    totalDays={oasesProgress?.totalDays}
+                    totalRemaining={oasesProgress?.totalRemaining}
+                    style={{ marginBottom: 0 }}
+                    onPress={() => {
+                      navigation.navigate("AcademyStack", {
+                        screen: "DailyPracticeStack",
+                        params: { screen: "OASESIntro" },
+                      });
+                    }}
+                  />
+                )}
+                {cardType === "mood" && (
+                  <View collapsable={false}>
+                    {interactionsDone ? (
+                      <MoodCheckBanner style={{ marginBottom: 0 }} />
+                    ) : (
+                      <View
+                        style={{
+                          height: 260,
+                          borderRadius: 24,
+                          backgroundColor: "rgba(0,0,0,0.02)",
+                        }}
+                      />
+                    )}
+                  </View>
+                )}
+              </View>
+            ))}
+          </Animated.ScrollView>
+        )}
+
+        {/* Pagination Indicators */}
+        {totalPages > 1 && (
+          <View style={styles.paginationContainer}>
+            {cards.map((_, index) => {
+              const inputRange = [
+                (index - 1) * snapInterval,
+                index * snapInterval,
+                (index + 1) * snapInterval,
+              ];
+
+              const dotScaleX = scrollX.interpolate({
+                inputRange,
+                outputRange: [1, 3, 1],
+                extrapolate: "clamp",
+              });
+
+              const opacity = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.4, 1, 0.4],
+                extrapolate: "clamp",
+              });
+
+              return (
+                <Animated.View
+                  key={index}
                   style={[
-                    styles.carouselItem,
+                    styles.dot,
                     {
-                      width: carouselItemWidth,
-                      marginRight:
-                        index === totalPages - 1 ? 0 : carouselSpacing,
+                      transform: [{ scaleX: dotScaleX }],
+                      opacity: opacity,
                     },
                   ]}
-                >
-                  {cardType === "onboarding" && (
-                    <OnboardingReminderCard
-                      currentStep={currentOnboardingScreen - 1}
-                      totalSteps={totalOnboardingScreens}
-                      style={{ marginBottom: 0 }}
-                      onPress={async () => {
-                        try {
-                          const state = useOnboardingStore.getState();
-                          if (
-                            state.flow &&
-                            (state.currentScreen > 1 ||
-                              Object.keys(state.answers).length > 0)
-                          ) {
-                            setShowResumeModal(true);
-                            return;
-                          }
-                          const flow = await getActiveOnboardingFlow();
-                          state.startFresh(flow);
-                          emit(EVENT_NAMES.START_ONBOARDING);
-                        } catch (err) {
-                          console.error("Failed to load onboarding flow:", err);
-                        }
-                      }}
-                    />
-                  )}
-                  {cardType === "oases" && (
-                    <OASESWidget
-                      dayNumber={oasesProgress?.dayNumber}
-                      totalDays={oasesProgress?.totalDays}
-                      totalRemaining={oasesProgress?.totalRemaining}
-                      style={{ marginBottom: 0 }}
-                      onPress={() => {
-                        navigation.navigate("AcademyStack", {
-                          screen: "DailyPracticeStack",
-                          params: { screen: "OASESIntro" },
-                        });
-                      }}
-                    />
-                  )}
-                  {cardType === "mood" && (
-                    <View collapsable={false}>
-                      {interactionsDone ? (
-                        <MoodCheckBanner style={{ marginBottom: 0 }} />
-                      ) : (
-                        <View
-                          style={{
-                            height: 260,
-                            borderRadius: 24,
-                            backgroundColor: "rgba(0,0,0,0.02)",
-                          }}
-                        />
-                      )}
-                    </View>
-                  )}
-                </View>
-              ))}
-            </Animated.ScrollView>
-
-            {/* Pagination Indicators */}
-            {totalPages > 1 && (
-              <View style={styles.paginationContainer}>
-                {paginationData.map((_, index) => {
-                  const inputRange = [
-                    (index - 1) * snapInterval,
-                    index * snapInterval,
-                    (index + 1) * snapInterval,
-                  ];
-
-                  const dotScaleX = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [1, 3, 1], // Equivalent to 8, 24, 8 width
-                    extrapolate: "clamp",
-                  });
-
-                  const opacity = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0.4, 1, 0.4],
-                    extrapolate: "clamp",
-                  });
-
-                  return (
-                    <Animated.View
-                      key={index}
-                      style={[
-                        styles.dot,
-                        {
-                          transform: [{ scaleX: dotScaleX }],
-                          opacity: opacity,
-                        },
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-            )}
+                />
+              );
+            })}
           </View>
         )}
         {/* ------------------- */}
 
-        <View>
-          <ResourceStats refreshing={refreshing} />
-        </View>
+        <View style={{ height: 16 }} />
 
-        <View style={{ height: 24 }} />
+        <ResourceStats refreshing={refreshing} style={{ marginBottom: 0 }} />
 
-        <View>
-          <SmartRecommendationCard key={`rec-${refreshKey}`} />
-        </View>
+        <View style={{ height: 28 }} />
 
-        <View>
-          <ClinicalStatsWidget />
-        </View>
+        <SmartRecommendationCard
+          key={`rec-${refreshKey}`}
+          style={{ marginBottom: 0 }}
+        />
+
+        <View style={{ height: 28 }} />
+
+        <ClinicalStatsWidget />
       </ScrollView>
 
       {/* Resume Modal Overlay */}
@@ -444,8 +458,7 @@ const styles = StyleSheet.create({
     paddingBottom: 130, // Space for Custom Tab Bar
   },
   header: {
-    marginBottom: 16,
-    minHeight: 104, // Increased from 60 to accommodate 2-line name wrapping
+    marginBottom: 0,
   },
   greeting: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -467,7 +480,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   dot: {
     height: 8,

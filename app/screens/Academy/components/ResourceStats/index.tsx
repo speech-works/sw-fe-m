@@ -54,7 +54,13 @@ const AnimatedBar = ({
   );
 };
 
-const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
+const ResourceStats = ({
+  refreshing,
+  style,
+}: {
+  refreshing?: boolean;
+  style?: any;
+}) => {
   const { width } = useWindowDimensions();
   const { user, fetchUser } = useUserStore();
   const isFocused = useIsFocused();
@@ -210,7 +216,7 @@ const ResourceStats = ({ refreshing }: { refreshing?: boolean }) => {
   const taskPercentage = (tasksRemaining / tasksTotal) * 100;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       {/* The Aurora Card */}
       <View style={styles.cardContainer}>
         <LinearGradient
@@ -481,10 +487,10 @@ export default ResourceStats;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 4,
+    marginVertical: 0,
   },
   cardContainer: {
-    marginVertical: 12,
+    marginVertical: 0,
     borderRadius: 24,
     shadowColor: theme.colors.actionPrimary.default,
     shadowOffset: { width: 0, height: 8 },

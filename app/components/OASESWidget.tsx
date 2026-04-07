@@ -97,7 +97,7 @@ export default React.memo(OASESWidget);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 0,
     borderRadius: 24,
     shadowColor: "#EA580C",
     shadowOffset: { width: 0, height: 8 },

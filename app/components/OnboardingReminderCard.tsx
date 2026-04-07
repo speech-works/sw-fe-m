@@ -104,7 +104,7 @@ export default React.memo(OnboardingReminderCard);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 0,
     borderRadius: 24,
     shadowColor: "#0EA5E9",
     shadowOffset: { width: 0, height: 8 },

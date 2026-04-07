@@ -100,7 +100,7 @@ const POLAR_TO_CARTESIAN = (
   };
 };
 
-const ClinicalStatsWidget = () => {
+const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const {
     growthProfile,
     overallState,
@@ -403,7 +403,7 @@ const ClinicalStatsWidget = () => {
   // Safe guard for early render
   if (loading || !growthProfile || !chartData || !weeklyBreakthroughs) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, style]}>
         {/* Header Skeleton */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
     padding: 24,
-    marginVertical: 12,
+    marginVertical: 0,
     backgroundColor: "white", // Restored White
     overflow: "hidden", // Clip bubbles
     borderWidth: 1,
@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "white",
     borderRadius: 24,
-    marginVertical: 12,
+    marginVertical: 0,
     padding: 20,
   },
   mainWatermarkContainer: {

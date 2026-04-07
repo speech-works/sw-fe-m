@@ -91,7 +91,7 @@ export default React.memo(MoodCheckBanner);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
+    marginBottom: 0,
     borderRadius: 24,
     shadowColor: "#8B5CF6",
     shadowOffset: { width: 0, height: 8 },

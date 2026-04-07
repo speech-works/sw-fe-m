@@ -18,9 +18,11 @@ import ErrorStateCard from "./ErrorStateCard";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-interface SmartRecommendationCardProps {}
+interface SmartRecommendationCardProps {
+  style?: any;
+}
 
-const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
+const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const insets = useSafeAreaInsets();
   const navigationAcademy = useNavigation<any>();
   const [recommendation, setRecommendation] =
@@ -85,7 +87,7 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <View style={[styles.container, styles.loadingContainer, style]}>
         <ActivityIndicator color={theme.colors.actionPrimary.default} />
       </View>
     );
@@ -525,7 +527,7 @@ const SmartRecommendationCard = ({}: SmartRecommendationCardProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    marginVertical: 0,
     borderRadius: 24,
     // Fancy shadow
     shadowColor: theme.colors.actionPrimary.default,
