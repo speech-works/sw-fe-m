@@ -319,10 +319,10 @@ const Settings = () => {
                 },
               ]}
             >
-              <EditProfileFace
+              {/* <EditProfileFace
                 size={220}
                 transparentBg={true}
-              />
+              /> */}
             </Animated.View>
 
             <TouchableOpacity
