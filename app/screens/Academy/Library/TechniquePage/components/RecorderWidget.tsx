@@ -73,12 +73,20 @@ const RecorderWidget: React.FC<{
         onPlaybackStop?.();
       }
 
-      // Create and prepare recording
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        isMeteringEnabled: true, // Ensure metering is enabled
+      // 1. Set Audio Mode explicitly (Recording focus)
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
       });
+
+      // 2. Crucial Delay for Mode Switch
+      await new Promise((r) => setTimeout(r, 500));
+
+      // 3. Create and prepare recording
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
 
       // Set up metering updates with higher frequency
       rec.setOnRecordingStatusUpdate((status) => {

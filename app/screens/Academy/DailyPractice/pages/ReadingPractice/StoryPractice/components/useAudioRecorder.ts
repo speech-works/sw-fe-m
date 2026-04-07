@@ -150,34 +150,13 @@ export const useAudioRecorder = (): UseAudioRecorderReturn => {
       });
 
       // Crucial Delay for Mode Switch
-      await new Promise((r) => setTimeout(r, 200));
+      // Increased to 500ms for iOS category transition stability
+      await new Promise((r) => setTimeout(r, 500));
 
-      // 4. Start (Explicit Options)
+      // 4. Start (Using High Quality Preset for Stability)
       console.log("[useAudioRecorder] Preparing recorder...");
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync({
-        android: {
-          extension: ".m4a",
-          outputFormat: AndroidOutputFormat.MPEG_4,
-          audioEncoder: AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: ".m4a",
-          outputFormat: IOSOutputFormat.MPEG4AAC,
-          audioQuality: IOSAudioQuality.HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        isMeteringEnabled: true,
-        web: {
-          mimeType: undefined,
-          bitsPerSecond: undefined,
-        },
-      });
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
 
       recording.setProgressUpdateInterval(SAMPLE_INTERVAL_MS);
 
