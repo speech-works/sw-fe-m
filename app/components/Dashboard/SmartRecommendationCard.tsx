@@ -231,8 +231,12 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const completedModules =
     progress?.modules.filter((m) => m.status === "COMPLETED") || [];
   const totalModules = modules.length; // Use pack modules count as source of truth for total
-  const percentComplete =
+  let percentComplete =
     totalModules > 0 ? completedModules.length / totalModules : 0;
+
+  if (recommendation.isRefresher) {
+    percentComplete = 0;
+  }
 
   // Get Next/Current Module
   // Sort modules by orderIndex just in case
@@ -241,10 +245,14 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   );
 
   // Find the first module that is NOT completed
-  const currentModule = sortedModules.find((m) => {
+  let currentModule = sortedModules.find((m) => {
     const prog = progress?.modules.find((pm) => pm.moduleId === m.id);
     return !prog || prog.status !== "COMPLETED";
   });
+
+  if (recommendation.isRefresher) {
+    currentModule = sortedModules[0];
+  }
 
   const nextModuleDisplay =
     currentModule || sortedModules[sortedModules.length - 1];
