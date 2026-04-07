@@ -23,13 +23,8 @@ import ScreenView from "../../components/ScreenView";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../contexts/AuthContext";
-import {
-  SettingsStackNavigationProp,
-  SettingsStackParamList,
-} from "../../navigators/stacks/SettingsStack/types";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
-import { ROUTE_NAMES } from "../../constants/routes";
 import { getLevelStage, LevelStage } from "../../api/users";
 import {
   parseShadowStyle,
@@ -37,7 +32,6 @@ import {
 } from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
-import EditProfileFace from "../../assets/sw-faces/EditProfileFace";
 
 const HEADER_HEIGHT = 100;
 
