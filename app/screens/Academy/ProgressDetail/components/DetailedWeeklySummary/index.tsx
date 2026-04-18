@@ -67,6 +67,69 @@ export const WeeklySummarySkeleton = () => (
   </View>
 );
 
+// ── Sparkline ──────────────────────────────────────────────────────────────
+const SPARKLINE_BAR_MAX_HEIGHT = 28;
+
+const DaysActiveSparkline: React.FC<{
+  historicalActiveDays: { weekStart: string; daysActive: number }[];
+  daysActiveChange: number;
+}> = ({ historicalActiveDays, daysActiveChange }) => {
+  const maxDays = Math.max(...historicalActiveDays.map((w) => w.daysActive), 1);
+  const changeAbs = Math.abs(daysActiveChange);
+  const isPositive = daysActiveChange >= 0;
+  const changeText =
+    daysActiveChange === 0
+      ? "Same as last week"
+      : `${isPositive ? "+" : "-"}${changeAbs} day${changeAbs !== 1 ? "s" : ""} vs last week`;
+
+  return (
+    <View style={styles.sparklineContainer}>
+      <View style={styles.sparklineBars}>
+        {historicalActiveDays.map((week, i) => {
+          const isLast = i === historicalActiveDays.length - 1;
+          const heightPct = week.daysActive / maxDays;
+          return (
+            <View key={week.weekStart} style={styles.sparklineBarCol}>
+              <View style={styles.sparklineBarBg}>
+                <View
+                  style={[
+                    styles.sparklineBarFill,
+                    {
+                      height: Math.max(3, heightPct * SPARKLINE_BAR_MAX_HEIGHT),
+                      backgroundColor: isLast
+                        ? "rgba(255,255,255,0.95)"
+                        : "rgba(255,255,255,0.35)",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.sparklineWeekLabel}>
+                {isLast ? "Now" : `W${i + 1}`}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.sparklineTrendPill}>
+        <Icon
+          name={daysActiveChange === 0 ? "minus" : isPositive ? "arrow-up" : "arrow-down"}
+          size={9}
+          color={isPositive ? "#6EE7B7" : "#FCA5A5"}
+        />
+        <Text
+          style={[
+            styles.sparklineTrendText,
+            { color: daysActiveChange === 0 ? "rgba(255,255,255,0.7)" : isPositive ? "#6EE7B7" : "#FCA5A5" },
+          ]}
+        >
+          {changeText}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────
 const DetailedWeeklySummary = () => {
   const { user } = useUserStore();
   const {
@@ -113,6 +176,12 @@ const DetailedWeeklySummary = () => {
   const sessionsStats = weeklyData
     ? formatChange(weeklyData.percentageSessionsChange)
     : null;
+
+  // Sparkline / trend state
+  const dataWeeksAvailable = weeklyData?.dataWeeksAvailable ?? 0;
+  const historicalActiveDays = weeklyData?.historicalActiveDays ?? [];
+  const daysActiveChange = weeklyData?.daysActiveChange ?? 0;
+  const showSparkline = dataWeeksAvailable >= 1 && historicalActiveDays.length > 0;
 
   if (loading && !weeklyData) {
     return <WeeklySummarySkeleton />;
@@ -169,7 +238,8 @@ const DetailedWeeklySummary = () => {
           </View>
 
           {/* Stats Badges or Empty State */}
-          {weeklyData && (weeklyData.totalPracticeMinutes > 0 || weeklyData.totalSessions > 0) ? (
+          {weeklyData && (weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0) ? (
+            <>
             <View style={styles.statsRow}>
               {/* Practice Time Badge */}
               <View style={styles.statBadge}>
@@ -220,7 +290,7 @@ const DetailedWeeklySummary = () => {
                 <View style={styles.statContent}>
                   <View style={styles.statValueRow}>
                     <Text style={styles.statNumber}>
-                      {weeklyData.totalSessions}
+                      {weeklyData.totalDaysActive}
                     </Text>
                     {sessionsStats && (
                       <View
@@ -253,6 +323,25 @@ const DetailedWeeklySummary = () => {
                 </View>
               </View>
             </View>
+
+              {/* Sparkline trend or welcome message */}
+              {showSparkline ? (
+                <DaysActiveSparkline
+                  historicalActiveDays={historicalActiveDays}
+                  daysActiveChange={daysActiveChange}
+                />
+              ) : (
+                <View style={styles.welcomeRow}>
+                  <Text style={styles.welcomeEmoji}>🎉</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.welcomeTitle}>Welcome!</Text>
+                    <Text style={styles.welcomeSubtitle}>
+                      Keep practicing — your trend will appear after your first full week.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyHeaderRow}>
@@ -413,6 +502,79 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
+  },
+  // ── Sparkline ──────────────────────────────────────────────────────────
+  sparklineContainer: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  sparklineBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 6,
+    height: 36,
+  },
+  sparklineBarCol: {
+    flex: 1,
+    alignItems: "center",
+    gap: 3,
+  },
+  sparklineBarBg: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  sparklineBarFill: {
+    width: 10,
+    borderRadius: 4,
+  },
+  sparklineWeekLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.6)",
+    letterSpacing: 0.3,
+  },
+  sparklineTrendPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  sparklineTrendText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // ── Welcome (new user) ─────────────────────────────────────────────────
+  welcomeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  welcomeEmoji: {
+    fontSize: 22,
+  },
+  welcomeTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFF",
+    marginBottom: 2,
+  },
+  welcomeSubtitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.75)",
+    lineHeight: 15,
   },
   emptyContainer: {
     gap: 8,

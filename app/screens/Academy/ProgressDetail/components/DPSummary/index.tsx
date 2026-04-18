@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -73,11 +73,13 @@ export const DPSummarySkeleton = () => {
 
 const DPSummary = () => {
   const { user } = useUserStore();
-  const { 
-    practiceStats: stats, 
-    loading, 
-    fetchErrors, 
+  const {
+    detailedSummary,
+    loading,
+    fetchErrors,
   } = useProgressReportStore();
+
+  const [activeTab, setActiveTab] = useState<"weekly" | "lifetime">("weekly");
 
   const chartColors: Record<ContentTypeKey, string> = {
     READING_PRACTICE: "#FCD34D",
@@ -101,26 +103,34 @@ const DPSummary = () => {
   };
 
   const { chartData, totalPracticeTime } = useMemo(() => {
-    if (!stats || stats.length === 0) return { chartData: [], totalPracticeTime: 0 };
-    
-    const overallTotalTime = stats.reduce(
-      (sum, item) => sum + item.totalTime,
+    const distribution =
+      activeTab === "weekly"
+        ? detailedSummary?.weeklyDistribution
+        : detailedSummary?.lifetimeDistribution;
+
+    if (!distribution || Object.keys(distribution).length === 0)
+      return { chartData: [], totalPracticeTime: 0 };
+
+    const overallTotalTime = Object.values(distribution).reduce(
+      (sum, v) => sum + v,
       0,
     );
 
-    const dataForChart = stats.map((item) => {
-      const contentType = item.contentType as ContentTypeKey;
-      return {
-        name: contentTypeLabels[contentType] || item.contentType,
-        totalTime: item.totalTime,
-        color: chartColors[contentType] || "#CCCCCC",
-        legendFontColor: "rgba(255,255,255,0.9)",
-        legendFontSize: 12,
-      };
-    });
+    const dataForChart = Object.entries(distribution)
+      .filter(([, v]) => v > 0)
+      .map(([key, totalTime]) => {
+        const contentType = key as ContentTypeKey;
+        return {
+          name: contentTypeLabels[contentType] || key,
+          totalTime,
+          color: chartColors[contentType] || "#CCCCCC",
+          legendFontColor: "rgba(255,255,255,0.9)",
+          legendFontSize: 12,
+        };
+      });
 
     return { chartData: dataForChart, totalPracticeTime: overallTotalTime };
-  }, [stats]);
+  }, [detailedSummary, activeTab]);
 
   const formatTime = (timeInMinutes: number) => {
     if (timeInMinutes < 60) return `${Math.round(timeInMinutes)}m`;
@@ -129,11 +139,16 @@ const DPSummary = () => {
 
   const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
 
-  if (loading && (!stats || stats.length === 0)) {
+  const hasData =
+    !!(activeTab === "weekly"
+      ? detailedSummary?.weeklyDistribution
+      : detailedSummary?.lifetimeDistribution);
+
+  if (loading && !detailedSummary) {
     return <DPSummarySkeleton />;
   }
 
-  if (!stats?.length) {
+  if (!hasData) {
     return null;
   }
 
@@ -155,11 +170,34 @@ const DPSummary = () => {
             <View>
               <Text style={styles.headerLabel}>PRACTICE DISTRIBUTION</Text>
               <Text style={styles.headerSubtitle}>
-                Category breakdown this week
+                {activeTab === "weekly" ? "Category breakdown this week" : "All-time category breakdown"}
               </Text>
             </View>
-            <View style={styles.headerIconWrapper}>
-              <Icon name="chart-pie" size={16} color="#FFFFFF" />
+            <View style={styles.headerRight}>
+              {/* Week / Lifetime toggle */}
+              <View style={styles.togglePill}>
+                <Text
+                  style={[
+                    styles.toggleOption,
+                    activeTab === "weekly" && styles.toggleOptionActive,
+                  ]}
+                  onPress={() => setActiveTab("weekly")}
+                >
+                  This Week
+                </Text>
+                <Text
+                  style={[
+                    styles.toggleOption,
+                    activeTab === "lifetime" && styles.toggleOptionActive,
+                  ]}
+                  onPress={() => setActiveTab("lifetime")}
+                >
+                  Lifetime
+                </Text>
+              </View>
+              <View style={styles.headerIconWrapper}>
+                <Icon name="chart-pie" size={16} color="#FFFFFF" />
+              </View>
             </View>
           </View>
 
@@ -376,6 +414,31 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  togglePill: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  toggleOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.6)",
+  },
+  toggleOptionActive: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    color: "#FFFFFF",
   },
   dataArea: {
     gap: 24,

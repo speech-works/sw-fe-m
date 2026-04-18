@@ -208,9 +208,13 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                     const targetColor = "rgba(255,255,255,0.15)";
                     const isSkipped = d.minutes === 0;
 
-                    // Smart label: Show "99+" for large values
+                    // Smart label: "99+" for large, "<1m" for sub-minute, otherwise rounded
                     const minuteDisplay =
-                      d.minutes >= 100 ? "99+" : `${Math.round(d.minutes)}m`;
+                      d.minutes >= 100
+                        ? "99+"
+                        : d.minutes > 0 && d.minutes < 1
+                        ? "<1m"
+                        : `${Math.round(d.minutes)}m`;
 
                     // Label should be above the taller of actual or target bar
                     const topBarPercent = Math.max(
