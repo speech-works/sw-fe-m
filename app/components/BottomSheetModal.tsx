@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface BottomSheetModalProps {
   visible: boolean;
   onClose: () => void;
+  onAfterClose?: () => void;
   children: React.ReactNode;
 
   /**
@@ -55,11 +56,16 @@ interface BottomSheetModalProps {
    * Useful when children want to fill the entire space (e.g. gradient backgrounds).
    */
   hasBottomSafePadding?: boolean;
+  /**
+   * If false, tapping the dimmed backdrop will not dismiss the sheet.
+   */
+  closeOnBackdropPress?: boolean;
 }
 
 const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   visible,
   onClose,
+  onAfterClose,
   children,
   maxHeight,
   showHandle = true,
@@ -67,6 +73,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   backgroundColor = "white",
   fitContent = false,
   hasBottomSafePadding = false,
+  closeOnBackdropPress = true,
 }) => {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -109,11 +116,14 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         (finished) => {
           if (finished) {
             runOnJS(setIsMounted)(false);
+            if (onAfterClose) {
+              runOnJS(onAfterClose)();
+            }
           }
         },
       );
     }
-  }, [visible, windowHeight, translateY]);
+  }, [visible, windowHeight, translateY, onAfterClose]);
 
   if (!isMounted) return null;
 
@@ -125,10 +135,13 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        {/* Tapping the dim background closes */}
-        <TouchableWithoutFeedback onPress={onClose}>
+        {closeOnBackdropPress ? (
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={styles.backgroundTouchableArea} />
+          </TouchableWithoutFeedback>
+        ) : (
           <View style={styles.backgroundTouchableArea} />
-        </TouchableWithoutFeedback>
+        )}
 
         <Animated.View
           style={[

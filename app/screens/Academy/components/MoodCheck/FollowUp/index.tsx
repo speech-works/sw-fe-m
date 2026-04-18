@@ -18,6 +18,7 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../components/ScreenView";
 import { theme } from "../../../../../Theme/tokens";
 import {
@@ -272,6 +273,25 @@ const moodContentMap = {
   },
 };
 
+const RECOVERY_SHEET_CLOSE_DELAY_MS = 320;
+
+interface RecoverySheetState {
+  visible: boolean;
+  message: string;
+  retryExpressionType: EXPRESSION_TYPE_ENUM | null;
+}
+
+type PendingSheetState =
+  | { type: "success" }
+  | {
+      type: "recovery";
+      payload: {
+        message: string;
+        retryExpressionType: EXPRESSION_TYPE_ENUM;
+      };
+    }
+  | null;
+
 const FollowUp = () => {
   const navigation =
     useNavigation<MoodFUStackNavigationProp<keyof MoodFUStackParamList>>();
@@ -286,6 +306,13 @@ const FollowUp = () => {
   const [expressionType, setExpressionType] =
     useState<EXPRESSION_TYPE_ENUM | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccessSheet, setShowSuccessSheet] = useState(false);
+  const [recoverySheet, setRecoverySheet] = useState<RecoverySheetState>({
+    visible: false,
+    message: "",
+    retryExpressionType: null,
+  });
+  const [pendingSheet, setPendingSheet] = useState<PendingSheetState>(null);
 
   const followUpAct = [
     {
@@ -316,6 +343,51 @@ const FollowUp = () => {
     navigation.navigate("Root" as any);
   };
 
+  const closeRecoverySheet = () => {
+    setRecoverySheet({
+      visible: false,
+      message: "",
+      retryExpressionType: null,
+    });
+  };
+
+  const handleCancelRecovery = () => {
+    closeRecoverySheet();
+    navigateToHome();
+  };
+
+  const handleRetryExpression = () => {
+    const nextExpressionType = recoverySheet.retryExpressionType;
+    closeRecoverySheet();
+
+    if (!nextExpressionType) {
+      navigateToHome();
+      return;
+    }
+
+    setTimeout(() => {
+      setExpressionType(nextExpressionType);
+    }, RECOVERY_SHEET_CLOSE_DELAY_MS);
+  };
+
+  const closeExpressionSheet = () => {
+    setExpressionType(null);
+  };
+
+  const recoveryTitle =
+    recoverySheet.message ||
+    (recoverySheet.retryExpressionType === EXPRESSION_TYPE_ENUM.TALK
+      ? "We couldn't upload that recording"
+      : "We couldn't save that note");
+  const recoveryPrimaryActionText =
+    recoverySheet.retryExpressionType === EXPRESSION_TYPE_ENUM.TALK
+      ? "Record again"
+      : "Try writing again";
+  const recoveryDescription =
+    recoverySheet.retryExpressionType === EXPRESSION_TYPE_ENUM.TALK
+      ? "Nothing has been saved yet. You can head home for now or reopen the recorder and try again."
+      : "Nothing has been saved yet. You can head home for now or reopen the writing flow and try again.";
+
   useEffect(() => {
     const onBackPress = () => {
       navigateToHome();
@@ -327,6 +399,23 @@ const FollowUp = () => {
     );
     return () => subscription.remove();
   }, [navigation]);
+
+  const handleExpressionSheetAfterClose = () => {
+    if (!pendingSheet) return;
+
+    if (pendingSheet.type === "success") {
+      setSubmitted(true);
+      setShowSuccessSheet(true);
+    } else {
+      setRecoverySheet({
+        visible: true,
+        message: pendingSheet.payload.message,
+        retryExpressionType: pendingSheet.payload.retryExpressionType,
+      });
+    }
+
+    setPendingSheet(null);
+  };
 
   return (
     <>
@@ -465,7 +554,7 @@ const FollowUp = () => {
             )}
             <View style={styles.skipContainer}>
               <TouchableOpacity onPress={() => navigateToHome()}>
-                <Text style={styles.skipText}>Skip for now</Text>
+                <Text style={styles.skipText}>I'll do it later</Text>
               </TouchableOpacity>
             </View>
           </CustomScrollView>
@@ -475,11 +564,141 @@ const FollowUp = () => {
       <ExpressYourself
         moodType={mood}
         expressionType={expressionType}
-        onClose={() => setExpressionType(null)}
+        onClose={closeExpressionSheet}
+        onAfterClose={handleExpressionSheetAfterClose}
         onSubmit={() => {
-          setSubmitted(true);
+          setPendingSheet({ type: "success" });
+          closeExpressionSheet();
+        }}
+        onError={({ message, expressionType: failedExpressionType }) => {
+          setPendingSheet({
+            type: "recovery",
+            payload: {
+              message,
+              retryExpressionType: failedExpressionType,
+            },
+          });
+          closeExpressionSheet();
         }}
       />
+
+      <BottomSheetModal
+        visible={recoverySheet.visible}
+        onClose={handleCancelRecovery}
+        fitContent
+        showCloseButton={false}
+        closeOnBackdropPress={false}
+        backgroundColor="#FFF7F2"
+      >
+        <View
+          style={[
+            styles.recoverySheetContainer,
+            { paddingBottom: Math.max(insets.bottom, 28) },
+          ]}
+        >
+          <View style={styles.recoveryIconShell}>
+            <LinearGradient
+              colors={["#FF8A5B", "#FF5A5F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.recoveryIconGradient}
+            >
+              <Icon name="exclamation" size={28} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+
+          <Text style={styles.recoverySheetEyebrow}>Couldn&apos;t finish</Text>
+          <Text style={styles.recoverySheetTitle}>{recoveryTitle}</Text>
+          <Text style={styles.recoverySheetDesc}>{recoveryDescription}</Text>
+
+          <TouchableOpacity
+            style={styles.recoveryPrimaryButton}
+            onPress={handleRetryExpression}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={["#FF8A5B", "#FF5A5F"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.recoveryPrimaryGradient}
+            >
+              <Text style={styles.recoveryPrimaryButtonText}>
+                {recoveryPrimaryActionText}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.recoverySecondaryButton}
+            onPress={handleCancelRecovery}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.recoverySecondaryButtonText}>
+              Back to home
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
+
+      <BottomSheetModal
+        visible={showSuccessSheet}
+        onClose={() => setShowSuccessSheet(false)}
+        fitContent
+        showCloseButton={true}
+        showHandle={false}
+      >
+        <View
+          style={[
+            styles.successSheetContainer,
+            { paddingBottom: Math.max(insets.bottom, 28) },
+          ]}
+        >
+          <View style={styles.successIconShell}>
+            <LinearGradient
+              colors={["#34D399", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.successIconGradient}
+            >
+              <Icon name="check" size={28} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+
+          <Text style={styles.successSheetTitle}>Mood recorded</Text>
+          <Text style={styles.successSheetDesc}>
+            Your check-in has been saved successfully. We&apos;ve refreshed your
+            progress and prepared a few helpful next steps for you.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.successPrimaryButton}
+            onPress={() => setShowSuccessSheet(false)}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={["#34D399", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.successPrimaryGradient}
+            >
+              <Text style={styles.successPrimaryButtonText}>
+                See recommendations
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.successSecondaryButton}
+            onPress={() => {
+              setShowSuccessSheet(false);
+              navigateToHome();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.successSecondaryButtonText}>Back to home</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
     </>
   );
 };
@@ -569,6 +788,149 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textDecorationLine: "underline",
+  },
+  successSheetContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    alignItems: "center",
+    backgroundColor: "#F8FFFC",
+  },
+  successIconShell: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  successIconGradient: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  successSheetTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  successSheetDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successPrimaryButton: {
+    width: "100%",
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  successPrimaryGradient: {
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  successSecondaryButton: {
+    width: "100%",
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(15, 23, 42, 0.08)",
+  },
+  successSecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+  recoverySheetContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    alignItems: "center",
+    backgroundColor: "#FFF7F2",
+  },
+  recoveryIconShell: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: "rgba(255, 122, 89, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  recoveryIconGradient: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  recoverySheetEyebrow: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    textAlign: "center",
+    color: "#F97316",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  recoverySheetTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  recoverySheetDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  recoveryPrimaryButton: {
+    width: "100%",
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  recoveryPrimaryGradient: {
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recoveryPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  recoverySecondaryButton: {
+    width: "100%",
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(15, 23, 42, 0.08)",
+  },
+  recoverySecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
   },
   lottie: {
     // Removed

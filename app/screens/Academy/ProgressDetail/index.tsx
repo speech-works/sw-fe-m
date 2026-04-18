@@ -1,4 +1,8 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import React, { useRef, useState } from "react";
 import {
   ScrollView,
@@ -51,11 +55,13 @@ const ProgressDetail = () => {
   } = useProgressReportStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    if (user?.id) {
-      fetchAllData(user.id);
-    }
-  }, [user?.id]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        fetchAllData(user.id, true);
+      }
+    }, [fetchAllData, user?.id]),
+  );
 
   const onRefresh = async () => {
     if (user?.id) {

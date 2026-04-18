@@ -31,7 +31,6 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
-import { useMoodCheckStore } from "../../../../stores/mood";
 
 import AngryFace from "../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../assets/mood-check/CalmFace";
@@ -209,11 +208,8 @@ const MoodCheck = () => {
     };
   });
 
-  const { setMood } = useMoodCheckStore();
-
   const handleSelect = () => {
     const activeMood = emotions[currentIndex];
-    setMood(activeMood.id);
     academyNavigation.navigate("MoodCheckStack", {
       screen: "FollowUpStack",
       params: { mood: activeMood.id },

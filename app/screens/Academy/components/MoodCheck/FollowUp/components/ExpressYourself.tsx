@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -16,6 +16,7 @@ import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useMoodCheckStore } from "../../../../../../stores/mood";
 import { useProgressReportStore } from "../../../../../../stores/progressReport";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
@@ -34,28 +35,74 @@ interface ExpressYourselfProps {
   moodType: MoodType;
   expressionType: EXPRESSION_TYPE_ENUM | null;
   onClose: () => void;
+  onAfterClose?: () => void;
   onSubmit: () => void;
+  onError: (payload: {
+    message: string;
+    expressionType: EXPRESSION_TYPE_ENUM;
+  }) => void;
 }
+
+const getMoodSubmitErrorMessage = (error: unknown) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    (error as any).response?.data?.error
+  ) {
+    return String((error as any).response.data.error);
+  }
+
+  if (error instanceof Error) {
+    return error.message.replace(/^Error from backend:\s*/i, "");
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "We couldn't save your mood right now. Please try again.";
+};
 
 const ExpressYourself = ({
   moodType,
   expressionType,
   onClose,
+  onAfterClose,
   onSubmit,
+  onError,
 }: ExpressYourselfProps) => {
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
+  const setMood = useMoodCheckStore((state) => state.setMood);
   const fetchAllData = useProgressReportStore((state) => state.fetchAllData);
-  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+  const {
+    voiceRecordingUri,
+    setVoiceRecordingUri,
+    submitVoiceRecording,
+    resetRecording,
+  } =
     useRecordedVoice(user?.id);
   const [writtenText, setWrittenText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!expressionType) {
+      setIsSubmitting(false);
+      setWrittenText("");
+      resetRecording();
+    }
+  }, [expressionType, resetRecording]);
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (!user) return;
     if (!user?.id) {
       console.warn("❌ User ID is missing during mood submission");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
@@ -64,28 +111,41 @@ const ExpressYourself = ({
           mood: moodType,
           textNote: writtenText,
         });
-      } else if (
-        expressionType === EXPRESSION_TYPE_ENUM.TALK &&
-        voiceRecordingUri
-      ) {
-        const uploadedRecording = await submitVoiceRecording({
-          recordingSource: RecordingSourceType.MOOD_CHECK,
-        });
-        if (!uploadedRecording) {
-          throw new Error("Voice recording upload failed!");
+      } else if (expressionType === EXPRESSION_TYPE_ENUM.TALK) {
+        let voiceNoteUrl: string | undefined;
+
+        if (voiceRecordingUri) {
+          const uploadedRecording = await submitVoiceRecording({
+            recordingSource: RecordingSourceType.MOOD_CHECK,
+          });
+          if (!uploadedRecording) {
+            throw new Error("Voice recording upload failed!");
+          }
+          voiceNoteUrl = uploadedRecording.audioUrl;
         }
+
         await logMood({
           userId: user.id,
           mood: moodType,
-          voiceNoteUrl: uploadedRecording.audioUrl,
+          ...(voiceNoteUrl ? { voiceNoteUrl } : {}),
         });
+      } else {
+        return;
       }
 
+      setMood(moodType);
       await fetchAllData(user.id, true);
       onSubmit();
-      onClose();
     } catch (error) {
       console.error("❌ Failed to submit mood expression:", error);
+      if (expressionType) {
+        onError({
+          message: getMoodSubmitErrorMessage(error),
+          expressionType,
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,6 +198,7 @@ const ExpressYourself = ({
       <BottomSheetModal
         visible={expressionType !== null}
         onClose={onClose}
+        onAfterClose={onAfterClose}
         showCloseButton={true}
         fitContent={true}
         backgroundColor={config.gradient[1]}
@@ -173,7 +234,7 @@ const ExpressYourself = ({
 
           {/* Interaction Section */}
           {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
-            <View style={styles.card}>
+            <View style={styles.card} pointerEvents={isSubmitting ? "none" : "auto"}>
               <TextInput
                 style={styles.textInput}
                 multiline
@@ -186,10 +247,11 @@ const ExpressYourself = ({
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleSubmit}
-                disabled={writtenText.length < 1}
+                disabled={writtenText.length < 1 || isSubmitting}
                 style={[
                   styles.buttonContainer,
-                  writtenText.length < 1 && styles.disabledButtonContainer,
+                  (writtenText.length < 1 || isSubmitting) &&
+                    styles.disabledButtonContainer,
                 ]}
               >
                 <LinearGradient
@@ -198,13 +260,20 @@ const ExpressYourself = ({
                   end={{ x: 1, y: 0 }}
                   style={styles.gradientButton}
                 >
-                  <Text style={styles.submitText}>Let it out</Text>
+                  <Text style={styles.submitText}>
+                    {isSubmitting ? "Saving..." : "Let it out"}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.recorderSection}>
-              <Text style={styles.recorderHint}>Ready to record</Text>
+            <View
+              style={styles.recorderSection}
+              pointerEvents={isSubmitting ? "none" : "auto"}
+            >
+              <Text style={styles.recorderHint}>
+                {isSubmitting ? "Saving your mood..." : "Ready to record"}
+              </Text>
               <SmartRecorder
                 onRecorded={(uri) => setVoiceRecordingUri(uri)}
                 prevRecordingUri={voiceRecordingUri || undefined}
