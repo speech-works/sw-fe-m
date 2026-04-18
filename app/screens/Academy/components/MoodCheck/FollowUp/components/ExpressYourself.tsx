@@ -16,6 +16,7 @@ import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useProgressReportStore } from "../../../../../../stores/progressReport";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import {
@@ -44,6 +45,7 @@ const ExpressYourself = ({
 }: ExpressYourselfProps) => {
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
+  const fetchAllData = useProgressReportStore((state) => state.fetchAllData);
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
   const [writtenText, setWrittenText] = useState("");
@@ -79,6 +81,7 @@ const ExpressYourself = ({
         });
       }
 
+      await fetchAllData(user.id, true);
       onSubmit();
       onClose();
     } catch (error) {
