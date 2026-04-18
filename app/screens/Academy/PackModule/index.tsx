@@ -25,9 +25,10 @@ import {
   completeModule,
   getModule,
   getPack,
+  getPackProgress,
   startModule,
 } from "../../../api/packs";
-import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
+import { ContentBlockType, Pack, PackModule, PackStatus } from "../../../api/packs/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
@@ -168,9 +169,20 @@ const PackModuleScreen = () => {
           return;
         }
 
-        startModule(packId, targetModuleId).catch((err) =>
-          console.log("Failed to mark start (non-fatal)", err),
-        );
+        startModule(packId, targetModuleId).catch((err) => {
+          console.log("Failed to mark start", err);
+          if (
+            err?.response?.status === 400 &&
+            err?.response?.data?.message?.includes("already complete")
+          ) {
+            alert("This pack is already complete. Optional modules are not accessible after pack completion.");
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate("Academy" as any);
+            }
+          }
+        });
 
         if (
           initialModule &&
@@ -358,14 +370,18 @@ const PackModuleScreen = () => {
 
       // Check for next module
       try {
-        const packData: Pack = await getPack(packId);
-        const nextMod = packData.modules.find(
-          (m) => m.orderIndex === module.orderIndex + 1,
-        );
-        if (nextMod) {
-          setNextModuleId(nextMod.id);
+        const result = await getPackProgress(packId);
+        if (result.packStatus === "COMPLETED") {
+          setNextModuleId(null);
         } else {
-          console.log("No next module available..");
+          const nextMod = result.modules.find(
+            (m) => m.orderIndex === module.orderIndex + 1 && m.status === "NOT_STARTED",
+          );
+          if (nextMod) {
+            setNextModuleId(nextMod.moduleId);
+          } else {
+            setNextModuleId(null);
+          }
         }
       } catch (e) {
         console.warn("Failed to find next module", e);

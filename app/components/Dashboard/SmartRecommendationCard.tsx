@@ -234,6 +234,10 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   let percentComplete =
     totalModules > 0 ? completedModules.length / totalModules : 0;
 
+  if (progress?.packStatus === "COMPLETED") {
+    percentComplete = 1;
+  }
+
   if (recommendation.isRefresher) {
     percentComplete = 0;
   }
