@@ -565,8 +565,12 @@ const FollowUp = () => {
               </>
             )}
             <View style={styles.skipContainer}>
-              <TouchableOpacity onPress={requestNavigateHome}>
-                <Text style={styles.skipText}>I'll do it later</Text>
+              <TouchableOpacity
+                onPress={requestNavigateHome}
+                style={styles.skipButton}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.skipButtonText}>I&apos;ll do it later</Text>
               </TouchableOpacity>
             </View>
           </CustomScrollView>
@@ -857,11 +861,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 32,
   },
-
-  skipText: {
-    ...parseTextStyle(theme.typography.Body),
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipButtonText: {
+    ...parseTextStyle(theme.typography.Button),
     color: theme.colors.text.default,
-    textDecorationLine: "underline",
+    fontWeight: "600",
   },
   successSheetContainer: {
     paddingHorizontal: 24,
