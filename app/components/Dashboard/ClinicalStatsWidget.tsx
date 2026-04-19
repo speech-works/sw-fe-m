@@ -915,7 +915,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                 <Text
                                   style={[
                                     {
-                                      color: theme.colors.library.orange[500],
+                                      color:
+                                        heroItem.data.trend === "IMPROVING"
+                                          ? theme.colors.library.green[400]
+                                          : theme.colors.library.red[400],
                                       fontWeight: "700",
                                     },
                                   ]}
@@ -1348,9 +1351,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  textSuccess: { color: "#00FF00" },
-  textError: { color: "#FF0000" },
-  textNeutral: { color: theme.colors.text.default },
+  textSuccess: { color: theme.colors.library.green[400] },
+  textError: { color: theme.colors.library.red[400] },
+  textNeutral: { color: theme.colors.library.red[400] },
 
   // Decorative Bubbles
   decorBubble1: {
