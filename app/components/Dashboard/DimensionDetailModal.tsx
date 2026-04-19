@@ -13,7 +13,38 @@ import { theme } from "../../Theme/tokens";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 
-// Domain config with descriptions and recommendations
+type DetailFamily = "combined" | "clinical" | "engagement";
+
+type FamilyMetricData = {
+  currentScore: number | null;
+  previousScore: number | null;
+  percentDelta: number | null;
+  absoluteDelta: number | null;
+  trend: "IMPROVING" | "STABLE" | "WORSENING";
+};
+
+const FAMILY_CONFIG: Record<
+  DetailFamily,
+  { label: string; description: string; color: string }
+> = {
+  combined: {
+    label: "Combined",
+    description: "Blended view of clinical foundation and recent momentum.",
+    color: theme.colors.library.orange[500],
+  },
+  clinical: {
+    label: "Clinical",
+    description: "Clinically anchored baseline derived from validated signals.",
+    color: theme.colors.library.green[500],
+  },
+  engagement: {
+    label: "Engagement",
+    description:
+      "Recent momentum signals when enough engagement data is available.",
+    color: theme.colors.library.blue[500],
+  },
+};
+
 const DIMENSION_CONFIG: Record<
   ClinicalDomain,
   {
@@ -30,58 +61,57 @@ const DIMENSION_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#059669", // Emerald 600
+    color: "#059669",
     icon: "shield-check",
-    description: "How confident you feel about your speaking abilities.",
+    description: "Belief in your ability to speak freely.",
     recommendations: {
-      IMPROVING: "Your self-belief is growing! Celebrate your wins.",
-      STABLE: "Try journaling about recent speaking successes.",
-      WORSENING: "Revisit the Affirmations exercises to rebuild positivity.",
+      IMPROVING: "Your self-belief is moving in the right direction. Keep stacking small wins.",
+      STABLE: "A steadier week still counts. Reinforce it with one low-pressure speaking win.",
+      WORSENING: "Try resetting with a simpler speaking task before you push intensity again.",
     },
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#E11D48", // Rose 600
+    color: "#E11D48",
     icon: "fire",
-    description: "Your willingness to face challenging speaking situations.",
+    description: "Your willingness to face speaking situations without pulling back.",
     recommendations: {
-      IMPROVING: "You're facing more challenging situations. Keep pushing!",
-      STABLE: "Try an exposure practice slightly outside your comfort zone.",
-      WORSENING: "Start with easier exposure exercises to rebuild confidence.",
+      IMPROVING: "You’re stepping forward more often. Keep that exposure ladder active.",
+      STABLE: "Choose one slightly challenging moment this week and meet it on purpose.",
+      WORSENING: "Scale the exposure down, not away. Smaller reps will rebuild traction.",
     },
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery",
-    color: "#0284C7", // Sky 600
+    color: "#0284C7",
     icon: "target",
-    description: "How naturally you speak without focusing on technique.",
+    description: "How effectively you’re managing speech tools and technique.",
     recommendations: {
-      IMPROVING: "Great progress! Keep practicing your speaking techniques.",
-      STABLE: "Try the Reading Practice exercises to build fluency.",
-      WORSENING:
-        "Focus on basic breathing exercises to rebuild your foundation.",
+      IMPROVING: "Technique use is translating more cleanly. Stay consistent with practice reps.",
+      STABLE: "A focused reading or technique block can help convert stability into progress.",
+      WORSENING: "Return to one dependable technique and practice it in a controlled setting first.",
     },
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease",
-    color: "#8B5CF6", // Violet 500
+    color: "#8B5CF6",
     icon: "water",
-    description: "How comfortable speaking feels in everyday situations.",
+    description: "How comfortable everyday speaking is starting to feel.",
     recommendations: {
-      IMPROVING: "Speaking feels more natural. Keep the momentum!",
-      STABLE: "Practice in low-stakes situations to build comfort.",
-      WORSENING: "Focus on relaxation techniques before speaking.",
+      IMPROVING: "Speech is feeling easier in day-to-day moments. Keep that rhythm alive.",
+      STABLE: "Keep your reps gentle and regular so comfort can build without pressure.",
+      WORSENING: "Dial the environment down and lead with relaxation before speaking tasks.",
     },
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#EA580C", // Orange 600
+    color: "#EA580C",
     icon: "account-group",
-    description: "How freely you participate in social conversations.",
+    description: "How freely you’re participating in conversations and social life.",
     recommendations: {
-      IMPROVING: "You're engaging more in conversations. Wonderful!",
-      STABLE: "Try initiating one small conversation today.",
-      WORSENING: "Start with familiar people in safe environments.",
+      IMPROVING: "You’re showing up more fully in conversation. Keep leaning into that.",
+      STABLE: "One small initiation this week can shift a steady line into progress.",
+      WORSENING: "Reconnect through safe conversations first, then widen the social circle again.",
     },
   },
 };
@@ -91,28 +121,26 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 interface DimensionDetailModalProps {
   visible: boolean;
   domain: ClinicalDomain | null;
-  currentScore: number;
-  baselineScore: number | null;
-  change: number;
-  trend: "IMPROVING" | "STABLE" | "WORSENING";
+  familyData: Record<DetailFamily, FamilyMetricData>;
+  comparisonLabel: string;
   onClose: () => void;
 }
 
 const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   visible,
   domain,
-  currentScore,
-  baselineScore,
-  change,
-  trend,
+  familyData,
+  comparisonLabel,
   onClose,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [isMounted, setIsMounted] = useState(visible);
+  const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
 
   useEffect(() => {
     if (visible) {
+      setSelectedFamily("combined");
       setIsMounted(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -142,23 +170,28 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
         setIsMounted(false);
       });
     }
-  }, [visible]);
+  }, [visible, opacityAnim, slideAnim]);
 
-  if (!isMounted || !domain) return null;
+  if (!isMounted || !domain) {
+    return null;
+  }
 
   const config = DIMENSION_CONFIG[domain];
+  const activeFamily = FAMILY_CONFIG[selectedFamily];
+  const activeMetrics = familyData[selectedFamily];
   const trendIcon =
-    trend === "IMPROVING"
+    activeMetrics.trend === "IMPROVING"
       ? "trending-up"
-      : trend === "WORSENING"
+      : activeMetrics.trend === "WORSENING"
         ? "trending-down"
         : "trending-neutral";
   const trendColor =
-    trend === "IMPROVING"
+    activeMetrics.trend === "IMPROVING"
       ? theme.colors.library.green[500]
-      : trend === "WORSENING"
+      : activeMetrics.trend === "WORSENING"
         ? theme.colors.library.red[500]
         : theme.colors.text.default;
+  const isUnavailable = activeMetrics.currentScore === null;
 
   return (
     <Modal
@@ -180,7 +213,6 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
           ]}
         >
           <TouchableOpacity activeOpacity={1}>
-            {/* Header */}
             <View
               style={[styles.header, { backgroundColor: `${config.color}15` }]}
             >
@@ -205,60 +237,125 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Body */}
             <View style={styles.body}>
-              {/* Description */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>WHAT IT MEASURES</Text>
                 <Text style={styles.description}>{config.description}</Text>
               </View>
 
-              {/* Current Status */}
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>VIEW THIS DIMENSION</Text>
+                <View style={styles.familySwitcher}>
+                  {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((family) => {
+                    const familyConfig = FAMILY_CONFIG[family];
+                    const isActive = family === selectedFamily;
+
+                    return (
+                      <TouchableOpacity
+                        key={family}
+                        onPress={() => setSelectedFamily(family)}
+                        style={[
+                          styles.familyChip,
+                          isActive && {
+                            backgroundColor: familyConfig.color,
+                            borderColor: familyConfig.color,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.familyChipText,
+                            isActive && styles.familyChipTextActive,
+                          ]}
+                        >
+                          {familyConfig.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.familyDescription}>
+                  {activeFamily.description}
+                </Text>
+              </View>
+
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>YOUR STATUS</Text>
-                
                 <View style={styles.statusBento}>
-                  {/* Current Combined Progress (Orange) */}
-                  <View style={[styles.statusCard, { backgroundColor: theme.colors.library.orange[100] + '30', borderColor: theme.colors.library.orange[100] }]}>
-                    <Text style={styles.statusCardLabel}>CURRENT TREND</Text>
-                    <View style={styles.statusValueRow}>
-                      <Text style={[styles.scoreValue, { color: theme.colors.library.orange[500] }]}>
-                        {Math.round(currentScore)}
-                      </Text>
-                      <View style={styles.trendRow}>
-                        <MaterialCommunityIcons name={trendIcon} size={14} color={trendColor} />
-                        <Text style={[styles.trendTextSmall, { color: trendColor }]}>
-                          {change > 0 ? "+" : ""}{change.toFixed(1)}%
-                        </Text>
-                      </View>
-                    </View>
+                  <View
+                    style={[
+                      styles.statusCard,
+                      {
+                        backgroundColor: `${activeFamily.color}14`,
+                        borderColor: `${activeFamily.color}35`,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.statusCardLabel}>CURRENT</Text>
+                    <Text
+                      style={[
+                        styles.scoreValue,
+                        { color: activeFamily.color },
+                      ]}
+                    >
+                      {isUnavailable
+                        ? "--"
+                        : Math.round(activeMetrics.currentScore ?? 0)}
+                    </Text>
+                    <Text style={styles.statusCardSubtext}>
+                      {activeFamily.label.toUpperCase()} THIS WEEK
+                    </Text>
                   </View>
 
-                  {/* Clinical Baseline (Green) */}
-                  <View style={[styles.statusCard, { backgroundColor: theme.colors.library.green[100] + '30', borderColor: theme.colors.library.green[100] }]}>
-                    <Text style={styles.statusCardLabel}>CLINICAL FOUNDATION</Text>
-                    <View style={styles.statusValueRow}>
-                      <Text style={[styles.scoreValue, { color: theme.colors.library.green[500] }]}>
-                        {baselineScore ? Math.round(baselineScore) : "--"}
-                      </Text>
-                      <Text style={styles.statusCardSubtext}>OASES BASELINE</Text>
-                    </View>
+                  <View style={styles.statusCard}>
+                    <Text style={styles.statusCardLabel}>PREVIOUS</Text>
+                    <Text style={styles.scoreValue}>
+                      {activeMetrics.previousScore === null
+                        ? "--"
+                        : Math.round(activeMetrics.previousScore)}
+                    </Text>
+                    <Text style={styles.statusCardSubtext}>
+                      LAST WEEK
+                    </Text>
                   </View>
                 </View>
 
-                {/* Performance Comparison */}
-                {baselineScore !== null && (
-                  <View style={styles.comparisonBadge}>
-                    <Text style={styles.comparisonText}>
-                      {currentScore >= baselineScore 
-                        ? `Outperforming baseline by ${(currentScore - baselineScore).toFixed(0)} pts` 
-                        : `Building back to baseline`}
+                <View style={styles.deltaCard}>
+                  <View style={styles.deltaHeader}>
+                    <MaterialCommunityIcons
+                      name={trendIcon as any}
+                      size={18}
+                      color={trendColor}
+                    />
+                    <Text style={[styles.deltaTitle, { color: trendColor }]}>
+                      {activeMetrics.trend === "IMPROVING"
+                        ? "Improving"
+                        : activeMetrics.trend === "WORSENING"
+                          ? "Needs attention"
+                          : "Holding steady"}
                     </Text>
                   </View>
-                )}
+
+                  {activeMetrics.percentDelta === null ? (
+                    <Text style={styles.deltaText}>
+                      {isUnavailable
+                        ? "Not enough engagement data yet for this dimension."
+                        : "No last-week comparison is available yet for this view."}
+                    </Text>
+                  ) : (
+                    <Text style={styles.deltaText}>
+                      {activeMetrics.percentDelta > 0 ? "+" : ""}
+                      {activeMetrics.percentDelta.toFixed(1)}% and{" "}
+                      {activeMetrics.absoluteDelta && activeMetrics.absoluteDelta > 0
+                        ? "+"
+                        : ""}
+                      {(activeMetrics.absoluteDelta ?? 0).toFixed(1)} pts{" "}
+                      {comparisonLabel.toLowerCase()}.
+                    </Text>
+                  )}
+                </View>
               </View>
 
-              {/* Recommendation */}
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>KEEP GROWING</Text>
                 <View style={styles.recommendationCard}>
@@ -268,13 +365,14 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                     color={theme.colors.library.orange[500]}
                   />
                   <Text style={styles.recommendationText}>
-                    {config.recommendations[trend]}
+                    {isUnavailable
+                      ? "Keep checking in with activities and reflections so we can build a clearer engagement picture here."
+                      : config.recommendations[activeMetrics.trend]}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Footer */}
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
               <Text style={styles.doneButtonText}>Got it</Text>
             </TouchableOpacity>
@@ -298,7 +396,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     maxHeight: "90%",
-    width: width,
+    width,
     overflow: "hidden",
   },
   header: {
@@ -337,7 +435,7 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   section: {
-    gap: 8,
+    gap: 10,
   },
   sectionLabel: {
     fontSize: 11,
@@ -350,93 +448,111 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     lineHeight: 22,
   },
+  familySwitcher: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  familyChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.library.gray[200],
+    backgroundColor: "#fff",
+  },
+  familyChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.text.default,
+  },
+  familyChipTextActive: {
+    color: "#fff",
+  },
+  familyDescription: {
+    fontSize: 13,
+    color: theme.colors.text.default,
+    lineHeight: 18,
+  },
   statusBento: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 4,
+    marginTop: 2,
   },
   statusCard: {
     flex: 1,
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    justifyContent: "space-between",
+    borderColor: theme.colors.library.gray[100],
+    backgroundColor: "#fff",
   },
   statusCardLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "800",
     color: theme.colors.text.default,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     marginBottom: 8,
-  },
-  statusValueRow: {
-    flexDirection: "column",
-    alignItems: "flex-start",
   },
   scoreValue: {
     fontSize: 32,
-    fontWeight: "900",
-    lineHeight: 38,
-  },
-  trendRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  trendTextSmall: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
+    color: theme.colors.text.title,
   },
   statusCardSubtext: {
-    fontSize: 10,
-    fontWeight: "600",
+    fontSize: 11,
     color: theme.colors.text.default,
-    opacity: 0.6,
+    marginTop: 6,
   },
-  comparisonBadge: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  comparisonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#64748B",
-  },
-  recommendationCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: theme.colors.library.orange[500] + '10', // Light tint of orange
+  deltaCard: {
+    borderRadius: 18,
     padding: 16,
-    borderRadius: 20,
-    gap: 12,
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: theme.colors.library.orange[500] + '20',
+    borderColor: theme.colors.library.gray[100],
+    gap: 8,
   },
-  recommendationText: {
-    flex: 1,
+  deltaHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deltaTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  deltaText: {
     fontSize: 14,
     color: theme.colors.text.default,
     lineHeight: 20,
   },
+  recommendationCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: `${theme.colors.library.orange[100]}40`,
+  },
+  recommendationText: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.colors.text.default,
+    lineHeight: 22,
+  },
   doneButton: {
-    backgroundColor: theme.colors.library.orange[400],
-    marginHorizontal: 20,
-    marginBottom: 40, // Increased for standard bottom sheet safe area
-    paddingVertical: 16,
-    borderRadius: 16,
+    margin: 20,
+    marginTop: 4,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.library.orange[500],
     alignItems: "center",
+    justifyContent: "center",
   },
   doneButtonText: {
-    color: "white",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
+    color: "#fff",
   },
 });
 

@@ -11,9 +11,12 @@ import { useUserBehaviorTrendsStore } from "../stores/userBehaviorTrends";
 
 export default function MainNavigator() {
   console.log("main navigator loaded..");
-const {fetchAllTrends} = useUserBehaviorTrendsStore();
+  const fetchAllTrends = useUserBehaviorTrendsStore(
+    (state) => state.fetchAllTrends,
+  );
   const { isLoggedIn, logout } = useContext(AuthContext);
   const { user } = useUserStore();
+  const userId = user?.id;
 
   const { events, clear } = useEventStore();
 
@@ -53,9 +56,11 @@ const {fetchAllTrends} = useUserBehaviorTrendsStore();
   }, [events, clear, logout]);
 
   useEffect(() => {
-    if (!user) return;
-    fetchAllTrends()
-  }, [user]);
+    if (!isLoggedIn || !userId) return;
+    void fetchAllTrends().catch(() => {
+      // Store-level error handling already captures and persists the failure state.
+    });
+  }, [fetchAllTrends, isLoggedIn, userId]);
 
   // -----------------------------
   // Routing decision

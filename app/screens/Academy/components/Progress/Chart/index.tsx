@@ -3,17 +3,21 @@ import React, { useEffect, useMemo, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withRepeat,
-    withTiming,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
-import { WeeklyStat } from "../../../../../api/stats/types";
+import {
+  FlowComparisonSummary,
+  WeeklyStat,
+} from "../../../../../api/stats/types";
 import ExplorerFace from "../../../../../assets/sw-faces/ExplorerFace";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
 
 // Reusable Pulse Component for "Sonar" effect
 const PulseCircle = ({ delay = 0, color = "rgba(255,255,255,0.3)" }) => {
@@ -62,7 +66,8 @@ const PulseCircle = ({ delay = 0, color = "rgba(255,255,255,0.3)" }) => {
 
 interface Props {
   data: WeeklyStat[];
-  percentChange: number;
+  comparison?: FlowComparisonSummary | null;
+  comparisonLabel?: string;
   // Customization Props
   title?: string;
   emptyTitle?: string;
@@ -78,7 +83,8 @@ const EMPTY_DUMMY_VALUES = [35, 60, 25, 65, 40, 55, 30]; // Nice distribution
 
 const PracticeBarChartKit: React.FC<Props> = ({
   data,
-  percentChange,
+  comparison,
+  comparisonLabel = "This week so far • benchmarked against last week",
   title = "Weekly Activity",
   emptyTitle = "No activity yet",
   emptySubtitle = "Start your first session",
@@ -198,26 +204,37 @@ const PracticeBarChartKit: React.FC<Props> = ({
   const onLayout = (e: LayoutChangeEvent) =>
     setChartWidth(e.nativeEvent.layout.width);
 
-  const percentText =
-    percentChange === 0
-      ? "Same as last week"
-      : percentChange > 0
-      ? `+${percentChange}% from last week`
-      : `${percentChange}% from last week`;
+  const benchmarkCopy = getFlowBenchmarkCopy(comparison, "minutes", {
+    compact: false,
+  });
 
   return (
     <View style={[styles.container, containerStyle]}>
       {showTitle && (
-        <Text
-          style={[
-            styles.title,
-            {
-              color: contentColor === "#333" ? "#555" : "rgba(255,255,255,0.7)",
-            },
-          ]}
-        >
-          {title}
-        </Text>
+        <View style={styles.titleBlock}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color:
+                  contentColor === "#333" ? "#555" : "rgba(255,255,255,0.7)",
+              },
+            ]}
+          >
+            {title}
+          </Text>
+          <Text
+            style={[
+              styles.comparisonBasisText,
+              {
+                color:
+                  contentColor === "#333" ? "#666" : "rgba(255,255,255,0.75)",
+              },
+            ]}
+          >
+            {comparisonLabel}
+          </Text>
+        </View>
       )}
 
       {/* Header Info (Total + Percent) */}
@@ -247,8 +264,18 @@ const PracticeBarChartKit: React.FC<Props> = ({
               { color: contentColor === "#333" ? "#555" : "#94A3B8" },
             ]}
           >
-            {percentText}
+            {benchmarkCopy.primary}
           </Text>
+          {benchmarkCopy.secondary ? (
+            <Text
+              style={[
+                styles.comparisonSecondaryText,
+                { color: contentColor === "#333" ? "#666" : "#CBD5E1" },
+              ]}
+            >
+              {benchmarkCopy.secondary}
+            </Text>
+          ) : null}
         </>
       )}
 
@@ -353,10 +380,17 @@ const styles = StyleSheet.create({
     elevation: 0,
     minHeight: 220, // ensure consistent height
   },
+  titleBlock: {
+    gap: 2,
+  },
   title: {
     fontSize: 14,
     color: "#555",
     marginBottom: 4,
+  },
+  comparisonBasisText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   total: {
     fontSize: 28,
@@ -370,8 +404,12 @@ const styles = StyleSheet.create({
   },
   percent: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 4,
     color: "#555",
+  },
+  comparisonSecondaryText: {
+    fontSize: 12,
+    marginBottom: 16,
   },
   chartWrapper: {
     marginTop: 24,

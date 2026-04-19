@@ -131,15 +131,30 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === "active") {
-        // Bug Fix #3: Debounce rapid foreground events (common on Android).
-        const now = Date.now();
-        if (now - lastAppStateFetchTime < APPSTATE_FETCH_DEBOUNCE_MS) {
-          console.log("App foregrounded: Skipping fetchUser (debounced)");
-          return;
-        }
-        lastAppStateFetchTime = now;
-        console.log("App foregrounded: Refreshing user data...");
-        useUserStore.getState().fetchUser();
+        void (async () => {
+          // Bug Fix #3: Debounce rapid foreground events (common on Android).
+          const now = Date.now();
+          if (now - lastAppStateFetchTime < APPSTATE_FETCH_DEBOUNCE_MS) {
+            console.log("App foregrounded: Skipping fetchUser (debounced)");
+            return;
+          }
+          lastAppStateFetchTime = now;
+
+          const [accessToken, refreshToken] = await Promise.all([
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY),
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY),
+          ]);
+
+          if (!accessToken && !refreshToken) {
+            console.log(
+              "App foregrounded: Skipping user refresh (no stored session)",
+            );
+            return;
+          }
+
+          console.log("App foregrounded: Refreshing user data...");
+          await useUserStore.getState().fetchUser();
+        })();
       }
     };
 

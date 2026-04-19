@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { getDailyActivityStatsForTheWeek } from "../../../../api";
-import { WeeklyStat } from "../../../../api/stats/types";
+import { FlowComparisonSummary, WeeklyStat } from "../../../../api/stats/types";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
@@ -11,8 +11,9 @@ import PracticeChart from "./Chart";
 const Progress = () => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
-
-  const [percentChange, setPercentChange] = useState<number>(0);
+  const [comparison, setComparison] = useState<FlowComparisonSummary | null>(
+    null,
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +28,7 @@ const Progress = () => {
       .then((data) => {
         console.log("getWeeklyStats...", data);
         setWeeklyData(data.days);
-        setPercentChange(data.percentChange);
+        setComparison(data.comparison);
         setError(null);
       })
       .catch((err) => {
@@ -60,7 +61,11 @@ const Progress = () => {
       ) : error ? (
         <Text style={{ color: theme.colors.library.red[400] }}>{error}</Text>
       ) : (
-        <PracticeChart data={weeklyData} percentChange={percentChange} />
+        <PracticeChart
+          data={weeklyData}
+          comparison={comparison}
+          comparisonLabel={comparison?.comparisonLabel}
+        />
       )}
     </View>
   );

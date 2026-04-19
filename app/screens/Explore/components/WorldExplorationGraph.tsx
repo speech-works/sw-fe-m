@@ -7,10 +7,14 @@ import {
   getDailyActivityStatsForTheWeek,
   getDetailedWeeklySummary,
 } from "../../../api/progressReport";
-import { WeeklyStat } from "../../../api/progressReport/types";
+import {
+  FlowComparisonSummary,
+  WeeklyStat,
+} from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
+import { getFlowBenchmarkCopy } from "../../../util/flowBenchmark";
 
 interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
@@ -21,9 +25,11 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 }) => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
-  // Use detailed percentages
-  const [minutesChange, setMinutesChange] = useState<number>(0);
-  const [sessionsChange, setSessionsChange] = useState<number>(0);
+  const [minutesComparison, setMinutesComparison] =
+    useState<FlowComparisonSummary | null>(null);
+  const [comparisonLabel, setComparisonLabel] = useState(
+    "This week so far • benchmarked against last week",
+  );
   const [loading, setLoading] = useState<boolean>(true);
 
   // Configuration
@@ -39,9 +45,8 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     ])
       .then(([dailyResp, summaryResp]) => {
         setWeeklyData(dailyResp.days);
-        // Use granular changes
-        setMinutesChange(summaryResp.percentagePracticeMinutesChange || 0);
-        setSessionsChange(summaryResp.percentageSessionsChange || 0);
+        setMinutesComparison(summaryResp.practiceTimeComparison);
+        setComparisonLabel(summaryResp.comparisonLabel);
       })
       .catch((err) => console.error("Stats error:", err))
       .finally(() => setLoading(false));
@@ -53,26 +58,11 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   );
   const daysActive = weeklyData.filter((d) => Math.round(d.totalTime) > 0).length;
 
-  // Comparison Helpers
-  const formatChange = (change: number, hasHistory: boolean) => {
-    if (!hasHistory) return null;
-    let displayed = Math.abs(Math.round(change));
-    // Clamp to 99 if negative and >= 100
-    if (change < 0 && displayed >= 100) displayed = 99;
-
-    return {
-      text: `${displayed}%`,
-      isPositive: change >= 0,
-      value: change,
-    };
-  };
-
-  // Check if we have meaningful data (dates back to logic if prev week existed)
-  // For now assuming if change != 0 it means we have history
-  const hasMinutesHistory = Math.abs(minutesChange) > 0;
-  const hasSessionsHistory = Math.abs(sessionsChange) > 0;
-
-  const minutesStats = formatChange(minutesChange, hasMinutesHistory);
+  const minutesBenchmark = getFlowBenchmarkCopy(
+    minutesComparison,
+    "minutes",
+    { compact: true },
+  );
 
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;
@@ -83,11 +73,10 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
     const dataMap = new Map();
     weeklyData.forEach((d) => {
-      // Handle both string and Date objects (axios auto-revival)
+      // Keep revived Date objects in local-calendar space so midnight dates
+      // don't slide back to the previous UTC day.
       const dateStr =
-        typeof d.date === "string"
-          ? d.date.split("T")[0]
-          : d.date.toISOString().split("T")[0];
+        typeof d.date === "string" ? d.date.split("T")[0] : format(d.date, "yyyy-MM-dd");
       dataMap.set(dateStr, d.totalTime);
     });
 
@@ -165,8 +154,10 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           {/* Header Row */}
           {/* Header Row */}
           <View style={styles.headerRow}>
-            <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
-            {/* Redundant comparison removed */}
+            <View>
+              <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
+              <Text style={styles.comparisonBasisText}>{comparisonLabel}</Text>
+            </View>
           </View>
 
           {/* Hero: Chart or Empty State */}
@@ -213,8 +204,8 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                       d.minutes >= 100
                         ? "99+"
                         : d.minutes > 0 && d.minutes < 1
-                        ? "<1m"
-                        : `${Math.round(d.minutes)}m`;
+                          ? "<1m"
+                          : `${Math.round(d.minutes)}m`;
 
                     // Label should be above the taller of actual or target bar
                     const topBarPercent = Math.max(
@@ -321,40 +312,20 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                 <View style={styles.statRow}>
                   <Text style={styles.statNumber}>
                     {totalWeeklyMinutes > 60
-                      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${
-                          totalWeeklyMinutes % 60
-                        }m`
+                      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${totalWeeklyMinutes % 60
+                      }m`
                       : `${totalWeeklyMinutes}m`}
                   </Text>
-                  {minutesStats && (
-                    <View
-                      style={[
-                        styles.comparisonIndicatorPill,
-                        {
-                          backgroundColor: "rgba(255, 255, 255, 0.35)", // Slightly more opaque for contrast
-                          borderWidth: 1,
-                          borderColor: "rgba(255, 255, 255, 0.2)",
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.comparisonIndicatorText,
-                          {
-                            // Darker shades for better visibility on the lightened background
-                            color: minutesStats.isPositive
-                              ? "#047857" // Deep Green
-                              : "#991B1B", // Deep Red
-                          },
-                        ]}
-                      >
-                        {minutesStats.isPositive ? "↑" : "↓"}{" "}
-                        {minutesStats.text}
-                      </Text>
-                    </View>
-                  )}
                 </View>
                 <Text style={styles.statLabel}>Total</Text>
+                <Text style={styles.benchmarkPrimaryText}>
+                  {minutesBenchmark.primary}
+                </Text>
+                {minutesBenchmark.secondary ? (
+                  <Text style={styles.benchmarkSecondaryText}>
+                    {minutesBenchmark.secondary}
+                  </Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -428,6 +399,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1.2,
     textTransform: "uppercase",
+  },
+  comparisonBasisText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 4,
   },
   comparisonBadge: {
     flexDirection: "row",
@@ -595,5 +571,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "rgba(255,255,255,0.75)",
+  },
+  benchmarkPrimaryText: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  benchmarkSecondaryText: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.78)",
   },
 });

@@ -1,7 +1,7 @@
 // api/overallState/index.ts
 
 import axiosClient from "../axiosClient";
-import { UserOverallStateAggregate } from "./types";
+import { OverallStateHistoryBucket, UserOverallStateAggregate } from "./types";
 
 /**
  * Fetch the user's current combined state snapshot.
@@ -24,14 +24,14 @@ export async function getCurrentOverallState(): Promise<UserOverallStateAggregat
 /**
  * Fetch historical snapshots of user state.
  *
- * @param weeks - Number of weeks of history to fetch (default: 12)
- * @returns Array of state aggregates (newest first)
+ * @param weeks - Number of weekly buckets to fetch (default: 12)
+ * @returns Chronological week buckets with placeholders for missing weeks
  */
 export async function getOverallStateHistory(
   weeks: number = 12,
-): Promise<UserOverallStateAggregate[]> {
+): Promise<OverallStateHistoryBucket[]> {
   try {
-    const response = await axiosClient.get<UserOverallStateAggregate[]>(
+    const response = await axiosClient.get<OverallStateHistoryBucket[]>(
       "/overall-state/history",
       {
         params: { weeks },

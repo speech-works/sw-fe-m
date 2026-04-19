@@ -61,7 +61,10 @@ export interface GrowthProfile extends GrowthProfileMetrics {
 
 export interface Breakthrough {
   current: number; // Current score (0-100)
+  previous?: number | null;
+  absoluteDelta?: number | null;
   change: number; // Percentage change
+  hasComparison?: boolean;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 }
 

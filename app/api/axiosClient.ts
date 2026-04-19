@@ -15,6 +15,15 @@ let isRefreshing = false;
 let failedQueue: any[] = [];
 let logoutEventDispatched = false;
 
+const shouldDispatchLogoutEvent = async () => {
+  const [accessToken, refreshToken] = await Promise.all([
+    SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY),
+    SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY),
+  ]);
+
+  return Boolean(accessToken || refreshToken);
+};
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -160,7 +169,10 @@ axiosClient.interceptors.response.use(
         return axiosClient(originalRequest);
       } catch (err) {
         processQueue(err, null);
-        if (!logoutEventDispatched) {
+        if (
+          !logoutEventDispatched &&
+          (await shouldDispatchLogoutEvent())
+        ) {
           // so that multiple failed retires don't trigger multiple events
           logoutEventDispatched = true;
           dispatchCustomEvent(EVENT_NAMES.USER_LOGGED_OUT);

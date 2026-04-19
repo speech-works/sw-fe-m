@@ -60,7 +60,46 @@ export interface CombinedView {
   overallProgressScore: number; // 0-100, higher = better
   recommendedFocus: ClinicalDomain;
   isStale: boolean;
-  axes?: GrowthProfileMetrics;
+  axes: GrowthProfileMetrics;
+}
+
+export type ProfileFamily = "clinical" | "engagement" | "combined";
+export type GrowthProfileAxisKey = keyof GrowthProfileMetrics;
+export type MomentumState = "ACTIVE" | "QUIET" | "SLIPPING";
+export type NullableGrowthProfileMetrics = Record<
+  GrowthProfileAxisKey,
+  number | null
+>;
+
+export interface ProfileAxisDelta {
+  current: number | null;
+  previous: number | null;
+  absoluteDelta: number | null;
+  percentDelta: number | null;
+  trend: "IMPROVING" | "STABLE" | "WORSENING";
+  hasComparison: boolean;
+}
+
+export interface OverallStateProfile {
+  axes: {
+    clinical: GrowthProfileMetrics;
+    engagement: NullableGrowthProfileMetrics;
+    combined: GrowthProfileMetrics;
+  };
+  comparison: {
+    hasComparison: boolean;
+    previousPeriodKey: string | null;
+    basis: "previous_week_bucket";
+    comparisonLabel: string;
+    deltas: Record<ProfileFamily, Record<GrowthProfileAxisKey, ProfileAxisDelta>>;
+  };
+  meta: {
+    hasClinicalBaseline: boolean;
+    hasRealMeasurements: boolean;
+    inactiveDays: number;
+    computedAt: string;
+    momentumState: MomentumState;
+  };
 }
 
 /**
@@ -76,4 +115,13 @@ export interface UserOverallStateAggregate {
   engagement: EngagementSummary;
   combined: CombinedView;
   computedAt: string;
+  profile: OverallStateProfile;
+}
+
+export interface OverallStateHistoryBucket {
+  periodKey: string;
+  periodStart: string;
+  periodEnd: string;
+  hasData: boolean;
+  snapshot?: UserOverallStateAggregate;
 }

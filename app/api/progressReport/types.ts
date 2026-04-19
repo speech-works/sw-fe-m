@@ -5,9 +5,23 @@ export type WeeklyStat = {
   totalTime: number;
 };
 
+export type FlowComparisonSummary = {
+  current: number;
+  previousTotal: number;
+  hasBenchmark: boolean;
+  absoluteDelta: number | null;
+  percentOfPreviousTotal: number | null;
+  remainingToMatch: number | null;
+  aheadOfPrevious: number | null;
+  status: "NO_BASELINE" | "BEHIND" | "MATCHED" | "AHEAD";
+  comparisonBasis: "previous_full_week";
+  comparisonLabel: string;
+};
+
 export type WeeklyStatsResponse = {
   days: WeeklyStat[];
   percentChange: number;
+  comparison: FlowComparisonSummary;
 };
 
 /** One data point for the Days Active sparkline (last 4 weeks) */
@@ -38,4 +52,8 @@ export type DetailedWeeklySummaryResponse = {
   weeklyDistribution: WeeklyDistribution;
   /** All-time minutes by content type */
   lifetimeDistribution: WeeklyDistribution;
+  comparisonLabel: string;
+  practiceTimeComparison: FlowComparisonSummary;
+  sessionCountComparison: FlowComparisonSummary;
+  daysActiveComparison: FlowComparisonSummary;
 };

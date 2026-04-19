@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { User } from "../../api/users";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
 import { useStaminaNotificationStore } from "../staminaNotification";
 import { EVENT_NAMES } from "../events/constants";
@@ -55,6 +57,16 @@ export const useUserStore = create<UserState>()(
         fetchUserInFlight = true;
 
         try {
+          const [accessToken, refreshToken] = await Promise.all([
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY),
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY),
+          ]);
+
+          if (!accessToken && !refreshToken) {
+            console.log("[UserStore] No stored session yet, skipping fetchUser");
+            return;
+          }
+
           const { getMyUser } = await import("../../api/users");
           const user = await getMyUser();
           console.log("zustand store fetching and setting user", user);

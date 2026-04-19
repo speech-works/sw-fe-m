@@ -27,9 +27,9 @@ import Svg, {
 } from "react-native-svg";
 import {
   ClinicalDomain,
-  GrowthProfile,
   GrowthProfileMetrics,
 } from "../../api/userBehaviorTrends/types";
+import { GrowthProfileAxisKey } from "../../api/overallState/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
@@ -100,12 +100,22 @@ const POLAR_TO_CARTESIAN = (
   };
 };
 
+type BreakthroughItem = {
+  key: GrowthProfileAxisKey;
+  domain: ClinicalDomain;
+  config: (typeof METRIC_CONFIG)[ClinicalDomain];
+  current: number;
+  previous: number | null;
+  absoluteDelta: number | null;
+  percentDelta: number | null;
+  hasComparison: boolean;
+  trend: "IMPROVING" | "STABLE" | "WORSENING";
+};
+
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const {
-    growthProfile,
     overallState,
-    weeklyBreakthroughs,
-    historicalProfile,
+    historyBuckets,
     fetchAllTrends,
     loading,
     error,
@@ -114,35 +124,18 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     null,
   );
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Animation Shared Value
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    // If not loaded, or stale logic (optional), fetch
-    if (!growthProfile) {
-      fetchAllTrends();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loading && growthProfile) {
-      progress.value = withTiming(1, {
-        duration: 1200,
-        easing: Easing.out(Easing.exp),
-      });
-    }
-  }, [loading, growthProfile]);
+  const combinedProfile = overallState?.profile?.axes?.combined ?? null;
+  const isMomentumSlipping =
+    overallState?.profile?.meta?.momentumState === "SLIPPING";
 
   // --- Refresh Handler ---
-  const [lastUpdated, setLastUpdated] = useState<number | null>(Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const rotationAnim = useSharedValue(0);
   const pulseAnim = useSharedValue(1);
   const downfallAnim = useSharedValue(0);
 
   useEffect(() => {
-    if (growthProfile?.dataSource === "aggregate_leaked") {
+    if (isMomentumSlipping) {
       downfallAnim.value = withRepeat(
         withSequence(
           withTiming(15, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
@@ -154,7 +147,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     } else {
       downfallAnim.value = 0;
     }
-  }, [growthProfile?.dataSource]);
+  }, [isMomentumSlipping]);
 
   const downfallStyle = useAnimatedStyle(
     () => ({
@@ -196,7 +189,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       rotationAnim.value = withTiming(0, { duration: 200 });
       pulseAnim.value = withTiming(1, { duration: 200 });
       setIsRefreshing(false);
-      setLastUpdated(Date.now());
     }
   };
 
@@ -208,72 +200,86 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     [],
   );
 
-  const cardPulseStyle = useAnimatedStyle(
-    () => ({
-      transform: [{ scale: pulseAnim.value }],
-    }),
-    [],
-  );
+  const topBreakthroughs = useMemo<BreakthroughItem[]>(() => {
+    if (!overallState?.profile) {
+      return [];
+    }
 
-  // --- Dynamic Subtitle Logic ---
-  const getDynamicSubtitle = (): string => {
-    if (!weeklyBreakthroughs) return "Loading your progress...";
+    const combinedAxes = overallState.profile.axes.combined;
+    const combinedDeltas = overallState.profile.comparison.deltas.combined;
 
-    // Find the dimension with the biggest improvement
-    const improvements = (
-      Object.keys(weeklyBreakthroughs) as (keyof typeof weeklyBreakthroughs)[]
-    )
-      .filter((key) => weeklyBreakthroughs[key]?.trend === "IMPROVING")
+    return (Object.keys(combinedDeltas) as GrowthProfileAxisKey[])
       .map((key) => {
         const domain = (Object.keys(METRIC_CONFIG) as ClinicalDomain[]).find(
-          (d) => METRIC_CONFIG[d].profileKey === key,
+          (candidate) => METRIC_CONFIG[candidate].profileKey === key,
         );
+
+        if (!domain) {
+          return null;
+        }
+
         return {
           key,
-          label: domain ? METRIC_CONFIG[domain].label : key,
-          change: weeklyBreakthroughs[key]?.change || 0,
+          domain,
+          config: METRIC_CONFIG[domain],
+          current: combinedAxes[key],
+          previous: combinedDeltas[key].previous,
+          absoluteDelta: combinedDeltas[key].absoluteDelta,
+          percentDelta: combinedDeltas[key].percentDelta,
+          hasComparison: combinedDeltas[key].hasComparison,
+          trend: combinedDeltas[key].trend,
         };
       })
-      .sort((a, b) => b.change - a.change);
+      .filter((item): item is BreakthroughItem => Boolean(item))
+      .filter(
+        (item) => item.hasComparison && (item.percentDelta ?? 0) > 0,
+      )
+      .sort((a, b) => (b.percentDelta ?? 0) - (a.percentDelta ?? 0))
+      .slice(0, 3);
+  }, [overallState]);
 
-    if (improvements.length === 0) {
+  const dynamicSubtitle = useMemo(() => {
+    if (topBreakthroughs.length === 0) {
       return "Building your foundation";
     }
 
-    const best = improvements[0];
-    return `Your ${best.label} improved ${Math.abs(best.change).toFixed(0)}%!`;
-  };
+    const best = topBreakthroughs[0];
+    return `Your ${best.config.label} improved ${Math.abs(
+      best.percentDelta ?? 0,
+    ).toFixed(0)}%!`;
+  }, [topBreakthroughs]);
+
+  const previousCombinedProfile = useMemo(() => {
+    const previousPeriodKey = overallState?.profile.comparison.previousPeriodKey;
+
+    if (!previousPeriodKey) {
+      return null;
+    }
+
+    const previousBucket = historyBuckets.find(
+      (bucket) => bucket.periodKey === previousPeriodKey && bucket.hasData,
+    );
+
+    return previousBucket?.snapshot?.profile.axes.combined ?? null;
+  }, [historyBuckets, overallState?.profile.comparison.previousPeriodKey]);
 
   // --- Data Logic ---
   const chartData = useMemo(() => {
-    if (!growthProfile) return null;
+    if (!combinedProfile || !overallState?.profile?.axes?.clinical) return null;
     const allDomains = Object.values(ClinicalDomain);
 
-    const getScoreForDomain = (domain: ClinicalDomain) => {
-      if (!overallState?.combined?.axes) {
-        if (!growthProfile) return 50;
-        const key = METRIC_CONFIG[domain].profileKey;
-        return growthProfile[key] || 50;
-      }
-
+    const currentData = allDomains.map((domain) => {
       const metricKey = METRIC_CONFIG[domain].profileKey;
-      return overallState.combined.axes[metricKey] || 50;
-    };
+      return combinedProfile[metricKey] ?? 50;
+    });
 
-    // Current Progress (Combined Axis) - THE ORANGE LAYER
-    const currentData = allDomains.map((domain) => getScoreForDomain(domain));
-
-    // Clinical Baseline - THE GREEN LAYER
     const baselineData = allDomains.map((domain) => {
-      if (overallState?.clinical?.domains?.[domain]) {
-        // Clinical scores are 0-100 where 100=bad, we invert to 100=good for radar
-        return 100 - overallState.clinical.domains[domain].score;
-      }
-      return 50; // Neutral if no baseline
+      const metricKey = METRIC_CONFIG[domain].profileKey;
+      return overallState.profile.axes.clinical[metricKey] ?? 50;
     });
 
     return { allDomains, currentData, baselineData };
-  }, [growthProfile, overallState]);
+  }, [combinedProfile, overallState]);
 
   const width = Dimensions.get("window").width;
   const CHART_WIDTH = width - 48; // Padding 24 * 2
@@ -371,10 +377,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     const _currentPathD = _makeSmoothCurve(_currentPoints, 0.45);
 
     let _historicalPathD: string | null = null;
-    if (historicalProfile) {
+    if (previousCombinedProfile) {
       const historicalData = chartData.allDomains.map((domain) => {
         const key = METRIC_CONFIG[domain].profileKey;
-        return historicalProfile[key] || 50;
+        return previousCombinedProfile[key] ?? 50;
       });
       const historicalPoints = _getPoints(historicalData);
       _historicalPathD = _makeSmoothCurve(historicalPoints, 0.45);
@@ -387,7 +393,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       historicalPathD: _historicalPathD,
       baselinePathD: _makeSmoothCurve(_getPoints(chartData.baselineData), 0.45),
     };
-  }, [chartData, historicalProfile]);
+  }, [chartData, previousCombinedProfile]);
 
   // Error State
   if (error) {
@@ -401,7 +407,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   }
 
   // Safe guard for early render
-  if (loading || !growthProfile || !chartData || !weeklyBreakthroughs) {
+  if (loading || !chartData || !overallState?.profile || !combinedProfile) {
     return (
       <View style={[styles.container, style]}>
         {/* Header Skeleton */}
@@ -470,11 +476,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     );
   }
 
-  // Weekly Breakthroughs Domain List
-  const domainBreakthroughs = Object.keys(
-    weeklyBreakthroughs,
-  ) as (keyof typeof weeklyBreakthroughs)[];
-
   return (
     <View>
       <View
@@ -488,7 +489,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
         {/* Large Watermark Icon */}
         <View style={styles.mainWatermarkContainer}>
-          {growthProfile?.dataSource === "aggregate_leaked" ? (
+          {isMomentumSlipping ? (
             <Animated.View style={downfallStyle}>
               <MaterialCommunityIcons
                 name="trending-down"
@@ -528,7 +529,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   />
                   <Text style={styles.chipText}>TRACKING</Text>
                 </View>
-                {growthProfile?.dataSource === "aggregate_leaked" && (
+                {isMomentumSlipping && (
                   <View
                     style={[
                       styles.chip,
@@ -575,7 +576,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
             ) : (
               <>
                 <Text style={styles.bigTitle}>Growth Profile</Text>
-                <Text style={styles.subtitle}>{getDynamicSubtitle()}</Text>
+                <Text style={styles.subtitle}>{dynamicSubtitle}</Text>
+                <Text style={styles.comparisonCaption}>
+                  {overallState.profile.comparison.comparisonLabel}
+                </Text>
               </>
             )}
           </View>
@@ -644,6 +648,18 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                 })}
 
                 <G>
+                  {/* 1. Previous Week Ghost Layer */}
+                  {historicalPathD ? (
+                    <AnimatedPath
+                      d={historicalPathD}
+                      fill="none"
+                      stroke={theme.colors.library.gray[300]}
+                      strokeWidth={1.5}
+                      strokeDasharray="5,5"
+                      opacity={0.9}
+                    />
+                  ) : null}
+
                   {/* 2. Clinical Baseline Layer (Greenish) */}
                   <AnimatedPath
                     d={baselinePathD}
@@ -824,266 +840,252 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               </>
             ) : (
               <>
-                <Text style={styles.sectionLabel}>BREAKTHROUGHS</Text>
+                {topBreakthroughs.length > 0 ? (
+                  <>
+                    <Text style={styles.sectionLabel}>TOP BREAKTHROUGHS</Text>
+                    {(() => {
+                      const [heroItem, ...secondaryItems] = topBreakthroughs;
+                      const formatPointDelta = (delta: number | null) => {
+                        if (delta === null) {
+                          return null;
+                        }
 
-                {(() => {
-                  // 1. Sort & Top 3
-                  const sortedKeys = domainBreakthroughs
-                    .sort((a, b) => {
-                      const valA =
-                        overallState?.combined?.axes?.[a] ??
-                        weeklyBreakthroughs[a]?.current ??
-                        0;
-                      const valB =
-                        overallState?.combined?.axes?.[b] ??
-                        weeklyBreakthroughs[b]?.current ??
-                        0;
-                      return valB - valA;
-                    })
-                    .slice(0, 3);
+                        const rounded = Math.abs(delta).toFixed(1);
+                        return `${delta > 0 ? "+" : ""}${rounded} pts`;
+                      };
 
-                  if (sortedKeys.length === 0) return null;
-
-                  const topKey = sortedKeys[0];
-                  const secondaryKeys = sortedKeys.slice(1);
-
-                  // Helper to get config & data
-                  const getItem = (key: keyof typeof weeklyBreakthroughs) => {
-                    const data = { ...weeklyBreakthroughs[key] };
-                    const domain = (
-                      Object.keys(METRIC_CONFIG) as ClinicalDomain[]
-                    ).find((d) => METRIC_CONFIG[d].profileKey === key);
-                    const config = domain ? METRIC_CONFIG[domain] : null;
-
-                    // Synchronize the 'current' score with our prioritized Combined logic
-                    if (
-                      key &&
-                      overallState?.combined?.axes?.[key] !== undefined
-                    ) {
-                      data.current = overallState.combined.axes[key];
-                    }
-
-                    return { data, config, domain };
-                  };
-
-                  const heroItem = getItem(topKey);
-
-                  return (
-                    <View style={styles.heroChartContainer}>
-                      {/* Left Col: Hero Card */}
-                      {heroItem.data && heroItem.config && heroItem.domain && (
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => {
-                            setSelectedMetric(
-                              heroItem.domain as ClinicalDomain,
-                            );
-                            setModalVisible(true);
-                          }}
-                          style={[
-                            styles.miniCard,
-                            styles.heroCard,
-                            {
-                              borderWidth: 1,
-                              borderColor: theme.colors.library.gray[100],
-                            },
-                          ]}
-                        >
-                          <View style={styles.heroHeader}>
-                            <Text
-                              style={[styles.cardTitle, { marginBottom: 0 }]}
-                            >
-                              {heroItem.config.label}
-                            </Text>
-                            <MaterialCommunityIcons
-                              name={heroItem.config.icon as any}
-                              size={18}
-                              color={heroItem.config.color}
-                            />
-                          </View>
-                          <Text style={styles.heroValue}>
-                            {Math.round(heroItem.data.current)}
-                          </Text>
-                          <View style={styles.btChangeRow}>
-                            {heroItem.data.change !== 0 && (
-                              <View
-                                style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <Text
-                                  style={[
-                                    {
-                                      color:
-                                        heroItem.data.trend === "IMPROVING"
-                                          ? theme.colors.library.green[400]
-                                          : theme.colors.library.red[400],
-                                      fontWeight: "700",
-                                    },
-                                  ]}
-                                >
-                                  {heroItem.data.change > 0 ? "+" : ""}
-                                  {heroItem.data.change.toFixed(1)}%
-                                </Text>
-
-                                <MaterialCommunityIcons
-                                  name={
-                                    heroItem.data.trend === "IMPROVING"
-                                      ? "trending-up"
-                                      : "trending-down"
-                                  }
-                                  size={16}
-                                  color={
-                                    heroItem.data.trend === "IMPROVING"
-                                      ? theme.colors.library.green[400]
-                                      : theme.colors.library.red[400]
-                                  }
-                                  style={{ marginLeft: 4 }}
-                                />
-                              </View>
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      )}
-
-                      {/* Bottom Row: 2 Mini Cards Side-by-Side */}
-                      <View style={{ flexDirection: "row", gap: 12 }}>
-                        {secondaryKeys.map((key) => {
-                          const { data, config, domain } = getItem(key);
-                          if (!data || !config || !domain) return null;
-                          const isImp = data.trend === "IMPROVING";
-
-                          return (
+                      return (
+                        <View style={styles.heroChartContainer}>
+                          {/* Left Col: Hero Card */}
+                          {heroItem ? (
                             <TouchableOpacity
-                              key={key}
                               activeOpacity={0.7}
                               onPress={() => {
-                                setSelectedMetric(domain);
+                                setSelectedMetric(heroItem.domain);
                                 setModalVisible(true);
                               }}
                               style={[
                                 styles.miniCard,
+                                styles.heroCard,
                                 {
-                                  // Override defaults for Grid layout
                                   borderWidth: 1,
                                   borderColor: theme.colors.library.gray[100],
-                                  flex: 1,
-                                  height: 100, // Fixed height for alignment
-                                  padding: 12,
                                 },
                               ]}
                             >
-                              <View
-                                style={{
-                                  flexDirection: "column",
-                                  justifyContent: "space-between",
-                                  height: "100%",
-                                }}
-                              >
-                                <View>
+                              <View style={styles.heroHeader}>
+                                <Text
+                                  style={[styles.cardTitle, { marginBottom: 0 }]}
+                                >
+                                  {heroItem.config.label}
+                                </Text>
+                                <MaterialCommunityIcons
+                                  name={heroItem.config.icon as any}
+                                  size={18}
+                                  color={heroItem.config.color}
+                                />
+                              </View>
+                              <Text style={styles.heroValue}>
+                                {Math.round(heroItem.current)}
+                              </Text>
+                              <View style={styles.btChangeRow}>
+                                {heroItem.hasComparison && (
                                   <View
                                     style={{
                                       flexDirection: "row",
-                                      justifyContent: "space-between",
-                                      alignItems: "flex-start",
-                                      width: "100%",
+                                      alignItems: "center",
                                     }}
                                   >
                                     <Text
                                       style={[
-                                        styles.cardTitle,
-                                        { marginBottom: 0, flex: 1 },
+                                        {
+                                          color:
+                                            heroItem.trend === "IMPROVING"
+                                              ? theme.colors.library.green[400]
+                                              : theme.colors.library.red[400],
+                                          fontWeight: "700",
+                                        },
                                       ]}
-                                      numberOfLines={1}
-                                      adjustsFontSizeToFit
-                                      minimumFontScale={0.8}
                                     >
-                                      {config.label}
+                                      {heroItem.percentDelta! > 0 ? "+" : ""}
+                                      {heroItem.percentDelta?.toFixed(1)}%
                                     </Text>
-                                    <View style={{ marginLeft: 4 }}>
-                                      <MaterialCommunityIcons
-                                        name={config.icon as any}
-                                        size={14}
-                                        color={config.color}
-                                      />
-                                    </View>
+
+                                    <MaterialCommunityIcons
+                                      name={
+                                        heroItem.trend === "IMPROVING"
+                                          ? "trending-up"
+                                          : "trending-down"
+                                      }
+                                      size={16}
+                                      color={
+                                        heroItem.trend === "IMPROVING"
+                                          ? theme.colors.library.green[400]
+                                          : theme.colors.library.red[400]
+                                      }
+                                      style={{ marginLeft: 4 }}
+                                    />
                                   </View>
-
-                                  {/* Change Trend */}
-                                  {data.change !== 0 && (
-                                    <View
-                                      style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        marginTop: 4,
-                                      }}
-                                    >
-                                      <Text
-                                        style={[
-                                          styles.btChange,
-                                          isImp
-                                            ? styles.textSuccess
-                                            : styles.textNeutral,
-                                          { fontSize: 11, fontWeight: "700" },
-                                        ]}
-                                      >
-                                        {data.change > 0 ? "+" : ""}
-                                        {data.change.toFixed(1)}%
-                                      </Text>
-                                      <MaterialCommunityIcons
-                                        name={
-                                          isImp
-                                            ? "trending-up"
-                                            : "trending-down"
-                                        }
-                                        size={14}
-                                        color={
-                                          isImp
-                                            ? theme.colors.library.green[400]
-                                            : theme.colors.library.red[400]
-                                        }
-                                        style={{ marginLeft: 2 }}
-                                      />
-                                    </View>
-                                  )}
-                                </View>
-
-                                {/* Score */}
-                                <Text style={styles.miniValue}>
-                                  {Math.round(data.current)}
-                                </Text>
+                                )}
                               </View>
+                              {heroItem.absoluteDelta !== null ? (
+                                <Text style={styles.btDeltaText}>
+                                  {formatPointDelta(heroItem.absoluteDelta)}
+                                </Text>
+                              ) : null}
                             </TouchableOpacity>
-                          );
-                        })}
-                      </View>
+                          ) : null}
 
-                      {/* Subtle Sync Link */}
-                      <TouchableOpacity
-                        onPress={onRefresh}
-                        disabled={isRefreshing}
-                        activeOpacity={0.7}
-                        style={styles.syncLink}
-                      >
-                        <Animated.View
-                          style={isRefreshing ? refreshIconStyle : null}
-                        >
-                          <MaterialCommunityIcons
-                            name="sync"
-                            size={16}
-                            color={theme.colors.library.gray[400]}
-                          />
-                        </Animated.View>
-                        <Text style={styles.syncText}>
-                          {isRefreshing
-                            ? "Syncing data..."
-                            : `Last synced at ${new Date(lastUpdated || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })()}
+                          {/* Bottom Row: 2 Mini Cards Side-by-Side */}
+                          <View style={{ flexDirection: "row", gap: 12 }}>
+                            {secondaryItems.map((item) => {
+                              const isImp = item.trend === "IMPROVING";
+
+                              return (
+                                <TouchableOpacity
+                                  key={item.key}
+                                  activeOpacity={0.7}
+                                  onPress={() => {
+                                    setSelectedMetric(item.domain);
+                                    setModalVisible(true);
+                                  }}
+                                  style={[
+                                    styles.miniCard,
+                                    {
+                                      borderWidth: 1,
+                                      borderColor:
+                                        theme.colors.library.gray[100],
+                                      flex: 1,
+                                      height: 100,
+                                      padding: 12,
+                                    },
+                                  ]}
+                                >
+                                  <View
+                                    style={{
+                                      flexDirection: "column",
+                                      justifyContent: "space-between",
+                                      height: "100%",
+                                    }}
+                                  >
+                                    <View>
+                                      <View
+                                        style={{
+                                          flexDirection: "row",
+                                          justifyContent: "space-between",
+                                          alignItems: "flex-start",
+                                          width: "100%",
+                                        }}
+                                      >
+                                        <Text
+                                          style={[
+                                            styles.cardTitle,
+                                            { marginBottom: 0, flex: 1 },
+                                          ]}
+                                          numberOfLines={1}
+                                          adjustsFontSizeToFit
+                                          minimumFontScale={0.8}
+                                        >
+                                          {item.config.label}
+                                        </Text>
+                                        <View style={{ marginLeft: 4 }}>
+                                          <MaterialCommunityIcons
+                                            name={item.config.icon as any}
+                                            size={14}
+                                            color={item.config.color}
+                                          />
+                                        </View>
+                                      </View>
+
+                                      {item.hasComparison && (
+                                        <View
+                                          style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            marginTop: 4,
+                                          }}
+                                        >
+                                          <Text
+                                            style={[
+                                              styles.btChange,
+                                              isImp
+                                                ? styles.textSuccess
+                                                : styles.textNeutral,
+                                              {
+                                                fontSize: 11,
+                                                fontWeight: "700",
+                                              },
+                                            ]}
+                                          >
+                                            {item.percentDelta! > 0 ? "+" : ""}
+                                            {item.percentDelta?.toFixed(1)}%
+                                          </Text>
+                                          <MaterialCommunityIcons
+                                            name={
+                                              isImp
+                                                ? "trending-up"
+                                                : "trending-down"
+                                            }
+                                            size={14}
+                                            color={
+                                              isImp
+                                                ? theme.colors.library.green[400]
+                                                : theme.colors.library.red[400]
+                                            }
+                                            style={{ marginLeft: 2 }}
+                                          />
+                                        </View>
+                                      )}
+
+                                      {item.absoluteDelta !== null ? (
+                                        <Text style={styles.btDeltaTextSmall}>
+                                          {formatPointDelta(
+                                            item.absoluteDelta,
+                                          )}
+                                        </Text>
+                                      ) : null}
+                                    </View>
+
+                                    <Text style={styles.miniValue}>
+                                      {Math.round(item.current)}
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={onRefresh}
+                            disabled={isRefreshing}
+                            activeOpacity={0.7}
+                            style={styles.syncLink}
+                          >
+                            <Animated.View
+                              style={isRefreshing ? refreshIconStyle : null}
+                            >
+                              <MaterialCommunityIcons
+                                name="sync"
+                                size={16}
+                                color={theme.colors.library.gray[400]}
+                              />
+                            </Animated.View>
+                            <Text style={styles.syncText}>
+                              {isRefreshing
+                                ? "Syncing data..."
+                                : `Last synced at ${new Date(
+                                    overallState.profile.meta.computedAt,
+                                  ).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}`}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })()}
+                  </>
+                ) : null}
               </>
             )}
           </View>
@@ -1093,43 +1095,34 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
         <DimensionDetailModal
           visible={modalVisible}
           domain={selectedMetric}
-          currentScore={(() => {
-            if (!selectedMetric) return 0;
-            const profileKey = METRIC_CONFIG[selectedMetric].profileKey;
+          comparisonLabel={overallState.profile.comparison.comparisonLabel}
+          familyData={(() => {
+            const profileKey = selectedMetric
+              ? METRIC_CONFIG[selectedMetric].profileKey
+              : "confidence";
+            const buildFamilyData = (
+              family: "combined" | "clinical" | "engagement",
+            ) => {
+              const familyAxes = overallState.profile.axes[family];
+              const familyDelta = overallState.profile.comparison.deltas[family][
+                profileKey
+              ];
 
-            // Priority 1: Use the combined axis score from overallState (The "Orange" layer)
-            if (overallState?.combined?.axes?.[profileKey] !== undefined) {
-              return overallState.combined.axes[profileKey];
-            }
+              return {
+                currentScore: familyAxes[profileKey],
+                previousScore: familyDelta.previous,
+                percentDelta: familyDelta.percentDelta,
+                absoluteDelta: familyDelta.absoluteDelta,
+                trend: familyDelta.trend,
+              };
+            };
 
-            // Priority 2: Fallback to weekly breakthroughs current score
-            if (weeklyBreakthroughs?.[profileKey]) {
-              return weeklyBreakthroughs[profileKey].current;
-            }
-
-            // Priority 3: Fallback to growth profile or default
-            return growthProfile?.[profileKey] || 50;
+            return {
+              combined: buildFamilyData("combined"),
+              clinical: buildFamilyData("clinical"),
+              engagement: buildFamilyData("engagement"),
+            };
           })()}
-          baselineScore={(() => {
-            if (!selectedMetric) return null;
-            // Clinical baseline scores are 0-100 where 100=bad, we invert to 100=good for modal
-            if (overallState?.clinical?.domains?.[selectedMetric]) {
-              return 100 - overallState.clinical.domains[selectedMetric].score;
-            }
-            return null;
-          })()}
-          change={
-            selectedMetric && weeklyBreakthroughs
-              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                  ?.change || 0
-              : 0
-          }
-          trend={
-            selectedMetric && weeklyBreakthroughs
-              ? weeklyBreakthroughs[METRIC_CONFIG[selectedMetric].profileKey]
-                  ?.trend || "STABLE"
-              : "STABLE"
-          }
           onClose={() => {
             setModalVisible(false);
             setSelectedMetric(null);
@@ -1155,6 +1148,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
+  },
+  comparisonCaption: {
+    marginTop: 6,
+    fontSize: 12,
+    color: theme.colors.text.default,
   },
   contentPanel: {
     // No background color needed (already on white)
@@ -1350,6 +1348,18 @@ const styles = StyleSheet.create({
   btChange: {
     fontSize: 11,
     fontWeight: "700",
+  },
+  btDeltaText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.text.default,
+  },
+  btDeltaTextSmall: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.text.default,
   },
   textSuccess: { color: theme.colors.library.green[400] },
   textError: { color: theme.colors.library.red[400] },
