@@ -307,6 +307,7 @@ const FollowUp = () => {
     useState<EXPRESSION_TYPE_ENUM | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [showSuccessSheet, setShowSuccessSheet] = useState(false);
+  const [showExitPromptSheet, setShowExitPromptSheet] = useState(false);
   const [recoverySheet, setRecoverySheet] = useState<RecoverySheetState>({
     visible: false,
     message: "",
@@ -341,6 +342,15 @@ const FollowUp = () => {
 
   const navigateToHome = () => {
     navigation.navigate("Root" as any);
+  };
+
+  const requestNavigateHome = () => {
+    if (submitted) {
+      navigateToHome();
+      return;
+    }
+
+    setShowExitPromptSheet(true);
   };
 
   const closeRecoverySheet = () => {
@@ -390,7 +400,7 @@ const FollowUp = () => {
 
   useEffect(() => {
     const onBackPress = () => {
-      navigateToHome();
+      requestNavigateHome();
       return true;
     };
     const subscription = BackHandler.addEventListener(
@@ -398,7 +408,7 @@ const FollowUp = () => {
       onBackPress,
     );
     return () => subscription.remove();
-  }, [navigation]);
+  }, [navigation, submitted]);
 
   const handleExpressionSheetAfterClose = () => {
     if (!pendingSheet) return;
@@ -438,7 +448,7 @@ const FollowUp = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigateToHome()}
+            onPress={requestNavigateHome}
             style={styles.backButton}
           >
             <Icon
@@ -458,17 +468,19 @@ const FollowUp = () => {
               { paddingTop: HEADER_HEIGHT + insets.top + 20 },
             ]}
           >
-            <View style={styles.titleWrapper}>
-              <View style={styles.faceContainer}>
-                <FaceComponent
-                  width={180}
-                  height={180}
-                  shouldAnimate={isFocused}
-                />
+            {!submitted && (
+              <View style={styles.titleWrapper}>
+                <View style={styles.faceContainer}>
+                  <FaceComponent
+                    width={180}
+                    height={180}
+                    shouldAnimate={isFocused}
+                  />
+                </View>
+                <Text style={styles.titleText}>{title}</Text>
+                <Text style={styles.descText}>{desc}</Text>
               </View>
-              {!submitted && <Text style={styles.titleText}>{title}</Text>}
-              {!submitted && <Text style={styles.descText}>{desc}</Text>}
-            </View>
+            )}
             {submitted ? (
               <View style={styles.helpfulActContianer}>
                 <Text style={styles.helpfulTitleText}>
@@ -553,7 +565,7 @@ const FollowUp = () => {
               </>
             )}
             <View style={styles.skipContainer}>
-              <TouchableOpacity onPress={() => navigateToHome()}>
+              <TouchableOpacity onPress={requestNavigateHome}>
                 <Text style={styles.skipText}>I'll do it later</Text>
               </TouchableOpacity>
             </View>
@@ -581,6 +593,68 @@ const FollowUp = () => {
           closeExpressionSheet();
         }}
       />
+
+      <BottomSheetModal
+        visible={showExitPromptSheet}
+        onClose={() => setShowExitPromptSheet(false)}
+        fitContent
+        showCloseButton={true}
+        showHandle={false}
+      >
+        <View
+          style={[
+            styles.exitPromptSheetContainer,
+            { paddingBottom: Math.max(insets.bottom, 28) },
+          ]}
+        >
+          <View style={styles.exitPromptIconShell}>
+            <LinearGradient
+              colors={["#FDBA74", "#F97316"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.exitPromptIconGradient}
+            >
+              <Icon name="exclamation" size={24} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+
+          <Text style={styles.exitPromptTitle}>Mood not recorded today</Text>
+          <Text style={styles.exitPromptDesc}>
+            Your mood check-in for today is still incomplete. You can stay here
+            and record it now, or head back home and skip it for the day.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.exitPromptPrimaryButton}
+            onPress={() => setShowExitPromptSheet(false)}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={["#FDBA74", "#F97316"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.exitPromptPrimaryGradient}
+            >
+              <Text style={styles.exitPromptPrimaryButtonText}>
+                Record mood now
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.exitPromptSecondaryButton}
+            onPress={() => {
+              setShowExitPromptSheet(false);
+              navigateToHome();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.exitPromptSecondaryButtonText}>
+              Skip for today
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
 
       <BottomSheetModal
         visible={recoverySheet.visible}
@@ -852,6 +926,73 @@ const styles = StyleSheet.create({
     borderColor: "rgba(15, 23, 42, 0.08)",
   },
   successSecondaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+  },
+  exitPromptSheetContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    alignItems: "center",
+    backgroundColor: "#FFF9F3",
+  },
+  exitPromptIconShell: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: "rgba(249, 115, 22, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  exitPromptIconGradient: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  exitPromptTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  exitPromptDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  exitPromptPrimaryButton: {
+    width: "100%",
+    borderRadius: 18,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  exitPromptPrimaryGradient: {
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  exitPromptPrimaryButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  exitPromptSecondaryButton: {
+    width: "100%",
+    height: 50,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(15, 23, 42, 0.08)",
+  },
+  exitPromptSecondaryButtonText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
     fontWeight: "600",
