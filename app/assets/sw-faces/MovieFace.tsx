@@ -82,6 +82,7 @@ const MovieFace = ({
 
   return (
     <View
+      pointerEvents="none"
       style={{
         width: activeWidth as any,
         height: activeHeight as any,

@@ -152,7 +152,9 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
                 </View>
                 <Text style={styles.cardTitle}>{p.name}</Text>
               </View>
-              <View style={styles.iconWrapper}>{renderFace(p.faceType)}</View>
+              <View style={styles.iconWrapper} pointerEvents="none">
+                {renderFace(p.faceType)}
+              </View>
             </LinearGradient>
 
             {p.badge && (
