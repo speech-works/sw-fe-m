@@ -22,10 +22,10 @@ type LifetimeGrowthJourneyCardProps = {
 };
 
 const VIEWBOX_WIDTH = 320;
-const VIEWBOX_HEIGHT = 140;
-const PADDING_X = 20;
-const PADDING_Y = 18;
-const CHART_HEIGHT = VIEWBOX_HEIGHT - 44;
+const VIEWBOX_HEIGHT = 104;
+const PADDING_X = 18;
+const PADDING_Y = 14;
+const CHART_HEIGHT = VIEWBOX_HEIGHT - 36;
 
 const AXIS_LABELS = {
   mastery: "Mastery",
@@ -97,10 +97,18 @@ const LifetimeGrowthJourneyCard = ({
     )
     .slice(0, 3);
 
+  const headerTitle = growthJourney.hasComparison
+    ? growthJourney.baselineLabel
+    : "Lifetime baseline is still forming";
+  const headerSubtitle =
+    growthJourney.comparisonLabel === headerTitle
+      ? null
+      : growthJourney.comparisonLabel;
+
   return (
     <View style={styles.shadowContainer}>
       <LinearGradient
-        colors={["#6366F1", "#8B5CF6"]}
+        colors={["#22C55E", "#0EA5E9"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -112,14 +120,10 @@ const LifetimeGrowthJourneyCard = ({
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerLabel}>GROWTH JOURNEY</Text>
-              <Text style={styles.headerTitle}>
-                {growthJourney.hasComparison
-                  ? growthJourney.baselineLabel
-                  : "Lifetime baseline is still forming"}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                {growthJourney.comparisonLabel}
-              </Text>
+              <Text style={styles.headerTitle}>{headerTitle}</Text>
+              {headerSubtitle ? (
+                <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
+              ) : null}
             </View>
             <View style={styles.iconBubble}>
               {hasError ? (
@@ -130,7 +134,7 @@ const LifetimeGrowthJourneyCard = ({
                   style={{ marginRight: 8 }}
                 />
               ) : null}
-              <Icon name="chart-line" size={18} color="#FFF" />
+              <Icon name="seedling" size={18} color="#FFF" />
             </View>
           </View>
 
@@ -182,7 +186,7 @@ const LifetimeGrowthJourneyCard = ({
                         cy={point.y}
                         r={isCurrent ? 7 : 5}
                         fill="#FFF"
-                        stroke="rgba(99,102,241,0.45)"
+                        stroke="rgba(34,197,94,0.45)"
                         strokeWidth={isCurrent ? 3 : 2}
                       />
                     </React.Fragment>
@@ -194,7 +198,7 @@ const LifetimeGrowthJourneyCard = ({
                 <Text style={styles.chartLabel}>
                   {format(new Date(growthJourney.history[0].periodStart), "MMM d")}
                 </Text>
-                <Text style={styles.chartLabel}>Now</Text>
+                <Text style={styles.chartLabelCurrent}>Now</Text>
               </View>
             </View>
           ) : null}
@@ -217,19 +221,20 @@ const LifetimeGrowthJourneyCard = ({
                   <Text style={styles.deltaAxis}>
                     {AXIS_LABELS[axis as keyof typeof AXIS_LABELS]}
                   </Text>
-                  <Text style={styles.deltaValue}>
-                    +{delta.absoluteDelta ?? 0} pts
-                    {delta.percentDelta !== null ? ` • ${delta.percentDelta}%` : ""}
-                  </Text>
+                  <Text style={styles.deltaValue}>+{delta.absoluteDelta ?? 0}</Text>
                 </View>
               ))}
             </View>
           ) : (
             <View style={styles.deltaFallback}>
-              <Icon name="compass" size={12} color="rgba(255,255,255,0.78)" />
+              <Icon
+                name="compass"
+                size={38}
+                color="rgba(255,255,255,0.08)"
+                style={styles.deltaFallbackWatermark}
+              />
               <Text style={styles.deltaFallbackText}>
-                We’ll compare your long-horizon growth once you have more than one
-                saved weekly baseline.
+                Long-range comparison appears after another saved baseline.
               </Text>
             </View>
           )}
@@ -244,17 +249,17 @@ export default LifetimeGrowthJourneyCard;
 const styles = StyleSheet.create({
   shadowContainer: {
     borderRadius: 24,
-    shadowColor: "#6366F1",
+    shadowColor: "#22C55E",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.22,
     shadowRadius: 14,
     elevation: 8,
-    backgroundColor: "#E0E7FF",
+    backgroundColor: "#D1FAE5",
     overflow: "hidden",
   },
   gradient: {
     paddingHorizontal: 20,
-    paddingVertical: 22,
+    paddingVertical: 18,
     position: "relative",
   },
   bubbleTopRight: {
@@ -276,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
   },
   contentLayer: {
-    gap: 18,
+    gap: 14,
     zIndex: 1,
   },
   headerRow: {
@@ -295,96 +300,116 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFF",
-    marginTop: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.84)",
-    marginTop: 4,
-    fontSize: 13,
+    marginTop: 2,
+    fontSize: 12,
   },
   iconBubble: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     alignSelf: "flex-start",
   },
   chartCard: {
     backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: 18,
-    paddingVertical: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
   },
   chartLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: -2,
+    paddingHorizontal: 18,
+    marginTop: -4,
   },
   chartLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+  },
+  chartLabelCurrent: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
   axisRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
   axisChip: {
     minWidth: "30%",
     backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
   },
   axisLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.72)",
-    marginBottom: 4,
+    marginBottom: 2,
+    fontSize: 12,
   },
   axisValue: {
     ...parseTextStyle(theme.typography.Heading4),
     color: "#FFF",
   },
   deltaSection: {
-    gap: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
   },
   deltaPill: {
     backgroundColor: "rgba(255,255,255,0.16)",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   deltaAxis: {
-    ...parseTextStyle(theme.typography.Body),
+    ...parseTextStyle(theme.typography.BodySmall),
     color: "#FFF",
     fontWeight: "700",
-    marginBottom: 4,
   },
   deltaValue: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.92)",
+    fontWeight: "700",
   },
   deltaFallback: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: 16,
-    padding: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
+    overflow: "hidden",
+    position: "relative",
+  },
+  deltaFallbackWatermark: {
+    position: "absolute",
+    right: 10,
+    bottom: -2,
   },
   deltaFallbackText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.8)",
-    flex: 1,
+    paddingLeft: 6,
   },
 });
