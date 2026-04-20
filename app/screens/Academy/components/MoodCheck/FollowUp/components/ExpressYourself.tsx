@@ -75,7 +75,7 @@ const ExpressYourself = ({
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const setMood = useMoodCheckStore((state) => state.setMood);
-  const fetchAllData = useProgressReportStore((state) => state.fetchAllData);
+  const fetchReport = useProgressReportStore((state) => state.fetchReport);
   const {
     voiceRecordingUri,
     setVoiceRecordingUri,
@@ -134,7 +134,7 @@ const ExpressYourself = ({
       }
 
       setMood(moodType);
-      await fetchAllData(user.id, true);
+      await fetchReport(user.id, "weekly", true);
       onSubmit();
     } catch (error) {
       console.error("❌ Failed to submit mood expression:", error);

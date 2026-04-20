@@ -15,7 +15,6 @@ import {
     createSession,
     getAllSessionsOfUser,
 } from "../../api/practiceSessions";
-import { getUserStats } from "../../api/stats";
 import { getUserBehaviorHistoricalTrend } from "../../api/userBehaviorTrends";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 import CustomScrollView from "../../components/CustomScrollView";
@@ -95,7 +94,6 @@ const Academy = () => {
     user?.hasCompletedOnboarding,
   );
 
-  const [practiceStats, setPracticeStats] = useState<any>(null); // Added state
   const [oasesProgress, setOasesProgress] = useState<{
     dayNumber: number;
     totalDays: number;
@@ -139,13 +137,9 @@ const Academy = () => {
 
   const handleScreenRefresh = useCallback(async () => {
     await syncSessionWithBackend();
-    if (user?.id) {
-      const practiceStats = await getUserStats(user.id);
-      setPracticeStats(practiceStats);
-    }
-  }, [syncSessionWithBackend, user?.id, setPracticeStats]);
+  }, [syncSessionWithBackend]);
 
-  const { refreshControl, refreshing } = usePullToRefresh(handleScreenRefresh);
+  const { refreshControl } = usePullToRefresh(handleScreenRefresh);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -164,15 +158,6 @@ const Academy = () => {
       console.error("Failed to create new session:", error);
     }
   };
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchUserStats = async () => {
-      const practiceStats = await getUserStats(user.id);
-      setPracticeStats(practiceStats);
-    };
-    fetchUserStats();
-  }, [user, setPracticeStats]);
 
   useEffect(() => {
     async function fetchUserBehaviorTrends() {

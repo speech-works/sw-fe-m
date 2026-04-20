@@ -6,8 +6,6 @@ import Angry1 from "../../../../../assets/mood-check/Angry1";
 import Calm1 from "../../../../../assets/mood-check/Calm1";
 import Happy1 from "../../../../../assets/mood-check/Happy1";
 import Sad1 from "../../../../../assets/mood-check/Sad1";
-import { useUserStore } from "../../../../../stores/user";
-import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
@@ -78,14 +76,17 @@ export const MoodSummarySkeleton = () => (
   </View>
 );
 
-const MoodSummary = () => {
-  const { user } = useUserStore();
-  const {
-    moodReport: moodStats,
-    loading,
-    fetchErrors,
-  } = useProgressReportStore();
+type MoodSummaryProps = {
+  moodStats: Record<string, number> | null;
+  loading?: boolean;
+  hasError?: boolean;
+};
 
+const MoodSummary = ({
+  moodStats,
+  loading = false,
+  hasError = false,
+}: MoodSummaryProps) => {
   const icons = {
     ANGRY: Angry1,
     CALM: Calm1,
@@ -102,7 +103,7 @@ const MoodSummary = () => {
   }
 
   const nonZeroMoods = moodStats
-    ? Object.entries(moodStats).filter(([, percentage]) => percentage > 0)
+    ? (Object.entries(moodStats) as [string, number][]).filter(([, percentage]) => percentage > 0)
     : [];
 
   return (
@@ -128,7 +129,7 @@ const MoodSummary = () => {
           <View style={styles.headerRow}>
             <Text style={styles.headerLabel}>MOOD SUMMARY</Text>
             <View style={styles.headerRight}>
-              {fetchErrors.moodReport && (
+              {hasError && (
                 <Icon
                   name="exclamation-circle"
                   size={14}
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase",
   },

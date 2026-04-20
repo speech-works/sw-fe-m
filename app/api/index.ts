@@ -24,7 +24,7 @@ export {
 
 export { logMood, updateMoodByMoodId } from "./moodCheck";
 export {
-    getDailyActivityStatsForTheWeek, getDetailedWeeklySummary, getWeeklyMoodReport
+    getDailyActivityStatsForTheWeek,
 } from "./progressReport";
 export {
     createRecording,
@@ -32,7 +32,6 @@ export {
     deleteRecordingsByUser, getRecordingById,
     getRecordings
 } from "./recordings";
-export { getUserStats } from "./stats";
 export {
     createSubscription,
     deleteSubscriptionById, getAllSubscriptionsOfUser,

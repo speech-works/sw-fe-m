@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -14,19 +14,20 @@ import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingF
 import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
 import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
 import ScreenView from "../../../../../components/ScreenView";
+import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 
@@ -35,7 +36,20 @@ const CognitivePractice = () => {
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
-  const { practiceStats } = usePracticeStatsStore();
+  const { user } = useUserStore();
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("CognitivePractice summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
 
   const cognitivePracticeData = [
     {
@@ -63,8 +77,8 @@ const CognitivePractice = () => {
     },
   ];
 
-  const stats = practiceStats.find(
-    (stat) => stat.contentType === "COGNITIVE_PRACTICE",
+  const summary = categories.find(
+    (category) => category.contentType === "COGNITIVE_PRACTICE",
   );
 
   return (
@@ -167,88 +181,20 @@ const CognitivePractice = () => {
           ))}
         </View>
 
-        {/* Activity Stats Dashboard */}
-        <View style={styles.statsSection}>
-          <LinearGradient
-            colors={["#FAF5FF", "#F3E8FF"] as const} // Purple/Lavender
-            style={styles.statsDashboard}
-          >
-            <View style={styles.dashboardHeader}>
-              <View>
-                <Text style={styles.dashboardTitle}>Your Progress</Text>
-                <Text style={styles.dashboardSubtitle}>
-                  Stay focused and calm.
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.streakBadge,
-                  { backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" },
-                ]}
-              >
-                <Icon name="brain" size={14} color="#7C3AED" />
-                <Text style={[styles.streakText, { color: "#6D28D9" }]}>
-                  Focused
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.dashboardGrid}>
-              {/* Completed Count */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#FaE8FF" },
-                  ]}
-                >
-                  <Icon name="check-double" size={18} color="#C026D3" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.itemsCompleted || 0}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    sessions done
-                  </Text>
-                </View>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.statDivider} />
-
-              {/* Time Spent */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#DDD6FE" },
-                  ]}
-                >
-                  <Icon name="hourglass-half" size={18} color="#7C3AED" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.totalTime
-                      ? formatDuration(stats.totalTime).split(" ")[0]
-                      : "0m"}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    mindful minutes
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+        <PracticeCategoryProgressCard
+          summary={summary ?? null}
+          title="Your Focus Loop"
+          subtitle="This week leads the story. Lifetime work stays visible below."
+          badgeLabel="Focus"
+          accent={{
+            gradient: ["#FAF5FF", "#F3E8FF"],
+            iconBg: "#F5D0FE",
+            iconColor: "#A21CAF",
+            badgeBg: "#F3E8FF",
+            badgeBorder: "#D8B4FE",
+            badgeText: "#6D28D9",
+          }}
+        />
       </ScrollView>
     </ScreenView>
   );

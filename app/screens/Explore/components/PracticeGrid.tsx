@@ -1,14 +1,17 @@
-import { useIsFocused, useNavigation } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getUserStats } from "../../../api/stats";
-import { PracticeStatSummary } from "../../../api/stats/types";
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
 import WarriorFace from "../../../assets/mood-check/WarriorFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
+import { usePracticeCategorySummaryStore } from "../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
@@ -29,20 +32,28 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const { user } = useUserStore();
-  const [stats, setStats] = useState<PracticeStatSummary[]>([]);
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
 
-  useEffect(() => {
-    if (!user?.id) return;
-    getUserStats(user.id)
-      .then((data) => setStats(data))
-      .catch((err) => console.error("PracticeGrid stats error:", err));
-  }, [user?.id]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("PracticeGrid summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
 
   const getCount = useCallback(
     (type: string) => {
-      return stats.find((s) => s.contentType === type)?.itemsCompleted || 0;
+      return (
+        categories.find((category) => category.contentType === type)?.weekly
+          .completedCount || 0
+      );
     },
-    [stats],
+    [categories],
   );
 
   const practices = useMemo(
@@ -50,7 +61,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       {
         name: "Reading",
         subtitle: "Fluency",
-        countLabel: `${getCount("READING_PRACTICE")} Done`,
+        weeklyCount: getCount("READING_PRACTICE"),
         faceType: "reader" as const,
         route: "ReadingPracticeStack",
         colors: ["#FFD8B5", "#FFAB76"],
@@ -59,7 +70,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       {
         name: "Fun",
         subtitle: "Expression",
-        countLabel: `${getCount("FUN_PRACTICE")} Done`,
+        weeklyCount: getCount("FUN_PRACTICE"),
         faceType: "movie" as const,
         route: "FunPracticeStack",
         colors: ["#Cbf0f0", "#98E6E6"], // Soft Aqua
@@ -68,7 +79,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       {
         name: "Cognitive",
         subtitle: "Focus",
-        countLabel: `${getCount("COGNITIVE_PRACTICE")} Done`,
+        weeklyCount: getCount("COGNITIVE_PRACTICE"),
         badge: "FREE",
         faceType: "breathing" as const,
         route: "CognitivePracticeStack",
@@ -78,7 +89,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
       {
         name: "Exposure",
         subtitle: "Courage",
-        countLabel: `${getCount("EXPOSURE_PRACTICE")} Done`,
+        weeklyCount: getCount("EXPOSURE_PRACTICE"),
         faceType: "warrior" as const,
         route: "ExposureStack",
         colors: ["#FFC8C8", "#FF9E9E"],
@@ -147,7 +158,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
                   <Text style={styles.cardSubtitle}>{p.subtitle}</Text>
                   {/* Small badge for count */}
                   <View style={styles.countBadge}>
-                    <Text style={styles.countText}>{p.countLabel}</Text>
+                    <Text style={styles.countValue}>{p.weeklyCount}</Text>
                   </View>
                 </View>
                 <Text style={styles.cardTitle}>{p.name}</Text>
@@ -225,12 +236,15 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    minWidth: 24,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  countText: {
-    fontSize: 9,
+  countValue: {
+    fontSize: 11,
     fontWeight: "700",
     color: "rgba(0,0,0,0.6)",
   },

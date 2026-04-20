@@ -12,8 +12,8 @@ import Svg, {
   Rect,
   Stop,
 } from "react-native-svg";
-import { useProgressReportStore } from "../../../../../stores/progressReport";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
+import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
@@ -39,18 +39,16 @@ export const WeeklySummarySkeleton = () => (
         </View>
         <View style={styles.statsRow}>
           <View style={styles.statBadgeSkeleton}>
-             <SkeletonLoader width={40} height={40} style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20 }} />
-             <View style={{ gap: 6, flex: 1 }}>
-                <SkeletonLoader width={"60%"} height={24} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-                <SkeletonLoader width={"40%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-             </View>
+             <SkeletonLoader width={"50%"} height={32} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
+             <SkeletonLoader width={"80%"} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 12 }} />
+             <SkeletonLoader width={"100%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
+             <SkeletonLoader width={"60%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
           </View>
           <View style={styles.statBadgeSkeleton}>
-             <SkeletonLoader width={40} height={40} style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 20 }} />
-             <View style={{ gap: 6, flex: 1 }}>
-                <SkeletonLoader width={"60%"} height={24} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-                <SkeletonLoader width={"40%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-             </View>
+             <SkeletonLoader width={"50%"} height={32} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
+             <SkeletonLoader width={"80%"} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 12 }} />
+             <SkeletonLoader width={"100%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)", marginBottom: 4 }} />
+             <SkeletonLoader width={"60%"} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
           </View>
         </View>
       </View>
@@ -356,12 +354,17 @@ const DaysActiveSparkline: React.FC<{
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────
-const DetailedWeeklySummary = () => {
-  const {
-    detailedSummary: weeklyData,
-    loading,
-    fetchErrors,
-  } = useProgressReportStore();
+type DetailedWeeklySummaryProps = {
+  summary: WeeklyReportResponse["summary"] | null;
+  loading?: boolean;
+  hasError?: boolean;
+};
+
+const DetailedWeeklySummary = ({
+  summary: weeklyData,
+  loading = false,
+  hasError = false,
+}: DetailedWeeklySummaryProps) => {
   const [levelStage, setLevelStage] = React.useState<LevelStage | null>(null);
 
   React.useEffect(() => {
@@ -437,17 +440,14 @@ const DetailedWeeklySummary = () => {
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerLabel}>
-                {levelStage?.fullTitle || "WEEKLY SUMMARY"}
+                {levelStage?.title || "WEEKLY SUMMARY"}
               </Text>
               <Text style={styles.dateRangeText}>
-                {levelStage?.progressReportCopy || getWeekRangeLabel()}
-              </Text>
-              <Text style={styles.comparisonBasisText}>
-                {normalizedComparisonLabel}
+                {getWeekRangeLabel()}
               </Text>
             </View>
             <View style={styles.headerRight}>
-              {fetchErrors.detailedSummary && (
+              {hasError && (
                 <Icon
                   name="exclamation-circle"
                   size={14}
@@ -465,47 +465,47 @@ const DetailedWeeklySummary = () => {
             <View style={styles.statsRow}>
               {/* Practice Time Badge */}
               <View style={styles.statBadge}>
-                <Icon name="clock" size={18} color="rgba(255,255,255,0.9)" />
+                <View style={styles.watermarkIconContainer}>
+                  <Icon name="clock" size={80} color="#FFF" />
+                </View>
                 <View style={styles.statContent}>
-                  <View style={styles.statValueRow}>
-                    <Text style={styles.statNumber}>
-                      {weeklyData.totalPracticeMinutes < 60
-                        ? `${weeklyData.totalPracticeMinutes}m`
-                        : `${(weeklyData.totalPracticeMinutes / 60).toFixed(
-                            1,
-                          )}h`}
-                    </Text>
-                  </View>
-                  <Text style={styles.statLabel}>Practice Time</Text>
-                  <Text style={styles.benchmarkPrimaryText}>
-                    {practiceBenchmark.primary}
+                  <Text
+                    style={styles.statNumber}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {weeklyData.totalPracticeMinutes < 60
+                      ? `${weeklyData.totalPracticeMinutes}m`
+                      : `${(weeklyData.totalPracticeMinutes / 60).toFixed(1)}h`}
                   </Text>
-                  {practiceBenchmark.secondary ? (
-                    <Text style={styles.benchmarkSecondaryText}>
-                      {practiceBenchmark.secondary}
-                    </Text>
-                  ) : null}
+                  <Text style={styles.statLabel}>Practice Time</Text>
+                  <Text style={styles.benchmarkCombinedText} numberOfLines={2}>
+                    {practiceBenchmark.primary}
+                    {practiceBenchmark.secondary ? ` • ${practiceBenchmark.secondary}` : ""}
+                  </Text>
                 </View>
               </View>
 
               {/* Days Active Badge */}
               <View style={styles.statBadge}>
-                <Icon name="fire" size={18} color="rgba(255,255,255,0.9)" />
+                <View style={styles.watermarkIconContainer}>
+                  <Icon name="fire" size={80} color="#FFF" />
+                </View>
                 <View style={styles.statContent}>
-                  <View style={styles.statValueRow}>
-                    <Text style={styles.statNumber}>
-                      {weeklyData.totalDaysActive}
-                    </Text>
-                  </View>
-                  <Text style={styles.statLabel}>Days Active</Text>
-                  <Text style={styles.benchmarkPrimaryText}>
-                    {daysBenchmark.primary}
+                  <Text
+                    style={styles.statNumber}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {weeklyData.totalDaysActive}
                   </Text>
-                  {daysBenchmark.secondary ? (
-                    <Text style={styles.benchmarkSecondaryText}>
-                      {daysBenchmark.secondary}
-                    </Text>
-                  ) : null}
+                  <Text style={styles.statLabel}>Days Active</Text>
+                  <Text style={styles.benchmarkCombinedText} numberOfLines={2}>
+                    {daysBenchmark.primary}
+                    {daysBenchmark.secondary ? ` • ${daysBenchmark.secondary}` : ""}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -615,21 +615,15 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   dateRangeText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  comparisonBasisText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.78)",
-    marginTop: 4,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    marginTop: 6,
   },
   statsRow: {
     flexDirection: "row",
@@ -638,68 +632,49 @@ const styles = StyleSheet.create({
   },
   statBadge: {
     backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    borderRadius: 24,
+    padding: 18,
     flex: 1,
+    overflow: "hidden",
+    position: "relative",
+  },
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -16,
+    bottom: -18,
+    opacity: 0.08,
+    transform: [{ rotate: "-15deg" }],
   },
   statBadgeSkeleton: {
     backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    borderRadius: 24,
+    padding: 18,
     flex: 1,
   },
   statContent: {
-    gap: 2,
     flex: 1,
-  },
-  statValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-    flexWrap: "wrap",
+    justifyContent: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "900",
     color: "#FFF",
     letterSpacing: -0.5,
-    lineHeight: 28,
-  },
-  comparisonPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  comparisonText: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: -0.3,
+    lineHeight: 32,
   },
   statLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 2,
+  },
+  benchmarkCombinedText: {
+    marginTop: 8,
     fontSize: 12,
     fontWeight: "600",
     color: "rgba(255,255,255,0.75)",
-  },
-  benchmarkPrimaryText: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFF",
-  },
-  benchmarkSecondaryText: {
-    marginTop: 2,
-    fontSize: 11,
-    color: "rgba(255,255,255,0.78)",
+    letterSpacing: -0.1,
+    lineHeight: 16,
   },
   loadingText: {
     ...parseTextStyle(theme.typography.BodySmall),

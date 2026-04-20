@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -16,17 +16,18 @@ import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace"
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
+import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
   FDPStackNavigationProp,
   FDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 
@@ -34,9 +35,22 @@ const FunPractice = () => {
   const navigation =
     useNavigation<FDPStackNavigationProp<keyof FDPStackParamList>>();
 
-  const { practiceStats } = usePracticeStatsStore();
+  const { user } = useUserStore();
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("FunPractice summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
 
   const funPracticeData = [
     {
@@ -65,8 +79,8 @@ const FunPractice = () => {
     },
   ];
 
-  const stats = practiceStats.find(
-    (stat) => stat.contentType === "FUN_PRACTICE",
+  const summary = categories.find(
+    (category) => category.contentType === "FUN_PRACTICE",
   );
 
   return (
@@ -163,92 +177,20 @@ const FunPractice = () => {
           ))}
         </View>
 
-        {/* Activity Stats Dashboard */}
-        <View style={styles.statsSection}>
-          <LinearGradient
-            colors={["#F0FDFA", "#F0F9FF"] as const} // Cyan/Sky
-            style={styles.statsDashboard}
-          >
-            <View style={styles.dashboardHeader}>
-              <View>
-                <Text style={styles.dashboardTitle}>Your Progress</Text>
-                <Text style={styles.dashboardSubtitle}>
-                  Keep finding your voice!
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.streakBadge,
-                  { backgroundColor: "#CCFBF1", borderColor: "#5EEAD4" },
-                ]}
-              >
-                <Icon name="star" size={14} color="#0D9488" />
-                <Text style={[styles.streakText, { color: "#0F766E" }]}>
-                  Expressive
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.dashboardGrid}>
-              {/* Completed Count */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#CCFBF1" },
-                  ]}
-                >
-                  <Icon name="check-double" size={18} color="#0D9488" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.itemsCompleted || 0}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    activities done
-                  </Text>
-                </View>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.statDivider} />
-
-              {/* Time Spent */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#E0F2FE" },
-                  ]}
-                >
-                  <Icon
-                    name="hourglass-half"
-                    size={18}
-                    color={theme.colors.library.blue[600]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.totalTime
-                      ? formatDuration(stats.totalTime).split(" ")[0]
-                      : "0m"}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    practice time
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+        <PracticeCategoryProgressCard
+          summary={summary ?? null}
+          title="Your Expression Pulse"
+          subtitle="Weekly practice leads. Lifetime expression stays visible below."
+          badgeLabel="Expression"
+          accent={{
+            gradient: ["#F0FDFA", "#F0F9FF"],
+            iconBg: "#CCFBF1",
+            iconColor: "#0D9488",
+            badgeBg: "#CCFBF1",
+            badgeBorder: "#5EEAD4",
+            badgeText: "#0F766E",
+          }}
+        />
       </ScrollView>
     </ScreenView>
   );

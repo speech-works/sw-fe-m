@@ -1,10 +1,9 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { useUserStore } from "../../../../../stores/user";
-import { useProgressReportStore } from "../../../../../stores/progressReport";
+import { WeeklyDistribution } from "../../../../../api/progressReport/types";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
@@ -31,7 +30,7 @@ export const DPSummarySkeleton = () => {
           style={styles.gradient}
         >
           <View style={styles.contentLayer}>
-            <View style={styles.headerRow}>
+            <View style={styles.headerTopRow}>
               <View style={{ gap: 6 }}>
                 <SkeletonLoader width={140} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
                 <SkeletonLoader width={180} height={14} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
@@ -71,16 +70,19 @@ export const DPSummarySkeleton = () => {
     );
 };
 
-const DPSummary = () => {
-  const { user } = useUserStore();
-  const {
-    detailedSummary,
-    loading,
-    fetchErrors,
-  } = useProgressReportStore();
+type DPSummaryProps = {
+  distribution: WeeklyDistribution | null;
+  timeframe: "weekly" | "lifetime";
+  loading?: boolean;
+  hasError?: boolean;
+};
 
-  const [activeTab, setActiveTab] = useState<"weekly" | "lifetime">("weekly");
-
+const DPSummary = ({
+  distribution,
+  timeframe,
+  loading = false,
+  hasError = false,
+}: DPSummaryProps) => {
   const chartColors: Record<ContentTypeKey, string> = {
     READING_PRACTICE: "#FCD34D",
     COGNITIVE_PRACTICE: "#FB923C",
@@ -103,11 +105,6 @@ const DPSummary = () => {
   };
 
   const { chartData, totalPracticeTime } = useMemo(() => {
-    const distribution =
-      activeTab === "weekly"
-        ? detailedSummary?.weeklyDistribution
-        : detailedSummary?.lifetimeDistribution;
-
     if (!distribution || Object.keys(distribution).length === 0)
       return { chartData: [], totalPracticeTime: 0 };
 
@@ -116,7 +113,7 @@ const DPSummary = () => {
       0,
     );
 
-    const dataForChart = Object.entries(distribution)
+    const dataForChart = (Object.entries(distribution) as [string, number][])
       .filter(([, v]) => v > 0)
       .map(([key, totalTime]) => {
         const contentType = key as ContentTypeKey;
@@ -130,7 +127,7 @@ const DPSummary = () => {
       });
 
     return { chartData: dataForChart, totalPracticeTime: overallTotalTime };
-  }, [detailedSummary, activeTab]);
+  }, [distribution]);
 
   const formatTime = (timeInMinutes: number) => {
     if (timeInMinutes < 60) return `${Math.round(timeInMinutes)}m`;
@@ -139,12 +136,9 @@ const DPSummary = () => {
 
   const chartSize = SCREEN_WIDTH - 16 * 2 - CARD_PADDING * 2;
 
-  const hasData =
-    !!(activeTab === "weekly"
-      ? detailedSummary?.weeklyDistribution
-      : detailedSummary?.lifetimeDistribution);
+  const hasData = !!distribution;
 
-  if (loading && !detailedSummary) {
+  if (loading && !distribution) {
     return <DPSummarySkeleton />;
   }
 
@@ -166,36 +160,25 @@ const DPSummary = () => {
 
         <View style={styles.contentLayer}>
           {/* Header Pattern — matches Weekly/Mood summaries */}
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.headerLabel}>PRACTICE DISTRIBUTION</Text>
-              <Text style={styles.headerSubtitle}>
-                {activeTab === "weekly" ? "Category breakdown this week" : "All-time category breakdown"}
-              </Text>
-            </View>
-            <View style={styles.headerRight}>
-              {/* Week / Lifetime toggle */}
-              <View style={styles.togglePill}>
-                <Text
-                  style={[
-                    styles.toggleOption,
-                    activeTab === "weekly" && styles.toggleOptionActive,
-                  ]}
-                  onPress={() => setActiveTab("weekly")}
-                >
-                  This Week
-                </Text>
-                <Text
-                  style={[
-                    styles.toggleOption,
-                    activeTab === "lifetime" && styles.toggleOptionActive,
-                  ]}
-                  onPress={() => setActiveTab("lifetime")}
-                >
-                  Lifetime
+          <View style={styles.headerSection}>
+            <View style={styles.headerTopRow}>
+              <View style={styles.headerTextBlock}>
+                <Text style={styles.headerLabel}>PRACTICE DISTRIBUTION</Text>
+                <Text style={styles.headerSubtitle}>
+                  {timeframe === "weekly"
+                    ? "Category breakdown this week"
+                    : "All-time category breakdown"}
                 </Text>
               </View>
               <View style={styles.headerIconWrapper}>
+                {hasError ? (
+                  <Icon
+                    name="exclamation-circle"
+                    size={14}
+                    color="rgba(255,255,255,0.75)"
+                    style={{ marginRight: 8 }}
+                  />
+                ) : null}
                 <Icon name="chart-pie" size={16} color="#FFFFFF" />
               </View>
             </View>
@@ -388,10 +371,18 @@ const styles = StyleSheet.create({
     zIndex: 1,
     gap: 20,
   },
-  headerRow: {
+  headerSection: {
+    gap: 12,
+  },
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  headerTextBlock: {
+    flex: 1,
+    paddingRight: 4,
   },
   headerLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
@@ -411,54 +402,65 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  headerRight: {
+  headerControlsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   togglePill: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 12,
-    padding: 3,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    padding: 4,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.14)",
+    alignSelf: "flex-start",
+    width: "100%",
+    maxWidth: 240,
   },
   toggleOption: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 9,
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.6)",
+    flex: 1,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   toggleOptionActive: {
-    backgroundColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.22)",
+  },
+  toggleOptionText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.64)",
+  },
+  toggleOptionTextActive: {
     color: "#FFFFFF",
   },
   dataArea: {
-    gap: 24,
+    gap: 18,
   },
   legendContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   legendCapsule: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingVertical: 5,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
   legendDot: {
     width: 8,
@@ -584,5 +586,3 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.7)",
   },
 });
-
-

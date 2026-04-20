@@ -92,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear Zustand stores to prevent leaked state or erroneous fetches on re-login
     import("../stores/user").then(m => m.useUserStore.getState().clearUser());
     import("../stores/userBehaviorTrends").then(m => m.useUserBehaviorTrendsStore.getState().clearTrends());
+    import("../stores/progressReport").then(m => m.useProgressReportStore.getState().clearProgressReport());
+    import("../stores/practiceCategorySummary").then(m => m.usePracticeCategorySummaryStore.getState().clearSummary());
 
     setToken(null);
   };

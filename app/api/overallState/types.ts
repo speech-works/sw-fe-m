@@ -5,8 +5,8 @@ import {
   GrowthProfileMetrics,
 } from "../userBehaviorTrends/types";
 
-// Re-export ClinicalDomain for convenience
-export { ClinicalDomain };
+// Re-export for convenience
+export { ClinicalDomain, GrowthProfileMetrics };
 
 /**
  * Clinical summary with domain scores and trends.

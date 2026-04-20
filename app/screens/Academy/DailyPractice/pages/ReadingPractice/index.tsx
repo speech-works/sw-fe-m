@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -15,17 +15,18 @@ import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
 import PoetFace from "../../../../../assets/sw-faces/PoetFace";
 import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
 import ScreenView from "../../../../../components/ScreenView";
+import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
   RDPStackNavigationProp,
   RDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { formatDuration } from "../../../../../util/functions/time";
 import { BlurView } from "expo-blur";
 
 const { width } = Dimensions.get("window");
@@ -35,8 +36,20 @@ const ReadingPractice = () => {
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
+  const { user } = useUserStore();
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
 
-  const { practiceStats } = usePracticeStatsStore();
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("ReadingPractice summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
 
   const readingPracticeData = [
     {
@@ -68,8 +81,8 @@ const ReadingPractice = () => {
     },
   ];
 
-  const stats = practiceStats.find(
-    (stat) => stat.contentType === "READING_PRACTICE",
+  const summary = categories.find(
+    (category) => category.contentType === "READING_PRACTICE",
   );
 
   return (
@@ -167,90 +180,20 @@ const ReadingPractice = () => {
           ))}
         </View>
 
-        {/* Activity Stats Dashboard */}
-        <View style={styles.statsSection}>
-          <LinearGradient
-            colors={["#F8FAFC", "#F1F5F9"] as const}
-            style={styles.statsDashboard}
-          >
-            <View style={styles.dashboardHeader}>
-              <View>
-                <Text style={styles.dashboardTitle}>Your Progress</Text>
-                <Text style={styles.dashboardSubtitle}>
-                  Keep up the momentum!
-                </Text>
-              </View>
-              <View style={styles.streakBadge}>
-                <Icon name="fire" size={14} color="#F59E0B" />
-                <Text style={styles.streakText}>Active</Text>
-              </View>
-            </View>
-
-            <View style={styles.dashboardGrid}>
-              {/* Completed Count */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#DBEAFE" },
-                  ]}
-                >
-                  <Icon
-                    name="check-double"
-                    size={18}
-                    color={theme.colors.library.blue[600]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.itemsCompleted || 0}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    readings completed
-                  </Text>
-                </View>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.statDivider} />
-
-              {/* Time Spent */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#DCFCE7" },
-                  ]}
-                >
-                  <Icon
-                    name="hourglass-half"
-                    size={18}
-                    color={theme.colors.library.green[600]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  {/* Handle duration formatting gracefully if 0 */}
-                  <Text style={styles.statValueBig}>
-                    {stats?.totalTime
-                      ? formatDuration(stats.totalTime).split(" ")[0]
-                      : "0m"}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    practice time
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+        <PracticeCategoryProgressCard
+          summary={summary ?? null}
+          title="Your Reading Rhythm"
+          subtitle="Weekly practice stays up front. Lifetime progress stays in view."
+          badgeLabel="Fluency"
+          accent={{
+            gradient: ["#F8FAFC", "#F1F5F9"],
+            iconBg: "#DBEAFE",
+            iconColor: theme.colors.library.blue[600],
+            badgeBg: "#FFF7ED",
+            badgeBorder: "#FED7AA",
+            badgeText: "#C2410C",
+          }}
+        />
       </ScrollView>
     </ScreenView>
   );

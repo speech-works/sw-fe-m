@@ -1,4 +1,4 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
@@ -16,17 +16,18 @@ import WiseFace from "../../../../../assets/sw-faces/WiseFace";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
+import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
   EDPStackNavigationProp,
   EDPStackParamList,
 } from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
+import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
+import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import { formatDuration } from "../../../../../util/functions/time";
 
 const { width } = Dimensions.get("window");
 
@@ -35,7 +36,20 @@ const Exposure = () => {
     useNavigation<EDPStackNavigationProp<keyof EDPStackParamList>>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
-  const { practiceStats } = usePracticeStatsStore();
+  const { user } = useUserStore();
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("Exposure summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
 
   const exposureData = [
     {
@@ -80,8 +94,8 @@ const Exposure = () => {
     },
   ];
 
-  const stats = practiceStats.find(
-    (stat) => stat.contentType === "EXPOSURE_PRACTICE",
+  const summary = categories.find(
+    (category) => category.contentType === "EXPOSURE_PRACTICE",
   );
 
   return (
@@ -213,86 +227,20 @@ const Exposure = () => {
           ))}
         </View>
 
-        {/* Activity Stats Dashboard */}
-        <View style={styles.statsSection}>
-          <LinearGradient
-            colors={["#FFF1F2", "#FFFBEB"] as const} // Rose/Amber
-            style={styles.statsDashboard}
-          >
-            <View style={styles.dashboardHeader}>
-              <View>
-                <Text style={styles.dashboardTitle}>Your Progress</Text>
-                <Text style={styles.dashboardSubtitle}>Every step counts.</Text>
-              </View>
-              <View
-                style={[
-                  styles.streakBadge,
-                  { backgroundColor: "#FFE4E6", borderColor: "#FDA4AF" },
-                ]}
-              >
-                <Icon name="fire-alt" size={14} color="#E11D48" />
-                <Text style={[styles.streakText, { color: "#BE123C" }]}>
-                  Courageous
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.dashboardGrid}>
-              {/* Completed Count */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#FFE4E6" },
-                  ]}
-                >
-                  <Icon name="check-double" size={18} color="#E11D48" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.itemsCompleted || 0}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    challenges won
-                  </Text>
-                </View>
-              </View>
-
-              {/* Divider */}
-              <View style={styles.statDivider} />
-
-              {/* Time Spent */}
-              <View style={styles.statItem}>
-                <View
-                  style={[
-                    styles.statIconWrapper,
-                    { backgroundColor: "#FEF3C7" },
-                  ]}
-                >
-                  <Icon name="hourglass-half" size={18} color="#D97706" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statValueBig}>
-                    {stats?.totalTime
-                      ? formatDuration(stats?.totalTime).split(" ")[0]
-                      : "0m"}
-                  </Text>
-                  <Text
-                    style={styles.statLabelSmall}
-                    adjustsFontSizeToFit
-                    numberOfLines={2}
-                  >
-                    practice time
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+        <PracticeCategoryProgressCard
+          summary={summary ?? null}
+          title="Your Courage Track"
+          subtitle="Weekly exposure stays front and center. Lifetime courage stays visible too."
+          badgeLabel="Courage"
+          accent={{
+            gradient: ["#FFF1F2", "#FFFBEB"],
+            iconBg: "#FFE4E6",
+            iconColor: "#E11D48",
+            badgeBg: "#FFE4E6",
+            badgeBorder: "#FDA4AF",
+            badgeText: "#BE123C",
+          }}
+        />
       </ScrollView>
     </ScreenView>
   );

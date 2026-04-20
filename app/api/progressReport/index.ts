@@ -1,5 +1,9 @@
 import axiosClient from "../axiosClient";
-import { DetailedWeeklySummaryResponse, WeeklyStatsResponse } from "./types";
+import {
+  LifetimeReportResponse,
+  WeeklyReportResponse,
+  WeeklyStatsResponse,
+} from "./types";
 
 /**
  * Minutes per day for the current local week
@@ -20,34 +24,30 @@ export async function getDailyActivityStatsForTheWeek(
   }
 }
 
-export async function getWeeklyMoodReport(
-  userId: string
-): Promise<Record<string, number>> {
+export async function getWeeklyReport(
+  userId: string,
+): Promise<WeeklyReportResponse> {
   try {
-    const response = await axiosClient.get(`/report/${userId}/weekly-mood`);
-    console.log("getWeeklyMoodReport api response", response.data.moodCounts);
-    return response.data.moodCounts;
+    const response = await axiosClient.get<WeeklyReportResponse>(
+      `/report/${userId}/weekly-report`,
+    );
+    return response.data;
   } catch (error) {
-    console.error("Error fetching weekly mood report:", error);
+    console.error("Error fetching weekly report:", error);
     throw error;
   }
 }
 
-/**
- * Returns overall weekly summary for current client-local week
- * Includes total practice minutes and session count with % change from last week
- */
-export async function getDetailedWeeklySummary(
-  userId: string
-): Promise<DetailedWeeklySummaryResponse> {
+export async function getLifetimeReport(
+  userId: string,
+): Promise<LifetimeReportResponse> {
   try {
-    const response = await axiosClient.get<DetailedWeeklySummaryResponse>(
-      `/report/${userId}/detailed-weekly-summary`
+    const response = await axiosClient.get<LifetimeReportResponse>(
+      `/report/${userId}/lifetime-report`,
     );
-    console.log("getDetailedWeeklySummary api response", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching detailed weekly summary:", error);
+    console.error("Error fetching lifetime report:", error);
     throw error;
   }
 }

@@ -22,7 +22,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
-import { getUserStats } from "../../api/stats";
 import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
 import BottomSheetModal from "../../components/BottomSheetModal";
@@ -30,7 +29,7 @@ import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { useEventStore } from "../../stores/events"; // Added missing import
 import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
-import { usePracticeStatsStore } from "../../stores/practiceStats"; // Added missing import
+import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
@@ -44,7 +43,7 @@ import WorldExplorationGraph from "./components/WorldExplorationGraph";
 const Explore = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
-  const { setPracticeStats } = usePracticeStatsStore();
+  const { fetchSummary } = usePracticeCategorySummaryStore();
   const { events, clear } = useEventStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 100;
@@ -97,10 +96,9 @@ const Explore = () => {
   const handleScreenRefresh = useCallback(async () => {
     await syncSessionWithBackend();
     if (user?.id) {
-      const practiceStats = await getUserStats(user.id);
-      setPracticeStats(practiceStats);
+      await fetchSummary(user.id, true);
     }
-  }, [syncSessionWithBackend, user?.id, setPracticeStats]);
+  }, [fetchSummary, syncSessionWithBackend, user?.id]);
 
   const { refreshControl } = usePullToRefresh(handleScreenRefresh); // Removed refreshing since not used directly in new layout
 
@@ -108,12 +106,11 @@ const Explore = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetchUserStats = async () => {
-      const practiceStats = await getUserStats(user.id);
-      setPracticeStats(practiceStats);
+    const fetchCategorySummary = async () => {
+      await fetchSummary(user.id);
     };
-    fetchUserStats();
-  }, [user?.id, setPracticeStats]);
+    fetchCategorySummary();
+  }, [fetchSummary, user?.id]);
 
   useEffect(() => {
     if (route.params?.scrollToJumpIn) {

@@ -1,11 +1,16 @@
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
   getDailyActivityStatsForTheWeek,
-  getDetailedWeeklySummary,
+  getWeeklyReport,
 } from "../../../api/progressReport";
 import {
   FlowComparisonSummary,
@@ -41,12 +46,12 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 
     Promise.all([
       getDailyActivityStatsForTheWeek(user.id),
-      getDetailedWeeklySummary(user.id),
+      getWeeklyReport(user.id),
     ])
-      .then(([dailyResp, summaryResp]) => {
+      .then(([dailyResp, weeklyReport]) => {
         setWeeklyData(dailyResp.days);
-        setMinutesComparison(summaryResp.practiceTimeComparison);
-        setComparisonLabel(summaryResp.comparisonLabel);
+        setMinutesComparison(weeklyReport.summary.practiceTimeComparison);
+        setComparisonLabel(weeklyReport.comparisonLabel);
       })
       .catch((err) => console.error("Stats error:", err))
       .finally(() => setLoading(false));
@@ -63,7 +68,42 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     "minutes",
     { compact: true },
   );
+  const minutesBenchmarkSummary = useMemo(() => {
+    if (!minutesBenchmark.secondary) {
+      return minutesBenchmark.primary;
+    }
 
+    const compactSecondary = minutesBenchmark.secondary
+      .replace(" of last week", "")
+      .replace(" of last week's total", "");
+
+    return `${minutesBenchmark.primary} • ${compactSecondary}`;
+  }, [minutesBenchmark.primary, minutesBenchmark.secondary]);
+
+  const totalPracticeSummary =
+    totalWeeklyMinutes > 60
+      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${totalWeeklyMinutes % 60}m`
+      : `${totalWeeklyMinutes}m`;
+  const comparisonSubtitle = useMemo(() => {
+    const fallbackLabel = "Benchmarked against last week";
+
+    if (!comparisonLabel) {
+      return fallbackLabel;
+    }
+
+    const trimmedParts = comparisonLabel
+      .split("•")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    const mostRelevantPart = trimmedParts[trimmedParts.length - 1];
+
+    if (!mostRelevantPart) {
+      return fallbackLabel;
+    }
+
+    return mostRelevantPart.charAt(0).toUpperCase() + mostRelevantPart.slice(1);
+  }, [comparisonLabel]);
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;
 
@@ -121,6 +161,14 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     return maxIndex === todayIndex || maxIndex === todayIndex - 1;
   }, [rhythmData]);
 
+  const activitySummary = useMemo(() => {
+    if (isStreak) {
+      return `${daysActive}-day streak`;
+    }
+
+    return `${daysActive} ${daysActive === 1 ? "active day" : "active days"}`;
+  }, [daysActive, isStreak]);
+
   return (
     <View
       onLayout={(event) => {
@@ -151,12 +199,16 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 
         {/* Content Layer */}
         <View style={styles.contentLayer}>
-          {/* Header Row */}
-          {/* Header Row */}
           <View style={styles.headerRow}>
-            <View>
+            <View style={styles.headerTextBlock}>
               <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
-              <Text style={styles.comparisonBasisText}>{comparisonLabel}</Text>
+              <Text
+                style={styles.comparisonBasisText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {comparisonSubtitle}
+              </Text>
             </View>
           </View>
 
@@ -293,39 +345,42 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           {/* Footer: Stats Badges */}
           <View style={styles.footerStats}>
             {/* Streak Badge */}
-            <View style={styles.statBadge}>
-              <Icon name="fire" size={18} color="rgba(255,255,255,0.9)" />
-              <View style={styles.statContent}>
-                <View style={styles.statRow}>
-                  <Text style={styles.statNumber}>{daysActive}</Text>
-                  {/* Streak comparison is confusing/unavailable, removed for clarity */}
-                </View>
-                <Text style={styles.statLabel}>
-                  {isStreak ? "Day Streak" : "Days Active"}
+            <View style={[styles.statBadge, styles.activityBadge]}>
+              <View style={styles.watermarkIconContainer}>
+                <Icon name="fire" size={72} color="#FFF" />
+              </View>
+              <View style={styles.badgeContentCol}>
+                <Text
+                  style={styles.badgeMainValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {daysActive}
+                </Text>
+                <Text style={styles.badgeSubValue} numberOfLines={1}>
+                  {isStreak ? "day streak" : daysActive === 1 ? "active day" : "active days"}
                 </Text>
               </View>
             </View>
 
             {/* Total Badge */}
-            <View style={styles.statBadge}>
-              <View style={styles.statContent}>
-                <View style={styles.statRow}>
-                  <Text style={styles.statNumber}>
-                    {totalWeeklyMinutes > 60
-                      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${totalWeeklyMinutes % 60
-                      }m`
-                      : `${totalWeeklyMinutes}m`}
-                  </Text>
-                </View>
-                <Text style={styles.statLabel}>Total</Text>
-                <Text style={styles.benchmarkPrimaryText}>
-                  {minutesBenchmark.primary}
+            <View style={[styles.statBadge, styles.minutesBadge]}>
+              <View style={styles.watermarkIconContainer}>
+                <Icon name="stopwatch" size={72} color="#FFF" />
+              </View>
+              <View style={styles.badgeContentCol}>
+                <Text
+                  style={styles.badgeMainValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {totalPracticeSummary}
                 </Text>
-                {minutesBenchmark.secondary ? (
-                  <Text style={styles.benchmarkSecondaryText}>
-                    {minutesBenchmark.secondary}
-                  </Text>
-                ) : null}
+                <Text style={styles.badgeSubValue} numberOfLines={2}>
+                  {minutesBenchmarkSummary}
+                </Text>
               </View>
             </View>
           </View>
@@ -351,9 +406,9 @@ const styles = StyleSheet.create({
   },
   gradient: {
     borderRadius: 24,
-    paddingHorizontal: 20, // Refined spacing
-    paddingVertical: 22,
-    minHeight: 280,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    minHeight: 320,
     position: "relative",
   },
   // Watermark Bubbles
@@ -383,56 +438,48 @@ const styles = StyleSheet.create({
   },
   contentLayer: {
     flex: 1,
-    justifyContent: "space-between",
+    gap: 20,
     zIndex: 1,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 28, // Increased spacing
+  },
+  headerTextBlock: {
+    gap: 6,
+    paddingRight: 56,
   },
   headerLabel: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "rgba(255,255,255,0.9)",
-    fontSize: 11, // Refined
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   comparisonBasisText: {
     ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.8)",
-    marginTop: 4,
-  },
-  comparisonBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  comparisonText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontSize: 12, // Increased from 11
-    fontWeight: "700",
-    color: "#FFF",
+    color: "rgba(255,255,255,0.84)",
+    fontSize: 13,
   },
   // Empty State
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    minHeight: 160,
   },
   emptyText: {
     ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: "rgba(255,255,255,0.9)",
     marginTop: 16,
     marginBottom: 8,
+    textAlign: "center",
   },
   emptySubtext: {
     ...parseTextStyle(theme.typography.Body),
@@ -445,7 +492,7 @@ const styles = StyleSheet.create({
   chartContainer: {
     flex: 1,
     justifyContent: "center",
-    marginBottom: 20, // Refined spacing
+    minHeight: 180,
   },
   chartRow: {
     flexDirection: "row",
@@ -526,61 +573,45 @@ const styles = StyleSheet.create({
   footerStats: {
     flexDirection: "row",
     gap: 12,
-    paddingTop: 20,
-    justifyContent: "center",
+    marginTop: "auto",
+    paddingTop: 12,
   },
   statBadge: {
     backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    minWidth: 120,
+    borderRadius: 24,
+    padding: 20,
+    overflow: "hidden",
+    position: "relative",
   },
-  statContent: {
-    gap: 2,
+  activityBadge: {
+    flex: 3.5,
   },
-  statRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
+  minutesBadge: {
+    flex: 6.5,
   },
-  statNumber: {
-    fontSize: 24,
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -14,
+    bottom: -16,
+    opacity: 0.1,
+    transform: [{ rotate: "-15deg" }],
+  },
+  badgeContentCol: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  badgeMainValue: {
+    fontSize: 26,
     fontWeight: "900",
     color: "#FFF",
-    letterSpacing: -0.5,
-    lineHeight: 28,
+    letterSpacing: -0.4,
   },
-  comparisonIndicatorPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 6,
-  },
-  comparisonIndicatorText: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 12,
+  badgeSubValue: {
+    fontSize: 13,
     fontWeight: "600",
     color: "rgba(255,255,255,0.75)",
-  },
-  benchmarkPrimaryText: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFF",
-  },
-  benchmarkSecondaryText: {
-    marginTop: 2,
-    fontSize: 11,
-    color: "rgba(255,255,255,0.78)",
+    letterSpacing: -0.1,
+    lineHeight: 18,
+    marginTop: 4,
   },
 });

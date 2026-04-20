@@ -33,9 +33,7 @@ const formatPrimaryValue = (
 
   switch (kind) {
     case "minutes":
-      return compact
-        ? `${formatted} min`
-        : `${formatted} min`;
+      return compact ? `${formatted}m` : `${formatted} min`;
     case "sessions":
       return compact
         ? value === 1
@@ -66,7 +64,7 @@ const formatAheadValue = (
 
   switch (kind) {
     case "minutes":
-      return compact ? `${formatted} min ahead` : `${formatted} min ahead of last week`;
+      return compact ? `${formatted}m ahead` : `${formatted} min ahead of last week`;
     case "sessions":
       return value === 1
         ? compact
@@ -95,7 +93,7 @@ export const getFlowBenchmarkCopy = (
 ) => {
   if (!comparison || !comparison.hasBenchmark) {
     return {
-      primary: "No last-week benchmark yet",
+      primary: compact ? "No last-week benchmark" : "No last-week benchmark yet",
       secondary: null as string | null,
       isAhead: false,
     };
@@ -106,7 +104,9 @@ export const getFlowBenchmarkCopy = (
       primary: "Matched last week",
       secondary:
         comparison.percentOfPreviousTotal !== null
-          ? `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
+          ? compact
+            ? `${Math.round(comparison.percentOfPreviousTotal)}%`
+            : `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
           : null,
       isAhead: false,
     };
@@ -117,7 +117,9 @@ export const getFlowBenchmarkCopy = (
       primary: formatAheadValue(comparison.aheadOfPrevious ?? 0, kind, compact),
       secondary:
         comparison.percentOfPreviousTotal !== null
-          ? `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
+          ? compact
+            ? `${Math.round(comparison.percentOfPreviousTotal)}%`
+            : `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
           : null,
       isAhead: true,
     };
@@ -131,7 +133,9 @@ export const getFlowBenchmarkCopy = (
     )} to match${compact ? "" : " last week"}`,
     secondary:
       comparison.percentOfPreviousTotal !== null
-        ? `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
+        ? compact
+          ? `${Math.round(comparison.percentOfPreviousTotal)}%`
+          : `${Math.round(comparison.percentOfPreviousTotal)}% of last week's total`
         : null,
     isAhead: false,
   };

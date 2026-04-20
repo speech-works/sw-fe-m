@@ -11,7 +11,11 @@ import {
 
 const { width: windowWidth } = Dimensions.get("window");
 
-const Achievements = () => {
+type AchievementsProps = {
+  stageData?: LevelStage | null;
+};
+
+const Achievements = ({ stageData }: AchievementsProps) => {
   const { user } = useUserStore();
   const [stage, setStage] = useState<LevelStage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +30,30 @@ const Achievements = () => {
   const horizontalPadding = (windowWidth - gradientPadding * 2 - slideWidth) / 2;
 
   useEffect(() => {
+    if (stageData) {
+      setStage(stageData);
+      if (stageData?.stages?.length) {
+        const currentIndex = stageData.stages.findIndex((s) => {
+          const isCurrent =
+            stageData.level >= s.minLevel &&
+            (s.maxLevel === null || stageData.level <= s.maxLevel);
+          return isCurrent;
+        });
+
+        if (currentIndex !== -1) {
+          setActiveIndex(currentIndex);
+          setTimeout(() => {
+            scrollRef.current?.scrollTo({
+              x: currentIndex * (slideWidth + spacing),
+              animated: false,
+            });
+          }, 100);
+        }
+      }
+      setIsLoading(false);
+      return;
+    }
+
     if (!user) {
       setIsLoading(false);
       return;
@@ -57,7 +85,7 @@ const Achievements = () => {
         console.error(err);
       })
       .finally(() => setIsLoading(false));
-  }, [user]);
+  }, [stageData, user]);
 
   const activeTotalXp = stage?.totalXp ?? user?.totalXp ?? 0;
   const xpIntoLevel = Math.max(0, activeTotalXp - (stage?.currentLevelXpFloor || 0));
