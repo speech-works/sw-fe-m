@@ -845,6 +845,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                     <Text style={styles.sectionLabel}>TOP BREAKTHROUGHS</Text>
                     {(() => {
                       const [heroItem, ...secondaryItems] = topBreakthroughs;
+                      const isCompactBreakthroughLayout =
+                        topBreakthroughs.length <= 3;
                       const formatPointDelta = (delta: number | null) => {
                         if (delta === null) {
                           return null;
@@ -853,6 +855,96 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                         const rounded = Math.abs(delta).toFixed(1);
                         return `${delta > 0 ? "+" : ""}${rounded} pts`;
                       };
+
+                      if (isCompactBreakthroughLayout) {
+                        return (
+                          <View style={styles.compactBreakthroughGrid}>
+                            {topBreakthroughs.map((item) => {
+                              const isImp = item.trend === "IMPROVING";
+
+                              return (
+                                <TouchableOpacity
+                                  key={item.key}
+                                  activeOpacity={0.7}
+                                  onPress={() => {
+                                    setSelectedMetric(item.domain);
+                                    setModalVisible(true);
+                                  }}
+                                  style={[
+                                    styles.miniCard,
+                                    styles.compactBreakthroughCard,
+                                    topBreakthroughs.length === 1
+                                      ? styles.compactBreakthroughCardSingle
+                                      : null,
+                                    {
+                                      borderWidth: 1,
+                                      borderColor: theme.colors.library.gray[100],
+                                    },
+                                  ]}
+                                >
+                                  <View style={styles.compactBreakthroughHeader}>
+                                    <Text
+                                      style={[styles.cardTitle, { marginBottom: 0 }]}
+                                      numberOfLines={1}
+                                    >
+                                      {item.config.label}
+                                    </Text>
+                                    <MaterialCommunityIcons
+                                      name={item.config.icon as any}
+                                      size={16}
+                                      color={item.config.color}
+                                    />
+                                  </View>
+
+                                  <View style={styles.compactBreakthroughValueRow}>
+                                    <Text style={styles.compactBreakthroughValue}>
+                                      {Math.round(item.current)}
+                                    </Text>
+                                    {item.hasComparison ? (
+                                      <View
+                                        style={
+                                          styles.compactBreakthroughDeltaRow
+                                        }
+                                      >
+                                        <Text
+                                          style={[
+                                            styles.btChange,
+                                            isImp
+                                              ? styles.textSuccess
+                                              : styles.textNeutral,
+                                          ]}
+                                        >
+                                          {item.percentDelta! > 0 ? "+" : ""}
+                                          {item.percentDelta?.toFixed(1)}%
+                                        </Text>
+                                        <MaterialCommunityIcons
+                                          name={
+                                            isImp
+                                              ? "trending-up"
+                                              : "trending-down"
+                                          }
+                                          size={14}
+                                          color={
+                                            isImp
+                                              ? theme.colors.library.green[400]
+                                              : theme.colors.library.red[400]
+                                          }
+                                        />
+                                      </View>
+                                    ) : null}
+                                  </View>
+
+                                  {item.absoluteDelta !== null ? (
+                                    <Text style={styles.btDeltaTextSmall}>
+                                      {formatPointDelta(item.absoluteDelta)}
+                                    </Text>
+                                  ) : null}
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        );
+                      }
 
                       return (
                         <View style={styles.heroChartContainer}>
@@ -1275,6 +1367,45 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: "column", // Vertical Stack
     gap: 12,
+  },
+  compactBreakthroughGrid: {
+    marginTop: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  compactBreakthroughCard: {
+    width: "48%",
+    height: 100,
+    justifyContent: "space-between",
+    padding: 14,
+  },
+  compactBreakthroughCardSingle: {
+    width: "100%",
+    height: 92,
+  },
+  compactBreakthroughHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  compactBreakthroughValueRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  compactBreakthroughValue: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    letterSpacing: -0.8,
+    lineHeight: 30,
+  },
+  compactBreakthroughDeltaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   heroCard: {
     height: 140, // Fixed height for Hero
