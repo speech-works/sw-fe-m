@@ -1055,32 +1055,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                             })}
                           </View>
 
-                          <TouchableOpacity
-                            onPress={onRefresh}
-                            disabled={isRefreshing}
-                            activeOpacity={0.7}
-                            style={styles.syncLink}
-                          >
-                            <Animated.View
-                              style={isRefreshing ? refreshIconStyle : null}
-                            >
-                              <MaterialCommunityIcons
-                                name="sync"
-                                size={16}
-                                color={theme.colors.library.gray[400]}
-                              />
-                            </Animated.View>
-                            <Text style={styles.syncText}>
-                              {isRefreshing
-                                ? "Syncing data..."
-                                : `Last synced at ${new Date(
-                                    overallState.profile.meta.computedAt,
-                                  ).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}`}
-                            </Text>
-                          </TouchableOpacity>
                         </View>
                       );
                     })()}
@@ -1089,6 +1063,31 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               </>
             )}
           </View>
+
+          <TouchableOpacity
+            onPress={onRefresh}
+            disabled={isRefreshing}
+            activeOpacity={0.7}
+            style={styles.syncLink}
+          >
+            <Animated.View style={isRefreshing ? refreshIconStyle : null}>
+              <MaterialCommunityIcons
+                name="sync"
+                size={16}
+                color={theme.colors.library.gray[400]}
+              />
+            </Animated.View>
+            <Text style={styles.syncText}>
+              {isRefreshing
+                ? "Syncing data..."
+                : `Last synced at ${new Date(
+                    overallState.profile.meta.computedAt,
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Dimension Detail Modal */}
