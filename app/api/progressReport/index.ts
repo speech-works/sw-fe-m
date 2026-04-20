@@ -10,11 +10,11 @@ import {
  * Used on Academy landing page
  */
 export async function getDailyActivityStatsForTheWeek(
-  userId: string
+  _userId?: string,
 ): Promise<WeeklyStatsResponse> {
   try {
     const response = await axiosClient.get<WeeklyStatsResponse>(
-      `/report/${userId}/weekly-daily-activity-time`
+      "/report/me/weekly-daily-activity-time"
     );
     console.log("getWeeklyStats api response", response);
     return response.data;
@@ -25,11 +25,11 @@ export async function getDailyActivityStatsForTheWeek(
 }
 
 export async function getWeeklyReport(
-  userId: string,
+  _userId?: string,
 ): Promise<WeeklyReportResponse> {
   try {
     const response = await axiosClient.get<WeeklyReportResponse>(
-      `/report/${userId}/weekly-report`,
+      "/report/me/weekly-report",
     );
     return response.data;
   } catch (error) {
@@ -39,11 +39,11 @@ export async function getWeeklyReport(
 }
 
 export async function getLifetimeReport(
-  userId: string,
+  _userId?: string,
 ): Promise<LifetimeReportResponse> {
   try {
     const response = await axiosClient.get<LifetimeReportResponse>(
-      `/report/${userId}/lifetime-report`,
+      "/report/me/lifetime-report",
     );
     return response.data;
   } catch (error) {

@@ -2,11 +2,11 @@ import axiosClient from "../axiosClient";
 import { PracticeCategorySummaryResponse } from "./types";
 
 export async function getPracticeCategorySummary(
-  userId: string,
+  _userId?: string,
 ): Promise<PracticeCategorySummaryResponse> {
   try {
     const response = await axiosClient.get<PracticeCategorySummaryResponse>(
-      `/practice-categories/${userId}/summary`,
+      "/practice-categories/me/summary",
     );
     return response.data;
   } catch (error) {
