@@ -19,9 +19,11 @@ import Animated, {
 import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { createRazorpayOrder } from "../../api/payments";
+import BottomSheetModal from "../../components/BottomSheetModal";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "../../stores/user";
+import { PAYMENTS_ENABLED } from "../../constants/features";
 import { theme } from "../../Theme/tokens";
 
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
@@ -39,6 +41,7 @@ const SubscribeScreen = () => {
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showTestModeModal, setShowTestModeModal] = useState(false);
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
 
@@ -54,6 +57,11 @@ const SubscribeScreen = () => {
   }, []);
 
   const handlePayment = async () => {
+    if (!PAYMENTS_ENABLED) {
+      setShowTestModeModal(true);
+      return;
+    }
+
     if (loading) return;
 
     try {
@@ -448,7 +456,10 @@ const SubscribeScreen = () => {
           {/* Persistent Footer */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.upgradeBtnWrapper, loading && { opacity: 0.7 }]}
+              style={[
+                styles.upgradeBtnWrapper,
+                (loading || !PAYMENTS_ENABLED) && { opacity: 0.7 },
+              ]}
               activeOpacity={0.85}
               onPress={handlePayment}
               disabled={loading}
@@ -487,6 +498,38 @@ const SubscribeScreen = () => {
           </View>
         </SafeAreaView>
       </Animated.View>
+
+      <BottomSheetModal
+        visible={showTestModeModal}
+        onClose={() => setShowTestModeModal(false)}
+        fitContent
+        maxHeight={320}
+        showCloseButton
+      >
+        <View style={styles.testModeModalContent}>
+          <View style={styles.testModeIconWrap}>
+            <Icon name="flask-outline" size={28} color="#F97316" />
+          </View>
+          <Text style={styles.testModeTitle}>You&apos;re in test mode</Text>
+          <Text style={styles.testModeBody}>
+            Payments are disabled right now while we finish the setup.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setShowTestModeModal(false)}
+            style={styles.testModeButtonWrap}
+          >
+            <LinearGradient
+              colors={["#F97316", "#EA580C"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.testModeButton}
+            >
+              <Text style={styles.testModeButtonText}>Got it</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
     </View>
   );
 };
@@ -889,6 +932,50 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.4)",
     fontSize: 11,
     fontWeight: "600",
+  },
+  testModeModalContent: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    alignItems: "center",
+  },
+  testModeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  testModeTitle: {
+    color: theme.colors.text.title,
+    fontSize: 24,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  testModeBody: {
+    color: theme.colors.text.subtitle,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: "center",
+  },
+  testModeButtonWrap: {
+    width: "100%",
+    marginTop: 24,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  testModeButton: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  testModeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
   },
 });
 // bundle refresh
