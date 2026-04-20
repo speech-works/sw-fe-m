@@ -20,6 +20,7 @@ import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { createRazorpayOrder } from "../../api/payments";
 import BottomSheetModal from "../../components/BottomSheetModal";
+import { SUBSCRIPTION_PRICING } from "../../constants/pricing";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "../../stores/user";
@@ -42,6 +43,14 @@ const SubscribeScreen = () => {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
+  const selectedPlan =
+    paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
+      ? SUBSCRIPTION_PRICING.plans.monthly
+      : SUBSCRIPTION_PRICING.plans.annual;
+  const selectedPlanSummary =
+    paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
+      ? `${SUBSCRIPTION_PRICING.plans.monthly.headline}${SUBSCRIPTION_PRICING.plans.monthly.periodLabel}`
+      : `${SUBSCRIPTION_PRICING.plans.annual.headline}${SUBSCRIPTION_PRICING.plans.annual.periodLabel}, ${SUBSCRIPTION_PRICING.plans.annual.billedYearlyCopy.toLowerCase()}`;
 
   const sheetTranslateY = useSharedValue(Dimensions.get("window").height);
 
@@ -74,8 +83,8 @@ const SubscribeScreen = () => {
 
       const response = await createRazorpayOrder({
         userId: user.id,
-        amount: paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY ? 1199 : 11999, // paise
-        currency: "INR",
+        amount: selectedPlan.amountMinor,
+        currency: SUBSCRIPTION_PRICING.currencyCode,
       });
 
       const order = response;
@@ -400,15 +409,19 @@ const SubscribeScreen = () => {
                       <View style={styles.planNameRow}>
                         <Text style={styles.planName}>Annual Membership</Text>
                         <View style={styles.savingsBadge}>
-                          <Text style={styles.savingsText}>SAVE 17%</Text>
+                          <Text style={styles.savingsText}>
+                            SAVE {SUBSCRIPTION_PRICING.plans.annual.savingsPercent}%
+                          </Text>
                         </View>
                       </View>
                       <Text style={styles.planPrice}>
-                        <Text style={styles.strikePrice}>₹14,399</Text> ₹11,999
-                        <Text style={styles.pricePeriod}>/year</Text>
+                        {SUBSCRIPTION_PRICING.plans.annual.headline}
+                        <Text style={styles.pricePeriod}>
+                          {SUBSCRIPTION_PRICING.plans.annual.periodLabel}
+                        </Text>
                       </Text>
                       <Text style={styles.planSubtext}>
-                        Roughly ₹999 / month
+                        {SUBSCRIPTION_PRICING.plans.annual.billedYearlyCopy}
                       </Text>
                     </View>
                   </View>
@@ -441,10 +454,13 @@ const SubscribeScreen = () => {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.planName}>Monthly Explorer</Text>
                       <Text style={styles.planPrice}>
-                        ₹1,199<Text style={styles.pricePeriod}>/month</Text>
+                        {SUBSCRIPTION_PRICING.plans.monthly.headline}
+                        <Text style={styles.pricePeriod}>
+                          {SUBSCRIPTION_PRICING.plans.monthly.periodLabel}
+                        </Text>
                       </Text>
                       <Text style={styles.planSubtext}>
-                        Flexible, cancel anytime
+                        {SUBSCRIPTION_PRICING.plans.monthly.supportingCopy}
                       </Text>
                     </View>
                   </View>
@@ -512,7 +528,8 @@ const SubscribeScreen = () => {
           </View>
           <Text style={styles.testModeTitle}>You&apos;re in test mode</Text>
           <Text style={styles.testModeBody}>
-            Payments are disabled right now while we finish the setup.
+            Payments are disabled right now while we finish the setup. Current
+            pricing is {selectedPlanSummary}.
           </Text>
           <TouchableOpacity
             activeOpacity={0.9}
@@ -870,11 +887,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 24,
     fontWeight: "900",
-  },
-  strikePrice: {
-    color: "rgba(255,255,255,0.3)",
-    fontSize: 16,
-    textDecorationLine: "line-through",
   },
   pricePeriod: {
     fontSize: 14,

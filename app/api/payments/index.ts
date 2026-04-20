@@ -2,14 +2,14 @@ import axiosClient from "../axiosClient";
 
 export type CreateRPOrderReq = {
   userId: string;
-  amount: number; // Amount in paise
-  currency: string; // e.g., "INR"
+  amount: number; // Amount in the currency's minor unit
+  currency: string; // e.g., "USD"
 };
 
 export async function createRazorpayOrder({
   userId,
   amount,
-  currency = "INR",
+  currency,
 }: CreateRPOrderReq) {
   try {
     const response = await axiosClient.post(`/razorpay/create-order`, {
