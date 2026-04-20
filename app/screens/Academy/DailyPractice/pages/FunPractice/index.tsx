@@ -181,7 +181,7 @@ const FunPractice = () => {
           summary={summary ?? null}
           title="Your Expression Pulse"
           subtitle="Weekly practice leads. Lifetime expression stays visible below."
-          badgeLabel="Expression"
+          badgeLabel="Fun"
           accent={{
             gradient: ["#F0FDFA", "#F0F9FF"],
             iconBg: "#CCFBF1",

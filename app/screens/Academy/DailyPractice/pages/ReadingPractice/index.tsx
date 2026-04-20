@@ -184,7 +184,7 @@ const ReadingPractice = () => {
           summary={summary ?? null}
           title="Your Reading Rhythm"
           subtitle="Weekly practice stays up front. Lifetime progress stays in view."
-          badgeLabel="Fluency"
+          badgeLabel="Reading"
           accent={{
             gradient: ["#F8FAFC", "#F1F5F9"],
             iconBg: "#DBEAFE",

@@ -231,7 +231,7 @@ const Exposure = () => {
           summary={summary ?? null}
           title="Your Courage Track"
           subtitle="Weekly exposure stays front and center. Lifetime courage stays visible too."
-          badgeLabel="Courage"
+          badgeLabel="Exposure"
           accent={{
             gradient: ["#FFF1F2", "#FFFBEB"],
             iconBg: "#FFE4E6",

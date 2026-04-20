@@ -4,7 +4,10 @@ import { StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { PracticeCategorySummaryItem } from "../../../../api/practiceCategories/types";
 import { theme } from "../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 import { formatDuration } from "../../../../util/functions/time";
 
 type PracticeCategoryProgressCardProps = {
@@ -30,6 +33,11 @@ const formatMinutesCompact = (minutes: number) => {
   return formatDuration(minutes).split(" ")[0];
 };
 
+const getPrimarySubtitleLine = (subtitle: string) => {
+  const firstSentence = subtitle.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim();
+  return firstSentence || subtitle.trim();
+};
+
 const PracticeCategoryProgressCard = ({
   summary,
   title,
@@ -41,9 +49,11 @@ const PracticeCategoryProgressCard = ({
     <View style={styles.statsSection}>
       <LinearGradient colors={accent.gradient} style={styles.statsDashboard}>
         <View style={styles.dashboardHeader}>
-          <View>
+          <View style={styles.headerCopy}>
             <Text style={styles.dashboardTitle}>{title}</Text>
-            <Text style={styles.dashboardSubtitle}>{subtitle}</Text>
+            <Text style={styles.dashboardSubtitle}>
+              {getPrimarySubtitleLine(subtitle)}
+            </Text>
           </View>
           <View
             style={[
@@ -60,41 +70,49 @@ const PracticeCategoryProgressCard = ({
           </View>
         </View>
 
-        <View style={styles.primaryPanel}>
-          <View style={[styles.iconBubble, { backgroundColor: accent.iconBg }]}>
-            <Icon name="calendar-week" size={18} color={accent.iconColor} />
+        <View style={styles.dashboardGrid}>
+          <View style={styles.statItem}>
+            <View
+              style={[styles.statIconWrapper, { backgroundColor: accent.iconBg }]}
+            >
+              <Icon name="check-double" size={18} color={accent.iconColor} />
+            </View>
+            <View style={styles.statCopy}>
+              <Text style={styles.statValueBig}>
+                {summary?.weekly.completedCount ?? 0}
+              </Text>
+              <Text style={styles.statLabelSmall}>completed this week</Text>
+            </View>
           </View>
-          <View style={styles.primaryContent}>
-            <Text style={styles.primaryEyebrow}>This week</Text>
-            <View style={styles.primaryRow}>
-              <View style={styles.primaryMetric}>
-                <Text style={styles.primaryValue}>
-                  {summary?.weekly.completedCount ?? 0}
-                </Text>
-                <Text style={styles.primaryLabel}>completed</Text>
-              </View>
-              <View style={styles.primaryDivider} />
-              <View style={styles.primaryMetric}>
-                <Text style={styles.primaryValue}>
-                  {formatMinutesCompact(summary?.weekly.totalMinutes ?? 0)}
-                </Text>
-                <Text style={styles.primaryLabel}>practice time</Text>
-              </View>
+
+          <View style={styles.statDivider} />
+
+          <View style={styles.statItem}>
+            <View
+              style={[styles.statIconWrapper, { backgroundColor: accent.iconBg }]}
+            >
+              <Icon
+                name="hourglass-half"
+                size={18}
+                color={accent.iconColor}
+              />
+            </View>
+            <View style={styles.statCopy}>
+              <Text style={styles.statValueBig}>
+                {formatMinutesCompact(summary?.weekly.totalMinutes ?? 0)}
+              </Text>
+              <Text style={styles.statLabelSmall}>practice time this week</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.lifetimeRow}>
-          <Text style={styles.lifetimeTitle}>Lifetime</Text>
-          <View style={styles.lifetimeStats}>
-            <Text style={styles.lifetimeText}>
-              {summary?.lifetime.completedCount ?? 0} total completed
-            </Text>
-            <Text style={styles.lifetimeDot}>•</Text>
-            <Text style={styles.lifetimeText}>
-              {formatMinutesCompact(summary?.lifetime.totalMinutes ?? 0)} total time
-            </Text>
-          </View>
+        <View style={styles.footerRow}>
+          <Text style={styles.footerTitle}>Lifetime</Text>
+          <Text style={styles.footerText}>
+            {summary?.lifetime.completedCount ?? 0} completed •{" "}
+            {formatMinutesCompact(summary?.lifetime.totalMinutes ?? 0)} total
+            time
+          </Text>
         </View>
       </LinearGradient>
     </View>
@@ -109,19 +127,27 @@ const styles = StyleSheet.create({
   },
   statsDashboard: {
     borderRadius: 24,
-    padding: 20,
-    gap: 18,
+    padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: "#E2E8F0",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   dashboardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 12,
+    marginBottom: 24,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
   },
   dashboardTitle: {
-    ...parseTextStyle(theme.typography.Heading4),
+    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontSize: 20,
   },
   dashboardSubtitle: {
     ...parseTextStyle(theme.typography.BodySmall),
@@ -129,87 +155,72 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    flexShrink: 0,
     alignSelf: "flex-start",
   },
   statusBadgeText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 12,
     fontWeight: "700",
   },
-  primaryPanel: {
-    backgroundColor: "rgba(255,255,255,0.75)",
-    borderRadius: 20,
-    padding: 16,
+  dashboardGrid: {
     flexDirection: "row",
-    gap: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.7)",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  iconBubble: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  statItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryContent: {
+  statCopy: {
     flex: 1,
-    gap: 10,
   },
-  primaryEyebrow: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+  statValueBig: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 24,
     fontWeight: "700",
-  },
-  primaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  primaryMetric: {
-    flex: 1,
-  },
-  primaryValue: {
-    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    lineHeight: 28,
   },
-  primaryLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginTop: 4,
+  statLabelSmall: {
+    fontSize: 10,
+    color: theme.colors.text.disabled,
+    fontWeight: "500",
   },
-  primaryDivider: {
+  statDivider: {
     width: 1,
-    alignSelf: "stretch",
-    backgroundColor: "rgba(15,23,42,0.08)",
-    marginHorizontal: 12,
+    height: 32,
+    backgroundColor: theme.colors.library.gray[300],
+    marginHorizontal: 8,
   },
-  lifetimeRow: {
-    gap: 8,
-  },
-  lifetimeTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    fontWeight: "700",
-  },
-  lifetimeStats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+  footerRow: {
+    marginTop: 18,
     gap: 6,
   },
-  lifetimeText: {
+  footerTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: "700",
   },
-  lifetimeDot: {
+  footerText: {
+    ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
-    opacity: 0.5,
   },
 });

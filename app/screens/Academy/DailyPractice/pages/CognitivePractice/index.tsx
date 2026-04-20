@@ -185,7 +185,7 @@ const CognitivePractice = () => {
           summary={summary ?? null}
           title="Your Focus Loop"
           subtitle="This week leads the story. Lifetime work stays visible below."
-          badgeLabel="Focus"
+          badgeLabel="Cognitive"
           accent={{
             gradient: ["#FAF5FF", "#F3E8FF"],
             iconBg: "#F5D0FE",
