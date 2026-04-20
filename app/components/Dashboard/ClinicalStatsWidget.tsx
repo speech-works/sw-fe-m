@@ -882,6 +882,15 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                     },
                                   ]}
                                 >
+                                  <View style={styles.compactBreakthroughWatermark}>
+                                    <MaterialCommunityIcons
+                                      name={item.config.icon as any}
+                                      size={40}
+                                      color={item.config.color}
+                                      style={{ opacity: 0.08 }}
+                                    />
+                                  </View>
+
                                   <View style={styles.compactBreakthroughHeader}>
                                     <Text
                                       style={[styles.cardTitle, { marginBottom: 0 }]}
@@ -889,11 +898,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                     >
                                       {item.config.label}
                                     </Text>
-                                    <MaterialCommunityIcons
-                                      name={item.config.icon as any}
-                                      size={16}
-                                      color={item.config.color}
-                                    />
                                   </View>
 
                                   <View style={styles.compactBreakthroughValueRow}>
@@ -1376,24 +1380,33 @@ const styles = StyleSheet.create({
   },
   compactBreakthroughCard: {
     width: "48%",
-    height: 100,
+    height: 104,
     justifyContent: "space-between",
-    padding: 14,
+    padding: 16,
+    position: "relative",
+    overflow: "hidden",
   },
   compactBreakthroughCardSingle: {
     width: "100%",
-    height: 92,
+    height: 96,
+  },
+  compactBreakthroughWatermark: {
+    position: "absolute",
+    right: 10,
+    bottom: 8,
+    zIndex: 0,
   },
   compactBreakthroughHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
+    zIndex: 1,
   },
   compactBreakthroughValueRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 12,
+    zIndex: 1,
   },
   compactBreakthroughValue: {
     fontSize: 28,
