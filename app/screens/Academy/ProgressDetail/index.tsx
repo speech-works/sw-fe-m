@@ -16,10 +16,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
 import ScreenView from "../../../components/ScreenView";
 import {
-  PDStackNavigationProp,
-  PDStackParamList,
-  PDStackRouteProp,
-} from "../../../navigators/stacks/ExploreStack/ProgressDetailStack/types";
+  ExploreStackNavigationProp,
+  ExploreStackParamList,
+  ExploreStackRouteProp,
+} from "../../../navigators/stacks/ExploreStack/types";
 import { useProgressReportStore } from "../../../stores/progressReport";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
@@ -38,8 +38,8 @@ type ReportTimeframe = "weekly" | "lifetime";
 
 const ProgressDetail = () => {
   const navigation =
-    useNavigation<PDStackNavigationProp<keyof PDStackParamList>>();
-  const route = useRoute<PDStackRouteProp<"ProgressDetail">>();
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
+  const route = useRoute<ExploreStackRouteProp<"ProgressDetail">>();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);

@@ -22,11 +22,9 @@ import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingP
 import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import Explore from "../../../screens/Explore";
 import PaymentStackNavigator from "../PaymentStack";
-import ChalStackNavigator from "./ChallengesStack";
 import DPStackNavigator from "./DailyPracticeStack";
 import LibStackNavigator from "./LibraryStack";
 import MoodCheckStackNavigator from "./MoodCheckStack";
-import PDStackNavigator from "./ProgressDetailStack";
 import { ExploreStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>();
@@ -37,8 +35,6 @@ export default function ExploreStackNavigator() {
       <Stack.Screen name="Explore" component={Explore} />
       <Stack.Screen name="DailyPracticeStack" component={DPStackNavigator} />
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
-      <Stack.Screen name="ChallengesStack" component={ChalStackNavigator} />
-      <Stack.Screen name="ProgressDetailStack" component={PDStackNavigator} />
       <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />

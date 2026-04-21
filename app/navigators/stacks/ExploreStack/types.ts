@@ -8,8 +8,6 @@ export type ExploreStackParamList = {
   Explore: undefined;
   DailyPracticeStack: undefined;
   LibraryStack: undefined;
-  ChallengesStack: undefined;
-  ProgressDetailStack: undefined;
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
   PaymentStack: undefined;
   PackModule: {
