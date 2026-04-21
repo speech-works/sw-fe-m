@@ -380,6 +380,13 @@ const DetailedWeeklySummary = ({
   }, []);
 
   const getWeekRangeLabel = () => {
+    if (weeklyData?.weekStartDate && weeklyData?.weekEndDate) {
+      return `${format(toLocalChartDate(weeklyData.weekStartDate), "MMM d")} – ${format(
+        toLocalChartDate(weeklyData.weekEndDate),
+        "MMM d",
+      )}`;
+    }
+
     const now = new Date();
     const start = startOfWeek(now, { weekStartsOn: 1 });
     const end = addDays(start, 6);
@@ -401,9 +408,6 @@ const DetailedWeeklySummary = ({
   const dataWeeksAvailable = weeklyData?.dataWeeksAvailable ?? 0;
   const historicalActiveDays = weeklyData?.historicalActiveDays ?? [];
   const showSparkline = dataWeeksAvailable >= 1 && historicalActiveDays.length > 0;
-  const normalizedComparisonLabel = (
-    weeklyData?.comparisonLabel || "This week so far • benchmarked against last week"
-  ).replace("full last week", "last week");
 
   if (loading && !weeklyData) {
     return <WeeklySummarySkeleton />;

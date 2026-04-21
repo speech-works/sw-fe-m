@@ -1,6 +1,7 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -14,6 +15,7 @@ import {
 } from "../../../api/progressReport";
 import {
   FlowComparisonSummary,
+  WeeklyReportResponse,
   WeeklyStat,
 } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
@@ -30,6 +32,8 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 }) => {
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
+  const [weeklySummary, setWeeklySummary] =
+    useState<WeeklyReportResponse["summary"] | null>(null);
   const [minutesComparison, setMinutesComparison] =
     useState<FlowComparisonSummary | null>(null);
   const [comparisonLabel, setComparisonLabel] = useState(
@@ -40,28 +44,66 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   // Configuration
   const DAILY_TARGET_MINUTES = 10;
 
-  useEffect(() => {
-    if (!user?.id) return;
-    setLoading(true);
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
 
-    Promise.all([
-      getDailyActivityStatsForTheWeek(user.id),
-      getWeeklyReport(user.id),
-    ])
-      .then(([dailyResp, weeklyReport]) => {
-        setWeeklyData(dailyResp.days);
-        setMinutesComparison(weeklyReport.summary.practiceTimeComparison);
-        setComparisonLabel(weeklyReport.comparisonLabel);
-      })
-      .catch((err) => console.error("Stats error:", err))
-      .finally(() => setLoading(false));
-  }, [user?.id]);
+      const loadWeeklySnapshot = async () => {
+        if (!user?.id) {
+          if (!isActive) return;
+          setWeeklyData([]);
+          setWeeklySummary(null);
+          setMinutesComparison(null);
+          setComparisonLabel("This week so far • benchmarked against last week");
+          setLoading(false);
+          return;
+        }
+
+        if (!isActive) return;
+        setLoading(true);
+
+        const [dailyResult, weeklyResult] = await Promise.allSettled([
+          getDailyActivityStatsForTheWeek(user.id),
+          getWeeklyReport(user.id),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        if (dailyResult.status === "fulfilled") {
+          setWeeklyData(dailyResult.value.days);
+        } else {
+          console.error("Explore daily stats error:", dailyResult.reason);
+        }
+
+        if (weeklyResult.status === "fulfilled") {
+          setWeeklySummary(weeklyResult.value.summary);
+          setMinutesComparison(weeklyResult.value.summary.practiceTimeComparison);
+          setComparisonLabel(weeklyResult.value.comparisonLabel);
+        } else {
+          console.error("Explore weekly report error:", weeklyResult.reason);
+        }
+
+        setLoading(false);
+      };
+
+      void loadWeeklySnapshot();
+
+      return () => {
+        isActive = false;
+      };
+    }, [user?.id]),
+  );
 
   // --- Metrics ---
-  const totalWeeklyMinutes = Math.round(
-    weeklyData.reduce((sum, d) => sum + d.totalTime, 0),
-  );
-  const daysActive = weeklyData.filter((d) => Math.round(d.totalTime) > 0).length;
+  const fallbackWeeklyMinutes =
+    Math.round(weeklyData.reduce((sum, d) => sum + d.totalTime, 0) * 10) / 10;
+  const totalWeeklyMinutes =
+    weeklySummary?.totalPracticeMinutes ?? fallbackWeeklyMinutes;
+  const daysActive =
+    weeklySummary?.totalDaysActive ??
+    weeklyData.filter((d) => d.totalTime > 0).length;
 
   const minutesBenchmark = getFlowBenchmarkCopy(
     minutesComparison,
@@ -81,9 +123,11 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   }, [minutesBenchmark.primary, minutesBenchmark.secondary]);
 
   const totalPracticeSummary =
-    totalWeeklyMinutes > 60
-      ? `${Math.floor(totalWeeklyMinutes / 60)}h ${totalWeeklyMinutes % 60}m`
-      : `${totalWeeklyMinutes}m`;
+    totalWeeklyMinutes < 60
+      ? Number.isInteger(totalWeeklyMinutes)
+        ? `${totalWeeklyMinutes}m`
+        : `${totalWeeklyMinutes.toFixed(1)}m`
+      : `${(totalWeeklyMinutes / 60).toFixed(1)}h`;
   const comparisonSubtitle = useMemo(() => {
     const fallbackLabel = "Benchmarked against last week";
 
@@ -135,39 +179,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     ...rhythmData.map((d) => d.minutes),
     DAILY_TARGET_MINUTES * 1.3,
   );
-
-  const isStreak = useMemo(() => {
-    const activeIndices = rhythmData
-      .map((d, i) => (Math.round(d.minutes) > 0 ? i : -1))
-      .filter((i) => i !== -1);
-
-    // A streak requires at least 2 consecutive days this week
-    if (activeIndices.length < 2) return false;
-
-    const minIndex = activeIndices[0];
-    const maxIndex = activeIndices[activeIndices.length - 1];
-
-    // 1. Continuity check: (max - min + 1) must equal the count
-    const isConsecutive = maxIndex - minIndex + 1 === activeIndices.length;
-    if (!isConsecutive) return false;
-
-    // 2. Recency check: Must not have a gap between last practice and today
-    const todayIndex = rhythmData.findIndex((d) => d.isToday);
-
-    // Safety: If today isn't in the range, we can't reliably call it a streak
-    if (todayIndex === -1) return false;
-
-    // Streak is alive if it ends today or ended exactly yesterday
-    return maxIndex === todayIndex || maxIndex === todayIndex - 1;
-  }, [rhythmData]);
-
-  const activitySummary = useMemo(() => {
-    if (isStreak) {
-      return `${daysActive}-day streak`;
-    }
-
-    return `${daysActive} ${daysActive === 1 ? "active day" : "active days"}`;
-  }, [daysActive, isStreak]);
 
   return (
     <View
@@ -223,7 +234,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
               />
               <Text style={styles.emptyText}>No practice this week yet</Text>
               <Text style={styles.emptySubtext}>
-                Start today to build your streak!
+                Start today to build your rhythm.
               </Text>
             </View>
           ) : (
@@ -359,7 +370,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                   {daysActive}
                 </Text>
                 <Text style={styles.badgeSubValue} numberOfLines={1}>
-                  {isStreak ? "day streak" : daysActive === 1 ? "active day" : "active days"}
+                  {daysActive === 1 ? "active day" : "active days"}
                 </Text>
               </View>
             </View>

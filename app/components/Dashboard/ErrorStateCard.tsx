@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import {
-  Dimensions,
   StyleProp,
   StyleSheet,
   Text,
@@ -16,7 +15,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Ellipse, Path } from "react-native-svg";
 
 import ErrorFace from "../../assets/sw-faces/ErrorFace";
 
@@ -29,8 +27,6 @@ export interface ErrorStateCardProps {
   variant?: ErrorStateVariant;
   style?: StyleProp<ViewStyle>;
 }
-
-const windowWidth = Dimensions.get("window").width;
 
 const ErrorStateCard: React.FC<ErrorStateCardProps> = ({
   title = "Uh oh.",

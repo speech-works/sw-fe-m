@@ -47,6 +47,8 @@ export type DetailedWeeklySummaryResponse = {
   percentagePracticeMinutesChange: number;
   totalSessions: number;
   percentageSessionsChange: number;
+  weekStartDate: string | Date;
+  weekEndDate: string | Date;
   // --- NEW ---
   /** Days with ≥1 completed activity (Session or Pack) this week */
   totalDaysActive: number;

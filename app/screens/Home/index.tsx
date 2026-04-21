@@ -1,4 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
+import { format, isValid, parseISO } from "date-fns";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -32,6 +33,7 @@ import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
+import { getLocalTodayDateString } from "../../util/functions/date";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
@@ -115,10 +117,14 @@ const Home = () => {
         setLoadingImpactAssessment(true);
         // Step 1: Check Cache (Optimized Load)
         const state = useImpactAssessmentStore.getState();
-        const todayStr = new Date().toISOString().split("T")[0];
-        const lastFetchedStr = state.lastFetchedAt
-          ? state.lastFetchedAt.split("T")[0]
+        const todayStr = getLocalTodayDateString();
+        const lastFetchedDate = state.lastFetchedAt
+          ? parseISO(state.lastFetchedAt)
           : null;
+        const lastFetchedStr =
+          lastFetchedDate && isValid(lastFetchedDate)
+            ? format(lastFetchedDate, "yyyy-MM-dd")
+            : null;
 
         let batch = state.dailyBatch;
         console.log(
