@@ -7,14 +7,14 @@ import { parseTextStyle } from "../util/functions/parseStyles";
 import BottomSheetModal from "./BottomSheetModal";
 import Button from "./Button";
 
-interface OASESContinueModalProps {
+interface ImpactAssessmentContinueModalProps {
   visible: boolean;
   remainingQuestions: number;
   onContinue: () => void;
   onSaveForLater: () => void;
 }
 
-const OASESContinueModal: React.FC<OASESContinueModalProps> = ({
+const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps> = ({
   visible,
   remainingQuestions,
   onContinue,
@@ -130,4 +130,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OASESContinueModal;
+export default ImpactAssessmentContinueModal;

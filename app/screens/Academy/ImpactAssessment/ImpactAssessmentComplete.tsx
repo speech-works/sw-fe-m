@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getOasesProgress } from "../../../api/oases";
-import { OasesProgress } from "../../../api/oases/types";
+import { getImpactAssessmentProgress } from "../../../api/impactAssessment";
+import { ImpactAssessmentProgress } from "../../../api/impactAssessment/types";
 import Button from "../../../components/Button";
 import ConfettiAnimation from "../../../components/ConfettiAnimation";
 import ScreenView from "../../../components/ScreenView";
@@ -23,16 +23,16 @@ import {
 
 const { width } = Dimensions.get("window");
 
-const OASESComplete = () => {
+const ImpactAssessmentComplete = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const [progress, setProgress] = useState<OasesProgress | null>(null);
+  const [progress, setProgress] = useState<ImpactAssessmentProgress | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProgress = async () => {
       try {
-        const data = await getOasesProgress();
+        const data = await getImpactAssessmentProgress();
         setProgress(data);
       } catch (err) {
         console.error(err);
@@ -89,7 +89,7 @@ const OASESComplete = () => {
         <View style={styles.headerText}>
           <Text style={styles.title}>Assessment Complete! 🎉</Text>
           <Text style={styles.subtitle}>
-            You've completed the OASES assessment. Your personalized profile is
+            You've completed the impact assessment. Your personalized profile is
             now being generated.
           </Text>
         </View>
@@ -255,4 +255,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OASESComplete;
+export default ImpactAssessmentComplete;

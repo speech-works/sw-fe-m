@@ -1,27 +1,25 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import {
-    OasesDailyBatch
-} from "../../api/oases/types";
-import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys"; // Verify this key exists or create new one
+import { ImpactAssessmentDailyBatch } from "../../api/impactAssessment/types";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 
-interface OasesState {
-  dailyBatch: OasesDailyBatch | null;
+interface ImpactAssessmentState {
+  dailyBatch: ImpactAssessmentDailyBatch | null;
   answers: Record<string, number | string | string[]>; // Map questionID -> Value
   isTimerRunning: boolean;
   lastFetchedAt: string | null; // ISO Date string
 
   // Actions
-  setDailyBatch: (batch: OasesDailyBatch) => void;
+  setDailyBatch: (batch: ImpactAssessmentDailyBatch) => void;
   setAnswer: (questionId: string, value: number | string | string[]) => void;
-  resetOases: () => void;
+  resetImpactAssessment: () => void;
 
   // Helpers
   isBatchComplete: () => boolean;
 }
 
-export const useOasesStore = create<OasesState>()(
+export const useImpactAssessmentStore = create<ImpactAssessmentState>()(
   persist(
     (set, get) => ({
       dailyBatch: null,
@@ -37,7 +35,7 @@ export const useOasesStore = create<OasesState>()(
         set({ answers: { ...prev, [questionId]: value } });
       },
 
-      resetOases: () =>
+      resetImpactAssessment: () =>
         set({
           dailyBatch: null,
           answers: {},
@@ -56,7 +54,7 @@ export const useOasesStore = create<OasesState>()(
       },
     }),
     {
-      name: ASYNC_KEYS_NAME.SW_ZSTORE_OASES,
+      name: ASYNC_KEYS_NAME.SW_ZSTORE_IMPACT_ASSESSMENT,
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

@@ -895,6 +895,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                     <Text
                                       style={[styles.cardTitle, { marginBottom: 0 }]}
                                       numberOfLines={1}
+                                      adjustsFontSizeToFit
+                                      minimumFontScale={0.7}
                                     >
                                       {item.config.label}
                                     </Text>
@@ -1380,6 +1382,8 @@ const styles = StyleSheet.create({
   },
   compactBreakthroughCard: {
     width: "48%",
+    flexGrow: 1, // Allow filling space
+    flexBasis: "45%", // Base width for 2-column wrapping
     height: 104,
     justifyContent: "space-between",
     padding: 16,

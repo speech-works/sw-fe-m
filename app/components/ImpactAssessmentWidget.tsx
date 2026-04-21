@@ -15,9 +15,9 @@ interface Props {
   style?: any;
 }
 
-const TOTAL_QUESTIONS = 100; // OASES assessment total
+const TOTAL_QUESTIONS = 100; // Structured impact assessment total
 
-const OASESWidget: React.FC<Props> = ({
+const ImpactAssessmentWidget: React.FC<Props> = ({
   onPress,
   totalRemaining = 100,
   style,
@@ -93,7 +93,7 @@ const OASESWidget: React.FC<Props> = ({
   );
 };
 
-export default React.memo(OASESWidget);
+export default React.memo(ImpactAssessmentWidget);
 
 const styles = StyleSheet.create({
   container: {

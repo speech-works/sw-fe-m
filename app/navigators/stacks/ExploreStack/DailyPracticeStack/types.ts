@@ -7,10 +7,10 @@ export type DPStackParamList = {
   FunPracticeStack: undefined;
   CognitivePracticeStack: undefined;
   ExposureStack: undefined;
-  // OASES
-  OASESIntro: undefined;
-  OASESQuestions: undefined;
-  OASESComplete: undefined;
+  // Impact Assessment
+  ImpactAssessmentIntro: undefined;
+  ImpactAssessmentQuestions: undefined;
+  ImpactAssessmentComplete: undefined;
 };
 export type DPStackNavigationProp<T extends keyof DPStackParamList> =
   NativeStackNavigationProp<DPStackParamList, T>;

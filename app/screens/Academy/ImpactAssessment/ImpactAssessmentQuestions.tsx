@@ -11,37 +11,44 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/Feather";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTodayOasesQuestions, submitOasesBatch } from "../../../api/oases";
 import {
-  OasesAnswerSubmission,
-  OasesDailyBatch,
-} from "../../../api/oases/types";
+  getTodayImpactAssessmentQuestions,
+  submitImpactAssessmentBatch,
+} from "../../../api/impactAssessment";
+import {
+  ImpactAssessmentAnswerSubmission,
+  ImpactAssessmentDailyBatch,
+} from "../../../api/impactAssessment/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import Button from "../../../components/Button";
-import OASESContinueModal from "../../../components/OASESContinueModal";
+import ImpactAssessmentContinueModal from "../../../components/ImpactAssessmentContinueModal";
 import OnboardingQuestion from "../../../components/OnBoarding/OnboardingQuestion";
 import ProgressBar from "../../../components/ProgressBar";
 import ScreenView from "../../../components/ScreenView";
-import { useOasesStore } from "../../../stores/oases";
+import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
 import { theme } from "../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
-const OASESQuestions = () => {
+const ImpactAssessmentQuestions = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { dailyBatch, answers, setAnswer, setDailyBatch, resetOases } =
-    useOasesStore();
+  const {
+    dailyBatch,
+    answers,
+    setAnswer,
+    setDailyBatch,
+    resetImpactAssessment,
+  } = useImpactAssessmentStore();
 
   // Local pagination state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isStopModalVisible, setIsStopModalVisible] = useState(false);
   const [isContinueModalVisible, setIsContinueModalVisible] = useState(false);
-  const [nextBatchData, setNextBatchData] = useState<OasesDailyBatch | null>(
-    null,
-  );
+  const [nextBatchData, setNextBatchData] =
+    useState<ImpactAssessmentDailyBatch | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (
@@ -115,28 +122,28 @@ const OASESQuestions = () => {
 
     try {
       // Format payload
-      const formattedAnswers: OasesAnswerSubmission[] = Object.keys(
+      const formattedAnswers: ImpactAssessmentAnswerSubmission[] = Object.keys(
         answers,
       ).map((qId) => ({
         questionId: qId,
         answer: answers[qId],
       }));
 
-      await submitOasesBatch({ answers: formattedAnswers });
+      await submitImpactAssessmentBatch({ answers: formattedAnswers });
 
       // Fetch next batch to check if assessment is complete
-      const nextBatch = await getTodayOasesQuestions();
+      const nextBatch = await getTodayImpactAssessmentQuestions();
 
       if (nextBatch.isComplete) {
         // Entire assessment is complete
-        navigation.replace("OASESComplete");
+        navigation.replace("ImpactAssessmentComplete");
       } else if (nextBatch.questions && nextBatch.questions.length > 0) {
         // More questions available - show continue modal
         setNextBatchData(nextBatch);
         setIsContinueModalVisible(true);
       } else {
         // Edge case: not complete but no questions (shouldn't happen)
-        navigation.replace("OASESComplete");
+        navigation.replace("ImpactAssessmentComplete");
       }
     } catch (err) {
       console.error(err);
@@ -149,7 +156,7 @@ const OASESQuestions = () => {
   const handleContinue = () => {
     if (nextBatchData) {
       // Reset answers for new batch
-      resetOases();
+      resetImpactAssessment();
       setDailyBatch(nextBatchData);
       setCurrentIndex(0);
       setIsContinueModalVisible(false);
@@ -161,7 +168,7 @@ const OASESQuestions = () => {
     // Save the next batch to store so it's available when user returns
     if (nextBatchData) {
       // Clear answers (for the completed batch) but keep the new batch ready
-      resetOases();
+      resetImpactAssessment();
       setDailyBatch(nextBatchData);
     }
     setIsContinueModalVisible(false);
@@ -169,11 +176,11 @@ const OASESQuestions = () => {
     navigation.navigate("Root");
   };
 
-  // Map OASES options to UI component expected format
+  // Map assessment options to the UI component's expected format
   const uiOptions = currentQuestion.options.map((opt) => ({
     id: String(opt.value), // Use VALUE as ID for selection logic effectively
     answer: opt.text,
-    description: "", // OASES doesn't have per-option description in spec
+    description: "",
   }));
 
   // Reverse map for selection: Component returns ID (value), we store that directly.
@@ -182,7 +189,7 @@ const OASESQuestions = () => {
     <ScreenView style={styles.screenInner}>
       {/* Header Info */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>OASES Assessment</Text>
+        <Text style={styles.headerTitle}>Impact Assessment</Text>
         <TouchableOpacity
           onPress={() => setIsStopModalVisible(true)}
           style={styles.closeBtn}
@@ -251,7 +258,7 @@ const OASESQuestions = () => {
             { paddingBottom: Math.max(insets.bottom, 24) },
           ]}
         >
-          <Text style={styles.modalTitle}>Stop Check-in?</Text>
+          <Text style={styles.modalTitle}>Pause Assessment?</Text>
           <Text style={styles.modalText}>
             Your progress will be saved for later. You can continue anytime from
             the Home screen.
@@ -281,7 +288,7 @@ const OASESQuestions = () => {
       </BottomSheetModal>
 
       {/* Continue Modal */}
-      <OASESContinueModal
+      <ImpactAssessmentContinueModal
         visible={isContinueModalVisible}
         remainingQuestions={nextBatchData?.metadata?.totalRemaining || 0}
         onContinue={handleContinue}
@@ -362,4 +369,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OASESQuestions;
+export default ImpactAssessmentQuestions;

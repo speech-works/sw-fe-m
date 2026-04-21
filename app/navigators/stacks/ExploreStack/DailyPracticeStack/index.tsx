@@ -1,9 +1,9 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 import DailyPractice from "../../../../screens/Academy/DailyPractice";
-import OASESComplete from "../../../../screens/Academy/OASES/OASESComplete";
-import OASESIntro from "../../../../screens/Academy/OASES/OASESIntro";
-import OASESQuestions from "../../../../screens/Academy/OASES/OASESQuestions";
+import ImpactAssessmentComplete from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentComplete";
+import ImpactAssessmentIntro from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentIntro";
+import ImpactAssessmentQuestions from "../../../../screens/Academy/ImpactAssessment/ImpactAssessmentQuestions";
 import { DPStackParamList } from "./types";
 
 import CDPStackNavigator from "./CognitivePracticeStack";
@@ -25,10 +25,19 @@ export default function DPStackNavigator() {
       />
       <Stack.Screen name="ExposureStack" component={EDPStackNavigator} />
 
-      {/* OASES Flow */}
-      <Stack.Screen name="OASESIntro" component={OASESIntro} />
-      <Stack.Screen name="OASESQuestions" component={OASESQuestions} />
-      <Stack.Screen name="OASESComplete" component={OASESComplete} />
+      {/* Impact Assessment Flow */}
+      <Stack.Screen
+        name="ImpactAssessmentIntro"
+        component={ImpactAssessmentIntro}
+      />
+      <Stack.Screen
+        name="ImpactAssessmentQuestions"
+        component={ImpactAssessmentQuestions}
+      />
+      <Stack.Screen
+        name="ImpactAssessmentComplete"
+        component={ImpactAssessmentComplete}
+      />
     </Stack.Navigator>
   );
 }

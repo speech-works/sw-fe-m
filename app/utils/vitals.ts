@@ -37,7 +37,7 @@ export const shouldCollectAccuracy = (activity: PracticeActivity): boolean => {
 
 /**
  * Validates all vital scores are in 20-100 range.
- * OASES clinical standard requires 20-100 (not 0-100).
+ * clinical 20-100 standard requires 20-100 (not 0-100).
  */
 export const validateVitals = (vitals: {
   effortScore?: number;

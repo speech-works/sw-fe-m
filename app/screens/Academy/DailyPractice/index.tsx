@@ -43,13 +43,13 @@ const DailyPractice = () => {
   const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
 
   const dailyPracticeData: Array<ListCardProps> = [
-    // Condition: Render OASES "Daily Check-in" ONLY if onboarding is complete
+    // Show the structured daily assessment only after onboarding is complete
     ...(hasCompletedOnboarding
       ? [
           {
             title: "Daily Check-in",
             description: "Complete your 7-Day Pulse",
-            onPress: () => navigation.navigate("OASESIntro"),
+            onPress: () => navigation.navigate("ImpactAssessmentIntro"),
             icon: (
               <Icon
                 name="calendar-check"

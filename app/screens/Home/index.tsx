@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useCallback, useRef, useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -13,18 +13,21 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { getTodayOasesQuestions, startOasesCollection } from "../../api/oases";
+import {
+  getTodayImpactAssessmentQuestions,
+  startImpactAssessmentCollection,
+} from "../../api/impactAssessment";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
 import { getMyUser } from "../../api/users";
 import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget";
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
-import OASESWidget from "../../components/OASESWidget";
+import ImpactAssessmentWidget from "../../components/ImpactAssessmentWidget";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
 import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useMoodCheckStore } from "../../stores/mood";
-import { useOasesStore } from "../../stores/oases";
+import { useImpactAssessmentStore } from "../../stores/impactAssessment";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
@@ -50,12 +53,12 @@ const Home = () => {
   const totalOnboardingScreens = onboardingFlow ? getTotalScreens() : 1;
 
   const navigation = useNavigation<any>();
-  const [oasesProgress, setOasesProgress] = useState<{
+  const [impactAssessmentProgress, setImpactAssessmentProgress] = useState<{
     dayNumber: number;
     totalDays: number;
     totalRemaining: number;
   } | null>(null);
-  const [loadingOases, setLoadingOases] = useState(true);
+  const [loadingImpactAssessment, setLoadingImpactAssessment] = useState(true);
   const [forceShowOnboarding, setForceShowOnboarding] = useState(false);
 
   // Resume Modal State
@@ -65,12 +68,12 @@ const Home = () => {
   // Pagination & Visibility Logic (Derived State)
   const showOnboarding =
     forceShowOnboarding || (user && !user.hasCompletedOnboarding);
-  const showOases = !!oasesProgress && !showOnboarding;
+  const showImpactAssessment = !!impactAssessmentProgress && !showOnboarding;
   const showMoodCheck = !hasRecordedToday;
 
   const cards = [];
   if (showOnboarding) cards.push("onboarding");
-  else if (showOases) cards.push("oases");
+  else if (showImpactAssessment) cards.push("impactAssessment");
 
   if (showMoodCheck) cards.push("mood");
 
@@ -100,18 +103,18 @@ const Home = () => {
     }
   };
 
-  // --- OASES Rapid Collection Auto-Start ---
-  const initOases = useCallback(
+  // --- Impact Assessment Auto-Start ---
+  const initImpactAssessment = useCallback(
     async (forceFetch = false) => {
       if (!user?.hasCompletedOnboarding) {
-        setLoadingOases(false);
+        setLoadingImpactAssessment(false);
         return;
       }
 
       try {
-        setLoadingOases(true);
+        setLoadingImpactAssessment(true);
         // Step 1: Check Cache (Optimized Load)
-        const state = useOasesStore.getState();
+        const state = useImpactAssessmentStore.getState();
         const todayStr = new Date().toISOString().split("T")[0];
         const lastFetchedStr = state.lastFetchedAt
           ? state.lastFetchedAt.split("T")[0]
@@ -119,7 +122,7 @@ const Home = () => {
 
         let batch = state.dailyBatch;
         console.log(
-          "[Home] OASES Init Debug - Store Batch:",
+          "[Home] Impact Assessment Init Debug - Store Batch:",
           !!batch,
           "Last Fetched:",
           state.lastFetchedAt,
@@ -129,9 +132,9 @@ const Home = () => {
         if (forceFetch || todayStr !== lastFetchedStr || !batch) {
           try {
             // Initialize Collection (Idempotent)
-            await startOasesCollection();
+            await startImpactAssessmentCollection();
             // Fetch Fresh Batch
-            batch = await getTodayOasesQuestions();
+            batch = await getTodayImpactAssessmentQuestions();
             // Update Store (timestamp updated in setter)
             state.setDailyBatch(batch);
           } catch (err: any) {
@@ -139,11 +142,14 @@ const Home = () => {
               err.response?.data?.message ||
               err.response?.data?.error ||
               err.message;
-            console.warn("[Home] Failed to fetch fresh OASES data:", errMsg);
+            console.warn(
+              "[Home] Failed to fetch fresh impact assessment data:",
+              errMsg,
+            );
 
             if (errMsg?.includes("USER_ONBOARDING_INCOMPLETE")) {
               console.log(
-                "[Home] Detected OASES/Onboarding desync. Reverting to onboarding.",
+                "[Home] Detected assessment/onboarding desync. Reverting to onboarding.",
               );
               setForceShowOnboarding(true);
               await fetchUser(); // Sync the store with the real state
@@ -164,25 +170,25 @@ const Home = () => {
           questionsCount === 0;
 
         if (isActuallyDone) {
-          console.log("[Home] OASES assessment complete. Hiding card.");
-          setOasesProgress(null);
+          console.log("[Home] Impact assessment complete. Hiding card.");
+          setImpactAssessmentProgress(null);
           return;
         }
 
         // Step 3: Show widget if there are current questions OR if more remain for future days
         // Or if batch is missing (fresh post-onboarding), show as Day 1
         const safeDay = batch?.dayNumber || 1;
-        console.log("[Home] OASES Progress Setting:", {
+        console.log("[Home] Impact Assessment Progress Setting:", {
           safeDay,
           totalRemaining,
         });
-        setOasesProgress({
+        setImpactAssessmentProgress({
           dayNumber: safeDay,
           totalDays: 7, // Fixed 7-day flow
           totalRemaining: totalRemaining,
         });
       } catch (error: any) {
-        console.error("[Home] initOases Error:", error);
+        console.error("[Home] initImpactAssessment Error:", error);
         const errMsg = error.message || String(error);
         if (!errMsg.includes("USER_ONBOARDING_INCOMPLETE")) {
           Toast.show({
@@ -192,17 +198,17 @@ const Home = () => {
               "We couldn't refresh your assessment progress. Swipe down to try again.",
           });
         }
-        setOasesProgress(null);
+        setImpactAssessmentProgress(null);
       } finally {
-        setLoadingOases(false);
+        setLoadingImpactAssessment(false);
       }
     },
     [user?.hasCompletedOnboarding, fetchUser],
   );
 
   useEffect(() => {
-    initOases();
-  }, [initOases]);
+    initImpactAssessment();
+  }, [initImpactAssessment]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -221,9 +227,9 @@ const Home = () => {
       const [freshUser] = await Promise.all([getMyUser(), fetchAllTrends()]);
       setUser(freshUser);
 
-      // Trigger OASES refresh if user is post-onboarding
+      // Trigger impact assessment refresh if user is post-onboarding
       if (freshUser.hasCompletedOnboarding) {
-        await initOases(true);
+        await initImpactAssessment(true);
       }
 
       // Detect regression
@@ -246,7 +252,7 @@ const Home = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [setUser, fetchAllTrends]);
+  }, [fetchAllTrends, initImpactAssessment, setUser, user?.level]);
 
   const carouselItemWidth = width - 32; // Exact match to other cards (width - 32)
   const carouselSpacing = 8;
@@ -351,16 +357,16 @@ const Home = () => {
                     }}
                   />
                 )}
-                {cardType === "oases" && (
-                  <OASESWidget
-                    dayNumber={oasesProgress?.dayNumber}
-                    totalDays={oasesProgress?.totalDays}
-                    totalRemaining={oasesProgress?.totalRemaining}
+                {cardType === "impactAssessment" && (
+                  <ImpactAssessmentWidget
+                    dayNumber={impactAssessmentProgress?.dayNumber}
+                    totalDays={impactAssessmentProgress?.totalDays}
+                    totalRemaining={impactAssessmentProgress?.totalRemaining}
                     style={{ marginBottom: 0 }}
                     onPress={() => {
                       navigation.navigate("ExploreStack", {
                         screen: "DailyPracticeStack",
-                        params: { screen: "OASESIntro" },
+                        params: { screen: "ImpactAssessmentIntro" },
                       });
                     }}
                   />

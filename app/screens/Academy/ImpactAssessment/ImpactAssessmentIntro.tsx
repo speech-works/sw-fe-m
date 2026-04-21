@@ -3,17 +3,17 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import {
-    getTodayOasesQuestions,
-    startOasesCollection,
-} from "../../../api/oases";
+    getTodayImpactAssessmentQuestions,
+    startImpactAssessmentCollection,
+} from "../../../api/impactAssessment";
 import ScreenView from "../../../components/ScreenView";
-import { useOasesStore } from "../../../stores/oases";
+import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
 import { theme } from "../../../Theme/tokens";
 
-const OASESIntro = () => {
+const ImpactAssessmentIntro = () => {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
-  const setDailyBatch = useOasesStore((state) => state.setDailyBatch);
+  const setDailyBatch = useImpactAssessmentStore((state) => state.setDailyBatch);
 
   useEffect(() => {
     let retryCount = 0;
@@ -21,26 +21,26 @@ const OASESIntro = () => {
 
     const init = async () => {
       try {
-        console.log("[OASESIntro] init: Starting...");
+        console.log("[ImpactAssessmentIntro] init: Starting...");
         // 1. Start Collection (Soft Fail)
-        await startOasesCollection().catch((err) => {
+        await startImpactAssessmentCollection().catch((err) => {
           console.warn(
-            "[OASESIntro] Start failed, attempting to fetch questions anyway:",
+            "[ImpactAssessmentIntro] Start failed, attempting to fetch questions anyway:",
             err.response?.data || err.message,
           );
         });
 
         // 2. Fetch Questions
-        const batch = await getTodayOasesQuestions();
-        console.log("[OASESIntro] Daily Batch stored:", batch);
+        const batch = await getTodayImpactAssessmentQuestions();
+        console.log("[ImpactAssessmentIntro] Daily Batch stored:", batch);
         setDailyBatch(batch);
 
         // 3. Navigate based on state
         if (batch.isComplete) {
           console.log(
-            "[OASESIntro] Assessment is complete. Navigating to OASESComplete.",
+            "[ImpactAssessmentIntro] Assessment is complete. Navigating to ImpactAssessmentComplete.",
           );
-          navigation.replace("OASESComplete");
+          navigation.replace("ImpactAssessmentComplete");
           return;
         }
 
@@ -49,7 +49,7 @@ const OASESIntro = () => {
           if (retryCount < MAX_RETRIES) {
             retryCount++;
             console.log(
-              `[OASESIntro] Empty questions, retrying (${retryCount}/${MAX_RETRIES})...`,
+              `[ImpactAssessmentIntro] Empty questions, retrying (${retryCount}/${MAX_RETRIES})...`,
             );
             // Small delay before retry
             await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -57,7 +57,7 @@ const OASESIntro = () => {
             return;
           }
 
-          console.warn("[OASESIntro] No questions available after retries.");
+          console.warn("[ImpactAssessmentIntro] No questions available after retries.");
           Alert.alert(
             "Loading Questions",
             "We're preparing your next set of questions. Please try again in a moment.",
@@ -66,11 +66,11 @@ const OASESIntro = () => {
           return;
         }
 
-        console.log("[OASESIntro] Navigating to OASESQuestions.");
-        navigation.replace("OASESQuestions");
+        console.log("[ImpactAssessmentIntro] Navigating to ImpactAssessmentQuestions.");
+        navigation.replace("ImpactAssessmentQuestions");
       } catch (error: any) {
         console.error(
-          "[OASESIntro] Critical Failure:",
+          "[ImpactAssessmentIntro] Critical Failure:",
           error.response?.data || error.message,
         );
         if (axios.isAxiosError(error) && error.response?.status === 400) {
@@ -114,4 +114,4 @@ const OASESIntro = () => {
   );
 };
 
-export default OASESIntro;
+export default ImpactAssessmentIntro;

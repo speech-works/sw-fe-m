@@ -1,41 +1,41 @@
-// api/oases/types.ts
+// api/impactAssessment/types.ts
 
 import { QuestionType } from "../onboarding/types";
 
-export interface OasesQuestionOption {
+export interface ImpactAssessmentQuestionOption {
   id: string;
   value: number | string; // The value to submit (usually number for Likert)
   text: string;
   orderIndex: number;
 }
 
-export interface OasesQuestion {
+export interface ImpactAssessmentQuestion {
   id: string;
   text: string;
   type: QuestionType; // Re-use strict "SINGLE" | "MULTI" | "SLIDER"
-  options: OasesQuestionOption[];
+  options: ImpactAssessmentQuestionOption[];
 }
 
-export interface OasesDailyBatch {
+export interface ImpactAssessmentDailyBatch {
   dayNumber: number;
   isComplete: boolean;
-  questions: OasesQuestion[];
+  questions: ImpactAssessmentQuestion[];
   metadata: {
     totalRemaining: number;
     estimatedMinutesRemaining: number;
   };
 }
 
-export interface OasesAnswerSubmission {
+export interface ImpactAssessmentAnswerSubmission {
   questionId: string;
   answer: number | string | string[]; // Matches the 'value' from option
 }
 
-export interface SubmitOasesBatchPayload {
-  answers: OasesAnswerSubmission[];
+export interface SubmitImpactAssessmentBatchPayload {
+  answers: ImpactAssessmentAnswerSubmission[];
 }
 
-export interface OasesProgress {
+export interface ImpactAssessmentProgress {
   completionPercentage: number;
   totalAnswered: number;
   dayNumber: number;
