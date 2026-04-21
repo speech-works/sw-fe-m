@@ -389,7 +389,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                       ? "--"
                       : Math.round(activeMetrics.previousScore)}
                   </Text>
-                  <Text style={styles.statusCardSubtext}>LAST SNAPSHOT</Text>
+                  <Text style={styles.statusCardSubtext}>PREVIOUS WEEK</Text>
                 </View>
               </View>
 
@@ -404,7 +404,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                     {!hasComparison
                       ? isUnavailable
                         ? "Not enough data yet"
-                        : "Building history"
+                        : "Waiting for previous week"
                       : activeMetrics.trend === "IMPROVING"
                       ? "Improving"
                       : activeMetrics.trend === "WORSENING"
@@ -417,7 +417,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                   <Text style={styles.deltaText}>
                     {isUnavailable
                       ? "Not enough recent data is available yet for this view."
-                      : "We need an earlier snapshot before we can show change for this view."}
+                      : "We need one previous week before we can show change for this view."}
                   </Text>
                 ) : (
                   <Text style={styles.deltaText}>
