@@ -51,6 +51,13 @@ type Props = {
   practiceActivityId?: string; // <-- ADDED
 };
 const DEFAULT_SAMPLE_RATE = 24000;
+const CALL_DEBUG_LOGS_ENABLED = __DEV__;
+
+const callDebugLog = (...args: unknown[]) => {
+  if (CALL_DEBUG_LOGS_ENABLED) {
+    console.log(...args);
+  }
+};
 
 // Buffer / pacing constants
 const JITTER_BUFFER_MS = 300;
@@ -498,7 +505,7 @@ const CallingWidget: React.FC<Props> = ({
     isStopping.current = true; // Set stopping flag
     await stopNativeRingtone(); // Stop ringtone if playing
 
-    console.log("Cleaning up audio state for new call...");
+    callDebugLog("Cleaning up audio state for new call...");
     pendingChunks.current = []; // Clear web pending chunks
     outgoingMicBuffer.current = []; // Clear web outgoing buffer
     if (finalFallbackId.current) {
@@ -513,7 +520,7 @@ const CallingWidget: React.FC<Props> = ({
     if (Platform.OS === "ios" || Platform.OS === "android") {
       // Native: Destroy InputAudioStream
       if (micStream.current) {
-        console.log("Destroying micStream on cleanup...");
+        callDebugLog("Destroying micStream on cleanup...");
         try {
           // Check if destroy exists before calling
           if (typeof micStream.current.destroy === "function") {
@@ -557,7 +564,7 @@ const CallingWidget: React.FC<Props> = ({
     setSound(null); // Clear state
 
     if (soundToUnload) {
-      console.log("[Audio] Cleaning up sound object via soundRef.");
+      callDebugLog("[Audio] Cleaning up sound object via soundRef.");
       try {
         soundToUnload.setOnPlaybackStatusUpdate(null); // Detach listener
         await soundToUnload.stopAsync(); // Attempt to stop first
@@ -569,7 +576,7 @@ const CallingWidget: React.FC<Props> = ({
       }
       try {
         await soundToUnload.unloadAsync(); // Use unloadAsync
-        console.log(
+        callDebugLog(
           "[Audio] Sound object unloaded successfully during cleanup.",
         );
       } catch (e) {
@@ -597,7 +604,7 @@ const CallingWidget: React.FC<Props> = ({
         playThroughEarpieceAndroid: false,
         staysActiveInBackground: false, // Don't keep audio active when app backgrounds after call
       });
-      console.log("[Audio Mode] Reset after call cleanup.");
+      callDebugLog("[Audio Mode] Reset after call cleanup.");
     } catch (e) {
       console.warn("Failed to reset audio mode:", e);
     }
@@ -761,11 +768,11 @@ const CallingWidget: React.FC<Props> = ({
 
   // (startAudioCapture function is unchanged, already includes mute check)
   const startAudioCapture = async (): Promise<boolean> => {
-    console.log("Starting audio capture...");
+    callDebugLog("Starting audio capture...");
 
     // --- Web Platform Logic ---
     if (Platform.OS === "web") {
-      console.log("Setting up Web Audio capture...");
+      callDebugLog("Setting up Web Audio capture...");
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -827,9 +834,9 @@ const CallingWidget: React.FC<Props> = ({
           const d = ev.data;
           if (!d || !d.cmd) return;
           if (d.cmd === "drain") {
-            console.log("playback worklet drained");
+            callDebugLog("playback worklet drained");
           } else if (d.cmd === "final_done") {
-            console.log("playback worklet final_done", d);
+            callDebugLog("playback worklet final_done", d);
             if (finalFallbackId.current) {
               clearTimeout(finalFallbackId.current);
               finalFallbackId.current = null;
@@ -891,7 +898,7 @@ const CallingWidget: React.FC<Props> = ({
         resampler.connect(silentGain);
         silentGain.connect(ctx.destination);
 
-        console.log("Web Audio Worklets started successfully.");
+        callDebugLog("Web Audio Worklets started successfully.");
         return true;
       } catch (error) {
         console.error("Failed to start web audio capture:", error);
@@ -901,7 +908,7 @@ const CallingWidget: React.FC<Props> = ({
 
       // --- Native Platform Logic ---
     } else {
-      console.log(
+      callDebugLog(
         "Starting audio capture with @dr.pogodin/react-native-audio...",
       );
       try {
@@ -921,10 +928,10 @@ const CallingWidget: React.FC<Props> = ({
           console.error("Mic permission denied");
           return false;
         }
-        console.log("Mic permissions granted.");
+        callDebugLog("Mic permissions granted.");
 
         if (micStream.current) {
-          console.log("Destroying previous micStream instance...");
+          callDebugLog("Destroying previous micStream instance...");
           try {
             micStream.current.destroy();
           } catch (e) {
@@ -934,7 +941,7 @@ const CallingWidget: React.FC<Props> = ({
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        console.log(
+        callDebugLog(
           "Creating new InputAudioStream with potentially smaller buffer...",
         );
         const stream = new InputAudioStream(
@@ -964,10 +971,10 @@ const CallingWidget: React.FC<Props> = ({
           }
         });
 
-        console.log("Starting InputAudioStream...");
+        callDebugLog("Starting InputAudioStream...");
         await stream.start();
         micStream.current = stream;
-        console.log("Native mic stream (@dr.pogodin) started successfully.");
+        callDebugLog("Native mic stream (@dr.pogodin) started successfully.");
         return true;
       } catch (error) {
         console.error("Failed to start native audio capture:", error);
@@ -990,13 +997,13 @@ const CallingWidget: React.FC<Props> = ({
       // Check headset but don't block — call proceeds via loudspeaker if no headset
       const connected = await updateHeadsetStatus(true);
       if (!connected) {
-        console.log(
+        callDebugLog(
           "[Headset] No headset connected — proceeding via loudspeaker.",
         );
       }
     }
 
-    console.log("[State] Setting state to STARTING");
+    callDebugLog("[State] Setting state to STARTING");
     audioState.current = "STARTING";
 
     callId.current += 1;
@@ -1036,7 +1043,7 @@ const CallingWidget: React.FC<Props> = ({
         shouldDuckAndroid: false,
         playThroughEarpieceAndroid: false,
       });
-      console.log("[Audio Mode] Set for active call.");
+      callDebugLog("[Audio Mode] Set for active call.");
     } catch (e) {
       console.error("Failed to set audio mode for call:", e);
       setStatus("Audio setup failed.");
@@ -1062,7 +1069,7 @@ const CallingWidget: React.FC<Props> = ({
       return;
     }
 
-    console.log("[startCall] Audio capture started successfully (or is web).");
+    callDebugLog("[startCall] Audio capture started successfully (or is web).");
     audioState.current = "STARTED";
 
     setStatus("Starting activity...");
@@ -1114,7 +1121,7 @@ const CallingWidget: React.FC<Props> = ({
           let parsed;
           try {
             parsed = JSON.parse(msg.data);
-            console.log(`[WS MESSAGE REACHED FRONTEND] Type: ${parsed?.type}`);
+            callDebugLog(`[WS MESSAGE REACHED FRONTEND] Type: ${parsed?.type}`);
             if (parsed.type === "agent_speaking") {
               setStatus("Agent is speaking...");
               // setIsAgentSpeaking(true); // This state is not defined in the original code
@@ -1149,12 +1156,12 @@ const CallingWidget: React.FC<Props> = ({
     };
 
     ws.current.onclose = (event) => {
-      console.log(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+      callDebugLog(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
       // If the goodbye TTS is still loading or playing, defer cleanup to didJustFinish.
       // Check both soundRef (audio loaded & playing) and playLock (audio is loading via loadAsync).
       const isAudioActive = soundRef.current || playLock.current;
       if (callEndReasonRef.current && isAudioActive) {
-        console.log(
+        callDebugLog(
           "[WS] Socket closed but goodbye audio still active — deferring cleanup to didJustFinish.",
         );
         // Detach WS handlers so nothing else fires
@@ -1174,7 +1181,7 @@ const CallingWidget: React.FC<Props> = ({
       // If goodbye audio is loading or playing, let it finish
       const isAudioActive = soundRef.current || playLock.current;
       if (callEndReasonRef.current && isAudioActive) {
-        console.log(
+        callDebugLog(
           "[WS] Socket error but goodbye audio still active — deferring cleanup.",
         );
         if (ws.current) {
@@ -1194,10 +1201,10 @@ const CallingWidget: React.FC<Props> = ({
   // --- ⬇️ MODIFIED: `endCall` order of operations ⬇️ ---
   const endCall = async () => {
     if (audioState.current === "STOPPING" || audioState.current === "IDLE") {
-      console.log(`[State] Ignoring endCall, state is ${audioState.current}`);
+      callDebugLog(`[State] Ignoring endCall, state is ${audioState.current}`);
       return;
     }
-    console.log("[State] Setting state to STOPPING");
+    callDebugLog("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
     isStopping.current = true;
 
@@ -1224,7 +1231,7 @@ const CallingWidget: React.FC<Props> = ({
     if (endReason) {
       // Keep callEndReason in state so the modal renders;
       // do NOT clear it here — it's cleared when the user dismisses the modal.
-      console.log(
+      callDebugLog(
         `[EndCall] Server-initiated disconnect, reason: ${endReason}`,
       );
     }
@@ -1253,7 +1260,7 @@ const CallingWidget: React.FC<Props> = ({
     await cleanupAudio();
 
     // --- SWAPPED ORDER ---
-    console.log("[State] Setting state to IDLE");
+    callDebugLog("[State] Setting state to IDLE");
     audioState.current = "IDLE";
     updateHeadsetStatus(); // <-- Call this AFTER setting state to IDLE
     // --- END SWAP ---
@@ -1309,7 +1316,7 @@ const CallingWidget: React.FC<Props> = ({
         setStatus("AI is ready");
         if (data.maxTurns) {
           setMaxTurns(data.maxTurns);
-          console.log(`[Cost Control] maxTurns set to ${data.maxTurns}`);
+          callDebugLog(`[Cost Control] maxTurns set to ${data.maxTurns}`);
         }
         break;
 
@@ -1321,7 +1328,7 @@ const CallingWidget: React.FC<Props> = ({
         } else if (data.turn === "user") {
           setTurn("user");
           setStatus("Your turn to speak");
-          console.log("[Mic] Activating mic via 'turn: user' command.");
+          callDebugLog("[Mic] Activating mic via 'turn: user' command.");
           isMicActive.current = true;
           setSuggestedResponses([]); // <-- ADDED: Clear old suggestions
           setShowNotificationDot(false); // <-- ADDED: Clear dot
@@ -1360,7 +1367,7 @@ const CallingWidget: React.FC<Props> = ({
         break;
 
       case "play_stream": {
-        console.log("[WS] Received play_stream command.");
+        callDebugLog("[WS] Received play_stream command.");
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
@@ -1385,7 +1392,7 @@ const CallingWidget: React.FC<Props> = ({
         // can always reach it, even if the backend embeds a different internal IP.
         const urlToPlay = rawUrl.replace(/^https?:\/\/[^/]+/, API_BASE_URL);
         if (urlToPlay !== rawUrl) {
-          console.log(
+          callDebugLog(
             "[Audio] play_stream URL rewritten:",
             rawUrl,
             "→",
@@ -1428,7 +1435,7 @@ const CallingWidget: React.FC<Props> = ({
             const token = await SecureStore.getItemAsync(
               SECURE_KEYS_NAME.SW_APP_JWT_KEY,
             );
-            console.log("[Audio] Attempting to loadAsync from URL:", urlToPlay);
+            callDebugLog("[Audio] Attempting to loadAsync from URL:", urlToPlay);
 
             await newSound.loadAsync(
               {
@@ -1450,7 +1457,7 @@ const CallingWidget: React.FC<Props> = ({
               playLock.current = false;
               return;
             }
-            console.log("[Audio] loadAsync completed successfully.");
+            callDebugLog("[Audio] loadAsync completed successfully.");
             newSound.setOnPlaybackStatusUpdate(async (status) => {
               try {
                 if (mySeq !== playSeq.current) return;
@@ -1469,9 +1476,9 @@ const CallingWidget: React.FC<Props> = ({
                         await (newSound as any).setIsMutedAsync(false);
                       } catch {}
                     }
-                    console.log("[Audio] Calling playAsync() now...");
+                    callDebugLog("[Audio] Calling playAsync() now...");
                     await newSound.playAsync();
-                    console.log("[Audio] playAsync() completed without error.");
+                    callDebugLog("[Audio] playAsync() completed without error.");
                   } catch (e) {
                     console.error("[Audio] Error during playAsync:", e);
                     hasStartedPlaying.current = false;
@@ -1479,7 +1486,7 @@ const CallingWidget: React.FC<Props> = ({
                   }
                 }
                 if ((status as any).didJustFinish) {
-                  console.log("[Audio] playback didJustFinish");
+                  callDebugLog("[Audio] playback didJustFinish");
                   if (mySeq === playSeq.current) {
                     try {
                       await newSound.unloadAsync();
@@ -1493,12 +1500,12 @@ const CallingWidget: React.FC<Props> = ({
                       ws.current?.send(
                         JSON.stringify({ type: "playback_complete" }),
                       );
-                      console.log("[WS] Sent playback_complete");
+                      callDebugLog("[WS] Sent playback_complete");
                     } catch {}
 
                     // If this was a server-initiated goodbye, trigger cleanup now
                     if (callEndReasonRef.current) {
-                      console.log(
+                      callDebugLog(
                         `[Audio] Goodbye finished. Triggering deferred endCall (reason: ${callEndReasonRef.current}).`,
                       );
                       endCall();
@@ -1507,7 +1514,7 @@ const CallingWidget: React.FC<Props> = ({
 
                     setStatus("Agent finished speaking. Your turn.");
                     setTurn("user");
-                    console.log(
+                    callDebugLog(
                       "[Audio] Transitioned turn back to user after natural playback finish.",
                     );
                   }
@@ -1561,7 +1568,7 @@ const CallingWidget: React.FC<Props> = ({
         soundRef.current = null;
         setSound(null);
         if (soundToStop) {
-          console.log("[Audio] Interruption. Stopping playback and unloading.");
+          callDebugLog("[Audio] Interruption. Stopping playback and unloading.");
           try {
             soundToStop.setOnPlaybackStatusUpdate(null);
           } catch {}
@@ -1570,12 +1577,12 @@ const CallingWidget: React.FC<Props> = ({
           } catch {}
           try {
             await soundToStop.unloadAsync();
-            console.log("[Audio] Sound unloaded due to interruption.");
+            callDebugLog("[Audio] Sound unloaded due to interruption.");
           } catch (e) {
             console.warn("Error unloading sound during interruption:", e);
           }
         } else {
-          console.log(
+          callDebugLog(
             "[Audio] Interruption requested, but no sound ref was active.",
           );
         }
@@ -1587,7 +1594,7 @@ const CallingWidget: React.FC<Props> = ({
       }
 
       case "idle_warning": {
-        console.log(
+        callDebugLog(
           `[Cost Control] idle_warning received, timeout: ${data.timeout_seconds}s`,
         );
         setIdleWarningVisible(true);
@@ -1612,7 +1619,7 @@ const CallingWidget: React.FC<Props> = ({
       }
 
       case "call_ended": {
-        console.log(
+        callDebugLog(
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
         // Store reason in both state and ref so endCall (triggered by onclose)
@@ -1640,7 +1647,7 @@ const CallingWidget: React.FC<Props> = ({
     setIsMuted((prev) => {
       const next = !prev;
       isMutedRef.current = next; // Update ref for async listeners
-      console.log("Mute set to:", next);
+      callDebugLog("Mute set to:", next);
       return next;
     });
   };
@@ -2000,7 +2007,7 @@ const CallingWidget: React.FC<Props> = ({
                   }
                   try {
                     ws.current?.send(JSON.stringify({ type: "stay_online" }));
-                    console.log("[WS] Sent stay_online");
+                    callDebugLog("[WS] Sent stay_online");
                   } catch {}
                 }}
               >

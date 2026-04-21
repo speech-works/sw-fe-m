@@ -57,17 +57,9 @@ axiosClient.interceptors.request.use(
     }
 
     if (Localization.getCalendars()[0].timeZone) {
-      console.log(
-        "setting x-client-timezone header:if:",
-        Localization.getCalendars()[0].timeZone,
-      );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;
     } else {
-      console.log(
-        "setting x-client-timezone header:else:",
-        Localization.getCalendars()[0].timeZone,
-      );
       config.headers["X-Client-Timezone"] =
         Localization.getCalendars()[0].timeZone;
     }
@@ -134,7 +126,6 @@ axiosClient.interceptors.response.use(
             },
           },
         );
-        console.log("REFRESH RESPONSE:", refreshResponse.data);
         const { token: newAccessToken, error: backendError } =
           refreshResponse.data;
 
