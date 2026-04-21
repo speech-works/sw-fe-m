@@ -25,7 +25,10 @@ import {
   InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
 import { theme } from "../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 import { isHeadsetConnected } from "../../../../util/functions/headset";
 
 interface AudioChunk {
@@ -373,6 +376,24 @@ export function DAFTool({
     [activeSetDelayMs]
   );
 
+  const hiddenStatusMessages = new Set([
+    "Permission granted. Start DAF and use wired headphones for best results.",
+    "DAF Active. Wear wired headphones for the clearest feedback.",
+    "Starting DAF...",
+    "DAF Stopped.",
+    "Please connect wired headphones to start DAF.",
+  ]);
+
+  const visibleStatusMessage =
+    activeStatusMessage && !hiddenStatusMessages.has(activeStatusMessage)
+      ? activeStatusMessage
+      : null;
+
+  const isStatusError = Boolean(
+    visibleStatusMessage &&
+      /failed|denied|error|cannot|available only/i.test(visibleStatusMessage),
+  );
+
   if (activeHasPermission === null && !isControlled) {
     // If controlled, we assume permission is handled by parent/hook in parent.
     // If null, it means loading.
@@ -400,65 +421,122 @@ export function DAFTool({
 
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.headsetIndicator}>
-        <FAIcon
-          name="headphones-alt"
-          size={14}
-          color={activeHeadsetConnected ? "#10B981" : "#EF4444"}
-        />
-        <Text style={styles.headsetIndicatorText}>
-          {activeHeadsetConnected ? "Headphones Ready" : "No Headphones"}
+      <View style={styles.heroCard}>
+        <View style={styles.heroHeader}>
+          <View style={styles.heroHeaderText}>
+            <Text style={styles.heroEyebrow}>DAF</Text>
+            <Text style={styles.heroTitle}>Delayed feedback</Text>
+          </View>
+
+          <View
+            style={[
+              styles.statusBadge,
+              activeHeadsetConnected
+                ? styles.statusBadgeReady
+                : styles.statusBadgeWarning,
+            ]}
+          >
+            <FAIcon
+              name="headphones-alt"
+              size={13}
+              color={
+                activeHeadsetConnected
+                  ? "#10B981"
+                  : theme.colors.feedback.error
+              }
+            />
+            <Text
+              style={[
+                styles.statusBadgeText,
+                activeHeadsetConnected
+                  ? styles.statusBadgeTextReady
+                  : styles.statusBadgeTextWarning,
+              ]}
+            >
+              {activeHeadsetConnected ? "Ready" : "Needed"}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.heroText}>
+          {activeHeadsetConnected
+            ? "Hear your own voice back with a slight delay while you practice."
+            : "Plug in your headphones to begin."}
         </Text>
       </View>
 
-      <Text style={styles.heading}>Real-time Delayed Auditory Feedback</Text>
-      <Text style={styles.helperText}>
-        Plug in your headphones before you start. This helps you hear your
-        voice clearly and avoids echo from the phone speaker.
-      </Text>
+      <View style={styles.sliderCard}>
+        <View style={styles.sliderHeader}>
+          <View>
+            <Text style={styles.sectionEyebrow}>Delay</Text>
+            <Text style={styles.sectionTitle}>{activeDelayMs} ms</Text>
+          </View>
 
-      <View style={styles.controlsSection}>
-        {/* Start/Stop DAF Button */}
-        <TouchableOpacity
-          onPress={activeToggleDAF}
-          style={[
-            styles.button,
-            activeIsDAFActive ? styles.buttonStop : styles.buttonStart,
-          ]}
-          disabled={activeHasPermission === false}
-        >
-          <Text style={styles.buttonText}>
-            {activeIsDAFActive ? "Stop DAF" : "Start DAF"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Delay Slider */}
-      <View style={styles.controlSection}>
-        <View style={styles.rowContainer}>
-          <Text style={styles.infoText}>Delay Time</Text>
-          <Text style={styles.speedText}>{activeDelayMs}ms</Text>
+          <View style={styles.valueBadge}>
+            <Text style={styles.valueBadgeText}>Adjust</Text>
+          </View>
         </View>
+
         <View style={styles.sliderWrapper}>
           <Slider
             style={styles.slider}
-            minimumValue={0} // Minimum delay
-            maximumValue={1000} // Max 1 second delay (adjust as needed for DAF effect)
-            step={25} // Step by 25ms
+            minimumValue={0}
+            maximumValue={1000}
+            step={25}
             value={activeDelayMs}
             onValueChange={handleDelayChange}
             minimumTrackTintColor={theme.colors.library.orange[400]}
-            maximumTrackTintColor={theme.colors.surface.default}
+            maximumTrackTintColor="#F1D9C6"
             thumbTintColor={theme.colors.library.orange[400]}
           />
         </View>
+
         <View style={styles.rowContainer}>
-          <Text style={styles.paceText}>No Delay</Text>
-          <Text style={styles.paceText}>Long Delay</Text>
+          <Text style={styles.paceText}>Subtle</Text>
+          <Text style={styles.paceText}>Stronger</Text>
         </View>
       </View>
 
-      <Text style={styles.statusText}>{activeStatusMessage}</Text>
+      <TouchableOpacity
+        onPress={activeToggleDAF}
+        activeOpacity={0.85}
+        style={[
+          styles.button,
+          activeIsDAFActive ? styles.buttonStop : styles.buttonStart,
+        ]}
+        disabled={activeHasPermission === false}
+      >
+        <View style={styles.buttonContent}>
+          <FAIcon
+            name={activeIsDAFActive ? "stop" : "play"}
+            size={14}
+            color="#FFF"
+          />
+          <Text style={styles.buttonText}>
+            {activeIsDAFActive ? "Stop DAF" : "Start DAF"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {visibleStatusMessage ? (
+        <View
+          style={[
+            styles.statusBanner,
+            isStatusError ? styles.statusBannerError : styles.statusBannerInfo,
+          ]}
+        >
+          <FAIcon
+            name={isStatusError ? "exclamation-circle" : "info-circle"}
+            size={14}
+            color={
+              isStatusError
+                ? theme.colors.feedback.error
+                : theme.colors.actionPrimary.default
+            }
+          />
+          <Text style={styles.statusBannerText}>{visibleStatusMessage}</Text>
+        </View>
+      ) : null}
 
       <Modal
         visible={Boolean(activeShowHeadsetPrompt)}
@@ -501,84 +579,140 @@ export function DAFTool({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: theme.colors.library.orange[100],
+    marginVertical: 8,
     flexDirection: "column",
-    gap: 16,
+    gap: 14,
   },
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
   },
-  headsetIndicator: {
+  heroCard: {
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 0,
+    gap: 14,
+  },
+  heroHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  heroEyebrow: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    color: theme.colors.text.default,
+    opacity: 0.62,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
   },
-  headsetIndicatorText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    opacity: 0.8,
+  statusBadgeReady: {
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
+    borderColor: "rgba(16, 185, 129, 0.16)",
   },
-  heading: {
+  statusBadgeWarning: {
+    backgroundColor: "rgba(239, 68, 68, 0.06)",
+    borderColor: "rgba(239, 68, 68, 0.14)",
+  },
+  statusBadgeText: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    fontWeight: "600",
+  },
+  statusBadgeTextReady: {
+    color: "#0F9F6E",
+  },
+  statusBadgeTextWarning: {
+    color: theme.colors.feedback.error,
+  },
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading4),
+    color: theme.colors.text.title,
+  },
+  heroText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 2,
-  },
-  helperText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    opacity: 0.8,
-  },
-  controlsSection: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    gap: 10,
-    marginBottom: 10,
   },
   button: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 12,
+    minHeight: 52,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    ...parseShadowStyle("0px 6px 16px 0px rgba(255, 144, 64, 0.18)"),
   },
   buttonStart: {
-    backgroundColor: theme.colors.actionPrimary.default, // Blue for Start
+    backgroundColor: theme.colors.actionPrimary.default,
   },
   buttonStop: {
-    backgroundColor: theme.colors.library.red[500], // Red for Stop
+    backgroundColor: "#E85D4A",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   buttonText: {
     color: "#FFF",
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...parseTextStyle(theme.typography.Button),
     fontWeight: "600",
   },
-  controlSection: {
+  sliderCard: {
+    backgroundColor: theme.colors.surface.elevated,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: "rgba(253, 182, 129, 0.22)",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  sliderHeader: {
     width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 4,
-    marginTop: 10,
+  },
+  sectionEyebrow: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    color: theme.colors.text.default,
+    opacity: 0.7,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionTitle: {
+    ...parseTextStyle(theme.typography.BodyHighLight),
+    color: theme.colors.text.title,
+  },
+  valueBadge: {
+    backgroundColor: "#FFF4E6",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 144, 64, 0.20)",
+  },
+  valueBadgeText: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    color: theme.colors.actionPrimary.default,
+    fontWeight: "700",
   },
   rowContainer: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  infoText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  speedText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.actionPrimary.default,
   },
   sliderWrapper: {
     width: "100%",
@@ -587,17 +721,37 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: "100%",
-    height: 12,
+    height: 22,
   },
   paceText: {
     ...parseTextStyle(theme.typography.BodyDetails),
     color: theme.colors.text.default,
+    opacity: 0.68,
   },
   statusText: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
     textAlign: "center",
     marginTop: 10,
+  },
+  statusBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  statusBannerInfo: {
+    backgroundColor: "#FFF4E6",
+  },
+  statusBannerError: {
+    backgroundColor: "#FEF2F2",
+  },
+  statusBannerText: {
+    flex: 1,
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.default,
   },
   promptOverlay: {
     flex: 1,

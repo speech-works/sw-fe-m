@@ -448,7 +448,16 @@ const QuotePractice = () => {
                 { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
                 { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
               ].map((tool) => {
-                const isActive = selectedPracticeTool === tool.id;
+                const isActive =
+                  (tool.id === ToolType.DAF &&
+                    selectedPracticeTool === tool.id &&
+                    dafState.isDAFActive) ||
+                  (tool.id === ToolType.CHORUS &&
+                    selectedPracticeTool === tool.id &&
+                    vhIsPlaying) ||
+                  (tool.id === ToolType.METRONOME &&
+                    selectedPracticeTool === tool.id &&
+                    metronomeState.isPlaying);
                 return (
                   <TouchableOpacity
                     key={tool.id}
