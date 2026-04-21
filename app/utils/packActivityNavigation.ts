@@ -72,10 +72,6 @@ const navigateToCognitive = (
     case CognitivePracticeType.REFRAMING_THOUGHTS:
       nav.navigate("Reframe", { practiceActivity: activity, packContext: ctx });
       break;
-    case CognitivePracticeType.POSITIVE_AFFIRMATIONS:
-      // TODO: Add affirmations screen navigation
-      console.warn("POSITIVE_AFFIRMATIONS screen not yet implemented");
-      break;
     case CognitivePracticeType.REAL_LIFE_CHALLENGE:
       nav.navigate("RealLifeChallenge", {
         practiceActivity: activity,

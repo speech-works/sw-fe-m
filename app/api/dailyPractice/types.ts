@@ -88,7 +88,6 @@ export interface FunPractice {
 
 export enum CognitivePracticeType {
   GUIDED_BREATHING = "GUIDED_BREATHING",
-  POSITIVE_AFFIRMATIONS = "POSITIVE_AFFIRMATIONS",
   GUIDED_MEDITATION = "GUIDED_MEDITATION",
   REFRAMING_THOUGHTS = "REFRAMING_THOUGHTS",
   REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
@@ -97,10 +96,6 @@ export enum CognitivePracticeType {
 export interface GuidedBreathingData {
   tips: Array<string>;
   durationMinutes: number;
-}
-
-export interface PositiveAffirmationsData {
-  affirmations: Array<string>;
 }
 
 export interface GuidedMeditationData {
@@ -127,7 +122,6 @@ export interface CognitivePractice {
   description: string;
   difficulty: DifficultyLevel;
   guidedBreathingData?: GuidedBreathingData;
-  positiveAffirmationsData?: PositiveAffirmationsData;
   guidedMeditationData?: GuidedMeditationData;
   reframingThoughtsData?: ReframingThoughtsData;
   realLifeChallengeData?: CognitiveRealLifeData; // For REAL_LIFE_CHALLENGE type
