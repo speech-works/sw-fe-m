@@ -9,9 +9,9 @@ import { getAllPracticeActivitiesBySessionId } from "../../../../api";
 import { getUserPreferences } from "../../../../api/settings/userPreference";
 import OnCallFace from "../../../../assets/sw-faces/OnCallFace";
 import {
-    AcademyStackNavigationProp,
-    AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
+    ExploreStackNavigationProp,
+    ExploreStackParamList,
+} from "../../../../navigators/stacks/ExploreStack/types";
 import { useSessionStore } from "../../../../stores/session";
 import { useUserStore } from "../../../../stores/user";
 import {
@@ -47,7 +47,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   }
 
   const navigation =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
 
   const moveToDailyPractice = () => {
     !isSessionFresh && onClickStart();

@@ -21,7 +21,7 @@ import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import {
   RDPStackNavigationProp,
   RDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUIStore } from "../../../../../../stores/ui";

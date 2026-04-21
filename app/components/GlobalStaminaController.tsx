@@ -6,7 +6,7 @@ import LowStaminaModal from "./LowStaminaModal";
 
 /**
  * Safe screens: tab-root routes that indicate the user has exited an activity.
- * Activity screens live under AcademyStack / PhoneCall / PackModule, etc.
+ * Activity screens live under ExploreStack / PhoneCall / PackModule, etc.
  * When the user lands on any of these, we know it's safe to surface a modal.
  */
 const SAFE_SCREENS = new Set([
@@ -14,7 +14,6 @@ const SAFE_SCREENS = new Set([
   "Explore",
   "Settings",
   "Community",
-  "Academy", // the DailyPractice tab root
 ]);
 
 /**

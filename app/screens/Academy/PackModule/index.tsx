@@ -32,6 +32,7 @@ import { ContentBlockType, Pack, PackModule, PackStatus } from "../../../api/pac
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";
+import { ROUTE_NAMES } from "../../../constants/routes";
 import { useActivityStore } from "../../../stores/activity";
 import { theme } from "../../../Theme/tokens";
 import {
@@ -39,7 +40,7 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 
-import { AcademyStackNavigationProp } from "../../../navigators/stacks/AcademyStack/types";
+import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -57,7 +58,7 @@ const { width } = Dimensions.get("window");
 
 const PackModuleScreen = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<AcademyStackNavigationProp<"PackModule">>();
+  const navigation = useNavigation<ExploreStackNavigationProp<"PackModule">>();
   const route = useRoute<PackModuleScreenRouteProp>();
   const {
     module: initialModule,
@@ -160,6 +161,19 @@ const PackModuleScreen = () => {
   // Animation for progress bar
   const [progressAnim] = useState(new Animated.Value(0));
 
+  const navigateToHomeFallback = useCallback(() => {
+    const appNavigation = navigation.getParent();
+
+    if (appNavigation) {
+      appNavigation.navigate("Root" as never, {
+        screen: ROUTE_NAMES.HOME,
+      } as never);
+      return;
+    }
+
+    navigation.navigate("Explore" as never);
+  }, [navigation]);
+
   useEffect(() => {
     const initModule = async () => {
       try {
@@ -179,7 +193,7 @@ const PackModuleScreen = () => {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
-              navigation.navigate("Academy" as any);
+              navigateToHomeFallback();
             }
           }
         });
@@ -246,7 +260,7 @@ const PackModuleScreen = () => {
     };
 
     initModule();
-  }, [packId, initialModule, initialModuleId]);
+  }, [initialModule, initialModuleId, navigateToHomeFallback, navigation, packId]);
 
   // Update progress bar when index changes
   useEffect(() => {

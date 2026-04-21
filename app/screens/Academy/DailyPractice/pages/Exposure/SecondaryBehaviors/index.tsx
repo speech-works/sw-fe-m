@@ -11,7 +11,7 @@ import ScreenView from "../../../../../../components/ScreenView";
 import {
   SBEDPStackNavigationProp,
   SBEDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SecondaryBehaviorsStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/SecondaryBehaviorsStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 

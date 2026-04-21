@@ -23,9 +23,9 @@ import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
+  ExploreStackNavigationProp,
+  ExploreStackParamList,
+} from "../../../../navigators/stacks/ExploreStack/types";
 import { theme } from "../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -149,8 +149,8 @@ const RulerTicks = React.memo(() => {
 });
 
 const MoodCheck = () => {
-  const academyNavigation =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const exploreNavigation =
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const isFocused = useIsFocused();
@@ -210,7 +210,7 @@ const MoodCheck = () => {
 
   const handleSelect = () => {
     const activeMood = emotions[currentIndex];
-    academyNavigation.navigate("MoodCheckStack", {
+    exploreNavigation.navigate("MoodCheckStack", {
       screen: "FollowUpStack",
       params: { mood: activeMood.id },
     });
@@ -236,7 +236,7 @@ const MoodCheck = () => {
         ]}
       >
         <TouchableOpacity
-          onPress={() => academyNavigation.goBack()}
+          onPress={() => exploreNavigation.goBack()}
           style={styles.backButton}
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />

@@ -25,7 +25,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import {
   InterviewEDPStackNavigationProp,
   InterviewEDPStackParamList,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+} from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";

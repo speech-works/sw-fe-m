@@ -55,11 +55,11 @@ import {
 } from "../../../../../../utils/vitals";
 import DonePractice from "../../../components/DonePractice";
 
-import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
-import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
 
 const Breathing = () => {
-  const navigation = useNavigation<AcademyStackNavigationProp<"Breathing">>();
+  const navigation = useNavigation<ExploreStackNavigationProp<"Breathing">>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
 

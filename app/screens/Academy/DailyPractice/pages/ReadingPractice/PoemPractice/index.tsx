@@ -68,7 +68,7 @@ const { width } = Dimensions.get("window");
 import {
   RDPStackNavigationProp,
   RDPStackRouteProp,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 
 const PoemPractice = () => {
   const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();

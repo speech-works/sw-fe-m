@@ -14,7 +14,7 @@ import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
   LibStackNavigationProp,
   LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 

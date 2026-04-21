@@ -1,6 +1,6 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AcademyStackParamList } from "../../../types";
+import { ExploreStackParamList } from "../../../types";
 import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type PhoneCallEDPStackParamList = {
@@ -13,7 +13,7 @@ export type PhoneCallEDPStackNavigationProp<
   T extends keyof PhoneCallEDPStackParamList,
 > = CompositeNavigationProp<
   NativeStackNavigationProp<PhoneCallEDPStackParamList, T>,
-  NativeStackNavigationProp<AcademyStackParamList>
+  NativeStackNavigationProp<ExploreStackParamList>
 >;
 export type PhoneCallEDPStackRouteProp<
   T extends keyof PhoneCallEDPStackParamList,

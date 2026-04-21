@@ -20,7 +20,7 @@ import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgr
 import {
   FDPStackNavigationProp,
   FDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/types";
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";

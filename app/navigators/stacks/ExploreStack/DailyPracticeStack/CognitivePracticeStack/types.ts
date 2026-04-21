@@ -1,6 +1,6 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AcademyStackParamList } from "../../types";
+import { ExploreStackParamList } from "../../types";
 import { MoodType } from "../../../../../api/moodCheck/types";
 import { PackContext } from "../../../../../utils/packActivityNavigation";
 
@@ -29,7 +29,7 @@ export type CDPStackParamList = {
 export type CDPStackNavigationProp<T extends keyof CDPStackParamList> =
   CompositeNavigationProp<
     NativeStackNavigationProp<CDPStackParamList, T>,
-    NativeStackNavigationProp<AcademyStackParamList>
+    NativeStackNavigationProp<ExploreStackParamList>
   >;
 export type CDPStackRouteProp<T extends keyof CDPStackParamList> = RouteProp<
   CDPStackParamList,

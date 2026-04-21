@@ -7,7 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
 import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
 import { theme } from "../../../Theme/tokens";
 import {
@@ -21,8 +21,8 @@ interface BuyProProps {
 
 const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
-  type AcademyNav = NativeStackNavigationProp<AcademyStackParamList>;
-  type CrossNavigationProp = CompositeNavigationProp<SettingsNav, AcademyNav>;
+  type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
+  type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;
 
   const navigation = useNavigation<CrossNavigationProp>();
 

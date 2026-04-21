@@ -20,7 +20,7 @@ import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgr
 import {
   EDPStackNavigationProp,
   EDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/types";
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";

@@ -5,9 +5,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../navigators/stacks/AcademyStack/types";
+  ExploreStackNavigationProp,
+  ExploreStackParamList,
+} from "../../../navigators/stacks/ExploreStack/types";
 import { useMoodCheckStore } from "../../../stores/mood";
 import { theme } from "../../../Theme/tokens";
 import {
@@ -21,8 +21,8 @@ interface Props {
 
 const MoodCheckBanner = ({ style }: Props) => {
   const { hasRecordedToday } = useMoodCheckStore();
-  const academyNavigation =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const exploreNavigation =
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
 
   if (hasRecordedToday) return null;
 
@@ -32,7 +32,7 @@ const MoodCheckBanner = ({ style }: Props) => {
         activeOpacity={0.9}
         onPress={() => {
           // @ts-ignore
-          academyNavigation.navigate("AcademyStack", {
+          exploreNavigation.navigate("ExploreStack", {
             screen: "MoodCheckStack",
             params: {
               screen: "CheckIn",

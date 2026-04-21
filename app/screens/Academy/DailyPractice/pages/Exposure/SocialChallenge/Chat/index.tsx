@@ -42,11 +42,11 @@ interface ChatMessage {
   text: string;
 }
 
-import { SCEDPStackRouteProp } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
-import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+import { SCEDPStackRouteProp } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
 const Chat = () => {
-  const navigation = useNavigation<AcademyStackNavigationProp<"SCChat">>();
+  const navigation = useNavigation<ExploreStackNavigationProp<"SCChat">>();
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;

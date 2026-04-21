@@ -33,7 +33,7 @@ import { MoodType } from "../../../../../api/moodCheck/types";
 import {
   MoodFUStackNavigationProp,
   MoodFUStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/MoodCheckStack/FollowUpStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/MoodCheckStack/FollowUpStack/types";
 import ExpressYourself, {
   EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";

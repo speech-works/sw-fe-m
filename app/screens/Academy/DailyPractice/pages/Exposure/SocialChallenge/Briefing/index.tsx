@@ -23,7 +23,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import {
   SCEDPStackNavigationProp,
   SCEDPStackParamList,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
+} from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";

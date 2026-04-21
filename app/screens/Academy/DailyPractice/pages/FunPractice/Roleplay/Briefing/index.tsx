@@ -18,7 +18,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import {
   RoleplayFDPStackNavigationProp,
   RoleplayFDPStackParamList,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+} from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
   parseShadowStyle,

@@ -52,12 +52,12 @@ import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModa
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AcademyStackNavigationProp } from "../../../../../../navigators/stacks/AcademyStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
 
-import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 
 const Meditation = () => {
-  const navigation = useNavigation<AcademyStackNavigationProp<"Meditation">>();
+  const navigation = useNavigation<ExploreStackNavigationProp<"Meditation">>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   // Use CDPStackRouteProp for MeditationPractice

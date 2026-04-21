@@ -7,7 +7,7 @@ import ScreenView from "../../../components/ScreenView";
 import {
   DPStackNavigationProp,
   DPStackParamList,
-} from "../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+} from "../../../navigators/stacks/ExploreStack/DailyPracticeStack/types";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
 import ListCard, { ListCardProps } from "./components/ListCard";

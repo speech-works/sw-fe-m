@@ -19,7 +19,7 @@ import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgr
 import {
   RDPStackNavigationProp,
   RDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ReadingPracticeStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";

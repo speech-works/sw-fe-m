@@ -21,7 +21,7 @@ import ScreenView from "../../../../../components/ScreenView";
 import {
     LibStackNavigationProp,
     LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 if (

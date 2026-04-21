@@ -63,7 +63,7 @@ const { width } = Dimensions.get("window");
 import {
   TwisterFDPStackNavigationProp,
   TwisterFDPStackRouteProp,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/TwisterPracticeStack/types";
 
 const Twister = () => {
   const navigation =

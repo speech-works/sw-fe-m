@@ -12,7 +12,7 @@ import ScreenView from "../../../../../../components/ScreenView";
 import {
   SCEDPStackNavigationProp,
   SCEDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/SocialChallengeStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import {
   parseShadowStyle,

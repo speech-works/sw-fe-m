@@ -4,7 +4,6 @@ import { useOnboardingStore } from "../../../stores/onboarding"; // Import store
 import { OnboardingStackParamList } from "./types";
 
 // Screens
-import Academy from "../../../screens/Academy";
 import OnboardingDone from "../../../screens/Onboarding/OnboardingDone";
 import OnboardingQuestion from "../../../screens/Onboarding/OnboardingQuestionScreen";
 import OnboardingWelcome from "../../../screens/Onboarding/OnboardingWelcome";
@@ -41,7 +40,6 @@ export default function OnboardingStackNavigator() {
       />
 
       <Stack.Screen name="OnboardingDone" component={OnboardingDone} />
-      <Stack.Screen name="Academy" component={Academy} />
     </Stack.Navigator>
   );
 }

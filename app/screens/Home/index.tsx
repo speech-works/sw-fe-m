@@ -358,7 +358,7 @@ const Home = () => {
                     totalRemaining={oasesProgress?.totalRemaining}
                     style={{ marginBottom: 0 }}
                     onPress={() => {
-                      navigation.navigate("AcademyStack", {
+                      navigation.navigate("ExploreStack", {
                         screen: "DailyPracticeStack",
                         params: { screen: "OASESIntro" },
                       });

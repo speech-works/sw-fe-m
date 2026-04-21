@@ -14,9 +14,9 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MoodType } from "../../../../api/moodCheck/types";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
+  ExploreStackNavigationProp,
+  ExploreStackParamList,
+} from "../../../../navigators/stacks/ExploreStack/types";
 import { useMoodCheckStore } from "../../../../stores/mood";
 import { theme } from "../../../../Theme/tokens";
 import {
@@ -68,8 +68,8 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MoodCheckPopup = () => {
   const { hasRecordedToday, lastPopupDate, setPopupShown, _hasHydrated } =
     useMoodCheckStore();
-  const academyNavigation =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const exploreNavigation =
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const [visible, setVisible] = React.useState(false);
   const [canAnimate, setCanAnimate] = React.useState(false);
 
@@ -141,7 +141,7 @@ const MoodCheckPopup = () => {
     setVisible(false);
     setPopupShown();
     // @ts-ignore
-    academyNavigation.navigate("AcademyStack", {
+    exploreNavigation.navigate("ExploreStack", {
       screen: "MoodCheckStack",
       params: {
         screen: "FollowUpStack",

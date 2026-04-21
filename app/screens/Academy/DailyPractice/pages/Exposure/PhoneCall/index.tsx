@@ -24,7 +24,7 @@ import {
   PhoneCallEDPStackNavigationProp,
   PhoneCallEDPStackParamList,
   PhoneCallEDPStackRouteProp,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";

@@ -19,7 +19,7 @@ import {
   PDStackNavigationProp,
   PDStackParamList,
   PDStackRouteProp,
-} from "../../../navigators/stacks/AcademyStack/ProgressDetailStack/types";
+} from "../../../navigators/stacks/ExploreStack/ProgressDetailStack/types";
 import { useProgressReportStore } from "../../../stores/progressReport";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";

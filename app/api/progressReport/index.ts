@@ -7,7 +7,7 @@ import {
 
 /**
  * Minutes per day for the current local week
- * Used on Academy landing page
+ * Used on the Explore progress surfaces
  */
 export async function getDailyActivityStatsForTheWeek(
   _userId?: string,

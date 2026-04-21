@@ -30,8 +30,8 @@ import {
   TECHNIQUES_ENUM,
   TransformedTechnique,
 } from "../../../api/library/types";
-import { LibStackParamList } from "../../../navigators/stacks/AcademyStack/LibraryStack/types";
-import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { LibStackParamList } from "../../../navigators/stacks/ExploreStack/LibraryStack/types";
+import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
 import { useRoute } from "@react-navigation/native";
 
 // New Components
@@ -138,12 +138,12 @@ const LEVEL_MAPPING: Record<string, string> = {
 
 type LibraryScreenNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<LibStackParamList>,
-  NativeStackNavigationProp<AcademyStackParamList>
+  NativeStackNavigationProp<ExploreStackParamList>
 >;
 
 const Library = () => {
   const insets = useSafeAreaInsets();
-  const navigationAcademy = useNavigation<LibraryScreenNavigationProp>();
+  const exploreNavigation = useNavigation<LibraryScreenNavigationProp>();
   const route = useRoute<any>();
   const { from } = (route.params || {}) as { from?: "HOME" | "EXPLORE" };
 
@@ -151,17 +151,17 @@ const Library = () => {
     console.log("[Library] handleBack called. from:", from);
     if (from === "HOME") {
       // Try navigating directly to the Home screen name
-      navigationAcademy.navigate("Home" as any);
+      exploreNavigation.navigate("Home" as any);
     } else if (from === "EXPLORE") {
       // Try navigating directly to the Explore screen name
-      navigationAcademy.navigate("Explore" as any);
+      exploreNavigation.navigate("Explore" as any);
     } else {
       console.log("[Library] Falling back to standard goBack");
-      if (navigationAcademy.canGoBack()) {
-        navigationAcademy.goBack();
+      if (exploreNavigation.canGoBack()) {
+        exploreNavigation.goBack();
       } else {
         // Last resort
-        navigationAcademy.navigate("Home" as any);
+        exploreNavigation.navigate("Home" as any);
       }
     }
   };
@@ -347,7 +347,7 @@ const Library = () => {
     if (!selectedTechnique) return;
 
     setTimeout(() => {
-      navigationAcademy.navigate("TechniquePage", {
+      exploreNavigation.navigate("TechniquePage", {
         techniqueId: selectedTechnique.id,
         techniqueName: selectedTechnique.name,
         techniqueDesc: selectedTechnique.description,

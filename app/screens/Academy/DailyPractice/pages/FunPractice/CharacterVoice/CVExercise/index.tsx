@@ -20,7 +20,7 @@ import ScreenView from "../../../../../../../components/ScreenView";
 import {
   CharacterVoiceFDPStackNavigationProp,
   CharacterVoiceFDPStackParamList,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
+} from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
 
 import {

@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { VideoPlayer } from "../../../../../components/VideoPlayer";
-import { LibStackNavigationProp, LibStackParamList } from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+import { LibStackNavigationProp, LibStackParamList } from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
 import { useEventStore } from "../../../../../stores/events";
 import { EVENT_NAMES } from "../../../../../stores/events/constants";

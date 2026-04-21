@@ -1,6 +1,6 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AcademyStackParamList } from "../../types";
+import { ExploreStackParamList } from "../../types";
 import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type RDPStackParamList = {
@@ -26,7 +26,7 @@ export type RDPStackParamList = {
 export type RDPStackNavigationProp<T extends keyof RDPStackParamList> =
   CompositeNavigationProp<
     NativeStackNavigationProp<RDPStackParamList, T>,
-    NativeStackNavigationProp<AcademyStackParamList>
+    NativeStackNavigationProp<ExploreStackParamList>
   >;
 export type RDPStackRouteProp<T extends keyof RDPStackParamList> = RouteProp<
   RDPStackParamList,

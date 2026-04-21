@@ -24,7 +24,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import Button from "../../../../../components/Button";
 import { TactileTouchableOpacity } from "../../../../../components/TactileTouchableOpacity";
-import { AcademyStackParamList } from "../../../../../navigators/stacks/AcademyStack/types";
+import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../stores/activity";
 import { useSessionStore } from "../../../../../stores/session";
 import { useUserStore } from "../../../../../stores/user";
@@ -52,7 +52,7 @@ type RealLifeChallengeParams = {
 const RealLifeChallenge = () => {
   const navigation = useNavigation();
   const route =
-    useRoute<RouteProp<AcademyStackParamList, "RealLifeChallenge">>();
+    useRoute<RouteProp<ExploreStackParamList, "RealLifeChallenge">>();
   const params = route.params as RealLifeChallengeParams;
   const { practiceActivity, packContext } = params || {};
   const { user } = useUserStore();

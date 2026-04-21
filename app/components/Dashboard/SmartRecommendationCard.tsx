@@ -24,7 +24,7 @@ interface SmartRecommendationCardProps {
 
 const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const insets = useSafeAreaInsets();
-  const navigationAcademy = useNavigation<any>();
+  const exploreNavigation = useNavigation<any>();
   const [recommendation, setRecommendation] =
     useState<PackRecommendation | null>(null);
   const [progress, setProgress] = useState<PackProgress | null>(null);
@@ -126,7 +126,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
         style={styles.container}
         activeOpacity={0.9}
         onPress={() =>
-          navigationAcademy.navigate("AcademyStack", {
+          exploreNavigation.navigate("ExploreStack", {
             screen: "LibraryStack",
             params: { screen: "Library", params: { from: "HOME" } },
           })
@@ -284,8 +284,8 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
   const handleStartModule = () => {
     setModalVisible(false);
     if (nextModuleDisplay) {
-      // @ts-ignore - AcademyStack param list not fully propagated to this component's props yet
-      navigationAcademy.navigate("AcademyStack", {
+      // @ts-ignore - ExploreStack param list not fully propagated to this component's props yet
+      exploreNavigation.navigate("ExploreStack", {
         screen: "PackModule",
         params: {
           module: nextModuleDisplay,

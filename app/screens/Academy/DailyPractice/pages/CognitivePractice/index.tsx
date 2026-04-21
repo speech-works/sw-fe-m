@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";

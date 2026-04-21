@@ -1,7 +1,7 @@
 import { CompositeNavigationProp, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RolePlayData } from "../../../../../../api/dailyPractice/types";
-import { AcademyStackParamList } from "../../../types";
+import { ExploreStackParamList } from "../../../types";
 import { PackContext } from "../../../../../../utils/packActivityNavigation";
 
 export type RoleplayFDPStackParamList = {
@@ -25,7 +25,7 @@ export type RoleplayFDPStackNavigationProp<
   T extends keyof RoleplayFDPStackParamList,
 > = CompositeNavigationProp<
   NativeStackNavigationProp<RoleplayFDPStackParamList, T>,
-  NativeStackNavigationProp<AcademyStackParamList>
+  NativeStackNavigationProp<ExploreStackParamList>
 >;
 export type RoleplayFDPStackRouteProp<
   T extends keyof RoleplayFDPStackParamList,

@@ -10,7 +10,6 @@ export type OnboardingStackParamList = {
   };
 
   OnboardingDone: undefined;
-  Academy: undefined;
 };
 
 export type OnboardingStackNavigationProp<

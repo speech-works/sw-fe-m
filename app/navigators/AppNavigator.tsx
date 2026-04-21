@@ -1,10 +1,9 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect } from "react";
-import PhoneCall from "../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
 import SubscribeScreen from "../screens/Payments";
 import BottomTabNavigator from "./BottomTabNavigator";
 
-import AcademyStackNavigator from "./stacks/AcademyStack";
+import ExploreStackNavigator from "./stacks/ExploreStack";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,7 +18,7 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Root" component={BottomTabNavigator} />
-      <Stack.Screen name="AcademyStack" component={AcademyStackNavigator} />
+      <Stack.Screen name="ExploreStack" component={ExploreStackNavigator} />
       <Stack.Screen
         name="PremiumModal"
         component={SubscribeScreen}

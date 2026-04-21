@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     // Note: 'blurRadius' prop exists on Image, but for View we rely on abstract layout or opacity.
     // React Native doesn't support CSS 'filter: blur()' natively on Views without libraries like Expo BlurView (which blurs content BEHIND).
     // To achieve the blurred blob look, strictly native views usually use high opacity and overlapping,
-    // or we can use images. For now, pure shapes with low opacity work well for the clean "Academy" aesthetic.
+    // or we can use images. For now, pure shapes with low opacity work well for this clean, airy aesthetic.
   },
 });
 

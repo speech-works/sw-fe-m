@@ -30,11 +30,11 @@ import TextArea from "../../../../../../components/TextArea";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+} from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../../../navigators/stacks/AcademyStack/types";
+  ExploreStackNavigationProp,
+  ExploreStackParamList,
+} from "../../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
@@ -48,7 +48,7 @@ import RainOverlay from "./components/RainOverlay";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CDPStackRouteProp } from "../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/CognitivePracticeStack/types";
+import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import { EVENT_NAMES } from "../../../../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../../../../util/functions/events";
@@ -60,8 +60,8 @@ const Reframe = () => {
 
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
-  const academyNav =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+  const exploreNavigation =
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
@@ -281,11 +281,11 @@ const Reframe = () => {
       useUserStore.getState().fetchUser();
 
       if (packContext) {
-        // Use academyNav to navigate to PackModule as it is in the parent stack
-        if (academyNav.canGoBack()) {
-          academyNav.goBack();
+        // Use the parent Explore stack navigation to return to PackModule
+        if (exploreNavigation.canGoBack()) {
+          exploreNavigation.goBack();
         } else {
-          academyNav.navigate("PackModule", {
+          exploreNavigation.navigate("PackModule", {
             packId: packContext.packId,
             moduleId: packContext.moduleId,
             initialBlockIndex: packContext.blockIndex,

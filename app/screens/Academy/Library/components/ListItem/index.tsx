@@ -9,7 +9,7 @@ import { TransformedTechnique } from "../../../../../api/library/types";
 import {
     LibStackNavigationProp,
     LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
+} from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
 
 interface ListItemProps {

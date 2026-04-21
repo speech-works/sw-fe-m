@@ -28,7 +28,7 @@ import {
   RolePlayNode,
   RolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
-import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
+import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack/types";
 
 import {
   completePracticeActivity,
@@ -53,12 +53,12 @@ interface ChatMessage {
   text: string;
 }
 
-import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
 const Chat = () => {
   console.log("RoleplayChat MOUNTED");
   const navigation =
-    useNavigation<AcademyStackNavigationProp<"RoleplayChat">>();
+    useNavigation<ExploreStackNavigationProp<"RoleplayChat">>();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
   const { title, roleplay, selectedRoleName, id, packContext } = route.params;

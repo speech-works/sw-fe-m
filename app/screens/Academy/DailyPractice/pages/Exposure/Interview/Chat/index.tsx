@@ -40,12 +40,12 @@ interface ChatMessage {
   text: string;
 }
 
-import { InterviewEDPStackRouteProp } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
-import { AcademyStackNavigationProp } from "../../../../../../../navigators/stacks/AcademyStack/types";
+import { InterviewEDPStackRouteProp } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
 const Chat = () => {
   const navigation =
-    useNavigation<AcademyStackNavigationProp<"InterviewChat">>();
+    useNavigation<ExploreStackNavigationProp<"InterviewChat">>();
   const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
 
   const { interview, practiceActivityId, packContext } = route.params;

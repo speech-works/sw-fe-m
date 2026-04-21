@@ -1,13 +1,33 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
+import Breathing from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Breathing";
+import Meditation from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
+import Reframe from "../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
+import RealLifeChallenge from "../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
+import InterviewBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Briefing";
+import InterviewChat from "../../../screens/Academy/DailyPractice/pages/Exposure/Interview/Chat";
+import PhoneCall from "../../../screens/Academy/DailyPractice/pages/Exposure/PhoneCall";
+import SCBriefing from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Briefing";
+import SCChat from "../../../screens/Academy/DailyPractice/pages/Exposure/SocialChallenge/Chat";
+import CVExercise from "../../../screens/Academy/DailyPractice/pages/FunPractice/CharacterVoice/CVExercise";
+import RoleplayBriefing from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
+import RoleplayChat from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Chat";
+import PackBriefingWrapper from "../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/PackBriefingWrapper";
+import TongueTwister from "../../../screens/Academy/DailyPractice/pages/FunPractice/Twister";
+import PackFormScreen from "../../../screens/Academy/PackFormScreen";
+import PackModuleScreen from "../../../screens/Academy/PackModule";
+import ProgressDetail from "../../../screens/Academy/ProgressDetail";
+import PoemPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
+import QuotePractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
+import StoryPractice from "../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
 import Explore from "../../../screens/Explore";
-import ChalStackNavigator from "../AcademyStack/ChallengesStack";
-import DPStackNavigator from "../AcademyStack/DailyPracticeStack";
-import LibStackNavigator from "../AcademyStack/LibraryStack";
-import PDStackNavigator from "../AcademyStack/ProgressDetailStack";
 import PaymentStackNavigator from "../PaymentStack";
+import ChalStackNavigator from "./ChallengesStack";
+import DPStackNavigator from "./DailyPracticeStack";
+import LibStackNavigator from "./LibraryStack";
+import MoodCheckStackNavigator from "./MoodCheckStack";
+import PDStackNavigator from "./ProgressDetailStack";
 import { ExploreStackParamList } from "./types";
-// We reuse the stacks from AcademyStack since they are just navigators
 
 const Stack = createNativeStackNavigator<ExploreStackParamList>();
 
@@ -19,6 +39,30 @@ export default function ExploreStackNavigator() {
       <Stack.Screen name="LibraryStack" component={LibStackNavigator} />
       <Stack.Screen name="ChallengesStack" component={ChalStackNavigator} />
       <Stack.Screen name="ProgressDetailStack" component={PDStackNavigator} />
+      <Stack.Screen name="ProgressDetail" component={ProgressDetail} />
+      <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
+      <Stack.Screen name="PackModule" component={PackModuleScreen} />
+      <Stack.Screen name="PackForm" component={PackFormScreen} />
+      <Stack.Screen name="Breathing" component={Breathing} />
+      <Stack.Screen name="Meditation" component={Meditation} />
+      <Stack.Screen name="Reframe" component={Reframe} />
+      <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
+      <Stack.Screen name="SCBriefing" component={SCBriefing} />
+      <Stack.Screen name="SCChat" component={SCChat} />
+      <Stack.Screen name="InterviewBriefing" component={InterviewBriefing} />
+      <Stack.Screen name="InterviewChat" component={InterviewChat} />
+      <Stack.Screen name="PhoneCall" component={PhoneCall} />
+      <Stack.Screen name="TongueTwister" component={TongueTwister} />
+      <Stack.Screen name="RoleplayBriefing" component={RoleplayBriefing} />
+      <Stack.Screen
+        name="RoleplayPackBriefing"
+        component={PackBriefingWrapper}
+      />
+      <Stack.Screen name="RoleplayChat" component={RoleplayChat} />
+      <Stack.Screen name="CVExercise" component={CVExercise} />
+      <Stack.Screen name="Poem" component={PoemPractice} />
+      <Stack.Screen name="Story" component={StoryPractice} />
+      <Stack.Screen name="Quote" component={QuotePractice} />
       <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
     </Stack.Navigator>
   );
