@@ -354,6 +354,12 @@ const PoemPractice = () => {
             onDelayChange={dafState.setDelayMs}
             hasPermission={dafState.hasPermission}
             statusMessage={dafState.statusMessage}
+            headsetConnected={dafState.headsetConnected}
+            showHeadsetPrompt={dafState.showHeadsetPrompt}
+            onDismissHeadsetPrompt={() => dafState.setShowHeadsetPrompt(false)}
+            onRecheckHeadset={() => {
+              void dafState.updateHeadsetStatus(true);
+            }}
           />
         );
       case ToolType.METRONOME:

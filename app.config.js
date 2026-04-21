@@ -100,6 +100,8 @@ module.exports = {
       API_BASE_URL: process.env.API_BASE_URL,
       X_APP_SECRET: process.env.X_APP_SECRET,
       PAYMENTS_ENABLED: process.env.PAYMENTS_ENABLED ?? "false",
+      ALLOW_SIMULATOR_HEADSET_BYPASS:
+        process.env.ALLOW_SIMULATOR_HEADSET_BYPASS ?? "false",
       eas: {
         projectId: "da01d434-2a75-41bb-b7cc-19fd2f720aa5",
       },

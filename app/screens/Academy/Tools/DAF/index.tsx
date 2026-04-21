@@ -1,94 +1,98 @@
 // DAFTool.tsx
 import Slider from "@react-native-community/slider";
-import { Audio } from "expo-av"; // Use expo-av for microphone permissions
+import {
+  Audio,
+  InterruptionModeAndroid,
+  InterruptionModeIOS,
+} from "expo-av";
+import { Buffer } from "buffer";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import PCM from "react-native-pcm-player-lite";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
+import {
+  AUDIO_FORMATS,
+  AUDIO_SOURCES,
+  CHANNEL_CONFIGS,
+  InputAudioStream,
+} from "@dr.pogodin/react-native-audio";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import { isHeadsetConnected } from "../../../../util/functions/headset";
 
-// --- Mocking the Real-time Audio Library Interface ---
-interface RealtimeAudioLib {
-  startMicrophone: (options: {
-    sampleRate: number;
-    channels: number;
-    bufferSize: number;
-  }) => Promise<void>;
-  stopMicrophone: () => Promise<void>;
-  onAudioFrame: (callback: (frame: number[]) => void) => () => void;
-  playAudioChunk: (
-    chunk: number[],
-    sampleRate: number,
-    channels: number
-  ) => Promise<void>;
-  stopPlayback: () => Promise<void>;
-}
-
-const mockRealtimeAudioLib: RealtimeAudioLib = (() => {
-  let audioFrameCallback: ((frame: number[]) => void) | null = null;
-  const mockAudioBuffer = new Array(512).fill(0);
-
-  return {
-    async startMicrophone(options) {
-
-      setInterval(() => {
-        if (audioFrameCallback) {
-          audioFrameCallback(
-            mockAudioBuffer.map(() => Math.random() * 0.1 - 0.05)
-          );
-        }
-      }, options.bufferSize / (options.sampleRate / 1000));
-      return Promise.resolve();
-    },
-    async stopMicrophone() {
-
-      return Promise.resolve();
-    },
-    onAudioFrame(callback) {
-      audioFrameCallback = callback;
-      return () => {
-        audioFrameCallback = null;
-      };
-    },
-    async playAudioChunk() {
-
-      return Promise.resolve();
-    },
-    async stopPlayback() {
-
-      return Promise.resolve();
-    },
-  };
-})();
-// --- End Mocking ---
-
-interface AudioFrame {
+interface AudioChunk {
   timestamp: number;
-  data: number[];
+  data: string;
 }
+
+const DAF_SAMPLE_RATE = 44100;
+const DAF_BUFFER_SIZE = 1024;
+const DAF_POLL_INTERVAL_MS = 10;
 
 export const useDAF = (muteLogic = false) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [headsetConnected, setHeadsetConnected] = useState(
+    Platform.OS === "web" ? false : true,
+  );
+  const [showHeadsetPrompt, setShowHeadsetPrompt] = useState(false);
   const [isDAFActive, setIsDAFActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     "Microphone permission required."
   );
   const [delayMs, setDelayMs] = useState(250);
 
-  const audioQueueRef = useRef<AudioFrame[]>([]);
+  const audioQueueRef = useRef<AudioChunk[]>([]);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const bufferSize = 1024;
-  const sampleRate = 44100;
-  const channels = 1;
+  const micStreamRef = useRef<InputAudioStream | null>(null);
+  const delayMsRef = useRef(delayMs);
+  const chunkListenerRef = useRef<((chunk: Buffer, chunkId: number) => void) | null>(null);
+  const errorListenerRef = useRef<((error: Error) => void) | null>(null);
+
+  useEffect(() => {
+    delayMsRef.current = delayMs;
+  }, [delayMs]);
+
+  const updateHeadsetStatus = useCallback(async (shouldShowPrompt = false) => {
+    if (Platform.OS === "web") {
+      setHeadsetConnected(false);
+      return false;
+    }
+
+    const connected = await isHeadsetConnected();
+    setHeadsetConnected(connected);
+
+    if (!connected) {
+      setStatusMessage("Please connect wired headphones to start DAF.");
+      if (shouldShowPrompt) setShowHeadsetPrompt(true);
+    } else {
+      setShowHeadsetPrompt(false);
+      if (!isDAFActive && hasPermission) {
+        setStatusMessage(
+          "Permission granted. Start DAF and use wired headphones for best results.",
+        );
+      }
+    }
+
+    return connected;
+  }, [hasPermission, isDAFActive]);
 
   // Request microphone permissions
   useEffect(() => {
     if (muteLogic) return;
+
+    if (Platform.OS === "web") {
+      setHasPermission(false);
+      setStatusMessage("DAF is currently available only in the iOS and Android app.");
+      return;
+    }
 
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
@@ -96,104 +100,197 @@ export const useDAF = (muteLogic = false) => {
       if (status !== "granted") {
         setStatusMessage("Microphone permission denied. DAF cannot function.");
       } else {
-        setStatusMessage("Permission granted. Press Start DAF.");
+        setStatusMessage(
+          "Permission granted. Start DAF and use wired headphones for best results.",
+        );
       }
     })();
   }, [muteLogic]);
 
+  useEffect(() => {
+    if (muteLogic || Platform.OS === "web" || !hasPermission) return;
+    void updateHeadsetStatus(false);
+  }, [hasPermission, muteLogic, updateHeadsetStatus]);
+
+  const stopAudioProcessing = useCallback(async () => {
+    if (playIntervalRef.current) {
+      clearInterval(playIntervalRef.current);
+      playIntervalRef.current = null;
+    }
+
+    const stream = micStreamRef.current;
+    if (stream) {
+      if (chunkListenerRef.current) {
+        stream.removeChunkListener(chunkListenerRef.current);
+      }
+      if (errorListenerRef.current) {
+        stream.removeErrorListener(errorListenerRef.current);
+      }
+
+      try {
+        await stream.destroy();
+      } catch (error) {
+        console.error("Error stopping DAF microphone stream:", error);
+      }
+    }
+
+    micStreamRef.current = null;
+    chunkListenerRef.current = null;
+    errorListenerRef.current = null;
+
+    try {
+      await PCM.stop();
+    } catch (error) {
+      console.error("Error stopping DAF playback:", error);
+    }
+
+    audioQueueRef.current = [];
+
+    if (Platform.OS !== "web") {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.error("Error resetting DAF audio mode:", error);
+      }
+    }
+  }, []);
+
+  const startAudioProcessing = useCallback(async () => {
+    if (Platform.OS === "web") {
+      setStatusMessage("DAF is currently available only in the iOS and Android app.");
+      return;
+    }
+
+    try {
+      setStatusMessage("Starting DAF...");
+      audioQueueRef.current = [];
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+
+      await PCM.stop().catch(() => undefined);
+      await PCM.start(DAF_SAMPLE_RATE);
+
+      const stream = new InputAudioStream(
+        AUDIO_SOURCES.VOICE_RECOGNITION || AUDIO_SOURCES.MIC,
+        DAF_SAMPLE_RATE,
+        CHANNEL_CONFIGS.MONO,
+        AUDIO_FORMATS.PCM_16BIT,
+        DAF_BUFFER_SIZE,
+      );
+
+      const onChunk = (chunk: Buffer) => {
+        audioQueueRef.current.push({
+          timestamp: Date.now(),
+          data: chunk.toString("base64"),
+        });
+      };
+
+      const onError = (error: Error) => {
+        console.error("DAF microphone stream error:", error);
+        setStatusMessage("DAF microphone stream error. Please try again.");
+        setIsDAFActive(false);
+      };
+
+      stream.addChunkListener(onChunk);
+      stream.addErrorListener(onError);
+
+      chunkListenerRef.current = onChunk;
+      errorListenerRef.current = onError;
+
+      const started = await stream.start();
+      if (!started) {
+        throw new Error("Microphone stream failed to start.");
+      }
+
+      micStreamRef.current = stream;
+
+      playIntervalRef.current = setInterval(() => {
+        const now = Date.now();
+
+        while (
+          audioQueueRef.current.length > 0 &&
+          now - audioQueueRef.current[0]!.timestamp >= delayMsRef.current
+        ) {
+          const nextChunk = audioQueueRef.current.shift();
+          if (nextChunk) {
+            PCM.enqueueBase64(nextChunk.data);
+          }
+        }
+      }, DAF_POLL_INTERVAL_MS);
+
+      setStatusMessage(
+        "DAF Active. Wear wired headphones for the clearest feedback.",
+      );
+    } catch (error) {
+      console.error("Error starting DAF:", error);
+      await stopAudioProcessing();
+      setStatusMessage("Failed to start DAF. Use a native build and check audio permissions.");
+      setIsDAFActive(false);
+    }
+  }, [stopAudioProcessing]);
+
   // Audio processing logic
   useEffect(() => {
-    if (muteLogic || !hasPermission) return;
-
-    let unsubscribeFromAudioFrames: (() => void) | null = null;
-
-    const startAudioProcessing = async () => {
-      try {
-        await mockRealtimeAudioLib.startMicrophone({
-          sampleRate,
-          channels,
-          bufferSize,
-        });
-
-        unsubscribeFromAudioFrames = mockRealtimeAudioLib.onAudioFrame(
-          (frameData) => {
-            audioQueueRef.current.push({
-              timestamp: Date.now(),
-              data: frameData,
-            });
-          }
-        );
-
-        playIntervalRef.current = setInterval(() => {
-          if (!isDAFActive) return;
-
-          const now = Date.now();
-          const indexToPlay = audioQueueRef.current.findIndex(
-            (frame) => now - frame.timestamp >= delayMs
-          );
-
-          if (indexToPlay !== -1) {
-            const framesToPlay = audioQueueRef.current.splice(
-              0,
-              indexToPlay + 1
-            );
-            const combinedData = framesToPlay.flatMap((frame) => frame.data);
-
-            if (combinedData.length > 0) {
-              mockRealtimeAudioLib
-                .playAudioChunk(combinedData, sampleRate, channels)
-                .catch((e) => console.error("Error playing audio chunk:", e));
-            }
-          }
-        }, 50);
-
-        setStatusMessage("DAF Active. Speak into microphone.");
-      } catch (error) {
-        console.error("Error starting real-time audio:", error);
-        setStatusMessage("Failed to start DAF. Check console for details.");
-        setIsDAFActive(false);
-      }
-    };
-
-    const stopAudioProcessing = async () => {
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-        playIntervalRef.current = null;
-      }
-      if (unsubscribeFromAudioFrames) {
-        unsubscribeFromAudioFrames();
-        unsubscribeFromAudioFrames = null;
-      }
-      await mockRealtimeAudioLib
-        .stopMicrophone()
-        .catch((e) => console.error("Error stopping mic:", e));
-      await mockRealtimeAudioLib
-        .stopPlayback()
-        .catch((e) => console.error("Error stopping playback:", e));
-      audioQueueRef.current = [];
-      setStatusMessage("DAF Stopped.");
-    };
+    if (muteLogic || !hasPermission || Platform.OS === "web") {
+      void stopAudioProcessing();
+      return;
+    }
 
     if (isDAFActive) {
-      startAudioProcessing();
+      void startAudioProcessing();
     } else {
-      stopAudioProcessing();
+      void stopAudioProcessing();
     }
 
     return () => {
-      stopAudioProcessing();
+      void stopAudioProcessing();
     };
-  }, [isDAFActive, hasPermission, delayMs, muteLogic]);
+  }, [hasPermission, isDAFActive, muteLogic, startAudioProcessing, stopAudioProcessing]);
 
   const toggleDAF = useCallback(() => {
-    if (hasPermission === false) {
-      setStatusMessage("Microphone permission not granted.");
-      return;
-    }
-    setIsDAFActive((prev) => !prev);
-  }, [hasPermission]);
+    void (async () => {
+      if (hasPermission === false) {
+        setStatusMessage(
+          Platform.OS === "web"
+            ? "DAF is currently available only in the iOS and Android app."
+            : "Microphone permission not granted.",
+        );
+        return;
+      }
+
+      if (!isDAFActive) {
+        const connected = await updateHeadsetStatus(true);
+        if (!connected) return;
+        setStatusMessage("Starting DAF...");
+      } else {
+        setStatusMessage("DAF Stopped.");
+      }
+
+      setIsDAFActive((prev) => !prev);
+    })();
+  }, [hasPermission, isDAFActive, updateHeadsetStatus]);
 
   return {
+    headsetConnected,
+    showHeadsetPrompt,
+    setShowHeadsetPrompt,
+    updateHeadsetStatus,
     isDAFActive,
     setIsDAFActive,
     toggleDAF,
@@ -214,6 +311,10 @@ type DAFToolProps = {
   onDelayChange?: (val: number) => void;
   hasPermission?: boolean | null;
   statusMessage?: string;
+  headsetConnected?: boolean;
+  showHeadsetPrompt?: boolean;
+  onDismissHeadsetPrompt?: () => void;
+  onRecheckHeadset?: () => void;
 };
 
 export function DAFTool({
@@ -224,6 +325,10 @@ export function DAFTool({
   onDelayChange,
   hasPermission: controlledPermission,
   statusMessage: controlledMessage,
+  headsetConnected: controlledHeadsetConnected,
+  showHeadsetPrompt: controlledShowHeadsetPrompt,
+  onDismissHeadsetPrompt,
+  onRecheckHeadset,
 }: DAFToolProps) {
   const isControlled = controlledIsActive !== undefined;
 
@@ -245,6 +350,20 @@ export function DAFTool({
   const activeStatusMessage = isControlled
     ? controlledMessage
     : internalHook.statusMessage;
+  const activeHeadsetConnected = isControlled
+    ? controlledHeadsetConnected
+    : internalHook.headsetConnected;
+  const activeShowHeadsetPrompt = isControlled
+    ? controlledShowHeadsetPrompt
+    : internalHook.showHeadsetPrompt;
+  const activeDismissHeadsetPrompt = isControlled
+    ? onDismissHeadsetPrompt
+    : () => internalHook.setShowHeadsetPrompt(false);
+  const activeRecheckHeadset = isControlled
+    ? onRecheckHeadset
+    : () => {
+        void internalHook.updateHeadsetStatus(true);
+      };
 
   const handleDelayChange = useCallback(
     (value: number) => {
@@ -281,7 +400,22 @@ export function DAFTool({
 
   return (
     <View style={[styles.container, style]}>
+      <View style={styles.headsetIndicator}>
+        <FAIcon
+          name="headphones-alt"
+          size={14}
+          color={activeHeadsetConnected ? "#10B981" : "#EF4444"}
+        />
+        <Text style={styles.headsetIndicatorText}>
+          {activeHeadsetConnected ? "Headphones Ready" : "No Headphones"}
+        </Text>
+      </View>
+
       <Text style={styles.heading}>Real-time Delayed Auditory Feedback</Text>
+      <Text style={styles.helperText}>
+        Plug in your headphones before you start. This helps you hear your
+        voice clearly and avoids echo from the phone speaker.
+      </Text>
 
       <View style={styles.controlsSection}>
         {/* Start/Stop DAF Button */}
@@ -325,6 +459,42 @@ export function DAFTool({
       </View>
 
       <Text style={styles.statusText}>{activeStatusMessage}</Text>
+
+      <Modal
+        visible={Boolean(activeShowHeadsetPrompt)}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptBox}>
+            <FAIcon
+              name="headphones-alt"
+              size={36}
+              color={theme.colors.actionPrimary.default}
+              style={{ marginBottom: 14 }}
+            />
+            <Text style={styles.promptTitle}>Headphones Required</Text>
+            <Text style={styles.promptText}>
+              Please connect your headphones before starting DAF.
+            </Text>
+
+            <View style={styles.promptButtonRow}>
+              <TouchableOpacity
+                style={styles.promptButtonSecondary}
+                onPress={activeDismissHeadsetPrompt}
+              >
+                <Text style={styles.promptButtonTextSecondary}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.promptButtonPrimary}
+                onPress={activeRecheckHeadset}
+              >
+                <Text style={styles.promptButtonTextPrimary}>Check Again</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -342,11 +512,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  headsetIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  headsetIndicatorText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.default,
+    opacity: 0.8,
+  },
   heading: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 2,
+  },
+  helperText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    opacity: 0.8,
   },
   controlsSection: {
     flexDirection: "row",
@@ -411,5 +598,59 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     textAlign: "center",
     marginTop: 10,
+  },
+  promptOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+  },
+  promptBox: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    alignItems: "center",
+  },
+  promptTitle: {
+    ...parseTextStyle(theme.typography.Body),
+    fontWeight: "700",
+    color: theme.colors.text.title,
+    marginBottom: 8,
+  },
+  promptText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  promptButtonRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  promptButtonPrimary: {
+    backgroundColor: theme.colors.actionPrimary.default,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  promptButtonSecondary: {
+    backgroundColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  promptButtonTextPrimary: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  promptButtonTextSecondary: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "600",
   },
 });

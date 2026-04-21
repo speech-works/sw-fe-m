@@ -23,9 +23,9 @@ import {
   CHANNEL_CONFIGS,
   InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
+import DeviceInfo from "react-native-device-info";
 
 import * as SecureStore from "expo-secure-store";
-import DeviceInfo from "react-native-device-info";
 import * as Localization from "expo-localization";
 import {
   GestureHandlerRootView,
@@ -34,6 +34,7 @@ import {
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";
+import { isHeadsetConnected } from "../util/functions/headset";
 
 // --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type Props = {
@@ -458,18 +459,7 @@ const CallingWidget: React.FC<Props> = ({
 
   // (checkHeadsetConnected function is unchanged)
   const checkHeadsetConnected = async (): Promise<boolean> => {
-    if (Platform.OS === "web") return true;
-    try {
-      // Simulators can't detect Mac-connected peripherals via DeviceInfo
-      const isEmulator = await DeviceInfo.isEmulator();
-      if (isEmulator) return true;
-
-      const isConnected = await DeviceInfo.isHeadphonesConnected();
-      return isConnected;
-    } catch (e) {
-      console.error("Error checking headset connection:", e);
-      return true;
-    }
+    return isHeadsetConnected();
   };
 
   // --- ⬇️ MODIFIED: `updateHeadsetStatus` with prompt control ⬇️ ---
@@ -994,12 +984,14 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     if (Platform.OS !== "web") {
-      // Check headset but don't block — call proceeds via loudspeaker if no headset
+      // Check headset before allowing the call to begin.
       const connected = await updateHeadsetStatus(true);
       if (!connected) {
         callDebugLog(
-          "[Headset] No headset connected — proceeding via loudspeaker.",
+          "[Headset] No headset connected — blocking AI call start.",
         );
+        setStatus("PLEASE CONNECT YOUR HEADPHONES");
+        return;
       }
     }
 
@@ -1662,10 +1654,8 @@ const CallingWidget: React.FC<Props> = ({
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-  // --- ⬇️ MODIFIED: `canStartCall` now uses state ⬇️ ---
-  // This check is now handled in the startCall button's `disabled` prop
-  // Headphones are recommended but not required — loudspeaker works too
-  // --- ⬆️ END OF MODIFICATION ⬆️ ---
+  // Headset enforcement now happens inside `startCall` so we can surface
+  // the modal prompt instead of silently disabling the action.
 
   // We use the raw scenarioIcon from backend (FontAwesome) for the Orb
   // to ensure it matches the list and isn't generic.
@@ -1862,15 +1852,20 @@ const CallingWidget: React.FC<Props> = ({
             />
             <Text style={styles.promptTitle}>Headphones Required</Text>
             <Text style={styles.promptText}>
-              Please connect your headphones to continue.
+              Please connect your headphones before starting the call.
             </Text>
 
             <View style={styles.promptButtonRow}>
               <TouchableOpacity
                 style={styles.promptButtonPrimary}
-                onPress={() => setShowHeadsetPrompt(false)}
+                onPress={async () => {
+                  const connected = await updateHeadsetStatus(true);
+                  if (connected) {
+                    setShowHeadsetPrompt(false);
+                  }
+                }}
               >
-                <Text style={styles.promptButtonTextPri}>Okay</Text>
+                <Text style={styles.promptButtonTextPri}>Check Again</Text>
               </TouchableOpacity>
             </View>
           </View>
