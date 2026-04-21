@@ -124,8 +124,10 @@ const WeeklyGrowthCard = ({
         <View style={styles.contentLayer}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerLabel}>GROWTH THIS WEEK</Text>
-              <Text style={styles.headerTitle}>This week vs last week</Text>
+              <Text style={styles.headerLabel}>GROWTH SNAPSHOT</Text>
+              <Text style={styles.headerTitle}>
+                {growth.comparison.comparisonLabel}
+              </Text>
             </View>
             <View style={styles.iconBubble}>
               {hasError ? (
@@ -143,7 +145,7 @@ const WeeklyGrowthCard = ({
           <View style={styles.heroPanel}>
             <View style={styles.heroScoresRow}>
               <View style={styles.heroScoreBlock}>
-                <Text style={styles.comparisonEyebrow}>This week</Text>
+                <Text style={styles.comparisonEyebrow}>Current snapshot</Text>
                 <Text style={styles.heroScoreValue}>{currentScore}</Text>
               </View>
               <View style={styles.heroConnector}>
@@ -153,7 +155,7 @@ const WeeklyGrowthCard = ({
                 </View>
               </View>
               <View style={styles.heroScoreBlock}>
-                <Text style={styles.comparisonEyebrow}>Last week</Text>
+                <Text style={styles.comparisonEyebrow}>Previous snapshot</Text>
                 <Text style={styles.heroScoreValue}>{previousScore ?? "—"}</Text>
               </View>
             </View>

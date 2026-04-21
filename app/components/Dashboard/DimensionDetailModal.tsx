@@ -128,7 +128,7 @@ const DIMENSION_CONFIG: Record<
       IMPROVING:
         "You’re approaching more speaking moments. Keep the next step small, specific, and repeatable.",
       STABLE:
-        "A steady week can still be progress. Pick one speaking moment this week that is slightly outside your comfort zone.",
+        "A steady stretch can still be progress. Pick one speaking moment next that is slightly outside your comfort zone.",
       WORSENING:
         "If avoidance is growing, shrink the challenge rather than stopping. Smaller, supported reps help rebuild momentum.",
     },
@@ -160,7 +160,7 @@ const DIMENSION_CONFIG: Record<
       STABLE:
         "Steady ease still counts. Gentle repetition can help comfort build over time.",
       WORSENING:
-        "If speaking feels harder this week, lower the pressure and pair speaking with a calming routine that works for you.",
+        "If speaking feels harder lately, lower the pressure and pair speaking with a calming routine that works for you.",
     },
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
@@ -264,10 +264,10 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
         ? theme.colors.library.red[500]
         : theme.colors.text.default;
   const recommendationText = isUnavailable
-    ? "Use the app for a few days and complete a few check-ins so this view can start to reflect your recent week."
+    ? "Use the app for a few days and complete a few check-ins so this view can start to reflect your recent patterns."
     : hasComparison
       ? config.recommendations[activeMetrics.trend]
-      : "We’re still building a week-to-week picture here. Keep checking in so this view becomes more meaningful over time.";
+      : "We’re still building a comparison history here. Keep checking in so this view becomes more meaningful over time.";
   const footerBottomPadding = Math.max(insets.bottom, 12);
 
   return (
@@ -378,7 +378,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                       : Math.round(activeMetrics.currentScore ?? 0)}
                   </Text>
                   <Text style={styles.statusCardSubtext}>
-                    {activeFamily.label.toUpperCase()} THIS WEEK
+                    {activeFamily.label.toUpperCase()} SCORE
                   </Text>
                 </View>
 
@@ -389,7 +389,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                       ? "--"
                       : Math.round(activeMetrics.previousScore)}
                   </Text>
-                  <Text style={styles.statusCardSubtext}>LAST WEEK</Text>
+                  <Text style={styles.statusCardSubtext}>LAST SNAPSHOT</Text>
                 </View>
               </View>
 
@@ -404,7 +404,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                     {!hasComparison
                       ? isUnavailable
                         ? "Not enough data yet"
-                        : "Building baseline"
+                        : "Building history"
                       : activeMetrics.trend === "IMPROVING"
                       ? "Improving"
                       : activeMetrics.trend === "WORSENING"
@@ -417,7 +417,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                   <Text style={styles.deltaText}>
                     {isUnavailable
                       ? "Not enough recent data is available yet for this view."
-                      : "We need at least one prior week before we can show change for this view."}
+                      : "We need an earlier snapshot before we can show change for this view."}
                   </Text>
                 ) : (
                   <Text style={styles.deltaText}>
