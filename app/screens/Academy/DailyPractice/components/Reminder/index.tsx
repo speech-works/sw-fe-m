@@ -174,7 +174,9 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
         onClose={closeModal}
         maxHeight="80%"
         showCloseButton={true}
-        fitContent={true}
+        // This form uses internal flex/scroll layout, so it needs a real sheet
+        // height instead of fit-content sizing.
+        fitContent={false}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalTitleContainer}>

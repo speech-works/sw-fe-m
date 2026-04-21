@@ -60,10 +60,40 @@ const callDebugLog = (...args: unknown[]) => {
   }
 };
 
+const shouldRewriteStreamOrigin = (hostname: string) =>
+  hostname === "localhost" ||
+  hostname === "127.0.0.1" ||
+  /^10\./.test(hostname) ||
+  /^192\.168\./.test(hostname);
+
+const normalizePlayableStreamUrl = (rawUrl: string) => {
+  if (!API_BASE_URL) {
+    return rawUrl;
+  }
+
+  try {
+    const streamUrl = new URL(rawUrl);
+    const apiUrl = new URL(API_BASE_URL);
+
+    if (__DEV__ && shouldRewriteStreamOrigin(streamUrl.hostname)) {
+      streamUrl.protocol = apiUrl.protocol;
+      streamUrl.host = apiUrl.host;
+      return streamUrl.toString();
+    }
+  } catch (error) {
+    console.warn("[Audio] Failed to normalize stream URL:", error);
+  }
+
+  return rawUrl;
+};
+
 // Buffer / pacing constants
 const JITTER_BUFFER_MS = 300;
 const MAX_BUFFER_MS = 400;
 const FADE_MS = 12;
+const WS_CONNECT_TIMEOUT_MS = 12000;
+const CALL_READY_TIMEOUT_MS = 15000;
+const AUDIO_START_TIMEOUT_MS = 12000;
 
 // RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
@@ -451,6 +481,16 @@ const CallingWidget: React.FC<Props> = ({
   const showTipsRef = useRef(showTips);
   const idleCountdownRef = useRef<NodeJS.Timeout | null>(null);
   const callEndReasonRef = useRef<string | null>(null);
+  const callReadyRef = useRef(false);
+  const wsConnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const callReadyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const audioStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -489,10 +529,81 @@ const CallingWidget: React.FC<Props> = ({
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
+  const clearTimerRef = (
+    ref: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  ) => {
+    if (ref.current) {
+      clearTimeout(ref.current);
+      ref.current = null;
+    }
+  };
+
+  const clearCallSafetyTimeouts = () => {
+    clearTimerRef(wsConnectTimeoutRef);
+    clearTimerRef(callReadyTimeoutRef);
+    clearTimerRef(audioStartTimeoutRef);
+  };
+
+  const scheduleWsConnectTimeout = () => {
+    clearTimerRef(wsConnectTimeoutRef);
+    wsConnectTimeoutRef.current = setTimeout(() => {
+      if (
+        isStopping.current ||
+        audioState.current !== "STARTED" ||
+        ws.current?.readyState !== WebSocket.CONNECTING
+      ) {
+        return;
+      }
+
+      console.error("[WS] Timed out while opening call socket.");
+      setStatus("Connection timed out");
+      endCall();
+    }, WS_CONNECT_TIMEOUT_MS);
+  };
+
+  const scheduleCallReadyTimeout = () => {
+    clearTimerRef(callReadyTimeoutRef);
+    callReadyTimeoutRef.current = setTimeout(() => {
+      if (isStopping.current || callReadyRef.current) {
+        return;
+      }
+
+      console.error("[Call] Timed out waiting for AI session readiness.");
+      setStatus("AI setup timed out");
+      endCall();
+    }, CALL_READY_TIMEOUT_MS);
+  };
+
+  const clearCallReadyTimeout = () => {
+    clearTimerRef(callReadyTimeoutRef);
+  };
+
+  const scheduleAudioStartTimeout = (sequence: number) => {
+    clearTimerRef(audioStartTimeoutRef);
+    audioStartTimeoutRef.current = setTimeout(() => {
+      if (
+        isStopping.current ||
+        sequence !== playSeq.current ||
+        hasStartedPlaying.current
+      ) {
+        return;
+      }
+
+      console.error("[Audio] Timed out waiting for agent playback to start.");
+      setStatus("Audio failed to start");
+      endCall();
+    }, AUDIO_START_TIMEOUT_MS);
+  };
+
+  const clearAudioStartTimeout = () => {
+    clearTimerRef(audioStartTimeoutRef);
+  };
+
   // (cleanupAudio function is unchanged)
   const cleanupAudio = async () => {
     callId.current += 1; // Increment call ID to invalidate handlers
     isStopping.current = true; // Set stopping flag
+    clearCallSafetyTimeouts();
     await stopNativeRingtone(); // Stop ringtone if playing
 
     callDebugLog("Cleaning up audio state for new call...");
@@ -1016,7 +1127,9 @@ const CallingWidget: React.FC<Props> = ({
     setIdleCountdown(null);
     setCallEndReason(null);
     callEndReasonRef.current = null;
+    callReadyRef.current = false;
     setMaxTurns(null);
+    clearCallSafetyTimeouts();
     if (idleCountdownRef.current) {
       clearInterval(idleCountdownRef.current);
       idleCountdownRef.current = null;
@@ -1080,8 +1193,11 @@ const CallingWidget: React.FC<Props> = ({
     setStatus("Connecting...");
     ws.current = new WebSocket(websocketUrl);
     ws.current.binaryType = "arraybuffer";
+    scheduleWsConnectTimeout();
 
-    ws.current.onopen = () => {
+    ws.current.onopen = async () => {
+      clearTimerRef(wsConnectTimeoutRef);
+      scheduleCallReadyTimeout();
       setStatus("Connected"); // Status for UI
       setIsCalling(true);
       // onCallStart?.(); // REMOVED: Activity is started before WS connection
@@ -1094,6 +1210,9 @@ const CallingWidget: React.FC<Props> = ({
       // --- END NEW Timer ---
 
       const timezone = Localization.getCalendars()[0].timeZone || "UTC";
+      const authToken = await SecureStore.getItemAsync(
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
+      );
 
       ws.current?.send(
         JSON.stringify({
@@ -1101,6 +1220,7 @@ const CallingWidget: React.FC<Props> = ({
           userId,
           practiceActivityId: startedId, // Use the ID returned from onCallStart
           clientTimezone: timezone,
+          authToken,
         }),
       );
     };
@@ -1148,6 +1268,7 @@ const CallingWidget: React.FC<Props> = ({
     };
 
     ws.current.onclose = (event) => {
+      clearCallSafetyTimeouts();
       callDebugLog(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
       // If the goodbye TTS is still loading or playing, defer cleanup to didJustFinish.
       // Check both soundRef (audio loaded & playing) and playLock (audio is loading via loadAsync).
@@ -1169,6 +1290,7 @@ const CallingWidget: React.FC<Props> = ({
     };
 
     ws.current.onerror = (err) => {
+      clearCallSafetyTimeouts();
       console.error("WebSocket error:", err);
       // If goodbye audio is loading or playing, let it finish
       const isAudioActive = soundRef.current || playLock.current;
@@ -1199,6 +1321,7 @@ const CallingWidget: React.FC<Props> = ({
     callDebugLog("[State] Setting state to STOPPING");
     audioState.current = "STOPPING";
     isStopping.current = true;
+    clearCallSafetyTimeouts();
 
     // --- NEW: Stop Timer ---
     if (callTimerRef.current) {
@@ -1210,7 +1333,9 @@ const CallingWidget: React.FC<Props> = ({
     stopRingTone();
     setIsCalling(false);
     setTurn(null);
-    onCallEnd?.();
+    if (callReadyRef.current) {
+      onCallEnd?.();
+    }
     setShowNotificationDot(false);
     setIdleWarningVisible(false);
     setIdleCountdown(null);
@@ -1259,6 +1384,7 @@ const CallingWidget: React.FC<Props> = ({
 
     // Reset duration for UI
     setCallDuration(0);
+    callReadyRef.current = false;
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
@@ -1305,6 +1431,8 @@ const CallingWidget: React.FC<Props> = ({
   const handleControlMessage = async (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
+        clearCallReadyTimeout();
+        callReadyRef.current = true;
         setStatus("AI is ready");
         if (data.maxTurns) {
           setMaxTurns(data.maxTurns);
@@ -1346,7 +1474,23 @@ const CallingWidget: React.FC<Props> = ({
 
       case "user_text":
         // This is text from the User
-        setTranscript((prev) => [...prev, { speaker: "You", text: data.data }]);
+        setTranscript((prev) => {
+          const nextEntry = { speaker: "You", text: data.data };
+          const lastEntry = prev[prev.length - 1];
+
+          if (data.isFinal === false) {
+            if (lastEntry?.speaker === "You") {
+              return [...prev.slice(0, -1), nextEntry];
+            }
+            return [...prev, nextEntry];
+          }
+
+          if (lastEntry?.speaker === "You") {
+            return [...prev.slice(0, -1), nextEntry];
+          }
+
+          return [...prev, nextEntry];
+        });
         // Dismiss idle warning — user spoke, backend will reset its timer
         if (idleWarningVisible) {
           setIdleWarningVisible(false);
@@ -1360,6 +1504,7 @@ const CallingWidget: React.FC<Props> = ({
 
       case "play_stream": {
         callDebugLog("[WS] Received play_stream command.");
+        clearCallReadyTimeout();
         stopRingTone();
         setTurn("agent");
         setStatus("Agent is speaking...");
@@ -1380,9 +1525,8 @@ const CallingWidget: React.FC<Props> = ({
           console.warn("[Audio] play_stream missing url");
           break;
         }
-        // Rewrite the stream URL's origin to match API_BASE_URL so the device
-        // can always reach it, even if the backend embeds a different internal IP.
-        const urlToPlay = rawUrl.replace(/^https?:\/\/[^/]+/, API_BASE_URL);
+        callReadyRef.current = true;
+        const urlToPlay = normalizePlayableStreamUrl(rawUrl);
         if (urlToPlay !== rawUrl) {
           callDebugLog(
             "[Audio] play_stream URL rewritten:",
@@ -1392,6 +1536,7 @@ const CallingWidget: React.FC<Props> = ({
           );
         }
         const mySeq = ++playSeq.current;
+        scheduleAudioStartTimeout(mySeq);
         (async () => {
           playLock.current = true;
           hasStartedPlaying.current = false;
@@ -1423,19 +1568,10 @@ const CallingWidget: React.FC<Props> = ({
           }
           const newSound = new Audio.Sound();
           try {
-            // Fetch auth token so the TTS stream endpoint can authenticate
-            const token = await SecureStore.getItemAsync(
-              SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-            );
             callDebugLog("[Audio] Attempting to loadAsync from URL:", urlToPlay);
 
             await newSound.loadAsync(
-              {
-                uri: urlToPlay,
-                headers: token
-                  ? { Authorization: `Bearer ${token}` }
-                  : undefined,
-              },
+              { uri: urlToPlay },
               { shouldPlay: false, progressUpdateIntervalMillis: 200 },
             );
             if (
@@ -1470,6 +1606,7 @@ const CallingWidget: React.FC<Props> = ({
                     }
                     callDebugLog("[Audio] Calling playAsync() now...");
                     await newSound.playAsync();
+                    clearAudioStartTimeout();
                     callDebugLog("[Audio] playAsync() completed without error.");
                   } catch (e) {
                     console.error("[Audio] Error during playAsync:", e);
@@ -1478,6 +1615,7 @@ const CallingWidget: React.FC<Props> = ({
                   }
                 }
                 if ((status as any).didJustFinish) {
+                  clearAudioStartTimeout();
                   callDebugLog("[Audio] playback didJustFinish");
                   if (mySeq === playSeq.current) {
                     try {
@@ -1530,6 +1668,7 @@ const CallingWidget: React.FC<Props> = ({
                   hasStartedPlaying.current = true;
                   await newSound.setVolumeAsync(1.0);
                   await newSound.playAsync();
+                  clearAudioStartTimeout();
                 }
               } catch (e) {
                 console.warn("[Audio] forced-start error:", e);
@@ -1539,6 +1678,7 @@ const CallingWidget: React.FC<Props> = ({
             }, 250);
           } catch (e) {
             console.error("[Audio] Failed to create/play sound:", e);
+            clearAudioStartTimeout();
             try {
               await newSound.unloadAsync();
             } catch {}
@@ -1556,6 +1696,7 @@ const CallingWidget: React.FC<Props> = ({
 
       // (stop_playback case is unchanged)
       case "stop_playback": {
+        clearAudioStartTimeout();
         const soundToStop = soundRef.current;
         soundRef.current = null;
         setSound(null);
@@ -1614,6 +1755,7 @@ const CallingWidget: React.FC<Props> = ({
         callDebugLog(
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
+        clearCallSafetyTimeouts();
         // Store reason in both state and ref so endCall (triggered by onclose)
         // can access it even if state hasn't flushed yet.
         setCallEndReason(data.reason);
