@@ -4,11 +4,13 @@ import {
   Animated,
   Dimensions,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
@@ -137,6 +139,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [isMounted, setIsMounted] = useState(visible);
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -192,6 +195,10 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
         ? theme.colors.library.red[500]
         : theme.colors.text.default;
   const isUnavailable = activeMetrics.currentScore === null;
+  const recommendationText = isUnavailable
+    ? "Keep checking in with activities and reflections so we can build a clearer engagement picture here."
+    : config.recommendations[activeMetrics.trend];
+  const footerBottomPadding = Math.max(insets.bottom, 12);
 
   return (
     <Modal
@@ -212,171 +219,165 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
             { transform: [{ translateY: slideAnim }] },
           ]}
         >
-          <TouchableOpacity activeOpacity={1}>
-            <View
-              style={[styles.header, { backgroundColor: `${config.color}15` }]}
-            >
-              <View
-                style={[styles.iconCircle, { backgroundColor: config.color }]}
-              >
-                <MaterialCommunityIcons
-                  name={config.icon as any}
-                  size={24}
-                  color="white"
-                />
-              </View>
-              <Text style={[styles.title, { color: config.color }]}>
-                {config.label}
-              </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <MaterialCommunityIcons
-                  name="close"
-                  size={18}
-                  color={theme.colors.text.title}
-                />
-              </TouchableOpacity>
+          <View
+            style={[styles.header, { backgroundColor: `${config.color}15` }]}
+          >
+            <View style={[styles.iconCircle, { backgroundColor: config.color }]}>
+              <MaterialCommunityIcons
+                name={config.icon as any}
+                size={24}
+                color="white"
+              />
+            </View>
+            <Text style={[styles.title, { color: config.color }]}>
+              {config.label}
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={theme.colors.text.title}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.body}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>WHAT IT MEASURES</Text>
+              <Text style={styles.description}>{config.description}</Text>
             </View>
 
-            <View style={styles.body}>
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WHAT IT MEASURES</Text>
-                <Text style={styles.description}>{config.description}</Text>
-              </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>VIEW THIS DIMENSION</Text>
+              <View style={styles.familySwitcher}>
+                {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((family) => {
+                  const familyConfig = FAMILY_CONFIG[family];
+                  const isActive = family === selectedFamily;
 
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>VIEW THIS DIMENSION</Text>
-                <View style={styles.familySwitcher}>
-                  {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((family) => {
-                    const familyConfig = FAMILY_CONFIG[family];
-                    const isActive = family === selectedFamily;
-
-                    return (
-                      <TouchableOpacity
-                        key={family}
-                        onPress={() => setSelectedFamily(family)}
-                        style={[
-                          styles.familyChip,
-                          isActive && {
-                            backgroundColor: familyConfig.color,
-                            borderColor: familyConfig.color,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.familyChipText,
-                            isActive && styles.familyChipTextActive,
-                          ]}
-                        >
-                          {familyConfig.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <Text style={styles.familyDescription}>
-                  {activeFamily.description}
-                </Text>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>YOUR STATUS</Text>
-                <View style={styles.statusBento}>
-                  <View
-                    style={[
-                      styles.statusCard,
-                      {
-                        backgroundColor: `${activeFamily.color}14`,
-                        borderColor: `${activeFamily.color}35`,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.statusCardLabel}>CURRENT</Text>
-                    <Text
+                  return (
+                    <TouchableOpacity
+                      key={family}
+                      onPress={() => setSelectedFamily(family)}
                       style={[
-                        styles.scoreValue,
-                        { color: activeFamily.color },
+                        styles.familyChip,
+                        isActive && {
+                          backgroundColor: familyConfig.color,
+                          borderColor: familyConfig.color,
+                        },
                       ]}
                     >
-                      {isUnavailable
-                        ? "--"
-                        : Math.round(activeMetrics.currentScore ?? 0)}
-                    </Text>
-                    <Text style={styles.statusCardSubtext}>
-                      {activeFamily.label.toUpperCase()} THIS WEEK
-                    </Text>
-                  </View>
+                      <Text
+                        style={[
+                          styles.familyChipText,
+                          isActive && styles.familyChipTextActive,
+                        ]}
+                      >
+                        {familyConfig.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={styles.familyDescription}>
+                {activeFamily.description}
+              </Text>
+            </View>
 
-                  <View style={styles.statusCard}>
-                    <Text style={styles.statusCardLabel}>PREVIOUS</Text>
-                    <Text style={styles.scoreValue}>
-                      {activeMetrics.previousScore === null
-                        ? "--"
-                        : Math.round(activeMetrics.previousScore)}
-                    </Text>
-                    <Text style={styles.statusCardSubtext}>
-                      LAST WEEK
-                    </Text>
-                  </View>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>YOUR STATUS</Text>
+              <View style={styles.statusBento}>
+                <View
+                  style={[
+                    styles.statusCard,
+                    {
+                      backgroundColor: `${activeFamily.color}14`,
+                      borderColor: `${activeFamily.color}35`,
+                    },
+                  ]}
+                >
+                  <Text style={styles.statusCardLabel}>CURRENT</Text>
+                  <Text
+                    style={[styles.scoreValue, { color: activeFamily.color }]}
+                  >
+                    {isUnavailable
+                      ? "--"
+                      : Math.round(activeMetrics.currentScore ?? 0)}
+                  </Text>
+                  <Text style={styles.statusCardSubtext}>
+                    {activeFamily.label.toUpperCase()} THIS WEEK
+                  </Text>
                 </View>
 
-                <View style={styles.deltaCard}>
-                  <View style={styles.deltaHeader}>
-                    <MaterialCommunityIcons
-                      name={trendIcon as any}
-                      size={18}
-                      color={trendColor}
-                    />
-                    <Text style={[styles.deltaTitle, { color: trendColor }]}>
-                      {activeMetrics.trend === "IMPROVING"
-                        ? "Improving"
-                        : activeMetrics.trend === "WORSENING"
-                          ? "Needs attention"
-                          : "Holding steady"}
-                    </Text>
-                  </View>
-
-                  {activeMetrics.percentDelta === null ? (
-                    <Text style={styles.deltaText}>
-                      {isUnavailable
-                        ? "Not enough engagement data yet for this dimension."
-                        : "No last-week comparison is available yet for this view."}
-                    </Text>
-                  ) : (
-                    <Text style={styles.deltaText}>
-                      {activeMetrics.percentDelta > 0 ? "+" : ""}
-                      {activeMetrics.percentDelta.toFixed(1)}% and{" "}
-                      {activeMetrics.absoluteDelta && activeMetrics.absoluteDelta > 0
-                        ? "+"
-                        : ""}
-                      {(activeMetrics.absoluteDelta ?? 0).toFixed(1)} pts{" "}
-                      {comparisonLabel.toLowerCase()}.
-                    </Text>
-                  )}
+                <View style={styles.statusCard}>
+                  <Text style={styles.statusCardLabel}>PREVIOUS</Text>
+                  <Text style={styles.scoreValue}>
+                    {activeMetrics.previousScore === null
+                      ? "--"
+                      : Math.round(activeMetrics.previousScore)}
+                  </Text>
+                  <Text style={styles.statusCardSubtext}>LAST WEEK</Text>
                 </View>
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>KEEP GROWING</Text>
-                <View style={styles.recommendationCard}>
+              <View style={styles.deltaCard}>
+                <View style={styles.deltaHeader}>
                   <MaterialCommunityIcons
-                    name="lightbulb-outline"
-                    size={20}
-                    color={theme.colors.library.orange[500]}
+                    name={trendIcon as any}
+                    size={18}
+                    color={trendColor}
                   />
-                  <Text style={styles.recommendationText}>
-                    {isUnavailable
-                      ? "Keep checking in with activities and reflections so we can build a clearer engagement picture here."
-                      : config.recommendations[activeMetrics.trend]}
+                  <Text style={[styles.deltaTitle, { color: trendColor }]}>
+                    {activeMetrics.trend === "IMPROVING"
+                      ? "Improving"
+                      : activeMetrics.trend === "WORSENING"
+                        ? "Needs attention"
+                        : "Holding steady"}
                   </Text>
                 </View>
+
+                {activeMetrics.percentDelta === null ? (
+                  <Text style={styles.deltaText}>
+                    {isUnavailable
+                      ? "Not enough engagement data yet for this dimension."
+                      : "No last-week comparison is available yet for this view."}
+                  </Text>
+                ) : (
+                  <Text style={styles.deltaText}>
+                    {activeMetrics.percentDelta > 0 ? "+" : ""}
+                    {activeMetrics.percentDelta.toFixed(1)}% and{" "}
+                    {activeMetrics.absoluteDelta && activeMetrics.absoluteDelta > 0
+                      ? "+"
+                      : ""}
+                    {(activeMetrics.absoluteDelta ?? 0).toFixed(1)} pts{" "}
+                    {comparisonLabel.toLowerCase()}.
+                  </Text>
+                )}
               </View>
             </View>
 
+            <View style={styles.section}>
+              <View style={styles.recommendationCard}>
+                <MaterialCommunityIcons
+                  name="lightbulb-outline"
+                  size={20}
+                  color={theme.colors.library.orange[500]}
+                />
+                <Text style={styles.recommendationText}>
+                  {recommendationText}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
             <TouchableOpacity style={styles.doneButton} onPress={onClose}>
               <Text style={styles.doneButtonText}>Got it</Text>
             </TouchableOpacity>
-          </TouchableOpacity>
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -433,6 +434,10 @@ const styles = StyleSheet.create({
   body: {
     padding: 20,
     gap: 24,
+  },
+  contentScroll: {
+    flexShrink: 1,
+    minHeight: 0,
   },
   section: {
     gap: 10,
@@ -540,9 +545,12 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
     lineHeight: 22,
   },
+  footer: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingTop: 4,
+  },
   doneButton: {
-    margin: 20,
-    marginTop: 4,
     height: 52,
     borderRadius: 26,
     backgroundColor: theme.colors.library.orange[500],

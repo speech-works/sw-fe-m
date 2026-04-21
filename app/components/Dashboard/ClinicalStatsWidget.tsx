@@ -37,6 +37,11 @@ import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const CHART_LABEL_TOUCH_WIDTH = 112;
+const CHART_LABEL_TOUCH_HEIGHT = 44;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 
 // --- 1. Translation Map ---
 const METRIC_CONFIG: Record<
@@ -287,15 +292,43 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const CENTER = SIZE / 2;
   const RADIUS = SIZE / 2 - 45; // Slightly more padding for labels
   const angleStep = chartData ? 360 / chartData.allDomains.length : 72;
-  const svgScale = CHART_WIDTH / SIZE;
+  const chartHorizontalInset = Math.max((CHART_WIDTH - SIZE) / 2, 0);
+  const chartLabelTargets = useMemo(() => {
+    if (!chartData) {
+      return [];
+    }
 
-  const socialIndex = chartData?.allDomains.findIndex(
-    (d) => d === ClinicalDomain.PARTICIPATION_RESTRICTION,
-  );
-  const socialPos =
-    chartData && socialIndex !== undefined && socialIndex !== -1
-      ? POLAR_TO_CARTESIAN(CENTER, CENTER, RADIUS + 32, socialIndex * angleStep)
-      : null;
+    return chartData.allDomains.map((domain, index) => {
+      const pos = POLAR_TO_CARTESIAN(
+        CENTER,
+        CENTER,
+        RADIUS + 28,
+        index * angleStep,
+      );
+
+      let textAlign: "left" | "center" | "right" = "center";
+      if (pos.x < CENTER - 10) textAlign = "right";
+      if (pos.x > CENTER + 10) textAlign = "left";
+
+      let left =
+        chartHorizontalInset + pos.x - CHART_LABEL_TOUCH_WIDTH / 2;
+      if (textAlign === "left") {
+        left = chartHorizontalInset + pos.x - 14;
+      } else if (textAlign === "right") {
+        left = chartHorizontalInset + pos.x - CHART_LABEL_TOUCH_WIDTH + 14;
+      }
+
+      return {
+        domain,
+        left: clamp(left, 0, CHART_WIDTH - CHART_LABEL_TOUCH_WIDTH),
+        top: clamp(
+          pos.y - CHART_LABEL_TOUCH_HEIGHT / 2,
+          0,
+          SIZE - CHART_LABEL_TOUCH_HEIGHT,
+        ),
+      };
+    });
+  }, [CHART_WIDTH, CENTER, RADIUS, SIZE, angleStep, chartData, chartHorizontalInset]);
 
   // --- Memoized heavy SVG path computations (must be before early returns for hooks rules) ---
   const {
@@ -705,89 +738,66 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   ))}
                 </G>
 
-                {/* Labels (Simplified) */}
+                {/* Labels */}
                 {chartData.allDomains.map((domain, i) => {
                   const pos = POLAR_TO_CARTESIAN(
                     CENTER,
                     CENTER,
-                    RADIUS + 28, // More breathing room
+                    RADIUS + 28,
                     i * angleStep,
                   );
                   const config = METRIC_CONFIG[domain];
                   const isSelected = selectedMetric === domain;
 
-                  // Determine text anchor based on horizontal position
                   type TextAnchor = "start" | "middle" | "end";
                   let anchor: TextAnchor = "middle";
                   if (pos.x < CENTER - 10) anchor = "end";
                   if (pos.x > CENTER + 10) anchor = "start";
 
-                  // Check if this is the SOCIAL domain (Particption Restriction)
-                  const isSocial =
-                    domain === ClinicalDomain.PARTICIPATION_RESTRICTION;
-
                   return (
-                    <G
-                      key={i}
-                      onPress={() => {
-                        setSelectedMetric(domain);
-                        setModalVisible(true);
-                      }}
+                    <SvgText
+                      key={`text-${i}`}
+                      x={pos.x}
+                      y={pos.y}
+                      fill={
+                        isSelected
+                          ? theme.colors.library.orange[500]
+                          : "#666666"
+                      }
+                      fontSize={isSelected ? "11" : "10"}
+                      fontWeight={isSelected ? "800" : "600"}
+                      textAnchor={anchor}
+                      alignmentBaseline="middle"
+                      letterSpacing={1}
                     >
-                      {/* Hit Area */}
-                      <Circle cx={pos.x} cy={pos.y} r="40" fill="transparent" />
-
-                      {/* Text Label */}
-                      <SvgText
-                        key={`text-${i}`}
-                        x={pos.x}
-                        y={pos.y}
-                        fill={
-                          isSelected
-                            ? theme.colors.library.orange[500]
-                            : "#666666"
-                        }
-                        fontSize={isSelected ? "11" : "10"}
-                        fontWeight={isSelected ? "800" : "600"}
-                        textAnchor={anchor}
-                        alignmentBaseline="middle"
-                        letterSpacing={1}
-                      >
-                        {config.label.toUpperCase()}
-                      </SvgText>
-                    </G>
+                      {config.label.toUpperCase()}
+                    </SvgText>
                   );
                 })}
+
               </Svg>
             )}
-            {!isRefreshing && socialPos && (
-              <View
-                style={{
-                  position: "absolute",
-                  left: socialPos.x * svgScale - 45,
-                  top: socialPos.y * svgScale - 12,
-                  width: 90,
-                  height: 24,
-                  backgroundColor: "transparent",
-                  zIndex: 999,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                pointerEvents="none"
-              >
-                <View style={{ flex: 1, padding: 2 }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "800",
-                      opacity: 0, // Invisible but physical
-                    }}
-                  >
-                    SOCIAL
-                  </Text>
-                </View>
+            {!isRefreshing ? (
+              <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                {chartLabelTargets.map((target) => {
+                  return (
+                    <TouchableOpacity
+                      key={target.domain}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                      onPress={() => {
+                        setSelectedMetric(target.domain);
+                        setModalVisible(true);
+                      }}
+                      style={[
+                        styles.chartLabelHitbox,
+                        { left: target.left, top: target.top },
+                      ]}
+                    />
+                  );
+                })}
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Weekly Breakthroughs */}
@@ -1340,6 +1350,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     // Height updated dynamically in JSX to match CHART_WIDTH
     marginBottom: 8,
+  },
+  chartLabelHitbox: {
+    position: "absolute",
+    width: CHART_LABEL_TOUCH_WIDTH,
+    height: CHART_LABEL_TOUCH_HEIGHT,
+    zIndex: 2,
   },
   iconCircle: {
     borderRadius: 12,
