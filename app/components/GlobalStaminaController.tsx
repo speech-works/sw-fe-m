@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { navigationRef } from "../util/functions/navigation";
+import { useFreeActivityNotificationStore } from "../stores/freeActivityNotification";
 import { useStaminaNotificationStore } from "../stores/staminaNotification";
 import { useUserStore } from "../stores/user";
+import LowFreeActivityModal from "./LowFreeActivityModal";
 import LowStaminaModal from "./LowStaminaModal";
 
 /**
@@ -21,13 +23,13 @@ const SAFE_SCREENS = new Set([
  *
  * A renderless controller (returns only the modal) mounted at app root.
  * Watches navigation state changes. When the user returns to a tab-root
- * "safe" screen and there is a queued low-stamina modal:
+ * "safe" screen and there is a queued resource warning modal:
  *
- * 1. Re-checks live stamina — if recovered above 10%, silently cancels.
- * 2. If still below 10%, shows the LowStaminaModal.
+ * 1. Re-checks live resource state and silently cancels stale warnings.
+ * 2. Shows the appropriate modal when the warning is still relevant.
  *
  * After the modal is dismissed, resetAll() re-arms the system for the
- * next stamina crossing event.
+ * next qualifying resource threshold event.
  *
  * Bug Fix #1: The navigation listener is registered ONCE (empty dep array).
  * All Zustand state is read via getState() inside the callback so there
@@ -37,11 +39,9 @@ const SAFE_SCREENS = new Set([
  * during that re-mount window caused the modal to fire multiple times.
  */
 const GlobalStaminaController: React.FC = () => {
-  const [showModal, setShowModal] = useState(false);
-
-  // Only `resetAll` is needed outside the listener (for the close handler).
-  // Everything else is read live from getState() inside the listener.
-  const resetAll = useStaminaNotificationStore((s) => s.resetAll);
+  const [activeModal, setActiveModal] = useState<
+    "stamina" | "freeActivity" | null
+  >(null);
 
   useEffect(() => {
     if (!navigationRef.isReady()) return;
@@ -51,10 +51,15 @@ const GlobalStaminaController: React.FC = () => {
       const {
         staminaModalQueued,
         setStaminaModalQueued,
-        resetAll: resetNotification,
+        resetAll: resetStaminaNotification,
       } = useStaminaNotificationStore.getState();
+      const {
+        freeActivityModalQueued,
+        setFreeActivityModalQueued,
+        resetAll: resetFreeActivityNotification,
+      } = useFreeActivityNotificationStore.getState();
 
-      if (!staminaModalQueued) return;
+      if (!staminaModalQueued && !freeActivityModalQueued) return;
 
       const currentRoute = navigationRef.getCurrentRoute();
       if (!currentRoute) return;
@@ -62,9 +67,32 @@ const GlobalStaminaController: React.FC = () => {
       const routeName = currentRoute.name;
       if (!SAFE_SCREENS.has(routeName)) return;
 
-      // We're on a safe screen — check if stamina actually warrants the modal
       const user = useUserStore.getState().user;
-      if (user && user.currentStamina !== undefined && user.maxStaminaCap) {
+
+      if (freeActivityModalQueued) {
+        if (!user || user.isPaid || user.freeTasksRemaining !== 1) {
+          console.log(
+            "[FreeActivityAlert] Free activity state changed — cancelling queued modal",
+          );
+          resetFreeActivityNotification();
+          return;
+        }
+
+        console.log(
+          "[FreeActivityAlert] Showing LowFreeActivityModal on safe screen:",
+          routeName,
+        );
+        setFreeActivityModalQueued(false);
+        setActiveModal("freeActivity");
+        return;
+      }
+
+      // We're on a safe screen — check if stamina actually warrants the modal
+      if (
+        user?.isPaid &&
+        user.currentStamina !== undefined &&
+        user.maxStaminaCap
+      ) {
         const pct = (user.currentStamina / user.maxStaminaCap) * 100;
 
         if (pct >= 10) {
@@ -74,9 +102,12 @@ const GlobalStaminaController: React.FC = () => {
               pct.toFixed(1) +
               "%) — cancelling queued modal",
           );
-          resetNotification();
+          resetStaminaNotification();
           return;
         }
+      } else {
+        resetStaminaNotification();
+        return;
       }
 
       // Stamina still low — show the modal
@@ -85,7 +116,7 @@ const GlobalStaminaController: React.FC = () => {
         routeName,
       );
       setStaminaModalQueued(false);
-      setShowModal(true);
+      setActiveModal("stamina");
     });
 
     return () => {
@@ -94,13 +125,24 @@ const GlobalStaminaController: React.FC = () => {
   }, []); // Stable: registered once on mount; reads live store state inside.
 
   const handleClose = () => {
-    setShowModal(false);
-    // Note: Do NOT call resetAll() here. We must keep lowStaminaNotified=true
-    // so the UserStore doesn't immediately re-trigger the modal. It will
-    // automatically re-arm itself via resetAll() when stamina recovers >10%.
+    setActiveModal(null);
+    // Note: Do NOT call resetAll() here. We must keep the notification flags
+    // armed until the underlying resource recovers, otherwise fetchUser()
+    // could immediately re-trigger the same warning loop.
   };
 
-  return <LowStaminaModal visible={showModal} onClose={handleClose} />;
+  return (
+    <>
+      <LowStaminaModal
+        visible={activeModal === "stamina"}
+        onClose={handleClose}
+      />
+      <LowFreeActivityModal
+        visible={activeModal === "freeActivity"}
+        onClose={handleClose}
+      />
+    </>
+  );
 };
 
 export default GlobalStaminaController;

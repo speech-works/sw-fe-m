@@ -24,11 +24,13 @@ const StaminaVignetteOverlay: React.FC = () => {
 
   useEffect(() => {
     const triggered = events.find(
-      (e) => e.name === EVENT_NAMES.STAMINA_ALERT_TRIGGERED,
+      (e) =>
+        e.name === EVENT_NAMES.STAMINA_ALERT_TRIGGERED ||
+        e.name === EVENT_NAMES.FREE_ACTIVITY_ALERT_TRIGGERED,
     );
     if (!triggered || isAnimating.current) return;
 
-    clear(EVENT_NAMES.STAMINA_ALERT_TRIGGERED);
+    clear(triggered.name);
     isAnimating.current = true;
 
     triggerHeartbeatHaptic();
