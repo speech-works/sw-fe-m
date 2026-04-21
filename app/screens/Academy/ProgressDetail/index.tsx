@@ -1,4 +1,4 @@
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -87,6 +87,16 @@ const ProgressDetail = () => {
     user?.id,
     weeklyReport,
   ]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      void loadActiveReport(activeTab, true);
+    }, [activeTab, loadActiveReport, user?.id]),
+  );
 
   React.useEffect(() => {
     if (route.params?.scrollTo === "achievements" && activeTab !== "lifetime") {
