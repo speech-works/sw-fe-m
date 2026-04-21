@@ -1,3 +1,7 @@
+const apiBaseUrl = process.env.API_BASE_URL || "";
+const allowsInsecureNetworkTraffic =
+  /^http:\/\//i.test(apiBaseUrl) || /^ws:\/\//i.test(apiBaseUrl);
+
 module.exports = {
   expo: {
     name: "sw-fe-m",
@@ -33,13 +37,17 @@ module.exports = {
             CFBundleURLSchemes: ["speechworks"],
           },
         ],
-        NSAppTransportSecurity: {
-          NSAllowsArbitraryLoads: true,
-        },
+        ...(allowsInsecureNetworkTraffic
+          ? {
+              NSAppTransportSecurity: {
+                NSAllowsArbitraryLoads: true,
+              },
+            }
+          : {}),
       },
     },
     android: {
-      usesCleartextTraffic: true,
+      usesCleartextTraffic: allowsInsecureNetworkTraffic,
       package: "com.mayankav.speechworks",
       permissions: [
         "android.permission.READ_EXTERNAL_STORAGE",
