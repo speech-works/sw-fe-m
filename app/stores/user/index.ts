@@ -35,7 +35,6 @@ export const useUserStore = create<UserState>()(
       user: null,
 
       setUser: (user) => {
-        console.log("zustand store setting user", user);
         set({ user });
       },
 
@@ -69,7 +68,6 @@ export const useUserStore = create<UserState>()(
 
           const { getMyUser } = await import("../../api/users");
           const user = await getMyUser();
-          console.log("zustand store fetching and setting user", user);
           set({ user });
 
           // --- Low Stamina Threshold Detection (phone-battery style) ---
@@ -133,15 +131,7 @@ export const useUserStore = create<UserState>()(
       // partialize: (state) => ({ user: state.user }),
       onRehydrateStorage: () => (state) => {
         if (state && state.user) {
-          console.log(
-            "Zustand UserStore: Rehydrating user from storage. Raw:",
-            JSON.stringify(state.user, null, 2),
-          );
           state.user = reviveDatesInObject(state.user) as User | null;
-          console.log(
-            "Zustand UserStore: User AFTER rehydration parsing:",
-            JSON.stringify(state.user, null, 2),
-          );
         }
       },
     },

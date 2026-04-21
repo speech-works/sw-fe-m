@@ -24,12 +24,7 @@ import {
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
 
-import { NativeModules } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
-
-console.log("NativeModules keys:", Object.keys(NativeModules));
 
 if (__DEV__) {
   require("./ReactotronConfig");
@@ -55,34 +50,6 @@ const App: React.FC = () => {
   const rescheduleAllActiveNotifications = useReminderStore(
     (state) => state.rescheduleAllActiveNotifications,
   );
-
-  useEffect(() => {
-    const checkToken = async () => {
-      const accessToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
-      );
-      const refreshToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
-      );
-
-      // await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
-      // await SecureStore.deleteItemAsync(
-      //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
-      // );
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
-      console.log(".................checkToken................");
-      console.log("accessToken", accessToken);
-      console.log("refreshToken", refreshToken);
-      // console.log(
-      //   "ASYNC_KEYS_NAME.SW_ZSTORE_USER",
-      //   AsyncStorage.getItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER)
-      // );
-    };
-
-    checkToken();
-  }, []);
 
   useEffect(() => {
     const checkForUpdates = async () => {
