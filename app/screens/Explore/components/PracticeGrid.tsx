@@ -60,7 +60,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
     () => [
       {
         name: "Reading",
-        subtitle: "Fluency",
+        subtitle: "Read Aloud",
         weeklyCount: getCount("READING_PRACTICE"),
         faceType: "reader" as const,
         route: "ReadingPracticeStack",

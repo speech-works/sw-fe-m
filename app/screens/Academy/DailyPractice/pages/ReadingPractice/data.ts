@@ -3,7 +3,7 @@ export const readingTips = {
     "Visualize the story. This makes your reading more natural and expressive.",
     "Don’t rush. Focus on reading in short, meaningful phrases rather than one word at a time.",
     "Use punctuation to guide your breath. Commas, periods, and dialogue breaks are natural pause points.",
-    "Read aloud twice. The first read helps with familiarity. The second builds fluency.",
+    "Read aloud twice. The first read builds familiarity. The second helps the phrasing feel more natural.",
   ],
   poem: [
     "Follow the rhythm. Let the natural beat of the poem guide your pace.",
