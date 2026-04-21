@@ -3,12 +3,14 @@ import { useNavigation } from "@react-navigation/native";
 import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import {
   getUserPreferences,
@@ -22,6 +24,11 @@ import TimeSelector from "../../../components/TimeSelector";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
 import {
+  hasNotificationPermission,
+  registerForNotifications,
+  syncPreferredPracticeReminder,
+} from "../../../util/functions/notifications";
+import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
@@ -31,6 +38,7 @@ import { LinearGradient } from "expo-linear-gradient";
 type SettingType = "GOAL" | "TIMER" | null;
 
 const Preferences = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useUserStore();
   const [targetMins, setTargetMins] = useState(15);
@@ -42,6 +50,39 @@ const Preferences = () => {
   const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
 
   const closeModal = () => setIsModalVisible(false);
+
+  const normalizeReminderTime = (time: Date) => {
+    const normalizedTime = new Date(time);
+    normalizedTime.setFullYear(1970, 0, 1); // Jan 1, 1970
+    return normalizedTime;
+  };
+
+  const handleReminderTimeSelected = async (time: Date) => {
+    if (!user) return;
+
+    const hasPermissions = await registerForNotifications();
+    if (!hasPermissions) {
+      Alert.alert(
+        "Permissions Required",
+        "Please enable notification permissions in your device settings.",
+      );
+      return;
+    }
+
+    try {
+      await syncPreferredPracticeReminder(time);
+      await updateUserPreferences(user.id, {
+        practiceReminderTime: normalizeReminderTime(time),
+      });
+      setReminderTime(time);
+    } catch (error) {
+      console.error("Failed to save preferred practice time:", error);
+      Alert.alert(
+        "Error",
+        "Could not save your reminder time. Please try again.",
+      );
+    }
+  };
 
   const handleGoalChange = async (goalText: string) => {
     console.log("handle goal change", { goalText });
@@ -184,7 +225,18 @@ const Preferences = () => {
         dailyPracticeLimitMinutes,
         dailyTaskCount,
       } = pref;
-      if (practiceReminderTime) setReminderTime(new Date(practiceReminderTime));
+      if (practiceReminderTime) {
+        const nextReminderTime = new Date(practiceReminderTime);
+        setReminderTime(nextReminderTime);
+
+        try {
+          if (await hasNotificationPermission()) {
+            await syncPreferredPracticeReminder(nextReminderTime);
+          }
+        } catch (error) {
+          console.error("Failed to sync preferred practice reminder:", error);
+        }
+      }
       if (practiceGoalType) {
         if (practiceGoalType === PracticeGoalType.TASK_BASED) {
           setSelectedGoalType("Task based");
@@ -197,18 +249,6 @@ const Preferences = () => {
     };
     fetchPreferences();
   }, [user]);
-
-  useEffect(() => {
-    if (!reminderTime || !user) return;
-
-    // Fix: Normalize the reminder time to a constant date (e.g., Jan 1, 1970)
-    const normalizedTime = new Date(reminderTime);
-    normalizedTime.setFullYear(1970, 0, 1); // Jan 1, 1970
-
-    updateUserPreferences(user.id, {
-      practiceReminderTime: normalizedTime,
-    });
-  }, [reminderTime]);
 
   return (
     <>
@@ -487,7 +527,7 @@ const Preferences = () => {
           {openSettingType === "TIMER" && (
             <TimeSelector
               onTimeChange={(time) => {
-                setReminderTime(time);
+                void handleReminderTimeSelected(time);
                 closeModal();
               }}
               initialTime={reminderTime || new Date()}
@@ -501,10 +541,10 @@ const Preferences = () => {
           mode="time"
           display="default"
           is24Hour={true}
-          onChange={(event, date) => {
+          onChange={(_, date) => {
             setShowAndroidTimePicker(false);
             if (date) {
-              setReminderTime(date);
+              void handleReminderTimeSelected(date);
             }
           }}
         />

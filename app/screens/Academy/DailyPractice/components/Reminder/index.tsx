@@ -55,6 +55,13 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
     return `${hrs}:${mins}`;
   };
 
+  const getStorageDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (isVisible) {
       const now = new Date();
@@ -109,7 +116,7 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
 
     const reminderData = {
       type: reminderType,
-      date: selectedDate.toISOString().split("T")[0],
+      date: getStorageDate(selectedDate),
       time: getFormattedTime(selectedTime),
       notes: reminderNotes.trim() || undefined,
       weekDays: reminderType === "ROUTINE" ? selectedWeekDays : undefined,

@@ -4,10 +4,9 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import {
-    cancelAllNotifications,
-    cancelReminderNotifications,
-    scheduleOneTime,
-    scheduleRoutine,
+  cancelReminderNotifications,
+  scheduleOneTime,
+  scheduleRoutine,
 } from "../../util/functions/notifications";
 
 export type ReminderType = "ONE_TIME" | "ROUTINE";
@@ -43,7 +42,7 @@ export const useReminderStore = create<ReminderState>()(
       addReminder: async (r) => {
         const newRem: Reminder = {
           ...r,
-          id: new Date().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           notificationIds: [], // Initialize empty; will be populated after scheduling
         };
 
@@ -64,6 +63,10 @@ export const useReminderStore = create<ReminderState>()(
           // 1. You could throw the error to the UI to notify the user.
           // 2. You could prevent adding the reminder to the store if notifications are critical.
           // For now, we'll proceed but log the error.
+        }
+
+        if (scheduledNotificationIds.length === 0) {
+          throw new Error("Failed to schedule reminder notification.");
         }
 
         // Update the new reminder with the scheduled IDs
@@ -106,6 +109,11 @@ export const useReminderStore = create<ReminderState>()(
             error
           );
           // Consider a fallback here, e.g., keeping old notifications or alerting user.
+          throw error;
+        }
+
+        if (newNotificationIds.length === 0) {
+          throw new Error("Failed to reschedule reminder notification.");
         }
 
         updatedRem.notificationIds = newNotificationIds; // Update with new IDs
@@ -160,8 +168,15 @@ export const useReminderStore = create<ReminderState>()(
       // New action to re-schedule all active notifications on app load/rehydration
       rescheduleAllActiveNotifications: async () => {
         console.log("Rescheduling all active notifications...");
-        // 1. Cancel all existing notifications that might be stale or from previous sessions
-        await cancelAllNotifications();
+        // 1. Cancel only the notifications owned by this store so we don't
+        // wipe out other scheduled reminders in the app.
+        await Promise.all(
+          get().reminders.map(async (rem) => {
+            if (rem.notificationIds.length > 0) {
+              await cancelReminderNotifications(rem);
+            }
+          })
+        );
 
         // 2. Filter out any one-time reminders that might have expired while the app was closed
         const now = new Date();
@@ -204,15 +219,6 @@ export const useReminderStore = create<ReminderState>()(
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_REMINDERS,
       storage: createJSONStorage(() => AsyncStorage),
-      // Middleware lifecycle hooks
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Clear expired reminders first
-          state.clearExpired(); // This will also cancel notifications for expired one-time reminders
-          // Then, re-schedule all remaining active notifications
-          state.rescheduleAllActiveNotifications();
-        }
-      },
       // You can also add a `version` for migrations if your store structure changes
       // version: 1,
       // migrate: (persistedState, version) => { /* ... */ }

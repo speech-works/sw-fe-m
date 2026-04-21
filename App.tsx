@@ -76,7 +76,7 @@ const App: React.FC = () => {
     });
 
     // 2. Set up notification listeners for foreground and tap interactions
-    setupNotificationHandlers();
+    const cleanupNotificationHandlers = setupNotificationHandlers();
 
     // 3. Hydration listener for Zustand store to re-schedule notifications
     // This ensures notifications are restored/updated after the app fully loads
@@ -91,6 +91,7 @@ const App: React.FC = () => {
     // Clean up the subscription when the component unmounts
     return () => {
       unsubscribe();
+      cleanupNotificationHandlers();
     };
   }, [rescheduleAllActiveNotifications]);
 

@@ -1,26 +1,94 @@
 // notifications.ts
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { Reminder } from "../../stores/reminders";
+
+const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
+const PREFERRED_PRACTICE_REMINDER_STORAGE_KEY =
+  ASYNC_KEYS_NAME.SW_APP_PREFERRED_PRACTICE_REMINDER_NOTIFICATION_ID;
+
+const hasGrantedNotificationPermission = (
+  settings: Notifications.NotificationPermissionsStatus,
+) =>
+  settings.granted ||
+  settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+
+const buildRoutineTrigger = (
+  weekday: number,
+  hour: number,
+  minute: number,
+): Notifications.SchedulableNotificationTriggerInput => {
+  if (Platform.OS === "android") {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday,
+      hour,
+      minute,
+      channelId: DEFAULT_REMINDER_CHANNEL_ID,
+    };
+  }
+
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    weekday,
+    hour,
+    minute,
+    repeats: true,
+  };
+};
+
+const buildDailyTrigger = (
+  hour: number,
+  minute: number,
+): Notifications.SchedulableNotificationTriggerInput => {
+  if (Platform.OS === "android") {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+      channelId: DEFAULT_REMINDER_CHANNEL_ID,
+    };
+  }
+
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    hour,
+    minute,
+    repeats: true,
+  };
+};
 
 // --- New Global Listener for handling notification interactions ---
 // This should be set up once, typically in your App.tsx or a top-level component.
 // It should be moved out of this file if this file is meant purely for scheduling functions.
 // For now, keeping it here as a utility that can be imported and called.
 export const setupNotificationHandlers = () => {
-  // Listener for when a notification is received while the app is in the foreground
-  Notifications.addNotificationReceivedListener((notification) => {
-    console.log(
-      "Notification received while app is foregrounded:",
-      notification,
-    );
-    // You might want to display a custom in-app banner or toast here
-    // rather than the default system notification.
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
   });
 
+  // Listener for when a notification is received while the app is in the foreground
+  const notificationReceivedSubscription =
+    Notifications.addNotificationReceivedListener((notification) => {
+      console.log(
+        "Notification received while app is foregrounded:",
+        notification,
+      );
+      // You might want to display a custom in-app banner or toast here
+      // rather than the default system notification.
+    });
+
   // Listener for when the user taps on a notification
-  Notifications.addNotificationResponseReceivedListener((response) => {
+  const notificationResponseSubscription =
+    Notifications.addNotificationResponseReceivedListener((response) => {
     console.log("User tapped on notification:", response);
     const reminderId = response.notification.request.content.data?.reminderId;
     if (reminderId) {
@@ -30,6 +98,11 @@ export const setupNotificationHandlers = () => {
     }
     // You can also check response.actionIdentifier if you add custom action buttons
   });
+
+  return () => {
+    notificationReceivedSubscription.remove();
+    notificationResponseSubscription.remove();
+  };
 };
 
 /**
@@ -40,42 +113,54 @@ export const setupNotificationHandlers = () => {
 export async function registerForNotifications(): Promise<boolean> {
   // Check if it's a device capable of receiving notifications
   if (Constants.isDevice) {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    // Only ask if permissions have not already been determined
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync(
+        DEFAULT_REMINDER_CHANNEL_ID,
+        {
+          name: "Default Reminders",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250], // Vibrate for 250ms, pause for 250ms, then vibrate for 250ms
+          lightColor: "#FF231F7C",
+          sound: "default", // Use default notification sound
+          showBadge: true,
+        },
+      );
     }
 
-    if (finalStatus !== "granted") {
+    const existingSettings = await Notifications.getPermissionsAsync();
+    let isGranted = hasGrantedNotificationPermission(existingSettings);
+
+    // Only ask if permissions have not already been determined
+    if (!isGranted) {
+      const requestSettings = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
+      isGranted = hasGrantedNotificationPermission(requestSettings);
+    }
+
+    if (!isGranted) {
       console.warn("Permission for notifications not granted!");
       // You might want to show an Alert here in a real app
       return false;
     }
 
-    // --- Android Specific: Create a notification channel ---
-    // This is required for Android 8.0 (Oreo) and above for notifications to appear.
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default_reminders", {
-        name: "Default Reminders",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250], // Vibrate for 250ms, pause for 250ms, then vibrate for 250ms
-        lightColor: "#FF231F7C",
-        sound: "default", // Use default notification sound
-        showBadge: true,
-      });
-      // You can create more channels if you have different types of reminders
-      // e.g., 'routine_reminders' with different sound/vibration
-    }
+    // You can create more channels if you have different types of reminders
+    // e.g., 'routine_reminders' with different sound/vibration
     return true;
   } else {
     console.log("Must use a physical device for push notifications");
     // You might want to show an Alert for development/testing in emulator
     return false;
   }
+}
+
+export async function hasNotificationPermission(): Promise<boolean> {
+  const settings = await Notifications.getPermissionsAsync();
+  return hasGrantedNotificationPermission(settings);
 }
 
 /**
@@ -97,6 +182,7 @@ export async function scheduleOneTime(rem: Reminder): Promise<string> {
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: triggerDate,
+      channelId: DEFAULT_REMINDER_CHANNEL_ID,
     },
   });
   return id;
@@ -118,14 +204,6 @@ export async function scheduleRoutine(rem: Reminder): Promise<string[]> {
     // 6 (Saturday) -> 7
     const expoWeekday = weekday + 1;
 
-    const trigger: Notifications.CalendarTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-      weekday: expoWeekday,
-      hour,
-      minute,
-      repeats: true, // Crucial for weekly repetition
-    };
-
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: "SpeechWorks Routine Reminder",
@@ -133,11 +211,52 @@ export async function scheduleRoutine(rem: Reminder): Promise<string[]> {
         data: { reminderId: rem.id },
         sound: "default",
       },
-      trigger,
+      trigger: buildRoutineTrigger(expoWeekday, hour, minute),
     });
     ids.push(id);
   }
   return ids;
+}
+
+export async function syncPreferredPracticeReminder(
+  reminderTime: Date | null,
+): Promise<void> {
+  const existingNotificationId = await AsyncStorage.getItem(
+    PREFERRED_PRACTICE_REMINDER_STORAGE_KEY,
+  );
+
+  if (existingNotificationId) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(
+        existingNotificationId,
+      );
+    } catch (error) {
+      console.warn(
+        "Failed to cancel previous preferred practice reminder:",
+        error,
+      );
+    }
+    await AsyncStorage.removeItem(PREFERRED_PRACTICE_REMINDER_STORAGE_KEY);
+  }
+
+  if (!reminderTime) {
+    return;
+  }
+
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "SpeechWorks Daily Reminder",
+      body: "Time for your practice session.",
+      data: { type: "preferred_practice_reminder" },
+      sound: "default",
+    },
+    trigger: buildDailyTrigger(
+      reminderTime.getHours(),
+      reminderTime.getMinutes(),
+    ),
+  });
+
+  await AsyncStorage.setItem(PREFERRED_PRACTICE_REMINDER_STORAGE_KEY, id);
 }
 
 /**
@@ -148,7 +267,7 @@ export async function cancelReminderNotifications(rem: Reminder) {
     try {
       await Notifications.cancelScheduledNotificationAsync(nid);
     } catch (error) {
-      throw new Error(`Failed to cancel notification ${nid}: ${error}`);
+      console.warn(`Failed to cancel notification ${nid}:`, error);
       // This can happen if the notification was already delivered or cleared by the OS/user.
     }
   }
