@@ -27,23 +27,65 @@ type FamilyMetricData = {
 
 const FAMILY_CONFIG: Record<
   DetailFamily,
-  { label: string; description: string; color: string }
+  { label: string; color: string }
 > = {
   combined: {
     label: "Combined",
-    description: "Blended view of clinical foundation and recent momentum.",
     color: theme.colors.library.orange[500],
   },
   clinical: {
     label: "Clinical",
-    description: "Clinically anchored baseline derived from validated signals.",
     color: theme.colors.library.green[500],
   },
   engagement: {
     label: "Engagement",
-    description:
-      "Recent momentum signals when enough engagement data is available.",
     color: theme.colors.library.blue[500],
+  },
+};
+
+const FAMILY_DESCRIPTIONS: Record<
+  ClinicalDomain,
+  Record<DetailFamily, string>
+> = {
+  [ClinicalDomain.AFFECTIVE_DISTRESS]: {
+    combined:
+      "Overall view combining your steadier baseline with how communication has felt lately.",
+    clinical:
+      "Steadier baseline based on validated clinical responses about confidence and speech impact.",
+    engagement:
+      "Short-term signal from recent check-ins about confidence, anxiety, and stress.",
+  },
+  [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
+    combined:
+      "Overall view combining your steadier baseline with how much you have been approaching speaking lately.",
+    clinical:
+      "Steadier baseline based on validated clinical responses related to avoidance.",
+    engagement:
+      "Short-term signal from recent check-ins about your urge to avoid speaking moments.",
+  },
+  [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
+    combined:
+      "Overall view combining your steadier baseline with recent signs of how manageable speech has felt.",
+    clinical:
+      "Steadier baseline based on validated clinical responses about speech struggle and control.",
+    engagement:
+      "Short-term signal from recent secondary-behavior patterns. It does not capture all of your skill use on its own.",
+  },
+  [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
+    combined:
+      "Overall view combining your steadier baseline with how manageable speaking has felt lately.",
+    clinical:
+      "Steadier baseline based on validated clinical responses about everyday speaking impact.",
+    engagement:
+      "Short-term signal from recent check-ins about tension, body awareness, and comfort.",
+  },
+  [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
+    combined:
+      "Overall view combining your steadier baseline with your recent participation activity.",
+    clinical:
+      "Steadier baseline based on validated clinical responses about participation and social impact.",
+    engagement:
+      "Short-term signal from recent exposure practice activity. It is not a full measure of your social life yet.",
   },
 };
 
@@ -65,55 +107,75 @@ const DIMENSION_CONFIG: Record<
     label: "Confidence",
     color: "#059669",
     icon: "shield-check",
-    description: "Belief in your ability to speak freely.",
+    description:
+      "How confident you feel communicating, even when speech is not perfect.",
     recommendations: {
-      IMPROVING: "Your self-belief is moving in the right direction. Keep stacking small wins.",
-      STABLE: "A steadier week still counts. Reinforce it with one low-pressure speaking win.",
-      WORSENING: "Try resetting with a simpler speaking task before you push intensity again.",
+      IMPROVING:
+        "Confidence seems to be building. Keep choosing speaking moments that feel meaningful and manageable.",
+      STABLE:
+        "A steady week still matters. One small speaking win can help strengthen trust in your voice.",
+      WORSENING:
+        "If confidence dips, step back to a simpler speaking situation and rebuild from there.",
     },
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
     color: "#E11D48",
     icon: "fire",
-    description: "Your willingness to face speaking situations without pulling back.",
+    description:
+      "How willing you are to enter speaking moments instead of avoiding them.",
     recommendations: {
-      IMPROVING: "You’re stepping forward more often. Keep that exposure ladder active.",
-      STABLE: "Choose one slightly challenging moment this week and meet it on purpose.",
-      WORSENING: "Scale the exposure down, not away. Smaller reps will rebuild traction.",
+      IMPROVING:
+        "You’re approaching more speaking moments. Keep the next step small, specific, and repeatable.",
+      STABLE:
+        "A steady week can still be progress. Pick one speaking moment this week that is slightly outside your comfort zone.",
+      WORSENING:
+        "If avoidance is growing, shrink the challenge rather than stopping. Smaller, supported reps help rebuild momentum.",
     },
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery",
     color: "#0284C7",
     icon: "target",
-    description: "How effectively you’re managing speech tools and technique.",
+    description:
+      "How reliably you’re using helpful tools and strategies to manage speech.",
     recommendations: {
-      IMPROVING: "Technique use is translating more cleanly. Stay consistent with practice reps.",
-      STABLE: "A focused reading or technique block can help convert stability into progress.",
-      WORSENING: "Return to one dependable technique and practice it in a controlled setting first.",
+      IMPROVING:
+        "Your tools seem to be helping more reliably. Keep practicing them in real situations, not just drills.",
+      STABLE:
+        "A steady week is a good time to sharpen one dependable strategy instead of changing everything at once.",
+      WORSENING:
+        "If speech feels harder to manage, return to one dependable strategy and practice it in a lower-pressure setting.",
     },
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease",
     color: "#8B5CF6",
     icon: "water",
-    description: "How comfortable everyday speaking is starting to feel.",
+    description:
+      "How manageable and less effortful speaking feels in everyday moments.",
     recommendations: {
-      IMPROVING: "Speech is feeling easier in day-to-day moments. Keep that rhythm alive.",
-      STABLE: "Keep your reps gentle and regular so comfort can build without pressure.",
-      WORSENING: "Dial the environment down and lead with relaxation before speaking tasks.",
+      IMPROVING:
+        "Speaking seems to be feeling a little easier. Keep your practice regular and low-pressure so that comfort can carry over.",
+      STABLE:
+        "Steady ease still counts. Gentle repetition can help comfort build over time.",
+      WORSENING:
+        "If speaking feels harder this week, lower the pressure and pair speaking with a calming routine that works for you.",
     },
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
     color: "#EA580C",
     icon: "account-group",
-    description: "How freely you’re participating in conversations and social life.",
+    description:
+      "How much you’re taking part in conversations and speaking situations that matter to you.",
     recommendations: {
-      IMPROVING: "You’re showing up more fully in conversation. Keep leaning into that.",
-      STABLE: "One small initiation this week can shift a steady line into progress.",
-      WORSENING: "Reconnect through safe conversations first, then widen the social circle again.",
+      IMPROVING:
+        "You’re participating more. Keep choosing speaking moments that matter to you, not just more moments.",
+      STABLE:
+        "A steady week can still be a foundation. One small initiation or response can help widen participation.",
+      WORSENING:
+        "If participation is shrinking, start with safer conversations and build outward from there.",
     },
   },
 };
@@ -182,22 +244,30 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   const config = DIMENSION_CONFIG[domain];
   const activeFamily = FAMILY_CONFIG[selectedFamily];
   const activeMetrics = familyData[selectedFamily];
-  const trendIcon =
-    activeMetrics.trend === "IMPROVING"
+  const isUnavailable = activeMetrics.currentScore === null;
+  const hasComparison =
+    activeMetrics.previousScore !== null &&
+    activeMetrics.percentDelta !== null &&
+    activeMetrics.absoluteDelta !== null;
+  const trendIcon = !hasComparison
+    ? "clock-outline"
+    : activeMetrics.trend === "IMPROVING"
       ? "trending-up"
       : activeMetrics.trend === "WORSENING"
         ? "trending-down"
         : "trending-neutral";
-  const trendColor =
-    activeMetrics.trend === "IMPROVING"
+  const trendColor = !hasComparison
+    ? theme.colors.text.default
+    : activeMetrics.trend === "IMPROVING"
       ? theme.colors.library.green[500]
       : activeMetrics.trend === "WORSENING"
         ? theme.colors.library.red[500]
         : theme.colors.text.default;
-  const isUnavailable = activeMetrics.currentScore === null;
   const recommendationText = isUnavailable
-    ? "Keep checking in with activities and reflections so we can build a clearer engagement picture here."
-    : config.recommendations[activeMetrics.trend];
+    ? "Use the app for a few days and complete a few check-ins so this view can start to reflect your recent week."
+    : hasComparison
+      ? config.recommendations[activeMetrics.trend]
+      : "We’re still building a week-to-week picture here. Keep checking in so this view becomes more meaningful over time.";
   const footerBottomPadding = Math.max(insets.bottom, 12);
 
   return (
@@ -283,7 +353,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                 })}
               </View>
               <Text style={styles.familyDescription}>
-                {activeFamily.description}
+                {FAMILY_DESCRIPTIONS[domain][selectedFamily]}
               </Text>
             </View>
 
@@ -331,7 +401,11 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                     color={trendColor}
                   />
                   <Text style={[styles.deltaTitle, { color: trendColor }]}>
-                    {activeMetrics.trend === "IMPROVING"
+                    {!hasComparison
+                      ? isUnavailable
+                        ? "Not enough data yet"
+                        : "Building baseline"
+                      : activeMetrics.trend === "IMPROVING"
                       ? "Improving"
                       : activeMetrics.trend === "WORSENING"
                         ? "Needs attention"
@@ -339,11 +413,11 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                   </Text>
                 </View>
 
-                {activeMetrics.percentDelta === null ? (
+                {!hasComparison ? (
                   <Text style={styles.deltaText}>
                     {isUnavailable
-                      ? "Not enough engagement data yet for this dimension."
-                      : "No last-week comparison is available yet for this view."}
+                      ? "Not enough recent data is available yet for this view."
+                      : "We need at least one prior week before we can show change for this view."}
                   </Text>
                 ) : (
                   <Text style={styles.deltaText}>
