@@ -42,6 +42,15 @@ type CallExitPayload = {
   shouldComplete: boolean;
 };
 
+type CallPlaybackState =
+  | "connecting"
+  | "user_listening"
+  | "agent_preparing"
+  | "agent_playing"
+  | "interrupting"
+  | "ending"
+  | "technical_difficulty";
+
 type Props = {
   websocketUrl: string;
   userId?: string;
@@ -408,7 +417,9 @@ const CallingWidget: React.FC<Props> = ({
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
-  const [turn, setTurn] = useState<"user" | "agent" | null>(null);
+  const [, setTurn] = useState<"user" | "agent" | null>(null);
+  const [callPlaybackState, setCallPlaybackState] =
+    useState<CallPlaybackState>("connecting");
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false,
@@ -429,7 +440,7 @@ const CallingWidget: React.FC<Props> = ({
   const [idleCountdown, setIdleCountdown] = useState<number | null>(null);
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
   const [maxTurns, setMaxTurns] = useState<number | null>(null);
-  const [isAgentAudioPlaying, setIsAgentAudioPlaying] = useState(false);
+  const [, setIsAgentAudioPlaying] = useState(false);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
@@ -499,6 +510,11 @@ const CallingWidget: React.FC<Props> = ({
   );
   const agentAudioStartedRef = useRef(false);
   const currentPlaybackJobIdRef = useRef<string | null>(null);
+  const currentPlaybackResponseIdRef = useRef<string | null>(null);
+  const currentPlaybackDurationMsRef = useRef<number | null>(null);
+  const currentPlaybackStartedAtMsRef = useRef<number | null>(null);
+  const playbackStartedAckSentRef = useRef(false);
+  const voiceCallV1EnabledRef = useRef(true);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -607,27 +623,161 @@ const CallingWidget: React.FC<Props> = ({
     clearTimerRef(audioStartTimeoutRef);
   };
 
+  const syncCallPlaybackState = (
+    nextState: CallPlaybackState,
+    nextStatus?: string,
+  ) => {
+    setCallPlaybackState(nextState);
+    switch (nextState) {
+      case "user_listening":
+        setIsAgentAudioPlaying(false);
+        setTurn("user");
+        setStatus(nextStatus ?? "Listening...");
+        break;
+      case "agent_preparing":
+        setIsAgentAudioPlaying(false);
+        setTurn("agent");
+        setStatus(nextStatus ?? "Preparing agent audio...");
+        break;
+      case "agent_playing":
+        setIsAgentAudioPlaying(true);
+        setTurn("agent");
+        setStatus(nextStatus ?? "Agent is speaking...");
+        break;
+      case "interrupting":
+        setIsAgentAudioPlaying(false);
+        setTurn("user");
+        setStatus(nextStatus ?? "Interrupting agent...");
+        break;
+      case "ending":
+        setIsAgentAudioPlaying(false);
+        setTurn(null);
+        setStatus(nextStatus ?? "Ending call...");
+        break;
+      case "technical_difficulty":
+        setIsAgentAudioPlaying(false);
+        setTurn(null);
+        setStatus(nextStatus ?? "Technical difficulty");
+        break;
+      case "connecting":
+      default:
+        setIsAgentAudioPlaying(false);
+        setTurn(null);
+        setStatus(nextStatus ?? "Connecting...");
+        break;
+    }
+  };
+
   const syncUserListeningState = (nextStatus = "Listening...") => {
-    setIsAgentAudioPlaying(false);
-    setTurn("user");
-    setStatus(nextStatus);
+    syncCallPlaybackState("user_listening", nextStatus);
   };
 
   const syncAgentPreparingState = (
     nextStatus = "Preparing agent audio...",
   ) => {
-    setIsAgentAudioPlaying(false);
-    setTurn("agent");
-    setStatus(nextStatus);
+    syncCallPlaybackState("agent_preparing", nextStatus);
   };
 
   const syncAgentSpeakingState = (nextStatus = "Agent is speaking...") => {
-    setIsAgentAudioPlaying(true);
-    setTurn("agent");
-    setStatus(nextStatus);
+    syncCallPlaybackState("agent_playing", nextStatus);
   };
 
-  const cancelPendingAgentPlayback = () => {
+  const resetPlaybackLifecycleRefs = (clearPlaybackIds = true) => {
+    currentPlaybackDurationMsRef.current = null;
+    currentPlaybackStartedAtMsRef.current = null;
+    playbackStartedAckSentRef.current = false;
+    if (clearPlaybackIds) {
+      currentPlaybackJobIdRef.current = null;
+      currentPlaybackResponseIdRef.current = null;
+    }
+  };
+
+  const getPlaybackProgressMs = (positionMillis?: number | null) => {
+    if (typeof positionMillis === "number" && Number.isFinite(positionMillis)) {
+      return positionMillis;
+    }
+    if (currentPlaybackStartedAtMsRef.current) {
+      return Math.max(0, Date.now() - currentPlaybackStartedAtMsRef.current);
+    }
+    return 0;
+  };
+
+  const sendPlaybackLifecycleEvent = (
+    type: "playback_started" | "playback_interrupted" | "playback_complete",
+    extra: Record<string, unknown> = {},
+  ) => {
+    if (
+      !voiceCallV1EnabledRef.current &&
+      type !== "playback_complete"
+    ) {
+      return;
+    }
+
+    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const jobId = currentPlaybackJobIdRef.current;
+    if (!jobId) {
+      return;
+    }
+
+    try {
+      ws.current.send(
+        JSON.stringify({
+          type,
+          jobId,
+          responseId: currentPlaybackResponseIdRef.current,
+          durationMs: currentPlaybackDurationMsRef.current,
+          ...extra,
+        }),
+      );
+    } catch (error) {
+      console.warn("[WS] Failed to send playback lifecycle event:", error);
+    }
+  };
+
+  const acknowledgePlaybackStarted = async (
+    playbackStatus?: {
+      durationMillis?: number;
+      positionMillis?: number;
+    } | null,
+  ) => {
+    if (playbackStartedAckSentRef.current) {
+      return;
+    }
+
+    if (
+      typeof playbackStatus?.durationMillis === "number" &&
+      Number.isFinite(playbackStatus.durationMillis)
+    ) {
+      currentPlaybackDurationMsRef.current = playbackStatus.durationMillis;
+    }
+
+    playbackStartedAckSentRef.current = true;
+    currentPlaybackStartedAtMsRef.current = Date.now();
+    agentAudioStartedRef.current = true;
+    clearAudioStartTimeout();
+    syncAgentSpeakingState();
+    sendPlaybackLifecycleEvent("playback_started", {
+      startedAtClientMs: currentPlaybackStartedAtMsRef.current,
+    });
+  };
+
+  const sendPlaybackInterrupted = (reason: string, playedMs?: number | null) => {
+    sendPlaybackLifecycleEvent("playback_interrupted", {
+      reason,
+      playedMs: getPlaybackProgressMs(playedMs ?? null),
+    });
+  };
+
+  const sendPlaybackComplete = (playedMs?: number | null) => {
+    sendPlaybackLifecycleEvent("playback_complete", {
+      playedMs: getPlaybackProgressMs(playedMs ?? null),
+    });
+  };
+
+  const cancelPendingAgentPlayback = (clearPlaybackIds = true) => {
     playSeq.current += 1;
     clearAudioStartTimeout();
     if (forcedStartTimeoutRef.current) {
@@ -636,7 +786,7 @@ const CallingWidget: React.FC<Props> = ({
     }
     playLock.current = false;
     hasStartedPlaying.current = false;
-    currentPlaybackJobIdRef.current = null;
+    resetPlaybackLifecycleRefs(clearPlaybackIds);
     setIsAgentAudioPlaying(false);
   };
 
@@ -730,7 +880,7 @@ const CallingWidget: React.FC<Props> = ({
     playSeq.current += 1;
     playLock.current = false; // Reset lock on cleanup
     hasStartedPlaying.current = false;
-    currentPlaybackJobIdRef.current = null;
+    resetPlaybackLifecycleRefs();
     lastPlayedUrl.current = null;
     lastPlayTimestamp.current = 0;
     setIsAgentAudioPlaying(false);
@@ -989,13 +1139,8 @@ const CallingWidget: React.FC<Props> = ({
             syncUserListeningState();
             // Notify backend that playback finished naturally
             try {
-              ws.current?.send(
-                JSON.stringify({
-                  type: "playback_complete",
-                  jobId: currentPlaybackJobIdRef.current,
-                }),
-              );
-              currentPlaybackJobIdRef.current = null;
+              sendPlaybackComplete();
+              resetPlaybackLifecycleRefs();
             } catch {}
           }
         };
@@ -1169,7 +1314,7 @@ const CallingWidget: React.FC<Props> = ({
     pendingChunks.current = [];
     outgoingMicBuffer.current = [];
 
-    setStatus("Preparing audio...");
+    syncCallPlaybackState("connecting", "Preparing audio...");
 
     // --- NEW: Reset UI State ---
     setTranscript([]); // Clear previous transcript
@@ -1247,7 +1392,7 @@ const CallingWidget: React.FC<Props> = ({
       return;
     }
 
-    setStatus("Connecting...");
+    syncCallPlaybackState("connecting", "Connecting...");
     ws.current = new WebSocket(websocketUrl);
     ws.current.binaryType = "arraybuffer";
     scheduleWsConnectTimeout();
@@ -1256,7 +1401,7 @@ const CallingWidget: React.FC<Props> = ({
       stopRingTone();
       clearTimerRef(wsConnectTimeoutRef);
       scheduleCallReadyTimeout();
-      setStatus("Connected to AI"); // Status for UI
+      syncCallPlaybackState("connecting", "Connected to AI");
       setIsCalling(true);
       // onCallStart?.(); // REMOVED: Activity is started before WS connection
 
@@ -1403,10 +1548,19 @@ const CallingWidget: React.FC<Props> = ({
 
     stopRingTone();
     setIsCalling(false);
-    setIsAgentAudioPlaying(false);
-    currentPlaybackJobIdRef.current = null;
-    setTurn(null);
     const endReason = callEndReasonRef.current;
+    if (
+      currentPlaybackJobIdRef.current &&
+      (playLock.current || soundRef.current || playbackStartedAckSentRef.current)
+    ) {
+      sendPlaybackInterrupted("user_end_call");
+    }
+    if (endReason === "technical_difficulty") {
+      syncCallPlaybackState("technical_difficulty", "Technical difficulty");
+    } else {
+      syncCallPlaybackState("ending", "Ending call...");
+    }
+    resetPlaybackLifecycleRefs();
     const shouldComplete =
       agentAudioStartedRef.current &&
       endReason !== "technical_difficulty" &&
@@ -1517,7 +1671,8 @@ const CallingWidget: React.FC<Props> = ({
         stopRingTone();
         clearCallReadyTimeout();
         callReadyRef.current = true;
-        setStatus("AI is ready");
+        voiceCallV1EnabledRef.current = data.voiceCallV1Enabled !== false;
+        syncUserListeningState("AI is ready");
         if (data.maxTurns) {
           setMaxTurns(data.maxTurns);
           callDebugLog(`[Cost Control] maxTurns set to ${data.maxTurns}`);
@@ -1609,6 +1764,11 @@ const CallingWidget: React.FC<Props> = ({
         callReadyRef.current = true;
         currentPlaybackJobIdRef.current =
           typeof data.jobId === "string" ? data.jobId : null;
+        currentPlaybackResponseIdRef.current =
+          typeof data.responseId === "string" ? data.responseId : null;
+        currentPlaybackDurationMsRef.current = null;
+        currentPlaybackStartedAtMsRef.current = null;
+        playbackStartedAckSentRef.current = false;
         const urlToPlay = normalizePlayableStreamUrl(rawUrl);
         if (urlToPlay !== rawUrl) {
           callDebugLog(
@@ -1688,10 +1848,12 @@ const CallingWidget: React.FC<Props> = ({
                       } catch {}
                     }
                     callDebugLog("[Audio] Calling playAsync() now...");
-                    await newSound.playAsync();
-                    agentAudioStartedRef.current = true;
-                    clearAudioStartTimeout();
-                    syncAgentSpeakingState();
+                    const playbackStatus = await newSound.playAsync();
+                    await acknowledgePlaybackStarted(
+                      playbackStatus && playbackStatus.isLoaded
+                        ? playbackStatus
+                        : null,
+                    );
                     callDebugLog("[Audio] playAsync() completed without error.");
                   } catch (e) {
                     console.error("[Audio] Error during playAsync:", e);
@@ -1710,18 +1872,9 @@ const CallingWidget: React.FC<Props> = ({
                     setSound(null);
                     playLock.current = false;
                     hasStartedPlaying.current = false;
-                    // Notify backend that playback finished naturally (P0)
-                    try {
-                      const completedJobId = currentPlaybackJobIdRef.current;
-                      currentPlaybackJobIdRef.current = null;
-                      ws.current?.send(
-                        JSON.stringify({
-                          type: "playback_complete",
-                          jobId: completedJobId,
-                        }),
-                      );
-                      callDebugLog("[WS] Sent playback_complete");
-                    } catch {}
+                    sendPlaybackComplete(status.positionMillis);
+                    resetPlaybackLifecycleRefs();
+                    callDebugLog("[WS] Sent playback_complete");
 
                     // If this was a server-initiated goodbye, trigger cleanup now
                     if (callEndReasonRef.current) {
@@ -1756,10 +1909,12 @@ const CallingWidget: React.FC<Props> = ({
                 ) {
                   hasStartedPlaying.current = true;
                   await newSound.setVolumeAsync(1.0);
-                  await newSound.playAsync();
-                  agentAudioStartedRef.current = true;
-                  clearAudioStartTimeout();
-                  syncAgentSpeakingState();
+                  const playbackStatus = await newSound.playAsync();
+                  await acknowledgePlaybackStarted(
+                    playbackStatus && playbackStatus.isLoaded
+                      ? playbackStatus
+                      : null,
+                  );
                 }
               } catch (e) {
                 console.warn("[Audio] forced-start error:", e);
@@ -1786,8 +1941,7 @@ const CallingWidget: React.FC<Props> = ({
 
       // (stop_playback case is unchanged)
       case "stop_playback": {
-        cancelPendingAgentPlayback();
-        agentAudioStartedRef.current = false;
+        syncCallPlaybackState("interrupting", "Interrupting agent...");
         const soundToStop = soundRef.current;
         soundRef.current = null;
         setSound(null);
@@ -1797,6 +1951,12 @@ const CallingWidget: React.FC<Props> = ({
             soundToStop.setOnPlaybackStatusUpdate(null);
           } catch {}
           try {
+            const status = await soundToStop.getStatusAsync().catch(() => null);
+            if (status && status.isLoaded) {
+              sendPlaybackInterrupted("server_stop_playback", status.positionMillis);
+            } else {
+              sendPlaybackInterrupted("server_stop_playback");
+            }
             await soundToStop.stopAsync();
           } catch {}
           try {
@@ -1809,7 +1969,10 @@ const CallingWidget: React.FC<Props> = ({
           callDebugLog(
             "[Audio] Interruption requested, but no sound ref was active.",
           );
+          sendPlaybackInterrupted("server_stop_playback");
         }
+        cancelPendingAgentPlayback();
+        agentAudioStartedRef.current = false;
         syncUserListeningState();
         break;
       }
@@ -1852,6 +2015,14 @@ const CallingWidget: React.FC<Props> = ({
         setCallEndReason(data.reason);
         callEndReasonRef.current = data.reason;
         setIsAgentAudioPlaying(false);
+        if (data.reason === "technical_difficulty") {
+          syncCallPlaybackState(
+            "technical_difficulty",
+            data.message || "Technical difficulty",
+          );
+        } else {
+          syncCallPlaybackState("ending", "Ending call...");
+        }
         // Dismiss any active idle warning
         setIdleWarningVisible(false);
         if (idleCountdownRef.current) {
@@ -1899,6 +2070,11 @@ const CallingWidget: React.FC<Props> = ({
   const ripple1 = useRef(new Animated.Value(0)).current;
   const ripple2 = useRef(new Animated.Value(0)).current;
   const ripple3 = useRef(new Animated.Value(0)).current;
+  const isListeningPlaybackState = callPlaybackState === "user_listening";
+  const isAgentSpeakingPlaybackState = callPlaybackState === "agent_playing";
+  const rippleTint = isAgentSpeakingPlaybackState
+    ? "rgba(249, 115, 22, 0.35)"
+    : "rgba(59, 130, 246, 0.28)";
 
   useEffect(() => {
     const createRipple = (anim: Animated.Value, delay: number) => {
@@ -1919,7 +2095,7 @@ const CallingWidget: React.FC<Props> = ({
     const r2 = createRipple(ripple2, 1000);
     const r3 = createRipple(ripple3, 2000);
 
-    if (turn === "user" || isAgentAudioPlaying) {
+    if (isListeningPlaybackState || isAgentSpeakingPlaybackState) {
       r1.start();
       r2.start();
       r3.start();
@@ -1936,7 +2112,7 @@ const CallingWidget: React.FC<Props> = ({
       r2.stop();
       r3.stop();
     };
-  }, [isAgentAudioPlaying, turn]);
+  }, [isAgentSpeakingPlaybackState, isListeningPlaybackState, ripple1, ripple2, ripple3]);
 
   // --- ⬇️ ADDED: Call Button Expansion & Slide Up Animation ⬇️ ---
   const callBtnScale = useRef(new Animated.Value(1)).current;
@@ -2012,6 +2188,7 @@ const CallingWidget: React.FC<Props> = ({
             style={[
               styles.rippleRing,
               {
+                borderColor: rippleTint,
                 transform: [
                   {
                     scale: anim.interpolate({
