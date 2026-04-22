@@ -131,6 +131,7 @@ interface UpdateActivityReq {
   userId: string;
   packId?: string;
   moduleId?: string;
+  refundResources?: boolean;
 }
 
 // Start a practice activity (update its startedAt timestamp)
@@ -215,16 +216,18 @@ export async function abortPracticeActivity({
   userId,
   packId,
   moduleId,
+  refundResources,
 }: UpdateActivityReq): Promise<PracticeActivity> {
   try {
     const requestBody: any = { userId };
     if (packId) requestBody.packId = packId;
     if (moduleId) requestBody.moduleId = moduleId;
+    if (refundResources) requestBody.refundResources = true;
 
-    console.log(">> API: Aborting Practice Activity", { id });
+    console.log(">> API: Aborting Practice Activity", { id, requestBody });
     const response = await axiosClient.patch(
       `/practice-activities/${id}`,
-      { status: "ABORTED" }
+      { status: "ABORTED", ...requestBody },
     );
     console.log("<< API: Practice Activity Aborted Successfully", response.data);
     return response.data;

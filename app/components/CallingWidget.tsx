@@ -37,12 +37,17 @@ import { theme } from "../Theme/tokens";
 import { isHeadsetConnected } from "../util/functions/headset";
 
 // --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
+type CallExitPayload = {
+  reason: string | null;
+  shouldComplete: boolean;
+};
+
 type Props = {
   websocketUrl: string;
   userId?: string;
   sampleRate?: number;
   onCallStart?: () => Promise<string | null>;
-  onCallEnd?: () => void;
+  onCallEnd?: (payload: CallExitPayload) => void | Promise<void>;
   ringtoneAsset?: number;
   ringtoneUri?: string;
   scenarioId?: string;
@@ -491,6 +496,7 @@ const CallingWidget: React.FC<Props> = ({
   const audioStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const agentAudioStartedRef = useRef(false);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -1134,6 +1140,7 @@ const CallingWidget: React.FC<Props> = ({
     setCallEndReason(null);
     callEndReasonRef.current = null;
     callReadyRef.current = false;
+    agentAudioStartedRef.current = false;
     setMaxTurns(null);
     clearCallSafetyTimeouts();
     if (idleCountdownRef.current) {
@@ -1353,9 +1360,19 @@ const CallingWidget: React.FC<Props> = ({
     stopRingTone();
     setIsCalling(false);
     setTurn(null);
-    if (callReadyRef.current) {
-      onCallEnd?.();
-    }
+    const endReason = callEndReasonRef.current;
+    const shouldComplete =
+      agentAudioStartedRef.current &&
+      endReason !== "technical_difficulty" &&
+      endReason !== "idle_timeout";
+    void Promise.resolve(
+      onCallEnd?.({
+        reason: endReason,
+        shouldComplete,
+      }),
+    ).catch((error) => {
+      console.warn("Error handling call end:", error);
+    });
     setShowNotificationDot(false);
     setIdleWarningVisible(false);
     setIdleCountdown(null);
@@ -1364,7 +1381,6 @@ const CallingWidget: React.FC<Props> = ({
       idleCountdownRef.current = null;
     }
     // If the backend sent a call_ended reason, show the modal after cleanup
-    const endReason = callEndReasonRef.current;
     if (endReason) {
       // Keep callEndReason in state so the modal renders;
       // do NOT clear it here — it's cleared when the user dismisses the modal.
@@ -1405,6 +1421,7 @@ const CallingWidget: React.FC<Props> = ({
     // Reset duration for UI
     setCallDuration(0);
     callReadyRef.current = false;
+    agentAudioStartedRef.current = false;
   };
   // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
@@ -1627,6 +1644,7 @@ const CallingWidget: React.FC<Props> = ({
                     }
                     callDebugLog("[Audio] Calling playAsync() now...");
                     await newSound.playAsync();
+                    agentAudioStartedRef.current = true;
                     clearAudioStartTimeout();
                     callDebugLog("[Audio] playAsync() completed without error.");
                   } catch (e) {
@@ -1689,6 +1707,7 @@ const CallingWidget: React.FC<Props> = ({
                   hasStartedPlaying.current = true;
                   await newSound.setVolumeAsync(1.0);
                   await newSound.playAsync();
+                  agentAudioStartedRef.current = true;
                   clearAudioStartTimeout();
                 }
               } catch (e) {
@@ -1777,7 +1796,7 @@ const CallingWidget: React.FC<Props> = ({
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
         clearCallSafetyTimeouts();
-        if (!callReadyRef.current && data.message) {
+        if (data.message) {
           setStatus(data.message);
         }
         // Store reason in both state and ref so endCall (triggered by onclose)
@@ -2192,8 +2211,10 @@ const CallingWidget: React.FC<Props> = ({
               name={
                 callEndReason === "limit_reached"
                   ? "trophy"
-                  : callEndReason === "user_ended"
-                    ? "check-circle"
+                  : callEndReason === "technical_difficulty"
+                    ? "exclamation-triangle"
+                    : callEndReason === "user_ended"
+                      ? "check-circle"
                     : "phone-slash"
               }
               size={36}
@@ -2204,6 +2225,8 @@ const CallingWidget: React.FC<Props> = ({
             <Text style={styles.promptTitle}>
               {callEndReason === "limit_reached"
                 ? "Great practice!"
+                : callEndReason === "technical_difficulty"
+                  ? "Call unavailable"
                 : callEndReason === "user_ended"
                   ? "Call ended"
                   : "Call ended"}
@@ -2211,6 +2234,8 @@ const CallingWidget: React.FC<Props> = ({
             <Text style={styles.promptText}>
               {callEndReason === "limit_reached"
                 ? "You've completed this practice session. Rest your vocal cords and come back tomorrow!"
+                : callEndReason === "technical_difficulty"
+                  ? "We hit a technical problem and ended the call. This attempt will not count as completed."
                 : callEndReason === "user_ended"
                   ? "You've successfully ended the conversation. Great job practicing today!"
                   : "The call was ended due to inactivity. You can start a new session anytime."}

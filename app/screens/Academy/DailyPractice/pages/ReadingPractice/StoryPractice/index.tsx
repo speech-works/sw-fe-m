@@ -103,13 +103,52 @@ const StoryPractice = () => {
     );
   };
 
+  const isToolActive = (toolName: string) =>
+    (toolName === ToolType.DAF &&
+      selectedPracticeTool === toolName &&
+      dafState.isDAFActive) ||
+    (toolName === ToolType.CHORUS &&
+      selectedPracticeTool === toolName &&
+      vhIsPlaying) ||
+    (toolName === ToolType.METRONOME &&
+      selectedPracticeTool === toolName &&
+      metronomeState.isPlaying);
+
+  const stopTool = (toolName: string) => {
+    if (toolName === ToolType.DAF && dafState.isDAFActive) {
+      dafState.stopDAF();
+    } else if (toolName === ToolType.METRONOME && metronomeState.isPlaying) {
+      metronomeState.setIsPlaying(false);
+    } else if (toolName === ToolType.CHORUS && vhIsPlaying) {
+      setVhIsPlaying(false);
+    }
+
+    if (selectedPracticeTool === toolName) {
+      actions.setSelectedPracticeTool("");
+    }
+    actions.setActiveToolSheet(null);
+  };
+
   const renderToolSheetContent = () => {
     switch (activeToolSheet) {
       case ToolType.DAF:
         return (
           <DAFTool
             isDAFActive={dafState.isDAFActive}
-            onToggleDAF={dafState.toggleDAF}
+            onToggleDAF={() => {
+              void (async () => {
+                if (dafState.isDAFActive) {
+                  dafState.stopDAF();
+                  return;
+                }
+
+                const started = await dafState.startDAF();
+                if (started) {
+                  actions.setSelectedPracticeTool(ToolType.DAF);
+                  actions.setActiveToolSheet(null);
+                }
+              })();
+            }}
             delayMs={dafState.delayMs}
             onDelayChange={dafState.setDelayMs}
             hasPermission={dafState.hasPermission}
@@ -126,7 +165,13 @@ const StoryPractice = () => {
         return (
           <Metronome
             isPlaying={metronomeState.isPlaying}
-            onTogglePlay={(val) => metronomeState.setIsPlaying(val)}
+            onTogglePlay={(val) => {
+              metronomeState.setIsPlaying(val);
+              if (val) {
+                actions.setSelectedPracticeTool(ToolType.METRONOME);
+                actions.setActiveToolSheet(null);
+              }
+            }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
           />
@@ -141,7 +186,14 @@ const StoryPractice = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
-            onToggleSpeech={() => setVhIsPlaying(!vhIsPlaying)}
+            onToggleSpeech={() => {
+              const nextIsPlaying = !vhIsPlaying;
+              setVhIsPlaying(nextIsPlaying);
+              if (nextIsPlaying) {
+                actions.setSelectedPracticeTool(ToolType.CHORUS);
+                actions.setActiveToolSheet(null);
+              }
+            }}
           />
         );
       default:
@@ -150,20 +202,17 @@ const StoryPractice = () => {
   };
 
   const handleToolSelect = (toolName: string) => {
-    if (selectedPracticeTool === toolName) {
-      // Toggle off
-      actions.setSelectedPracticeTool("");
-      actions.setActiveToolSheet(null);
-
-      // Stop VoiceHover if deselected
-      if (toolName === ToolType.CHORUS) setVhIsPlaying(false);
-
-      // Metronome and DAF stop automatically because their hooks get muted (muteLogic=true)
-    } else {
-      actions.setSelectedPracticeTool(toolName);
-      // Open sheet for all tools
-      actions.setActiveToolSheet(toolName);
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
     }
+
+    if (selectedPracticeTool && selectedPracticeTool !== toolName) {
+      stopTool(selectedPracticeTool);
+    }
+
+    actions.setSelectedPracticeTool(toolName);
+    actions.setActiveToolSheet(toolName);
   };
 
   // --- Main Render ---

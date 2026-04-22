@@ -266,28 +266,41 @@ export const useDAF = (muteLogic = false) => {
     };
   }, [hasPermission, isDAFActive, muteLogic, startAudioProcessing, stopAudioProcessing]);
 
+  const startDAF = useCallback(async () => {
+    if (hasPermission === false) {
+      setStatusMessage(
+        Platform.OS === "web"
+          ? "DAF is currently available only in the iOS and Android app."
+          : "Microphone permission not granted.",
+      );
+      return false;
+    }
+
+    const connected = await updateHeadsetStatus(true);
+    if (!connected) {
+      return false;
+    }
+
+    setStatusMessage("Starting DAF...");
+    setIsDAFActive(true);
+    return true;
+  }, [hasPermission, updateHeadsetStatus]);
+
+  const stopDAF = useCallback(() => {
+    setStatusMessage("DAF Stopped.");
+    setIsDAFActive(false);
+  }, []);
+
   const toggleDAF = useCallback(() => {
     void (async () => {
-      if (hasPermission === false) {
-        setStatusMessage(
-          Platform.OS === "web"
-            ? "DAF is currently available only in the iOS and Android app."
-            : "Microphone permission not granted.",
-        );
+      if (isDAFActive) {
+        stopDAF();
         return;
       }
 
-      if (!isDAFActive) {
-        const connected = await updateHeadsetStatus(true);
-        if (!connected) return;
-        setStatusMessage("Starting DAF...");
-      } else {
-        setStatusMessage("DAF Stopped.");
-      }
-
-      setIsDAFActive((prev) => !prev);
+      await startDAF();
     })();
-  }, [hasPermission, isDAFActive, updateHeadsetStatus]);
+  }, [isDAFActive, startDAF, stopDAF]);
 
   return {
     headsetConnected,
@@ -296,6 +309,8 @@ export const useDAF = (muteLogic = false) => {
     updateHeadsetStatus,
     isDAFActive,
     setIsDAFActive,
+    startDAF,
+    stopDAF,
     toggleDAF,
     delayMs,
     setDelayMs,

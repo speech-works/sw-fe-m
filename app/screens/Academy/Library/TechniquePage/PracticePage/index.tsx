@@ -97,16 +97,44 @@ const PracticePage = ({
     }
   };
 
-  const handleToolSelect = (toolName: string) => {
-    if (selectedPracticeTool === toolName) {
-      // Toggle off
-      setSelectedPracticeTool("");
-      setActiveToolSheet(null);
-      if (toolName === ToolType.CHORUS) setVhIsPlaying(false);
-    } else {
-      setSelectedPracticeTool(toolName);
-      setActiveToolSheet(toolName);
+  const isToolActive = (toolName: string) =>
+    (toolName === ToolType.DAF &&
+      selectedPracticeTool === toolName &&
+      dafState.isDAFActive) ||
+    (toolName === ToolType.CHORUS &&
+      selectedPracticeTool === toolName &&
+      vhIsPlaying) ||
+    (toolName === ToolType.METRONOME &&
+      selectedPracticeTool === toolName &&
+      metronomeState.isPlaying);
+
+  const stopTool = (toolName: string) => {
+    if (toolName === ToolType.DAF && dafState.isDAFActive) {
+      dafState.stopDAF();
+    } else if (toolName === ToolType.METRONOME && metronomeState.isPlaying) {
+      metronomeState.setIsPlaying(false);
+    } else if (toolName === ToolType.CHORUS && vhIsPlaying) {
+      setVhIsPlaying(false);
     }
+
+    if (selectedPracticeTool === toolName) {
+      setSelectedPracticeTool("");
+    }
+    setActiveToolSheet(null);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    if (selectedPracticeTool && selectedPracticeTool !== toolName) {
+      stopTool(selectedPracticeTool);
+    }
+
+    setSelectedPracticeTool(toolName);
+    setActiveToolSheet(toolName);
   };
 
   // Renderers
@@ -116,7 +144,20 @@ const PracticePage = ({
         return (
           <DAFTool
             isDAFActive={dafState.isDAFActive}
-            onToggleDAF={dafState.toggleDAF}
+            onToggleDAF={() => {
+              void (async () => {
+                if (dafState.isDAFActive) {
+                  dafState.stopDAF();
+                  return;
+                }
+
+                const started = await dafState.startDAF();
+                if (started) {
+                  setSelectedPracticeTool(ToolType.DAF);
+                  setActiveToolSheet(null);
+                }
+              })();
+            }}
             delayMs={dafState.delayMs}
             onDelayChange={dafState.setDelayMs}
             hasPermission={dafState.hasPermission}
@@ -133,7 +174,13 @@ const PracticePage = ({
         return (
           <Metronome
             isPlaying={metronomeState.isPlaying}
-            onTogglePlay={(val) => metronomeState.setIsPlaying(val)}
+            onTogglePlay={(val) => {
+              metronomeState.setIsPlaying(val);
+              if (val) {
+                setSelectedPracticeTool(ToolType.METRONOME);
+                setActiveToolSheet(null);
+              }
+            }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
           />
@@ -148,7 +195,14 @@ const PracticePage = ({
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
-            onToggleSpeech={() => setVhIsPlaying(!vhIsPlaying)}
+            onToggleSpeech={() => {
+              const nextIsPlaying = !vhIsPlaying;
+              setVhIsPlaying(nextIsPlaying);
+              if (nextIsPlaying) {
+                setSelectedPracticeTool(ToolType.CHORUS);
+                setActiveToolSheet(null);
+              }
+            }}
           />
         );
       default:

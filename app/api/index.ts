@@ -10,7 +10,7 @@ export {
     ReadingPracticeType
 } from "./dailyPractice/types";
 export {
-    completePracticeActivity, createPracticeActivity,
+    abortPracticeActivity, completePracticeActivity, createPracticeActivity,
     createPracticeActivityFromPack, getAllPracticeActivitiesBySessionId,
     getCurrentPracticeActivityForSession,
     getPracticeActivity, startPracticeActivity

@@ -32,6 +32,7 @@ import { showErrorBottomSheet } from "../../../../../../util/functions/bottomShe
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import {
+  abortPracticeActivity,
   completePracticeActivity,
   createPracticeActivity,
   createPracticeActivityFromPack,
@@ -216,9 +217,51 @@ const PhoneCall = () => {
     }
   };
 
-  const handleCallEnd = () => {
+  const abortCurrentActivity = async (refundResources: boolean) => {
     if (!currentActivityId) return;
-    setShowVitalsModal(true);
+    const userId = user?.id;
+
+    if (!userId) {
+      setCurrentActivityId(null);
+      return;
+    }
+
+    try {
+      const abortedActivity = await abortPracticeActivity({
+        id: currentActivityId,
+        userId,
+        packId: packContext?.packId,
+        moduleId: packContext?.moduleId,
+        refundResources,
+      });
+      updateActivity(currentActivityId, {
+        ...abortedActivity,
+      });
+    } catch (error) {
+      console.error("Failed to abort phone call activity", error);
+    } finally {
+      useUserStore.getState().fetchUser();
+      setCurrentActivityId(null);
+    }
+  };
+
+  const handleCallEnd = async ({
+    shouldComplete,
+    reason,
+  }: {
+    shouldComplete: boolean;
+    reason: string | null;
+  }) => {
+    if (!currentActivityId) return;
+
+    if (shouldComplete) {
+      setShowVitalsModal(true);
+      return;
+    }
+
+    await abortCurrentActivity(
+      reason === "technical_difficulty" || reason === null,
+    );
   };
 
   const handleVitalsSubmit = async (vitals?: {
