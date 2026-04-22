@@ -1094,6 +1094,12 @@ const CallingWidget: React.FC<Props> = ({
       return;
     }
 
+    if (!websocketUrl) {
+      console.error("[Call] Missing websocketUrl for AI call.");
+      setStatus("Call service unavailable");
+      return;
+    }
+
     if (Platform.OS !== "web") {
       // Check headset before allowing the call to begin.
       const connected = await updateHeadsetStatus(true);
@@ -1196,9 +1202,10 @@ const CallingWidget: React.FC<Props> = ({
     scheduleWsConnectTimeout();
 
     ws.current.onopen = async () => {
+      stopRingTone();
       clearTimerRef(wsConnectTimeoutRef);
       scheduleCallReadyTimeout();
-      setStatus("Connected"); // Status for UI
+      setStatus("Connected to AI"); // Status for UI
       setIsCalling(true);
       // onCallStart?.(); // REMOVED: Activity is started before WS connection
 
@@ -1270,6 +1277,19 @@ const CallingWidget: React.FC<Props> = ({
     ws.current.onclose = (event) => {
       clearCallSafetyTimeouts();
       callDebugLog(`[WS] WebSocket closed: ${event.code} ${event.reason}`);
+      if (!callReadyRef.current && event.reason) {
+        const normalizedReason = event.reason.toLowerCase();
+        if (
+          normalizedReason.includes("unauthorized") ||
+          normalizedReason.includes("forbidden")
+        ) {
+          setStatus("Please sign in again");
+        } else if (normalizedReason.includes("validation")) {
+          setStatus("Call validation failed");
+        } else if (normalizedReason.includes("missing")) {
+          setStatus("Call setup failed");
+        }
+      }
       // If the goodbye TTS is still loading or playing, defer cleanup to didJustFinish.
       // Check both soundRef (audio loaded & playing) and playLock (audio is loading via loadAsync).
       const isAudioActive = soundRef.current || playLock.current;
@@ -1431,6 +1451,7 @@ const CallingWidget: React.FC<Props> = ({
   const handleControlMessage = async (data: any) => {
     switch (data.type) {
       case "deepgram_ready":
+        stopRingTone();
         clearCallReadyTimeout();
         callReadyRef.current = true;
         setStatus("AI is ready");
@@ -1756,6 +1777,9 @@ const CallingWidget: React.FC<Props> = ({
           `[Cost Control] call_ended received, reason: ${data.reason}`,
         );
         clearCallSafetyTimeouts();
+        if (!callReadyRef.current && data.message) {
+          setStatus(data.message);
+        }
         // Store reason in both state and ref so endCall (triggered by onclose)
         // can access it even if state hasn't flushed yet.
         setCallEndReason(data.reason);

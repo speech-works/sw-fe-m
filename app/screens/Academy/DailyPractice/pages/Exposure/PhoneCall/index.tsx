@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { API_BASE_URL } from "../../../../../../api/constants";
+import { WS_BASE_URL } from "../../../../../../api/constants";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
 import {
   ExposurePracticeType,
@@ -326,7 +326,7 @@ const PhoneCall = () => {
           <CallingWidget
             key={selectedScenario?.id}
             userId={user?.id || ""}
-            websocketUrl={API_BASE_URL.replace(/^http/, "ws")}
+            websocketUrl={WS_BASE_URL || ""}
             scenarioId={selectedScenario?.id}
             scenarioIcon={selectedScenario?.phoneCallData?.icon || "robot"}
             agentName={selectedScenario?.phoneCallData?.agentName || "AI Agent"}

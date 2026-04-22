@@ -2,10 +2,24 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 
+const getRuntimeExtra = (): Record<string, any> => {
+  const constantsAny = Constants as any;
+
+  return (
+    Constants.expoConfig?.extra ??
+    constantsAny.manifest2?.extra?.expoClient?.extra ??
+    constantsAny.manifest2?.extra ??
+    constantsAny.manifest?.extra ??
+    {}
+  );
+};
+
+const runtimeExtra = getRuntimeExtra();
+
 // Android emulators need 10.0.2.2 to access host machine
 // iOS simulators can use the WiFi IP directly
 const getApiBaseUrl = () => {
-  let configuredUrl = Constants.expoConfig?.extra?.API_BASE_URL;
+  let configuredUrl = runtimeExtra.API_BASE_URL;
 
   if (!configuredUrl) {
     console.warn("[API] API_BASE_URL is not defined in Expo config extra.");
@@ -42,7 +56,19 @@ const getApiBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-export const X_APP_SECRET = Constants.expoConfig?.extra?.X_APP_SECRET;
+export const X_APP_SECRET = runtimeExtra.X_APP_SECRET;
+export const WS_BASE_URL = API_BASE_URL
+  ? (() => {
+      try {
+        const url = new URL(API_BASE_URL);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        return url.toString().replace(/\/+$/, "");
+      } catch (error) {
+        console.warn("[API] Failed to derive WebSocket URL:", error);
+        return undefined;
+      }
+    })()
+  : undefined;
 
 console.log(
   `[API] Using API_BASE_URL: ${API_BASE_URL} (Platform: ${Platform.OS}, Dev: ${__DEV__})`,
