@@ -36,7 +36,6 @@ import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";
 import { isHeadsetConnected } from "../util/functions/headset";
 
-// --- ⬇️ MODIFIED: Added agentName and agentDesignation ⬇️ ---
 type CallExitPayload = {
   reason: string | null;
   shouldComplete: boolean;
@@ -394,12 +393,6 @@ registerProcessor("playback-processor", PlaybackProcessor);
 
 // ---- Component starts here ----
 
-// --- ⬇️ MODIFIED: `speaker` is now `string` ⬇️ ---
-type TranscriptItem = {
-  speaker: "You" | string;
-  text: string;
-};
-
 // Helper function to format seconds into MM:SS
 
 const CallingWidget: React.FC<Props> = ({
@@ -411,7 +404,6 @@ const CallingWidget: React.FC<Props> = ({
   ringtoneAsset,
   ringtoneUri,
   scenarioId,
-  agentName,
   scenarioIcon,
   practiceActivityId, // <-- ADDED
 }) => {
@@ -429,7 +421,6 @@ const CallingWidget: React.FC<Props> = ({
   // --- NEW UI STATE ---
   const [isMuted, setIsMuted] = useState(false);
   const [showTips, setShowTips] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [callDuration, setCallDuration] = useState(0);
   // --- ⬇️ MODIFIED: This is now dynamic state ⬇️ ---
   const [suggestedResponses, setSuggestedResponses] = useState<string[]>([]);
@@ -680,6 +671,19 @@ const CallingWidget: React.FC<Props> = ({
 
   const syncAgentSpeakingState = (nextStatus = "Agent is speaking...") => {
     syncCallPlaybackState("agent_playing", nextStatus);
+  };
+
+  const dismissIdleWarning = () => {
+    if (!idleWarningVisible) {
+      return;
+    }
+
+    setIdleWarningVisible(false);
+    setIdleCountdown(null);
+    if (idleCountdownRef.current) {
+      clearInterval(idleCountdownRef.current);
+      idleCountdownRef.current = null;
+    }
   };
 
   const resetPlaybackLifecycleRefs = (clearPlaybackIds = true) => {
@@ -1317,7 +1321,6 @@ const CallingWidget: React.FC<Props> = ({
     syncCallPlaybackState("connecting", "Preparing audio...");
 
     // --- NEW: Reset UI State ---
-    setTranscript([]); // Clear previous transcript
     setCallDuration(0); // Reset timer
     setIsMuted(false); // Ensure not muted
     isMutedRef.current = false;
@@ -1689,54 +1692,18 @@ const CallingWidget: React.FC<Props> = ({
           isMicActive.current = true;
           setSuggestedResponses([]); // <-- ADDED: Clear old suggestions
           setShowNotificationDot(false); // <-- ADDED: Clear dot
-          // Dismiss idle warning if it's showing (user spoke or backend reset)
-          if (idleWarningVisible) {
-            setIdleWarningVisible(false);
-            setIdleCountdown(null);
-            if (idleCountdownRef.current) {
-              clearInterval(idleCountdownRef.current);
-              idleCountdownRef.current = null;
-            }
-          }
+          dismissIdleWarning();
         }
         break;
 
       case "text":
-        // This is assumed to be text from the AI
-        setTranscript((prev) => [
-          ...prev,
-          { speaker: agentName, text: data.data }, // <-- MODIFIED: Use agentName
-        ]);
+        // Agent transcript is intentionally hidden in the call UI.
         break;
 
       case "user_text":
-        // This is text from the User
-        setTranscript((prev) => {
-          const nextEntry = { speaker: "You", text: data.data };
-          const lastEntry = prev[prev.length - 1];
-
-          if (data.isFinal === false) {
-            if (lastEntry?.speaker === "You") {
-              return [...prev.slice(0, -1), nextEntry];
-            }
-            return [...prev, nextEntry];
-          }
-
-          if (lastEntry?.speaker === "You") {
-            return [...prev.slice(0, -1), nextEntry];
-          }
-
-          return [...prev, nextEntry];
-        });
-        // Dismiss idle warning — user spoke, backend will reset its timer
-        if (idleWarningVisible) {
-          setIdleWarningVisible(false);
-          setIdleCountdown(null);
-          if (idleCountdownRef.current) {
-            clearInterval(idleCountdownRef.current);
-            idleCountdownRef.current = null;
-          }
-        }
+        // User transcript is intentionally hidden in the call UI.
+        // We still use this event as a reliable signal that the user spoke.
+        dismissIdleWarning();
         break;
 
       case "play_stream": {
@@ -2023,12 +1990,7 @@ const CallingWidget: React.FC<Props> = ({
         } else {
           syncCallPlaybackState("ending", "Ending call...");
         }
-        // Dismiss any active idle warning
-        setIdleWarningVisible(false);
-        if (idleCountdownRef.current) {
-          clearInterval(idleCountdownRef.current);
-          idleCountdownRef.current = null;
-        }
+        dismissIdleWarning();
         // Do NOT call endCall() or ws.close() here.
         // The backend will close the socket; onclose will trigger endCall.
         break;
@@ -2401,12 +2363,7 @@ const CallingWidget: React.FC<Props> = ({
               <TouchableOpacity
                 style={styles.promptButtonPrimary}
                 onPress={() => {
-                  setIdleWarningVisible(false);
-                  setIdleCountdown(null);
-                  if (idleCountdownRef.current) {
-                    clearInterval(idleCountdownRef.current);
-                    idleCountdownRef.current = null;
-                  }
+                  dismissIdleWarning();
                   try {
                     ws.current?.send(JSON.stringify({ type: "stay_online" }));
                     callDebugLog("[WS] Sent stay_online");
