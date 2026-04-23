@@ -1,8 +1,8 @@
 // notifications.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
+import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { Reminder } from "../../stores/reminders";
 
@@ -111,56 +111,115 @@ export const setupNotificationHandlers = () => {
  * Returns true if permissions are granted, false otherwise.
  */
 export async function registerForNotifications(): Promise<boolean> {
-  // Check if it's a device capable of receiving notifications
-  if (Constants.isDevice) {
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync(
-        DEFAULT_REMINDER_CHANNEL_ID,
-        {
-          name: "Default Reminders",
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250], // Vibrate for 250ms, pause for 250ms, then vibrate for 250ms
-          lightColor: "#FF231F7C",
-          sound: "default", // Use default notification sound
-          showBadge: true,
-        },
-      );
-    }
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync(
+      DEFAULT_REMINDER_CHANNEL_ID,
+      {
+        name: "Default Reminders",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+        sound: "default",
+        showBadge: true,
+      },
+    );
+  }
 
-    const existingSettings = await Notifications.getPermissionsAsync();
-    let isGranted = hasGrantedNotificationPermission(existingSettings);
-
-    // Only ask if permissions have not already been determined
-    if (!isGranted) {
-      const requestSettings = await Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowBadge: true,
-          allowSound: true,
-        },
-      });
-      isGranted = hasGrantedNotificationPermission(requestSettings);
-    }
-
-    if (!isGranted) {
-      console.warn("Permission for notifications not granted!");
-      // You might want to show an Alert here in a real app
-      return false;
-    }
-
-    // You can create more channels if you have different types of reminders
-    // e.g., 'routine_reminders' with different sound/vibration
-    return true;
-  } else {
-    console.log("Must use a physical device for push notifications");
-    // You might want to show an Alert for development/testing in emulator
+  // On emulators/simulators, skip the permission request but still set up channels
+  if (!Device.isDevice) {
+    console.log(
+      "Running on simulator/emulator — skipping notification permission request.",
+    );
     return false;
   }
+
+  const existingSettings = await Notifications.getPermissionsAsync();
+  let isGranted = hasGrantedNotificationPermission(existingSettings);
+
+  // Only ask if permissions have not already been determined
+  if (!isGranted) {
+    const requestSettings = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+      },
+    });
+    isGranted = hasGrantedNotificationPermission(requestSettings);
+  }
+
+  if (!isGranted) {
+    console.warn("Permission for notifications not granted!");
+    return false;
+  }
+
+  return true;
 }
 
 export async function hasNotificationPermission(): Promise<boolean> {
   const settings = await Notifications.getPermissionsAsync();
   return hasGrantedNotificationPermission(settings);
+}
+
+/**
+ * Request notification permission with a user-friendly fallback.
+ * If permission was permanently denied, shows an alert guiding the user
+ * to the device settings screen.
+ * Returns true if permission is granted, false otherwise.
+ */
+export async function requestNotificationPermissionWithFallback(): Promise<boolean> {
+  // 1. Ensure Android channel exists regardless of permission state
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync(
+      DEFAULT_REMINDER_CHANNEL_ID,
+      {
+        name: "Default Reminders",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+        sound: "default",
+        showBadge: true,
+      },
+    );
+  }
+
+  // 2. Check current status
+  const settings = await Notifications.getPermissionsAsync();
+  if (hasGrantedNotificationPermission(settings)) {
+    return true;
+  }
+
+  // 3. If we can still ask (status is undetermined/not yet asked), request it
+  if (settings.canAskAgain) {
+    const requestResult = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+      },
+    });
+    return hasGrantedNotificationPermission(requestResult);
+  }
+
+  // 4. Permission was permanently denied — guide the user to settings
+  return new Promise<boolean>((resolve) => {
+    Alert.alert(
+      "Notifications Disabled",
+      "To receive reminders, please enable notifications for SpeechWorks in your device settings.",
+      [
+        { text: "Not Now", style: "cancel", onPress: () => resolve(false) },
+        {
+          text: "Open Settings",
+          onPress: async () => {
+            await Linking.openSettings();
+            // Re-check after user returns from settings
+            const updated = await Notifications.getPermissionsAsync();
+            resolve(hasGrantedNotificationPermission(updated));
+          },
+        },
+      ],
+    );
+  });
 }
 
 /**

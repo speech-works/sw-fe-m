@@ -19,7 +19,7 @@ import {
   useReminderStore,
 } from "../../../../../stores/reminders";
 import { theme } from "../../../../../Theme/tokens";
-import { registerForNotifications } from "../../../../../util/functions/notifications";
+import { requestNotificationPermissionWithFallback } from "../../../../../util/functions/notifications";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -80,12 +80,11 @@ const Reminder = ({ onReminderSet, renderTrigger }: ReminderProps) => {
   };
 
   const handleSaveReminder = async () => {
-    const hasPermissions = await registerForNotifications();
+    const hasPermissions = await requestNotificationPermissionWithFallback();
     if (!hasPermissions) {
-      Alert.alert(
-        "Permissions Required",
-        "Please enable notification permissions in your device settings.",
-      );
+      // The fallback function already showed the user an alert with
+      // "Open Settings" if permission was permanently denied, or
+      // the user declined the system prompt. Either way, bail out.
       return;
     }
 
