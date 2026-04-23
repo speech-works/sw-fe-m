@@ -119,6 +119,10 @@ const MISSED_SPEECH_WATCHDOG_MS = 2600;
 const LOCAL_SPEECH_COOLDOWN_MS = 650;
 const LOCAL_SPEECH_RMS_THRESHOLD = 0.018;
 const POST_PLAYBACK_READY_DELAY_MS = 120;
+const VISUAL_USER_LISTENING_DELAY_MS = 180;
+const VISUAL_INTERRUPT_MIN_MS = 300;
+const MIC_LEVEL_UPDATE_INTERVAL_MS = 50;
+const MIC_LEVEL_DECAY_MS = 260;
 
 // RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
@@ -425,6 +429,8 @@ const CallingWidget: React.FC<Props> = ({
   const [, setTurn] = useState<"user" | "agent" | null>(null);
   const [callPlaybackState, setCallPlaybackState] =
     useState<CallPlaybackState>("connecting");
+  const [visualCallState, setVisualCallState] =
+    useState<CallPlaybackState>("connecting");
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [headsetConnected, setHeadsetConnected] = useState(
     Platform.OS === "web" ? true : false,
@@ -453,6 +459,16 @@ const CallingWidget: React.FC<Props> = ({
   const ws = useRef<WebSocket | null>(null);
   const componentMountedRef = useRef(true);
   const callPlaybackStateRef = useRef<CallPlaybackState>("connecting");
+  const visualCallStateRef = useRef<CallPlaybackState>("connecting");
+  const visualStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const visualInterruptStartedAtRef = useRef<number | null>(null);
+  const micLevelAnim = useRef(new Animated.Value(0)).current;
+  const micLevelDecayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const lastMicVisualUpdateAtRef = useRef(0);
 
   const playSeq = useRef(0);
   const forcedStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -648,6 +664,41 @@ const CallingWidget: React.FC<Props> = ({
     return count > 0 ? Math.sqrt(sumSquares / count) : 0;
   };
 
+  const updateMicVisualLevel = (rms: number) => {
+    if (visualCallStateRef.current !== "user_listening") {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastMicVisualUpdateAtRef.current < MIC_LEVEL_UPDATE_INTERVAL_MS) {
+      return;
+    }
+    lastMicVisualUpdateAtRef.current = now;
+
+    const normalizedLevel = Math.max(
+      0,
+      Math.min(1, (rms - 0.01) / 0.11),
+    );
+
+    Animated.timing(micLevelAnim, {
+      toValue: normalizedLevel,
+      duration: 80,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+
+    clearTimerRef(micLevelDecayTimeoutRef);
+    micLevelDecayTimeoutRef.current = setTimeout(() => {
+      micLevelDecayTimeoutRef.current = null;
+      Animated.timing(micLevelAnim, {
+        toValue: 0,
+        duration: MIC_LEVEL_DECAY_MS,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }, 160);
+  };
+
   const getPcmArrayBufferFromChunk = (chunk: unknown) => {
     if (typeof chunk === "string") {
       return base64ToArrayBuffer(chunk);
@@ -726,6 +777,7 @@ const CallingWidget: React.FC<Props> = ({
     }
 
     const rms = calculatePcmRms(buffer);
+    updateMicVisualLevel(rms);
     if (rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
       markLocalSpeechDetected(source);
     }
@@ -1050,6 +1102,12 @@ const CallingWidget: React.FC<Props> = ({
     resetThinkingTelemetry();
     clearMissedSpeechCue(true);
     clearTimerRef(postPlaybackReadyTimeoutRef);
+    clearTimerRef(visualStateTimerRef);
+    clearTimerRef(micLevelDecayTimeoutRef);
+    visualCallStateRef.current = "connecting";
+    setVisualCallState("connecting");
+    micLevelAnim.stopAnimation();
+    micLevelAnim.setValue(0);
     await stopNativeRingtone(); // Stop ringtone if playing
 
     callDebugLog("Cleaning up audio state for new call...");
@@ -1605,6 +1663,12 @@ const CallingWidget: React.FC<Props> = ({
     clearCallSafetyTimeouts();
     clearMissedSpeechCue(true);
     clearTimerRef(postPlaybackReadyTimeoutRef);
+    clearTimerRef(visualStateTimerRef);
+    clearTimerRef(micLevelDecayTimeoutRef);
+    visualCallStateRef.current = "connecting";
+    setVisualCallState("connecting");
+    micLevelAnim.stopAnimation();
+    micLevelAnim.setValue(0);
     lastLocalSpeechAtRef.current = 0;
     lastPlaybackCompletedAtRef.current = null;
     if (idleCountdownRef.current) {
@@ -1815,6 +1879,10 @@ const CallingWidget: React.FC<Props> = ({
     clearCallSafetyTimeouts();
     clearMissedSpeechCue();
     clearTimerRef(postPlaybackReadyTimeoutRef);
+    clearTimerRef(visualStateTimerRef);
+    clearTimerRef(micLevelDecayTimeoutRef);
+    micLevelAnim.stopAnimation();
+    micLevelAnim.setValue(0);
 
     // --- NEW: Stop Timer ---
     if (callTimerRef.current) {
@@ -2313,13 +2381,75 @@ const CallingWidget: React.FC<Props> = ({
   const ripple2 = useRef(new Animated.Value(0)).current;
   const ripple3 = useRef(new Animated.Value(0)).current;
   const suggestionBadgePulse = useRef(new Animated.Value(0)).current;
-  const isListeningPlaybackState = callPlaybackState === "user_listening";
-  const isAgentSpeakingPlaybackState = callPlaybackState === "agent_playing";
-  const isAgentPreparingPlaybackState = callPlaybackState === "agent_preparing";
-  const isInterruptingPlaybackState = callPlaybackState === "interrupting";
+
+  useEffect(() => {
+    clearTimerRef(visualStateTimerRef);
+
+    const nextVisualState = callPlaybackState;
+    const currentVisualState = visualCallStateRef.current;
+    if (nextVisualState === currentVisualState) {
+      return;
+    }
+
+    const applyVisualState = () => {
+      visualCallStateRef.current = nextVisualState;
+      setVisualCallState(nextVisualState);
+
+      if (nextVisualState === "interrupting") {
+        visualInterruptStartedAtRef.current = Date.now();
+      } else if (nextVisualState !== "user_listening") {
+        visualInterruptStartedAtRef.current = null;
+        clearTimerRef(micLevelDecayTimeoutRef);
+        Animated.timing(micLevelAnim, {
+          toValue: 0,
+          duration: MIC_LEVEL_DECAY_MS,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }).start();
+      }
+    };
+
+    const scheduleVisualState = (delayMs: number) => {
+      visualStateTimerRef.current = setTimeout(() => {
+        visualStateTimerRef.current = null;
+        applyVisualState();
+      }, delayMs);
+    };
+
+    if (currentVisualState === "interrupting") {
+      const interruptElapsedMs =
+        Date.now() - (visualInterruptStartedAtRef.current ?? Date.now());
+      const remainingMs = Math.max(
+        0,
+        VISUAL_INTERRUPT_MIN_MS - interruptElapsedMs,
+      );
+      scheduleVisualState(remainingMs);
+    } else if (
+      nextVisualState === "agent_playing" ||
+      nextVisualState === "interrupting" ||
+      nextVisualState === "ending" ||
+      nextVisualState === "technical_difficulty" ||
+      nextVisualState === "connecting"
+    ) {
+      applyVisualState();
+    } else if (nextVisualState === "user_listening") {
+      scheduleVisualState(VISUAL_USER_LISTENING_DELAY_MS);
+    } else if (nextVisualState === "agent_preparing") {
+      scheduleVisualState(120);
+    }
+
+    return () => {
+      clearTimerRef(visualStateTimerRef);
+    };
+  }, [callPlaybackState, micLevelAnim]);
+
+  const isListeningPlaybackState = visualCallState === "user_listening";
+  const isAgentSpeakingPlaybackState = visualCallState === "agent_playing";
+  const isAgentPreparingPlaybackState = visualCallState === "agent_preparing";
+  const isInterruptingPlaybackState = visualCallState === "interrupting";
   const isTerminalPlaybackState =
-    callPlaybackState === "ending" ||
-    callPlaybackState === "technical_difficulty";
+    visualCallState === "ending" ||
+    visualCallState === "technical_difficulty";
   const isUserVisualPrimary =
     isListeningPlaybackState || isInterruptingPlaybackState;
   const isAgentVisualPrimary = isAgentSpeakingPlaybackState;
@@ -2328,11 +2458,37 @@ const CallingWidget: React.FC<Props> = ({
     isAgentSpeakingPlaybackState ||
     isInterruptingPlaybackState ||
     missedSpeechCueVisible;
+  const isUserMicRipple =
+    isListeningPlaybackState &&
+    !missedSpeechCueVisible &&
+    !isInterruptingPlaybackState;
   const rippleTint = isAgentSpeakingPlaybackState
     ? "rgba(249, 115, 22, 0.35)"
     : missedSpeechCueVisible
       ? "rgba(14, 165, 233, 0.38)"
     : "rgba(59, 130, 246, 0.28)";
+
+  const getUserMicRippleOpacity = (index: number) => {
+    if (index === 0) {
+      return micLevelAnim.interpolate({
+        inputRange: [0, 0.08, 1],
+        outputRange: [0.05, 0.42, 0.78],
+        extrapolate: "clamp",
+      });
+    }
+    if (index === 1) {
+      return micLevelAnim.interpolate({
+        inputRange: [0, 0.34, 0.62, 1],
+        outputRange: [0, 0, 0.36, 0.68],
+        extrapolate: "clamp",
+      });
+    }
+    return micLevelAnim.interpolate({
+      inputRange: [0, 0.62, 0.84, 1],
+      outputRange: [0, 0, 0.34, 0.62],
+      extrapolate: "clamp",
+    });
+  };
 
   useEffect(() => {
     const createRipple = (anim: Animated.Value, delay: number) => {
@@ -2521,16 +2677,36 @@ const CallingWidget: React.FC<Props> = ({
                       borderColor: rippleTint,
                       transform: [
                         {
-                          scale: anim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0.8, 3],
-                          }),
+                          scale: isUserMicRipple
+                            ? Animated.add(
+                                anim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [0.7, 1.15 + index * 0.34],
+                                }),
+                                micLevelAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [0, 1.2 + index * 0.16],
+                                  extrapolate: "clamp",
+                                }),
+                              )
+                            : anim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.8, 3],
+                              }),
                         },
                       ],
-                      opacity: anim.interpolate({
-                        inputRange: [0, 0.2, 1],
-                        outputRange: [0, 0.38, 0],
-                      }),
+                      opacity: isUserMicRipple
+                        ? Animated.multiply(
+                            anim.interpolate({
+                              inputRange: [0, 0.2, 1],
+                              outputRange: [0.18, 1, 0.08],
+                            }),
+                            getUserMicRippleOpacity(index),
+                          )
+                        : anim.interpolate({
+                            inputRange: [0, 0.2, 1],
+                            outputRange: [0, 0.38, 0],
+                          }),
                     },
                   ]}
                 />
@@ -2570,6 +2746,30 @@ const CallingWidget: React.FC<Props> = ({
           </Animated.View>
 
           <Animated.View style={userOrbSlotStyle}>
+            {isListeningPlaybackState && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.micLevelHalo,
+                  {
+                    opacity: micLevelAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.08, 0.5],
+                      extrapolate: "clamp",
+                    }),
+                    transform: [
+                      {
+                        scale: micLevelAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.92, 1.22],
+                          extrapolate: "clamp",
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            )}
             <View style={styles.orbWrapper}>
               <LinearGradient
                 colors={["#082F49", "#020617"]}
@@ -2984,6 +3184,16 @@ const styles = StyleSheet.create({
       android: { elevation: 15 },
       web: { boxShadow: `0 10px 30px rgba(0,0,0,0.5)` },
     }),
+  },
+  micLevelHalo: {
+    position: "absolute",
+    top: -8,
+    width: 156,
+    height: 156,
+    borderRadius: 78,
+    borderWidth: 2,
+    borderColor: "rgba(56, 189, 248, 0.7)",
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
   },
   orbMask: {
     width: 140,
