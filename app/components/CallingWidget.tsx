@@ -107,6 +107,7 @@ const FADE_MS = 12;
 const WS_CONNECT_TIMEOUT_MS = 12000;
 const CALL_READY_TIMEOUT_MS = 15000;
 const AUDIO_START_TIMEOUT_MS = 12000;
+const THINKING_LABEL_DELAY_MS = 350;
 
 // RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
@@ -435,6 +436,7 @@ const CallingWidget: React.FC<Props> = ({
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
+  const callPlaybackStateRef = useRef<CallPlaybackState>("connecting");
 
   const playSeq = useRef(0);
   const forcedStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -499,6 +501,9 @@ const CallingWidget: React.FC<Props> = ({
   const audioStartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const thinkingLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const agentAudioStartedRef = useRef(false);
   const currentPlaybackJobIdRef = useRef<string | null>(null);
   const currentPlaybackResponseIdRef = useRef<string | null>(null);
@@ -506,6 +511,8 @@ const CallingWidget: React.FC<Props> = ({
   const currentPlaybackStartedAtMsRef = useRef<number | null>(null);
   const playbackStartedAckSentRef = useRef(false);
   const voiceCallV1EnabledRef = useRef(true);
+  const agentPreparingStartedAtRef = useRef<number | null>(null);
+  const thinkingVisibleAtRef = useRef<number | null>(null);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -614,13 +621,43 @@ const CallingWidget: React.FC<Props> = ({
     clearTimerRef(audioStartTimeoutRef);
   };
 
+  const resetThinkingTelemetry = () => {
+    clearTimerRef(thinkingLabelTimeoutRef);
+    agentPreparingStartedAtRef.current = null;
+    thinkingVisibleAtRef.current = null;
+  };
+
+  const scheduleThinkingLabel = () => {
+    clearTimerRef(thinkingLabelTimeoutRef);
+    if (!agentPreparingStartedAtRef.current) {
+      return;
+    }
+
+    thinkingLabelTimeoutRef.current = setTimeout(() => {
+      thinkingLabelTimeoutRef.current = null;
+      if (
+        isStopping.current ||
+        callPlaybackStateRef.current !== "agent_preparing" ||
+        hasStartedPlaying.current
+      ) {
+        return;
+      }
+
+      thinkingVisibleAtRef.current = Date.now();
+      setStatus("Thinking...");
+    }, THINKING_LABEL_DELAY_MS);
+  };
+
   const syncCallPlaybackState = (
     nextState: CallPlaybackState,
     nextStatus?: string,
   ) => {
+    const previousState = callPlaybackStateRef.current;
+    callPlaybackStateRef.current = nextState;
     setCallPlaybackState(nextState);
     switch (nextState) {
       case "user_listening":
+        resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn("user");
         setStatus(nextStatus ?? "Listening...");
@@ -628,30 +665,42 @@ const CallingWidget: React.FC<Props> = ({
       case "agent_preparing":
         setIsAgentAudioPlaying(false);
         setTurn("agent");
-        setStatus(nextStatus ?? "Preparing agent audio...");
+        if (previousState !== "agent_preparing") {
+          agentPreparingStartedAtRef.current = Date.now();
+          thinkingVisibleAtRef.current = null;
+          scheduleThinkingLabel();
+        }
+        if (nextStatus) {
+          setStatus(nextStatus);
+        }
         break;
       case "agent_playing":
+        clearTimerRef(thinkingLabelTimeoutRef);
         setIsAgentAudioPlaying(true);
         setTurn("agent");
         setStatus(nextStatus ?? "Agent is speaking...");
         break;
       case "interrupting":
+        resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn("user");
         setStatus(nextStatus ?? "Interrupting agent...");
         break;
       case "ending":
+        resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn(null);
         setStatus(nextStatus ?? "Ending call...");
         break;
       case "technical_difficulty":
+        resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn(null);
         setStatus(nextStatus ?? "Technical difficulty");
         break;
       case "connecting":
       default:
+        resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn(null);
         setStatus(nextStatus ?? "Connecting...");
@@ -663,9 +712,7 @@ const CallingWidget: React.FC<Props> = ({
     syncCallPlaybackState("user_listening", nextStatus);
   };
 
-  const syncAgentPreparingState = (
-    nextStatus = "Preparing agent audio...",
-  ) => {
+  const syncAgentPreparingState = (nextStatus?: string) => {
     syncCallPlaybackState("agent_preparing", nextStatus);
   };
 
@@ -762,9 +809,15 @@ const CallingWidget: React.FC<Props> = ({
     currentPlaybackStartedAtMsRef.current = Date.now();
     agentAudioStartedRef.current = true;
     clearAudioStartTimeout();
+    const thinkingVisible = thinkingVisibleAtRef.current !== null;
+    const thinkingVisibleMs = thinkingVisible
+      ? Math.max(0, Date.now() - thinkingVisibleAtRef.current!)
+      : 0;
     syncAgentSpeakingState();
     sendPlaybackLifecycleEvent("playback_started", {
       startedAtClientMs: currentPlaybackStartedAtMsRef.current,
+      thinkingVisible,
+      thinkingVisibleMs,
     });
   };
 
@@ -799,6 +852,7 @@ const CallingWidget: React.FC<Props> = ({
     callId.current += 1; // Increment call ID to invalidate handlers
     isStopping.current = true; // Set stopping flag
     clearCallSafetyTimeouts();
+    resetThinkingTelemetry();
     await stopNativeRingtone(); // Stop ringtone if playing
 
     callDebugLog("Cleaning up audio state for new call...");
@@ -910,6 +964,10 @@ const CallingWidget: React.FC<Props> = ({
   };
 
   // --- ⬇️ MODIFIED: `useEffect` simplified ⬇️ ---
+  useEffect(() => {
+    callPlaybackStateRef.current = callPlaybackState;
+  }, [callPlaybackState]);
+
   useEffect(() => {
     updateHeadsetStatus(false); // Check status but don't popup yet
     return () => {
@@ -1441,7 +1499,7 @@ const CallingWidget: React.FC<Props> = ({
             parsed = JSON.parse(msg.data);
             callDebugLog(`[WS MESSAGE REACHED FRONTEND] Type: ${parsed?.type}`);
             if (parsed.type === "agent_speaking") {
-              syncAgentPreparingState("Preparing agent audio...");
+              syncAgentPreparingState();
               // setIsAgentSpeaking(true); // This state is not defined in the original code
             } else if (parsed.type === "agent_listening") {
               // This case is handled by handleControlMessage's 'turn: user'
@@ -1685,7 +1743,7 @@ const CallingWidget: React.FC<Props> = ({
       case "turn":
         if (data.turn === "agent") {
           stopRingTone();
-          syncAgentPreparingState("Agent is preparing a reply...");
+          syncAgentPreparingState();
         } else if (data.turn === "user") {
           syncUserListeningState();
           callDebugLog("[Mic] Activating mic via 'turn: user' command.");
@@ -1710,7 +1768,7 @@ const CallingWidget: React.FC<Props> = ({
         callDebugLog("[WS] Received play_stream command.");
         clearCallReadyTimeout();
         stopRingTone();
-        syncAgentPreparingState("Preparing agent audio...");
+        syncAgentPreparingState();
 
         // --- ⬇️ ADDED: Set new suggestions & notification dot ⬇️ ---
         if (data.suggestions && data.suggestions.length > 0) {
