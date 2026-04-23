@@ -85,6 +85,7 @@ const PhoneCall = () => {
   const [isDone, setIsDone] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [completeOnCallEndAck, setCompleteOnCallEndAck] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
   const markActivityStart = async (): Promise<string | null> => {
@@ -189,11 +190,11 @@ const PhoneCall = () => {
     effortScore: number;
     autonomyScore: number;
     accuracyScore?: number;
-  }) => {
-    if (!currentActivityId) return;
+  }): Promise<boolean> => {
+    if (!currentActivityId) return false;
     const userId = user?.id; // Always use real ID from store if available
 
-    if (!userId) return;
+    if (!userId) return false;
 
     try {
       const completedActivity = await completePracticeActivity({
@@ -212,8 +213,10 @@ const PhoneCall = () => {
       // Clear the local activity ID state so starting another call creates a new one
       setCurrentActivityId(null);
       setIsDone(true);
+      return true;
     } catch (error) {
       console.error("Failed to complete phone call activity", error);
+      return false;
     }
   };
 
@@ -255,6 +258,11 @@ const PhoneCall = () => {
     if (!currentActivityId) return;
 
     if (shouldComplete) {
+      if (reason === "limit_reached") {
+        setCompleteOnCallEndAck(true);
+        return;
+      }
+
       setShowVitalsModal(true);
       return;
     }
@@ -262,6 +270,22 @@ const PhoneCall = () => {
     await abortCurrentActivity(
       reason === "technical_difficulty" || reason === null,
     );
+  };
+
+  const handleCallEndAcknowledged = async ({
+    reason,
+  }: {
+    reason: string | null;
+  }) => {
+    if (reason !== "limit_reached" || !completeOnCallEndAck) {
+      return;
+    }
+
+    const didComplete = await markActivityComplete();
+    if (!didComplete) {
+      throw new Error("Failed to complete phone call activity");
+    }
+    setCompleteOnCallEndAck(false);
   };
 
   const handleVitalsSubmit = async (vitals?: {
@@ -379,6 +403,7 @@ const PhoneCall = () => {
             ringtoneAsset={RINGING_SOUND_FILE}
             onCallStart={markActivityStart}
             onCallEnd={handleCallEnd}
+            onCallEndAcknowledged={handleCallEndAcknowledged}
           />
         </View>
       </View>

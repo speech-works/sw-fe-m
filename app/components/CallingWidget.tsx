@@ -41,6 +41,10 @@ type CallExitPayload = {
   shouldComplete: boolean;
 };
 
+type CallEndAcknowledgementPayload = {
+  reason: string | null;
+};
+
 type CallPlaybackState =
   | "connecting"
   | "user_listening"
@@ -56,6 +60,9 @@ type Props = {
   sampleRate?: number;
   onCallStart?: () => Promise<string | null>;
   onCallEnd?: (payload: CallExitPayload) => void | Promise<void>;
+  onCallEndAcknowledged?: (
+    payload: CallEndAcknowledgementPayload,
+  ) => void | Promise<void>;
   ringtoneAsset?: number;
   ringtoneUri?: string;
   scenarioId?: string;
@@ -406,6 +413,7 @@ const CallingWidget: React.FC<Props> = ({
   sampleRate = DEFAULT_SAMPLE_RATE,
   onCallStart,
   onCallEnd,
+  onCallEndAcknowledged,
   ringtoneAsset,
   ringtoneUri,
   scenarioId,
@@ -437,11 +445,13 @@ const CallingWidget: React.FC<Props> = ({
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
   const [maxTurns, setMaxTurns] = useState<number | null>(null);
   const [, setIsAgentAudioPlaying] = useState(false);
+  const [isCallEndAckInProgress, setIsCallEndAckInProgress] = useState(false);
   const [missedSpeechCueVisible, setMissedSpeechCueVisible] = useState(false);
   const [missedSpeechCueCount, setMissedSpeechCueCount] = useState(0);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
+  const componentMountedRef = useRef(true);
   const callPlaybackStateRef = useRef<CallPlaybackState>("connecting");
 
   const playSeq = useRef(0);
@@ -536,6 +546,13 @@ const CallingWidget: React.FC<Props> = ({
   const checkHeadsetConnected = async (): Promise<boolean> => {
     return isHeadsetConnected();
   };
+
+  useEffect(() => {
+    componentMountedRef.current = true;
+    return () => {
+      componentMountedRef.current = false;
+    };
+  }, []);
 
   // --- ⬇️ MODIFIED: `updateHeadsetStatus` with prompt control ⬇️ ---
   const updateHeadsetStatus = async (
@@ -1579,6 +1596,7 @@ const CallingWidget: React.FC<Props> = ({
     setIdleWarningVisible(false);
     setIdleCountdown(null);
     setCallEndReason(null);
+    setIsCallEndAckInProgress(false);
     callEndReasonRef.current = null;
     callReadyRef.current = false;
     agentAudioStartedRef.current = false;
@@ -2293,6 +2311,7 @@ const CallingWidget: React.FC<Props> = ({
   const ripple1 = useRef(new Animated.Value(0)).current;
   const ripple2 = useRef(new Animated.Value(0)).current;
   const ripple3 = useRef(new Animated.Value(0)).current;
+  const suggestionBadgePulse = useRef(new Animated.Value(0)).current;
   const isListeningPlaybackState = callPlaybackState === "user_listening";
   const isAgentSpeakingPlaybackState = callPlaybackState === "agent_playing";
   const isAgentPreparingPlaybackState = callPlaybackState === "agent_preparing";
@@ -2351,6 +2370,36 @@ const CallingWidget: React.FC<Props> = ({
       r3.stop();
     };
   }, [ripple1, ripple2, ripple3, shouldShowRipple]);
+
+  useEffect(() => {
+    if (!showNotificationDot) {
+      suggestionBadgePulse.stopAnimation();
+      suggestionBadgePulse.setValue(0);
+      return;
+    }
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(suggestionBadgePulse, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(suggestionBadgePulse, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    pulse.start();
+    return () => {
+      pulse.stop();
+    };
+  }, [showNotificationDot, suggestionBadgePulse]);
 
   // --- ⬇️ ADDED: Call Button Expansion & Slide Up Animation ⬇️ ---
   const callBtnScale = useRef(new Animated.Value(1)).current;
@@ -2420,6 +2469,15 @@ const CallingWidget: React.FC<Props> = ({
   const visibleStatus = isCalling
     ? userFallbackText || status
     : "Ready to Connect";
+  const suggestionBadgeCount = Math.min(suggestedResponses.length, 9);
+  const suggestionBadgeScale = suggestionBadgePulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.18],
+  });
+  const suggestionBadgeOpacity = suggestionBadgePulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.86, 1],
+  });
 
   // --- ⬇️ MODIFIED: Render function updated ⬇️ ---
   return (
@@ -2691,7 +2749,21 @@ const CallingWidget: React.FC<Props> = ({
               color={showTips ? "#FFF" : "rgba(255,255,255,0.7)"}
             />
           </TouchableOpacity>
-          {showNotificationDot && <View style={styles.notificationDotModern} />}
+          {showNotificationDot && (
+            <Animated.View
+              style={[
+                styles.notificationBadgeModern,
+                {
+                  opacity: suggestionBadgeOpacity,
+                  transform: [{ scale: suggestionBadgeScale }],
+                },
+              ]}
+            >
+              <Text style={styles.notificationBadgeText}>
+                {suggestionBadgeCount}
+              </Text>
+            </Animated.View>
+          )}
         </View>
       </View>
 
@@ -2778,13 +2850,36 @@ const CallingWidget: React.FC<Props> = ({
             </Text>
             <View style={styles.promptButtonRow}>
               <TouchableOpacity
-                style={styles.promptButtonPrimary}
-                onPress={() => {
-                  setCallEndReason(null);
-                  callEndReasonRef.current = null;
+                style={[
+                  styles.promptButtonPrimary,
+                  isCallEndAckInProgress && styles.promptButtonDisabled,
+                ]}
+                disabled={isCallEndAckInProgress}
+                onPress={async () => {
+                  const reason = callEndReason;
+                  setIsCallEndAckInProgress(true);
+                  try {
+                    await onCallEndAcknowledged?.({ reason });
+                    if (componentMountedRef.current) {
+                      setCallEndReason(null);
+                      callEndReasonRef.current = null;
+                    }
+                  } catch (error) {
+                    console.warn("Error acknowledging call end:", error);
+                  } finally {
+                    if (componentMountedRef.current) {
+                      setIsCallEndAckInProgress(false);
+                    }
+                  }
                 }}
               >
-                <Text style={styles.promptButtonTextPri}>Got it</Text>
+                <Text style={styles.promptButtonTextPri}>
+                  {isCallEndAckInProgress
+                    ? "Completing..."
+                    : callEndReason === "limit_reached"
+                      ? "Done"
+                      : "Got it"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3094,16 +3189,29 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)", // Glassy disabled state
     shadowOpacity: 0,
   },
-  notificationDotModern: {
+  notificationBadgeModern: {
     position: "absolute",
-    top: 4,
-    right: 6,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: "#F43F5E",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: "#1E293B", // Match bg
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F43F5E",
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  notificationBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 13,
   },
 
   // Headset Prompt - Refined
@@ -3164,6 +3272,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
+  },
+  promptButtonDisabled: {
+    opacity: 0.72,
   },
   promptButtonTextPri: {
     color: "#FFFFFF",
