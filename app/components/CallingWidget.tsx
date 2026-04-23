@@ -108,6 +108,10 @@ const WS_CONNECT_TIMEOUT_MS = 12000;
 const CALL_READY_TIMEOUT_MS = 15000;
 const AUDIO_START_TIMEOUT_MS = 12000;
 const THINKING_LABEL_DELAY_MS = 350;
+const MISSED_SPEECH_WATCHDOG_MS = 2600;
+const LOCAL_SPEECH_COOLDOWN_MS = 650;
+const LOCAL_SPEECH_RMS_THRESHOLD = 0.018;
+const POST_PLAYBACK_READY_DELAY_MS = 120;
 
 // RESAMPLER WORKLET (unchanged)
 const RESAMPLER_WORKLET_CODE = `
@@ -433,6 +437,8 @@ const CallingWidget: React.FC<Props> = ({
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
   const [maxTurns, setMaxTurns] = useState<number | null>(null);
   const [, setIsAgentAudioPlaying] = useState(false);
+  const [missedSpeechCueVisible, setMissedSpeechCueVisible] = useState(false);
+  const [missedSpeechCueCount, setMissedSpeechCueCount] = useState(0);
   // --- ⬆️ END NEW UI STATE ⬆️ ---
 
   const ws = useRef<WebSocket | null>(null);
@@ -504,6 +510,11 @@ const CallingWidget: React.FC<Props> = ({
   const thinkingLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const missedSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const postPlaybackReadyTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
   const agentAudioStartedRef = useRef(false);
   const currentPlaybackJobIdRef = useRef<string | null>(null);
   const currentPlaybackResponseIdRef = useRef<string | null>(null);
@@ -513,6 +524,8 @@ const CallingWidget: React.FC<Props> = ({
   const voiceCallV1EnabledRef = useRef(true);
   const agentPreparingStartedAtRef = useRef<number | null>(null);
   const thinkingVisibleAtRef = useRef<number | null>(null);
+  const lastLocalSpeechAtRef = useRef(0);
+  const lastPlaybackCompletedAtRef = useRef<number | null>(null);
   // --- ⬆️ END NEW REFS ⬆️ ---
 
   // (awaitPlaybackWorkletDrain function is unchanged)
@@ -564,6 +577,169 @@ const CallingWidget: React.FC<Props> = ({
     clearTimerRef(wsConnectTimeoutRef);
     clearTimerRef(callReadyTimeoutRef);
     clearTimerRef(audioStartTimeoutRef);
+  };
+
+  const sendClientTrace = (stage: string, details: Record<string, unknown>) => {
+    if (ws.current?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    ws.current.send(
+      JSON.stringify({
+        type: "client_trace",
+        stage,
+        ...details,
+      }),
+    );
+  };
+
+  const clearMissedSpeechCue = (resetCount = false) => {
+    clearTimerRef(missedSpeechTimeoutRef);
+    setMissedSpeechCueVisible(false);
+    if (resetCount) {
+      setMissedSpeechCueCount(0);
+    }
+  };
+
+  const markBackendSpeechProgress = () => {
+    clearMissedSpeechCue();
+  };
+
+  const isMicCaptureReady = () =>
+    audioState.current === "STARTED" &&
+    !isMutedRef.current &&
+    (Platform.OS === "web" || micStream.current !== null);
+
+  const calculatePcmRms = (buffer: ArrayBuffer) => {
+    const totalSamples = Math.floor(buffer.byteLength / 2);
+    if (totalSamples <= 0) {
+      return 0;
+    }
+
+    const view = new DataView(buffer);
+    const sampleBudget = Math.min(400, totalSamples);
+    const stride = Math.max(1, Math.floor(totalSamples / sampleBudget));
+    let sumSquares = 0;
+    let count = 0;
+
+    for (let sampleIndex = 0; sampleIndex < totalSamples; sampleIndex += stride) {
+      const sample = view.getInt16(sampleIndex * 2, true) / 32768;
+      sumSquares += sample * sample;
+      count += 1;
+    }
+
+    return count > 0 ? Math.sqrt(sumSquares / count) : 0;
+  };
+
+  const getPcmArrayBufferFromChunk = (chunk: unknown) => {
+    if (typeof chunk === "string") {
+      return base64ToArrayBuffer(chunk);
+    }
+
+    if (chunk instanceof ArrayBuffer) {
+      return chunk;
+    }
+
+    const maybeView = chunk as ArrayBufferView | null;
+    if (
+      maybeView &&
+      maybeView.buffer instanceof ArrayBuffer &&
+      typeof maybeView.byteOffset === "number" &&
+      typeof maybeView.byteLength === "number"
+    ) {
+      return maybeView.buffer.slice(
+        maybeView.byteOffset,
+        maybeView.byteOffset + maybeView.byteLength,
+      );
+    }
+
+    return null;
+  };
+
+  const scheduleMissedSpeechWatchdog = (speechAt: number) => {
+    clearTimerRef(missedSpeechTimeoutRef);
+    missedSpeechTimeoutRef.current = setTimeout(() => {
+      missedSpeechTimeoutRef.current = null;
+      if (
+        isStopping.current ||
+        callPlaybackStateRef.current !== "user_listening" ||
+        lastLocalSpeechAtRef.current !== speechAt
+      ) {
+        return;
+      }
+
+      setMissedSpeechCueVisible(true);
+      setMissedSpeechCueCount((count) => count + 1);
+    }, MISSED_SPEECH_WATCHDOG_MS);
+  };
+
+  const markLocalSpeechDetected = (source: "web" | "native") => {
+    if (
+      isStopping.current ||
+      isMutedRef.current ||
+      callPlaybackStateRef.current !== "user_listening"
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastLocalSpeechAtRef.current < LOCAL_SPEECH_COOLDOWN_MS) {
+      return;
+    }
+
+    lastLocalSpeechAtRef.current = now;
+    setMissedSpeechCueVisible(false);
+    scheduleMissedSpeechWatchdog(now);
+
+    const playbackCompletedAt = lastPlaybackCompletedAtRef.current;
+    if (playbackCompletedAt && now - playbackCompletedAt < 1800) {
+      sendClientTrace("post_playback_speech_detected", {
+        source,
+        msAfterPlaybackComplete: now - playbackCompletedAt,
+      });
+    }
+  };
+
+  const detectLocalSpeechFromPcm = (
+    buffer: ArrayBuffer,
+    source: "web" | "native",
+  ) => {
+    if (callPlaybackStateRef.current !== "user_listening") {
+      return;
+    }
+
+    const rms = calculatePcmRms(buffer);
+    if (rms >= LOCAL_SPEECH_RMS_THRESHOLD) {
+      markLocalSpeechDetected(source);
+    }
+  };
+
+  const transitionToUserReadyAfterPlayback = (
+    playbackCompletedAt: number,
+    attempt = 0,
+  ) => {
+    lastPlaybackCompletedAtRef.current = playbackCompletedAt;
+    clearTimerRef(postPlaybackReadyTimeoutRef);
+    isMicActive.current = true;
+
+    postPlaybackReadyTimeoutRef.current = setTimeout(() => {
+      postPlaybackReadyTimeoutRef.current = null;
+      if (isStopping.current) {
+        return;
+      }
+
+      if (!isMicCaptureReady() && attempt < 5) {
+        transitionToUserReadyAfterPlayback(playbackCompletedAt, attempt + 1);
+        return;
+      }
+
+      const playbackCompleteToUserReadyMs = Date.now() - playbackCompletedAt;
+      syncUserListeningState();
+      sendClientTrace("playback_complete_to_user_ready", {
+        playbackCompleteToUserReadyMs,
+        micCaptureReady: isMicCaptureReady(),
+      });
+    }, POST_PLAYBACK_READY_DELAY_MS);
   };
 
   const scheduleWsConnectTimeout = () => {
@@ -660,9 +836,10 @@ const CallingWidget: React.FC<Props> = ({
         resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn("user");
-        setStatus(nextStatus ?? "Listening...");
+        setStatus(nextStatus ?? "");
         break;
       case "agent_preparing":
+        clearMissedSpeechCue();
         setIsAgentAudioPlaying(false);
         setTurn("agent");
         if (previousState !== "agent_preparing") {
@@ -675,6 +852,7 @@ const CallingWidget: React.FC<Props> = ({
         }
         break;
       case "agent_playing":
+        clearMissedSpeechCue();
         clearTimerRef(thinkingLabelTimeoutRef);
         setIsAgentAudioPlaying(true);
         setTurn("agent");
@@ -684,7 +862,7 @@ const CallingWidget: React.FC<Props> = ({
         resetThinkingTelemetry();
         setIsAgentAudioPlaying(false);
         setTurn("user");
-        setStatus(nextStatus ?? "Interrupting agent...");
+        setStatus(nextStatus ?? "");
         break;
       case "ending":
         resetThinkingTelemetry();
@@ -708,7 +886,7 @@ const CallingWidget: React.FC<Props> = ({
     }
   };
 
-  const syncUserListeningState = (nextStatus = "Listening...") => {
+  const syncUserListeningState = (nextStatus = "") => {
     syncCallPlaybackState("user_listening", nextStatus);
   };
 
@@ -853,6 +1031,8 @@ const CallingWidget: React.FC<Props> = ({
     isStopping.current = true; // Set stopping flag
     clearCallSafetyTimeouts();
     resetThinkingTelemetry();
+    clearMissedSpeechCue(true);
+    clearTimerRef(postPlaybackReadyTimeoutRef);
     await stopNativeRingtone(); // Stop ringtone if playing
 
     callDebugLog("Cleaning up audio state for new call...");
@@ -1198,12 +1378,13 @@ const CallingWidget: React.FC<Props> = ({
               clearTimeout(finalFallbackId.current);
               finalFallbackId.current = null;
             }
-            syncUserListeningState();
+            const playbackCompletedAt = Date.now();
             // Notify backend that playback finished naturally
             try {
               sendPlaybackComplete();
               resetPlaybackLifecycleRefs();
             } catch {}
+            transitionToUserReadyAfterPlayback(playbackCompletedAt);
           }
         };
         if (pendingChunks.current.length > 0) {
@@ -1224,6 +1405,7 @@ const CallingWidget: React.FC<Props> = ({
           if (myCallId !== callId.current || isMutedRef.current) return; // <-- MUTE CHECK
           const pcmArrayBuffer = ev.data as ArrayBuffer;
           const ab = pcmArrayBuffer.slice(0);
+          detectLocalSpeechFromPcm(ab, "web");
 
           if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             try {
@@ -1318,6 +1500,16 @@ const CallingWidget: React.FC<Props> = ({
         // --- MUTE CHECK ADDED HERE ---
         stream.addChunkListener((chunkBase64) => {
           if (isMutedRef.current) return; // <-- MUTE CHECK
+          if (callPlaybackStateRef.current === "user_listening") {
+            try {
+              const pcmBuffer = getPcmArrayBufferFromChunk(chunkBase64);
+              if (pcmBuffer) {
+                detectLocalSpeechFromPcm(pcmBuffer, "native");
+              }
+            } catch (error) {
+              console.warn("Failed to inspect native mic energy:", error);
+            }
+          }
 
           if (ws.current && ws.current.readyState === WebSocket.OPEN) {
             try {
@@ -1393,6 +1585,10 @@ const CallingWidget: React.FC<Props> = ({
     setIsAgentAudioPlaying(false);
     setMaxTurns(null);
     clearCallSafetyTimeouts();
+    clearMissedSpeechCue(true);
+    clearTimerRef(postPlaybackReadyTimeoutRef);
+    lastLocalSpeechAtRef.current = 0;
+    lastPlaybackCompletedAtRef.current = null;
     if (idleCountdownRef.current) {
       clearInterval(idleCountdownRef.current);
       idleCountdownRef.current = null;
@@ -1599,6 +1795,8 @@ const CallingWidget: React.FC<Props> = ({
     audioState.current = "STOPPING";
     isStopping.current = true;
     clearCallSafetyTimeouts();
+    clearMissedSpeechCue();
+    clearTimerRef(postPlaybackReadyTimeoutRef);
 
     // --- NEW: Stop Timer ---
     if (callTimerRef.current) {
@@ -1742,9 +1940,11 @@ const CallingWidget: React.FC<Props> = ({
 
       case "turn":
         if (data.turn === "agent") {
+          markBackendSpeechProgress();
           stopRingTone();
           syncAgentPreparingState();
         } else if (data.turn === "user") {
+          markBackendSpeechProgress();
           syncUserListeningState();
           callDebugLog("[Mic] Activating mic via 'turn: user' command.");
           isMicActive.current = true;
@@ -1761,11 +1961,13 @@ const CallingWidget: React.FC<Props> = ({
       case "user_text":
         // User transcript is intentionally hidden in the call UI.
         // We still use this event as a reliable signal that the user spoke.
+        markBackendSpeechProgress();
         dismissIdleWarning();
         break;
 
       case "play_stream": {
         callDebugLog("[WS] Received play_stream command.");
+        markBackendSpeechProgress();
         clearCallReadyTimeout();
         stopRingTone();
         syncAgentPreparingState();
@@ -1890,6 +2092,7 @@ const CallingWidget: React.FC<Props> = ({
                   clearAudioStartTimeout();
                   callDebugLog("[Audio] playback didJustFinish");
                   if (mySeq === playSeq.current) {
+                    const playbackCompletedAt = Date.now();
                     try {
                       await newSound.unloadAsync();
                     } catch {}
@@ -1910,7 +2113,7 @@ const CallingWidget: React.FC<Props> = ({
                       return;
                     }
 
-                    syncUserListeningState();
+                    transitionToUserReadyAfterPlayback(playbackCompletedAt);
                     callDebugLog(
                       "[Audio] Transitioned turn back to user after natural playback finish.",
                     );
@@ -1966,7 +2169,7 @@ const CallingWidget: React.FC<Props> = ({
 
       // (stop_playback case is unchanged)
       case "stop_playback": {
-        syncCallPlaybackState("interrupting", "Interrupting agent...");
+        syncCallPlaybackState("interrupting");
         const soundToStop = soundRef.current;
         soundRef.current = null;
         setSound(null);
@@ -2092,8 +2295,23 @@ const CallingWidget: React.FC<Props> = ({
   const ripple3 = useRef(new Animated.Value(0)).current;
   const isListeningPlaybackState = callPlaybackState === "user_listening";
   const isAgentSpeakingPlaybackState = callPlaybackState === "agent_playing";
+  const isAgentPreparingPlaybackState = callPlaybackState === "agent_preparing";
+  const isInterruptingPlaybackState = callPlaybackState === "interrupting";
+  const isTerminalPlaybackState =
+    callPlaybackState === "ending" ||
+    callPlaybackState === "technical_difficulty";
+  const isUserVisualPrimary =
+    isListeningPlaybackState || isInterruptingPlaybackState;
+  const isAgentVisualPrimary = isAgentSpeakingPlaybackState;
+  const shouldShowRipple =
+    isListeningPlaybackState ||
+    isAgentSpeakingPlaybackState ||
+    isInterruptingPlaybackState ||
+    missedSpeechCueVisible;
   const rippleTint = isAgentSpeakingPlaybackState
     ? "rgba(249, 115, 22, 0.35)"
+    : missedSpeechCueVisible
+      ? "rgba(14, 165, 233, 0.38)"
     : "rgba(59, 130, 246, 0.28)";
 
   useEffect(() => {
@@ -2115,7 +2333,7 @@ const CallingWidget: React.FC<Props> = ({
     const r2 = createRipple(ripple2, 1000);
     const r3 = createRipple(ripple3, 2000);
 
-    if (isListeningPlaybackState || isAgentSpeakingPlaybackState) {
+    if (shouldShowRipple) {
       r1.start();
       r2.start();
       r3.start();
@@ -2132,7 +2350,7 @@ const CallingWidget: React.FC<Props> = ({
       r2.stop();
       r3.stop();
     };
-  }, [isAgentSpeakingPlaybackState, isListeningPlaybackState, ripple1, ripple2, ripple3]);
+  }, [ripple1, ripple2, ripple3, shouldShowRipple]);
 
   // --- ⬇️ ADDED: Call Button Expansion & Slide Up Animation ⬇️ ---
   const callBtnScale = useRef(new Animated.Value(1)).current;
@@ -2173,6 +2391,36 @@ const CallingWidget: React.FC<Props> = ({
   }, [isCalling]);
   // --- ⬆️ END ADDED ⬆️ ---
 
+  const agentRestingSlotStyle = isAgentPreparingPlaybackState
+    ? styles.orbSlotPreparing
+    : isUserVisualPrimary
+      ? styles.orbSlotBackRight
+      : styles.orbSlotBackLeft;
+  const userRestingSlotStyle =
+    isAgentVisualPrimary || isAgentPreparingPlaybackState
+      ? styles.orbSlotBackLeft
+      : styles.orbSlotBackRight;
+
+  const agentOrbSlotStyle = [
+    styles.orbSlot,
+    isAgentVisualPrimary ? styles.orbSlotPrimary : agentRestingSlotStyle,
+    isTerminalPlaybackState && styles.orbSlotDimmed,
+  ];
+
+  const userOrbSlotStyle = [
+    styles.orbSlot,
+    isUserVisualPrimary ? styles.orbSlotPrimary : userRestingSlotStyle,
+    isTerminalPlaybackState && styles.orbSlotDimmed,
+  ];
+
+  const userFallbackText =
+    missedSpeechCueVisible && missedSpeechCueCount >= 2
+      ? "Could you say that again?"
+      : "";
+  const visibleStatus = isCalling
+    ? userFallbackText || status
+    : "Ready to Connect";
+
   // --- ⬇️ MODIFIED: Render function updated ⬇️ ---
   return (
     <View style={styles.container}>
@@ -2201,62 +2449,113 @@ const CallingWidget: React.FC<Props> = ({
 
       {/* --- VISUALIZER AREA --- */}
       <View style={styles.visualizerContainer}>
-        {/* Animated Ripples */}
-        {[ripple1, ripple2, ripple3].map((anim, index) => (
-          <Animated.View
-            key={`ripple-${index}`}
-            style={[
-              styles.rippleRing,
-              {
-                borderColor: rippleTint,
-                transform: [
-                  {
-                    scale: anim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 3], // Scales out from center
-                    }),
-                  },
-                ],
-                opacity: anim.interpolate({
-                  inputRange: [0, 0.2, 1],
-                  outputRange: [0, 0.4, 0], // Fades in quickly, then fades out slowly
-                }),
-              },
-            ]}
-          />
-        ))}
+        <View style={styles.dualOrbStage}>
+          {/* Animated Ripples sit behind whichever orb is visually primary. */}
+          {shouldShowRipple && (
+            <View style={styles.rippleLayer} pointerEvents="none">
+              {[ripple1, ripple2, ripple3].map((anim, index) => (
+                <Animated.View
+                  key={`ripple-${index}`}
+                  style={[
+                    styles.rippleRing,
+                    {
+                      borderColor: rippleTint,
+                      transform: [
+                        {
+                          scale: anim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 3],
+                          }),
+                        },
+                      ],
+                      opacity: anim.interpolate({
+                        inputRange: [0, 0.2, 1],
+                        outputRange: [0, 0.38, 0],
+                      }),
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
 
-        {/* Core Orb - Minimalist Glass Gem */}
-        <View style={styles.orbWrapper}>
-          <LinearGradient
-            colors={["#1E1B4B", "#020617"]} // Deep, rich background inside
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.orbMask}
-          >
-            {/* Subtle inner reflection */}
-            <LinearGradient
-              colors={["rgba(167, 139, 250, 0.25)", "transparent"]}
-              start={{ x: 0.2, y: 0 }}
-              end={{ x: 0.8, y: 1 }}
-              style={styles.orbInnerGlow}
-            />
-            {/* Main Icon */}
-            <FAIcon
-              name={orbIconName}
-              size={56}
-              color="#F8FAFC"
-              solid
-              style={styles.iconClean}
-            />
-          </LinearGradient>
+          <Animated.View style={agentOrbSlotStyle}>
+            <View style={styles.orbWrapper}>
+              <LinearGradient
+                colors={["#2B1D12", "#0F172A"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.orbMask,
+                  styles.agentOrbMask,
+                  isAgentPreparingPlaybackState && styles.orbPreparingGlow,
+                  isAgentSpeakingPlaybackState && styles.orbSpeakingGlow,
+                ]}
+              >
+                <LinearGradient
+                  colors={["rgba(251, 146, 60, 0.28)", "transparent"]}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                  style={styles.orbInnerGlow}
+                />
+                <FAIcon
+                  name={orbIconName}
+                  size={46}
+                  color="#FFF7ED"
+                  solid
+                  style={styles.iconClean}
+                />
+              </LinearGradient>
+            </View>
+            <Text style={styles.orbCaption}>Agent</Text>
+          </Animated.View>
+
+          <Animated.View style={userOrbSlotStyle}>
+            <View style={styles.orbWrapper}>
+              <LinearGradient
+                colors={["#082F49", "#020617"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.orbMask,
+                  styles.userOrbMask,
+                  isListeningPlaybackState && styles.userOrbReady,
+                  isInterruptingPlaybackState && styles.userOrbInterrupting,
+                  missedSpeechCueVisible && styles.userOrbRetry,
+                ]}
+              >
+                <LinearGradient
+                  colors={["rgba(125, 211, 252, 0.28)", "transparent"]}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                  style={styles.orbInnerGlow}
+                />
+                <Icon
+                  name="mic"
+                  size={50}
+                  color="#F0F9FF"
+                  style={styles.iconClean}
+                />
+              </LinearGradient>
+            </View>
+            <Text style={styles.orbCaption}>You</Text>
+          </Animated.View>
         </View>
 
         {/* Status Text under Orb */}
         <View style={styles.statusContainer}>
-          <Text style={styles.statusTextModern}>
-            {isCalling ? status : "Ready to Connect"}
-          </Text>
+          {visibleStatus ? (
+            <Text
+              style={[
+                styles.statusTextModern,
+                Boolean(userFallbackText) && styles.retryHintText,
+              ]}
+            >
+              {visibleStatus}
+            </Text>
+          ) : (
+            <View style={styles.statusSpacer} />
+          )}
         </View>
       </View>
 
@@ -2379,7 +2678,7 @@ const CallingWidget: React.FC<Props> = ({
             ]}
             onPress={() => {
               if (!isCalling) {
-                setStatus("Start call to saw tips");
+                setStatus("Start call to see tips");
                 return;
               }
               toggleTips();
@@ -2516,6 +2815,22 @@ const styles = StyleSheet.create({
     minHeight: 280, // Ensure strictly visible
     maxHeight: 400,
   },
+  dualOrbStage: {
+    width: 280,
+    height: 190,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  rippleLayer: {
+    position: "absolute",
+    top: 0,
+    left: 70,
+    width: 140,
+    height: 140,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 0,
+  },
   rippleRing: {
     position: "absolute",
     width: 140,
@@ -2524,6 +2839,38 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(167, 139, 250, 0.8)", // Violet-400 tint
     backgroundColor: "rgba(167, 139, 250, 0.05)",
+  },
+  orbSlot: {
+    position: "absolute",
+    top: 0,
+    left: 50,
+    width: 180,
+    height: 180,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  orbSlotPrimary: {
+    opacity: 1,
+    zIndex: 3,
+    transform: [{ translateX: 0 }, { translateY: -4 }, { scale: 1 }],
+  },
+  orbSlotBackLeft: {
+    opacity: 0.45,
+    zIndex: 1,
+    transform: [{ translateX: -78 }, { translateY: 42 }, { scale: 0.68 }],
+  },
+  orbSlotBackRight: {
+    opacity: 0.45,
+    zIndex: 1,
+    transform: [{ translateX: 78 }, { translateY: 42 }, { scale: 0.68 }],
+  },
+  orbSlotPreparing: {
+    opacity: 0.72,
+    zIndex: 2,
+    transform: [{ translateX: -54 }, { translateY: 28 }, { scale: 0.78 }],
+  },
+  orbSlotDimmed: {
+    opacity: 0.28,
   },
   orbWrapper: {
     width: 140,
@@ -2552,6 +2899,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  agentOrbMask: {
+    borderColor: "rgba(251, 146, 60, 0.38)",
+  },
+  userOrbMask: {
+    borderColor: "rgba(56, 189, 248, 0.36)",
+  },
+  orbPreparingGlow: {
+    borderColor: "rgba(251, 146, 60, 0.56)",
+    backgroundColor: "rgba(251, 146, 60, 0.08)",
+  },
+  orbSpeakingGlow: {
+    borderColor: "rgba(249, 115, 22, 0.8)",
+    backgroundColor: "rgba(249, 115, 22, 0.1)",
+  },
+  userOrbReady: {
+    borderColor: "rgba(56, 189, 248, 0.78)",
+    backgroundColor: "rgba(14, 165, 233, 0.09)",
+  },
+  userOrbInterrupting: {
+    borderColor: "rgba(125, 211, 252, 0.9)",
+    backgroundColor: "rgba(14, 165, 233, 0.14)",
+  },
+  userOrbRetry: {
+    borderColor: "rgba(34, 211, 238, 0.95)",
+    backgroundColor: "rgba(34, 211, 238, 0.14)",
+  },
   orbInnerGlow: {
     position: "absolute",
     top: 0,
@@ -2564,8 +2937,19 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
+  orbCaption: {
+    marginTop: 10,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
   statusContainer: {
-    marginTop: 60,
+    marginTop: 18,
+    minHeight: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusTextModern: {
     color: "rgba(255,255,255,0.9)", // Slightly softer white
@@ -2574,6 +2958,16 @@ const styles = StyleSheet.create({
     letterSpacing: 3, // Premium wide tracking
     textTransform: "uppercase",
     textAlign: "center",
+  },
+  retryHintText: {
+    color: "rgba(186, 230, 253, 0.88)",
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.2,
+    textTransform: "none",
+  },
+  statusSpacer: {
+    height: 24,
   },
 
   // Headphone Indicator - Sleek Pill
