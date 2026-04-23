@@ -1,7 +1,7 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
@@ -80,12 +80,19 @@ const PhoneCall = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     practiceActivity?.id || null,
   );
+  const currentActivityIdRef = useRef<string | null>(
+    practiceActivity?.id || null,
+  );
+
+  const setTrackedActivityId = (activityId: string | null) => {
+    currentActivityIdRef.current = activityId;
+    setCurrentActivityId(activityId);
+  };
 
   // State for bottom sheet visibility
   const [isDone, setIsDone] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
-  const [completeOnCallEndAck, setCompleteOnCallEndAck] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
   const markActivityStart = async (): Promise<string | null> => {
@@ -122,7 +129,7 @@ const PhoneCall = () => {
           ...practiceActivity,
         });
         useUserStore.getState().fetchUser();
-        setCurrentActivityId(practiceActivity.id);
+        setTrackedActivityId(practiceActivity.id);
         return practiceActivity.id;
       }
 
@@ -177,7 +184,7 @@ const PhoneCall = () => {
       addActivity({
         ...startedActivity,
       });
-      setCurrentActivityId(activityIdToStart);
+      setTrackedActivityId(activityIdToStart);
       useUserStore.getState().fetchUser();
       return activityIdToStart;
     } catch (error) {
@@ -191,27 +198,28 @@ const PhoneCall = () => {
     autonomyScore: number;
     accuracyScore?: number;
   }): Promise<boolean> => {
-    if (!currentActivityId) return false;
+    const activityId = currentActivityIdRef.current || currentActivityId;
+    if (!activityId) return false;
     const userId = user?.id; // Always use real ID from store if available
 
     if (!userId) return false;
 
     try {
       const completedActivity = await completePracticeActivity({
-        id: currentActivityId,
+        id: activityId,
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
         vitals,
       });
 
-      updateActivity(currentActivityId, {
+      updateActivity(activityId, {
         ...completedActivity,
       });
       useUserStore.getState().fetchUser();
 
       // Clear the local activity ID state so starting another call creates a new one
-      setCurrentActivityId(null);
+      setTrackedActivityId(null);
       setIsDone(true);
       return true;
     } catch (error) {
@@ -221,30 +229,31 @@ const PhoneCall = () => {
   };
 
   const abortCurrentActivity = async (refundResources: boolean) => {
-    if (!currentActivityId) return;
+    const activityId = currentActivityIdRef.current || currentActivityId;
+    if (!activityId) return;
     const userId = user?.id;
 
     if (!userId) {
-      setCurrentActivityId(null);
+      setTrackedActivityId(null);
       return;
     }
 
     try {
       const abortedActivity = await abortPracticeActivity({
-        id: currentActivityId,
+        id: activityId,
         userId,
         packId: packContext?.packId,
         moduleId: packContext?.moduleId,
         refundResources,
       });
-      updateActivity(currentActivityId, {
+      updateActivity(activityId, {
         ...abortedActivity,
       });
     } catch (error) {
       console.error("Failed to abort phone call activity", error);
     } finally {
       useUserStore.getState().fetchUser();
-      setCurrentActivityId(null);
+      setTrackedActivityId(null);
     }
   };
 
@@ -255,14 +264,13 @@ const PhoneCall = () => {
     shouldComplete: boolean;
     reason: string | null;
   }) => {
-    if (!currentActivityId) return;
+    if (reason === "limit_reached") {
+      return;
+    }
+
+    if (!currentActivityIdRef.current && !currentActivityId) return;
 
     if (shouldComplete) {
-      if (reason === "limit_reached") {
-        setCompleteOnCallEndAck(true);
-        return;
-      }
-
       setShowVitalsModal(true);
       return;
     }
@@ -277,7 +285,7 @@ const PhoneCall = () => {
   }: {
     reason: string | null;
   }) => {
-    if (reason !== "limit_reached" || !completeOnCallEndAck) {
+    if (reason !== "limit_reached") {
       return;
     }
 
@@ -285,7 +293,6 @@ const PhoneCall = () => {
     if (!didComplete) {
       throw new Error("Failed to complete phone call activity");
     }
-    setCompleteOnCallEndAck(false);
   };
 
   const handleVitalsSubmit = async (vitals?: {

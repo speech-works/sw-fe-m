@@ -1839,9 +1839,10 @@ const CallingWidget: React.FC<Props> = ({
     }
     resetPlaybackLifecycleRefs();
     const shouldComplete =
-      agentAudioStartedRef.current &&
-      endReason !== "technical_difficulty" &&
-      endReason !== "idle_timeout";
+      endReason === "limit_reached" ||
+      (agentAudioStartedRef.current &&
+        endReason !== "technical_difficulty" &&
+        endReason !== "idle_timeout");
     void Promise.resolve(
       onCallEnd?.({
         reason: endReason,
