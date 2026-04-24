@@ -43,8 +43,8 @@ const CATEGORY_META: Record<
   },
   BREATHING: {
     label: "Breathing",
-    icon: "wind",
-    color: "#3B82F6",
+    icon: "lungs",
+    color: "#06B6D4",
     desc: "Regulate your rhythm and airflow",
   },
   READING: {

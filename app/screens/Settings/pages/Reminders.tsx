@@ -26,49 +26,54 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 import {
-  REMINDER_TEMPLATES,
   ReminderCategory,
 } from "../../../constants/reminderTemplates";
 
 const CATEGORY_META: Record<
   ReminderCategory,
-  { label: string; icon: string; color: string; desc: string }
+  { label: string; icon: string; color: string; desc: string; bgColor: string }
 > = {
   DAILY_PRACTICE: {
     label: "Daily Practice",
     icon: "bullseye-arrow",
     color: "#F59E0B",
-    desc: "Stay consistent with your core exercises",
+    bgColor: "#FFF7ED",
+    desc: "Core exercises",
   },
   BREATHING: {
     label: "Breathing",
-    icon: "wind",
-    color: "#3B82F6",
-    desc: "Regulate your rhythm and airflow",
+    icon: "lungs", // Fixed icon
+    color: "#06B6D4",
+    bgColor: "#ECFEFF",
+    desc: "Airflow rhythm",
   },
   READING: {
     label: "Reading",
     icon: "book-open-variant",
     color: "#8B5CF6",
-    desc: "Practice reading aloud fluently",
+    bgColor: "#F5F3FF",
+    desc: "Read aloud",
   },
   CHALLENGE: {
     label: "Challenge",
     icon: "trophy-outline",
     color: "#EC4899",
-    desc: "Push your limits with daily goals",
+    bgColor: "#FDF2F8",
+    desc: "Daily goals",
   },
   MOOD_CHECKIN: {
-    label: "Mood Check-in",
+    label: "Mood",
     icon: "emoticon-outline",
     color: "#10B981",
-    desc: "Log your daily fluency feelings",
+    bgColor: "#F0FDF4",
+    desc: "Daily feelings",
   },
   CUSTOM: {
-    label: "Custom Reminder",
+    label: "Custom",
     icon: "pencil-outline",
     color: "#64748B",
-    desc: "Set a unique reminder for your needs",
+    bgColor: "#F8FAFC",
+    desc: "Your needs",
   },
 };
 
@@ -81,15 +86,6 @@ const Reminders = () => {
 
   const isMasterOn = !globalPaused;
 
-  const handleCreateNew = () => {
-    setIsCategorySheetVisible(true);
-  };
-
-  const handleSelectCategory = (cat: ReminderCategory) => {
-    setIsCategorySheetVisible(false);
-    navigation.navigate("ConfigureReminder", { category: cat });
-  };
-
   const handleToggleMaster = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setGlobalPaused(isMasterOn);
@@ -98,6 +94,15 @@ const Reminders = () => {
   const handleToggleIndividual = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     toggleActive(id);
+  };
+
+  const handleCreateNew = () => {
+    setIsCategorySheetVisible(true);
+  };
+
+  const handleSelectCategory = (cat: ReminderCategory) => {
+    setIsCategorySheetVisible(false);
+    navigation.navigate("ConfigureReminder", { category: cat });
   };
 
   const renderCustomToggle = (value: boolean, onValueChange: () => void, disabled?: boolean) => (
@@ -169,7 +174,7 @@ const Reminders = () => {
                 onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
               >
                 <View style={styles.reminderContent}>
-                  <View style={[styles.iconContainer, { backgroundColor: CATEGORY_META[rem.category]?.color + "15" }]}>
+                  <View style={[styles.iconContainer, { backgroundColor: (CATEGORY_META[rem.category]?.color || "#000") + "15" }]}>
                     <MaterialCommunityIcons
                       name={CATEGORY_META[rem.category]?.icon as any}
                       size={20}
@@ -222,7 +227,7 @@ const Reminders = () => {
         visible={isCategorySheetVisible}
         onClose={() => setIsCategorySheetVisible(false)}
         fitContent
-        showCloseButton={false} // We use a custom one for better control
+        showCloseButton={false}
       >
         <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 32) }]}>
           <View style={styles.modalHeader}>
@@ -235,27 +240,34 @@ const Reminders = () => {
             </TouchableOpacity>
           </View>
           
-          <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.gridContainer}>
             {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat) => {
               const meta = CATEGORY_META[cat];
               return (
                 <TouchableOpacity
                   key={cat}
-                  style={styles.modalCategoryCard}
+                  style={styles.gridCard}
+                  activeOpacity={0.8}
                   onPress={() => handleSelectCategory(cat)}
                 >
-                  <View style={[styles.modalIconContainer, { backgroundColor: meta.color + "15" }]}>
-                    <MaterialCommunityIcons name={meta.icon as any} size={22} color={meta.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalCategoryLabel}>{meta.label}</Text>
-                    <Text style={styles.modalCategoryDesc}>{meta.desc}</Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                  <LinearGradient
+                    colors={[meta.bgColor, "#FFFFFF"]}
+                    style={styles.gridCardGradient}
+                  >
+                    <View style={styles.cardTextContent}>
+                      <Text style={styles.gridLabel}>{meta.label}</Text>
+                      <Text style={styles.gridDesc}>{meta.desc}</Text>
+                    </View>
+                    
+                    {/* Watermark Icon - Main Visual Element */}
+                    <View style={styles.watermark}>
+                      <MaterialCommunityIcons name={meta.icon as any} size={80} color={meta.color} />
+                    </View>
+                  </LinearGradient>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
       </BottomSheetModal>
     </ScreenView>
@@ -325,7 +337,7 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "#64748B",
     marginTop: 2,
-    minHeight: 18, // Fixed height to prevent layout shift between 1 and 2 lines
+    minHeight: 18,
   },
   sectionTitle: {
     ...parseTextStyle(theme.typography.BodyDetails),
@@ -456,48 +468,68 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 36, // Balanced with marginBottom to create even gap
-    paddingBottom: 24,
+    paddingTop: 36,
+    paddingBottom: 28,
   },
   modalTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "800",
+    fontWeight: "900",
     flex: 1,
     marginRight: 16,
+    fontSize: 20,
   },
   modalCloseCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
-  modalCategoryCard: {
+  gridContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 20,
-    gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  modalIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
+  gridCard: {
+    width: "48%",
+    borderRadius: 24,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 4,
+  },
+  gridCardGradient: {
+    padding: 24,
+    minHeight: 120,
     justifyContent: "center",
+    position: "relative",
   },
-  modalCategoryLabel: {
-    ...parseTextStyle(theme.typography.Body),
+  cardTextContent: {
+    zIndex: 2,
+  },
+  gridLabel: {
+    ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "700",
+    fontWeight: "900",
+    fontSize: 18,
   },
-  modalCategoryDesc: {
+  gridDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: "#64748B",
-    marginTop: 2,
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  watermark: {
+    position: "absolute",
+    bottom: -15,
+    right: -15,
+    opacity: 0.12,
+    transform: [{ rotate: "-10deg" }],
   },
 });
 
