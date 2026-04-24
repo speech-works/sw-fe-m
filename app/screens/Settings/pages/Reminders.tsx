@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import ScreenView from "../../../components/ScreenView";
@@ -160,29 +161,30 @@ const Reminders = () => {
         <LinearGradient colors={["#F8FAFC", "#FFFFFF"]} style={{ flex: 1 }} />
       </View>
 
-      <View style={[styles.topNavigation, { paddingTop: insets.top + 8 }]}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={14} color={theme.colors.text.title} />
+          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.topNavigationText}>Reminders</Text>
+        <Text style={styles.headerTitle}>Reminders</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
       >
         <View style={styles.masterToggleCard}>
-          <View style={styles.watermarkContainer}>
-            <MaterialCommunityIcons
-              name={isMasterOn ? "bell-ring-outline" : "bell-off-outline"}
-              size={120}
-              color={isMasterOn ? theme.colors.actionPrimary.default + "08" : "#94A3B808"}
-            />
-          </View>
+
           <View style={styles.masterToggleRow}>
             <View style={[styles.masterToggleIcon, { backgroundColor: isMasterOn ? theme.colors.actionPrimary.default + "15" : "#F1F5F9" }]}>
               <MaterialCommunityIcons
@@ -214,48 +216,31 @@ const Reminders = () => {
             {reminders.map((rem) => (
               <TouchableOpacity
                 key={rem.id}
-                style={[styles.reminderCard, { borderColor: rem.active ? "rgba(255,255,255,0.2)" : "#FED7AA" }]}
+                style={styles.reminderCard}
                 activeOpacity={0.7}
                 onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
                 onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
               >
-                <LinearGradient
-                  colors={rem.active ? (CATEGORY_META[rem.category]?.gradient || ["#FB923C", "#F97316"]) : ["#FFF7ED", "#FFEDD5"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                
-                <View style={styles.watermarkContainer}>
-                  <MaterialCommunityIcons
-                    name={CATEGORY_META[rem.category]?.icon as any}
-                    size={100}
-                    color={rem.active ? "rgba(255, 255, 255, 0.18)" : "rgba(249, 115, 22, 0.1)"}
-                  />
-                </View>
-
                 <View style={styles.reminderContent}>
-                  <View style={[styles.iconContainer, { backgroundColor: rem.active ? "rgba(255, 255, 255, 0.25)" : "rgba(249, 115, 22, 0.15)", borderColor: rem.active ? "rgba(255, 255, 255, 0.3)" : "rgba(249, 115, 22, 0.2)", borderWidth: 1.5 }]}>
+                  <View style={[styles.iconContainer, { backgroundColor: rem.active ? "#F8FAFC" : "#F1F5F9" }]}>
                     <MaterialCommunityIcons
                       name={CATEGORY_META[rem.category]?.icon as any}
-                      size={20}
-                      color={rem.active ? "#FFFFFF" : "#F97316"}
+                      size={22}
+                      color={rem.active ? theme.colors.actionPrimary.default : "#94A3B8"}
                     />
                   </View>
-                  <View style={[styles.textContainer, { zIndex: 1 }]}>
-                    <Text style={[styles.reminderTitle, { color: rem.active ? "#FFFFFF" : "#9A3412" }]}>{rem.title}</Text>
-                    <Text style={[styles.reminderTime, { color: rem.active ? "rgba(255, 255, 255, 0.85)" : "#C2410C" }]}>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.reminderTitle}>{rem.title}</Text>
+                    <Text style={styles.reminderTime}>
                       {rem.type === "ROUTINE" ? "Every day at " : "Once at "}
-                      <Text style={{ fontWeight: "700" }}>{rem.time}</Text>
+                      <Text style={{ fontWeight: "700", color: theme.colors.text.title }}>{rem.time}</Text>
                     </Text>
                   </View>
 
-                  <View style={styles.actionRow}>
-                    <AnimatedToggle
-                      value={rem.active}
-                      onValueChange={() => handleToggleIndividual(rem.id)}
-                    />
-                  </View>
+                  <AnimatedToggle
+                    value={rem.active}
+                    onValueChange={() => handleToggleIndividual(rem.id)}
+                  />
                 </View>
               </TouchableOpacity>
             ))}
@@ -278,15 +263,8 @@ const Reminders = () => {
           activeOpacity={0.9}
           onPress={handleCreateNew}
         >
-          <LinearGradient
-            colors={[theme.colors.actionPrimary.default, "#E06B00"]}
-            style={styles.createGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
-            <Text style={styles.createButtonText}>Create Reminder</Text>
-          </LinearGradient>
+          <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
+          <Text style={styles.createButtonText}>Create Reminder</Text>
         </TouchableOpacity>
       </View>
 
@@ -307,7 +285,6 @@ const Reminders = () => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>What do you want to be reminded of?</Text>
           </View>
-
           <View style={styles.gridContainer}>
             {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat) => {
               const meta = CATEGORY_META[cat];
@@ -318,22 +295,15 @@ const Reminders = () => {
                   activeOpacity={0.8}
                   onPress={() => handleSelectCategory(cat)}
                 >
-                  <LinearGradient
-                    colors={meta.gradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.gridCardGradient}
-                  >
+                  <View style={styles.gridCardContent}>
+                    <View style={[styles.gridIconCircle, { backgroundColor: meta.color + "10" }]}>
+                      <MaterialCommunityIcons name={meta.icon as any} size={24} color={meta.color} />
+                    </View>
                     <View style={styles.cardTextContent}>
-                      <Text style={[styles.gridLabel, { color: "#FFFFFF" }]}>{meta.label}</Text>
-                      <Text style={[styles.gridDesc, { color: "rgba(255, 255, 255, 0.8)" }]}>{meta.desc}</Text>
+                      <Text style={styles.gridLabel}>{meta.label}</Text>
+                      <Text style={styles.gridDesc}>{meta.desc}</Text>
                     </View>
-
-                    {/* Watermark Icon - Main Visual Element */}
-                    <View style={styles.watermark}>
-                      <MaterialCommunityIcons name={meta.icon as any} size={80} color="rgba(255, 255, 255, 0.2)" />
-                    </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -367,13 +337,16 @@ const styles = StyleSheet.create({
   screenView: {
     flex: 1,
   },
-  topNavigation: {
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 8,
+    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
@@ -381,29 +354,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "800",
+    marginTop: 2,
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 80,
   },
   masterToggleCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
     paddingHorizontal: 20,
-    height: 100,
+    height: 84,
     justifyContent: "center",
     marginBottom: 32,
     ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
@@ -413,39 +384,36 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   masterToggleIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   masterToggleText: {
-    ...parseTextStyle(theme.typography.Heading3),
     fontSize: 16,
     color: theme.colors.text.title,
     fontWeight: "700",
   },
   masterToggleSubtext: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 13,
     color: "#64748B",
     marginTop: 2,
-    minHeight: 18,
   },
   sectionTitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
+    fontSize: 11,
     color: "#94A3B8",
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     marginBottom: 16,
     marginLeft: 4,
   },
   reminderCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     ...parseShadowStyle(theme.shadow.elevation1),
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
@@ -453,18 +421,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    zIndex: 1,
-  },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -30,
-    opacity: 0.6,
-    transform: [{ rotate: "-15deg" }],
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -473,20 +433,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reminderTitle: {
-    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
     color: theme.colors.text.title,
     fontWeight: "700",
   },
   reminderTime: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 13,
     color: "#64748B",
     marginTop: 2,
   },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
+
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -525,18 +481,14 @@ const styles = StyleSheet.create({
   createButton: {
     height: 56,
     borderRadius: 28,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation3),
-  },
-  createGradient: {
-    flex: 1,
+    backgroundColor: theme.colors.actionPrimary.default,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    ...parseShadowStyle(theme.shadow.elevation3),
   },
   createButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
@@ -579,41 +531,41 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: "48%",
-    borderRadius: 24,
-    overflow: "hidden",
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
     borderColor: "#F1F5F9",
     marginBottom: 4,
+    overflow: "hidden",
   },
-  gridCardGradient: {
-    padding: 24,
-    minHeight: 120,
+  gridCardContent: {
+    padding: 20,
+    alignItems: "center",
     justifyContent: "center",
-    position: "relative",
+    gap: 12,
+  },
+  gridIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardTextContent: {
-    zIndex: 2,
+    alignItems: "center",
   },
   gridLabel: {
-    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 16,
     color: theme.colors.text.title,
-    fontWeight: "800",
-    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
   },
   gridDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 12,
     color: "#64748B",
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  watermark: {
-    position: "absolute",
-    bottom: -15,
-    right: -15,
-    opacity: 0.35,
-    transform: [{ rotate: "-10deg" }],
+    marginTop: 2,
+    textAlign: "center",
   },
 });
 
