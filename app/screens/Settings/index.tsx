@@ -101,27 +101,30 @@ const Settings = () => {
     // },
     {
       icon: "chart-line",
-      iconColor: "#8B5CF6", // Purple for progress
-      iconBg: "#F5F3FF",
+      iconColor: "#8B5CF6",
+      gradient: ["#7C3AED", "#6D28D9"], // Vibrant Violet -> Deep Violet
       text: "Progress Report",
+      desc: "Check your fluency stats and trends",
       onClick: () => {
         navigation.navigate("ProgressDetail");
       },
     },
     {
       icon: "shield-check",
-      iconColor: "#10B981", // Green for help
-      iconBg: "#ECFDF5",
+      iconColor: "#10B981",
+      gradient: ["#059669", "#047857"], // Vibrant Emerald -> Deep Emerald
       text: "Help & Support",
+      desc: "Get assistance and app guidance",
       onClick: () => {
         navigation.navigate("HelpSupport");
       },
     },
     {
       icon: "bell",
-      iconColor: "#F59E0B", // Amber for reminders
-      iconBg: "#FFFBEB",
+      iconColor: "#F59E0B",
+      gradient: ["#D97706", "#B45309"], // Vibrant Amber -> Deep Amber
       text: "Reminders",
+      desc: "Manage your practice notifications",
       onClick: () => {
         navigation.navigate("Reminders");
       },
@@ -258,18 +261,23 @@ const Settings = () => {
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.menuTile,
-                  { borderColor: `${item.iconColor}20` }, // Subtle tint
-                ]}
+                style={styles.menuTile}
                 onPress={item.onClick}
+                activeOpacity={0.9}
               >
+                <LinearGradient
+                  colors={item.gradient as any}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+
                 {/* Premium Watermark */}
                 <View style={styles.watermarkContainer}>
                   <MaterialCommunityIcons
                     name={item.icon as any}
                     size={100}
-                    color={`${item.iconColor}08`} // Extremely subtle
+                    color="rgba(255, 255, 255, 0.12)"
                   />
                 </View>
 
@@ -277,23 +285,21 @@ const Settings = () => {
                   style={[
                     styles.iconContainer,
                     {
-                      backgroundColor: item.iconBg,
-                      borderColor: `${item.iconColor}40`,
+                      backgroundColor: "rgba(255, 255, 255, 0.2)", // Glassy
+                      borderColor: "rgba(255, 255, 255, 0.3)",
                     },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name={item.icon as any}
-                    size={20}
-                    color={item.iconColor}
+                    size={22}
+                    color="#FFFFFF"
                   />
                 </View>
-                <Text style={styles.menuItemText}>{item.text}</Text>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={16}
-                  color="#CBD5E1"
-                />
+                <View style={{ flex: 1, zIndex: 1 }}>
+                  <Text style={[styles.menuItemText, { color: "#FFFFFF" }]}>{item.text}</Text>
+                  {item.desc && <Text style={[styles.menuItemDesc, { color: "rgba(255, 255, 255, 0.8)" }]}>{item.desc}</Text>}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -506,13 +512,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FFF",
     paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1.2,
-    height: 72,
+    borderRadius: 24,
+    height: 90,
     gap: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
-    shadowOpacity: 0.08,
-    overflow: "hidden", // Ensure watermark stays clipped
+    shadowOpacity: 0.05,
+    overflow: "hidden",
   },
   watermarkContainer: {
     position: "absolute",
@@ -522,20 +527,25 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
   },
   menuItemText: {
-    flex: 1,
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 16,
     letterSpacing: 0.2,
+  },
+  menuItemDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#64748B",
+    marginTop: 2,
+    fontSize: 13,
   },
 
   // Footer

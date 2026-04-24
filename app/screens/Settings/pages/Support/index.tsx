@@ -23,21 +23,6 @@ type SettingType =
   | "Feedback"
   | "Success";
 
-// Helper for consistent lovely icons
-const LivelyIcon = ({
-  name,
-  color,
-  bg,
-}: {
-  name: string;
-  color: string;
-  bg: string;
-}) => (
-  <View style={[styles.iconContainer, { backgroundColor: bg }]}>
-    <Icon solid name={name} size={16} color={color} />
-  </View>
-);
-
 const Support = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -122,9 +107,6 @@ const Support = () => {
                     Let us know what needs fixing
                   </Text>
                 </View>
-                <View style={styles.cardFooter}>
-                  <LivelyIcon name="bug" color="#EA580C" bg="white" />
-                </View>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -159,9 +141,6 @@ const Support = () => {
                     Reach out to our friendly support team
                   </Text>
                 </View>
-                <View style={styles.cardFooter}>
-                  <LivelyIcon name="headset" color="#2563EB" bg="white" />
-                </View>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -193,9 +172,6 @@ const Support = () => {
                   </View>
                   <Text style={styles.cardTitle}>Feedback & Suggestions</Text>
                   <Text style={styles.cardDesc}>How can we improve?</Text>
-                </View>
-                <View style={styles.cardFooter}>
-                  <LivelyIcon name="lightbulb" color="#DB2777" bg="white" />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -402,11 +378,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 16,
-    zIndex: 1,
+    display: "none",
   },
   iconContainer: {
     width: 44,
