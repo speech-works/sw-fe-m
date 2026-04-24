@@ -230,14 +230,15 @@ const Reminders = () => {
         showCloseButton={false}
       >
         <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 32) }]}>
+          <TouchableOpacity 
+            onPress={() => setIsCategorySheetVisible(false)} 
+            style={styles.modalCloseCircle}
+          >
+            <MaterialCommunityIcons name="close" size={20} color={theme.colors.text.title} />
+          </TouchableOpacity>
+
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>What do you want to be reminded of?</Text>
-            <TouchableOpacity 
-              onPress={() => setIsCategorySheetVisible(false)} 
-              style={styles.modalCloseCircle}
-            >
-              <MaterialCommunityIcons name="close" size={20} color={theme.colors.text.title} />
-            </TouchableOpacity>
           </View>
           
           <View style={styles.gridContainer}>
@@ -465,27 +466,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 36,
+    paddingTop: 40,
     paddingBottom: 28,
+    alignItems: "center",
+    paddingHorizontal: 60, // Symmetrical padding to ensure title is centered in the safe area
   },
   modalTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
     fontWeight: "800",
-    flex: 1,
-    marginRight: 16,
+    textAlign: "center",
     fontSize: 20,
+    lineHeight: 26,
   },
   modalCloseCircle: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 10,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   gridContainer: {
     flexDirection: "row",
