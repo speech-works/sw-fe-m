@@ -13,7 +13,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { theme } from "../../../Theme/tokens";
@@ -356,14 +356,7 @@ export default function ConfigureReminder() {
 
       <View style={styles.saveContainer}>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
-          <LinearGradient
-            colors={[theme.colors.actionPrimary.default, "#E06B00"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.saveGradient}
-          >
-            <Text style={styles.saveButtonText}>Save Reminder</Text>
-          </LinearGradient>
+          <Text style={styles.saveButtonText}>Save Reminder</Text>
         </TouchableOpacity>
 
         {reminderId && (
@@ -386,20 +379,27 @@ export default function ConfigureReminder() {
         <LinearGradient colors={["#F8FAFC", "#FFFFFF"]} style={{ flex: 1 }} />
       </View>
 
-      <View style={[styles.topNavigation, { paddingTop: insets.top + 8 }]}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={14} color={theme.colors.text.title} />
+          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.topNavigationText}>{reminderId ? "Edit Reminder" : "Configure"}</Text>
+        <Text style={styles.headerTitle}>{reminderId ? "Edit Reminder" : "Configure"}</Text>
         <View style={{ width: 32 }} />
-      </View>
+      </BlurView>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 40) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 80, paddingBottom: Math.max(insets.bottom, 40) }]}
       >
         {/* Category Header */}
         <View style={styles.categoryHeader}>
@@ -443,15 +443,17 @@ export default function ConfigureReminder() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 0,
   },
-  topNavigation: {
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 8,
+    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
@@ -459,18 +461,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "800",
+    marginTop: 2,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 16,
   },
   categoryHeader: {
@@ -486,20 +487,19 @@ const styles = StyleSheet.create({
     borderColor: "#F1F5F9",
   },
   categoryIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   categoryHeaderLabel: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.text.title,
-    fontWeight: "800",
+    fontWeight: "700",
   },
   categoryHeaderDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 13,
     color: "#64748B",
     marginTop: 2,
   },
@@ -509,24 +509,22 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: "row",
     backgroundColor: "#F1F5F9",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 4,
-    width: "100%",
-    height: 48,
+    height: 52,
     marginBottom: 32,
   },
   toggleButton: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: 16,
   },
   toggleButtonActive: {
     backgroundColor: theme.colors.actionPrimary.default,
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   toggleButtonText: {
-    ...parseTextStyle(theme.typography.Body),
     color: "#64748B",
     fontWeight: "600",
     fontSize: 14,
@@ -536,18 +534,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   inputLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 11,
     color: "#94A3B8",
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     marginBottom: 12,
     marginLeft: 4,
   },
   titleInput: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    height: 56,
     fontSize: 16,
     color: theme.colors.text.title,
     fontWeight: "600",
@@ -587,7 +585,7 @@ const styles = StyleSheet.create({
   dayButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
@@ -597,7 +595,6 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   dayButtonText: {
-    ...parseTextStyle(theme.typography.Body),
     color: "#64748B",
     fontWeight: "600",
   },
@@ -611,17 +608,13 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 56,
     borderRadius: 28,
-    overflow: "hidden",
+    backgroundColor: theme.colors.actionPrimary.default,
+    alignItems: "center",
+    justifyContent: "center",
     ...parseShadowStyle(theme.shadow.elevation3),
   },
-  saveGradient: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   saveButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 17,
+    fontSize: 16,
     color: "#FFFFFF",
     fontWeight: "800",
   },
@@ -634,7 +627,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   deleteButtonText: {
-    ...parseTextStyle(theme.typography.Body),
     color: "#EF4444",
     fontWeight: "700",
   },

@@ -213,37 +213,40 @@ const Reminders = () => {
         {reminders.length > 0 ? (
           <>
             <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>
-            {reminders.map((rem) => (
-              <TouchableOpacity
-                key={rem.id}
-                style={styles.reminderCard}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
-                onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
-              >
-                <View style={styles.reminderContent}>
-                  <View style={[styles.iconContainer, { backgroundColor: rem.active ? "#F8FAFC" : "#F1F5F9" }]}>
-                    <MaterialCommunityIcons
-                      name={CATEGORY_META[rem.category]?.icon as any}
-                      size={22}
-                      color={rem.active ? theme.colors.actionPrimary.default : "#94A3B8"}
+            <View style={styles.listContainer}>
+              {reminders.map((rem, index) => (
+                <TouchableOpacity
+                  key={rem.id}
+                  style={styles.listItem}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
+                  onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
+                >
+                  <View style={styles.reminderContent}>
+                    <View style={[styles.listIconBox, { backgroundColor: rem.active ? "#F8FAFC" : "#F1F5F9" }]}>
+                      <MaterialCommunityIcons
+                        name={CATEGORY_META[rem.category]?.icon as any}
+                        size={22}
+                        color={rem.active ? theme.colors.actionPrimary.default : "#94A3B8"}
+                      />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.reminderTitle}>{rem.title}</Text>
+                      <Text style={styles.reminderTime}>
+                        {rem.type === "ROUTINE" ? "Every day at " : "Once at "}
+                        <Text style={{ fontWeight: "700", color: theme.colors.text.title }}>{rem.time}</Text>
+                      </Text>
+                    </View>
+
+                    <AnimatedToggle
+                      value={rem.active}
+                      onValueChange={() => handleToggleIndividual(rem.id)}
                     />
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.reminderTitle}>{rem.title}</Text>
-                    <Text style={styles.reminderTime}>
-                      {rem.type === "ROUTINE" ? "Every day at " : "Once at "}
-                      <Text style={{ fontWeight: "700", color: theme.colors.text.title }}>{rem.time}</Text>
-                    </Text>
-                  </View>
-
-                  <AnimatedToggle
-                    value={rem.active}
-                    onValueChange={() => handleToggleIndividual(rem.id)}
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
+                  {index < reminders.length - 1 && <View style={styles.divider} />}
+                </TouchableOpacity>
+              ))}
+            </View>
           </>
         ) : (
           <View style={styles.emptyContainer}>
@@ -407,24 +410,36 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontWeight: "800",
     letterSpacing: 1,
-    marginBottom: 16,
+    marginBottom: 12,
     marginLeft: 4,
   },
-  reminderCard: {
+  listContainer: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderRadius: 24,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#F1F5F9",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 32,
+  },
+  listItem: {
+    padding: 16,
+    position: "relative",
+  },
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
   reminderContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  iconContainer: {
+  listIconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
