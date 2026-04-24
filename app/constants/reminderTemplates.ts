@@ -70,10 +70,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
     ],
     deepLink: {
       screen: "Root",
-      params: {
-        screen: "EXPLORE",
-        params: { screen: "Explore", params: { scrollToJumpIn: true } },
-      },
+      params: { screen: "Home" },
     },
   },
   {
@@ -107,7 +104,13 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
     ],
     deepLink: {
       screen: "ExploreStack",
-      params: { screen: "Breathing" },
+      params: {
+        screen: "DailyPracticeStack",
+        params: {
+          screen: "CognitivePracticeStack",
+          params: { screen: "CognitivePractice" },
+        },
+      },
     },
   },
   {
@@ -143,7 +146,10 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       screen: "ExploreStack",
       params: {
         screen: "DailyPracticeStack",
-        params: { screen: "ReadingPracticeStack" },
+        params: {
+          screen: "ReadingPracticeStack",
+          params: { screen: "ReadingPractice" },
+        },
       },
     },
   },
@@ -180,7 +186,10 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
       screen: "ExploreStack",
       params: {
         screen: "DailyPracticeStack",
-        params: { screen: "ExposureStack" },
+        params: {
+          screen: "ExposureStack",
+          params: { screen: "Exposure" },
+        },
       },
     },
   },

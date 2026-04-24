@@ -7,7 +7,9 @@ import {
   type ReminderCategory,
 } from "../../constants/reminderTemplates";
 import type { Reminder } from "../../stores/reminders";
+import { useUserStore } from "../../stores/user";
 import { navigate } from "./navigation";
+import { ROUTE_NAMES } from "../../constants/routes";
 
 const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
 
@@ -91,17 +93,39 @@ export const setupNotificationHandlers = () => {
   const notificationResponseSubscription =
     Notifications.addNotificationResponseReceivedListener((response) => {
     console.log("User tapped on notification:", response);
+
+    // 1. Check Auth Status: If not logged in, force navigation to Auth
+    const isLoggedIn = !!useUserStore.getState().user;
+    if (!isLoggedIn) {
+      setTimeout(() => {
+        navigate("Auth");
+      }, 500);
+      return;
+    }
+
     const data = response.notification.request.content.data;
     const category = data?.category as ReminderCategory | undefined;
 
-    if (category && category !== "CUSTOM") {
-      const template = getTemplateForCategory(category);
-      if (template?.deepLink) {
-        // Small delay to ensure the app is fully foregrounded before navigating
-        setTimeout(() => {
-          navigate(template.deepLink.screen, template.deepLink.params);
-        }, 500);
-      }
+    // 2. Handle Custom Reminders or Fallbacks
+    if (!category || category === "CUSTOM") {
+      setTimeout(() => {
+        navigate("Root", { screen: ROUTE_NAMES.HOME });
+      }, 500);
+      return;
+    }
+
+    // 3. Handle Template Deep Links
+    const template = getTemplateForCategory(category);
+    if (template?.deepLink) {
+      // Small delay to ensure the app is fully foregrounded before navigating
+      setTimeout(() => {
+        navigate(template.deepLink.screen, template.deepLink.params);
+      }, 500);
+    } else {
+      // Fallback to Home if template has no deep link
+      setTimeout(() => {
+        navigate("Root", { screen: ROUTE_NAMES.HOME });
+      }, 500);
     }
   });
 
