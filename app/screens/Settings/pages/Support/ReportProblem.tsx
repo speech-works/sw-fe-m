@@ -196,25 +196,7 @@ const ReportProblem = () => {
           label="screenshots (optional)"
         />
 
-        {/* Device Info Card (Restyled to match Feedback Toggle) */}
-        <View style={styles.deviceCard}>
-          <View style={styles.deviceRow}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.deviceLabel}>{deviceInfo}</Text>
-              <Text style={styles.deviceSub}>
-                System Diagnostics Verified
-              </Text>
-            </View>
-            <View style={styles.verifiedBadge}>
-              <Icon name="check-circle" size={18} color="#10B981" solid />
-            </View>
-          </View>
-          
-          <View style={styles.deviceIconBox}>
-            <Icon name="mobile-alt" size={13} color="#64748B" />
-            <Text style={styles.deviceIconText}>Hardware info logged</Text>
-          </View>
-        </View>
+
 
         {/* CTA */}
         <TouchableOpacity
@@ -383,56 +365,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Device Info Card (Matched with Feedback toggleCard)
-  deviceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.05)",
-    padding: 20,
-    gap: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  deviceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  deviceLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
-  deviceSub: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginTop: 2,
-  },
-  verifiedBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F0FDF4",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  deviceIconBox: {
-    backgroundColor: "#F1F5F9",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  deviceIconText: {
-    fontSize: 13,
-    color: "#64748B",
-    fontWeight: "600",
-  },
+
 
   // CTA
   ctaWrapper: {

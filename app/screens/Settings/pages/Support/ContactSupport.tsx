@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -30,22 +31,20 @@ const ContactSupport = () => {
 
   const options = [
     {
-      icon: "envelope",
+      icon: "email-outline",
       iconColor: "#2563EB",
+      bgColor: "#EFF6FF",
       title: "Send an Email",
       sub: "Get a response within 24 hours",
       onPress: handleEmailPress,
-      gradient: ["#EFF6FF", "#DBEAFE"],
-      shadowColor: "#3B82F6",
     },
     {
       icon: "whatsapp",
       iconColor: "#16A34A",
+      bgColor: "#F0FDF4",
       title: "Chat on WhatsApp",
       sub: "Instant support for quick queries",
       onPress: handleWhatsAppPress,
-      gradient: ["#F0FDF4", "#DCFCE7"],
-      shadowColor: "#22C55E",
     },
   ];
 
@@ -73,7 +72,7 @@ const ContactSupport = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contact Support</Text>
         <View style={{ width: 32 }} />
@@ -89,36 +88,30 @@ const ContactSupport = () => {
       <View style={styles.wrapper}>
         <Text style={styles.sectionLabel}>CHOOSE A CHANNEL</Text>
 
-        {options.map((opt) => (
-          <TouchableOpacity
-            key={opt.icon}
-            activeOpacity={0.9}
-            onPress={opt.onPress}
-            style={[styles.cardWrapper, { shadowColor: opt.shadowColor }]}
-          >
-            <LinearGradient
-              colors={opt.gradient as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardGradient}
+        <View style={styles.listContainer}>
+          {options.map((opt, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.listItem}
+              onPress={opt.onPress}
+              activeOpacity={0.7}
             >
-              {/* Decorative Bubbles */}
-              <View style={styles.bubbleLarge} />
-              <View style={styles.bubbleSmall} />
-
-              <View style={styles.iconCircle}>
-                <Icon name={opt.icon} size={20} color={opt.iconColor} />
+              <View style={[styles.listIconContainer, { backgroundColor: opt.bgColor }]}>
+                <MaterialCommunityIcons
+                  name={opt.icon as any}
+                  size={22}
+                  color={opt.iconColor}
+                />
               </View>
-              <View style={styles.textCol}>
-                <Text style={styles.cardTitle}>{opt.title}</Text>
-                <Text style={styles.cardSub}>{opt.sub}</Text>
+              <View style={styles.listTextContainer}>
+                <Text style={styles.listItemText}>{opt.title}</Text>
+                <Text style={styles.listItemDesc}>{opt.sub}</Text>
               </View>
-              <View style={styles.arrowBox}>
-                <Icon name="chevron-right" size={10} color={opt.iconColor} />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+              {index < options.length - 1 && <View style={styles.divider} />}
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={{ height: 48 }} />
       </View>
@@ -145,75 +138,48 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-  cardWrapper: {
+  listContainer: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: "hidden",
+    paddingVertical: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  cardGradient: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+  listItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    padding: 16,
     position: "relative",
-    overflow: "hidden",
   },
-  bubbleLarge: {
-    position: "absolute",
-    top: -30,
-    right: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
-  },
-  bubbleSmall: {
-    position: "absolute",
-    bottom: -20,
-    left: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
+  listIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    zIndex: 1,
+    alignItems: "center",
+    marginRight: 16,
   },
-  textCol: {
+  listTextContainer: {
     flex: 1,
-    gap: 2,
-    zIndex: 1,
   },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "800",
+  listItemText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.text.title,
-    letterSpacing: -0.3,
+    marginBottom: 2,
   },
-  cardSub: {
+  listItemDesc: {
     fontSize: 13,
-    color: theme.colors.text.default,
-    fontWeight: "500",
-    opacity: 0.8,
+    color: "#64748B",
   },
-  arrowBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
   screenView: {
     flex: 1,

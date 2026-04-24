@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
 import { submitAppFeedback } from "../../../../api/settings/helpSupport";
@@ -20,37 +22,65 @@ import {
 } from "../../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 import ScreenView from "../../../../components/ScreenView";
 
 interface FeedbackProps {
   onFeedbackSubmit: () => void;
 }
 
+const FEATURE_OPTIONS = [
+  { id: "content", label: "More Content", icon: "book-open-variant" },
+  { id: "stats", label: "Advanced Stats", icon: "chart-timeline-variant" },
+  { id: "community", label: "Community", icon: "account-group-outline" },
+  { id: "offline", label: "Offline Mode", icon: "cloud-off-outline" },
+  { id: "ui", label: "UI Themes", icon: "palette-outline" },
+];
+
+const FRUSTRATION_OPTIONS = [
+  { id: "bugs", label: "Minor Bugs", icon: "bug-outline" },
+  { id: "speed", label: "Slow Loading", icon: "speedometer" },
+  { id: "ui_confusing", label: "UI Confusing", icon: "help-circle-outline" },
+  { id: "audio", label: "Audio Issues", icon: "volume-high" },
+  { id: "other", label: "Something Else", icon: "alert-circle-outline" },
+];
+
 const Feedback = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const { user } = useUserStore();
-  const [features, setFeatures] = useState("");
-  const [frustrations, setFrustrations] = useState("");
+  
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedFrustrations, setSelectedFrustrations] = useState<string[]>([]);
   const [otherThoughts, setOtherThoughts] = useState("");
   const [submitEmail, setSubmitEmail] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const toggleFeature = (id: string) => {
+    setSelectedFeatures(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleFrustration = (id: string) => {
+    setSelectedFrustrations(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const handleFeedbackSubmit = async () => {
     if (!user) return;
     await submitAppFeedback({
       userEmail: submitEmail ? user.email : undefined,
-      suggestedFeatures: features,
-      reportedFrustration: frustrations,
+      suggestedFeatures: selectedFeatures.join(", "),
+      reportedFrustration: selectedFrustrations.join(", "),
       otherThoughts: otherThoughts,
     });
     setShowSuccess(true);
   };
 
   const isFormValid =
-    features.length > 0 || frustrations.length > 0 || otherThoughts.length > 0;
+    selectedFeatures.length > 0 || selectedFrustrations.length > 0 || otherThoughts.length > 0;
 
   return (
     <ScreenView style={styles.screenView}>
@@ -76,7 +106,7 @@ const Feedback = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Feedback & Suggestions</Text>
         <View style={{ width: 32 }} />
@@ -93,48 +123,81 @@ const Feedback = () => {
         {/* Background Decorative Patterns */}
         <View style={styles.bgBubble} pointerEvents="none" />
         <View style={styles.bgBubbleSmall} pointerEvents="none" />
+        
         {/* Feature Requests */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>FEATURE REQUESTS</Text>
-          <View style={styles.inputCard}>
-            <TextInput
-              value={features}
-              onChangeText={setFeatures}
-              placeholder="I wish the app could..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={4}
-              style={styles.input}
-              textAlignVertical="top"
-            />
+          <Text style={styles.sectionLabel}>WHAT DO YOU WANT TO SEE?</Text>
+          <View style={styles.chipsContainer}>
+            {FEATURE_OPTIONS.map((opt) => {
+              const isSelected = selectedFeatures.includes(opt.id);
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => toggleFeature(opt.id)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.chip,
+                    isSelected && styles.chipSelected,
+                    isSelected && { shadowColor: "#DB2777" },
+                  ]}
+                >
+                  <View style={[styles.chipIconBox, isSelected && { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                    <MaterialCommunityIcons 
+                      name={opt.icon as any} 
+                      size={12} 
+                      color={isSelected ? "#FFF" : "#64748B"} 
+                    />
+                  </View>
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Frustrations */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>FRUSTRATIONS</Text>
-          <View style={styles.inputCard}>
-            <TextInput
-              value={frustrations}
-              onChangeText={setFrustrations}
-              placeholder="I find it difficult to..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={4}
-              style={styles.input}
-              textAlignVertical="top"
-            />
+          <Text style={styles.sectionLabel}>WHAT COULD BE BETTER?</Text>
+          <View style={styles.chipsContainer}>
+            {FRUSTRATION_OPTIONS.map((opt) => {
+              const isSelected = selectedFrustrations.includes(opt.id);
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => toggleFrustration(opt.id)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.chip,
+                    isSelected && styles.chipSelectedFrustration,
+                    isSelected && { shadowColor: "#EA580C" },
+                  ]}
+                >
+                  <View style={[styles.chipIconBox, isSelected && { backgroundColor: "rgba(255,255,255,0.3)" }]}>
+                    <MaterialCommunityIcons 
+                      name={opt.icon as any} 
+                      size={12} 
+                      color={isSelected ? "#FFF" : "#64748B"} 
+                    />
+                  </View>
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Other Thoughts */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>OTHER THOUGHTS</Text>
+          <Text style={styles.sectionLabel}>ANY OTHER THOUGHTS?</Text>
           <View style={styles.inputCard}>
             <TextInput
               value={otherThoughts}
               onChangeText={setOtherThoughts}
-              placeholder="Any other ideas or feelings..."
+              placeholder="Tell us more about your experience..."
               placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={4}
@@ -145,11 +208,11 @@ const Feedback = () => {
         </View>
 
         {/* Follow-up Toggle */}
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
+        <View style={styles.deviceCard}>
+          <View style={styles.deviceRow}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.toggleLabel}>Follow up with me</Text>
-              <Text style={styles.toggleSub}>
+              <Text style={styles.deviceLabel}>Share your email?</Text>
+              <Text style={styles.deviceSub}>
                 Allow us to contact you about this feedback
               </Text>
             </View>
@@ -161,9 +224,9 @@ const Feedback = () => {
             />
           </View>
           {submitEmail && (
-            <View style={styles.emailBox}>
-              <Icon name="envelope" size={13} color="#EA580C" />
-              <Text style={styles.emailText}>{user?.email}</Text>
+            <View style={styles.deviceIconBox}>
+              <MaterialCommunityIcons name="email-outline" size={13} color="#64748B" />
+              <Text style={styles.deviceIconText}>{user?.email}</Text>
             </View>
           )}
         </View>
@@ -268,9 +331,59 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(219, 39, 119, 0.03)", // Subtle pink
   },
 
+  // Chips
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowOpacity: 0.05,
+  },
+  chipSelected: {
+    backgroundColor: "#DB2777",
+    borderColor: "#DB2777",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chipSelectedFrustration: {
+    backgroundColor: "#EA580C",
+    borderColor: "#EA580C",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  chipIconBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  chipTextSelected: {
+    color: "#FFFFFF",
+  },
+
   // Input
   inputCard: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",
@@ -287,9 +400,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Toggle
-  toggleCard: {
-    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.8)
+  // Device-style Card (Toggle)
+  deviceCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "rgba(0,0,0,0.05)",
@@ -297,23 +410,23 @@ const styles = StyleSheet.create({
     gap: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
   },
-  toggleRow: {
+  deviceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  toggleLabel: {
+  deviceLabel: {
     fontSize: 15,
     fontWeight: "700",
     color: theme.colors.text.title,
   },
-  toggleSub: {
+  deviceSub: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: theme.colors.text.default,
     marginTop: 2,
   },
-  emailBox: {
-    backgroundColor: "#FFF7ED",
+  deviceIconBox: {
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -322,12 +435,11 @@ const styles = StyleSheet.create({
     gap: 8,
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "#FFEDD5",
-    marginTop: 4,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  emailText: {
+  deviceIconText: {
     fontSize: 13,
-    color: "#EA580C",
+    color: "#64748B",
     fontWeight: "600",
   },
 
