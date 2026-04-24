@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import BottomSheetModal from "../../../../components/BottomSheetModal";
@@ -23,13 +24,13 @@ type SettingType =
   | "Feedback";
 
 const Support = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const supportItems = [
     {
       type: "ReportProblem" as const,
-      icon: "bug",
+      icon: "bug-outline",
       iconColor: "#EA580C",
       bgColor: "#FFF7ED",
       title: "Report A Problem",
@@ -45,7 +46,7 @@ const Support = () => {
     },
     {
       type: "Feedback" as const,
-      icon: "lightbulb",
+      icon: "lightbulb-on-outline",
       iconColor: "#DB2777",
       bgColor: "#FDF2F8",
       title: "Feedback & Suggestions",
@@ -106,9 +107,9 @@ const Support = () => {
                                 activeOpacity={0.7}
                             >
                                 <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
-                                    <Icon
-                                        name={item.icon}
-                                        size={20}
+                                    <MaterialCommunityIcons
+                                        name={item.icon as any}
+                                        size={22}
                                         color={item.iconColor}
                                     />
                                 </View>
@@ -116,7 +117,7 @@ const Support = () => {
                                     <Text style={styles.listItemText}>{item.title}</Text>
                                     <Text style={styles.listItemDesc}>{item.desc}</Text>
                                 </View>
-                                <Icon name="chevron-right" size={16} color="#94A3B8" />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
                                 {index < supportItems.length - 1 && <View style={styles.divider} />}
                             </TouchableOpacity>
                         ))}
@@ -219,113 +220,5 @@ const styles = StyleSheet.create({
     right: 16,
     height: 1,
     backgroundColor: "#F1F5F9",
-  },
-
-  modalContent: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 44, // Increased to clear handle
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    gap: 16,
-    position: "relative",
-    overflow: "hidden",
-  },
-  modalHeaderBubble: {
-    position: "absolute",
-    top: -20,
-    right: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
-  },
-  modalHeaderBubbleSmall: {
-    position: "absolute",
-    bottom: -10,
-    left: 40,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontSize: 20,
-    fontWeight: "800",
-    flex: 1,
-    marginTop: 4, // Slight nudge for alignment with icon
-  },
-  modalBody: {
-    flex: 1,
-    paddingTop: 12,
-  },
-
-  // Success Modal Styles
-  successContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingTop: 40, // Added significant top padding
-    paddingBottom: 60, // Increased bottom padding for balance
-  },
-  successIconBox: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#ECFDF5", // Light green background
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  innerCheckmarkCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  successTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginBottom: 8,
-  },
-  successDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  doneButton: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    borderRadius: 30,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    width: "100%",
-    alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  doneButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFFFFF",
-    fontWeight: "600",
   },
 });
