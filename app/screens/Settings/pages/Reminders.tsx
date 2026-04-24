@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "900",
+    fontWeight: "800",
     flex: 1,
     marginRight: 16,
     fontSize: 20,
@@ -514,8 +514,8 @@ const styles = StyleSheet.create({
   gridLabel: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "900",
-    fontSize: 18,
+    fontWeight: "800",
+    fontSize: 17,
   },
   gridDesc: {
     ...parseTextStyle(theme.typography.BodySmall),
