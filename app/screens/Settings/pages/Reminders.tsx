@@ -283,27 +283,29 @@ const Reminders = () => {
           </TouchableOpacity>
 
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>What do you want to be reminded of?</Text>
+            <Text style={styles.modalTitle}>Choose a category</Text>
+            <Text style={styles.modalSub}>Select what you want to be reminded of</Text>
           </View>
-          <View style={styles.gridContainer}>
-            {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat) => {
+
+          <View style={styles.modalListContainer}>
+            {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat, index, arr) => {
               const meta = CATEGORY_META[cat];
               return (
                 <TouchableOpacity
                   key={cat}
-                  style={styles.gridCard}
-                  activeOpacity={0.8}
+                  style={styles.modalListItem}
+                  activeOpacity={0.7}
                   onPress={() => handleSelectCategory(cat)}
                 >
-                  <View style={styles.gridCardContent}>
-                    <View style={[styles.gridIconCircle, { backgroundColor: meta.color + "10" }]}>
-                      <MaterialCommunityIcons name={meta.icon as any} size={24} color={meta.color} />
-                    </View>
-                    <View style={styles.cardTextContent}>
-                      <Text style={styles.gridLabel}>{meta.label}</Text>
-                      <Text style={styles.gridDesc}>{meta.desc}</Text>
-                    </View>
+                  <View style={[styles.modalIconBox, { backgroundColor: meta.color + "15" }]}>
+                    <MaterialCommunityIcons name={meta.icon as any} size={22} color={meta.color} />
                   </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalItemTitle}>{meta.label}</Text>
+                    <Text style={styles.modalItemDesc}>{meta.desc}</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+                  {index < arr.length - 1 && <View style={styles.modalDivider} />}
                 </TouchableOpacity>
               );
             })}
@@ -494,78 +496,77 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   modalContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   modalHeader: {
-    paddingTop: 40,
-    paddingBottom: 28,
+    paddingVertical: 24,
     alignItems: "center",
-    paddingHorizontal: 60, // Symmetrical padding to ensure title is centered in the safe area
   },
   modalTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "800",
-    textAlign: "center",
     fontSize: 20,
-    lineHeight: 26,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    textAlign: "center",
+  },
+  modalSub: {
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 4,
+    textAlign: "center",
   },
   modalCloseCircle: {
     position: "absolute",
     top: 16,
     right: 16,
     zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  gridCard: {
-    width: "48%",
-    borderRadius: 20,
+  modalListContainer: {
     backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderRadius: 24,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#F1F5F9",
-    marginBottom: 4,
-    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 16,
   },
-  gridCardContent: {
-    padding: 20,
+  modalListItem: {
+    flexDirection: "row",
     alignItems: "center",
+    padding: 16,
+    position: "relative",
+  },
+  modalIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
-    gap: 12,
-  },
-  gridIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     alignItems: "center",
-    justifyContent: "center",
+    marginRight: 16,
   },
-  cardTextContent: {
-    alignItems: "center",
-  },
-  gridLabel: {
+  modalItemTitle: {
     fontSize: 16,
-    color: theme.colors.text.title,
     fontWeight: "700",
-    textAlign: "center",
+    color: theme.colors.text.title,
   },
-  gridDesc: {
-    fontSize: 12,
+  modalItemDesc: {
+    fontSize: 13,
     color: "#64748B",
     marginTop: 2,
-    textAlign: "center",
+  },
+  modalDivider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
 });
 
