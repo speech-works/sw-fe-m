@@ -1,14 +1,15 @@
 // notifications.ts
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Alert, Linking, Platform } from "react-native";
-import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import {
+  getTemplateForCategory,
+  type ReminderCategory,
+} from "../../constants/reminderTemplates";
 import type { Reminder } from "../../stores/reminders";
+import { navigate } from "./navigation";
 
 const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
-const PREFERRED_PRACTICE_REMINDER_STORAGE_KEY =
-  ASYNC_KEYS_NAME.SW_APP_PREFERRED_PRACTICE_REMINDER_NOTIFICATION_ID;
 
 const hasGrantedNotificationPermission = (
   settings: Notifications.NotificationPermissionsStatus,
@@ -86,17 +87,22 @@ export const setupNotificationHandlers = () => {
       // rather than the default system notification.
     });
 
-  // Listener for when the user taps on a notification
+  // Listener for when the user taps on a notification — deep link to the relevant screen
   const notificationResponseSubscription =
     Notifications.addNotificationResponseReceivedListener((response) => {
     console.log("User tapped on notification:", response);
-    const reminderId = response.notification.request.content.data?.reminderId;
-    if (reminderId) {
-      console.log(`User tapped on reminder with ID: ${reminderId}`);
-      // TODO: Implement navigation to the specific reminder's details screen
-      // Example: navigationRef.current?.navigate('ReminderDetails', { reminderId });
+    const data = response.notification.request.content.data;
+    const category = data?.category as ReminderCategory | undefined;
+
+    if (category && category !== "CUSTOM") {
+      const template = getTemplateForCategory(category);
+      if (template?.deepLink) {
+        // Small delay to ensure the app is fully foregrounded before navigating
+        setTimeout(() => {
+          navigate(template.deepLink.screen, template.deepLink.params);
+        }, 500);
+      }
     }
-    // You can also check response.actionIdentifier if you add custom action buttons
   });
 
   return () => {
@@ -233,9 +239,9 @@ export async function scheduleOneTime(rem: Reminder): Promise<string> {
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: "SpeechWorks Reminder",
-      body: rem.notes || "Time for your practice!",
-      data: { reminderId: rem.id },
+      title: rem.title,
+      body: rem.body || "Time for your practice!",
+      data: { reminderId: rem.id, category: rem.category },
       sound: "default",
     },
     trigger: {
@@ -265,9 +271,9 @@ export async function scheduleRoutine(rem: Reminder): Promise<string[]> {
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "SpeechWorks Routine Reminder",
-        body: rem.notes || "Time for your practice!",
-        data: { reminderId: rem.id },
+        title: rem.title,
+        body: rem.body || "Time for your practice!",
+        data: { reminderId: rem.id, category: rem.category },
         sound: "default",
       },
       trigger: buildRoutineTrigger(expoWeekday, hour, minute),
@@ -277,46 +283,7 @@ export async function scheduleRoutine(rem: Reminder): Promise<string[]> {
   return ids;
 }
 
-export async function syncPreferredPracticeReminder(
-  reminderTime: Date | null,
-): Promise<void> {
-  const existingNotificationId = await AsyncStorage.getItem(
-    PREFERRED_PRACTICE_REMINDER_STORAGE_KEY,
-  );
 
-  if (existingNotificationId) {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(
-        existingNotificationId,
-      );
-    } catch (error) {
-      console.warn(
-        "Failed to cancel previous preferred practice reminder:",
-        error,
-      );
-    }
-    await AsyncStorage.removeItem(PREFERRED_PRACTICE_REMINDER_STORAGE_KEY);
-  }
-
-  if (!reminderTime) {
-    return;
-  }
-
-  const id = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "SpeechWorks Daily Reminder",
-      body: "Time for your practice session.",
-      data: { type: "preferred_practice_reminder" },
-      sound: "default",
-    },
-    trigger: buildDailyTrigger(
-      reminderTime.getHours(),
-      reminderTime.getMinutes(),
-    ),
-  });
-
-  await AsyncStorage.setItem(PREFERRED_PRACTICE_REMINDER_STORAGE_KEY, id);
-}
 
 /**
  * Cancel all notifications for a reminder.

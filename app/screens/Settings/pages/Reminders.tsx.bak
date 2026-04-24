@@ -1,0 +1,625 @@
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import BottomSheetModal from "../../../components/BottomSheetModal";
+import { ScrollView } from "react-native";
+import ScreenView from "../../../components/ScreenView";
+import {
+  type Reminder as ReminderType,
+  useReminderStore,
+} from "../../../stores/reminders";
+import { theme } from "../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../util/functions/parseStyles";
+import {
+  REMINDER_TEMPLATES,
+  CUSTOM_CATEGORY,
+} from "../../../constants/reminderTemplates";
+import Reminder from "../../Academy/DailyPractice/components/Reminder";
+
+const HEADER_HEIGHT = 100;
+
+const allTemplateMap = [
+  ...REMINDER_TEMPLATES.map((t) => ({
+    category: t.category,
+    label: t.label,
+    icon: t.icon,
+    color: t.color,
+    bgColor: t.bgColor,
+  })),
+  CUSTOM_CATEGORY,
+];
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const formatTime12h = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
+};
+
+const getScheduleSummary = (rem: ReminderType) => {
+  const time = formatTime12h(rem.time);
+  if (rem.type === "ONE_TIME") {
+    const [y, mo, d] = rem.date.split("-").map(Number);
+    const date = new Date(y, mo - 1, d);
+    const dateStr = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `${time} · ${dateStr}`;
+  }
+  if (rem.weekDays && rem.weekDays.length === 7) {
+    return `${time} · Every day`;
+  }
+  const days = (rem.weekDays || []).map((d) => DAY_LABELS[d]).join(", ");
+  return `${time} · ${days}`;
+};
+
+const Reminders = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const reminders = useReminderStore((s) => s.reminders);
+  const globalPaused = useReminderStore((s) => s.globalPaused);
+  const toggleActive = useReminderStore((s) => s.toggleActive);
+  const setGlobalPaused = useReminderStore((s) => s.setGlobalPaused);
+  const removeReminder = useReminderStore((s) => s.removeReminder);
+  const removeAll = useReminderStore((s) => s.removeAll);
+
+  const [editingReminder, setEditingReminder] = useState<ReminderType | null>(
+    null,
+  );
+
+  const getCategoryMeta = (category: string) =>
+    allTemplateMap.find((t) => t.category === category) || CUSTOM_CATEGORY;
+
+  const handleRemoveAll = () => {
+    Alert.alert(
+      "Remove All Reminders",
+      "Are you sure? This will delete all your reminders and cancel their notifications.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove All",
+          style: "destructive",
+          onPress: () => removeAll(),
+        },
+      ],
+    );
+  };
+
+  const handleDelete = (rem: ReminderType) => {
+    Alert.alert("Delete Reminder", `Delete "${rem.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => removeReminder(rem.id),
+      },
+    ]);
+  };
+
+  const activeCount = reminders.filter((r) => r.active).length;
+
+  return (
+    <>
+      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
+        {/* Background */}
+        <View style={StyleSheet.absoluteFillObject}>
+          <LinearGradient
+            colors={["#FFFBEB", "#FFF", "#FFF"]}
+            locations={[0, 0.4, 1]}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        {/* Header */}
+        <View
+          style={[
+            styles.header,
+            { paddingTop: insets.top + 12 },
+          ]}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Icon
+                name="chevron-left"
+                size={14}
+                color={theme.colors.text.title}
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Reminders</Text>
+            <View style={{ width: 36 }} />
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 130,
+            paddingTop: insets.top + 72,
+          }}
+        >
+          {/* Master Controls */}
+          <View style={styles.controlsCard}>
+            <View style={styles.controlRow}>
+              <View style={styles.controlTextContainer}>
+                <MaterialCommunityIcons
+                  name="bell-ring-outline"
+                  size={20}
+                  color={globalPaused ? "#94A3B8" : "#F59E0B"}
+                />
+                <Text style={styles.controlLabel}>All Reminders</Text>
+              </View>
+              <Switch
+                value={!globalPaused}
+                onValueChange={(val) => setGlobalPaused(!val)}
+                trackColor={{ false: "#E2E8F0", true: "#FDE68A" }}
+                thumbColor={!globalPaused ? "#F59E0B" : "#94A3B8"}
+              />
+            </View>
+            {reminders.length > 0 && (
+              <>
+                <View style={styles.controlDivider} />
+                <TouchableOpacity
+                  style={styles.controlRow}
+                  onPress={handleRemoveAll}
+                >
+                  <View style={styles.controlTextContainer}>
+                    <MaterialCommunityIcons
+                      name="trash-can-outline"
+                      size={20}
+                      color="#EF4444"
+                    />
+                    <Text style={[styles.controlLabel, { color: "#EF4444" }]}>
+                      Remove All Reminders
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Section Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>
+            {reminders.length > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countText}>
+                  {activeCount} of {reminders.length} active
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Reminder Cards or Empty State */}
+          {reminders.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <MaterialCommunityIcons
+                  name="bell-sleep-outline"
+                  size={48}
+                  color="#CBD5E1"
+                />
+              </View>
+              <Text style={styles.emptyTitle}>No reminders yet</Text>
+              <Text style={styles.emptyDesc}>
+                Set a reminder to build your daily speech practice habit.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.reminderList}>
+              {reminders.map((rem) => {
+                const meta = getCategoryMeta(rem.category);
+                const isPaused = !rem.active || globalPaused;
+                return (
+                  <TouchableOpacity
+                    key={rem.id}
+                    style={[
+                      styles.reminderCard,
+                      isPaused && styles.reminderCardPaused,
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => setEditingReminder(rem)}
+                    onLongPress={() => handleDelete(rem)}
+                  >
+                    {/* Watermark */}
+                    <View style={styles.cardWatermark}>
+                      <MaterialCommunityIcons
+                        name={meta.icon as any}
+                        size={80}
+                        color={`${meta.color}08`}
+                      />
+                    </View>
+
+                    <View style={styles.cardContent}>
+                      <View style={styles.cardLeft}>
+                        <View
+                          style={[
+                            styles.cardIconContainer,
+                            { backgroundColor: isPaused ? "#F1F5F9" : meta.bgColor },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name={meta.icon as any}
+                            size={18}
+                            color={isPaused ? "#94A3B8" : meta.color}
+                          />
+                        </View>
+                        <View style={styles.cardTextContainer}>
+                          <Text
+                            style={[
+                              styles.cardTitle,
+                              isPaused && styles.cardTitlePaused,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {rem.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.cardSchedule,
+                              isPaused && styles.cardSchedulePaused,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {getScheduleSummary(rem)}
+                          </Text>
+                          {rem.type === "ROUTINE" && (
+                            <View
+                              style={[
+                                styles.typeBadge,
+                                {
+                                  backgroundColor: isPaused
+                                    ? "#F1F5F9"
+                                    : `${meta.color}15`,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.typeBadgeText,
+                                  {
+                                    color: isPaused ? "#94A3B8" : meta.color,
+                                  },
+                                ]}
+                              >
+                                Routine
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <Switch
+                        value={rem.active && !globalPaused}
+                        onValueChange={() => toggleActive(rem.id)}
+                        trackColor={{ false: "#E2E8F0", true: "#FDE68A" }}
+                        thumbColor={
+                          rem.active && !globalPaused ? "#F59E0B" : "#94A3B8"
+                        }
+                        disabled={globalPaused}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Add Reminder Button */}
+          <View style={styles.addButtonContainer}>
+            <Reminder
+              renderTrigger={(onOpen) => (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={onOpen}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={20}
+                    color={theme.colors.actionPrimary.default}
+                  />
+                  <Text style={styles.addButtonText}>Add New Reminder</Text>
+                </TouchableOpacity>
+              )}
+              onReminderSet={() => {
+                // Refresh happens automatically via Zustand
+              }}
+            />
+          </View>
+
+          {/* Tip */}
+          <View style={styles.tipContainer}>
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={16}
+              color="#94A3B8"
+            />
+            <Text style={styles.tipText}>
+              Tap a reminder to edit · Long press to delete
+            </Text>
+          </View>
+        </ScrollView>
+      </ScreenView>
+
+      {/* Edit mode — reuses the Reminder bottom sheet */}
+      {editingReminder && (
+        <Reminder
+          editReminder={editingReminder}
+          isOpen={!!editingReminder}
+          onClose={() => setEditingReminder(null)}
+          onReminderSet={() => setEditingReminder(null)}
+        />
+      )}
+    </>
+  );
+};
+
+export default Reminders;
+
+const styles = StyleSheet.create({
+  screenView: {
+    paddingBottom: 0,
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255, 251, 235, 0.9)",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+
+  // ─── Master Controls ────────────────────────
+  controlsCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowOpacity: 0.06,
+    marginBottom: 24,
+    overflow: "hidden",
+  },
+  controlRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  controlTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  controlLabel: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  controlDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 20,
+  },
+
+  // ─── Section Header ─────────────────────────
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontSize: 11,
+  },
+  countBadge: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  countText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#D97706",
+  },
+
+  // ─── Reminder Cards ─────────────────────────
+  reminderList: {
+    gap: 12,
+  },
+  reminderCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowOpacity: 0.06,
+    overflow: "hidden",
+  },
+  reminderCardPaused: {
+    opacity: 0.6,
+  },
+  cardWatermark: {
+    position: "absolute",
+    right: -15,
+    bottom: -20,
+    opacity: 0.6,
+    transform: [{ rotate: "-15deg" }],
+  },
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  cardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    flex: 1,
+    marginRight: 12,
+  },
+  cardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardTextContainer: {
+    flex: 1,
+    gap: 3,
+  },
+  cardTitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  cardTitlePaused: {
+    color: "#94A3B8",
+  },
+  cardSchedule: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+    fontSize: 13,
+    opacity: 0.7,
+  },
+  cardSchedulePaused: {
+    color: "#94A3B8",
+  },
+  typeBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 2,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  // ─── Empty State ────────────────────────────
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: 12,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontSize: 20,
+  },
+  emptyDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    opacity: 0.7,
+    paddingHorizontal: 24,
+    lineHeight: 22,
+  },
+
+  // ─── Add Button ─────────────────────────────
+  addButtonContainer: {
+    marginTop: 20,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: `${theme.colors.actionPrimary.default}30`,
+    borderStyle: "dashed",
+    backgroundColor: "#FFFBF5",
+  },
+  addButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.actionPrimary.default,
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  // ─── Tip ────────────────────────────────────
+  tipContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 24,
+  },
+  tipText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#94A3B8",
+    fontSize: 12,
+  },
+});

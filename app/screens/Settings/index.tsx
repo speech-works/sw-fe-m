@@ -18,7 +18,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import BottomSheetModal from "../../components/BottomSheetModal";
-import CustomScrollView from "../../components/CustomScrollView";
+import { ScrollView } from "react-native";
 import ScreenView from "../../components/ScreenView";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { BlurView } from "expo-blur";
@@ -117,6 +117,15 @@ const Settings = () => {
         navigation.navigate("HelpSupport");
       },
     },
+    {
+      icon: "bell",
+      iconColor: "#F59E0B", // Amber for reminders
+      iconBg: "#FFFBEB",
+      text: "Reminders",
+      onClick: () => {
+        navigation.navigate("Reminders");
+      },
+    },
   ];
 
   useEffect(() => {
@@ -179,7 +188,7 @@ const Settings = () => {
           </Text>
         </BlurView>
 
-        <CustomScrollView
+        <ScrollView
           style={styles.screenContainer}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -328,7 +337,7 @@ const Settings = () => {
             </TouchableOpacity>
             <Text style={styles.versionText}>v2.4.0 (Build 302)</Text>
           </View>
-        </CustomScrollView>
+        </ScrollView>
       </ScreenView>
 
       <BottomSheetModal

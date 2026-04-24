@@ -17,6 +17,7 @@ import {
     parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import Reminder from "../Reminder";
+import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
 
 const { width } = Dimensions.get("window");
 
@@ -142,6 +143,7 @@ const DonePractice = ({
 
           <View style={styles.reminderWrapper}>
             <Reminder
+              suggestedCategory={mapPracticeToCategory(practiceName)}
               renderTrigger={(onOpen) => (
                 <TouchableOpacity
                   style={styles.secondaryButton}

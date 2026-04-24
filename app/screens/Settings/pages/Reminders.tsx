@@ -1,0 +1,504 @@
+import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  Animated,
+  LayoutAnimation,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import BottomSheetModal from "../../../components/BottomSheetModal";
+import ScreenView from "../../../components/ScreenView";
+import {
+  type Reminder as ReminderType,
+  useReminderStore,
+} from "../../../stores/reminders";
+import { theme } from "../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../util/functions/parseStyles";
+import {
+  REMINDER_TEMPLATES,
+  ReminderCategory,
+} from "../../../constants/reminderTemplates";
+
+const CATEGORY_META: Record<
+  ReminderCategory,
+  { label: string; icon: string; color: string; desc: string }
+> = {
+  DAILY_PRACTICE: {
+    label: "Daily Practice",
+    icon: "bullseye-arrow",
+    color: "#F59E0B",
+    desc: "Stay consistent with your core exercises",
+  },
+  BREATHING: {
+    label: "Breathing",
+    icon: "wind",
+    color: "#3B82F6",
+    desc: "Regulate your rhythm and airflow",
+  },
+  READING: {
+    label: "Reading",
+    icon: "book-open-variant",
+    color: "#8B5CF6",
+    desc: "Practice reading aloud fluently",
+  },
+  CHALLENGE: {
+    label: "Challenge",
+    icon: "trophy-outline",
+    color: "#EC4899",
+    desc: "Push your limits with daily goals",
+  },
+  MOOD_CHECKIN: {
+    label: "Mood Check-in",
+    icon: "emoticon-outline",
+    color: "#10B981",
+    desc: "Log your daily fluency feelings",
+  },
+  CUSTOM: {
+    label: "Custom Reminder",
+    icon: "pencil-outline",
+    color: "#64748B",
+    desc: "Set a unique reminder for your needs",
+  },
+};
+
+const Reminders = () => {
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const { reminders, toggleActive, globalPaused, setGlobalPaused } = useReminderStore();
+
+  const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
+
+  const isMasterOn = !globalPaused;
+
+  const handleCreateNew = () => {
+    setIsCategorySheetVisible(true);
+  };
+
+  const handleSelectCategory = (cat: ReminderCategory) => {
+    setIsCategorySheetVisible(false);
+    navigation.navigate("ConfigureReminder", { category: cat });
+  };
+
+  const handleToggleMaster = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setGlobalPaused(isMasterOn);
+  };
+
+  const handleToggleIndividual = (id: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    toggleActive(id);
+  };
+
+  const renderCustomToggle = (value: boolean, onValueChange: () => void, disabled?: boolean) => (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      disabled={disabled}
+      onPress={onValueChange}
+      style={[
+        styles.customToggleContainer,
+        value ? styles.customToggleActive : styles.customToggleInactive,
+        disabled && { opacity: 0.5 }
+      ]}
+    >
+      <View style={[
+        styles.customToggleThumb,
+        value ? styles.customToggleThumbActive : styles.customToggleThumbInactive
+      ]} />
+    </TouchableOpacity>
+  );
+
+  return (
+    <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient colors={["#F8FAFC", "#FFFFFF"]} style={{ flex: 1 }} />
+      </View>
+
+      <View style={[styles.topNavigation, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={14} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.topNavigationText}>Reminders</Text>
+        <View style={{ width: 32 }} />
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+      >
+        <View style={styles.masterToggleCard}>
+          <View style={styles.masterToggleRow}>
+            <View style={[styles.masterToggleIcon, { backgroundColor: isMasterOn ? "#FFF7ED" : "#F1F5F9" }]}>
+              <MaterialCommunityIcons
+                name={isMasterOn ? "bell-ring-outline" : "bell-off-outline"}
+                size={22}
+                color={isMasterOn ? theme.colors.actionPrimary.default : "#94A3B8"}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.masterToggleText}>Master Control</Text>
+              <Text style={styles.masterToggleSubtext}>
+                {isMasterOn ? "All reminders are active" : "All reminders are currently paused"}
+              </Text>
+            </View>
+            {renderCustomToggle(isMasterOn, handleToggleMaster)}
+          </View>
+        </View>
+
+        {reminders.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>
+            {reminders.map((rem) => (
+              <TouchableOpacity
+                key={rem.id}
+                style={styles.reminderCard}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
+              >
+                <View style={styles.reminderContent}>
+                  <View style={[styles.iconContainer, { backgroundColor: CATEGORY_META[rem.category]?.color + "15" }]}>
+                    <MaterialCommunityIcons
+                      name={CATEGORY_META[rem.category]?.icon as any}
+                      size={20}
+                      color={CATEGORY_META[rem.category]?.color}
+                    />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.reminderTitle}>{rem.title}</Text>
+                    <Text style={styles.reminderTime}>
+                      {rem.type === "ROUTINE" ? "Every day at " : "Once at "}
+                      <Text style={{ fontWeight: "700" }}>{rem.time}</Text>
+                    </Text>
+                  </View>
+                  {renderCustomToggle(rem.active && !globalPaused, () => handleToggleIndividual(rem.id), globalPaused)}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <MaterialCommunityIcons name="bell-outline" size={48} color="#94A3B8" />
+            </View>
+            <Text style={styles.emptyTitle}>No reminders yet</Text>
+            <Text style={styles.emptyDesc}>Set a reminder to build your daily speech practice habit.</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Floating Create Button */}
+      <View style={[styles.bottomAction, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <TouchableOpacity
+          style={styles.createButton}
+          activeOpacity={0.9}
+          onPress={handleCreateNew}
+        >
+          <LinearGradient
+            colors={[theme.colors.actionPrimary.default, "#E06B00"]}
+            style={styles.createGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
+            <Text style={styles.createButtonText}>Create Reminder</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      <BottomSheetModal
+        visible={isCategorySheetVisible}
+        onClose={() => setIsCategorySheetVisible(false)}
+        fitContent
+        showCloseButton={false} // We use a custom one for better control
+      >
+        <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 32) }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>What do you want to be reminded of?</Text>
+            <TouchableOpacity 
+              onPress={() => setIsCategorySheetVisible(false)} 
+              style={styles.modalCloseCircle}
+            >
+              <MaterialCommunityIcons name="close" size={20} color={theme.colors.text.title} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
+            {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat) => {
+              const meta = CATEGORY_META[cat];
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  style={styles.modalCategoryCard}
+                  onPress={() => handleSelectCategory(cat)}
+                >
+                  <View style={[styles.modalIconContainer, { backgroundColor: meta.color + "15" }]}>
+                    <MaterialCommunityIcons name={meta.icon as any} size={22} color={meta.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalCategoryLabel}>{meta.label}</Text>
+                    <Text style={styles.modalCategoryDesc}>{meta.desc}</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </BottomSheetModal>
+    </ScreenView>
+  );
+};
+
+const styles = StyleSheet.create({
+  screenView: {
+    flex: 1,
+  },
+  topNavigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  topNavigationText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  masterToggleCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 32,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  masterToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  masterToggleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  masterToggleText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 16,
+    color: theme.colors.text.title,
+    fontWeight: "700",
+  },
+  masterToggleSubtext: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#64748B",
+    marginTop: 2,
+    minHeight: 18, // Fixed height to prevent layout shift between 1 and 2 lines
+  },
+  sectionTitle: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#94A3B8",
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 16,
+    marginLeft: 4,
+  },
+  reminderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  reminderContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  textContainer: {
+    flex: 1,
+  },
+  reminderTitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "700",
+  },
+  reminderTime: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#64748B",
+    marginTop: 2,
+  },
+  customToggleContainer: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    padding: 3,
+    justifyContent: "center",
+  },
+  customToggleActive: {
+    backgroundColor: theme.colors.actionPrimary.default,
+  },
+  customToggleInactive: {
+    backgroundColor: "#E2E8F0",
+  },
+  customToggleThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#FFFFFF",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  customToggleThumbActive: {
+    alignSelf: "flex-end",
+  },
+  customToggleThumbInactive: {
+    alignSelf: "flex-start",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptyDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  bottomAction: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    backgroundColor: "transparent",
+  },
+  createButton: {
+    height: 56,
+    borderRadius: 28,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation3),
+  },
+  createGradient: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  createButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  modalContent: {
+    paddingHorizontal: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 36, // Balanced with marginBottom to create even gap
+    paddingBottom: 24,
+  },
+  modalTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    fontWeight: "800",
+    flex: 1,
+    marginRight: 16,
+  },
+  modalCloseCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCategoryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  modalIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCategoryLabel: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    fontWeight: "700",
+  },
+  modalCategoryDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#64748B",
+    marginTop: 2,
+  },
+});
+
+export default Reminders;

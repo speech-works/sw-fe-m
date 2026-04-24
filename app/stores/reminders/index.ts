@@ -3,7 +3,9 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
+import type { ReminderCategory } from "../../constants/reminderTemplates";
 import {
+  cancelAllNotifications,
   cancelReminderNotifications,
   scheduleOneTime,
   scheduleRoutine,
@@ -13,65 +15,90 @@ export type ReminderType = "ONE_TIME" | "ROUTINE";
 
 export interface Reminder {
   id: string;
+  title: string;
+  body?: string;
+  category: ReminderCategory;
   type: ReminderType;
   date: string; // ISO date: 'YYYY-MM-DD'
   time: string; // 'HH:MM'
-  notes?: string;
   weekDays?: number[]; // 0=Sun…6=Sat for ROUTINE
   notificationIds: string[]; // IDs from scheduleNotificationAsync
+  active: boolean;
+  createdAt: string; // ISO timestamp
+  messageIndex?: number; // Index into the template message pool (for rotation)
 }
+
+export type NewReminderInput = Omit<
+  Reminder,
+  "id" | "notificationIds" | "createdAt"
+>;
+
+const MAX_REMINDERS = 3;
 
 interface ReminderState {
   reminders: Reminder[];
-  addReminder: (r: Omit<Reminder, "id" | "notificationIds">) => Promise<void>;
+  globalPaused: boolean;
+  addReminder: (r: NewReminderInput) => Promise<void>;
   updateReminder: (
     id: string,
-    changes: Partial<Omit<Reminder, "id">>
+    changes: Partial<Omit<Reminder, "id">>,
   ) => Promise<void>;
   removeReminder: (id: string) => Promise<void>;
+  toggleActive: (id: string) => Promise<void>;
+  setGlobalPaused: (paused: boolean) => Promise<void>;
+  removeAll: () => Promise<void>;
   clearExpired: () => void;
-  // New action to re-schedule notifications when the app starts/rehydrates
   rescheduleAllActiveNotifications: () => Promise<void>;
+  canAddMore: () => boolean;
 }
+
+export { MAX_REMINDERS };
 
 export const useReminderStore = create<ReminderState>()(
   persist(
     (set, get) => ({
       reminders: [],
+      globalPaused: false,
+
+      canAddMore: () => get().reminders.length < MAX_REMINDERS,
 
       addReminder: async (r) => {
+        if (get().reminders.length >= MAX_REMINDERS) {
+          throw new Error(
+            `Maximum ${MAX_REMINDERS} reminders allowed. Please delete one to add a new one.`,
+          );
+        }
+
         const newRem: Reminder = {
           ...r,
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          notificationIds: [], // Initialize empty; will be populated after scheduling
+          notificationIds: [],
+          createdAt: new Date().toISOString(),
         };
 
+        // Only schedule if the reminder is active and global isn't paused
         let scheduledNotificationIds: string[] = [];
-        try {
-          if (newRem.type === "ONE_TIME") {
-            const notificationId = await scheduleOneTime(newRem);
-            scheduledNotificationIds.push(notificationId);
-          } else if (newRem.type === "ROUTINE") {
-            scheduledNotificationIds = await scheduleRoutine(newRem);
+        if (newRem.active && !get().globalPaused) {
+          try {
+            if (newRem.type === "ONE_TIME") {
+              const notificationId = await scheduleOneTime(newRem);
+              scheduledNotificationIds.push(notificationId);
+            } else if (newRem.type === "ROUTINE") {
+              scheduledNotificationIds = await scheduleRoutine(newRem);
+            }
+          } catch (error) {
+            console.error(
+              "Failed to schedule notification for new reminder:",
+              error,
+            );
           }
-        } catch (error) {
-          console.error(
-            "Failed to schedule notification for new reminder:",
-            error
-          );
-          // Decide how to handle this:
-          // 1. You could throw the error to the UI to notify the user.
-          // 2. You could prevent adding the reminder to the store if notifications are critical.
-          // For now, we'll proceed but log the error.
+
+          if (scheduledNotificationIds.length === 0) {
+            throw new Error("Failed to schedule reminder notification.");
+          }
         }
 
-        if (scheduledNotificationIds.length === 0) {
-          throw new Error("Failed to schedule reminder notification.");
-        }
-
-        // Update the new reminder with the scheduled IDs
         newRem.notificationIds = scheduledNotificationIds;
-
         set((s) => ({ reminders: [...s.reminders, newRem] }));
       },
 
@@ -81,12 +108,12 @@ export const useReminderStore = create<ReminderState>()(
 
         if (!oldRem) {
           console.warn(
-            `Attempted to update non-existent reminder with ID: ${id}`
+            `Attempted to update non-existent reminder with ID: ${id}`,
           );
           return;
         }
 
-        // 1. Cancel existing notifications for the old reminder
+        // 1. Cancel existing notifications
         if (oldRem.notificationIds && oldRem.notificationIds.length > 0) {
           await cancelReminderNotifications(oldRem);
         }
@@ -94,50 +121,119 @@ export const useReminderStore = create<ReminderState>()(
         // 2. Create the updated reminder object
         const updatedRem: Reminder = { ...oldRem, ...changes };
 
-        // 3. Re-schedule notifications for the updated reminder
+        // 3. Re-schedule if active and not globally paused
         let newNotificationIds: string[] = [];
-        try {
-          if (updatedRem.type === "ONE_TIME") {
-            const notificationId = await scheduleOneTime(updatedRem);
-            newNotificationIds.push(notificationId);
-          } else if (updatedRem.type === "ROUTINE") {
-            newNotificationIds = await scheduleRoutine(updatedRem);
+        if (updatedRem.active && !get().globalPaused) {
+          try {
+            if (updatedRem.type === "ONE_TIME") {
+              const notificationId = await scheduleOneTime(updatedRem);
+              newNotificationIds.push(notificationId);
+            } else if (updatedRem.type === "ROUTINE") {
+              newNotificationIds = await scheduleRoutine(updatedRem);
+            }
+          } catch (error) {
+            console.error(
+              "Failed to re-schedule notification for updated reminder:",
+              error,
+            );
+            throw error;
           }
-        } catch (error) {
-          console.error(
-            "Failed to re-schedule notification for updated reminder:",
-            error
-          );
-          // Consider a fallback here, e.g., keeping old notifications or alerting user.
-          throw error;
+
+          if (newNotificationIds.length === 0) {
+            throw new Error("Failed to reschedule reminder notification.");
+          }
         }
 
-        if (newNotificationIds.length === 0) {
-          throw new Error("Failed to reschedule reminder notification.");
-        }
+        updatedRem.notificationIds = newNotificationIds;
 
-        updatedRem.notificationIds = newNotificationIds; // Update with new IDs
-
-        // 4. Update the reminder in the Zustand store
+        // 4. Update in store
         set((s) => ({
           reminders: s.reminders.map((rem) =>
-            rem.id === id ? updatedRem : rem
+            rem.id === id ? updatedRem : rem,
           ),
         }));
       },
 
       removeReminder: async (id) => {
-        const currentReminders = get().reminders;
-        const remToRemove = currentReminders.find((rem) => rem.id === id);
+        const remToRemove = get().reminders.find((rem) => rem.id === id);
 
         if (remToRemove) {
-          // Cancel associated notifications before removing from store
           await cancelReminderNotifications(remToRemove);
         }
 
         set((s) => ({
           reminders: s.reminders.filter((rem) => rem.id !== id),
         }));
+      },
+
+      toggleActive: async (id) => {
+        const rem = get().reminders.find((r) => r.id === id);
+        if (!rem) return;
+
+        const newActive = !rem.active;
+
+        if (!newActive) {
+          // Pausing — cancel notifications
+          await cancelReminderNotifications(rem);
+          set((s) => ({
+            reminders: s.reminders.map((r) =>
+              r.id === id ? { ...r, active: false, notificationIds: [] } : r,
+            ),
+          }));
+        } else {
+          // Resuming — reschedule notifications
+          let newNotificationIds: string[] = [];
+          if (!get().globalPaused) {
+            try {
+              if (rem.type === "ONE_TIME") {
+                newNotificationIds.push(await scheduleOneTime(rem));
+              } else if (rem.type === "ROUTINE") {
+                newNotificationIds = await scheduleRoutine(rem);
+              }
+            } catch (error) {
+              console.error(`Failed to reschedule reminder ${id}:`, error);
+            }
+          }
+          set((s) => ({
+            reminders: s.reminders.map((r) =>
+              r.id === id
+                ? { ...r, active: true, notificationIds: newNotificationIds }
+                : r,
+            ),
+          }));
+        }
+      },
+
+      setGlobalPaused: async (paused) => {
+        if (paused) {
+          // Pause all — cancel all active notifications
+          await Promise.all(
+            get()
+              .reminders.filter((r) => r.active && r.notificationIds.length > 0)
+              .map((r) => cancelReminderNotifications(r)),
+          );
+          set((s) => ({
+            globalPaused: true,
+            reminders: s.reminders.map((r) => ({
+              ...r,
+              notificationIds: r.active ? [] : r.notificationIds,
+            })),
+          }));
+        } else {
+          // Resume all — reschedule all active reminders
+          set({ globalPaused: false });
+          await get().rescheduleAllActiveNotifications();
+        }
+      },
+
+      removeAll: async () => {
+        // Cancel all notifications owned by this store
+        await Promise.all(
+          get()
+            .reminders.filter((r) => r.notificationIds.length > 0)
+            .map((r) => cancelReminderNotifications(r)),
+        );
+        set({ reminders: [], globalPaused: false });
       },
 
       clearExpired: () => {
@@ -147,17 +243,13 @@ export const useReminderStore = create<ReminderState>()(
             const [y, m, d] = rem.date.split("-").map(Number);
             const [h, min] = rem.time.split(":").map(Number);
             const dt = new Date(y, m - 1, d, h, min);
-            // Keep one-time reminders only if their scheduled time is in the future
             return dt.getTime() > now.getTime();
           }
-          // Routine reminders are never "expired" in this sense, they repeat indefinitely
           return true;
         });
 
-        // Optional: Cancel notifications for the expired ones that are being removed
         get().reminders.forEach(async (rem) => {
           if (!updatedReminders.some((ur) => ur.id === rem.id)) {
-            // If reminder is being filtered out
             await cancelReminderNotifications(rem);
           }
         });
@@ -165,33 +257,38 @@ export const useReminderStore = create<ReminderState>()(
         set({ reminders: updatedReminders });
       },
 
-      // New action to re-schedule all active notifications on app load/rehydration
       rescheduleAllActiveNotifications: async () => {
+        if (get().globalPaused) {
+          console.log("Global pause is on — skipping reschedule.");
+          return;
+        }
+
         console.log("Rescheduling all active notifications...");
-        // 1. Cancel only the notifications owned by this store so we don't
-        // wipe out other scheduled reminders in the app.
+
+        // 1. Cancel existing notifications
         await Promise.all(
           get().reminders.map(async (rem) => {
             if (rem.notificationIds.length > 0) {
               await cancelReminderNotifications(rem);
             }
-          })
+          }),
         );
 
-        // 2. Filter out any one-time reminders that might have expired while the app was closed
+        // 2. Filter expired one-time reminders
         const now = new Date();
         const activeReminders = get().reminders.filter((rem) => {
+          if (!rem.active) return false;
           if (rem.type === "ONE_TIME") {
             const [y, m, d] = rem.date.split("-").map(Number);
             const [h, min] = rem.time.split(":").map(Number);
             const dt = new Date(y, m - 1, d, h, min);
             return dt.getTime() > now.getTime();
           }
-          return true; // Routine reminders are always considered active
+          return true;
         });
 
-        // 3. Reschedule notifications for all active reminders
-        const updatedRemindersWithNewNIDs = await Promise.all(
+        // 3. Reschedule
+        const updatedReminders = await Promise.all(
           activeReminders.map(async (rem) => {
             let newNotificationIds: string[] = [];
             try {
@@ -203,25 +300,27 @@ export const useReminderStore = create<ReminderState>()(
             } catch (error) {
               console.error(
                 `Failed to reschedule notification for reminder ${rem.id}:`,
-                error
+                error,
               );
-              // In case of error, you might want to retain old NIDs or alert user.
-              // For now, we'll proceed with an empty array if scheduling failed.
               newNotificationIds = [];
             }
             return { ...rem, notificationIds: newNotificationIds };
-          })
+          }),
         );
-        set({ reminders: updatedRemindersWithNewNIDs });
+
+        // 4. Merge: keep inactive reminders as-is, update active ones
+        const allReminders = get().reminders.map((rem) => {
+          const updated = updatedReminders.find((u) => u.id === rem.id);
+          return updated || { ...rem, notificationIds: [] };
+        });
+
+        set({ reminders: allReminders });
         console.log("All active notifications rescheduled.");
       },
     }),
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_REMINDERS,
       storage: createJSONStorage(() => AsyncStorage),
-      // You can also add a `version` for migrations if your store structure changes
-      // version: 1,
-      // migrate: (persistedState, version) => { /* ... */ }
-    }
-  )
+    },
+  ),
 );

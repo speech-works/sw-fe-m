@@ -1,10 +1,7 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
-import { format } from "date-fns";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,14 +17,8 @@ import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
-import TimeSelector from "../../../components/TimeSelector";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
-import {
-  hasNotificationPermission,
-  registerForNotifications,
-  syncPreferredPracticeReminder,
-} from "../../../util/functions/notifications";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -35,7 +26,7 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 
-type SettingType = "GOAL" | "TIMER" | null;
+type SettingType = "GOAL" | null;
 
 const Preferences = () => {
   const insets = useSafeAreaInsets();
@@ -46,43 +37,8 @@ const Preferences = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
-  const [reminderTime, setReminderTime] = useState<Date | null>();
-  const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
 
   const closeModal = () => setIsModalVisible(false);
-
-  const normalizeReminderTime = (time: Date) => {
-    const normalizedTime = new Date(time);
-    normalizedTime.setFullYear(1970, 0, 1); // Jan 1, 1970
-    return normalizedTime;
-  };
-
-  const handleReminderTimeSelected = async (time: Date) => {
-    if (!user) return;
-
-    const hasPermissions = await registerForNotifications();
-    if (!hasPermissions) {
-      Alert.alert(
-        "Permissions Required",
-        "Please enable notification permissions in your device settings.",
-      );
-      return;
-    }
-
-    try {
-      await syncPreferredPracticeReminder(time);
-      await updateUserPreferences(user.id, {
-        practiceReminderTime: normalizeReminderTime(time),
-      });
-      setReminderTime(time);
-    } catch (error) {
-      console.error("Failed to save preferred practice time:", error);
-      Alert.alert(
-        "Error",
-        "Could not save your reminder time. Please try again.",
-      );
-    }
-  };
 
   const handleGoalChange = async (goalText: string) => {
     console.log("handle goal change", { goalText });
@@ -220,23 +176,10 @@ const Preferences = () => {
       const pref = await getUserPreferences(user.id);
       if (!pref) return;
       const {
-        practiceReminderTime,
         practiceGoalType,
         dailyPracticeLimitMinutes,
         dailyTaskCount,
       } = pref;
-      if (practiceReminderTime) {
-        const nextReminderTime = new Date(practiceReminderTime);
-        setReminderTime(nextReminderTime);
-
-        try {
-          if (await hasNotificationPermission()) {
-            await syncPreferredPracticeReminder(nextReminderTime);
-          }
-        } catch (error) {
-          console.error("Failed to sync preferred practice reminder:", error);
-        }
-      }
       if (practiceGoalType) {
         if (practiceGoalType === PracticeGoalType.TASK_BASED) {
           setSelectedGoalType("Task based");
@@ -278,53 +221,6 @@ const Preferences = () => {
             <View style={{ width: 32 }} />
           </View>
           <CustomScrollView contentContainerStyle={styles.scrollView}>
-            {/* Preferred Time Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setOpenSettingType("TIMER");
-                if (Platform.OS === "android") {
-                  setShowAndroidTimePicker(true);
-                } else {
-                  setIsModalVisible(true);
-                }
-              }}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={["#EBCBF5", "#D8A7F0"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.watermarkContainer}>
-                  <Icon
-                    name="clock"
-                    size={120}
-                    color="rgba(255,255,255,0.15)"
-                  />
-                </View>
-                <View style={styles.cardHeader}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>SCHEDULE</Text>
-                  </View>
-                  <Text style={styles.cardTitle}>Preferred Practice Time</Text>
-                  <Text style={styles.cardDesc}>
-                    When should we remind you?
-                  </Text>
-                </View>
-                <View style={styles.cardFooter}>
-                  {reminderTime && (
-                    <View style={styles.valueControlContainer}>
-                      <Text style={styles.valueTextLarge}>
-                        {format(reminderTime, "hh:mm a")}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
             {/* Goal Type Card */}
             <TouchableOpacity
               activeOpacity={0.9}
@@ -503,11 +399,10 @@ const Preferences = () => {
           ]}
         >
           {(() => {
-            const isTimer = openSettingType === "TIMER";
-            const iconName = isTimer ? "clock" : "tasks";
-            const iconColor = isTimer ? "#9333EA" : "#EA580C";
-            const headerBg = isTimer ? "#F3E8FF" : "#FFF7ED";
-            const title = isTimer ? "Practice Reminder" : "Practice Goal";
+            const iconName = "tasks";
+            const iconColor = "#EA580C";
+            const headerBg = "#FFF7ED";
+            const title = "Practice Goal";
 
             return (
               <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
@@ -524,31 +419,8 @@ const Preferences = () => {
             );
           })()}
           {openSettingType === "GOAL" && <SelectGoalType />}
-          {openSettingType === "TIMER" && (
-            <TimeSelector
-              onTimeChange={(time) => {
-                void handleReminderTimeSelected(time);
-                closeModal();
-              }}
-              initialTime={reminderTime || new Date()}
-            />
-          )}
         </View>
       </BottomSheetModal>
-      {showAndroidTimePicker && (
-        <DateTimePicker
-          value={reminderTime || new Date()}
-          mode="time"
-          display="default"
-          is24Hour={true}
-          onChange={(_, date) => {
-            setShowAndroidTimePicker(false);
-            if (date) {
-              void handleReminderTimeSelected(date);
-            }
-          }}
-        />
-      )}
     </>
   );
 };
