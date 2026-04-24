@@ -38,6 +38,33 @@ const Support = () => {
     setOpenSettingType("Success");
   };
 
+  const supportItems = [
+    {
+      type: "Report Problem" as SettingType,
+      icon: "bug",
+      iconColor: "#EA580C",
+      bgColor: "#FFF7ED",
+      title: "Report A Problem",
+      desc: "Let us know what needs fixing",
+    },
+    {
+      type: "Contact Support" as SettingType,
+      icon: "headset",
+      iconColor: "#2563EB",
+      bgColor: "#EFF6FF",
+      title: "Contact Support",
+      desc: "Reach out to our support team",
+    },
+    {
+      type: "Feedback" as SettingType,
+      icon: "lightbulb",
+      iconColor: "#DB2777",
+      bgColor: "#FDF2F8",
+      title: "Feedback & Suggestions",
+      desc: "How can we improve?",
+    },
+  ];
+
   return (
     <>
       <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
@@ -80,101 +107,34 @@ const Support = () => {
               { paddingTop: HEADER_HEIGHT + insets.top + 20 },
             ]}
           >
-            {/* Report Problem Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setOpenSettingType("Report Problem");
-                setIsModalVisible(true);
-              }}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={["#FFD8B5", "#FFAB76"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.watermarkContainer}>
-                  <Icon name="bug" size={120} color="rgba(255,255,255,0.15)" />
-                </View>
-                <View style={styles.cardHeader}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>HELP</Text>
+            {/* Professional List Menu */}
+            <View style={styles.listContainer}>
+              {supportItems.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.listItem}
+                  onPress={() => {
+                    setOpenSettingType(item.type);
+                    setIsModalVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
+                    <Icon
+                      name={item.icon}
+                      size={20}
+                      color={item.iconColor}
+                    />
                   </View>
-                  <Text style={styles.cardTitle}>Report A Problem</Text>
-                  <Text style={styles.cardDesc}>
-                    Let us know what needs fixing
-                  </Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Contact Support Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setOpenSettingType("Contact Support");
-                setIsModalVisible(true);
-              }}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={["#Cbf0f0", "#98E6E6"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.watermarkContainer}>
-                  <Icon
-                    name="headset"
-                    size={120}
-                    color="rgba(255,255,255,0.15)"
-                  />
-                </View>
-                <View style={styles.cardHeader}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>SUPPORT</Text>
+                  <View style={styles.listTextContainer}>
+                    <Text style={styles.listItemText}>{item.title}</Text>
+                    <Text style={styles.listItemDesc}>{item.desc}</Text>
                   </View>
-                  <Text style={styles.cardTitle}>Contact Support</Text>
-                  <Text style={styles.cardDesc}>
-                    Reach out to our friendly support team
-                  </Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Feedback Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setOpenSettingType("Feedback");
-                setIsModalVisible(true);
-              }}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={["#FFC8C8", "#FF9E9E"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.watermarkContainer}>
-                  <Icon
-                    name="lightbulb"
-                    size={120}
-                    color="rgba(255,255,255,0.15)"
-                  />
-                </View>
-                <View style={styles.cardHeader}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>FEEDBACK</Text>
-                  </View>
-                  <Text style={styles.cardTitle}>Feedback & Suggestions</Text>
-                  <Text style={styles.cardDesc}>How can we improve?</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+                  <Icon name="chevron-right" size={16} color="#94A3B8" />
+                  {index < supportItems.length - 1 && <View style={styles.divider} />}
+                </TouchableOpacity>
+              ))}
+            </View>
           </CustomScrollView>
         </View>
       </ScreenView>
@@ -328,83 +288,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  cardWrapper: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden",
+  listContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  cardGradient: {
-    padding: 24,
-    minHeight: 160,
-    justifyContent: "space-between",
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
     position: "relative",
   },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    transform: [{ rotate: "-15deg" }],
-    opacity: 0.8,
-  },
-  cardHeader: {
-    zIndex: 1,
-  },
-  badge: {
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    marginBottom: 12,
-  },
-  badgeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontSize: 10,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.6)",
-    letterSpacing: 1,
-  },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "rgba(0,0,0,0.8)",
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  cardDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(0,0,0,0.6)",
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "600",
-  },
-  cardFooter: {
-    display: "none",
-  },
-  iconContainer: {
+  listIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: "center",
+    borderRadius: 12,
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    alignItems: "center",
+    marginRight: 16,
   },
-  textContainer: {
-    gap: 4,
+  listTextContainer: {
     flex: 1,
   },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading3), // Match Preferences
-    color: theme.colors.library.orange[800],
-    fontSize: 18,
+  listItemText: {
+    fontSize: 16,
     fontWeight: "700",
+    color: theme.colors.text.title,
+    marginBottom: 2,
   },
-  descText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.library.gray[500],
+  listItemDesc: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
 
   modalContent: {
