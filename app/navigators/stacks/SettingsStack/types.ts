@@ -9,6 +9,9 @@ export type SettingsStackParamList = {
   PaymentStack: undefined;
   Reminders: undefined;
   ConfigureReminder: { reminderId?: string };
+  ReportProblem: undefined;
+  ContactSupport: undefined;
+  Feedback: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList,

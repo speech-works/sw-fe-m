@@ -18,17 +18,25 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import ScreenView from "../../../../components/ScreenView";
 
 interface FeedbackProps {
   onFeedbackSubmit: () => void;
 }
 
-const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
+const Feedback = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const { user } = useUserStore();
   const [features, setFeatures] = useState("");
   const [frustrations, setFrustrations] = useState("");
   const [otherThoughts, setOtherThoughts] = useState("");
   const [submitEmail, setSubmitEmail] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleFeedbackSubmit = async () => {
     if (!user) return;
@@ -38,17 +46,49 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
       reportedFrustration: frustrations,
       otherThoughts: otherThoughts,
     });
-    onFeedbackSubmit();
+    setShowSuccess(true);
   };
 
   const isFormValid =
     features.length > 0 || frustrations.length > 0 || otherThoughts.length > 0;
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScreenView style={styles.screenView}>
+      {/* Aurora Background */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FDF2F8", "#FFF", "#FFF"] as const}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
+
+      {/* Header */}
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Feedback & Suggestions</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.wrapper}>
         {/* Background Decorative Patterns */}
         <View style={styles.bgBubble} pointerEvents="none" />
@@ -154,7 +194,36 @@ const Feedback = ({ onFeedbackSubmit }: FeedbackProps) => {
 
         <View style={{ height: 48 }} />
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Success View overlay */}
+      {showSuccess && (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFF", zIndex: 1000 }]}>
+          <View style={styles.successContainer}>
+            <View style={styles.successIconBox}>
+              <LinearGradient
+                colors={["#10B981", "#059669"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.innerCheckmarkCircle}
+              >
+                <Icon name="check" size={32} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.successTitle}>Thank You!</Text>
+            <Text style={styles.successDesc}>
+              Your feedback is invaluable. We truly appreciate your time!
+            </Text>
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </ScreenView>
   );
 };
 
@@ -280,5 +349,84 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#ffffff",
+  },
+  screenView: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
+  },
+
+  // Success View Styles
+  successContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  successIconBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  innerCheckmarkCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  successTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginBottom: 8,
+  },
+  successDesc: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  doneButton: {
+    backgroundColor: theme.colors.actionPrimary.default,
+    borderRadius: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    width: "100%",
+    alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  doneButtonText: {
+    ...parseTextStyle(theme.typography.Button),
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

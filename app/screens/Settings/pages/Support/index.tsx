@@ -20,27 +20,15 @@ import ReportProblem from "./ReportProblem";
 type SettingType =
   | "Report Problem"
   | "Contact Support"
-  | "Feedback"
-  | "Success";
+  | "Feedback";
 
 const Support = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [openSettingType, setOpenSettingType] = useState<SettingType | null>(
-    null,
-  );
-
-  const closeModal = () => setIsModalVisible(false);
-
-  const handleSuccess = () => {
-    setOpenSettingType("Success");
-  };
-
   const supportItems = [
     {
-      type: "Report Problem" as SettingType,
+      type: "ReportProblem" as const,
       icon: "bug",
       iconColor: "#EA580C",
       bgColor: "#FFF7ED",
@@ -48,7 +36,7 @@ const Support = () => {
       desc: "Let us know what needs fixing",
     },
     {
-      type: "Contact Support" as SettingType,
+      type: "ContactSupport" as const,
       icon: "headset",
       iconColor: "#2563EB",
       bgColor: "#EFF6FF",
@@ -56,7 +44,7 @@ const Support = () => {
       desc: "Reach out to our support team",
     },
     {
-      type: "Feedback" as SettingType,
+      type: "Feedback" as const,
       icon: "lightbulb",
       iconColor: "#DB2777",
       bgColor: "#FDF2F8",
@@ -65,177 +53,78 @@ const Support = () => {
     },
   ];
 
-  return (
-    <>
-      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-        {/* Aurora Background */}
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFF", "#FFF"] as const}
-            locations={[0, 0.4, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
-
-        <View style={styles.container}>
-          {/* Header */}
-          <BlurView
-            intensity={80}
-            tint="light"
-            style={[
-              styles.header,
-              { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Help & Support</Text>
-            <View style={{ width: 32 }} />
-          </BlurView>
-
-          <CustomScrollView
-            contentContainerStyle={[
-              styles.scrollView,
-              { paddingTop: HEADER_HEIGHT + insets.top + 20 },
-            ]}
-          >
-            {/* Professional List Menu */}
-            <View style={styles.listContainer}>
-              {supportItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.listItem}
-                  onPress={() => {
-                    setOpenSettingType(item.type);
-                    setIsModalVisible(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
-                    <Icon
-                      name={item.icon}
-                      size={20}
-                      color={item.iconColor}
-                    />
-                  </View>
-                  <View style={styles.listTextContainer}>
-                    <Text style={styles.listItemText}>{item.title}</Text>
-                    <Text style={styles.listItemDesc}>{item.desc}</Text>
-                  </View>
-                  <Icon name="chevron-right" size={16} color="#94A3B8" />
-                  {index < supportItems.length - 1 && <View style={styles.divider} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </CustomScrollView>
-        </View>
-      </ScreenView>
-
-      <BottomSheetModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        maxHeight="90%"
-        showCloseButton={true}
-        fitContent={openSettingType === "Success"}
-      >
-        <View style={[styles.modalContent, openSettingType === "Success" && { flex: 0 }]}>
-          {openSettingType !== "Success" &&
-            (() => {
-              const isReport = openSettingType === "Report Problem";
-              const isContact = openSettingType === "Contact Support";
-              const iconName = isReport
-                ? "bug"
-                : isContact
-                  ? "headset"
-                  : "lightbulb";
-              const iconColor = isReport
-                ? "#EA580C"
-                : isContact
-                  ? "#2563EB"
-                  : "#DB2777";
-              const headerBg = isReport
-                ? "#FFF7ED"
-                : isContact
-                  ? "#EFF6FF"
-                  : "#FDF2F8";
-
-              return (
+    return (
+        <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
+            {/* Aurora Background */}
+            <View style={StyleSheet.absoluteFillObject}>
                 <LinearGradient
-                  colors={[headerBg, "#FFF"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.modalHeader}
-                >
-                  {/* Header Decorative Bubbles */}
-                  <View style={styles.modalHeaderBubble} />
-                  <View style={styles.modalHeaderBubbleSmall} />
+                    colors={["#FFF7ED", "#FFF", "#FFF"] as const}
+                    locations={[0, 0.4, 1]}
+                    style={{ flex: 1 }}
+                />
+            </View>
 
-                  <View
-                    style={[styles.iconCircle, { backgroundColor: iconColor }]}
-                  >
-                    <Icon name={iconName} size={20} color="white" solid />
-                  </View>
-                  <Text style={styles.modalTitleText}>{openSettingType}</Text>
-                </LinearGradient>
-              );
-            })()}
-
-          <View
-            style={[
-              styles.modalBody,
-              openSettingType === "Success" && { flex: 0 },
-              { paddingBottom: insets.bottom },
-            ]}
-          >
-            {openSettingType === "Contact Support" && <ContactSupport />}
-            {openSettingType === "Feedback" && (
-              <Feedback onFeedbackSubmit={handleSuccess} />
-            )}
-            {openSettingType === "Report Problem" && (
-              <ReportProblem onReportSubmit={handleSuccess} />
-            )}
-            {openSettingType === "Success" && (
-              <View
-                style={[
-                  styles.successContainer,
-                  { paddingBottom: Math.max(insets.bottom, 60) },
-                ]}
-              >
-                <View style={styles.successIconBox}>
-                  <LinearGradient
-                    colors={["#10B981", "#059669"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.innerCheckmarkCircle}
-                  >
-                    <Icon name="check" size={32} color="#FFFFFF" />
-                  </LinearGradient>
-                </View>
-                <Text style={styles.successTitle}>Thank You!</Text>
-                <Text style={styles.successDesc}>
-                  Your submission has been received successfully.
-                </Text>
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={closeModal}
+            <View style={styles.container}>
+                {/* Header */}
+                <BlurView
+                    intensity={80}
+                    tint="light"
+                    style={[
+                        styles.header,
+                        { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+                    ]}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-      </BottomSheetModal>
-    </>
-  );
+                    <TouchableOpacity
+                        onPress={() => navigation.goBack()}
+                        style={styles.backButton}
+                    >
+                        <Icon
+                            name="chevron-left"
+                            size={16}
+                            color={theme.colors.text.title}
+                        />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Help & Support</Text>
+                    <View style={{ width: 32 }} />
+                </BlurView>
+
+                <CustomScrollView
+                    contentContainerStyle={[
+                        styles.scrollView,
+                        { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+                    ]}
+                >
+                    {/* Professional List Menu */}
+                    <View style={styles.listContainer}>
+                        {supportItems.map((item, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.listItem}
+                                onPress={() => {
+                                    navigation.navigate(item.type as any);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
+                                    <Icon
+                                        name={item.icon}
+                                        size={20}
+                                        color={item.iconColor}
+                                    />
+                                </View>
+                                <View style={styles.listTextContainer}>
+                                    <Text style={styles.listItemText}>{item.title}</Text>
+                                    <Text style={styles.listItemDesc}>{item.desc}</Text>
+                                </View>
+                                <Icon name="chevron-right" size={16} color="#94A3B8" />
+                                {index < supportItems.length - 1 && <View style={styles.divider} />}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </CustomScrollView>
+            </View>
+        </ScreenView>
+    );
 };
 
 export default Support;

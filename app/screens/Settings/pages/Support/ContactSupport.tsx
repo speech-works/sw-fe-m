@@ -14,8 +14,15 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import ScreenView from "../../../../components/ScreenView";
 
 const ContactSupport = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const handleEmailPress = () =>
     Linking.openURL("mailto:contact@speechworks.in");
   const handleWhatsAppPress = () =>
@@ -43,10 +50,42 @@ const ContactSupport = () => {
   ];
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScreenView style={styles.screenView}>
+      {/* Aurora Background */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#EFF6FF", "#FFF", "#FFF"] as const}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
+
+      {/* Header */}
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Contact Support</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.wrapper}>
         <Text style={styles.sectionLabel}>CHOOSE A CHANNEL</Text>
 
@@ -83,7 +122,8 @@ const ContactSupport = () => {
 
         <View style={{ height: 48 }} />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </ScreenView>
   );
 };
 
@@ -174,5 +214,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
+  },
+  screenView: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
   },
 });
