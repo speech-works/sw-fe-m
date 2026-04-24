@@ -46,6 +46,7 @@ interface ReminderState {
   removeReminder: (id: string) => Promise<void>;
   toggleActive: (id: string) => Promise<void>;
   setGlobalPaused: (paused: boolean) => Promise<void>;
+  setAllActive: (active: boolean) => Promise<void>;
   removeAll: () => Promise<void>;
   clearExpired: () => void;
   rescheduleAllActiveNotifications: () => Promise<void>;
@@ -205,25 +206,17 @@ export const useReminderStore = create<ReminderState>()(
       },
 
       setGlobalPaused: async (paused) => {
-        if (paused) {
-          // Pause all — cancel all active notifications
-          await Promise.all(
-            get()
-              .reminders.filter((r) => r.active && r.notificationIds.length > 0)
-              .map((r) => cancelReminderNotifications(r)),
-          );
-          set((s) => ({
-            globalPaused: true,
-            reminders: s.reminders.map((r) => ({
-              ...r,
-              notificationIds: r.active ? [] : r.notificationIds,
-            })),
-          }));
-        } else {
-          // Resume all — reschedule all active reminders
-          set({ globalPaused: false });
-          await get().rescheduleAllActiveNotifications();
-        }
+        set({ globalPaused: paused });
+        await get().rescheduleAllActiveNotifications();
+      },
+
+      setAllActive: async (active) => {
+        // Update all reminders to the target active state
+        const updatedReminders = get().reminders.map(r => ({ ...r, active }));
+        set({ reminders: updatedReminders });
+        
+        // Then reschedule everything
+        await get().rescheduleAllActiveNotifications();
       },
 
       removeAll: async () => {

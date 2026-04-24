@@ -99,7 +99,7 @@ export default function ConfigureReminder() {
   const reminderId = route.params?.reminderId;
   const initialCategory = (route.params?.category as ReminderCategory) || "DAILY_PRACTICE";
   
-  const { reminders, addReminder, updateReminder } = useReminderStore();
+  const { reminders, addReminder, updateReminder, removeReminder } = useReminderStore();
 
   // Form state
   const [selectedCategory, setSelectedCategory] = useState<ReminderCategory>(initialCategory);
@@ -178,6 +178,24 @@ export default function ConfigureReminder() {
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save reminder");
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Reminder",
+      "Are you sure you want to delete this reminder?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            await removeReminder(reminderId);
+            navigation.goBack();
+          }
+        }
+      ]
+    );
   };
 
   const renderConfigureForm = () => (
@@ -314,6 +332,17 @@ export default function ConfigureReminder() {
             <Text style={styles.saveButtonText}>Save Reminder</Text>
           </LinearGradient>
         </TouchableOpacity>
+
+        {reminderId && (
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={handleDelete} 
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
+            <Text style={styles.deleteButtonText}>Delete Reminder</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -544,5 +573,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: "#FFFFFF",
     fontWeight: "800",
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 12,
+  },
+  deleteButtonText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#EF4444",
+    fontWeight: "700",
   },
 });

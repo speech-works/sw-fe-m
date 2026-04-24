@@ -28,6 +28,7 @@ import {
 import {
   ReminderCategory,
 } from "../../../constants/reminderTemplates";
+import AnimatedToggle from "../../../components/AnimatedToggle";
 
 const CATEGORY_META: Record<
   ReminderCategory,
@@ -80,23 +81,50 @@ const CATEGORY_META: Record<
 const Reminders = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { reminders, toggleActive, globalPaused, setGlobalPaused } = useReminderStore();
-
+  const { reminders, toggleActive, removeReminder, setAllActive } = useReminderStore();
   const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
 
-  const isMasterOn = !globalPaused;
+  const isAllOn = reminders.length > 0 && reminders.every((r) => r.active);
+  const isAllOff = reminders.length === 0 || reminders.every((r) => !r.active);
+  const isSomeOn = !isAllOn && !isAllOff;
+
+  const isMasterOn = isAllOn;
 
   const handleToggleMaster = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setGlobalPaused(isMasterOn);
+    setAllActive(!isMasterOn);
   };
 
   const handleToggleIndividual = (id: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     toggleActive(id);
   };
 
+  const handleDeleteReminder = (id: string, title: string) => {
+    Alert.alert(
+      "Delete Reminder",
+      `Are you sure you want to delete "${title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            removeReminder(id);
+          }
+        }
+      ]
+    );
+  };
+
   const handleCreateNew = () => {
+    if (reminders.length >= 3) {
+      Alert.alert(
+        "Reminder Limit Reached",
+        "You can only have up to 3 reminders at a time. Please delete one of your existing reminders to create a new one.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
     setIsCategorySheetVisible(true);
   };
 
@@ -104,24 +132,6 @@ const Reminders = () => {
     setIsCategorySheetVisible(false);
     navigation.navigate("ConfigureReminder", { category: cat });
   };
-
-  const renderCustomToggle = (value: boolean, onValueChange: () => void, disabled?: boolean) => (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      disabled={disabled}
-      onPress={onValueChange}
-      style={[
-        styles.customToggleContainer,
-        value ? styles.customToggleActive : styles.customToggleInactive,
-        disabled && { opacity: 0.5 }
-      ]}
-    >
-      <View style={[
-        styles.customToggleThumb,
-        value ? styles.customToggleThumbActive : styles.customToggleThumbInactive
-      ]} />
-    </TouchableOpacity>
-  );
 
   return (
     <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
@@ -156,10 +166,17 @@ const Reminders = () => {
             <View style={{ flex: 1 }}>
               <Text style={styles.masterToggleText}>Master Control</Text>
               <Text style={styles.masterToggleSubtext}>
-                {isMasterOn ? "All reminders are active" : "All reminders are currently paused"}
+                {isAllOn
+                  ? "All reminders are active"
+                  : isAllOff
+                    ? "All reminders are currently paused"
+                    : "Some reminders are paused"}
               </Text>
             </View>
-            {renderCustomToggle(isMasterOn, handleToggleMaster)}
+            <AnimatedToggle
+              value={isMasterOn}
+              onValueChange={handleToggleMaster}
+            />
           </View>
         </View>
 
@@ -172,6 +189,7 @@ const Reminders = () => {
                 style={styles.reminderCard}
                 activeOpacity={0.7}
                 onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
+                onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
               >
                 <View style={styles.reminderContent}>
                   <View style={[styles.iconContainer, { backgroundColor: (CATEGORY_META[rem.category]?.color || "#000") + "15" }]}>
@@ -188,7 +206,13 @@ const Reminders = () => {
                       <Text style={{ fontWeight: "700" }}>{rem.time}</Text>
                     </Text>
                   </View>
-                  {renderCustomToggle(rem.active && !globalPaused, () => handleToggleIndividual(rem.id), globalPaused)}
+
+                  <View style={styles.actionRow}>
+                    <AnimatedToggle
+                      value={rem.active}
+                      onValueChange={() => handleToggleIndividual(rem.id)}
+                    />
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
@@ -230,8 +254,8 @@ const Reminders = () => {
         showCloseButton={false}
       >
         <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 32) }]}>
-          <TouchableOpacity 
-            onPress={() => setIsCategorySheetVisible(false)} 
+          <TouchableOpacity
+            onPress={() => setIsCategorySheetVisible(false)}
             style={styles.modalCloseCircle}
           >
             <MaterialCommunityIcons name="close" size={20} color={theme.colors.text.title} />
@@ -240,7 +264,7 @@ const Reminders = () => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>What do you want to be reminded of?</Text>
           </View>
-          
+
           <View style={styles.gridContainer}>
             {(Object.keys(CATEGORY_META) as ReminderCategory[]).map((cat) => {
               const meta = CATEGORY_META[cat];
@@ -259,7 +283,7 @@ const Reminders = () => {
                       <Text style={styles.gridLabel}>{meta.label}</Text>
                       <Text style={styles.gridDesc}>{meta.desc}</Text>
                     </View>
-                    
+
                     {/* Watermark Icon - Main Visual Element */}
                     <View style={styles.watermark}>
                       <MaterialCommunityIcons name={meta.icon as any} size={80} color={meta.color} />
@@ -310,7 +334,9 @@ const styles = StyleSheet.create({
   masterToggleCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    padding: 20,
+    paddingHorizontal: 20,
+    height: 100,
+    justifyContent: "center",
     marginBottom: 32,
     ...parseShadowStyle(theme.shadow.elevation2),
     borderWidth: 1,
@@ -382,31 +408,10 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginTop: 2,
   },
-  customToggleContainer: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    padding: 3,
-    justifyContent: "center",
-  },
-  customToggleActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  customToggleInactive: {
-    backgroundColor: "#E2E8F0",
-  },
-  customToggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  customToggleThumbActive: {
-    alignSelf: "flex-end",
-  },
-  customToggleThumbInactive: {
-    alignSelf: "flex-start",
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   emptyContainer: {
     alignItems: "center",
