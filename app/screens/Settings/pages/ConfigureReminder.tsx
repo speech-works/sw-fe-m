@@ -30,6 +30,7 @@ import {
 } from "../../../constants/reminderTemplates";
 import { requestNotificationPermissionWithFallback } from "../../../util/functions/notifications";
 import ScreenView from "../../../components/ScreenView";
+import PromptBottomSheet from "../../../components/PromptBottomSheet";
 
 const CATEGORY_META: Record<
   ReminderCategory,
@@ -113,6 +114,24 @@ export default function ConfigureReminder() {
   const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
   const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
 
+  // Alert State
+  const [promptVisible, setPromptVisible] = useState(false);
+  const [promptConfig, setPromptConfig] = useState<{
+    title: string;
+    message: string;
+    icon?: string;
+    iconColor?: string;
+    primaryLabel: string;
+    primaryAction: () => void;
+    secondaryLabel?: string;
+    isDestructive?: boolean;
+  }>({
+    title: "",
+    message: "",
+    primaryLabel: "OK",
+    primaryAction: () => {},
+  });
+
   useEffect(() => {
     if (reminderId) {
       const existing = reminders.find((r) => r.id === reminderId);
@@ -152,7 +171,14 @@ export default function ConfigureReminder() {
     if (!hasPermission) return;
 
     if (reminderType === "ROUTINE" && selectedWeekDays.length === 0) {
-      Alert.alert("Invalid Routine", "Please select at least one day for your routine.");
+      setPromptConfig({
+        title: "Invalid Routine",
+        message: "Please select at least one day for your routine.",
+        icon: "calendar-alert",
+        primaryLabel: "Got it",
+        primaryAction: () => {},
+      });
+      setPromptVisible(true);
       return;
     }
 
@@ -176,26 +202,33 @@ export default function ConfigureReminder() {
       }
       navigation.goBack();
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to save reminder");
+      setPromptConfig({
+        title: "Error",
+        message: error.message || "Failed to save reminder",
+        icon: "alert-circle",
+        iconColor: "#EF4444",
+        primaryLabel: "OK",
+        primaryAction: () => {},
+      });
+      setPromptVisible(true);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Reminder",
-      "Are you sure you want to delete this reminder?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: async () => {
-            await removeReminder(reminderId);
-            navigation.goBack();
-          }
-        }
-      ]
-    );
+    setPromptConfig({
+      title: "Delete Reminder",
+      message: "Are you sure you want to delete this reminder?",
+      icon: "trash-can-outline",
+      iconColor: "#EF4444",
+      primaryLabel: "Delete",
+      isDestructive: true,
+      primaryAction: async () => {
+        await removeReminder(reminderId);
+        navigation.goBack();
+      },
+      secondaryLabel: "Cancel",
+    });
+    setPromptVisible(true);
   };
 
   const renderConfigureForm = () => (
@@ -385,6 +418,24 @@ export default function ConfigureReminder() {
 
         {renderConfigureForm()}
       </ScrollView>
+
+      <PromptBottomSheet
+        visible={promptVisible}
+        onClose={() => setPromptVisible(false)}
+        title={promptConfig.title}
+        message={promptConfig.message}
+        icon={promptConfig.icon}
+        iconColor={promptConfig.iconColor}
+        primaryButton={{
+          label: promptConfig.primaryLabel,
+          onPress: promptConfig.primaryAction,
+          destructive: promptConfig.isDestructive,
+        }}
+        secondaryButton={promptConfig.secondaryLabel ? {
+          label: promptConfig.secondaryLabel,
+          onPress: () => {},
+        } : undefined}
+      />
     </ScreenView>
   );
 }

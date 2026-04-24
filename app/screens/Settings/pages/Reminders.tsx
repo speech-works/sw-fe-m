@@ -29,6 +29,7 @@ import {
   ReminderCategory,
 } from "../../../constants/reminderTemplates";
 import AnimatedToggle from "../../../components/AnimatedToggle";
+import PromptBottomSheet from "../../../components/PromptBottomSheet";
 
 const CATEGORY_META: Record<
   ReminderCategory,
@@ -84,6 +85,24 @@ const Reminders = () => {
   const { reminders, toggleActive, removeReminder, setAllActive } = useReminderStore();
   const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
 
+  // Alert State
+  const [promptVisible, setPromptVisible] = useState(false);
+  const [promptConfig, setPromptConfig] = useState<{
+    title: string;
+    message: string;
+    icon?: string;
+    iconColor?: string;
+    primaryLabel: string;
+    primaryAction: () => void;
+    secondaryLabel?: string;
+    isDestructive?: boolean;
+  }>({
+    title: "",
+    message: "",
+    primaryLabel: "OK",
+    primaryAction: () => {},
+  });
+
   const isAllOn = reminders.length > 0 && reminders.every((r) => r.active);
   const isAllOff = reminders.length === 0 || reminders.every((r) => !r.active);
   const isSomeOn = !isAllOn && !isAllOff;
@@ -99,30 +118,32 @@ const Reminders = () => {
   };
 
   const handleDeleteReminder = (id: string, title: string) => {
-    Alert.alert(
-      "Delete Reminder",
-      `Are you sure you want to delete "${title}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            removeReminder(id);
-          }
-        }
-      ]
-    );
+    setPromptConfig({
+      title: "Delete Reminder",
+      message: `Are you sure you want to delete "${title}"?`,
+      icon: "trash-can-outline",
+      iconColor: "#EF4444",
+      primaryLabel: "Delete",
+      isDestructive: true,
+      primaryAction: () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        removeReminder(id);
+      },
+      secondaryLabel: "Cancel",
+    });
+    setPromptVisible(true);
   };
 
   const handleCreateNew = () => {
     if (reminders.length >= 3) {
-      Alert.alert(
-        "Reminder Limit Reached",
-        "You can only have up to 3 reminders at a time. Please delete one of your existing reminders to create a new one.",
-        [{ text: "OK" }]
-      );
+      setPromptConfig({
+        title: "Reminder Limit Reached",
+        message: "You can only have up to 3 reminders at a time. Please delete one of your existing reminders to create a new one.",
+        icon: "alert-circle-outline",
+        primaryLabel: "Got it",
+        primaryAction: () => {},
+      });
+      setPromptVisible(true);
       return;
     }
     setIsCategorySheetVisible(true);
@@ -295,6 +316,25 @@ const Reminders = () => {
           </View>
         </View>
       </BottomSheetModal>
+
+      {/* Action / Alert Prompt */}
+      <PromptBottomSheet
+        visible={promptVisible}
+        onClose={() => setPromptVisible(false)}
+        title={promptConfig.title}
+        message={promptConfig.message}
+        icon={promptConfig.icon}
+        iconColor={promptConfig.iconColor}
+        primaryButton={{
+          label: promptConfig.primaryLabel,
+          onPress: promptConfig.primaryAction,
+          destructive: promptConfig.isDestructive,
+        }}
+        secondaryButton={promptConfig.secondaryLabel ? {
+          label: promptConfig.secondaryLabel,
+          onPress: () => {},
+        } : undefined}
+      />
     </ScreenView>
   );
 };
