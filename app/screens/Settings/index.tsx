@@ -101,8 +101,8 @@ const Settings = () => {
     // },
     {
       icon: "chart-line",
-      iconColor: "#8B5CF6",
-      gradient: ["#7C3AED", "#6D28D9"], // Vibrant Violet -> Deep Violet
+      iconColor: "#7C3AED",
+      bgColor: "#F5F3FF",
       text: "Progress Report",
       desc: "Check your fluency stats and trends",
       onClick: () => {
@@ -111,8 +111,8 @@ const Settings = () => {
     },
     {
       icon: "shield-check",
-      iconColor: "#10B981",
-      gradient: ["#059669", "#047857"], // Vibrant Emerald -> Deep Emerald
+      iconColor: "#059669",
+      bgColor: "#ECFDF5",
       text: "Help & Support",
       desc: "Get assistance and app guidance",
       onClick: () => {
@@ -121,8 +121,8 @@ const Settings = () => {
     },
     {
       icon: "bell",
-      iconColor: "#F59E0B",
-      gradient: ["#D97706", "#B45309"], // Vibrant Amber -> Deep Amber
+      iconColor: "#D97706",
+      bgColor: "#FFFBEB",
       text: "Reminders",
       desc: "Manage your practice notifications",
       onClick: () => {
@@ -256,50 +256,28 @@ const Settings = () => {
 
           <View style={{ height: 28 }} />
 
-          {/* Action Tiles Menu */}
-          <View style={styles.menuSection}>
+          {/* Professional List Menu */}
+          <View style={styles.listContainer}>
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.menuTile}
+                style={styles.listItem}
                 onPress={item.onClick}
-                activeOpacity={0.9}
+                activeOpacity={0.7}
               >
-                <LinearGradient
-                  colors={item.gradient as any}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-
-                {/* Premium Watermark */}
-                <View style={styles.watermarkContainer}>
-                  <MaterialCommunityIcons
-                    name={item.icon as any}
-                    size={100}
-                    color="rgba(255, 255, 255, 0.12)"
-                  />
-                </View>
-
-                <View
-                  style={[
-                    styles.iconContainer,
-                    {
-                      backgroundColor: "rgba(255, 255, 255, 0.2)", // Glassy
-                      borderColor: "rgba(255, 255, 255, 0.3)",
-                    },
-                  ]}
-                >
+                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
                   <MaterialCommunityIcons
                     name={item.icon as any}
                     size={22}
-                    color="#FFFFFF"
+                    color={item.iconColor}
                   />
                 </View>
-                <View style={{ flex: 1, zIndex: 1 }}>
-                  <Text style={[styles.menuItemText, { color: "#FFFFFF" }]}>{item.text}</Text>
-                  {item.desc && <Text style={[styles.menuItemDesc, { color: "rgba(255, 255, 255, 0.8)" }]}>{item.desc}</Text>}
+                <View style={styles.listTextContainer}>
+                  <Text style={styles.listItemText}>{item.text}</Text>
+                  <Text style={styles.listItemDesc}>{item.desc}</Text>
                 </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+                {index < menuItems.length - 1 && <View style={styles.divider} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -519,33 +497,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     overflow: "hidden",
   },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -30,
-    opacity: 0.6,
-    transform: [{ rotate: "-15deg" }],
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
+  listContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  menuItemText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: "700",
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    position: "relative",
+  },
+  listIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  listTextContainer: {
+    flex: 1,
+  },
+  listItemText: {
     fontSize: 16,
-    letterSpacing: 0.2,
+    fontWeight: "700",
+    color: theme.colors.text.title,
+    marginBottom: 2,
   },
-  menuItemDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#64748B",
-    marginTop: 2,
+  listItemDesc: {
     fontSize: 13,
+    color: "#64748B",
+  },
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
 
   // Footer
