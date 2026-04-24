@@ -214,7 +214,9 @@ const Reminders = () => {
           <>
             <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>
             <View style={styles.listContainer}>
-              {reminders.map((rem, index) => (
+              {[...reminders]
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((rem, index, arr) => (
                 <TouchableOpacity
                   key={rem.id}
                   style={styles.listItem}
@@ -243,7 +245,7 @@ const Reminders = () => {
                       onValueChange={() => handleToggleIndividual(rem.id)}
                     />
                   </View>
-                  {index < reminders.length - 1 && <View style={styles.divider} />}
+                  {index < arr.length - 1 && <View style={styles.divider} />}
                 </TouchableOpacity>
               ))}
             </View>
