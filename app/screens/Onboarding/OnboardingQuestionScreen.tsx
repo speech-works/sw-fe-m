@@ -28,6 +28,8 @@ import {
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useUserStore } from "../../stores/user";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingQuestionScreen: React.FC = () => {
   // ----------------------------
@@ -95,6 +97,10 @@ const OnboardingQuestionScreen: React.FC = () => {
       console.log("Scrolling to top for screen:", screenNumber);
       scrollRef.current.scrollTo({ y: 0, animated: true });
     }
+    // Track each onboarding step view for the funnel
+    track(ANALYTICS_EVENTS.ONBOARDING_STEP_VIEWED, {
+      step: screenNumber,
+    });
   }, [screenNumber]);
 
   const screenQuestions = getCurrentScreenQuestions(screenNumber);
@@ -106,6 +112,7 @@ const OnboardingQuestionScreen: React.FC = () => {
   // -----------------------------------------------------
   const handleSkip = () => {
     console.log("SKIP pressed → emitting STOP_ONBOARDING");
+    track(ANALYTICS_EVENTS.ONBOARDING_SKIPPED, { atStep: screenNumber });
     emit(EVENT_NAMES.STOP_ONBOARDING);
   };
 

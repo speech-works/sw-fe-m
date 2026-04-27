@@ -9,6 +9,8 @@ import {
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
 import { theme } from "../../../Theme/tokens";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
 const ImpactAssessmentIntro = () => {
   const navigation = useNavigation<any>();
@@ -43,6 +45,10 @@ const ImpactAssessmentIntro = () => {
           navigation.replace("ImpactAssessmentComplete");
           return;
         }
+
+        track(ANALYTICS_EVENTS.ASSESSMENT_STARTED, {
+          totalQuestions: batch.questions?.length ?? 0,
+        });
 
         // Edge case: Not complete but no questions (backend guide says retry)
         if (!batch.questions || batch.questions.length === 0) {

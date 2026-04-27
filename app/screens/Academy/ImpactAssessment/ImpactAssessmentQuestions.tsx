@@ -31,6 +31,8 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
 const ImpactAssessmentQuestions = () => {
   const navigation = useNavigation<any>();
@@ -109,6 +111,10 @@ const ImpactAssessmentQuestions = () => {
     answers[currentQuestion.id] !== "";
 
   const handleNext = async () => {
+    track(ANALYTICS_EVENTS.ASSESSMENT_STEP_VIEWED, {
+      step: currentIndex + 1,
+      totalSteps: totalQuestions,
+    });
     if (isLast) {
       await handleSubmit();
     } else {
@@ -136,6 +142,9 @@ const ImpactAssessmentQuestions = () => {
 
       if (nextBatch.isComplete) {
         // Entire assessment is complete
+        track(ANALYTICS_EVENTS.ASSESSMENT_COMPLETED, {
+          totalAnswered: formattedAnswers.length,
+        });
         navigation.replace("ImpactAssessmentComplete");
       } else if (nextBatch.questions && nextBatch.questions.length > 0) {
         // More questions available - show continue modal
@@ -274,6 +283,7 @@ const ImpactAssessmentQuestions = () => {
               }}
               textColor={theme.colors.feedback.error}
               onPress={() => {
+                track(ANALYTICS_EVENTS.ASSESSMENT_ABANDONED, { atStep: currentIndex + 1, totalSteps: totalQuestions });
                 setIsStopModalVisible(false);
                 navigation.navigate("Root");
               }}

@@ -10,6 +10,7 @@ import { useFreeActivityNotificationStore } from "../freeActivityNotification";
 import { useStaminaNotificationStore } from "../staminaNotification";
 import { EVENT_NAMES } from "../events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
+import { identifyUser } from "../../util/analytics/postHog";
 
 interface UserState {
   /** The current user object, or null if not loaded/logged in */
@@ -71,6 +72,14 @@ export const useUserStore = create<UserState>()(
           const user = await getMyUser();
           set({ user });
 
+          // Identify the user in PostHog with key segmentation traits.
+          // This links all future events to their userId in the PostHog dashboard.
+          // ⚠️  Do NOT include PII (email, name, phone) without explicit user consent.
+          identifyUser(String(user.id), {
+            isPaid:       user.isPaid,
+            hasOnboarded: user.hasCompletedOnboarding,
+            staminaCap:   user.maxStaminaCap,
+          });
           // --- Low Stamina Threshold Detection (phone-battery style, paid only) ---
           if (
             user.isPaid &&
@@ -104,6 +113,12 @@ export const useUserStore = create<UserState>()(
                 setLowStaminaNotified(true);
                 setStaminaModalQueued(true);
                 dispatchCustomEvent(EVENT_NAMES.STAMINA_ALERT_TRIGGERED);
+                // Analytics: track low stamina alert for funnel analysis
+                import("../../util/analytics/postHog").then(({ track }) => {
+                  import("../../util/analytics/analyticsEvents").then(({ ANALYTICS_EVENTS }) => {
+                    track(ANALYTICS_EVENTS.STAMINA_LOW_ALERT_SHOWN, { staminaPct: Math.round(pct) });
+                  });
+                });
               }
 
               // Re-arm: stamina recovered back above 10% — ready for next crossing

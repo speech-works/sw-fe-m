@@ -39,8 +39,9 @@ import {
   parseShadowStyle as parseStyleShadow,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
-
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
 type PackModuleScreenRouteProp = RouteProp<
   {
@@ -165,9 +166,9 @@ const PackModuleScreen = () => {
     const appNavigation = navigation.getParent();
 
     if (appNavigation) {
-      appNavigation.navigate("Root" as never, {
+      (appNavigation.navigate as any)("Root", {
         screen: ROUTE_NAMES.HOME,
-      } as never);
+      });
       return;
     }
 
@@ -203,22 +204,15 @@ const PackModuleScreen = () => {
           initialModule.blocks &&
           initialModule.blocks.length > 0
         ) {
-          // Log video blocks to check if videoUrl is hydrated in the navigated data
-          console.log(
-            "[PackModule] Using initialModule from navigation params (shortcut path)",
-          );
-          initialModule.blocks.forEach((block: any, index: number) => {
-            if (block.type === ContentBlockType.VIDEO) {
-              console.log(`[PackModule] VIDEO block #${index}:`, {
-                videoId: block.content?.videoId,
-                videoUrl: block.content?.videoUrl || "❌ NOT HYDRATED",
-                thumbnailUrl: block.content?.thumbnailUrl || "❌ MISSING",
-                provider: block.content?.provider,
-              });
-            }
-          });
           setModule(initialModule);
           setLoading(false);
+          // Track session started — module loaded from nav params
+          track(ANALYTICS_EVENTS.PRACTICE_SESSION_STARTED, {
+            packId,
+            moduleId: initialModule.id,
+            moduleTitle: initialModule.title,
+            totalBlocks: initialModule.blocks.length,
+          });
           return;
         }
 
@@ -236,19 +230,14 @@ const PackModuleScreen = () => {
         }
 
         if (fullModule) {
-          // Log video blocks from the full API response
-          console.log("[PackModule] Using fullModule from API response");
-          fullModule.blocks?.forEach((block: any, index: number) => {
-            if (block.type === ContentBlockType.VIDEO) {
-              console.log(`[PackModule] VIDEO block #${index}:`, {
-                videoId: block.content?.videoId,
-                videoUrl: block.content?.videoUrl || "❌ NOT HYDRATED",
-                thumbnailUrl: block.content?.thumbnailUrl || "❌ MISSING",
-                provider: block.content?.provider,
-              });
-            }
-          });
           setModule(fullModule);
+          // Track session started — module loaded from API
+          track(ANALYTICS_EVENTS.PRACTICE_SESSION_STARTED, {
+            packId,
+            moduleId: fullModule.id,
+            moduleTitle: fullModule.title,
+            totalBlocks: fullModule.blocks?.length ?? 0,
+          });
         } else {
           console.error("Module data is empty/not found even after fallback");
         }
@@ -400,6 +389,15 @@ const PackModuleScreen = () => {
       } catch (e) {
         console.warn("Failed to find next module", e);
       }
+
+      // Track module completion
+      track(ANALYTICS_EVENTS.PRACTICE_SESSION_ENDED, {
+        packId,
+        moduleId: module.id,
+        moduleTitle: module.title,
+        completedBlocks: completedInteractiveBlocks.size,
+        totalBlocks: module.blocks?.length ?? 0,
+      });
 
       setShowSuccess(true);
     } catch (error) {

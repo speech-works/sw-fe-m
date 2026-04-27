@@ -42,6 +42,8 @@ import LibrarySection from "./components/LibrarySection";
 import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
 import SkeletonLoader from "../../../components/SkeletonLoader";
 import { ActivityIndicator } from "react-native";
+import { track } from "../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
 // --- Data Definitions ---
 
@@ -340,12 +342,21 @@ const Library = () => {
   const onTechniqueStart = (tech: TransformedTechnique) => {
     setSelectedTechnique(tech);
     setIsSelectionModalVisible(true);
+    track(ANALYTICS_EVENTS.LIBRARY_TECHNIQUE_VIEWED, {
+      techniqueId: tech.id,
+      techniqueName: tech.name,
+      level: tech.level,
+    });
   };
 
   const handleNavigate = (type: "TUTORIAL" | "EXERCISE") => {
     setIsSelectionModalVisible(false);
     if (!selectedTechnique) return;
-
+    track(ANALYTICS_EVENTS.LIBRARY_TECHNIQUE_STARTED, {
+      techniqueId: selectedTechnique.id,
+      techniqueName: selectedTechnique.name,
+      mode: type,
+    });
     setTimeout(() => {
       exploreNavigation.navigate("TechniquePage", {
         techniqueId: selectedTechnique.id,

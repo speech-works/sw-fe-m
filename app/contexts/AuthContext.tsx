@@ -5,6 +5,8 @@ import { logoutUser } from "../api";
 import { resetAuthInterceptor } from "../api/axiosClient";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { setUpdateTokenFn } from "../util/functions/authToken";
+import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -89,6 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     import("../stores/userBehaviorTrends").then(m => m.useUserBehaviorTrendsStore.getState().clearTrends());
     import("../stores/progressReport").then(m => m.useProgressReportStore.getState().clearProgressReport());
     import("../stores/practiceCategorySummary").then(m => m.usePracticeCategorySummaryStore.getState().clearSummary());
+
+    // Reset PostHog identity so subsequent anonymous events don't link to this user
+    track(ANALYTICS_EVENTS.USER_LOGGED_OUT);
+    resetAnalyticsIdentity();
 
     setToken(null);
   };

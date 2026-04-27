@@ -26,8 +26,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUserStore } from "../../stores/user";
 import { PAYMENTS_ENABLED } from "../../constants/features";
 import { theme } from "../../Theme/tokens";
-
 import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 export enum PAYMENT_PLAN_TYPE {
   MONTHLY = 0,
@@ -63,6 +64,8 @@ const SubscribeScreen = () => {
       duration: 350,
       easing: Easing.bezier(0.33, 1, 0.68, 1),
     });
+    // Track paywall view on mount — captures every impression regardless of plan selection
+    track(ANALYTICS_EVENTS.PAYWALL_VIEWED);
   }, []);
 
   const handlePayment = async () => {
@@ -93,6 +96,12 @@ const SubscribeScreen = () => {
         return;
       }
 
+      const planId = paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY ? 'annual' : 'monthly';
+      const amountInr = selectedPlan.amountMinor / 100;
+
+      // Track payment start — user has seen the Razorpay sheet
+      track(ANALYTICS_EVENTS.PAYMENT_STARTED, { planId, amountInr });
+
       const options: CheckoutOptions = {
         description: "SpeechWorks Premium Subscription",
         image: "https://ibb.co/YFgn6JkY",
@@ -114,6 +123,7 @@ const SubscribeScreen = () => {
       RazorpayCheckout.open(options)
         .then((paymentData: any) => {
           setLoading(false);
+          track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, { planId, amountInr });
           showSuccessBottomSheet(
             "Welcome to Premium!",
             "Your subscription is now active.",
@@ -129,6 +139,7 @@ const SubscribeScreen = () => {
             return;
           }
 
+          track(ANALYTICS_EVENTS.PAYMENT_FAILED, { planId, amountInr, reason: error.description ?? 'unknown' });
           showErrorBottomSheet(
             "Payment Failed",
             "Please try again or contact support.",

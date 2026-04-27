@@ -11,6 +11,8 @@ import {
 import { useOnboardingStore } from "../../stores/onboarding";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingWelcome: React.FC = () => {
   const navigation =
@@ -20,6 +22,7 @@ const OnboardingWelcome: React.FC = () => {
   const { startFresh } = useOnboardingStore();
 
   const handleStart = async () => {
+    track(ANALYTICS_EVENTS.ONBOARDING_STARTED);
     try {
       const fetched = await getActiveOnboardingFlow();
       startFresh(fetched);

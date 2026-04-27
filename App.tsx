@@ -3,6 +3,7 @@ import { Audio } from "expo-av";
 import React, { useEffect } from "react";
 import { AppState, StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { PostHogProvider } from "posthog-react-native";
 import UpsellModal from "./app/components/UpsellModal";
 import OutcomeModal from "./app/components/OutcomeModal";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
@@ -23,6 +24,7 @@ import {
   registerForNotifications,
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
+import { initAnalytics, trackScreen } from "./app/util/analytics/postHog";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -32,6 +34,10 @@ if (__DEV__) {
 
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
+
+// Initialize PostHog once at module scope before any component renders.
+// Disabled automatically in __DEV__ mode (see initAnalytics).
+const posthogClient = initAnalytics();
 
 // Bug Fix #3: Debounce guard for AppState-triggered fetchUser() calls.
 // Android foregrounds apps more aggressively than iOS (screen-on events,
@@ -139,25 +145,35 @@ const App: React.FC = () => {
   // if (!ready) return <LoadingScreen />;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <SafeAreaProvider style={{ flex: 1 }}>
-          <SafeAreaView
-            style={styles.safeAreaView}
-            edges={["top", "left", "right"]}
-          >
-            <FontLoader />
-            <NavigationContainer ref={navigationRef}>
-              <MainNavigator />
-            </NavigationContainer>
-            <UpsellModal />
-            <OutcomeModal />
-            <StaminaVignetteOverlay />
-            <GlobalStaminaController />
-          </SafeAreaView>
-        </SafeAreaProvider>
-      </AuthProvider>
-    </GestureHandlerRootView>
+    <PostHogProvider client={posthogClient} autocapture>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <SafeAreaProvider style={{ flex: 1 }}>
+            <SafeAreaView
+              style={styles.safeAreaView}
+              edges={["top", "left", "right"]}
+            >
+              <FontLoader />
+              <NavigationContainer
+                ref={navigationRef}
+                onStateChange={() => {
+                  const currentRoute = navigationRef.getCurrentRoute();
+                  if (currentRoute?.name) {
+                    trackScreen(currentRoute.name, { params: currentRoute.params });
+                  }
+                }}
+              >
+                <MainNavigator />
+              </NavigationContainer>
+              <UpsellModal />
+              <OutcomeModal />
+              <StaminaVignetteOverlay />
+              <GlobalStaminaController />
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </PostHogProvider>
   );
 };
 
