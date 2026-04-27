@@ -1,25 +1,25 @@
 import PostHog from 'posthog-react-native';
 import type { PostHogEventProperties } from '@posthog/core';
 
-
 // Single shared instance — initialized once on app start.
 let client: PostHog | null = null;
 
 export function initAnalytics(): PostHog {
     if (client) return client;
 
-    console.log("[PostHog] Initializing with:", {
-        host: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://app.posthog.com',
+    // Disabled in development (Expo Go / Metro bundler / simulator).
+    // Enabled only in release builds (EAS preview / production APK/IPA).
+    console.log('[PostHog] Initializing:', {
         hasApiKey: !!process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
-        dev: __DEV__,
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+        disabled: __DEV__,
     });
 
     client = new PostHog(process.env.EXPO_PUBLIC_POSTHOG_API_KEY!, {
         host: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://app.posthog.com',
-        // Flush immediately in dev so events show up in PostHog right away.
-        // In production, batch for efficiency.
-        flushAt: __DEV__ ? 1 : 20,
-        flushInterval: __DEV__ ? 5000 : 30000,
+        disabled: __DEV__,
+        flushAt: 20,
+        flushInterval: 30000,
     });
 
     return client;
