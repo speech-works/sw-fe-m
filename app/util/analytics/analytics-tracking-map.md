@@ -43,14 +43,40 @@
 | Assessment Questions | `AcademyStack → ImpactAssessmentQuestions` | `app/screens/Academy/ImpactAssessment/ImpactAssessmentQuestions.tsx` | Submits final batch and backend confirms `isComplete` | `assessment_completed` | `totalAnswered` |
 | Assessment Questions | `AcademyStack → ImpactAssessmentQuestions` | `app/screens/Academy/ImpactAssessment/ImpactAssessmentQuestions.tsx` | Taps **Stop** in pause modal | `assessment_abandoned` | `atStep`, `totalSteps` |
 
-> [!NOTE]
-> `ImpactAssessmentComplete.tsx` is a result screen only — no additional `track()` call needed there since completion is already captured in `ImpactAssessmentQuestions`.
+---
+
+## 4 — Practice Sessions (Packs & Activities)
+
+| Screen | Route | Component | User Action | Event Name | Extra Properties |
+|---|---|---|---|---|---|
+| Pack Module | `ExploreStack → PackModule` | `app/screens/Academy/PackModule/index.tsx` | Module loads successfully (from nav params or API) | `practice_session_started` | `packId`, `moduleId`, `moduleTitle`, `totalBlocks` |
+| Pack Module | `ExploreStack → PackModule` | `app/screens/Academy/PackModule/index.tsx` | Taps **Complete** on the last block | `practice_session_ended` | `packId`, `moduleId`, `moduleTitle`, `completedBlocks`, `totalBlocks` |
+| Content Renderer | — | `app/components/Pack/ContentRenderer.tsx` | User clicks **Start** on a Pack activity block | `activity_started` | `packId`, `moduleId`, `activityId`, `contentType`, `title` |
+| Reflection Form | — | `app/screens/Academy/PackModule/index.tsx` | User completes a reflection form block | `activity_completed` | `packId`, `moduleId`, `blockId`, `type: FORM` |
+
+### 4a — Standalone Reading Practice Flow
+Entry path: **Explore → Daily Practice → Reading Practice → Stories / Poems / Quotes**
+
+| Screen | Route | Component | User Action | Event Name | Extra Properties |
+|---|---|---|---|---|---|
+| Story Practice | `DailyPracticeStack → ReadingPracticeStack → StoryPractice` | `useStoryPractice.ts` | Taps **Start Practice** on tips screen | `activity_started` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+| Story Practice | `DailyPracticeStack → ReadingPracticeStack → StoryPractice` | `useStoryPractice.ts` | Taps **Done** / submits recording | `activity_completed` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+| Poem Practice | `DailyPracticeStack → ReadingPracticeStack → PoemPractice` | `PoemPractice/index.tsx` | Taps **Start Practice** on tips screen | `activity_started` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+| Poem Practice | `DailyPracticeStack → ReadingPracticeStack → PoemPractice` | `PoemPractice/index.tsx` | Taps **Done** / submits recording | `activity_completed` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+| Quote Practice | `DailyPracticeStack → ReadingPracticeStack → QuotePractice` | `useQuotePractice.ts` | Taps **Start Practice** on tips screen | `activity_started` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+| Quote Practice | `DailyPracticeStack → ReadingPracticeStack → QuotePractice` | `useQuotePractice.ts` | Taps **Done** / submits recording | `activity_completed` | `activityId`, `contentType: READING_PRACTICE`, `title`, `isPackContext: false` |
+
+### 4b — Standalone Cognitive Practice Flow
+
+| Screen | Route | Component | User Action | Event Name | Extra Properties |
+|---|---|---|---|---|---|
+| Meditation | `CognitivePracticeStack → MeditationPractice` | `Meditation/index.tsx` | Taps **Start Exercise** | `activity_started` | `activityId`, `contentType: COGNITIVE_PRACTICE`, `title`, `isPackContext: false` |
+| Meditation | `CognitivePracticeStack → MeditationPractice` | `Meditation/index.tsx` | Completes 5-min session and submits vitals | `activity_completed` | `activityId`, `contentType`, `title`, `vitals: { effortScore, autonomyScore }` |
+| Meditation | `CognitivePracticeStack → MeditationPractice` | `Meditation/index.tsx` | Taps **End Session** early | `activity_abandoned` | `activityId`, `contentType`, `progressSeconds` |
 
 ---
 
-## 4 — Payments (Paywall Funnel)
-
-> Second-highest priority — directly linked to revenue and MRR metrics.
+## 5 — Payments (Paywall Funnel)
 
 | Screen | Route | Component | User Action | Event Name | Extra Properties |
 |---|---|---|---|---|---|
@@ -61,26 +87,11 @@
 
 ---
 
-## 5 — Stamina System
+## 6 — Stamina System
 
 | Screen / Layer | Route | Component | User Action | Event Name | Extra Properties |
 |---|---|---|---|---|---|
 | User Store (system) | — | `app/stores/user/index.ts` | Stamina drops below 10% threshold (first crossing) | `stamina_low_alert_shown` | `staminaPct` |
-
-> [!NOTE]
-> `STAMINA_DEPLETED` constant exists in the catalog but is **not yet wired** — add when there is a hard-block UX for 0% stamina.
-
----
-
-## 6 — Practice Sessions (Packs)
-
-| Screen | Route | Component | User Action | Event Name | Extra Properties |
-|---|---|---|---|---|---|
-| Pack Module | `ExploreStack → PackModule` | `app/screens/Academy/PackModule/index.tsx` | Module loads successfully (from nav params or API) | `practice_session_started` | `packId`, `moduleId`, `moduleTitle`, `totalBlocks` |
-| Pack Module | `ExploreStack → PackModule` | `app/screens/Academy/PackModule/index.tsx` | Taps **Complete** on the last block | `practice_session_ended` | `packId`, `moduleId`, `moduleTitle`, `completedBlocks`, `totalBlocks` |
-
-> [!NOTE]
-> `ACTIVITY_COMPLETED` constant exists in the catalog but is **not yet wired** — this should be added inside `ContentRenderer` when an individual activity (recording/exercise) finishes.
 
 ---
 
@@ -95,22 +106,7 @@
 
 ## 8 — Automatic Screen Views
 
-Every navigation transition in the app fires automatically via the `NavigationContainer.onStateChange` hook in `App.tsx`. These produce `$screen` events in PostHog with the route name — no manual instrumentation required per screen.
-
----
-
-## Events Not Yet Wired (catalog stubs)
-
-| Event Constant | Where to add |
-|---|---|
-| `USER_SIGNED_UP` | Login / sign-up screen on successful registration |
-| `USER_LOGGED_IN` | Login screen on successful token receipt |
-| `STAMINA_DEPLETED` | Where hard 0% stamina block UX appears |
-| `ACTIVITY_COMPLETED` | `ContentRenderer` component, when individual activity finishes |
-| `COMMUNITY_POST_VIEWED` | `app/screens/Community/index.tsx` |
-| `COMMUNITY_POST_CREATED` | Community post creation flow |
-| `NOTIFICATION_REMINDER_SET` | Reminders settings screen |
-| `PROFILE_PICTURE_UPDATED` | Profile edit screen |
+Every navigation transition in the app fires automatically via the `NavigationContainer.onStateChange` hook in `App.tsx`. These produce `$screen_view` events in PostHog with the route name and params — no manual instrumentation required per screen.
 
 ---
 
@@ -123,3 +119,4 @@ Every navigation transition in the app fires automatically via the `NavigationCo
 | **Onboarding Drop-Off** | `onboarding_started` → `onboarding_step_viewed` → `onboarding_completed` |
 | **Practice Retention** | `practice_session_started` → `practice_session_ended` (repeat, 7-day window) |
 | **Assessment Funnel** | `assessment_started` → `assessment_step_viewed` → `assessment_completed` |
+| **Activity Engagement** | `activity_started` → `activity_completed` |

@@ -1,5 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
@@ -159,6 +161,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           useActivityStore.getState().addActivity(startedActivity);
 
           // Step 3: Navigate ONLY after stamina check passes
+          track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+            packId,
+            moduleId,
+            activityId: startedActivity.id,
+            contentType,
+            contentId: content.refId,
+            title: content.titleOverride || "Practice Activity"
+          });
+
           navigateToPackActivity(navigation, startedActivity, {
             blockId: block.id,
             moduleId,

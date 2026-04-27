@@ -62,6 +62,8 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUIStore } from "../../../../../../stores/ui";
 import { useUserStore } from "../../../../../../stores/user";
 import { toPascalCase } from "../../../../../../util/functions/strings";
+import { track } from "../../../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 
 const { width } = Dimensions.get("window");
 
@@ -265,6 +267,15 @@ const PoemPractice = () => {
       id: activityIdToStart,
       userId,
     });
+    
+    // Track activity start
+    track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+      activityId: activityIdToStart,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      title: allPoems[selectedIndex]?.title,
+      isPackContext: !!packContext?.packId
+    });
+
     addActivity({ ...startedActivity });
     useUserStore.getState().fetchUser();
     setCurrentActivityId(activityIdToStart);
@@ -286,6 +297,15 @@ const PoemPractice = () => {
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
     });
+
+    // Track activity completion
+    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+      activityId,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      title: allPoems[selectedIndex]?.title,
+      isPackContext: !!packContext?.packId
+    });
+
     updateActivity(activityId, { ...completedActivity });
     useUserStore.getState().fetchUser();
   };

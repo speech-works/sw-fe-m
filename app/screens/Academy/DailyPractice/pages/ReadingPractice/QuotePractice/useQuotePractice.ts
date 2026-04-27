@@ -27,6 +27,8 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUIStore } from "../../../../../../stores/ui";
 import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
+import { track } from "../../../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 
 export const useQuotePractice = () => {
   const { setTabBarVisible } = useUIStore();
@@ -210,6 +212,15 @@ export const useQuotePractice = () => {
       });
 
       addActivity({ ...startedActivity });
+      
+      // Track activity start
+      track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+        activityId: activityIdToStart,
+        contentType: PracticeActivityContentType.READING_PRACTICE,
+        title: allQuotes[selectedIndex]?.title,
+        isPackContext: !!packContext?.packId
+      });
+
       useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (error) {
@@ -236,6 +247,15 @@ export const useQuotePractice = () => {
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
     });
+
+    // Track activity completion
+    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+      activityId,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      title: allQuotes[selectedIndex]?.title,
+      isPackContext: !!packContext?.packId
+    });
+
     updateActivity(activityId, { ...completedActivity });
     useUserStore.getState().fetchUser();
   };

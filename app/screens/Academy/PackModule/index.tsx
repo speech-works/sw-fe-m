@@ -354,12 +354,21 @@ const PackModuleScreen = () => {
   // Callback for when a form is completed (called by ContentRenderer)
   const handleFormCompleted = useCallback((blockId: string) => {
     console.log("Form completed for block:", blockId);
+    
+    // Track form completion
+    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+      packId,
+      ...(module?.id ? { moduleId: module.id } : {}),
+      blockId,
+      type: 'FORM'
+    });
+
     setCompletedInteractiveBlocks((prev) => {
       const next = new Set(prev);
       next.add(blockId);
       return next;
     });
-  }, []);
+  }, [packId, module?.id]);
 
   // Completion State
   const [showSuccess, setShowSuccess] = useState(false);

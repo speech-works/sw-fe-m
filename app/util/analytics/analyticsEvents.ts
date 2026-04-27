@@ -25,7 +25,9 @@ export const ANALYTICS_EVENTS = {
     // ── Practice Sessions ─────────────────────────────────────────────
     PRACTICE_SESSION_STARTED: 'practice_session_started',  // props: { packId, moduleId, moduleTitle, totalBlocks }
     PRACTICE_SESSION_ENDED: 'practice_session_ended',    // props: { packId, moduleId, moduleTitle, completedBlocks, totalBlocks }
-    ACTIVITY_COMPLETED: 'activity_completed',         // props: { activityId, packId, category }
+    ACTIVITY_STARTED: 'activity_started',             // props: { activityId, contentType, title, isPackContext }
+    ACTIVITY_COMPLETED: 'activity_completed',         // props: { activityId, contentType, title, isPackContext, vitals? }
+    ACTIVITY_ABANDONED: 'activity_abandoned',         // props: { activityId, contentType, progressSeconds }
 
     // ── Paywall & Payments ────────────────────────────────────────────
     PAYWALL_VIEWED: 'paywall_viewed',             // props: none

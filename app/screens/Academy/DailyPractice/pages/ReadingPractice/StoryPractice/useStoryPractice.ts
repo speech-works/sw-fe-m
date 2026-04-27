@@ -27,6 +27,8 @@ import { useSessionStore } from "../../../../../../stores/session";
 import { useUIStore } from "../../../../../../stores/ui";
 import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
+import { track } from "../../../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 
 export const useStoryPractice = () => {
   const { setTabBarVisible } = useUIStore();
@@ -224,6 +226,15 @@ export const useStoryPractice = () => {
       });
 
       addActivity({ ...startedActivity });
+      
+      // Track activity start
+      track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+        activityId: activityIdToStart,
+        contentType: PracticeActivityContentType.READING_PRACTICE,
+        title: allStories[selectedIndex]?.title,
+        isPackContext: !!packContext?.packId
+      });
+
       useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (error) {
@@ -250,6 +261,15 @@ export const useStoryPractice = () => {
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
     });
+
+    // Track activity completion
+    track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+      activityId,
+      contentType: PracticeActivityContentType.READING_PRACTICE,
+      title: allStories[selectedIndex]?.title,
+      isPackContext: !!packContext?.packId
+    });
+
     updateActivity(activityId, { ...completedActivity });
     useUserStore.getState().fetchUser();
   };

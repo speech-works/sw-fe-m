@@ -51,7 +51,8 @@ import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { track } from "../../../../../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
@@ -346,6 +347,14 @@ const Meditation = () => {
         cognitivePractice: meditationScenarios[selectedIndex!],
       });
 
+      // Track activity start
+      track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+        activityId: activityIdToStart,
+        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+        title: meditationScenarios[selectedIndex!]?.name,
+        isPackContext: !!packContext?.packId
+      });
+
       useUserStore.getState().fetchUser();
       setCurrentActivityId(activityIdToStart);
     } catch (e) {
@@ -408,6 +417,16 @@ const Meditation = () => {
         ...completedActivity,
         cognitivePractice: meditationScenarios[selectedIndex],
       });
+
+      // Track activity completion
+      track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {
+        activityId: currentActivityId,
+        contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+        title: meditationScenarios[selectedIndex]?.name,
+        isPackContext: !!packContext?.packId,
+        vitals
+      });
+
       useUserStore.getState().fetchUser();
 
       // Navigation handled externally now
@@ -495,6 +514,16 @@ const Meditation = () => {
           ...abortedActivity,
           cognitivePractice: meditationScenarios[selectedIndex as number],
         });
+
+        // Track activity abandonment
+        track(ANALYTICS_EVENTS.ACTIVITY_ABANDONED, {
+          activityId: currentActivityId,
+          contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+          title: meditationScenarios[selectedIndex as number]?.name,
+          isPackContext: !!packContext?.packId,
+          progressSeconds: progress
+        });
+
         useUserStore.getState().fetchUser();
       } catch (e) {
         console.error("Failed to abort activity", e);

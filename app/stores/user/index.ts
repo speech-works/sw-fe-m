@@ -73,12 +73,24 @@ export const useUserStore = create<UserState>()(
           set({ user });
 
           // Identify the user in PostHog with key segmentation traits.
-          // This links all future events to their userId in the PostHog dashboard.
-          // ⚠️  Do NOT include PII (email, name, phone) without explicit user consent.
+          // All values come directly from the /users/me API response.
+          // ⚠️  PII (email, name, phone, dob) and sensitive internal fields
+          //     (password, stripeCustomerId, oauthId) are intentionally excluded.
           identifyUser(String(user.id), {
-            isPaid:       user.isPaid,
-            hasOnboarded: user.hasCompletedOnboarding,
-            staminaCap:   user.maxStaminaCap,
+            // Subscription & access
+            isPaid:              user.isPaid,
+            isVerified:          user.isVerified,
+            freeTasksRemaining:  user.freeTasksRemaining,
+            // Onboarding
+            hasOnboarded:        user.hasCompletedOnboarding,
+            // Progression
+            level:               user.level,
+            totalXp:             user.totalXp,
+            // Stamina
+            staminaCap:          user.maxStaminaCap,
+            currentStamina:      user.currentStamina,
+            // Account age (enables cohort analysis by sign-up date)
+            createdAt:           user.createdAt?.toISOString(),
           });
           // --- Low Stamina Threshold Detection (phone-battery style, paid only) ---
           if (
