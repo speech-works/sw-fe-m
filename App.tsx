@@ -145,7 +145,7 @@ const App: React.FC = () => {
   // if (!ready) return <LoadingScreen />;
 
   return (
-    <PostHogProvider client={posthogClient} autocapture>
+    <PostHogProvider client={posthogClient} autocapture={false}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
           <SafeAreaProvider style={{ flex: 1 }}>
@@ -159,16 +159,16 @@ const App: React.FC = () => {
                 onStateChange={() => {
                   const currentRoute = navigationRef.getCurrentRoute();
                   if (currentRoute?.name) {
-                    trackScreen(currentRoute.name, { params: currentRoute.params });
+                    trackScreen(currentRoute.name, currentRoute.params ? { params: currentRoute.params as Record<string, any> } : undefined);
                   }
                 }}
               >
                 <MainNavigator />
+                <UpsellModal />
+                <OutcomeModal />
+                <StaminaVignetteOverlay />
+                <GlobalStaminaController />
               </NavigationContainer>
-              <UpsellModal />
-              <OutcomeModal />
-              <StaminaVignetteOverlay />
-              <GlobalStaminaController />
             </SafeAreaView>
           </SafeAreaProvider>
         </AuthProvider>
