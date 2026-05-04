@@ -332,16 +332,17 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                       onPress={() => setSelectedFamily(family)}
                       style={[
                         styles.familyChip,
-                        isActive && {
-                          backgroundColor: familyConfig.color,
-                          borderColor: familyConfig.color,
-                        },
+                        isActive && styles.familyChipActive,
                       ]}
+                      activeOpacity={0.7}
                     >
                       <Text
                         style={[
                           styles.familyChipText,
-                          isActive && styles.familyChipTextActive,
+                          isActive && [
+                            styles.familyChipTextActive,
+                            { color: familyConfig.color },
+                          ],
                         ]}
                       >
                         {familyConfig.label}
@@ -527,24 +528,33 @@ const styles = StyleSheet.create({
   },
   familySwitcher: {
     flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 4,
   },
   familyChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.colors.library.gray[200],
-    backgroundColor: "#fff",
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  familyChipActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   familyChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.text.default,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
   },
   familyChipTextActive: {
-    color: "#fff",
+    fontWeight: "800",
   },
   familyDescription: {
     fontSize: 13,
