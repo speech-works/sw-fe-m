@@ -7,7 +7,17 @@ import Breathing from "../../../../../screens/Academy/DailyPractice/pages/Cognit
 import Meditation from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Meditation";
 import Reframe from "../../../../../screens/Academy/DailyPractice/pages/CognitivePractice/Reframe";
 import StoryPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/StoryPractice";
+import RealLifeChallenge from "../../../../../screens/Academy/DailyPractice/pages/RealLifeChallenge";
+import QuotePractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/QuotePractice";
+import PoemPractice from "../../../../../screens/Academy/DailyPractice/pages/ReadingPractice/PoemPractice";
+import Exposure from "../../../../../screens/Academy/DailyPractice/pages/Exposure";
+import Twister from "../../../../../screens/Academy/DailyPractice/pages/FunPractice/Twister";
+import Briefing from "../../../../../screens/Academy/DailyPractice/pages/FunPractice/Roleplay/Briefing";
+import CVExercise from "../../../../../screens/Academy/DailyPractice/pages/FunPractice/CharacterVoice/CVExercise";
+import FunPracticeStackNavigator from "../../DailyPracticeStack/FunPracticeStack";
 import RoleplayFDPStackNavigator from "../../DailyPracticeStack/FunPracticeStack/RoleplayPracticeStack";
+import TechniquePage from "../../../../../screens/Academy/Library/TechniquePage";
+import SummaryPage from "../../../../../screens/Academy/Library/TechniquePage/SummaryPage";
 import { MoodFUStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<MoodFUStackParamList>();
@@ -38,6 +48,16 @@ export default function MoodFUStackNavigator({
         component={RoleplayFDPStackNavigator}
       />
       <Stack.Screen name="StoryPractice" component={StoryPractice} />
+      <Stack.Screen name="QuotePractice" component={QuotePractice} />
+      <Stack.Screen name="PoemPractice" component={PoemPractice} />
+      <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
+      <Stack.Screen name="ExposurePractice" component={Exposure} />
+      <Stack.Screen name="TwisterPracticeStack" component={FunPracticeStackNavigator} />
+      <Stack.Screen name="TwisterExercise" component={Twister} />
+      <Stack.Screen name="RoleplayBriefing" component={Briefing} />
+      <Stack.Screen name="CVExercise" component={CVExercise} />
+      <Stack.Screen name="TechniquePage" component={TechniquePage} />
+      <Stack.Screen name="SummaryPage" component={SummaryPage} />
     </Stack.Navigator>
   );
 }

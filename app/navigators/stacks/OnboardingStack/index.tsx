@@ -7,6 +7,7 @@ import { OnboardingStackParamList } from "./types";
 import OnboardingDone from "../../../screens/Onboarding/OnboardingDone";
 import OnboardingQuestion from "../../../screens/Onboarding/OnboardingQuestionScreen";
 import OnboardingWelcome from "../../../screens/Onboarding/OnboardingWelcome";
+import OnboardingPhonemes from "../../../screens/Onboarding/OnboardingPhonemes";
 
 const Stack = createNativeStackNavigator<OnboardingStackParamList>();
 
@@ -39,6 +40,7 @@ export default function OnboardingStackNavigator() {
         initialParams={{ screenNumber: currentScreen }}
       />
 
+      <Stack.Screen name="OnboardingPhonemes" component={OnboardingPhonemes} />
       <Stack.Screen name="OnboardingDone" component={OnboardingDone} />
     </Stack.Navigator>
   );

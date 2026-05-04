@@ -24,12 +24,14 @@ const RecordingWidget: React.FC<{
     console.log(
       `RecordingWidget render: recording=${isRecording}, playing=${isPlaying}, bars=${meteringData.length}`
     );
-    console.log(
-      `Sample dB values: [${meteringData
-        .slice(-5)
-        .map((db) => db.toFixed(1))
-        .join(", ")}]`
-    );
+    if (Array.isArray(meteringData)) {
+      console.log(
+        `Sample dB values: [${meteringData
+          .slice(-5)
+          .map((db) => db.toFixed(1))
+          .join(", ")}]`
+      );
+    }
   }
 
   return (

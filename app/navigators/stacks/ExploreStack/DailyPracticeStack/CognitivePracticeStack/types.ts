@@ -10,6 +10,7 @@ export type CDPStackParamList = {
     | {
         packContext?: PackContext;
         practiceActivity?: any;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
   MeditationPractice:
@@ -17,12 +18,14 @@ export type CDPStackParamList = {
         packContext?: PackContext;
         practiceActivity?: any;
         mood?: MoodType; // Add optional mood param
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
   ReframePractice:
     | {
         packContext?: PackContext;
         practiceActivity?: any;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
 };

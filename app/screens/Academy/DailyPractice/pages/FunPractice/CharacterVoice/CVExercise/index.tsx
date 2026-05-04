@@ -22,6 +22,7 @@ import {
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../../Theme/tokens";
+import { getFunPracticeById } from "../../../../../../../api/dailyPractice";
 
 import {
   completePracticeActivity,
@@ -44,6 +45,7 @@ import {
 import DonePractice from "../../../../components/DonePractice";
 import MasonryTips from "../../../../components/MasonryTips";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import HardModeToggle from "../../../../components/HardModeToggle";
 
 const CVExercise = () => {
   const navigation =
@@ -52,11 +54,39 @@ const CVExercise = () => {
   const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
-  const { id, name, cvData, packContext, practiceActivity } = route.params;
+  const { id, name, cvData, packContext, practiceActivity, from } = route.params;
 
-  const effectiveCvData =
-    cvData || practiceActivity?.funPractice?.characterVoiceData;
-  const effectiveName = name || practiceActivity?.funPractice?.name;
+  const [loading, setLoading] = React.useState(
+    !cvData && !practiceActivity?.funPractice?.characterVoiceData,
+  );
+  const [data, setData] = React.useState({
+    name: name || practiceActivity?.funPractice?.name,
+    cvData: cvData || practiceActivity?.funPractice?.characterVoiceData,
+  });
+
+  React.useEffect(() => {
+    if (!data.cvData && id) {
+      const fetchCV = async () => {
+        try {
+          const funPractice = await getFunPracticeById(id);
+          if (funPractice.characterVoiceData) {
+            setData({
+              name: funPractice.name,
+              cvData: funPractice.characterVoiceData,
+            });
+          }
+        } catch (err) {
+          console.error("Failed to fetch character voice", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      void fetchCV();
+    }
+  }, [id]);
+
+  const effectiveCvData = data.cvData;
+  const effectiveName = data.name;
   const effectiveId = id || practiceActivity?.funPractice?.id;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
@@ -74,6 +104,7 @@ const CVExercise = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
+  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
@@ -276,6 +307,7 @@ const CVExercise = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -302,7 +334,11 @@ const CVExercise = () => {
             ]}
           >
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() =>
+                from === "MOOD_CHECK"
+                  ? navigation.navigate("Root" as any, { screen: "HOME" })
+                  : navigation.goBack()
+              }
               style={styles.backButton}
             >
               <Icon
@@ -311,7 +347,7 @@ const CVExercise = () => {
                 color={theme.colors.text.title}
               />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Character Voice</Text>
+            <Text style={styles.headerTitle}>Voice Practice</Text>
             <View style={{ width: 32 }} />
           </BlurView>
 
@@ -324,21 +360,8 @@ const CVExercise = () => {
               }}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.noteHeaderBanner}>
-                <LinearGradient
-                  colors={["#FFE4E6", "#FFEDD5"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.noteHeaderTextContainer}>
-                  <Text style={styles.noteHeaderTitle}>Tips</Text>
-                  <Text style={styles.noteHeaderSubtitle}>
-                    Before you start
-                  </Text>
-                </View>
-                <TherapistFace size={72} />
-              </View>
+
+              {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
 
               <MasonryTips tips={effectiveCvData?.hints || []} />
             </ScrollView>
@@ -401,7 +424,11 @@ const CVExercise = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.goBack()
+            }
             style={styles.backButton}
           >
             <Icon
@@ -410,7 +437,7 @@ const CVExercise = () => {
               color={theme.colors.text.title}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Character Voice</Text>
+          <Text style={styles.headerTitle}>Voice Practice</Text>
           <View style={{ width: 32 }} />
         </BlurView>
 
@@ -556,7 +583,38 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontWeight: "800",
+  },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
   },
   // Card Styles
   cardContainer: {
@@ -674,34 +732,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  noteHeaderBanner: {
-    marginVertical: 20,
-    marginBottom: 24,
-    borderRadius: 24,
-    height: 120, // tall banner
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-    position: "relative",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 8,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#881337", // Deep pink/red text
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#9F1239",
-    fontWeight: "500",
-  },
   tipsScroll: {
     paddingHorizontal: 24,
     paddingBottom: 24,

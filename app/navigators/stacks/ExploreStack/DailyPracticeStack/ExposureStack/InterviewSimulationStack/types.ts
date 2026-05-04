@@ -8,11 +8,13 @@ export type InterviewEDPStackParamList = {
   InterviewBriefing: {
     interview: ExposurePractice;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
   InterviewChat: {
     interview: ExposurePractice;
     practiceActivityId: string;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
 };
 export type InterviewEDPStackNavigationProp<

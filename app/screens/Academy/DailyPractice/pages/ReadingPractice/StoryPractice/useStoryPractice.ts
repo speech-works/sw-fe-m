@@ -58,9 +58,10 @@ export const useStoryPractice = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+  const [hardMode, setHardMode] = useState(false);
 
   // Sheet control for complex tools
   const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
@@ -95,17 +96,38 @@ export const useStoryPractice = () => {
   useEffect(() => {
     const fetchAllStories = async () => {
       try {
-        const st = await getReadingPracticeByType(ReadingPracticeType.STORY);
+        setIsLoading(true);
+        const st = await getReadingPracticeByType(ReadingPracticeType.STORY, hardMode);
         setAllStories(st);
-      } catch (error) {
+
+        // If an ID is passed from recommendations, select it
+        const recommendedId = (route.params as any)?.id;
+        if (recommendedId && !hardMode) {
+          const index = st.findIndex((s) => s.id === recommendedId);
+          if (index !== -1) {
+            setSelectedIndex(index);
+          } else {
+            console.warn(`[useStoryPractice] Recommended ID ${recommendedId} not found in library. Defaulting to first item.`);
+            setSelectedIndex(0);
+          }
+        } else {
+          setSelectedIndex(0);
+        }
+      } catch (error: any) {
         console.error("[useStoryPractice] ❌ Error fetching stories:", error);
+        // If backend returns 400 (missing feared sounds), reset hardMode
+        if (error?.response?.status === 400) {
+          setHardMode(false);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchAllStories();
     return () => {
       chorusManagerRef.current.stop();
     };
-  }, []);
+  }, [hardMode]);
 
   // Update Pages when story changes
   useEffect(() => {
@@ -167,7 +189,8 @@ export const useStoryPractice = () => {
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
         if (!contentId) {
-          console.error("useStoryPractice - Missing contentId, cannot create activity");
+          console.error("useStoryPractice - Missing contentId, cannot create activity. User might be attempting to start before data is loaded.");
+          setIsStarting(false);
           return;
         }
 
@@ -317,6 +340,8 @@ export const useStoryPractice = () => {
       activeToolSheet,
       practiceSession, // Add for debugging
       hasHydrated, // Track if session store has loaded
+      hardMode,
+      canUseHardMode: (user?.fearedSounds?.length ?? 0) > 0,
     },
     actions: {
       setSelectedIndex,
@@ -331,6 +356,7 @@ export const useStoryPractice = () => {
       onDonePress,
       markActivityStart,
       toggleIndex,
+      setHardMode,
     },
   };
 };

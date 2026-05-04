@@ -12,8 +12,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
+import ExplorerFace from "../../../../../assets/sw-faces/ExplorerFace";
 import PoetFace from "../../../../../assets/sw-faces/PoetFace";
 import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
+import WiseFace from "../../../../../assets/sw-faces/WiseFace";
+import ScienceFace from "../../../../../assets/sw-faces/ScienceFace";
+import LetterLFace from "../../../../../assets/sw-faces/LetterLFace";
+import LetterOFace from "../../../../../assets/sw-faces/LetterOFace";
+import GliderFace from "../../../../../assets/sw-faces/GliderFace";
 import ScreenView from "../../../../../components/ScreenView";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
@@ -53,11 +59,29 @@ const ReadingPractice = () => {
 
   const readingPracticeData = [
     {
-      title: "Stories",
-      subtitle: "Short stories & tales",
-      onPress: () => navigation.navigate("StoryPractice"),
-      icon: <StorytellerFace size={80} />,
-      colors: [theme.colors.library.orange[400], "#F43F5E"] as const, // Orange to Rose
+      title: "Words",
+      subtitle: "Focus on single words",
+      onPress: () => navigation.navigate("WordPractice"),
+      icon: <LetterOFace size={80} />,
+      colors: [theme.colors.library.blue[400], "#1E40AF"] as const, // Blue to Dark Blue
+      accentColor: "#FFF",
+      iconStyle: { right: -5, bottom: -10 },
+    },
+    {
+      title: "Phrases",
+      subtitle: "Glide effortlessly on the airflow",
+      onPress: () => navigation.navigate("PhrasePractice"),
+      icon: <GliderFace size={80} />,
+      colors: ["#84CC16", "#4D7C0F"] as const, // Lime to Dark Lime
+      accentColor: "#FFF",
+      iconStyle: { right: -10, bottom: -10 },
+    },
+    {
+      title: "Quotes",
+      subtitle: "Inspirational quotes",
+      onPress: () => navigation.navigate("QuotePractice"),
+      icon: <AuthorFace size={80} />,
+      colors: ["#F59E0B", "#D97706"] as const, // Amber
       accentColor: "#FFF",
       iconStyle: { right: -10, bottom: -10 },
     },
@@ -71,11 +95,11 @@ const ReadingPractice = () => {
       iconStyle: { right: -5, bottom: -10 },
     },
     {
-      title: "Quotes",
-      subtitle: "Inspirational quotes",
-      onPress: () => navigation.navigate("QuotePractice"),
-      icon: <AuthorFace size={80} />,
-      colors: ["#34D399", "#059669"] as const, // Emerald
+      title: "Stories",
+      subtitle: "Short stories & tales",
+      onPress: () => navigation.navigate("StoryPractice"),
+      icon: <StorytellerFace size={80} />,
+      colors: [theme.colors.library.orange[400], "#F43F5E"] as const, // Orange to Rose
       accentColor: "#FFF",
       iconStyle: { right: -10, bottom: -10 },
     },

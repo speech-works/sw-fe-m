@@ -18,6 +18,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
+import { useRoute } from "@react-navigation/native";
 
 import { getExposurePracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -26,6 +27,7 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 
 const SocialChallenge = () => {
+  const route = useRoute();
   const [socialChallengesList, setSocialChallengesList] = useState<
     ExposurePractice[]
   >([]);
@@ -71,9 +73,20 @@ const SocialChallenge = () => {
         ExposurePracticeType.SOCIAL_CHALLENGE_SIMULATION,
       );
       setSocialChallengesList(socialChallenges);
+
+      // If an ID is passed from recommendations, auto-navigate to its briefing
+      const recommendedId = (route.params as any)?.id;
+      if (recommendedId) {
+        const found = socialChallenges.find((sc) => sc.id === recommendedId);
+        if (found) {
+          navigation.navigate("SCBriefing", {
+            sc: found,
+          });
+        }
+      }
     };
     fetchSCDetails();
-  }, []);
+  }, [route.params]);
 
   const navigation =
     useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();

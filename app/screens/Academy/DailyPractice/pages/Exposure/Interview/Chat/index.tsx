@@ -48,7 +48,7 @@ const Chat = () => {
     useNavigation<ExploreStackNavigationProp<"InterviewChat">>();
   const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
 
-  const { interview, practiceActivityId, packContext } = route.params;
+  const { interview, practiceActivityId, packContext, from } = route.params;
   const data = interview.practiceData || interview.interviewPracticeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
@@ -252,6 +252,7 @@ const Chat = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -263,7 +264,11 @@ const Chat = () => {
       {/* Header */}
       <View style={styles.topNavigationContainer}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : navigation.goBack()
+          }
           style={styles.backButton}
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />

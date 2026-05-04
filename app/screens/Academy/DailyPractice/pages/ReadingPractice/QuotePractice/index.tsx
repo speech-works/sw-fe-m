@@ -14,7 +14,6 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 
 import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 import MasonryTips from "../../../components/MasonryTips";
@@ -29,6 +28,7 @@ import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder";
+import HardModeToggle from "../../../components/HardModeToggle";
 
 import { ToolType } from "../../../../../../api/tools/types";
 import { theme } from "../../../../../../Theme/tokens";
@@ -63,10 +63,13 @@ const QuotePractice = () => {
     voiceRecordingUri,
     hasHydrated,
     highlightRange,
+    isLoading,
+    hardMode,
+    canUseHardMode,
   } = state;
 
   const route = useRoute<RDPStackRouteProp<"QuotePractice">>();
-  const packContext = route.params?.packContext;
+  const { packContext, from } = route.params || {};
 
   // --- VoiceHover Config State (Unused for quotes but kept for structure) ---
   const [vhRate, setVhRate] = useState(1.0);
@@ -222,18 +225,19 @@ const QuotePractice = () => {
         onDone={
           packContext
             ? () => {
-                if (navigation.canGoBack()) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate("PackModule", {
-                    packId: packContext.packId,
-                    moduleId: packContext.moduleId,
-                    initialBlockIndex: packContext.blockIndex,
-                  });
-                }
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate("PackModule", {
+                  packId: packContext.packId,
+                  moduleId: packContext.moduleId,
+                  initialBlockIndex: packContext.blockIndex,
+                });
               }
+            }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -259,7 +263,11 @@ const QuotePractice = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={actions.onBackPress}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : actions.onBackPress()
+            }
             style={styles.backButton}
           >
             <Icon
@@ -268,7 +276,7 @@ const QuotePractice = () => {
               color={theme.colors.text.title}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Practice</Text>
+          <Text style={styles.screenHeaderTitle}>Quote Practice</Text>
           <View style={{ width: 32 }} />
         </BlurView>
 
@@ -280,23 +288,17 @@ const QuotePractice = () => {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.noteHeaderBanner}>
-            <LinearGradient
-              colors={["#FFE4E6", "#FFEDD5"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.noteHeaderTextContainer}>
-              <Text style={styles.noteHeaderTitle}>Tips</Text>
-              <Text style={styles.noteHeaderSubtitle}>
-                Inspiration before you start
-              </Text>
-            </View>
-            <TherapistFace size={72} />
-          </View>
+
+
+          <HardModeToggle 
+            value={hardMode}
+            onValueChange={actions.setHardMode}
+            canUseHardMode={canUseHardMode}
+            style={{ marginBottom: 24 }}
+          />
 
           <MasonryTips tips={readingTips.quote} />
+
         </ScrollView>
 
         {/* Fixed Start Button at bottom */}
@@ -321,7 +323,7 @@ const QuotePractice = () => {
                 actions.setIsStarting(false);
               }
             }}
-            disabled={isStarting || !hasHydrated}
+            disabled={isStarting || !hasHydrated || isLoading}
             style={styles.startButton}
           >
             <LinearGradient
@@ -329,9 +331,9 @@ const QuotePractice = () => {
                 !hasHydrated
                   ? ["#94A3B8", "#64748B"] // Gray when loading
                   : [
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]
+                    theme.colors.library.orange[400],
+                    theme.colors.library.orange[500],
+                  ]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -371,13 +373,34 @@ const QuotePractice = () => {
         ]}
       >
         <TouchableOpacity
-          onPress={actions.onBackPress}
+          onPress={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : actions.onBackPress()
+          }
           style={styles.backButton}
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Quote</Text>
-        <View style={{ width: 32 }} />
+        <Text style={styles.screenHeaderTitle}>Quote Practice</Text>
+        
+        {/* Hard Mode Toggle in Header */}
+        <View style={styles.headerRight}>
+          {canUseHardMode && (
+            <TouchableOpacity 
+              onPress={() => actions.setHardMode(!hardMode)}
+              style={[styles.headerHardModeButton, hardMode && styles.headerHardModeActive]}
+            >
+              <Icon 
+                name="fire" 
+                size={14} 
+                color={hardMode ? "#EA580C" : theme.colors.text.title} 
+                solid={hardMode}
+              />
+              {hardMode && <View style={styles.activeDot} />}
+            </TouchableOpacity>
+          )}
+        </View>
       </BlurView>
 
       {/* Reading Content */}
@@ -408,13 +431,15 @@ const QuotePractice = () => {
                 </View>
 
                 {/* Glassy Next Button */}
-                <TouchableOpacity
-                  onPress={actions.toggleIndex}
-                  style={styles.glassButton}
-                >
-                  <Text style={styles.glassButtonText}>Next</Text>
-                  <Icon name="chevron-right" size={12} color="#FFF" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={actions.toggleIndex}
+                    style={styles.glassButton}
+                  >
+                    <Text style={styles.glassButtonText}>Next</Text>
+                    <Icon name="chevron-right" size={12} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Watermark */}
@@ -603,34 +628,42 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
   },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
+  },
   // Tips Styles
   scrollContent: {
     paddingHorizontal: 24,
   },
-  noteHeaderBanner: {
-    marginVertical: 20,
-    borderRadius: 24,
-    height: 120,
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 4,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#881337",
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#9F1239",
-    fontWeight: "500",
-  },
+
   startButton: {
     marginTop: 20,
     borderRadius: 20,

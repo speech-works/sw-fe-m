@@ -147,7 +147,9 @@ const Library = () => {
   const insets = useSafeAreaInsets();
   const exploreNavigation = useNavigation<LibraryScreenNavigationProp>();
   const route = useRoute<any>();
-  const { from } = (route.params || {}) as { from?: "HOME" | "EXPLORE" };
+  const { from } = (route.params || {}) as {
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+  };
 
   const handleBack = () => {
     console.log("[Library] handleBack called. from:", from);

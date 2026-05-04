@@ -60,9 +60,10 @@ export const useQuotePractice = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [selectedPracticeTool, setSelectedPracticeTool] = useState("");
+  const [hardMode, setHardMode] = useState(false);
 
   // Sheet control for complex tools
   const [activeToolSheet, setActiveToolSheet] = useState<string | null>(null);
@@ -90,17 +91,37 @@ export const useQuotePractice = () => {
   useEffect(() => {
     const fetchAllQuotes = async () => {
       try {
-        const q = await getReadingPracticeByType(ReadingPracticeType.QUOTE);
+        setIsLoading(true);
+        const q = await getReadingPracticeByType(ReadingPracticeType.QUOTE, hardMode);
         setAllQuotes(q);
-      } catch (error) {
+
+        // If an ID is passed from recommendations, select it
+        const recommendedId = (route.params as any)?.id;
+        if (recommendedId && !hardMode) {
+          const index = q.findIndex((quote) => quote.id === recommendedId);
+          if (index !== -1) {
+            setSelectedIndex(index);
+          } else {
+            console.warn(`[useQuotePractice] Recommended ID ${recommendedId} not found in library. Defaulting to first item.`);
+            setSelectedIndex(0);
+          }
+        } else {
+          setSelectedIndex(0);
+        }
+      } catch (error: any) {
         console.error("[useQuotePractice] ❌ Error fetching quotes:", error);
+        if (error?.response?.status === 400) {
+          setHardMode(false);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchAllQuotes();
     return () => {
       chorusManagerRef.current.stop();
     };
-  }, []);
+  }, [hardMode]);
 
   // If activity is already started (from Pack), sync local state immediately
   useEffect(() => {
@@ -153,7 +174,8 @@ export const useQuotePractice = () => {
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
         if (!contentId) {
-          console.error("useQuotePractice - Missing contentId, cannot create activity");
+          console.error("useQuotePractice - Missing contentId, cannot create activity. User might be attempting to start before data is loaded.");
+          setIsStarting(false);
           return;
         }
 
@@ -299,6 +321,8 @@ export const useQuotePractice = () => {
       practiceSession,
       hasHydrated,
       highlightRange,
+      hardMode,
+      canUseHardMode: (user?.fearedSounds?.length ?? 0) > 0,
     },
     actions: {
       setSelectedIndex,
@@ -312,6 +336,7 @@ export const useQuotePractice = () => {
       onDonePress,
       markActivityStart,
       toggleIndex,
+      setHardMode,
     },
   };
 };

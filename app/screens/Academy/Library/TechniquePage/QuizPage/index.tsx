@@ -21,7 +21,7 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
   techniqueName: string;
-  from?: "HOME" | "EXPLORE";
+  from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
 }
 
 const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {

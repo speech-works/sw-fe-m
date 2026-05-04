@@ -12,6 +12,7 @@ export type RoleplayFDPStackParamList = {
     description: string;
     roleplay: RolePlayData;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
   RoleplayChat: {
     id: string;
@@ -19,6 +20,7 @@ export type RoleplayFDPStackParamList = {
     roleplay: RolePlayData;
     selectedRoleName: string;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
 };
 export type RoleplayFDPStackNavigationProp<

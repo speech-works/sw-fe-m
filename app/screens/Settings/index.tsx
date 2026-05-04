@@ -90,15 +90,16 @@ const Settings = () => {
   };
 
   const menuItems = [
-    // {
-    //   icon: "sliders-h",
-    //   iconColor: "#3B82F6", // Blue for preferences
-    //   iconBg: "#EFF6FF",
-    //   text: "Preferences (Pending)",
-    //   onClick: () => {
-    //     navigation.navigate("Preferences");
-    //   },
-    // },
+    {
+      icon: "tune",
+      iconColor: "#3B82F6",
+      bgColor: "#EFF6FF",
+      text: "Preferences",
+      desc: "Manage goals and difficult sounds",
+      onClick: () => {
+        navigation.navigate("Preferences");
+      },
+    },
     {
       icon: "chart-line",
       iconColor: "#7C3AED",

@@ -24,6 +24,8 @@ import {
   FunPractice,
   FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
+import { useUserStore } from "../../../../../../stores/user";
+import HardModeToggle from "../../../components/HardModeToggle";
 
 const Roleplay = () => {
   const navigation =
@@ -34,6 +36,9 @@ const Roleplay = () => {
   const HEADER_HEIGHT = 60;
 
   const [roleplayList, setRoleplayList] = useState<FunPractice[]>([]);
+  const [hardMode, setHardMode] = useState(false);
+  const { user } = useUserStore();
+  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   // Matte Modern Palette - Orange/Warm Family
   const RP_THEMES = [
@@ -70,11 +75,11 @@ const Roleplay = () => {
 
   useEffect(() => {
     const fetchTwisters = async () => {
-      const rp = await getFunPracticeByType(FunPracticeType.ROLE_PLAY);
+      const rp = await getFunPracticeByType(FunPracticeType.ROLE_PLAY, hardMode);
       setRoleplayList(rp);
     };
     fetchTwisters();
-  }, []);
+  }, [hardMode]);
 
   useEffect(() => {
     const parent = navigation.getParent();
@@ -112,7 +117,7 @@ const Roleplay = () => {
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Roleplay</Text>
+        <Text style={styles.headerTitle}>Roleplay Practice</Text>
         <View style={{ width: 32 }} />
       </BlurView>
 
@@ -123,6 +128,7 @@ const Roleplay = () => {
             { paddingTop: HEADER_HEIGHT + insets.top + 20 },
           ]}
         >
+
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroIconContainer}>
@@ -257,7 +263,38 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontWeight: "800",
+  },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
   },
   heroSection: {
     alignItems: "center",

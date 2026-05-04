@@ -25,6 +25,10 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import MasonryTips from "../../../../components/MasonryTips";
+import HardModeToggle from "../../../../components/HardModeToggle";
+
+import { getExposurePracticeById, getFunPracticeById } from "../../../../../../../api/dailyPractice";
+import { ExposurePractice, FunPractice, RolePlayData } from "../../../../../../../api/dailyPractice/types";
 
 const Briefing = () => {
   console.log("RoleplayBriefing MOUNTED");
@@ -36,8 +40,89 @@ const Briefing = () => {
   const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
-  const { title, description, roleplay, id } = route.params;
+  const { title: initialTitle, description: initialDesc, roleplay: initialRoleplay, id } = route.params;
+  const { user } = useUserStore();
+  const [hardMode, setHardMode] = useState(false);
+  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
+
+  const [loading, setLoading] = React.useState(!initialRoleplay);
+  const [data, setData] = React.useState({
+    title: initialTitle,
+    description: initialDesc,
+    roleplay: initialRoleplay as RolePlayData | undefined,
+  });
+
+  React.useEffect(() => {
+    if (!data.roleplay && id) {
+      const fetchRoleplay = async () => {
+        try {
+          // Try fetching as Exposure Practice (Ordering Coffee, Job Interview)
+          const practice = await getExposurePracticeById(id);
+          const rawStage = (practice.socialChallengeData || practice.practiceData || practice.interviewPracticeData)?.stage;
+          const rawScenario = (practice.socialChallengeData || practice.practiceData || practice.interviewPracticeData)?.scenario;
+
+          if (rawStage && rawScenario) {
+            setData({
+              title: practice.name,
+              description: practice.description,
+              roleplay: {
+                scenario: {
+                  scenarioDetails: rawScenario.scenarioDetails,
+                  tips: rawScenario.tips,
+                  duration: rawScenario.duration,
+                  availableRoles: [
+                    {
+                      roleName: rawStage.userRole,
+                      roleDescription: "The role you will be playing.",
+                      fontAwesomeIcon: "user",
+                    },
+                    {
+                      roleName: rawStage.npcRole,
+                      roleDescription: "The character you will interact with.",
+                      fontAwesomeIcon: "user-tie",
+                    },
+                  ],
+                },
+                stages: [rawStage as any],
+              },
+            });
+          }
+        } catch (e) {
+          // Fallback to Fun Practice
+          try {
+            const funPractice = await getFunPracticeById(id);
+            if (funPractice.rolePlayData) {
+              setData({
+                title: funPractice.name,
+                description: funPractice.description,
+                roleplay: funPractice.rolePlayData,
+              });
+            }
+          } catch (err) {
+            console.error("Failed to fetch roleplay", err);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchRoleplay();
+    }
+  }, [id, hardMode]);
+
+  const { title, description, roleplay } = data;
+
   console.log("Briefing Params:", JSON.stringify(route.params, null, 2));
+
+  if (loading || !roleplay) {
+    return (
+      <ScreenView style={styles.screenView}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text>Loading briefing...</Text>
+        </View>
+      </ScreenView>
+    );
+  }
+
   const scenarioDescription = roleplay.scenario.scenarioDetails;
   const tips = roleplay.scenario.tips;
   const roles = roleplay.scenario.availableRoles;
@@ -69,7 +154,7 @@ const Briefing = () => {
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Briefing</Text>
+        <Text style={styles.headerTitle}>Briefing Practice</Text>
         <View style={{ width: 32 }} />
       </BlurView>
 
@@ -81,6 +166,7 @@ const Briefing = () => {
           ]}
           showsVerticalScrollIndicator={false}
         >
+
           {/* Hero Briefing Card - Matte Modern Orange */}
           <LinearGradient
             colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
@@ -148,20 +234,7 @@ const Briefing = () => {
 
           {/* Tips Section */}
           <View style={styles.tipsContainer}>
-            {/* Header Banner - Matte Orange */}
-            <View style={styles.noteHeaderBanner}>
-              <LinearGradient
-                colors={["#FFEDD5", "#FED7AA"]} // Orange 100 -> 200
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.noteHeaderTextContainer}>
-                <Text style={styles.noteHeaderTitle}>Pro Tips</Text>
-                <Text style={styles.noteHeaderSubtitle}>Before you act</Text>
-              </View>
-              <TherapistFace size={72} />
-            </View>
+            {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
 
             {/* Masonry Tips Grid */}
             <MasonryTips tips={tips} />
@@ -213,7 +286,38 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontWeight: "800",
+  },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
   },
 
   // Hero Card
@@ -344,38 +448,6 @@ const styles = StyleSheet.create({
   // Tips
   tipsContainer: {
     gap: 0,
-  },
-  noteHeaderBanner: {
-    marginTop: 10,
-    marginBottom: 24,
-    borderRadius: 24,
-    height: 120, // tall banner
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-    position: "relative",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 8,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#9A3412", // Deep Orange
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#C2410C",
-    fontWeight: "600",
-  },
-  noteStack: {
-    gap: 16,
-    paddingBottom: 20,
   },
   tipsScroll: {
     paddingHorizontal: 24,

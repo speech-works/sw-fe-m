@@ -1,203 +1,231 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  LayoutChangeEvent,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../util/functions/parseStyles";
 
 interface MasonryTipsProps {
   tips: string[];
 }
 
-const PASTEL_PALETTE = [
-  { colors: ["#E0F2FE", "#F0F9FF"], text: "#0C4A6E", badge: "#0284C7" }, // Sky Blue
-  { colors: ["#FFF7ED", "#FFFAF0"], text: "#7C2D12", badge: "#EA580C" }, // Soft Orange
-  { colors: ["#F0FDF4", "#F6FFFA"], text: "#14532D", badge: "#16A34A" }, // Mint Green
-  { colors: ["#FAF5FF", "#FCFAFF"], text: "#581C87", badge: "#9333EA" }, // Lavender
+const PREMIUM_PALETTE = [
+  { colors: ["#0EA5E9", "#0369A1"], text: "#FFF", badge: "#FFF", shadow: "#0EA5E9", accent: "#0284C7" }, // Deep Sky
+  { colors: ["#F59E0B", "#D97706"], text: "#FFF", badge: "#FFF", shadow: "#F59E0B", accent: "#B45309" }, // Warm Amber
+  { colors: ["#10B981", "#059669"], text: "#FFF", badge: "#FFF", shadow: "#10B981", accent: "#047857" }, // Emerald
+  { colors: ["#A78BFA", "#7C3AED"], text: "#FFF", badge: "#FFF", shadow: "#A78BFA", accent: "#6D28D9" }, // Violet
 ];
 
 const ICONS = ["feather-alt", "magic", "star", "quote-right"];
 
 const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
-  // Smart Bento Logic:
-  // We want a mix of 2-col rows and 1-col rows.
-  // Pattern: [Half, Half] -> [Full] -> [Half, Half] ...
-  // This ensures variety and alignment.
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  const renderCard = (tip: string, index: number, isFullWidth: boolean) => {
-    const colorTheme = PASTEL_PALETTE[index % PASTEL_PALETTE.length];
+  const CARD_WIDTH = containerWidth > 0 ? containerWidth * 0.86 : 300;
+  const SPACING = 16;
+  const SIDE_INSET = containerWidth > 0 ? (containerWidth - CARD_WIDTH) / 2 : 24;
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / (CARD_WIDTH + SPACING));
+    if (index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  };
+
+  const renderItem = ({ item, index }: { item: string; index: number }) => {
+    const colorTheme = PREMIUM_PALETTE[index % PREMIUM_PALETTE.length];
     const iconName = ICONS[index % ICONS.length];
 
-    // Randomized bubble positions
-    const bubble1Top = (index * 37) % 60;
-    const bubble1Left = (index * 19) % 70;
-    const bubble2Bottom = (index * 23) % 40;
-    const bubble2Right = (index * 41) % 50;
-
     return (
-      <View
-        key={index}
-        style={[
-          styles.cardContainer,
-          styles.shadow,
-          isFullWidth ? styles.fullWidth : styles.halfWidth,
-        ]}
-      >
-        <LinearGradient
-          colors={colorTheme.colors as [string, string, ...string[]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cardGradient}
-        >
-          {/* Background Ambient Bubbles */}
-          <View
-            style={[
-              styles.bubble,
-              {
-                top: bubble1Top,
-                left: bubble1Left,
-                backgroundColor: colorTheme.badge,
-                opacity: 0.03,
-                width: 60,
-                height: 60,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.bubble,
-              {
-                bottom: bubble2Bottom,
-                right: bubble2Right,
-                backgroundColor: colorTheme.badge,
-                opacity: 0.04,
-                width: 40,
-                height: 40,
-              },
-            ]}
-          />
-
-          {/* Icon Watermark */}
-          <View style={styles.watermarkContainer}>
-            <Icon
-              name={iconName}
-              solid
-              size={96} // Much bigger
-              color={colorTheme.badge}
-              style={{ opacity: 0.08 }} // Slightly more visible
-            />
-          </View>
-
-          {/* Content Layer */}
-          <View style={styles.contentLayer}>
-            <View style={styles.headerRow}>
-              <View
-                style={[styles.badge, { backgroundColor: colorTheme.badge }]}
-              >
-                <Text style={styles.badgeText}>TIP {index + 1}</Text>
-              </View>
-            </View>
-            <Text style={[styles.body, { color: colorTheme.text }]}>{tip}</Text>
-          </View>
-
-          {/* Glass Glare */}
+      <View style={{ width: CARD_WIDTH, marginRight: SPACING, paddingVertical: 15 }}>
+        <View style={[styles.cardWrapper, { shadowColor: colorTheme.shadow }]}>
           <LinearGradient
-            colors={["rgba(255,255,255,0.4)", "rgba(255,255,255,0)"]}
+            colors={colorTheme.colors as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 0.4 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-        </LinearGradient>
+            end={{ x: 1, y: 1 }}
+            style={styles.cardGradient}
+          >
+            {/* Glass Decorations */}
+            <View style={[styles.bubble, styles.bubbleLarge]} />
+            <View style={[styles.bubble, styles.bubbleSmall]} />
+
+            {/* Watermark Icon */}
+            <View style={styles.watermarkContainer}>
+              <Icon
+                name={iconName}
+                solid
+                size={120}
+                color="#FFF"
+                style={{ opacity: 0.12 }}
+              />
+            </View>
+
+            {/* Content Layer */}
+            <View style={styles.contentLayer}>
+              <View style={styles.headerRow}>
+                <View style={styles.chip}>
+                  <Icon name="lightbulb" size={10} color={colorTheme.accent} solid />
+                  <Text style={[styles.chipText, { color: colorTheme.accent }]}>PRO TIP</Text>
+                </View>
+              </View>
+              
+              <Text style={[styles.body, { color: colorTheme.text }]}>
+                {item}
+              </Text>
+            </View>
+
+            {/* Premium Glass Glare Overlay */}
+            <LinearGradient
+              colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.5, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </LinearGradient>
+        </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      {tips.map((tip, index) => {
-        // Pattern: Indices 2, 5, 8... (every 3rd item starting at 2) are Full Width
-        // Or simply: If it's the 3rd item (index 2), make it full.
-        // Let's try a repeating pattern: 2 small, 1 big.
-        // 0 (s), 1 (s), 2 (b), 3 (s), 4 (s), 5 (b)
-        const isFullWidth = (index + 1) % 3 === 0;
-
-        return renderCard(tip, index, isFullWidth);
-      })}
+    <View style={styles.container} onLayout={onLayout}>
+      {containerWidth > 0 && (
+        <FlatList
+          data={tips}
+          renderItem={renderItem}
+          keyExtractor={(_, index) => index.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={CARD_WIDTH + SPACING}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
+        />
+      )}
+      
+      {tips.length > 1 && (
+        <View style={styles.pagination}>
+          {tips.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === activeIndex ? styles.activeDot : styles.inactiveDot,
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    marginVertical: 12,
   },
-  cardContainer: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    flexGrow: 1, // Ensures cards fill space
-  },
-  halfWidth: {
-    width: "48%",
-  },
-  fullWidth: {
-    width: "100%",
-  },
-  shadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+  cardWrapper: {
+    borderRadius: 28,
+    backgroundColor: "#FFF",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
+    overflow: "hidden",
   },
   cardGradient: {
-    borderRadius: 24,
-    padding: 20,
-    gap: 12,
-    overflow: "hidden",
+    padding: 24,
+    minHeight: 160,
+    justifyContent: "center",
     position: "relative",
-    flex: 1, // Fixes stretching issue, fills parent height gracefully
-    minHeight: 140,
   },
   // Decorations
   bubble: {
     position: "absolute",
     borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+  bubbleLarge: {
+    width: 140,
+    height: 140,
+    top: -50,
+    right: -30,
+  },
+  bubbleSmall: {
+    width: 70,
+    height: 70,
+    bottom: -20,
+    left: -10,
   },
   watermarkContainer: {
     position: "absolute",
-    bottom: -24,
-    right: -16,
-    transform: [{ rotate: "-25deg" }],
-    zIndex: 0,
+    bottom: -20,
+    right: -20,
+    transform: [{ rotate: "-15deg" }],
   },
   contentLayer: {
-    zIndex: 1,
-    gap: 12,
+    gap: 16,
+    zIndex: 2,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 8,
   },
-  badgeText: {
+  chipText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: "#FFF",
-    letterSpacing: 0.5,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
   body: {
-    fontSize: 15,
-    lineHeight: 23,
-    fontWeight: "500",
-    letterSpacing: 0.1,
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 17,
+    lineHeight: 26,
+    fontWeight: "700",
+  },
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 8,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  activeDot: {
+    width: 24,
+    backgroundColor: "#94A3B8",
+  },
+  inactiveDot: {
+    width: 6,
+    backgroundColor: "#E2E8F0",
   },
 });
 

@@ -78,19 +78,19 @@ export const useUserStore = create<UserState>()(
           //     (password, stripeCustomerId, oauthId) are intentionally excluded.
           identifyUser(String(user.id), {
             // Subscription & access
-            isPaid:              user.isPaid,
-            isVerified:          user.isVerified,
-            freeTasksRemaining:  user.freeTasksRemaining,
+            isPaid:              user.isPaid ?? null,
+            isVerified:          user.isVerified ?? null,
+            freeTasksRemaining:  user.freeTasksRemaining ?? null,
             // Onboarding
-            hasOnboarded:        user.hasCompletedOnboarding,
+            hasOnboarded:        user.hasCompletedOnboarding ?? null,
             // Progression
-            level:               user.level,
-            totalXp:             user.totalXp,
+            level:               user.level ?? null,
+            totalXp:             user.totalXp ?? null,
             // Stamina
-            staminaCap:          user.maxStaminaCap,
-            currentStamina:      user.currentStamina,
+            staminaCap:          user.maxStaminaCap ?? null,
+            currentStamina:      user.currentStamina ?? null,
             // Account age (enables cohort analysis by sign-up date)
-            createdAt:           user.createdAt?.toISOString(),
+            createdAt:           user.createdAt?.toISOString() ?? null,
           });
           // --- Low Stamina Threshold Detection (phone-battery style, paid only) ---
           if (

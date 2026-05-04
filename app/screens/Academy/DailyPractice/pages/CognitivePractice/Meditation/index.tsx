@@ -63,7 +63,7 @@ const Meditation = () => {
   const HEADER_HEIGHT = 60;
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
-  const { packContext, practiceActivity } = route.params || {};
+  const { packContext, practiceActivity, from } = route.params || {};
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, ensureActiveSession } = useSessionStore();
@@ -125,6 +125,12 @@ const Meditation = () => {
         CognitivePracticeType.GUIDED_MEDITATION,
       );
       setMeditationScenarios(ms);
+
+      // If an ID is passed from recommendations, set it as the cognitivePracticeId
+      const recommendedId = (route.params as any)?.id;
+      if (recommendedId) {
+        setCognitivePracticeId(recommendedId);
+      }
     };
     fetchScenarios();
   }, []);
@@ -424,7 +430,11 @@ const Meditation = () => {
         contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
         title: meditationScenarios[selectedIndex]?.name,
         isPackContext: !!packContext?.packId,
-        vitals
+        vitals: vitals ? {
+          effortScore: vitals.effortScore,
+          autonomyScore: vitals.autonomyScore,
+          accuracyScore: vitals.accuracyScore ?? null,
+        } : null
       });
 
       useUserStore.getState().fetchUser();
@@ -706,6 +716,7 @@ const Meditation = () => {
         practiceName="meditation"
         onDone={undefined}
         isAborted={isAborted}
+        from={from}
       />
     );
   }
@@ -722,7 +733,11 @@ const Meditation = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.goBack()
+            }
             style={styles.backButton}
           >
             <Icon
@@ -753,35 +768,6 @@ const Meditation = () => {
             )}
 
             <View style={styles.tipsContainer}>
-              {/* Header Banner */}
-              <View style={styles.noteHeaderBanner}>
-                <LinearGradient
-                  colors={["#EEF2FF", "#E0E7FF", "#C7D2FE"]} // Soft Indigo
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                {/* Decorative Elements */}
-                <View style={styles.bannerBubbleLeft} />
-                <View style={styles.bannerBubbleRight} />
-
-                <View style={styles.noteHeaderTextContainer}>
-                  <View style={styles.bannerChip}>
-                    <Icon name="lightbulb" size={10} color="#4338CA" />
-                    <Text style={styles.bannerChipText}>PREPARATION</Text>
-                  </View>
-                  <Text style={[styles.noteHeaderTitle, { color: "#312E81" }]}>
-                    Tips
-                  </Text>
-                  <Text
-                    style={[styles.noteHeaderSubtitle, { color: "#4338CA" }]}
-                  >
-                    Before you start
-                  </Text>
-                </View>
-                <TherapistFace size={80} />
-              </View>
-
               {/* Masonry Tips Grid */}
               {selectedIndex !== null &&
               meditationScenarios[selectedIndex]?.guidedMeditationData?.tips ? (
@@ -1040,74 +1026,6 @@ const styles = StyleSheet.create({
   tipsContainer: {
     paddingHorizontal: 0,
     gap: 0,
-  },
-  noteHeaderBanner: {
-    marginHorizontal: 0,
-    marginTop: 10,
-    marginBottom: 24,
-    borderRadius: 32,
-    height: 140, // taller banner
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-    position: "relative",
-    // Subtler border
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-  },
-  bannerBubbleLeft: {
-    position: "absolute",
-    bottom: -40,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
-  },
-  bannerBubbleRight: {
-    position: "absolute",
-    top: -60,
-    right: 40,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 4,
-    zIndex: 2,
-  },
-  bannerChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    marginBottom: 4,
-  },
-  bannerChipText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#4338CA",
-    letterSpacing: 0.5,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#312E81",
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#4338CA",
-    fontWeight: "500",
   },
   noteStack: {
     paddingHorizontal: 0,

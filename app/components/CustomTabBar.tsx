@@ -56,8 +56,17 @@ const CustomTabBar = ({
               canPreventDefault: true,
             });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            if (!event.defaultPrevented) {
+              let rootScreen;
+              if (route.name === ROUTE_NAMES.SETTINGS) rootScreen = "Settings";
+              if (route.name === ROUTE_NAMES.HOME) rootScreen = "Home";
+              if (route.name === ROUTE_NAMES.EXPLORE) rootScreen = "Explore";
+              
+              if (rootScreen) {
+                navigation.navigate(route.name, { screen: rootScreen });
+              } else {
+                navigation.navigate(route.name);
+              }
             }
           };
 

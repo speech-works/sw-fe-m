@@ -234,6 +234,8 @@ export interface ExposurePractice {
 // Reading Practice
 
 export enum ReadingPracticeType {
+  WORD = "WORD",
+  PHRASE = "PHRASE",
   POEM = "POEM",
   STORY = "STORY",
   QUOTE = "QUOTE",

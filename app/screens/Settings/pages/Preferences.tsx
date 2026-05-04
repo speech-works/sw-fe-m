@@ -1,7 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,12 +8,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import {
   getUserPreferences,
   updateUserPreferences,
 } from "../../../api/settings/userPreference";
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
-import BottomSheetModal from "../../../components/BottomSheetModal";
+
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
 import { useUserStore } from "../../../stores/user";
@@ -26,30 +27,15 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 
-type SettingType = "GOAL" | null;
+import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 
 const Preferences = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<SettingsStackNavigationProp<"Preferences">>();
   const { user } = useUserStore();
   const [targetMins, setTargetMins] = useState(15);
   const [taskCount, setTaskCount] = useState(3);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [openSettingType, setOpenSettingType] = useState<SettingType>(null);
   const [selectedGoalType, setSelectedGoalType] = useState("");
-
-  const closeModal = () => setIsModalVisible(false);
-
-  const handleGoalChange = async (goalText: string) => {
-    console.log("handle goal change", { goalText });
-    if (!user) return;
-    let practiceGoalType = PracticeGoalType.TASK_BASED;
-    if (goalText === "Time based") {
-      practiceGoalType = PracticeGoalType.TIME_BASED;
-    }
-    await updateUserPreferences(user?.id, { practiceGoalType });
-    setSelectedGoalType(goalText);
-  };
 
   const handleIncrementTargetMins = async () => {
     if (!user) return;
@@ -81,94 +67,11 @@ const Preferences = () => {
   const handleDecrementTaskCount = async () => {
     if (!user) return;
     setTaskCount((prevMins) => {
-      const dailyTaskCount = Math.max(5, prevMins - 1);
+      const dailyTaskCount = Math.max(1, prevMins - 1);
       updateUserPreferences(user.id, { dailyTaskCount });
       return dailyTaskCount;
     });
   };
-
-  const practiceGoalTypeData: Array<{
-    name: string;
-    desc: string;
-    icon: string;
-    disabled?: boolean;
-  }> = [
-    {
-      name: "Time based",
-      desc: "Set a daily time target like 20 mins",
-      icon: "clock",
-    },
-    {
-      name: "Task based",
-      desc: "Set a goal to complete a number of tasks",
-      icon: "tasks",
-    },
-  ];
-
-  const SelectGoalType = () => (
-    <View style={styles.goalListContainer}>
-      {practiceGoalTypeData.map((goal, index) => (
-        <TouchableOpacity
-          key={index}
-          style={[
-            styles.goalCard,
-            selectedGoalType === goal.name && styles.selectedGoalCard,
-            goal.disabled && styles.disabledCard,
-          ]}
-          disabled={goal.disabled}
-          onPress={() => {
-            if (goal.disabled) return;
-            handleGoalChange(goal.name);
-            setSelectedGoalType(goal.name);
-            closeModal();
-          }}
-        >
-          <View
-            style={[
-              styles.goalIconContainer,
-              styles.goalIconContainer2,
-              goal.disabled ? styles.disabledIconContainer : null,
-            ]}
-          >
-            <Icon
-              solid
-              name={goal.icon}
-              size={24}
-              color={
-                goal.disabled
-                  ? theme.colors.library.gray[100]
-                  : theme.colors.actionPrimary.default
-              }
-            />
-          </View>
-          <View style={styles.goalDescContainer}>
-            <Text
-              style={[
-                styles.goalNameText,
-                goal.disabled && styles.disabledText,
-                selectedGoalType === goal.name &&
-                  !goal.disabled &&
-                  styles.selectedCardText,
-              ]}
-            >
-              {goal.name}
-            </Text>
-            <Text
-              style={[
-                styles.goalDetailText,
-                goal.disabled && styles.disabledText,
-                selectedGoalType === goal.name &&
-                  !goal.disabled &&
-                  styles.selectedCardText,
-              ]}
-            >
-              {goal.disabled ? "coming soon" : goal.desc}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
   useEffect(() => {
     if (!user) return;
@@ -193,235 +96,86 @@ const Preferences = () => {
     fetchPreferences();
   }, [user]);
 
+  const prefItems = [
+    {
+      id: "difficult-sounds",
+      title: "Difficult Sounds",
+      desc: `${user?.fearedSounds?.length || 0} sounds selected`,
+      icon: "bullhorn",
+      iconColor: "#2563EB",
+      bgColor: "#EFF6FF",
+      onPress: () => navigation.navigate("FearedSounds" as any),
+    }
+  ];
+
   return (
-    <>
-      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-        {/* Background Gradient */}
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={[theme.colors.library.orange[100], "#FFF"]}
-            locations={[0, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
+    <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
+      {/* Background Gradient */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF", "#FFF"]}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
 
-        <View style={styles.container}>
-          <View style={styles.topNavigation}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-            <Text style={styles.topNavigationText}>Preferences</Text>
-            <View style={{ width: 32 }} />
-          </View>
-          <CustomScrollView contentContainerStyle={styles.scrollView}>
-            {/* Goal Type Card */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                setOpenSettingType("GOAL");
-                setIsModalVisible(true);
-              }}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={["#FFD8B5", "#FFAB76"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.watermarkContainer}>
-                  <Icon
-                    name="tasks"
-                    size={120}
-                    color="rgba(255,255,255,0.15)"
-                  />
-                </View>
-                <View style={styles.cardHeader}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>PRACTICE GOAL</Text>
-                  </View>
-                  <Text style={styles.cardTitle}>Practice Goal Type</Text>
-                  <Text style={styles.cardDesc}>
-                    How would you like to train?
-                  </Text>
-                </View>
-                <View style={styles.cardFooter}>
-                  <View style={styles.valueControlContainer}>
-                    <Text style={styles.valueTextLarge}>
-                      {selectedGoalType}
-                    </Text>
-                  </View>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Dynamic Goal Limit Cards */}
-            {selectedGoalType === "Time based" && (
-              <View style={styles.cardWrapper}>
-                <LinearGradient
-                  colors={["#Cbf0f0", "#98E6E6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardGradient}
-                >
-                  <View style={styles.watermarkContainer}>
-                    <Icon
-                      name="hourglass-half"
-                      size={120}
-                      color="rgba(255,255,255,0.15)"
-                    />
-                  </View>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>DAILY LIMIT</Text>
-                    </View>
-                    <Text style={styles.cardTitle}>Daily practice limit</Text>
-                    <Text style={styles.cardDesc}>
-                      Set your target practice minutes
-                    </Text>
-                  </View>
-                  <View style={styles.cardFooter}>
-                    <View style={styles.valueControlRows}>
-                      <TouchableOpacity
-                        onPress={handleIncrementTargetMins}
-                        style={styles.pillButton}
-                      >
-                        <Icon
-                          name="plus"
-                          size={12}
-                          color={theme.colors.library.orange[600]}
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={[
-                          styles.valueTextLarge,
-                          { marginHorizontal: 12 },
-                        ]}
-                      >
-                        {targetMins} min
-                      </Text>
-                      <TouchableOpacity
-                        onPress={handleDecrementTargetMins}
-                        style={styles.pillButton}
-                      >
-                        <Icon
-                          name="minus"
-                          size={12}
-                          color={theme.colors.library.orange[600]}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
-
-            {selectedGoalType === "Task based" && (
-              <View style={styles.cardWrapper}>
-                <LinearGradient
-                  colors={["#Cbf0f0", "#98E6E6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardGradient}
-                >
-                  <View style={styles.watermarkContainer}>
-                    <Icon
-                      name="check-double"
-                      size={120}
-                      color="rgba(255,255,255,0.15)"
-                    />
-                  </View>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>TASK TARGET</Text>
-                    </View>
-                    <Text style={styles.cardTitle}>Daily task count</Text>
-                    <Text style={styles.cardDesc}>
-                      e.g., complete 3 tasks/day
-                    </Text>
-                  </View>
-                  <View style={styles.cardFooter}>
-                    <View style={styles.valueControlRows}>
-                      <TouchableOpacity
-                        onPress={handleIncrementTaskCount}
-                        style={styles.pillButton}
-                      >
-                        <Icon
-                          name="plus"
-                          size={12}
-                          color={theme.colors.library.orange[600]}
-                        />
-                      </TouchableOpacity>
-                      <Text
-                        style={[
-                          styles.valueTextLarge,
-                          { marginHorizontal: 12 },
-                        ]}
-                      >
-                        {taskCount} tasks
-                      </Text>
-                      <TouchableOpacity
-                        onPress={handleDecrementTaskCount}
-                        style={styles.pillButton}
-                      >
-                        <Icon
-                          name="minus"
-                          size={12}
-                          color={theme.colors.library.orange[600]}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
-          </CustomScrollView>
-        </View>
-      </ScreenView>
-      <BottomSheetModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        maxHeight="70%"
-        showCloseButton={true}
-        fitContent={true}
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
+        ]}
       >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon
+            name="chevron-left"
+            size={16}
+            color={theme.colors.text.title}
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Preferences</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
+
+      <View style={styles.container}>
+        <CustomScrollView
+          contentContainerStyle={[
+            styles.scrollView,
+            { paddingTop: 60 + insets.top + 20 },
           ]}
         >
-          {(() => {
-            const iconName = "tasks";
-            const iconColor = "#EA580C";
-            const headerBg = "#FFF7ED";
-            const title = "Practice Goal";
-
-            return (
-              <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
-                <View
-                  style={[
-                    styles.modalIconCircle,
-                    { backgroundColor: iconColor },
-                  ]}
-                >
-                  <Icon name={iconName} size={20} color="white" solid />
+          {/* Professional List Menu */}
+          <View style={styles.listContainer}>
+            {prefItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.listItem}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={22}
+                    color={item.iconColor}
+                  />
                 </View>
-                <Text style={styles.modalTiteText}>{title}</Text>
-              </View>
-            );
-          })()}
-          {openSettingType === "GOAL" && <SelectGoalType />}
-        </View>
-      </BottomSheetModal>
-    </>
+                <View style={styles.listTextContainer}>
+                  <Text style={styles.listItemText}>{item.title}</Text>
+                  <Text style={styles.listItemDesc}>{item.desc}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+                {index < prefItems.length - 1 && <View style={styles.divider} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </CustomScrollView>
+      </View>
+    </ScreenView>
   );
 };
 
@@ -430,19 +184,21 @@ export default Preferences;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#F8FAFC",
   },
   container: {
-    gap: 24,
     flex: 1,
-    paddingTop: 8,
   },
-  topNavigation: {
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 24,
+    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
@@ -454,7 +210,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
     marginTop: 2,
@@ -464,187 +220,95 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  cardWrapper: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden",
+  listContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  cardGradient: {
-    padding: 24,
-    minHeight: 160,
-    justifyContent: "space-between",
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
     position: "relative",
   },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    transform: [{ rotate: "-15deg" }],
-    opacity: 0.8,
-  },
-  cardHeader: {
-    zIndex: 1,
-  },
-  badge: {
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    marginBottom: 12,
-  },
-  badgeText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    fontSize: 10,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.6)",
-    letterSpacing: 1,
-  },
-  cardTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "rgba(0,0,0,0.8)",
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  cardDesc: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(0,0,0,0.6)",
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "600",
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 16,
-    zIndex: 1,
-  },
-  valueControlContainer: {
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  listIconContainer: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
   },
-  valueControlRows: {
+  listTextContainer: {
+    flex: 1,
+  },
+  listItemText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.text.title,
+    marginBottom: 2,
+  },
+  listItemDesc: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
+  },
+  limitCardContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    gap: 20,
+  },
+  limitCardHeader: {
+    gap: 4,
+  },
+  limitCardTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text.title,
+  },
+  limitCardDesc: {
+    fontSize: 14,
+    color: "#64748B",
+    lineHeight: 20,
+  },
+  controlsRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    padding: 8,
+    borderRadius: 16,
   },
-  pillButton: {
-    backgroundColor: "white",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  controlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
-  valueTextLarge: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.7)",
-  },
-
-  // modal
-  modalContent: {
-    width: "100%",
+  valueDisplay: {
     flex: 1,
-    flexDirection: "column",
-    backgroundColor: "#fff",
-  },
-  modalHeader: {
-    flexDirection: "row",
     alignItems: "center",
-    paddingTop: 40, // Increased to clear absolute handle
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    gap: 12,
   },
-  modalIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
+  valueText: {
     fontSize: 20,
     fontWeight: "800",
-    flex: 1,
-  },
-  goalListContainer: {
-    gap: 16,
-    alignItems: "center",
-    width: "100%",
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  goalCard: {
-    width: "100%",
-    borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  disabledCard: {
-    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
-    borderColor: "transparent",
-    elevation: 0,
-    shadowColor: "transparent",
-    opacity: 0.8,
-  },
-  disabledText: {
-    color: theme.colors.text.disabled,
-  },
-  selectedGoalCard: {
-    backgroundColor: "#FFF7ED",
-    borderColor: theme.colors.library.orange[200],
-  },
-  selectedCardText: {
-    color: theme.colors.library.orange[800],
-    fontWeight: "700",
-  },
-  goalIconContainer2: {
-    height: 44,
-    width: 44,
-  },
-  disabledIconContainer: {
-    backgroundColor: theme.colors.library.gray[200],
-  },
-  goalDescContainer: {
-    gap: 4,
-    flex: 1,
-  },
-  goalNameText: {
-    ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.title,
-    fontWeight: "700",
-  },
-  goalDetailText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  goalIconContainer: {
-    height: 44,
-    width: 44,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22,
-    backgroundColor: "#FFF7ED", // Light orange bg
   },
 });

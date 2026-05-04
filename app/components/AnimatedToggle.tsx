@@ -12,12 +12,16 @@ interface AnimatedToggleProps {
   value: boolean;
   onValueChange: () => void;
   disabled?: boolean;
+  activeColor?: string;
+  inactiveColor?: string;
 }
 
 const AnimatedToggle: React.FC<AnimatedToggleProps> = ({
   value,
   onValueChange,
   disabled = false,
+  activeColor = theme.colors.actionPrimary.default,
+  inactiveColor = "#E2E8F0",
 }) => {
   const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
@@ -36,7 +40,7 @@ const AnimatedToggle: React.FC<AnimatedToggleProps> = ({
 
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#E2E8F0", theme.colors.actionPrimary.default],
+    outputRange: [inactiveColor, activeColor],
   });
 
   return (

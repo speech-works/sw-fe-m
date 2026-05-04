@@ -159,6 +159,7 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(false);
 
       try {
+        console.log(`[AudioPlaybackButton] Loading URI: ${audioUrl}`);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true }, // Attempt to play immediately after loading
@@ -185,7 +186,10 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         } else if (typeof error === "string") {
           errorMessage = error;
         }
-        Alert.alert("Error", `Could not load audio: ${errorMessage}`);
+        Alert.alert(
+          "Error",
+          `Could not load audio: ${errorMessage}\n\nURI: ${audioUrl}`,
+        );
         if (isMountedRef.current) {
           soundInstanceRef.current = null; // Ensure ref is null on loading error
           setIsLoading(false);

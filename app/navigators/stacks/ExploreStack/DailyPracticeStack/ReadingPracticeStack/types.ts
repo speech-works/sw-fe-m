@@ -9,17 +9,32 @@ export type RDPStackParamList = {
     | {
         packContext?: PackContext;
         practiceActivity?: any;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
   PoemPractice:
     | {
         packContext?: PackContext;
         practiceActivity?: any;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
   QuotePractice:
     | {
         packContext?: PackContext;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+      }
+    | undefined;
+  WordPractice:
+    | {
+        packContext?: PackContext;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+      }
+    | undefined;
+  PhrasePractice:
+    | {
+        packContext?: PackContext;
+        from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
 };

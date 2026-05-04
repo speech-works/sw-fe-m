@@ -57,7 +57,7 @@ const PhoneCall = () => {
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
-  const { packContext, practiceActivity } = (route.params as any) || {};
+  const { packContext, practiceActivity, from } = (route.params as any) || {};
 
   const [scenarioData, setScenarioData] = useState<PhoneCallScenario[]>([]); // Placeholder for scenario data
   // State for the currently selected scenario, initialized with activity data if coming from a pack
@@ -345,6 +345,7 @@ const PhoneCall = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -367,7 +368,11 @@ const PhoneCall = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.goBack()
+            }
             style={styles.backButtonGlass}
           >
             <Icon name="chevron-left" size={14} color="#FFFFFF" />

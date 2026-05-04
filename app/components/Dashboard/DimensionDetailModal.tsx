@@ -317,12 +317,10 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>WHAT IT MEASURES</Text>
               <Text style={styles.description}>{config.description}</Text>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>VIEW THIS DIMENSION</Text>
               <View style={styles.familySwitcher}>
                 {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((family) => {
                   const familyConfig = FAMILY_CONFIG[family];
@@ -406,10 +404,10 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                         ? "Not enough data yet"
                         : "Waiting for previous week"
                       : activeMetrics.trend === "IMPROVING"
-                      ? "Improving"
-                      : activeMetrics.trend === "WORSENING"
-                        ? "Needs attention"
-                        : "Holding steady"}
+                        ? "Improving"
+                        : activeMetrics.trend === "WORSENING"
+                          ? "Needs attention"
+                          : "Holding steady"}
                   </Text>
                 </View>
 
@@ -421,9 +419,9 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                   </Text>
                 ) : (
                   <Text style={styles.deltaText}>
-                    {activeMetrics.percentDelta > 0 ? "+" : ""}
-                    {activeMetrics.percentDelta.toFixed(1)}% and{" "}
-                    {activeMetrics.absoluteDelta && activeMetrics.absoluteDelta > 0
+                    {(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}
+                    {(activeMetrics.percentDelta ?? 0).toFixed(1)}% and{" "}
+                    {(activeMetrics.absoluteDelta ?? 0) > 0
                       ? "+"
                       : ""}
                     {(activeMetrics.absoluteDelta ?? 0).toFixed(1)} pts{" "}

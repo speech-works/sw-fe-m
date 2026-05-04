@@ -107,7 +107,8 @@ export function parseTextStyle(styleString: string): {
   }
 
   const sizeLineHeight = parts[1];
-  const fontFamily = parts.slice(2).join(" ");
+  const fontFamilyParts = parts.slice(2);
+  const fontFamily = fontFamilyParts && fontFamilyParts.length > 0 ? fontFamilyParts.join(" ") : "";
 
   const [fontSizeStr, lineHeightStr] = sizeLineHeight.split("/");
 

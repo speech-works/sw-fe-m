@@ -340,10 +340,16 @@ const SummaryPage = () => {
           {/* Back Button */}
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.navigate("Library", { from })}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.navigate("Library", { from })
+            }
             activeOpacity={0.7}
           >
-            <Text style={styles.backButtonText}>Back to Library</Text>
+            <Text style={styles.backButtonText}>
+              {from === "MOOD_CHECK" ? "Back to Home" : "Back to Library"}
+            </Text>
           </TouchableOpacity>
         </CustomScrollView>
       </View>

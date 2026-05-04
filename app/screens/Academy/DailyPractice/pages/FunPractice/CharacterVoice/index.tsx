@@ -23,6 +23,8 @@ import {
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../Theme/tokens";
+import { useUserStore } from "../../../../../../stores/user";
+import HardModeToggle from "../../../components/HardModeToggle";
 import {
   parseShadowStyle,
   parseTextStyle,
@@ -30,6 +32,9 @@ import {
 
 const CharacterVoice = () => {
   const [cvList, setcvList] = useState<FunPractice[]>([]);
+  const [hardMode, setHardMode] = useState(false);
+  const { user } = useUserStore();
+  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   const navigation =
     useNavigation<
@@ -78,11 +83,11 @@ const CharacterVoice = () => {
 
   useEffect(() => {
     const fetchVoices = async () => {
-      const cvl = await getFunPracticeByType(FunPracticeType.CHARACTER_VOICE);
+      const cvl = await getFunPracticeByType(FunPracticeType.CHARACTER_VOICE, hardMode);
       setcvList(cvl);
     };
     fetchVoices();
-  }, []);
+  }, [hardMode]);
 
   useEffect(() => {
     const parent = navigation.getParent();
@@ -120,7 +125,7 @@ const CharacterVoice = () => {
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Character Voice</Text>
+        <Text style={styles.headerTitle}>Character Voice Practice</Text>
         <View style={{ width: 32 }} />
       </BlurView>
 
@@ -131,6 +136,7 @@ const CharacterVoice = () => {
             { paddingTop: HEADER_HEIGHT + insets.top + 20 },
           ]}
         >
+
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroIconContainer}>
@@ -265,7 +271,38 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
+    fontWeight: "800",
+  },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
   },
   scrollContent: {
     paddingHorizontal: 24,

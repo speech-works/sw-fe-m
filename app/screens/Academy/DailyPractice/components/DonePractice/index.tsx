@@ -25,12 +25,14 @@ interface DonePracticeProps {
   practiceName?: string;
   onDone?: () => void;
   isAborted?: boolean;
+  from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
 }
 
 const DonePractice = ({
   practiceName = "practice",
   onDone,
   isAborted = false,
+  from,
 }: DonePracticeProps) => {
   const navigation = useNavigation<any>();
 
@@ -85,7 +87,56 @@ const DonePractice = ({
 
         {/* Actions */}
         <View style={styles.actionContainer}>
-          {onDone ? (
+          {from === "MOOD_CHECK" ? (
+            <>
+              <TouchableOpacity
+                style={styles.exploreButton}
+                activeOpacity={0.9}
+                onPress={() => {
+                  navigation.navigate("Root", {
+                    screen: ROUTE_NAMES.HOME,
+                  });
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    theme.colors.library.orange[400],
+                    theme.colors.library.orange[500],
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.exploreGradient}
+                >
+                  <Text style={styles.exploreText}>Back to Home</Text>
+                  <Icon
+                    name="home"
+                    size={80}
+                    color="#FFF"
+                    style={styles.exploreWatermark}
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  navigation.navigate("Root", {
+                    screen: ROUTE_NAMES.EXPLORE,
+                    params: { screen: "Explore", params: { scrollToJumpIn: true } },
+                  });
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>Explore More</Text>
+                <Icon
+                  name="compass"
+                  size={64}
+                  color={theme.colors.text.default}
+                  style={styles.secondaryWatermark}
+                />
+              </TouchableOpacity>
+            </>
+          ) : onDone ? (
             <TouchableOpacity
               style={styles.exploreButton}
               activeOpacity={0.9}
@@ -141,27 +192,29 @@ const DonePractice = ({
             </TouchableOpacity>
           )}
 
-          <View style={styles.reminderWrapper}>
-            <Reminder
-              suggestedCategory={mapPracticeToCategory(practiceName)}
-              renderTrigger={(onOpen) => (
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={onOpen}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.secondaryButtonText}>Set Reminder</Text>
-                  {/* Bell Watermark */}
-                  <Icon
-                    name="bell"
-                    size={64}
-                    color={theme.colors.text.default}
-                    style={styles.secondaryWatermark}
-                  />
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+          {from !== "MOOD_CHECK" && (
+            <View style={styles.reminderWrapper}>
+              <Reminder
+                suggestedCategory={mapPracticeToCategory(practiceName)}
+                renderTrigger={(onOpen) => (
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={onOpen}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.secondaryButtonText}>Set Reminder</Text>
+                    {/* Bell Watermark */}
+                    <Icon
+                      name="bell"
+                      size={64}
+                      color={theme.colors.text.default}
+                      style={styles.secondaryWatermark}
+                    />
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
         </View>
       </View>
     </View>

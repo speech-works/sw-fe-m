@@ -20,6 +20,7 @@ import MasonryTips from "../../../components/MasonryTips";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import HardModeToggle from "../../../components/HardModeToggle";
 
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -71,11 +72,12 @@ const Twister = () => {
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
-  const { packContext } = route.params || {};
+  const { packContext, from } = route.params || {};
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
   const { user } = useUserStore();
+  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
   const {
     voiceRecordingUri,
     setVoiceRecordingUri,
@@ -214,6 +216,7 @@ const Twister = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [hardMode, setHardMode] = useState(false);
 
   // --- VoiceHover Config State ---
   const [vhRate, setVhRate] = useState(1.0);
@@ -228,16 +231,38 @@ const Twister = () => {
 
   useEffect(() => {
     const fetchTwisters = async () => {
-      const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER);
-      setTwisters(ts);
-      // Randomize start index or keep 0
-      if (ts.length > 0) {
-        setCurrentIndex(Math.floor(Math.random() * ts.length));
+      try {
+        setIsLoading(true);
+        const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER, hardMode);
+        setTwisters(ts);
+        
+        const targetId = route.params?.id;
+        if (targetId && !hardMode) {
+          const foundIndex = ts.findIndex((t) => t.id === targetId);
+          if (foundIndex !== -1) {
+            setCurrentIndex(foundIndex);
+          } else {
+            setCurrentIndex(0);
+          }
+        } else if (ts.length > 0) {
+          if (!hardMode) {
+            setCurrentIndex(Math.floor(Math.random() * ts.length));
+          } else {
+            setCurrentIndex(0);
+          }
+        }
+      } catch (error: any) {
+        console.error("Error fetching twisters:", error);
+        if (error?.response?.status === 400) {
+          setHardMode(false);
+        }
+      } finally {
+        setIsLoading(false);
+        setHasHydrated(true);
       }
-      setHasHydrated(true);
     };
     fetchTwisters();
-  }, []);
+  }, [route.params?.id, hardMode]);
 
   // Hide Bottom Tab Bar unconditionally when on this screen
   useEffect(() => {
@@ -486,6 +511,7 @@ const Twister = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -511,7 +537,11 @@ const Twister = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.goBack()
+            }
             style={styles.backButton}
           >
             <Icon
@@ -520,7 +550,7 @@ const Twister = () => {
               color={theme.colors.text.title}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Tongue Twister</Text>
+          <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
           <View style={{ width: 32 }} />
         </BlurView>
 
@@ -532,21 +562,12 @@ const Twister = () => {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.noteHeaderBanner}>
-            <LinearGradient
-              colors={["#FFE4E6", "#FFEDD5"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.noteHeaderTextContainer}>
-              <Text style={styles.noteHeaderTitle}>Tips</Text>
-              <Text style={styles.noteHeaderSubtitle}>
-                Warm up your articulators
-              </Text>
-            </View>
-            <TherapistFace size={72} />
-          </View>
+          <HardModeToggle 
+            value={hardMode}
+            onValueChange={setHardMode}
+            canUseHardMode={canUseHardMode}
+            style={{ marginBottom: 24 }}
+          />
 
           {/* Use hints from current twister or generic */}
           <MasonryTips
@@ -558,6 +579,7 @@ const Twister = () => {
               ]
             }
           />
+
         </ScrollView>
 
         {/* Fixed Start Button at bottom */}
@@ -627,13 +649,34 @@ const Twister = () => {
         ]}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : navigation.goBack()
+          }
           style={styles.backButton}
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Twister</Text>
-        <View style={{ width: 32 }} />
+        <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
+        
+        {/* Hard Mode Toggle in Header */}
+        <View style={styles.headerRight}>
+          {(user?.fearedSounds?.length ?? 0) > 0 && (
+            <TouchableOpacity 
+              onPress={() => setHardMode(!hardMode)}
+              style={[styles.headerHardModeButton, hardMode && styles.headerHardModeActive]}
+            >
+              <Icon 
+                name="fire" 
+                size={14} 
+                color={hardMode ? "#EA580C" : theme.colors.text.title} 
+                solid={hardMode}
+              />
+              {hardMode && <View style={styles.activeDot} />}
+            </TouchableOpacity>
+          )}
+        </View>
       </BlurView>
 
       {/* Reading Content */}
@@ -664,13 +707,15 @@ const Twister = () => {
                 </View>
 
                 {/* Glassy Next Button */}
-                <TouchableOpacity
-                  onPress={toggleIndex}
-                  style={styles.glassButton}
-                >
-                  <Text style={styles.glassButtonText}>Next</Text>
-                  <Icon name="chevron-right" size={12} color="#FFF" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <TouchableOpacity
+                    onPress={toggleIndex}
+                    style={styles.glassButton}
+                  >
+                    <Text style={styles.glassButtonText}>Next</Text>
+                    <Icon name="chevron-right" size={12} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Watermark */}
@@ -855,34 +900,41 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
   },
+  headerRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerHardModeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerHardModeActive: {
+    backgroundColor: "#FFF7ED",
+    borderColor: "rgba(234, 88, 12, 0.3)",
+  },
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EA580C",
+    borderWidth: 1.5,
+    borderColor: "#FFF",
+  },
   // Tips Styles
   scrollContent: {
     paddingBottom: 40,
     paddingHorizontal: 24,
-  },
-  noteHeaderBanner: {
-    marginVertical: 20,
-    borderRadius: 24,
-    height: 120,
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 4,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#881337",
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#9F1239",
-    fontWeight: "500",
   },
   startButton: {
     borderRadius: 20,

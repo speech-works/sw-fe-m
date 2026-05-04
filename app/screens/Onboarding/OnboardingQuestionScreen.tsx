@@ -159,13 +159,8 @@ const OnboardingQuestionScreen: React.FC = () => {
     // This handles cases where backend might report partial completion (e.g. 74%)
     // but the user has physically finished the flow.
     if (isLast) {
-      console.log("Algo: Final screen submitted. Forcing local completion.");
-      const { user, setUser } = useUserStore.getState();
-      if (user) {
-        setUser({ ...user, hasCompletedOnboarding: true });
-      }
-
-      handleComplete();
+      console.log("Algo: Final screen submitted. Navigating to Phoneme selection.");
+      navigation.navigate("OnboardingPhonemes");
       return;
     }
 

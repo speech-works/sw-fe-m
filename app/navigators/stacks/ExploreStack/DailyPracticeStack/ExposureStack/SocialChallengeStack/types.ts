@@ -8,11 +8,13 @@ export type SCEDPStackParamList = {
   SCBriefing: {
     sc: ExposurePractice;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
   SCChat: {
     sc: ExposurePractice;
     practiceActivityId: string;
     packContext?: PackContext;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
 };
 export type SCEDPStackNavigationProp<T extends keyof SCEDPStackParamList> =

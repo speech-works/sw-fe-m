@@ -9,6 +9,7 @@ export type OnboardingStackParamList = {
     screenNumber: number;
   };
 
+  OnboardingPhonemes: undefined;
   OnboardingDone: undefined;
 };
 

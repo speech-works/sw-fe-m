@@ -14,10 +14,11 @@ import {
 // get all fun practice by type
 export async function getFunPracticeByType(
   type: FunPracticeType,
+  hardMode?: boolean,
 ): Promise<FunPractice[]> {
   try {
     const response = await axiosClient.get("/fun-practice", {
-      params: { type },
+      params: { type, hardMode },
     });
     return response.data;
   } catch (error) {
@@ -105,10 +106,11 @@ export async function getExposurePracticeById(
 
 export async function getReadingPracticeByType(
   type: ReadingPracticeType,
+  hardMode?: boolean,
 ): Promise<ReadingPractice[]> {
   try {
     const response = await axiosClient.get("/reading-practice", {
-      params: { type },
+      params: { type, hardMode },
     });
     return response.data;
   } catch (error) {

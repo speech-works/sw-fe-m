@@ -51,6 +51,7 @@ export interface User {
   oauthId?: string;
   oauthProvider?: string;
   stripeCustomerId?: string;
+  fearedSounds?: string[];
 }
 
 export interface LevelStage {
@@ -125,6 +126,19 @@ export async function getMyUser(): Promise<User> {
     return response.data;
   } catch (error) {
     console.error("Error getting current user:", error);
+    throw error;
+  }
+}
+
+// Update the current authenticated user (PATCH /users/me)
+export async function updateMyUser(
+  updates: Partial<Omit<User, "id" | "password" | "createdAt">>,
+): Promise<User> {
+  try {
+    const response = await axiosClient.patch("/users/me", updates);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating current user:", error);
     throw error;
   }
 }

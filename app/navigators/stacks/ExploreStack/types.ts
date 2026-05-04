@@ -23,11 +23,11 @@ export type ExploreStackParamList = {
     moduleId: string;
     blockId: string;
   };
-  Breathing: { guidedActivity?: any; packContext?: PackContext } | undefined;
-  Meditation: { guidedActivity?: any; packContext?: PackContext } | undefined;
-  Reframe: { guidedActivity?: any; packContext?: PackContext } | undefined;
+  Breathing: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  Meditation: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  Reframe: { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
   RealLifeChallenge:
-    | { guidedActivity?: any; packContext?: PackContext }
+    | { guidedActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" }
     | undefined;
   SCBriefing:
     | { sc?: any; practiceActivity?: any; packContext?: PackContext }
@@ -41,9 +41,9 @@ export type ExploreStackParamList = {
   InterviewChat:
     | { interview?: any; practiceActivityId?: string; packContext?: PackContext }
     | undefined;
-  PhoneCall: { practiceActivity?: any; packContext?: PackContext } | undefined;
+  PhoneCall: { practiceActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
   TongueTwister:
-    | { practiceActivity?: any; packContext?: PackContext }
+    | { practiceActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" }
     | undefined;
   RoleplayBriefing:
     | {
@@ -75,10 +75,10 @@ export type ExploreStackParamList = {
         packContext?: PackContext;
       }
     | undefined;
-  CVExercise: { practiceActivity?: any; packContext?: PackContext } | undefined;
-  Poem: { practiceActivity?: any; packContext?: PackContext } | undefined;
-  Story: { practiceActivity?: any; packContext?: any } | undefined;
-  Quote: { practiceActivity?: any; packContext?: PackContext } | undefined;
+  CVExercise: { practiceActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  Poem: { practiceActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  Story: { practiceActivity?: any; packContext?: any; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
+  Quote: { practiceActivity?: any; packContext?: PackContext; from?: "HOME" | "EXPLORE" | "MOOD_CHECK" } | undefined;
   MoodCheckStack:
     | { screen: "FollowUpStack"; params: { mood: MoodType } }
     | { screen: "CheckIn" };

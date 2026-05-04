@@ -61,7 +61,7 @@ const Chat = () => {
     useNavigation<ExploreStackNavigationProp<"RoleplayChat">>();
   const route =
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
-  const { title, roleplay, selectedRoleName, id, packContext } = route.params;
+  const { title, roleplay, selectedRoleName, id, packContext, from } = route.params;
 
   const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
   const { practiceSession, setSession, ensureActiveSession } =
@@ -336,6 +336,7 @@ const Chat = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -361,7 +362,11 @@ const Chat = () => {
       ]}
     >
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
         style={styles.backButton}
       >
         <Icon name="chevron-left" size={16} color={theme.colors.text.title} />

@@ -1,7 +1,7 @@
 // FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { getCognitivePracticeById, getExposurePracticeById } from "../../../../../api/dailyPractice";
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
@@ -45,6 +46,7 @@ import { PracticeActivity } from "../../../../../api/practiceActivities/types";
 import { PackContext } from "../../../../../utils/packActivityNavigation";
 
 type RealLifeChallengeParams = {
+  id?: string;
   practiceActivity?: PracticeActivity;
   packContext?: PackContext;
 };
@@ -53,8 +55,8 @@ const RealLifeChallenge = () => {
   const navigation = useNavigation();
   const route =
     useRoute<RouteProp<ExploreStackParamList, "RealLifeChallenge">>();
-  const params = route.params as RealLifeChallengeParams;
-  const { practiceActivity, packContext } = params || {};
+  const params = route.params as RealLifeChallengeParams & { from?: string };
+  const { practiceActivity, packContext, from } = params || {};
   const { user } = useUserStore();
   const { practiceSession, setSession, ensureActiveSession } =
     useSessionStore();
@@ -66,9 +68,48 @@ const RealLifeChallenge = () => {
   );
 
   // Extract data based on where it's stored (Cognitive or Exposure)
+  const [practiceActivityState, setPracticeActivityState] = useState<PracticeActivity | undefined>(practiceActivity);
+  const [isFetching, setIsFetching] = useState(false);
+
   const challengeData: RealLifeChallengeData | undefined =
-    practiceActivity?.cognitivePractice?.realLifeChallengeData ||
-    practiceActivity?.exposurePractice?.realLifeChallengeData;
+    practiceActivityState?.cognitivePractice?.realLifeChallengeData ||
+    practiceActivityState?.exposurePractice?.realLifeChallengeData;
+
+  // Auto-fetch activity if only ID is provided (from recommendations)
+  useEffect(() => {
+    const fetchPractice = async () => {
+      const id = (route.params as any)?.id;
+      if (!practiceActivityState && id) {
+        setIsFetching(true);
+        try {
+          // Attempt to fetch as cognitive practice first
+          const cp = await getCognitivePracticeById(id).catch(() => null);
+          if (cp) {
+            setPracticeActivityState({
+              id: undefined,
+              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+              cognitivePractice: cp,
+            } as any);
+          } else {
+            // Attempt to fetch as exposure practice
+            const ep = await getExposurePracticeById(id);
+            if (ep) {
+              setPracticeActivityState({
+                id: undefined,
+                contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+                exposurePractice: ep,
+              } as any);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch practice for challenge screen", err);
+        } finally {
+          setIsFetching(false);
+        }
+      }
+    };
+    fetchPractice();
+  }, [route.params]);
 
   // Always start with Instructions for Real Life Challenges
   const initialStep = ChallengeStep.INSTRUCTION;
@@ -79,11 +120,11 @@ const RealLifeChallenge = () => {
   const [showIRLModal, setShowIRLModal] = useState(false);
 
   // Auto-start activity on mount if not already started
-  React.useEffect(() => {
-    if (!packContext?.alreadyStarted && currentStep === ChallengeStep.INSTRUCTION) {
+  useEffect(() => {
+    if (!packContext?.alreadyStarted && currentStep === ChallengeStep.INSTRUCTION && !isFetching && challengeData) {
       markActivityStart();
     }
-  }, []);
+  }, [isFetching, challengeData]);
 
   if (!challengeData) {
     return (
@@ -311,7 +352,9 @@ const RealLifeChallenge = () => {
   };
 
   const handleBack = () => {
-    if (currentStep === ChallengeStep.INSTRUCTION) {
+    if (from === "MOOD_CHECK") {
+      navigation.navigate("Root" as any, { screen: "HOME" });
+    } else if (currentStep === ChallengeStep.INSTRUCTION) {
       navigation.goBack();
     } else {
       setCurrentStep(currentStep - 1);
@@ -448,6 +491,7 @@ const RealLifeChallenge = () => {
     <DonePractice
       practiceName="real-life challenge"
       onDone={packContext ? handleDone : undefined}
+      from={from as any}
     />
   );
 

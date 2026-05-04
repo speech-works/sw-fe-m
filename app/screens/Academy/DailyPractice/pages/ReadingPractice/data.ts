@@ -18,4 +18,16 @@ export const readingTips = {
     "Practice emphasis. Try reading the same quote multiple times, stressing different words to explore meaning and rhythm.",
     "Record & reflect. Listening back to your quote readings can help track progress and reinforce positive speech patterns.",
   ],
+  word: [
+    "Focus on soft starts. Gently ease into the first sound of each word to reduce tension.",
+    "Visualize the airflow. Imagine your breath carrying the word forward without interruption.",
+    "Practice light contact. Keep your articulators (lips, tongue, teeth) loose and relaxed as you speak.",
+    "Don't over-rehearse. Trust your techniques and move naturally from one word to the next.",
+  ],
+  phrase: [
+    "Chunk your speech. Group words into short, natural phrases to maintain a steady rhythm.",
+    "Use strategic pauses. Brief pauses between phrases give you time to reset and breathe.",
+    "Maintain continuous phonation. Keep your vocal cords vibrating gently throughout the phrase.",
+    "Emphasize the keywords. Focus on the core meaning of the phrase to guide your delivery.",
+  ],
 };

@@ -37,6 +37,9 @@ import {
 import ExpressYourself, {
   EXPRESSION_TYPE_ENUM,
 } from "./components/ExpressYourself";
+import { getPracticeSuggestions } from "../../../../../api/recommendations";
+import { PracticeSuggestion } from "../../../../../api/recommendations/types";
+import SyncLoader from "../../../../../components/SyncLoader";
 
 import AngryFace from "../../../../../assets/mood-check/AngryFace";
 import CalmFace from "../../../../../assets/mood-check/CalmFace";
@@ -54,6 +57,21 @@ const iconContainerStyle: ViewStyle = {
   borderRadius: 24,
 };
 
+const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
+  // Motor / Fluency
+  "30000000-0000-4000-8000-000000000101": "EASY_ONSET",
+  "30000000-0000-4000-8000-000000000102": "LIGHT_ARTICULATORY_CONTACT",
+  "30000000-0000-4000-8000-000000000107": "PULL_OUTS",
+  "30000000-0000-4000-8000-000000000110": "CANCELLATIONS",
+  "30000000-0000-4000-8000-000000000118": "CONTINUOUS_PHONATION",
+  "30000000-0000-4000-8000-000000000109": "PASSIVE_AIRFLOW",
+  "30000000-0000-4000-8000-000000000007": "DIAPHRAGMATIC_BREATHING",
+  "30000000-0000-4000-8000-000000000008": "DIAPHRAGMATIC_BREATHING", // Fallback for Box Breathing to same page for now
+  // Cognitive / Relaxation
+  "30000000-0000-4000-8000-000000000010": "COGNITIVE_RESTRUCTURING",
+  "30000000-0000-4000-8000-000000000105": "SELF_DISCLOSURE",
+};
+
 // Map mood to content and activities
 const moodContentMap = {
   [MoodType.HAPPY]: {
@@ -61,215 +79,24 @@ const moodContentMap = {
     desc: "Celebrating wins—big or small—boosts confidence. Share your joy.",
     FaceComponent: HappyFace,
     gradientColor: theme.colors.moodcheck.happy,
-    helpful: [
-      {
-        title: "Read a story",
-        description: "Dive into a short, fun story",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.blue[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="book-open"
-              size={20}
-              color={theme.colors.library.blue[500]}
-            />
-          </View>
-        ),
-        action: "StoryPractice", // route name placeholder
-        gradientColors: [theme.colors.library.orange[400], "#F43F5E"] as const,
-      },
-      {
-        title: "Roleplay Session",
-        description: "Enact a fun scenario",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.green[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="theater-masks"
-              size={20}
-              color={theme.colors.library.green[400]}
-            />
-          </View>
-        ),
-        action: "RoleplayPracticeStack",
-        gradientColors: ["#34D399", "#059669"] as const,
-      },
-    ],
   },
   [MoodType.ANGRY]: {
     title: "Got some steam to let off?",
     desc: "Naming anger and putting it into words helps you release tension.",
     FaceComponent: AngryFace,
     gradientColor: theme.colors.moodcheck.angry,
-    helpful: [
-      {
-        title: "Guided Breath Pacing",
-        description: "Guided breathing to help you calm down",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.blue[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="wind"
-              size={20}
-              color={theme.colors.library.blue[400]}
-            />
-          </View>
-        ),
-        action: "BreathingPractice",
-        gradientColors: ["#A78BFA", "#7C3AED"] as const,
-      },
-      {
-        title: "Stress Relief Session",
-        description: "Guided stress release",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.green[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="heart"
-              size={20}
-              color={theme.colors.library.green[500]}
-            />
-          </View>
-        ),
-        action: "MeditationPractice",
-        gradientColors: [
-          theme.colors.library.green[400],
-          theme.colors.library.green[600],
-        ] as const,
-      },
-    ],
   },
   [MoodType.SAD]: {
     title: "Need to lighten your heart?",
     desc: "Expressing tough feelings eases the load. Let it out in speech or text.",
     FaceComponent: SadFace,
     gradientColor: theme.colors.moodcheck.sad,
-    helpful: [
-      {
-        title: "Reframing Session",
-        description: "Discover the way you appreciate things",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.blue[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="sync-alt"
-              size={20}
-              color={theme.colors.library.blue[400]}
-            />
-          </View>
-        ),
-        action: "ReframePractice",
-        gradientColors: [
-          theme.colors.library.blue[400],
-          theme.colors.library.blue[600],
-        ] as const,
-      },
-      {
-        title: "Fearlessness Session",
-        description: "Embark on a journey to overcome fear",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.green[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="shoe-prints"
-              size={20}
-              color={theme.colors.library.green[500]}
-            />
-          </View>
-        ),
-        action: "MeditationPractice",
-        gradientColors: [
-          theme.colors.library.green[400],
-          theme.colors.library.green[600],
-        ] as const,
-      },
-    ],
   },
   [MoodType.CALM]: {
     title: "Feeling peaceful right now?",
     desc: "Capture this calm—it’ll be your anchor when things get hectic.",
     FaceComponent: CalmFace,
     gradientColor: theme.colors.moodcheck.calm,
-    helpful: [
-      {
-        title: "Reframing Session",
-        description: "Test your resilience with a reframing exercise",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.blue[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="sync-alt"
-              size={20}
-              color={theme.colors.library.blue[400]}
-            />
-          </View>
-        ),
-        action: "ReframePractice",
-        gradientColors: [
-          theme.colors.library.blue[400],
-          theme.colors.library.blue[600],
-        ] as const,
-      },
-      {
-        title: "Body scan meditation",
-        description: "Find your center with a body scan",
-        icon: (
-          <View
-            style={[
-              iconContainerStyle,
-              { backgroundColor: theme.colors.library.green[100] },
-            ]}
-          >
-            <Icon
-              solid
-              name="user-alt"
-              size={20}
-              color={theme.colors.library.green[400]}
-            />
-          </View>
-        ),
-        action: "MeditationPractice",
-        gradientColors: [
-          theme.colors.library.green[400],
-          theme.colors.library.green[600],
-        ] as const,
-      },
-    ],
   },
 };
 
@@ -301,8 +128,13 @@ const FollowUp = () => {
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
 
-  const { FaceComponent, title, desc, helpful, gradientColor } =
+  const { FaceComponent, title, desc, gradientColor } =
     moodContentMap[mood];
+  const [recommendations, setRecommendations] = useState<
+    PracticeSuggestion[]
+  >([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(false);
   const [expressionType, setExpressionType] =
     useState<EXPRESSION_TYPE_ENUM | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -399,6 +231,284 @@ const FollowUp = () => {
       : "Nothing has been saved yet. You can head home for now or reopen the writing flow and try again.";
 
   useEffect(() => {
+    if (submitted) {
+      const fetchRecommendations = async () => {
+        setIsLoadingRecommendations(true);
+        try {
+          console.log("[Debug] Fetching suggestions for mood:", mood);
+          const data = await getPracticeSuggestions(mood);
+          setRecommendations(data);
+        } catch (error) {
+          console.error("Failed to fetch recommendations", error);
+        } finally {
+          setIsLoadingRecommendations(false);
+        }
+      };
+      fetchRecommendations();
+    }
+  }, [submitted, mood]);
+
+  const getActivityConfig = (rec: PracticeSuggestion) => {
+    switch (rec.contentType) {
+      case "READING_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                { backgroundColor: theme.colors.library.orange[100] },
+              ]}
+            >
+              <Icon
+                solid
+                name="book-open"
+                size={20}
+                color={theme.colors.library.orange[500]}
+              />
+            </View>
+          ),
+          action: rec.activityType === "QUOTE" ? "QuotePractice" : rec.activityType === "POEM" ? "PoemPractice" : "StoryPractice",
+          colors: [theme.colors.library.orange[400], "#F43F5E"] as const,
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+      case "FUN_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                { backgroundColor: theme.colors.library.green[100] },
+              ]}
+            >
+              <Icon
+                solid
+                name={
+                  rec.activityType === "TONGUE_TWISTER"
+                    ? "grin-squint" 
+                    : rec.activityType === "ROLEPLAY"
+                    ? "theater-masks"
+                    : "microphone-alt"
+                }
+                size={20}
+                color={theme.colors.library.green[400]}
+              />
+            </View>
+          ),
+          action:
+            rec.activityType === "TONGUE_TWISTER"
+              ? "TwisterExercise"
+              : rec.activityType === "ROLEPLAY"
+              ? "RoleplayBriefing"
+              : rec.activityType === "CHARACTER_VOICE"
+              ? "CVExercise"
+              : "TwisterPracticeStack",
+          colors: ["#34D399", "#059669"] as const,
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+      case "COGNITIVE_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                {
+                  backgroundColor:
+                    rec.activityType === "REFRAME"
+                      ? theme.colors.library.orange[100]
+                      : rec.activityType === "MEDITATION"
+                      ? "#F5F3FF" // Light purple
+                      : theme.colors.library.blue[100],
+                },
+              ]}
+            >
+              <Icon
+                solid
+                name={
+                  rec.activityType === "MEDITATION"
+                    ? "spa"
+                    : rec.activityType === "REFRAME"
+                    ? "brain"
+                    : rec.activityType === "CHALLENGE"
+                    ? "clipboard-list"
+                    : "wind"
+                }
+                size={20}
+                color={
+                  rec.activityType === "REFRAME"
+                    ? theme.colors.library.orange[400]
+                    : rec.activityType === "MEDITATION"
+                    ? "#7C3AED"
+                    : rec.activityType === "CHALLENGE"
+                    ? theme.colors.library.green[500]
+                    : theme.colors.library.blue[400]
+                }
+              />
+            </View>
+          ),
+          action:
+            rec.activityType === "MEDITATION"
+              ? "MeditationPractice"
+              : rec.activityType === "REFRAME"
+              ? "ReframePractice"
+              : rec.activityType === "CHALLENGE"
+              ? "RealLifeChallenge"
+              : rec.activityType === "MEDITATION"
+              ? "MeditationPractice"
+              : "BreathingPractice",
+          colors:
+            rec.activityType === "REFRAME"
+              ? ([theme.colors.library.orange[400], theme.colors.library.orange[600]] as const)
+              : rec.activityType === "MEDITATION"
+              ? (["#A78BFA", "#7C3AED"] as const)
+              : rec.activityType === "CHALLENGE"
+              ? ([theme.colors.library.green[400], theme.colors.library.green[600]] as const)
+              : ([theme.colors.library.blue[400], theme.colors.library.blue[600]] as const),
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+      case "EXPOSURE_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                {
+                  backgroundColor:
+                    rec.activityType === "CHALLENGE"
+                      ? theme.colors.library.blue[100]
+                      : theme.colors.library.orange[100],
+                },
+              ]}
+            >
+              <Icon
+                solid
+                name={
+                  rec.activityType === "CHALLENGE"
+                    ? "mountain"
+                    : rec.activityType === "DRILL"
+                    ? "dumbbell"
+                    : rec.activityType === "ROLEPLAY"
+                    ? "theater-masks"
+                    : "feather-alt"
+                }
+                size={20}
+                color={
+                  rec.activityType === "CHALLENGE"
+                    ? theme.colors.library.blue[400]
+                    : theme.colors.library.orange[400]
+                }
+              />
+            </View>
+          ),
+          action:
+            rec.activityType === "CHALLENGE"
+              ? "RealLifeChallenge"
+              : rec.activityType === "ROLEPLAY"
+              ? "RoleplayBriefing"
+              : rec.activityType === "DRILL" || rec.activityType === "TECHNIQUE"
+              ? "TechniquePage"
+              : "ExposurePractice",
+          colors:
+            rec.activityType === "CHALLENGE"
+              ? ([theme.colors.library.blue[400], theme.colors.library.blue[600]] as const)
+              : ([theme.colors.library.orange[400], theme.colors.library.orange[600]] as const),
+          params: {
+            techniqueId: ACTIVITY_ID_TO_TECHNIQUE[rec.id] || rec.id,
+            techniqueDesc: rec.description,
+            techniqueLevel: "BEGINNER",
+            hasFree: true,
+            id: rec.id,
+            title: rec.title, // Pass title for RoleplayBriefing
+            description: rec.description, // Pass description for RoleplayBriefing
+            from: "MOOD_CHECK",
+          },
+        };
+      case "FUN_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                { backgroundColor: theme.colors.library.pink[100] },
+              ]}
+            >
+              <Icon
+                solid
+                name="laugh-beam"
+                size={20}
+                color={theme.colors.library.pink[400]}
+              />
+            </View>
+          ),
+          action: "TwisterExercise",
+          colors: [
+            theme.colors.library.pink[400],
+            theme.colors.library.pink[600],
+          ] as const,
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+      case "READING_PRACTICE":
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                { backgroundColor: theme.colors.library.blue[100] },
+              ]}
+            >
+              <Icon
+                solid
+                name={
+                  rec.activityType === "POEM"
+                    ? "feather-alt"
+                    : rec.activityType === "QUOTE"
+                    ? "quote-left"
+                    : "book-open"
+                }
+                size={20}
+                color={theme.colors.library.blue[400]}
+              />
+            </View>
+          ),
+          action:
+            rec.activityType === "POEM"
+              ? "PoemPractice"
+              : rec.activityType === "QUOTE"
+              ? "QuotePractice"
+              : "StoryPractice",
+          colors: [
+            theme.colors.library.blue[400],
+            theme.colors.library.blue[600],
+          ] as const,
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+      default:
+        return {
+          icon: (
+            <View
+              style={[
+                iconContainerStyle,
+                { backgroundColor: theme.colors.library.gray[100] },
+              ]}
+            >
+              <Icon
+                solid
+                name="play"
+                size={20}
+                color={theme.colors.library.gray[500]}
+              />
+            </View>
+          ),
+          action: "StoryPractice",
+          colors: [
+            theme.colors.library.blue[400],
+            theme.colors.library.blue[600],
+          ] as const,
+          params: { id: rec.id, from: "MOOD_CHECK" },
+        };
+    }
+  };
+
+  useEffect(() => {
     const onBackPress = () => {
       requestNavigateHome();
       return true;
@@ -448,7 +558,7 @@ const FollowUp = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={requestNavigateHome}
+            onPress={navigateToHome}
             style={styles.backButton}
           >
             <Icon
@@ -465,7 +575,7 @@ const FollowUp = () => {
           <CustomScrollView
             contentContainerStyle={[
               styles.innerContainer,
-              { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+              { paddingTop: HEADER_HEIGHT + insets.top },
             ]}
           >
             {!submitted && (
@@ -483,25 +593,55 @@ const FollowUp = () => {
             )}
             {submitted ? (
               <View style={styles.helpfulActContianer}>
-                <Text style={styles.helpfulTitleText}>
-                  Try one of these tailored activities:
-                </Text>
-                {helpful.map((item, idx) => (
-                  <ListCard
-                    noChevron
-                    key={idx}
-                    title={item.title}
-                    description={item.description}
-                    icon={item.icon}
-                    gradientColors={item.gradientColors}
-                    onPress={() => {
-                      navigation.navigate({
-                        name: item.action as any,
-                        params: undefined,
-                      });
-                    }}
-                  />
-                ))}
+                <View style={styles.helpfulHeader}>
+                  <Text style={styles.helpfulTitleText}>
+                    Try one of these tailored activities:
+                  </Text>
+                </View>
+
+                {isLoadingRecommendations ? (
+                  <View style={styles.loadingContainer}>
+                    <SyncLoader />
+                  </View>
+                ) : (
+                  recommendations.map((rec, idx) => {
+                    const config = getActivityConfig(rec);
+                    return (
+                      <View key={rec.id || idx} style={styles.cardContainer}>
+                        {rec.dominantPhoneme && (
+                          <View style={styles.focusBadge}>
+                            <Text style={styles.focusBadgeText}>
+                              Focus: /{rec.dominantPhoneme}/
+                            </Text>
+                          </View>
+                        )}
+                        <ListCard
+                          noChevron
+                          title={rec.title}
+                          description={rec.description}
+                          icon={config.icon}
+                          gradientColors={config.colors}
+                          onPress={() => {
+                            navigation.navigate({
+                              name: config.action as any,
+                              params: config.action === "TechniquePage" ? {
+                                ...config.params,
+                                techniqueName: rec.title,
+                                stage: "TUTORIAL",
+                                from: "MOOD_CHECK"
+                              } : {
+                                ...config.params,
+                                mood: config.action === "MeditationPractice" ? mood : undefined,
+                                from: "MOOD_CHECK"
+                              }
+                            });
+                          }}
+                        />
+                      </View>
+                    );
+                  })
+                )}
+                
               </View>
             ) : (
               <>
@@ -792,9 +932,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   innerContainer: {
-    gap: 32,
+    gap: 16,
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  helpfulHeader: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // hardMode styles removed
+  loadingContainer: {
+    height: 200,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardContainer: {
+    position: "relative",
+  },
+  focusBadge: {
+    position: "absolute",
+    top: -8,
+    right: 16,
+    backgroundColor: "#F97316",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 10,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  focusBadgeText: {
+    color: "#FFF",
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
   header: {
     position: "absolute",
@@ -831,7 +1001,6 @@ const styles = StyleSheet.create({
   faceContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading2),
@@ -849,7 +1018,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   helpfulActContianer: {
-    gap: 20,
+    gap: 16,
   },
   helpfulTitleText: {
     ...parseTextStyle(theme.typography.Heading2),

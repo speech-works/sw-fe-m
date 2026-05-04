@@ -238,20 +238,7 @@ const Briefing = () => {
 
           {/* Tips Section */}
           <View style={styles.tipsContainer}>
-            {/* Header Banner - Matte Orange */}
-            <View style={styles.noteHeaderBanner}>
-              <LinearGradient
-                colors={["#FFEDD5", "#FED7AA"]} // Orange 100 -> 200
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={styles.noteHeaderTextContainer}>
-                <Text style={styles.noteHeaderTitle}>Pro Tips</Text>
-                <Text style={styles.noteHeaderSubtitle}>Your Character</Text>
-              </View>
-              <TherapistFace size={72} />
-            </View>
+            {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
 
             {/* Masonry Tips Grid */}
             <MasonryTips tips={data?.stage.userCharacter || []} />
@@ -398,34 +385,6 @@ const styles = StyleSheet.create({
   // Tips
   tipsContainer: {
     gap: 0,
-  },
-  noteHeaderBanner: {
-    marginTop: 10,
-    marginBottom: 24,
-    borderRadius: 24,
-    height: 120,
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-    position: "relative",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 8,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#9A3412", // Deep Orange
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#C2410C",
-    fontWeight: "600",
   },
   startButton: {
     borderRadius: 20,

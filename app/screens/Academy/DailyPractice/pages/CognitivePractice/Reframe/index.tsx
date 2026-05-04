@@ -56,7 +56,7 @@ import SyncLoader from "../../../../../../components/SyncLoader";
 
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
-  const { packContext, practiceActivity } = route.params || {};
+  const { packContext, practiceActivity, from } = route.params || {};
 
   const navigation =
     useNavigation<CDPStackNavigationProp<keyof CDPStackParamList>>();
@@ -87,7 +87,11 @@ const Reframe = () => {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
 
   const onBackPress = () => {
-    navigation.goBack();
+    if (from === "MOOD_CHECK") {
+      navigation.navigate("Root" as any, { screen: "HOME" });
+    } else {
+      navigation.goBack();
+    }
   };
 
   const toggleIndex = () => {
@@ -323,8 +327,16 @@ const Reframe = () => {
       const rs = await getCognitivePracticeByType(
         CognitivePracticeType.REFRAMING_THOUGHTS,
       );
-      setScenarios(rs[0].reframingThoughtsData?.scenarios || []);
-      setCognitivePracticeId(rs[0]?.id || null);
+      
+      const recommendedId = (route.params as any)?.id;
+      let targetScenario = rs[0];
+      if (recommendedId) {
+        const found = rs.find(s => s.id === recommendedId);
+        if (found) targetScenario = found;
+      }
+
+      setScenarios(targetScenario?.reframingThoughtsData?.scenarios || []);
+      setCognitivePracticeId(targetScenario?.id || null);
     };
     fetchScenarios();
   }, []);
@@ -334,6 +346,7 @@ const Reframe = () => {
       <DonePractice
         practiceName="reframe practice"
         onDone={undefined}
+        from={from}
       />
     );
   }

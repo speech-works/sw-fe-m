@@ -60,8 +60,13 @@ import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/
 
 const Breathing = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Breathing">>();
+  const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
+
+  const passedActivity = route.params?.practiceActivity;
+  const packContext = route.params?.packContext;
+  const from = route.params?.from;
 
   // single “mute” state that mutes both breath sounds + background
   const [mute, setMute] = useState(false);
@@ -371,11 +376,6 @@ const Breathing = () => {
     }, [stopBackground]),
   );
 
-  // Use route params if available
-  const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
-  const passedActivity = route.params?.practiceActivity;
-  const packContext = route.params?.packContext;
-
   // Track the actual ID to be used for API creation separately from UI ID
   const [apiContentId, setApiContentId] = useState<string | null>(null);
 
@@ -389,18 +389,25 @@ const Breathing = () => {
   useEffect(() => {
     console.log("Breathing Screen - useEffect triggered");
     const fetchCP = async () => {
-      // Always fetch default to get a VALID backend ID (since hydration might have wrapper ID)
+      // Always fetch default to get a VALID backend ID
       const cp = await getCognitivePracticeByType(
         CognitivePracticeType.GUIDED_BREATHING,
       );
       const defaultId = cp[0]?.id || null;
       console.log("Breathing Screen - Fetched default ID:", defaultId);
 
+      const recommendedId = (route.params as any)?.id;
+      if (recommendedId) {
+        console.log("Breathing Screen - Using recommended ID:", recommendedId);
+        setCognitivePracticeId(recommendedId);
+        setApiContentId(recommendedId);
+        return;
+      }
+
       if (passedActivity) {
         console.log(
           "Breathing Screen - Using passed activity mode (wait for start)",
         );
-        // In the new workflow, we wait for the user to click "Start Exercise" unless it was already started by the pack system
         setCognitivePracticeId(passedActivity.id);
         
         if (packContext?.alreadyStarted) {
@@ -640,6 +647,7 @@ const Breathing = () => {
         practiceName="breathing exercise"
         onDone={undefined}
         isAborted={isAborted}
+        from={from}
       />
     );
   }
@@ -658,7 +666,11 @@ const Breathing = () => {
           ]}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() =>
+              from === "MOOD_CHECK"
+                ? navigation.navigate("Root" as any, { screen: "HOME" })
+                : navigation.goBack()
+            }
             style={styles.backButton}
           >
             <Icon
@@ -675,28 +687,16 @@ const Breathing = () => {
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
+            flexGrow: 1,
+            justifyContent: "flex-end",
+            paddingBottom: 24, // Added spacing above the button
           }}
           showsVerticalScrollIndicator={false}
         >
           <View>
             {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
             <View style={styles.tipsContainer}>
-              {/* Header Banner */}
-              <View style={styles.noteHeaderBanner}>
-                <LinearGradient
-                  colors={["#FFE4E6", "#FFEDD5"]} // Soft Pink to Orange
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.noteHeaderTextContainer}>
-                  <Text style={styles.noteHeaderTitle}>Tips</Text>
-                  <Text style={styles.noteHeaderSubtitle}>
-                    Before you start
-                  </Text>
-                </View>
-                <TherapistFace size={72} />
-              </View>
+              {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
 
               {/* Masonry Tips Grid */}
               <MasonryTips
@@ -792,35 +792,6 @@ const styles = StyleSheet.create({
   tipsContainer: {
     paddingHorizontal: 0,
     gap: 0,
-  },
-  noteHeaderBanner: {
-    marginHorizontal: 0,
-    marginTop: 10,
-    marginBottom: 24,
-    borderRadius: 24,
-    height: 120, // tall banner
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    overflow: "hidden",
-    position: "relative",
-  },
-  noteHeaderTextContainer: {
-    flex: 1,
-    gap: 8,
-    zIndex: 2,
-  },
-  noteHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#881337", // Deep pink/red text
-  },
-  noteHeaderSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#9F1239",
-    fontWeight: "500",
   },
   noteStack: {
     paddingHorizontal: 0,

@@ -56,12 +56,18 @@ axiosClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (Localization.getCalendars()[0].timeZone) {
-      config.headers["X-Client-Timezone"] =
-        Localization.getCalendars()[0].timeZone;
+    const timezone =
+      Localization.getCalendars()?.[0]?.timeZone ||
+      (Localization as any).timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    if (timezone) {
+      console.log("axiosClient - Setting X-Client-Timezone:", timezone);
+      if (config.headers) {
+        config.headers["X-Client-Timezone"] = timezone;
+      }
     } else {
-      config.headers["X-Client-Timezone"] =
-        Localization.getCalendars()[0].timeZone;
+      console.warn("axiosClient - Timezone not detected after all fallbacks");
     }
 
     return config;

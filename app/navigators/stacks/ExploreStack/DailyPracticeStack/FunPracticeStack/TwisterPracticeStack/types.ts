@@ -8,6 +8,8 @@ export type TwisterFDPStackParamList = {
   TwisterExercise: {
     packContext?: PackContext;
     practiceActivity?: any;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+    id?: string;
   };
 };
 export type TwisterFDPStackNavigationProp<

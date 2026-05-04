@@ -12,6 +12,8 @@ export type SettingsStackParamList = {
   ReportProblem: undefined;
   ContactSupport: undefined;
   Feedback: undefined;
+  FearedSounds: undefined;
+  PracticeGoal: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList,

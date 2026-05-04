@@ -154,7 +154,11 @@ const TechniquePage = () => {
           {/* Header */}
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("Library", { from })}
+              onPress={() =>
+                from === "MOOD_CHECK"
+                  ? navigation.navigate("Root" as any, { screen: "HOME" })
+                  : navigation.navigate("Library", { from })
+              }
               style={styles.backButton}
             >
               <Icon

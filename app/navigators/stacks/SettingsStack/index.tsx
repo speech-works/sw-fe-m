@@ -9,6 +9,8 @@ import Support from "../../../screens/Settings/pages/Support";
 import ReportProblem from "../../../screens/Settings/pages/Support/ReportProblem";
 import ContactSupport from "../../../screens/Settings/pages/Support/ContactSupport";
 import Feedback from "../../../screens/Settings/pages/Support/Feedback";
+import FearedSounds from "../../../screens/Settings/pages/FearedSounds";
+import PracticeGoal from "../../../screens/Settings/pages/PracticeGoal";
 import PaymentStackNavigator from "../PaymentStack";
 import { SettingsStackParamList } from "./types";
 
@@ -28,6 +30,8 @@ export default function SettingsStackNavigator() {
       <Stack.Screen name="ReportProblem" component={ReportProblem} />
       <Stack.Screen name="ContactSupport" component={ContactSupport} />
       <Stack.Screen name="Feedback" component={Feedback} />
+      <Stack.Screen name="FearedSounds" component={FearedSounds} />
+      <Stack.Screen name="PracticeGoal" component={PracticeGoal} />
     </Stack.Navigator>
   );
 }

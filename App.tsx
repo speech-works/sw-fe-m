@@ -25,6 +25,8 @@ import {
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
 import { initAnalytics, trackScreen } from "./app/util/analytics/postHog";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -51,6 +53,17 @@ const App: React.FC = () => {
   useEffect(() => {
     // reset mood log on frontend
     useMoodCheckStore.getState().checkAndResetIfNeeded();
+
+    // Clear mood check local storage every time the app loads
+    const clearMoodStorage = async () => {
+      try {
+        await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
+        console.log("Mood check local storage cleared on app load");
+      } catch (e) {
+        console.error("Failed to clear mood check storage", e);
+      }
+    };
+    clearMoodStorage();
   }, []);
 
   const rescheduleAllActiveNotifications = useReminderStore(

@@ -7,6 +7,7 @@ export type PhoneCallEDPStackParamList = {
   PhoneCallScreen: {
     packContext?: PackContext;
     practiceActivity?: any;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
 };
 export type PhoneCallEDPStackNavigationProp<

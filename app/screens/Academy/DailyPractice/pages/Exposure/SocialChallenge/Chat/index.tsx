@@ -50,7 +50,7 @@ const Chat = () => {
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
-  const { sc, practiceActivityId, packContext } = route.params;
+  const { sc, practiceActivityId, packContext, from } = route.params;
   const data = sc.practiceData || sc.socialChallengeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
@@ -356,6 +356,7 @@ const Chat = () => {
               }
             : undefined
         }
+        from={from}
       />
     );
   }
@@ -373,7 +374,11 @@ const Chat = () => {
         ]}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : navigation.goBack()
+          }
           style={styles.backButton}
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />

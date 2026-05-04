@@ -13,6 +13,7 @@ export type CharacterVoiceFDPStackParamList = {
     cvData?: CharacterVoiceData;
     packContext?: PackContext;
     practiceActivity?: PracticeActivity;
+    from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   };
 };
 export type CharacterVoiceFDPStackNavigationProp<

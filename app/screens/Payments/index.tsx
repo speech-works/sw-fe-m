@@ -246,7 +246,7 @@ const SubscribeScreen = () => {
                   paddingHorizontal:
                     (theme.dimensions.screenWidth -
                       (theme.dimensions.screenWidth * 0.8 + 16)) /
-                      2 +
+                    2 +
                     8,
                 }}
               >
@@ -409,7 +409,7 @@ const SubscribeScreen = () => {
                       style={[
                         styles.radio,
                         paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY &&
-                          styles.radioActive,
+                        styles.radioActive,
                       ]}
                     >
                       {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
@@ -455,7 +455,7 @@ const SubscribeScreen = () => {
                       style={[
                         styles.radio,
                         paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY &&
-                          styles.radioActive,
+                        styles.radioActive,
                       ]}
                     >
                       {paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY && (
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   testModeBody: {
-    color: theme.colors.text.subtitle,
+    color: theme.colors.text.default,
     fontSize: 16,
     lineHeight: 24,
     textAlign: "center",
