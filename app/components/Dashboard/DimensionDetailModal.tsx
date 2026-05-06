@@ -284,9 +284,14 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                     <TouchableOpacity 
                       key={f} 
                       onPress={() => setSelectedFamily(f)}
-                      style={[styles.switcherPill, active && styles.switcherPillActive]}
+                      style={[
+                        styles.switcherPill, 
+                        active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
+                      ]}
                     >
-                      <Text style={[styles.switcherText, active && styles.switcherTextActive]}>{FAMILY_CONFIG[f].label}</Text>
+                      <Text style={[styles.switcherText, active && styles.switcherTextActive]}>
+                        {FAMILY_CONFIG[f].label}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -429,11 +434,13 @@ const styles = StyleSheet.create({
   },
   switcher: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
     borderRadius: 24,
-    padding: 4,
+    padding: 5,
     alignSelf: 'center',
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   switcherPill: {
     paddingHorizontal: 16,
@@ -441,24 +448,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    minWidth: 90,
+    minWidth: 92,
   },
   switcherPillActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
   switcherText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#94A3B8',
+    letterSpacing: 0.2,
   },
   switcherTextActive: {
-    color: theme.colors.text.title,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   familyDescText: {
     fontSize: 14,
