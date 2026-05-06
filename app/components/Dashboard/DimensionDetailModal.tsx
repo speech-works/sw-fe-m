@@ -252,10 +252,10 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        
+
         <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <View style={styles.dragHandle} />
-          
+
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <MaterialCommunityIcons name="close" size={20} color="#64748B" />
           </TouchableOpacity>
@@ -264,9 +264,9 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
           <View style={styles.globalWatermark}>
             <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
           </View>
-          
+
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            
+
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerTopRow}>
@@ -281,11 +281,11 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
                 {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
                   const active = f === selectedFamily;
                   return (
-                    <TouchableOpacity 
-                      key={f} 
+                    <TouchableOpacity
+                      key={f}
                       onPress={() => setSelectedFamily(f)}
                       style={[
-                        styles.switcherPill, 
+                        styles.switcherPill,
                         active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
                       ]}
                     >
@@ -306,14 +306,14 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               </View>
 
               <View style={styles.trendRow}>
-                <MaterialCommunityIcons 
-                  name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"} 
-                  size={16} 
-                  color={trendColor} 
+                <MaterialCommunityIcons
+                  name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"}
+                  size={16}
+                  color={trendColor}
                 />
                 <Text style={[styles.trendLabel, { color: trendColor }]}>
-                  {!hasComparison 
-                    ? "Waiting for history" 
+                  {!hasComparison
+                    ? "Waiting for history"
                     : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
                 </Text>
               </View>
@@ -328,7 +328,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
               <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
                 <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
                 <Text style={styles.integratedInsightText}>
-                  {isUnavailable 
+                  {isUnavailable
                     ? "Reflection pending..."
                     : config.recommendations[trend]}
                 </Text>
@@ -431,12 +431,16 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.8)',
+    // Make the card wider to accommodate toggle bar comfortably
+    width: SCREEN_WIDTH - 20, // accounts for 28px horizontal padding on each side of scrollContent
+    alignSelf: 'center',
   },
   switcher: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',
     borderRadius: 24,
-    padding: 5,
+    padding: 8,
+    paddingHorizontal: 12,
     alignSelf: 'center',
     marginBottom: 24,
     borderWidth: 1,
