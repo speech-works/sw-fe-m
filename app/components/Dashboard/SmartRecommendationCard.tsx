@@ -317,16 +317,18 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             {/* 1. Header Section */}
             <View style={styles.headerRow}>
               <View style={styles.headerTextContainer}>
-                {tags && tags.length > 0 && (
-                  <View style={styles.chip}>
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={14}
-                      color="white"
-                    />
-                    <Text style={styles.chipText}>{tags[0]}</Text>
-                  </View>
-                )}
+                <View style={styles.headerTopRow}>
+                  {tags && tags.length > 0 && (
+                    <View style={styles.chip}>
+                      <MaterialCommunityIcons
+                        name="fire"
+                        size={12}
+                        color="white"
+                      />
+                      <Text style={styles.chipText}>{tags[0].toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
 
                 <Text style={styles.packTitle}>{pack.title}</Text>
                 <Text style={styles.packSubtitle}>{pack.description}</Text>
@@ -337,9 +339,9 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             <View style={styles.mainWatermarkContainer}>
               <MaterialCommunityIcons
                 name={isSafetyMode ? "spa" : "lightning-bolt"}
-                size={140}
+                size={240}
                 color="white"
-                style={{ opacity: 0.25 }}
+                style={{ opacity: 0.12 }}
               />
             </View>
 
@@ -529,26 +531,27 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
-    borderRadius: 24,
-    // Fancy shadow
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    borderRadius: 40,
+    // Premium SaaS Shadow
+    shadowColor: "#64748B",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 10,
   },
   loadingContainer: {
     height: 200,
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 24,
+    borderRadius: 40,
   },
   packTitleEmpty: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
     marginTop: 16,
     textAlign: "center",
+    fontWeight: "900",
   },
   packSubtitleEmpty: {
     ...parseTextStyle(theme.typography.BodySmall),
@@ -558,8 +561,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   gradient: {
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 40,
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 24, // Reduced bottom padding
     position: "relative",
     overflow: "hidden",
   },
@@ -567,7 +572,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -6,
     right: -6,
-    backgroundColor: "#10B981", // Stylish green (Emerald 500)
+    backgroundColor: "#10B981", 
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -587,125 +592,144 @@ const styles = StyleSheet.create({
   },
   bubbleTopRight: {
     position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    top: -80,
+    right: -80,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   bubbleBottomLeft: {
     position: "absolute",
-    bottom: -50,
-    left: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    bottom: -60,
+    left: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
   },
   headerRow: {
     flexDirection: "row",
-    marginBottom: 20,
+    marginBottom: 24,
     zIndex: 1,
     position: "relative",
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 12,
     alignSelf: "flex-start",
-    marginBottom: 12,
     gap: 6,
   },
   chipText: {
     color: "white",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
   packTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 28,
+    fontWeight: "900",
     color: "white",
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: -1,
+    lineHeight: 34,
   },
   packSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.85)",
+    lineHeight: 22,
+    fontWeight: "500",
   },
   mainWatermarkContainer: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -20,
+    right: -60,
     zIndex: 0,
-    transform: [{ rotate: "-15deg" }],
+    transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
   progressSection: {
-    marginBottom: 24,
+    marginBottom: 28,
     zIndex: 1,
   },
   progressLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   progressText: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 12,
-    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.95)",
+    fontSize: 13,
+    fontWeight: "700",
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
-    borderRadius: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 4,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: "white",
-    borderRadius: 3,
+    borderRadius: 4,
   },
   // Cream Vertical Card Styles
   creamCard: {
-    backgroundColor: "#FFF7ED", // Cream
-    borderRadius: 24,
+    backgroundColor: "rgba(255, 247, 237, 0.95)", // Subtle glass/cream
+    borderRadius: 20, // Nesting: 40 - 20 = 20
     overflow: "hidden",
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 0,
+    // Card Shadow
+    shadowColor: "#431407",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   creamCardContent: {
-    padding: 24,
+    padding: 20,
     alignItems: "center",
-    paddingBottom: 32,
+    paddingBottom: 20,
   },
   trophyContainer: {
     marginBottom: 16,
   },
   creamCardTitle: {
     fontSize: 22,
-    fontWeight: "800",
-    color: "#431407", // Dark Brown
+    fontWeight: "900",
+    color: "#431407", 
     marginBottom: 8,
     textAlign: "center",
+    letterSpacing: -0.5,
   },
   creamCardDesc: {
-    fontSize: 15,
-    color: "#6B7280", // Slate
+    fontSize: 14,
+    color: "#78350F", // Darker amber for readability
     textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 16,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+    opacity: 0.7,
   },
   creamCardFooter: {
-    backgroundColor: "#FFEDD5", // Peach
-    paddingVertical: 18,
+    backgroundColor: "rgba(255, 237, 213, 0.8)", // More transparent
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   creamCardButtonText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#EA580C", // Orange 600
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#EA580C", 
     letterSpacing: 0.5,
   },
   // Modal Styles
