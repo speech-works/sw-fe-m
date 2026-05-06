@@ -183,36 +183,37 @@ const Reminders = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
       >
-        <View style={styles.masterToggleCard}>
-
-          <View style={styles.masterToggleRow}>
-            <View style={[styles.masterToggleIcon, { backgroundColor: isMasterOn ? theme.colors.actionPrimary.default + "15" : "#F1F5F9" }]}>
-              <MaterialCommunityIcons
-                name={isMasterOn ? "bell-ring-outline" : "bell-off-outline"}
-                size={22}
-                color={isMasterOn ? theme.colors.actionPrimary.default : "#94A3B8"}
+        {reminders.length > 1 && (
+          <View style={styles.masterToggleCard}>
+            <View style={styles.masterToggleRow}>
+              <View style={[styles.masterToggleIcon, { backgroundColor: isMasterOn ? theme.colors.actionPrimary.default + "15" : "#F1F5F9" }]}>
+                <MaterialCommunityIcons
+                  name={isMasterOn ? "bell-ring-outline" : "bell-off-outline"}
+                  size={22}
+                  color={isMasterOn ? theme.colors.actionPrimary.default : "#94A3B8"}
+                />
+              </View>
+              <View style={{ flex: 1, zIndex: 1 }}>
+                <Text style={styles.masterToggleText}>Master Control</Text>
+                <Text style={styles.masterToggleSubtext}>
+                  {isAllOn
+                    ? "All reminders are active"
+                    : isAllOff
+                      ? "All reminders are currently paused"
+                      : "Some reminders are paused"}
+                </Text>
+              </View>
+              <AnimatedToggle
+                value={isMasterOn}
+                onValueChange={handleToggleMaster}
               />
             </View>
-            <View style={{ flex: 1, zIndex: 1 }}>
-              <Text style={styles.masterToggleText}>Master Control</Text>
-              <Text style={styles.masterToggleSubtext}>
-                {isAllOn
-                  ? "All reminders are active"
-                  : isAllOff
-                    ? "All reminders are currently paused"
-                    : "Some reminders are paused"}
-              </Text>
-            </View>
-            <AnimatedToggle
-              value={isMasterOn}
-              onValueChange={handleToggleMaster}
-            />
           </View>
-        </View>
+        )}
 
         {reminders.length > 0 ? (
           <>
-            <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>
+            {reminders.length > 1 && <Text style={styles.sectionTitle}>YOUR REMINDERS</Text>}
             <View style={styles.listContainer}>
               {[...reminders]
                 .sort((a, b) => a.time.localeCompare(b.time))
