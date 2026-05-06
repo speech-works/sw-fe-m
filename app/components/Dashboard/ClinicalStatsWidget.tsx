@@ -516,29 +516,13 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
         style={styles.container}
       >
         {/* Decorative Bubbles */}
-        <View style={styles.decorBubble1} />
-        <View style={styles.decorBubble2} />
-        <View style={styles.decorBubble3} />
-
-        {/* Large Watermark Icon */}
         <View style={styles.mainWatermarkContainer}>
-          {isMomentumSlipping ? (
-            <Animated.View style={downfallStyle}>
-              <MaterialCommunityIcons
-                name="trending-down"
-                size={120}
-                color={theme.colors.library.gray[400]}
-                style={{ opacity: 0.15 }}
-              />
-            </Animated.View>
-          ) : (
-            <MaterialCommunityIcons
-              name="trending-up"
-              size={120}
-              color={theme.colors.library.orange[400]}
-              style={{ opacity: 0.15 }}
-            />
-          )}
+          <MaterialCommunityIcons
+            name="trending-up"
+            size={300}
+            color={theme.colors.library.orange[500]}
+            style={{ opacity: 0.08 }}
+          />
         </View>
 
         {/* Header */}
@@ -610,9 +594,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               <>
                 <Text style={styles.bigTitle}>Growth Profile</Text>
                 <Text style={styles.subtitle}>{dynamicSubtitle}</Text>
-                <Text style={styles.comparisonCaption}>
-                  {overallState.profile.comparison.comparisonLabel}
-                </Text>
               </>
             )}
           </View>
@@ -1189,11 +1170,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               {isRefreshing
                 ? "Syncing data..."
                 : `Last synced at ${new Date(
-                    overallState.profile.meta.computedAt,
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`}
+                  overallState.profile.meta.computedAt,
+                ).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1242,29 +1223,30 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 40,
+    padding: 32,
+    paddingBottom: 20,
     marginVertical: 0,
-    backgroundColor: "white", // Restored White
-    overflow: "hidden", // Clip bubbles
+    backgroundColor: "white",
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: theme.colors.library.gray[200],
-    // Soft SaaS Shadow
+    borderColor: "#F1F5F9",
+    // Premium SaaS Shadow
     shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
   },
   comparisonCaption: {
-    marginTop: 6,
-    fontSize: 12,
-    color: theme.colors.text.default,
+    marginTop: 8,
+    fontSize: 13,
+    color: "#94A3B8",
+    fontWeight: "600",
   },
   contentPanel: {
-    // No background color needed (already on white)
-    marginTop: 12,
-    paddingHorizontal: 8, // Less padding, let chart breathe
+    marginTop: 16,
+    paddingHorizontal: 0,
   },
 
   btChangeRow: {
@@ -1284,72 +1266,73 @@ const styles = StyleSheet.create({
   },
   mainWatermarkContainer: {
     position: "absolute",
-    top: 20,
-    right: 25,
+    top: -10,
+    right: -80,
     zIndex: 0,
-    transform: [{ rotate: "-15deg" }],
+    transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
   // Decorative Elements (White transparent overlays)
 
   header: {
-    marginBottom: 20,
+    marginBottom: 24,
     zIndex: 1,
   },
   headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
-    height: 24,
-    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: theme.colors.library.orange[100],
+    borderRadius: 12,
     gap: 6,
     alignSelf: "flex-start",
   },
   chipText: {
-    color: theme.colors.library.orange[500], // Orange for tracking
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
+    color: theme.colors.library.orange[600],
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.5,
   },
   textContainer: {
-    gap: 4,
+    gap: 6,
   },
   bigTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: theme.colors.text.title, // Dark title
-    letterSpacing: -0.5,
-    lineHeight: 34,
+    fontSize: 24,
+    fontWeight: "900",
+    color: theme.colors.text.title,
+    letterSpacing: -0.6,
+    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 13,
-    color: theme.colors.text.default, // Standard gray
-    lineHeight: 18,
+    fontSize: 15,
+    color: "#64748B",
+    lineHeight: 22,
+    fontWeight: "500",
   },
   syncLink: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
-    gap: 6,
-    paddingVertical: 8,
+    justifyContent: "flex-start",
+    marginTop: 8,
+    gap: 8,
+    paddingVertical: 0,
   },
   syncText: {
     fontSize: 12,
     color: theme.colors.library.gray[400],
-    fontWeight: "500",
+    fontWeight: "600",
     width: "100%",
   },
   chartContainer: {
     alignItems: "center",
     justifyContent: "center",
-    // Height updated dynamically in JSX to match CHART_WIDTH
-    marginBottom: 8,
+    marginBottom: 12,
   },
   chartLabelHitbox: {
     position: "absolute",
@@ -1387,7 +1370,7 @@ const styles = StyleSheet.create({
   },
   heroChartContainer: {
     marginTop: 12,
-    flexDirection: "column", // Vertical Stack
+    flexDirection: "column",
     gap: 12,
   },
   compactBreakthroughGrid: {
@@ -1398,8 +1381,8 @@ const styles = StyleSheet.create({
   },
   compactBreakthroughCard: {
     width: "48%",
-    flexGrow: 1, // Allow filling space
-    flexBasis: "45%", // Base width for 2-column wrapping
+    flexGrow: 1,
+    flexBasis: "45%",
     height: 104,
     justifyContent: "space-between",
     padding: 16,
@@ -1441,9 +1424,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroCard: {
-    height: 140, // Fixed height for Hero
+    height: 140,
     justifyContent: "space-between",
-    width: "100%", // Full Width
+    width: "100%",
   },
   heroHeader: {
     flexDirection: "row",
@@ -1456,38 +1439,37 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginBottom: 4,
     textTransform: "uppercase",
-    letterSpacing: 0.2, // Reduced for tighter spaces
+    letterSpacing: 0.2,
   },
   heroValue: {
-    fontSize: 36, // Larger for Hero
+    fontSize: 36,
     fontWeight: "800",
     color: theme.colors.text.title,
     letterSpacing: -1,
     marginTop: 8,
   },
   bentoBottomRow: {
-    flexDirection: "row", // Horizontal Row for bottom cards
+    flexDirection: "row",
     gap: 12,
   },
   miniCard: {
-    flex: 1, // Equal width
+    flex: 1,
     justifyContent: "center",
-    backgroundColor: "#F8FAFC", // Light blue/gray tint
+    backgroundColor: "#F8FAFC",
     padding: 16,
-    borderRadius: 20, // Curved
-    height: 110, // Fixed height for Mini cards
+    borderRadius: 20,
+    height: 110,
   },
   miniContent: {
-    flexDirection: "column", // Stack content in mini card for vertical space
+    flexDirection: "column",
     justifyContent: "space-between",
     alignItems: "flex-start",
     height: "100%",
   },
 
-  // --- Breakdown/List Section ---
   breakthroughContainer: {
-    marginTop: 8,
-    paddingTop: 16,
+    marginTop: 12,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
     position: "relative",
@@ -1501,8 +1483,8 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.text.default,
+    fontWeight: "900",
+    color: "#94A3B8",
     marginBottom: 16,
     textTransform: "uppercase",
     letterSpacing: 2,
@@ -1528,37 +1510,6 @@ const styles = StyleSheet.create({
   textError: { color: theme.colors.library.red[400] },
   textNeutral: { color: theme.colors.library.red[400] },
 
-  // Decorative Bubbles
-  decorBubble1: {
-    position: "absolute",
-    top: -40,
-    right: -20,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: theme.colors.library.orange[500],
-    opacity: 0.05,
-  },
-  decorBubble2: {
-    position: "absolute",
-    top: 60,
-    left: -40,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.library.orange[500],
-    opacity: 0.03,
-  },
-  decorBubble3: {
-    position: "absolute",
-    bottom: -20,
-    right: 40,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.library.orange[500],
-    opacity: 0.02,
-  },
 });
 
 export default React.memo(ClinicalStatsWidget);
