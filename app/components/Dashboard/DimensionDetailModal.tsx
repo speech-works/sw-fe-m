@@ -11,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Svg, Circle } from "react-native-svg";
 import { theme } from "../../Theme/tokens";
-import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type DetailFamily = "combined" | "clinical" | "engagement";
 
@@ -25,22 +27,10 @@ type FamilyMetricData = {
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 };
 
-const FAMILY_CONFIG: Record<
-  DetailFamily,
-  { label: string; color: string }
-> = {
-  combined: {
-    label: "Combined",
-    color: theme.colors.library.orange[500],
-  },
-  clinical: {
-    label: "Clinical",
-    color: theme.colors.library.green[500],
-  },
-  engagement: {
-    label: "Engagement",
-    color: theme.colors.library.blue[500],
-  },
+const FAMILY_CONFIG: Record<DetailFamily, { label: string; color: string }> = {
+  combined: { label: "Combined", color: theme.colors.library.orange[500] },
+  clinical: { label: "Clinical", color: theme.colors.library.green[500] },
+  engagement: { label: "Engagement", color: theme.colors.library.blue[500] },
 };
 
 const FAMILY_DESCRIPTIONS: Record<
@@ -180,7 +170,39 @@ const DIMENSION_CONFIG: Record<
   },
 };
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+const Gauge = ({ score, color, size = 160 }: { score: number | null; color: string; size?: number }) => {
+  const strokeWidth = 14;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = score === null ? 0 : score / 100;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#F1F5F9" strokeWidth={strokeWidth} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="none"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.gaugeContent}>
+        <Text style={styles.gaugeLabel}>CURRENT SCORE</Text>
+        <Text style={[styles.gaugeValue, { color: score === null ? '#94A3B8' : theme.colors.text.title }]}>
+          {score === null ? '--' : Math.round(score)}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 interface DimensionDetailModalProps {
   visible: boolean;
@@ -199,256 +221,120 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const [isMounted, setIsMounted] = useState(visible);
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
       setSelectedFamily("combined");
-      setIsMounted(true);
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
+        Animated.spring(slideAnim, { toValue: 0, damping: 25, stiffness: 200, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setIsMounted(false);
-      });
+        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
     }
-  }, [visible, opacityAnim, slideAnim]);
+  }, [visible]);
 
-  if (!isMounted || !domain) {
-    return null;
-  }
+  if (!visible || !domain) return null;
 
   const config = DIMENSION_CONFIG[domain];
-  const activeFamily = FAMILY_CONFIG[selectedFamily];
   const activeMetrics = familyData[selectedFamily];
   const isUnavailable = activeMetrics.currentScore === null;
-  const hasComparison =
-    activeMetrics.previousScore !== null &&
-    activeMetrics.percentDelta !== null &&
-    activeMetrics.absoluteDelta !== null;
-  const trendIcon = !hasComparison
-    ? "clock-outline"
-    : activeMetrics.trend === "IMPROVING"
-      ? "trending-up"
-      : activeMetrics.trend === "WORSENING"
-        ? "trending-down"
-        : "trending-neutral";
-  const trendColor = !hasComparison
-    ? theme.colors.text.default
-    : activeMetrics.trend === "IMPROVING"
-      ? theme.colors.library.green[500]
-      : activeMetrics.trend === "WORSENING"
-        ? theme.colors.library.red[500]
-        : theme.colors.text.default;
-  const recommendationText = isUnavailable
-    ? "Use the app for a few days and complete a few check-ins so this view can start to reflect your recent patterns."
-    : hasComparison
-      ? config.recommendations[activeMetrics.trend]
-      : "We’re still building a comparison history here. Keep checking in so this view becomes more meaningful over time.";
-  const footerBottomPadding = Math.max(insets.bottom, 12);
+  const hasComparison = activeMetrics.previousScore !== null;
+  const trend = activeMetrics.trend;
+  const trendColor = trend === "IMPROVING" ? "#059669" : trend === "WORSENING" ? "#E11D48" : "#64748B";
 
   return (
-    <Modal
-      visible={isMounted}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            { transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          <View
-            style={[styles.header, { backgroundColor: `${config.color}15` }]}
-          >
-            <View style={[styles.iconCircle, { backgroundColor: config.color }]}>
-              <MaterialCommunityIcons
-                name={config.icon as any}
-                size={24}
-                color="white"
-              />
-            </View>
-            <Text style={[styles.title, { color: config.color }]}>
-              {config.label}
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons
-                name="close"
-                size={18}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <View style={styles.dragHandle} />
+          
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <MaterialCommunityIcons name="close" size={20} color="#64748B" />
+          </TouchableOpacity>
+
+          {/* Global Watermark (Visible through all sections) */}
+          <View style={styles.globalWatermark}>
+            <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
           </View>
-
-          <ScrollView
-            style={styles.contentScroll}
-            contentContainerStyle={styles.body}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.section}>
-              <Text style={styles.description}>{config.description}</Text>
+          
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerTopRow}>
+                <Text style={styles.titleText}>{config.label}</Text>
+              </View>
+              <Text style={styles.subtitleText}>{config.description}</Text>
             </View>
 
-            <View style={styles.section}>
-              <View style={styles.familySwitcher}>
-                {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((family) => {
-                  const familyConfig = FAMILY_CONFIG[family];
-                  const isActive = family === selectedFamily;
-
+            {/* Editorial Card */}
+            <View style={styles.card}>
+              <View style={styles.switcher}>
+                {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
+                  const active = f === selectedFamily;
                   return (
-                    <TouchableOpacity
-                      key={family}
-                      onPress={() => setSelectedFamily(family)}
-                      style={[
-                        styles.familyChip,
-                        isActive && styles.familyChipActive,
-                      ]}
-                      activeOpacity={0.7}
+                    <TouchableOpacity 
+                      key={f} 
+                      onPress={() => setSelectedFamily(f)}
+                      style={[styles.switcherPill, active && styles.switcherPillActive]}
                     >
-                      <Text
-                        style={[
-                          styles.familyChipText,
-                          isActive && [
-                            styles.familyChipTextActive,
-                            { color: familyConfig.color },
-                          ],
-                        ]}
-                      >
-                        {familyConfig.label}
-                      </Text>
+                      <Text style={[styles.switcherText, active && styles.switcherTextActive]}>{FAMILY_CONFIG[f].label}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-              <Text style={styles.familyDescription}>
+
+              <Text style={styles.familyDescText}>
                 {FAMILY_DESCRIPTIONS[domain][selectedFamily]}
               </Text>
-            </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR STATUS</Text>
-              <View style={styles.statusBento}>
-                <View
-                  style={[
-                    styles.statusCard,
-                    {
-                      backgroundColor: `${activeFamily.color}14`,
-                      borderColor: `${activeFamily.color}35`,
-                    },
-                  ]}
-                >
-                  <Text style={styles.statusCardLabel}>CURRENT</Text>
-                  <Text
-                    style={[styles.scoreValue, { color: activeFamily.color }]}
-                  >
-                    {isUnavailable
-                      ? "--"
-                      : Math.round(activeMetrics.currentScore ?? 0)}
-                  </Text>
-                  <Text style={styles.statusCardSubtext}>
-                    {activeFamily.label.toUpperCase()} SCORE
-                  </Text>
-                </View>
-
-                <View style={styles.statusCard}>
-                  <Text style={styles.statusCardLabel}>PREVIOUS</Text>
-                  <Text style={styles.scoreValue}>
-                    {activeMetrics.previousScore === null
-                      ? "--"
-                      : Math.round(activeMetrics.previousScore)}
-                  </Text>
-                  <Text style={styles.statusCardSubtext}>PREVIOUS WEEK</Text>
-                </View>
+              <View style={styles.gaugeWrapper}>
+                <Gauge score={activeMetrics.currentScore} color={config.color} />
               </View>
 
-              <View style={styles.deltaCard}>
-                <View style={styles.deltaHeader}>
-                  <MaterialCommunityIcons
-                    name={trendIcon as any}
-                    size={18}
-                    color={trendColor}
-                  />
-                  <Text style={[styles.deltaTitle, { color: trendColor }]}>
-                    {!hasComparison
-                      ? isUnavailable
-                        ? "Not enough data yet"
-                        : "Waiting for previous week"
-                      : activeMetrics.trend === "IMPROVING"
-                        ? "Improving"
-                        : activeMetrics.trend === "WORSENING"
-                          ? "Needs attention"
-                          : "Holding steady"}
-                  </Text>
-                </View>
-
-                {!hasComparison ? (
-                  <Text style={styles.deltaText}>
-                    {isUnavailable
-                      ? "Not enough recent data is available yet for this view."
-                      : "We need one previous week before we can show change for this view."}
-                  </Text>
-                ) : (
-                  <Text style={styles.deltaText}>
-                    {(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}
-                    {(activeMetrics.percentDelta ?? 0).toFixed(1)}% and{" "}
-                    {(activeMetrics.absoluteDelta ?? 0) > 0
-                      ? "+"
-                      : ""}
-                    {(activeMetrics.absoluteDelta ?? 0).toFixed(1)} pts{" "}
-                    {comparisonLabel.toLowerCase()}.
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.recommendationCard}>
-                <MaterialCommunityIcons
-                  name="lightbulb-outline"
-                  size={20}
-                  color={theme.colors.library.orange[500]}
+              <View style={styles.trendRow}>
+                <MaterialCommunityIcons 
+                  name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"} 
+                  size={16} 
+                  color={trendColor} 
                 />
-                <Text style={styles.recommendationText}>
-                  {recommendationText}
+                <Text style={[styles.trendLabel, { color: trendColor }]}>
+                  {!hasComparison 
+                    ? "Waiting for history" 
+                    : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
+                </Text>
+              </View>
+
+              {hasComparison && (
+                <Text style={styles.previousScoreText}>
+                  Previously {Math.round(activeMetrics.previousScore ?? 0)}
+                </Text>
+              )}
+
+              {/* Experimental Integrated Insight */}
+              <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
+                <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
+                <Text style={styles.integratedInsightText}>
+                  {isUnavailable 
+                    ? "Reflection pending..."
+                    : config.recommendations[trend]}
                 </Text>
               </View>
             </View>
+
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-            <TouchableOpacity style={styles.doneButton} onPress={onClose}>
-              <Text style={styles.doneButtonText}>Got it</Text>
+          <View style={[styles.floatingFooter, { bottom: Math.max(insets.bottom, 12) }]}>
+            <TouchableOpacity style={styles.doneBtn} onPress={onClose} activeOpacity={0.9}>
+              <Text style={styles.doneBtnText}>Continue My Journey</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -457,192 +343,227 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   );
 };
 
-const { width } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "flex-end",
   },
-  modalContainer: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    maxHeight: "90%",
-    width,
-    overflow: "hidden",
+  sheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    maxHeight: '90%',
+    width: SCREEN_WIDTH,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  globalWatermark: {
+    position: 'absolute',
+    top: 40,
+    right: -150,
+    zIndex: -1,
+    transform: [{ rotate: '-15deg' }],
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#E2E8F0",
+    alignSelf: 'center',
+    marginTop: 12,
+    zIndex: 10,
+  },
+  scrollContent: {
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 80, // Extra space for floating button
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
-    gap: 12,
+    marginBottom: 28,
   },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "800",
-    flex: 1,
+  titleText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: theme.colors.text.title,
+    letterSpacing: -0.5,
   },
   closeBtn: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  subtitleText: {
+    fontSize: 15,
+    color: '#64748B',
+    lineHeight: 22,
+    fontWeight: '500',
+    paddingRight: 40,
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)', // Glass effect
+    borderRadius: 36,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 6,
+    marginBottom: 32,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
-  body: {
-    padding: 20,
-    gap: 24,
+  switcher: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 24,
+    padding: 4,
+    alignSelf: 'center',
+    marginBottom: 24,
   },
-  contentScroll: {
-    flexShrink: 1,
-    minHeight: 0,
+  switcherPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    minWidth: 90,
   },
-  section: {
-    gap: 10,
+  switcherPillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  sectionLabel: {
+  switcherText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  switcherTextActive: {
+    color: theme.colors.text.title,
+    fontWeight: '700',
+  },
+  familyDescText: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: 12,
+    marginBottom: 24,
+  },
+  gaugeWrapper: {
+    marginBottom: 16,
+  },
+  gaugeContent: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  gaugeLabel: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  gaugeValue: {
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  trendLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  previousScoreText: {
     fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.text.default,
+    color: '#94A3B8',
+    fontWeight: '600',
+    marginTop: 6,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  description: {
-    fontSize: 15,
-    color: theme.colors.text.default,
-    lineHeight: 22,
+  insightSection: {
+    marginBottom: 32,
   },
-  familySwitcher: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 4,
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: theme.colors.text.title,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    opacity: 0.4,
   },
-  familyChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  integratedInsight: {
+    marginTop: 28,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    width: '100%',
   },
-  familyChipActive: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  familyChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  familyChipTextActive: {
-    fontWeight: "800",
-  },
-  familyDescription: {
-    fontSize: 13,
-    color: theme.colors.text.default,
-    lineHeight: 18,
-  },
-  statusBento: {
-    flexDirection: "row",
-    gap: 12,
+  insightIcon: {
     marginTop: 2,
   },
-  statusCard: {
+  integratedInsightText: {
     flex: 1,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.library.gray[100],
-    backgroundColor: "#fff",
-  },
-  statusCardLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.text.default,
-    letterSpacing: 0.6,
-    marginBottom: 8,
-  },
-  scoreValue: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-  },
-  statusCardSubtext: {
-    fontSize: 11,
-    color: theme.colors.text.default,
-    marginTop: 6,
-  },
-  deltaCard: {
-    borderRadius: 18,
-    padding: 16,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: theme.colors.library.gray[100],
-    gap: 8,
-  },
-  deltaHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  deltaTitle: {
     fontSize: 14,
-    fontWeight: "800",
-  },
-  deltaText: {
-    fontSize: 14,
-    color: theme.colors.text.default,
     lineHeight: 20,
+    color: '#334155',
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
-  recommendationCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    borderRadius: 18,
-    padding: 16,
-    backgroundColor: `${theme.colors.library.orange[100]}40`,
+  floatingFooter: {
+    position: 'absolute',
+    left: 28,
+    right: 28,
+    backgroundColor: 'transparent',
+    zIndex: 100,
   },
-  recommendationText: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.colors.text.default,
-    lineHeight: 22,
+  doneBtn: {
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  footer: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingTop: 4,
-  },
-  doneButton: {
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: theme.colors.library.orange[500],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  doneButtonText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#fff",
+  doneBtnText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });
 
