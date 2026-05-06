@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: "100%",
-    height: 160,
+    height: 200, // Increased from 160 to reduce cramped feeling
     borderRadius: 24,
     ...parseShadowStyle(theme.shadow.elevation2),
     overflow: "hidden", // Clips the gradient and bubbles
@@ -116,7 +116,9 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 32, // Increased from 24
     justifyContent: "space-between",
     position: "relative",
   },
@@ -138,7 +140,9 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#FFFFFF",
-    fontSize: 22,
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: -0.6,
   },
   cardSubtitle: {
     ...parseTextStyle(theme.typography.Body),
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16, // Nesting: 24 - 8 = 16 or just common standard
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",

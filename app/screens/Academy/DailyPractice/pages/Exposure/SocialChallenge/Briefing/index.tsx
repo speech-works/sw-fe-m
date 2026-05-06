@@ -324,6 +324,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
+  premiumStepHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    fontWeight: "600",
+    fontSize: 24,
+    marginBottom: 4,
+  },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
@@ -357,8 +364,8 @@ const styles = StyleSheet.create({
   roleplayTitleText: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#9A3412", // Deep Orange
-    fontWeight: "800",
-    fontSize: 28,
+    fontWeight: "600",
+    fontSize: 24,
   },
   roleplayDescText: {
     ...parseTextStyle(theme.typography.Body),

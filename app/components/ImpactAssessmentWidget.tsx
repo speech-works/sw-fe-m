@@ -98,7 +98,7 @@ export default React.memo(ImpactAssessmentWidget);
 const styles = StyleSheet.create({
   container: {
     marginBottom: 0,
-    borderRadius: 40,
+    borderRadius: 24,
     // Premium SaaS Shadow
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 12 },
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   gradient: {
-    borderRadius: 40,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24,

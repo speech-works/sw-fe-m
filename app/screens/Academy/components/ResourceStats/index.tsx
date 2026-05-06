@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     marginVertical: 0,
-    borderRadius: 40,
+    borderRadius: 24,
     // Premium SaaS Shadow
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 12 },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   gradient: {
-    borderRadius: 40,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24, // Reduced bottom padding
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     backgroundColor: "rgba(255, 255, 255, 0.96)",
     padding: 20,
-    borderRadius: 20, // Nesting: 40 - 20 = 20
+    borderRadius: 16,
     zIndex: 1,
     gap: 16,
     // Internal Shadow

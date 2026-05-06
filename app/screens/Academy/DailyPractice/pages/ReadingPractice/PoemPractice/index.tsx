@@ -1098,9 +1098,10 @@ const styles = StyleSheet.create({
   articleTitle: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#FFF",
-    fontSize: 26,
+    fontWeight: "700",
+    fontSize: 24,
     marginBottom: 4,
-    zIndex: 1,
+    letterSpacing: -0.5,
   },
   headerAuthor: {
     ...parseTextStyle(theme.typography.Body),

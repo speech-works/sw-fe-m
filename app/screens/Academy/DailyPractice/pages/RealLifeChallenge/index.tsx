@@ -861,8 +861,8 @@ const styles = StyleSheet.create({
   premiumStepHeader: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
-    fontWeight: "900", // Extra bold
-    fontSize: 28,
+    fontWeight: "600",
+    fontSize: 24,
     marginBottom: 4,
   },
   premiumStepSubHeader: {

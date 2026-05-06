@@ -543,11 +543,11 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   activityTitle: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
     color: "white",
     letterSpacing: -0.5,
-    lineHeight: 28,
+    lineHeight: 26,
   },
   activityInstructions: {
     fontSize: 15,

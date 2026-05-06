@@ -355,8 +355,8 @@ const styles = StyleSheet.create({
   roleplayTitleText: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#9A3412", // Deep Orange
-    fontWeight: "800",
-    fontSize: 28,
+    fontWeight: "600",
+    fontSize: 24,
   },
   roleplayDescText: {
     ...parseTextStyle(theme.typography.Body),

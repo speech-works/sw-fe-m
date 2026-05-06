@@ -111,8 +111,9 @@ export default React.memo(BuyPro);
 const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
-    paddingHorizontal: 28,
-    paddingVertical: 32,
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 24,
     ...parseShadowStyle(theme.shadow.elevation4),
     position: "relative",
     overflow: "hidden",
@@ -151,8 +152,9 @@ const styles = StyleSheet.create({
   title: {
     ...parseTextStyle(theme.typography.Heading2),
     color: "#FFFFFF",
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "900",
+    letterSpacing: -0.6,
   },
   subtitle: {
     ...parseTextStyle(theme.typography.BodySmall),

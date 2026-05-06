@@ -304,7 +304,8 @@ const styles = StyleSheet.create({
   profileSection: {
     marginBottom: 24, // increased
     borderRadius: 24, // softer
-    paddingVertical: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
     overflow: "hidden",
     position: "relative",
     marginHorizontal: 16, // Add margin from edges
@@ -370,16 +371,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-
   profileDetails: {
     flex: 1,
     justifyContent: "center",
   },
   profileName: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "900",
     color: "#FFFFFF",
     marginBottom: 4,
+    letterSpacing: -0.6,
     textShadowColor: "rgba(0,0,0,0.1)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 16, // Nesting: 24 - 8 = 16
     padding: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,

@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   profileSection: {
     marginTop: 10,
     marginBottom: 24,
-    borderRadius: 32,
+    borderRadius: 24,
     overflow: "hidden", // Clip internal layout-bubbles
     ...parseShadowStyle(theme.shadow.elevation3),
     shadowColor: "#2563EB",
@@ -398,7 +398,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   profileContent: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 32,
     alignItems: "center", // Center everything
     gap: 16,
     zIndex: 1,
@@ -437,8 +439,9 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "900",
     color: "#FFFFFF",
+    letterSpacing: -0.6,
     textShadowColor: "rgba(0,0,0,0.1)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -501,7 +504,7 @@ const styles = StyleSheet.create({
   listContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingVertical: 8,
+    paddingVertical: 12,
     ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
     borderColor: "#F1F5F9",

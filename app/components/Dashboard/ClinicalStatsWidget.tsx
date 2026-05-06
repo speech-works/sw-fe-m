@@ -1223,7 +1223,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 40,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24, // Reduced bottom padding
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F8FAFC",
     padding: 16,
-    borderRadius: 20, // Nesting: 40 - 20 = 20
+    borderRadius: 16,
     height: 110,
   },
   miniContent: {

@@ -415,32 +415,29 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                   <View style={styles.trophyContainer}>
                     <MaterialCommunityIcons
                       name="microphone"
-                      size={48}
-                      color="#F97316" // Orange
+                      size={42}
+                      color="#EA580C"
                     />
                   </View>
+                  <View style={styles.moduleLabelContainer}>
+                    <Text style={styles.moduleLabelText}>CURRENT MODULE</Text>
+                  </View>
                   <Text style={styles.creamCardTitle}>
-                    {nextModuleDisplay.title}
+                    {nextModuleDisplay.title.replace(/^Module \d+:\s*/, "")}
                   </Text>
-                  <Text style={styles.creamCardDesc} numberOfLines={3}>
+                  <Text style={styles.creamCardDesc} numberOfLines={2}>
                     {nextModuleDisplay.description}
                   </Text>
                 </View>
                 <View style={styles.creamCardFooter}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
+                  <View style={styles.startActionRow}>
                     <MaterialCommunityIcons
-                      name="play"
-                      size={20}
+                      name="play-circle"
+                      size={22}
                       color="#EA580C"
                     />
                     <Text style={styles.creamCardButtonText}>
-                      {actionButtonText}
+                      {actionButtonText.toUpperCase()}
                     </Text>
                   </View>
                 </View>
@@ -531,7 +528,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
-    borderRadius: 40,
+    borderRadius: 24,
     // Premium SaaS Shadow
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 12 },
@@ -544,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 40,
+    borderRadius: 24,
   },
   packTitleEmpty: {
     ...parseTextStyle(theme.typography.Heading2),
@@ -561,7 +558,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   gradient: {
-    borderRadius: 40,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24, // Reduced bottom padding
@@ -685,7 +682,7 @@ const styles = StyleSheet.create({
   // Cream Vertical Card Styles
   creamCard: {
     backgroundColor: "rgba(255, 247, 237, 0.95)", // Subtle glass/cream
-    borderRadius: 20, // Nesting: 40 - 20 = 20
+    borderRadius: 16,
     overflow: "hidden",
     marginTop: 8,
     marginBottom: 0,
@@ -704,33 +701,54 @@ const styles = StyleSheet.create({
   trophyContainer: {
     marginBottom: 16,
   },
+  moduleLabelContainer: {
+    backgroundColor: "rgba(234, 88, 12, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  moduleLabelText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#EA580C",
+    letterSpacing: 1,
+  },
   creamCardTitle: {
     fontSize: 22,
-    fontWeight: "900",
-    color: "#431407", 
+    fontWeight: "800",
+    color: "#431407",
     marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
+    lineHeight: 28,
   },
   creamCardDesc: {
-    fontSize: 14,
-    color: "#78350F", // Darker amber for readability
+    fontSize: 15,
+    color: "#78350F",
     textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 8,
-    opacity: 0.7,
+    lineHeight: 22,
+    paddingHorizontal: 12,
+    opacity: 0.8,
   },
   creamCardFooter: {
-    backgroundColor: "rgba(255, 237, 213, 0.8)", // More transparent
-    paddingVertical: 14,
+    backgroundColor: "rgba(255, 237, 213, 0.5)",
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(234, 88, 12, 0.05)",
+  },
+  startActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   creamCardButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900",
-    color: "#EA580C", 
-    letterSpacing: 0.5,
+    color: "#EA580C",
+    letterSpacing: 1,
   },
   // Modal Styles
   modalGradientContainer: {

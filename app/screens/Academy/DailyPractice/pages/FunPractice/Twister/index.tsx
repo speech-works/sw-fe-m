@@ -978,9 +978,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    opacity: 0.7,
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
+    fontWeight: "700",
+    fontSize: 22,
+    marginBottom: 16,
+    textAlign: "center",
   },
   readingText: {
     ...parseTextStyle(theme.typography.Heading2),

@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   cardGradient: {
     flex: 1,
     borderRadius: 24,
-    padding: 16,
+    padding: 20,
     justifyContent: "space-between",
     position: "relative",
     overflow: "hidden",
@@ -225,8 +225,10 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "rgba(0,0,0,0.8)",
-    fontSize: 20,
+    fontSize: 24,
+    fontWeight: "900",
     marginTop: 2,
+    letterSpacing: -0.6,
   },
   iconWrapper: {
     alignSelf: "flex-end",
