@@ -147,15 +147,24 @@ const CVExercise = () => {
       let activityIdToStart = currentActivityId || practiceActivity?.id;
 
       // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted && (activityIdToStart || practiceActivity)) {
-        console.log(">> CVExercise: Activity already started by Pack, skipping API call...");
-        const activityToSync = practiceActivity || { id: activityIdToStart };
-        addActivity({
-          ...activityToSync,
-        });
-        useUserStore.getState().fetchUser();
-        setCurrentActivityId(activityIdToStart || practiceActivity?.id);
-        return;
+      if (packContext?.alreadyStarted) {
+        if (practiceActivity) {
+          console.log(">> CVExercise: Activity already started by Pack, skipping API call...");
+          addActivity(practiceActivity);
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(practiceActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
+        }
       }
       if (!activityIdToStart) {
         if (!effectiveId) {

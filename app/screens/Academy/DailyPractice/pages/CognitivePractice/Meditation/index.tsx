@@ -261,19 +261,30 @@ const Meditation = () => {
     try {
       let activityIdToStart = currentActivityId;
 
-      // If activity is already started (via Pack pre-start), skip API call
-      if (packContext?.alreadyStarted && activityIdToStart) {
-        console.log(
-          ">> Meditation: skipping startPracticeActivity (already started)",
-        );
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted) {
         if (practiceActivity && selectedIndex !== null) {
+          console.log(
+            ">> Meditation: Activity already started by Pack, skipping API call...",
+          );
           addActivity({
             ...practiceActivity,
             cognitivePractice: meditationScenarios[selectedIndex],
           });
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(practiceActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
         }
-        setCurrentActivityId(activityIdToStart);
-        return;
       }
 
       // New Workflow: If we don't have an instance ID, create one

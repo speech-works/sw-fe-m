@@ -44,6 +44,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 
 import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
@@ -325,16 +326,28 @@ const Twister = () => {
         currentActivityId || route.params?.practiceActivity?.id;
 
       // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted && (activityIdToStart || route.params?.practiceActivity)) {
-        console.log(">> Twister: Activity already started by Pack, skipping API call...");
-        const activityToSync = route.params?.practiceActivity || { id: activityIdToStart };
-        addActivity({
-          ...activityToSync,
-          funPractice: twisters[currentIndex],
-        });
-        useUserStore.getState().fetchUser();
-        setCurrentActivityId(activityIdToStart || route.params?.practiceActivity?.id);
-        return;
+      const practiceActivity = route.params?.practiceActivity;
+      if (packContext?.alreadyStarted) {
+        if (practiceActivity) {
+          console.log(">> Twister: Activity already started by Pack, skipping API call...");
+          addActivity({
+            ...practiceActivity,
+            funPractice: twisters[currentIndex],
+          });
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(practiceActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
+        }
       }
       if (!activityIdToStart) {
         const contentId = twisters[currentIndex]?.id;

@@ -31,6 +31,7 @@ import { useSessionStore } from "../../../../../stores/session";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import { showErrorBottomSheet } from "../../../../../util/functions/bottomSheet";
 import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
@@ -183,13 +184,25 @@ const RealLifeChallenge = () => {
         return;
       }
 
+      // --- DOUBLE-START PREVENTION ---
       if (packContext?.alreadyStarted) {
-        console.log("RealLifeChallenge - Already started by pack");
         if (practiceActivity) {
+          console.log("RealLifeChallenge - Already started by pack, skipping API call...");
           addActivity(practiceActivity);
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(practiceActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
         }
-        setCurrentActivityId(currentActivityId || practiceActivity?.id || null);
-        return;
       }
 
       let activityIdToStart = currentActivityId;
@@ -353,7 +366,7 @@ const RealLifeChallenge = () => {
 
   const handleBack = () => {
     if (from === "MOOD_CHECK") {
-      navigation.navigate("Root" as any, { screen: "HOME" });
+      (navigation as any).navigate("Root", { screen: "HOME" });
     } else if (currentStep === ChallengeStep.INSTRUCTION) {
       navigation.goBack();
     } else {

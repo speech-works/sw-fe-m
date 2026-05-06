@@ -123,14 +123,27 @@ const PhoneCall = () => {
         return null;
       }
 
-      if (packContext?.alreadyStarted && practiceActivity) {
-        console.log(">> PhoneCall: Activity already started by Pack, syncing state...");
-        addActivity({
-          ...practiceActivity,
-        });
-        useUserStore.getState().fetchUser();
-        setTrackedActivityId(practiceActivity.id);
-        return practiceActivity.id;
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted) {
+        if (practiceActivity) {
+          console.log(">> PhoneCall: Activity already started by Pack, syncing state...");
+          addActivity({
+            ...practiceActivity,
+          });
+          useUserStore.getState().fetchUser();
+          setTrackedActivityId(practiceActivity.id);
+          return practiceActivity.id;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return null;
+        }
       }
 
       let activityIdToStart = currentActivityId;

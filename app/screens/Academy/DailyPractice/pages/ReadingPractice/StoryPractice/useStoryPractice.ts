@@ -29,6 +29,7 @@ import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 
 export const useStoryPractice = () => {
   const { setTabBarVisible } = useUIStore();
@@ -138,17 +139,7 @@ export const useStoryPractice = () => {
     setHighlightRange([-1, 0]);
   }, [selectedIndex, allStories]);
 
-  // If activity is already started (from Pack), sync local state immediately
-  useEffect(() => {
-    if (packContext?.alreadyStarted && initialActivity?.id) {
-      console.log(
-        ">> useStoryPractice: Activity already started by Pack. Initializing...",
-        initialActivity.id,
-      );
-      addActivity(initialActivity);
-      setCurrentActivityId(initialActivity.id);
-    }
-  }, [packContext, initialActivity, addActivity]);
+
 
   // --- Actions ---
 
@@ -185,6 +176,30 @@ export const useStoryPractice = () => {
 
       let activityIdToStart = currentActivityId || initialActivity?.id;
       const contentId = allStories[selectedIndex]?.id;
+
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted) {
+        if (initialActivity) {
+          console.log(
+            ">> useStoryPractice: Activity already started by Pack, skipping API call...",
+          );
+          addActivity(initialActivity);
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(initialActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but initialActivity is missing!");
+          setIsStarting(false);
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
+        }
+      }
 
       // If we don't have a unique activity ID yet, create one (Standalone mode)
       if (!activityIdToStart) {
@@ -233,15 +248,6 @@ export const useStoryPractice = () => {
         }
       }
 
-      // If activity is already started (via Pack pre-start), skip API call
-      if (packContext?.alreadyStarted && activityIdToStart) {
-        console.log(
-          ">> useStoryPractice: skipping startPracticeActivity (already started)",
-        );
-        addActivity(initialActivity);
-        setCurrentActivityId(activityIdToStart);
-        return;
-      }
 
       const startedActivity = await startPracticeActivity({
         id: activityIdToStart,

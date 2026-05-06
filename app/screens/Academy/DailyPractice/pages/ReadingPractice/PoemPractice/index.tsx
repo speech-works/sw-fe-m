@@ -64,6 +64,7 @@ import { useUserStore } from "../../../../../../stores/user";
 import { toPascalCase } from "../../../../../../util/functions/strings";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
+import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 
 const { width } = Dimensions.get("window");
 
@@ -178,18 +179,7 @@ const PoemPractice = () => {
     setCurrentPage(0);
   }, [selectedIndex, allPoems]);
 
-  // If activity is already started (from Pack), sync local state immediately
-  useEffect(() => {
-    if (packContext?.alreadyStarted && (route.params as any)?.practiceActivity) {
-      const initialActivity = (route.params as any).practiceActivity;
-      console.log(
-        ">> PoemPractice: Activity already started by Pack. Initializing...",
-        initialActivity.id,
-      );
-      addActivity(initialActivity);
-      setCurrentActivityId(initialActivity.id);
-    }
-  }, [packContext, route.params, addActivity]);
+
 
   // --- Actions ---
 
@@ -238,6 +228,30 @@ const PoemPractice = () => {
     let activityIdToStart =
       currentActivityId || (route.params as any)?.practiceActivity?.id;
 
+    // --- DOUBLE-START PREVENTION ---
+    const practiceActivity = (route.params as any)?.practiceActivity;
+    if (packContext?.alreadyStarted) {
+      if (practiceActivity) {
+        console.log(
+          ">> PoemPractice: Activity already started by Pack, skipping API call...",
+        );
+        addActivity(practiceActivity);
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(practiceActivity.id);
+        return;
+      } else {
+        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+        setIsStarting(false);
+        showErrorBottomSheet(
+          "Something went wrong",
+          "Activity data was lost. Returning to your Pack."
+        );
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+        return;
+      }
+    }
     // If we don't have a unique activity ID yet, create one (Standalone mode)
     if (!activityIdToStart) {
       const contentId = allPoems[selectedIndex]?.id;
@@ -282,16 +296,6 @@ const PoemPractice = () => {
         }
         activityIdToStart = newActivity.id;
       }
-    }
-    // If activity is already started (via Pack pre-start), skip API call
-    if (packContext?.alreadyStarted && activityIdToStart) {
-      console.log(
-        ">> PoemPractice: skipping startPracticeActivity (already started)",
-      );
-      const initialActivity = (route.params as any)?.practiceActivity;
-      addActivity(initialActivity);
-      setCurrentActivityId(activityIdToStart);
-      return;
     }
 
     const startedActivity = await startPracticeActivity({

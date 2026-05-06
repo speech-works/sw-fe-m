@@ -27,6 +27,7 @@ import {
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
+import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -82,21 +83,33 @@ const Briefing = () => {
     }
 
     // --- DOUBLE-START PREVENTION ---
-    if (packContext?.alreadyStarted && practiceActivity) {
-      console.log(
-        ">> SocialChallenge: Activity already started by Pack, skipping API call...",
-      );
-      addActivity({
-        ...practiceActivity,
-      });
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(practiceActivity.id);
-      navigation.navigate("SCChat", {
-        sc,
-        practiceActivityId: practiceActivity.id,
-        packContext,
-      } as any);
-      return;
+    if (packContext?.alreadyStarted) {
+      if (practiceActivity) {
+        console.log(
+          ">> SocialChallenge: Activity already started by Pack, skipping API call...",
+        );
+        addActivity({
+          ...practiceActivity,
+        });
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(practiceActivity.id);
+        navigation.navigate("SCChat", {
+          sc,
+          practiceActivityId: practiceActivity.id,
+          packContext,
+        } as any);
+        return;
+      } else {
+        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+        showErrorBottomSheet(
+          "Something went wrong",
+          "Activity data was lost. Returning to your Pack."
+        );
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+        return;
+      }
     }
 
     let activityIdToStart = currentActivityId;

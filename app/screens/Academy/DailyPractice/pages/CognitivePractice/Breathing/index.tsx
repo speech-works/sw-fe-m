@@ -444,15 +444,26 @@ const Breathing = () => {
     try {
       let activityIdToStart = currentActivityId || passedActivity?.id;
 
-      // If activity is already started (via Pack pre-start), skip API call
-      if (packContext?.alreadyStarted && activityIdToStart) {
-        console.log(">> Breathing: skipping startPracticeActivity (already started)");
+      // --- DOUBLE-START PREVENTION ---
+      if (packContext?.alreadyStarted) {
         if (passedActivity) {
+          console.log(">> Breathing: Activity already started by Pack, skipping API call...");
           addActivity(passedActivity);
           setCurrentActivity(passedActivity);
+          useUserStore.getState().fetchUser();
+          setCurrentActivityId(passedActivity.id);
+          return;
+        } else {
+          console.error("FATAL: Pack marked activity as started, but passedActivity is missing!");
+          showErrorBottomSheet(
+            "Something went wrong",
+            "Activity data was lost. Returning to your Pack."
+          );
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+          return;
         }
-        setCurrentActivityId(activityIdToStart);
-        return;
       }
 
       // If we don't have a unique activity ID yet, create one

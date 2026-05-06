@@ -30,6 +30,8 @@ import HardModeToggle from "../../../../components/HardModeToggle";
 import { getExposurePracticeById, getFunPracticeById } from "../../../../../../../api/dailyPractice";
 import { ExposurePractice, FunPractice, RolePlayData } from "../../../../../../../api/dailyPractice/types";
 
+import { useUserStore } from "../../../../../../../stores/user";
+
 const Briefing = () => {
   console.log("RoleplayBriefing MOUNTED");
   const navigation =
@@ -42,7 +44,7 @@ const Briefing = () => {
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayBriefing">>();
   const { title: initialTitle, description: initialDesc, roleplay: initialRoleplay, id } = route.params;
   const { user } = useUserStore();
-  const [hardMode, setHardMode] = useState(false);
+  const [hardMode, setHardMode] = React.useState(false);
   const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   const [loading, setLoading] = React.useState(!initialRoleplay);
