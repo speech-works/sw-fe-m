@@ -42,6 +42,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
+import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
 import DonePractice from "../../../../components/DonePractice";
 import MasonryTips from "../../../../components/MasonryTips";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -366,6 +367,8 @@ const CVExercise = () => {
               contentContainerStyle={{
                 paddingHorizontal: 24,
                 paddingTop: HEADER_HEIGHT + insets.top + 20,
+                justifyContent: "flex-end",
+                flexGrow: 1,
               }}
               showsVerticalScrollIndicator={false}
             >
@@ -592,7 +595,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "800",
+    fontWeight: "600",
   },
   headerRight: {
     width: 36,

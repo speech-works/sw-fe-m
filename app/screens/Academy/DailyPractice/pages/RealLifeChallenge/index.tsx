@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "800",
+    fontWeight: "600",
     letterSpacing: -0.5,
   },
 
