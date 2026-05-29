@@ -1,6 +1,21 @@
+const { withGradleProperties } = require("@expo/config-plugins");
+
 const apiBaseUrl = process.env.API_BASE_URL || "";
 const allowsInsecureNetworkTraffic =
   /^http:\/\//i.test(apiBaseUrl) || /^ws:\/\//i.test(apiBaseUrl);
+
+const withCustomJvmArgs = (config) => {
+  return withGradleProperties(config, (config) => {
+    const property = config.modResults.find((p) => p.key === "org.gradle.jvmargs");
+    const newArgs = "-Xmx4096m -XX:MaxMetaspaceSize=1024m";
+    if (property) {
+      property.value = newArgs;
+    } else {
+      config.modResults.push({ type: "property", key: "org.gradle.jvmargs", value: newArgs });
+    }
+    return config;
+  });
+};
 
 module.exports = {
   expo: {
@@ -78,6 +93,7 @@ module.exports = {
       favicon: "./app/assets/favicon.png",
     },
     plugins: [
+      withCustomJvmArgs,
       [
         "react-native-permissions",
         {
