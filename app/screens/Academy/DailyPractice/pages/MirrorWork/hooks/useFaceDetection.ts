@@ -76,17 +76,21 @@ export function useFaceDetection(isActive: boolean) {
       if (timestampMs - calibrationStartTimeRef.current >= CALIBRATION_DURATION_MS) {
         const buffer = calibrationBufferRef.current;
         if (buffer.length > 0) {
-          // ── Compute jaw distance baseline ──
-          let totalJaw = 0;
-          let jawFrames = 0;
+          // ── Compute mouth aperture baseline ──
+          let totalMouthAperture = 0;
+          let apertureFrames = 0;
 
-          // ── Compute brow Y baseline ──
-          let totalBrowY = 0;
+          // ── Compute inner brow distance baseline ──
+          let totalInnerBrowDist = 0;
           let browFrames = 0;
 
-          // ── Compute lip gap baseline ──
-          let totalLipGap = 0;
-          let lipFrames = 0;
+          // ── Compute nostril width baseline ──
+          let totalNostrilWidth = 0;
+          let nostrilFrames = 0;
+
+          // ── Compute cheek area baseline ──
+          let totalCheekArea = 0;
+          let cheekFrames = 0;
 
           // ── Compute yaw baseline ──
           let totalYaw = 0;
@@ -97,22 +101,7 @@ export function useFaceDetection(isActive: boolean) {
           let wasEyeClosed = false;
 
           buffer.forEach((f) => {
-            // Jaw distance
-            if (f.landmarks && f.landmarks.MOUTH_BOTTOM && f.landmarks.NOSE_BASE) {
-              totalJaw += f.landmarks.MOUTH_BOTTOM.y - f.landmarks.NOSE_BASE.y;
-              jawFrames++;
-            }
-
-            // Brow Y
-            if (f.contours && f.contours.LEFT_EYEBROW_BOTTOM) {
-              const browY =
-                f.contours.LEFT_EYEBROW_BOTTOM.reduce((sum, p) => sum + p.y, 0) /
-                f.contours.LEFT_EYEBROW_BOTTOM.length;
-              totalBrowY += browY;
-              browFrames++;
-            }
-
-            // Lip gap (distance between inner lip edges)
+            // Mouth Aperture (distance between inner lip edges)
             if (f.contours && f.contours.UPPER_LIP_BOTTOM && f.contours.LOWER_LIP_TOP) {
               const upperY =
                 f.contours.UPPER_LIP_BOTTOM.reduce((sum, p) => sum + p.y, 0) /
@@ -120,8 +109,41 @@ export function useFaceDetection(isActive: boolean) {
               const lowerY =
                 f.contours.LOWER_LIP_TOP.reduce((sum, p) => sum + p.y, 0) /
                 f.contours.LOWER_LIP_TOP.length;
-              totalLipGap += Math.abs(lowerY - upperY);
-              lipFrames++;
+              totalMouthAperture += Math.abs(lowerY - upperY);
+              apertureFrames++;
+            }
+
+            // Inner Brow Distance (Horizontal Squeeze)
+            if (f.contours && f.contours.LEFT_EYEBROW_BOTTOM && f.contours.RIGHT_EYEBROW_BOTTOM) {
+              // Find the rightmost point of the left eyebrow
+              const leftInnerX = Math.max(...f.contours.LEFT_EYEBROW_BOTTOM.map(p => p.x));
+              // Find the leftmost point of the right eyebrow
+              const rightInnerX = Math.min(...f.contours.RIGHT_EYEBROW_BOTTOM.map(p => p.x));
+              
+              if (rightInnerX > leftInnerX) { // sanity check
+                totalInnerBrowDist += (rightInnerX - leftInnerX);
+                browFrames++;
+              }
+            }
+
+            // Nostril Width (NOSE_BOTTOM contour horizontal span)
+            if (f.contours && f.contours.NOSE_BOTTOM && f.contours.NOSE_BOTTOM.length > 0) {
+              const xs = f.contours.NOSE_BOTTOM.map(p => p.x);
+              totalNostrilWidth += Math.max(...xs) - Math.min(...xs);
+              nostrilFrames++;
+            }
+
+            // Cheek Area (average bounding-rect area of left + right cheek contours)
+            if (f.contours && f.contours.LEFT_CHEEK && f.contours.RIGHT_CHEEK &&
+                f.contours.LEFT_CHEEK.length > 0 && f.contours.RIGHT_CHEEK.length > 0) {
+              const lxs = f.contours.LEFT_CHEEK.map(p => p.x);
+              const lys = f.contours.LEFT_CHEEK.map(p => p.y);
+              const rxs = f.contours.RIGHT_CHEEK.map(p => p.x);
+              const rys = f.contours.RIGHT_CHEEK.map(p => p.y);
+              const leftArea = (Math.max(...lxs) - Math.min(...lxs)) * (Math.max(...lys) - Math.min(...lys));
+              const rightArea = (Math.max(...rxs) - Math.min(...rxs)) * (Math.max(...rys) - Math.min(...rys));
+              totalCheekArea += (leftArea + rightArea) / 2;
+              cheekFrames++;
             }
 
             // Yaw
@@ -138,12 +160,12 @@ export function useFaceDetection(isActive: boolean) {
           const calibrationDurationSec = CALIBRATION_DURATION_MS / 1000;
 
           const baseline: UserBaseline = {
-            // Actual blink events per second (not frames-with-eyes-closed)
             blinkRatePerSecond: blinkCount / calibrationDurationSec,
-            neutralJawDistance: jawFrames > 0 ? totalJaw / jawFrames : 0,
-            neutralBrowY: browFrames > 0 ? totalBrowY / browFrames : 0,
+            neutralMouthAperture: apertureFrames > 0 ? totalMouthAperture / apertureFrames : 0,
+            neutralInnerBrowDist: browFrames > 0 ? totalInnerBrowDist / browFrames : 0,
+            neutralNostrilWidth: nostrilFrames > 0 ? totalNostrilWidth / nostrilFrames : 0,
+            neutralCheekArea: cheekFrames > 0 ? totalCheekArea / cheekFrames : 0,
             neutralEulerYaw: totalYaw / buffer.length,
-            neutralLipGap: lipFrames > 0 ? totalLipGap / lipFrames : 0,
           };
 
           console.log("[MirrorWork] Calibration complete:", JSON.stringify(baseline));

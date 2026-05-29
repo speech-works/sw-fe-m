@@ -7,13 +7,16 @@ interface AwarenessOverlayProps {
   nudgeMode: 'ON' | 'OFF';
 }
 
-const NUDGE_COOLDOWN_MS = 10000;
-const NUDGE_VISIBLE_MS = 3000;
+const MIN_VISIBLE_MS = 3000;
 
 const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: string }> = {
   [MirrorBehaviorSignal.JAW_TENSION]: {
     line1: 'Your jaw tightened just then.',
     line2: 'If it feels tight, try letting it drop open slightly on your next exhale.',
+  },
+  [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]: {
+    line1: 'Your mouth stayed open just now.',
+    line2: 'Try to relax your jaw and let the sound out naturally.',
   },
   [MirrorBehaviorSignal.LIP_PURSING]: {
     line1: 'Your lips pressed together.',
@@ -25,6 +28,10 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: stri
   },
   [MirrorBehaviorSignal.EYE_BLINK_SPIKE]: {
     line1: 'Blinking picked up just now.',
+    line2: 'A slow breath can help settle things.',
+  },
+  [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]: {
+    line1: 'Your eyes blinked rapidly or closed hard.',
     line2: 'A slow breath can help settle things.',
   },
   [MirrorBehaviorSignal.BROW_TENSION]: {
@@ -39,83 +46,93 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: stri
     line1: 'Your head moved while your face was tense.',
     line2: "That sometimes happens when we're working hard to get a word out. It's okay.",
   },
+  [MirrorBehaviorSignal.HEAD_JERKING]: {
+    line1: 'Your head moved sharply.',
+    line2: "That sometimes happens when we try to push a word out. It's okay.",
+  },
+  [MirrorBehaviorSignal.NOSTRIL_FLARE]: {
+    line1: 'Your nose muscles tensed for a moment.',
+    line2: 'Soft breath in through the nose can release that tension.',
+  },
+  [MirrorBehaviorSignal.CHEEK_PUFFING]: {
+    line1: 'You filled your cheeks with air.',
+    line2: 'Let that air out gently before you start. The word will come.',
+  },
   [MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE]: {
     line1: 'A lot is happening in your face right now.',
+    line2: "Take a breath. The word is yours — it'll come.",
+  },
+  [MirrorBehaviorSignal.FACIAL_GRIMACING]: {
+    line1: 'There is some struggle in your facial muscles.',
     line2: "Take a breath. The word is yours — it'll come.",
   },
 };
 
 export const AwarenessOverlay: React.FC<AwarenessOverlayProps> = ({ activeSignals, nudgeMode }) => {
-  const [currentNudge, setCurrentNudge] = useState<MirrorBehaviorSignal | null>(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const lastNudgeTimeRef = useRef<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [visibleSignals, setVisibleSignals] = useState<Map<MirrorBehaviorSignal, number>>(new Map());
 
   useEffect(() => {
-    if (nudgeMode === 'OFF' || activeSignals.length === 0) return;
+    if (nudgeMode === 'OFF') {
+      setVisibleSignals(new Map());
+      return;
+    }
 
     const now = Date.now();
-    if (now - lastNudgeTimeRef.current < NUDGE_COOLDOWN_MS) {
-      return; // In cooldown
-    }
+    setVisibleSignals((prev) => {
+      const next = new Map(prev);
+      let changed = false;
+      
+      activeSignals.forEach((sig) => {
+        if (!next.has(sig)) {
+          next.set(sig, now);
+          changed = true;
+        }
+      });
 
-    if (currentNudge) return; // Already showing a nudge
+      return changed ? next : prev;
+    });
+  }, [activeSignals, nudgeMode]);
 
-    // Pick the most critical signal (FACIAL_TENSION_COMPOSITE has highest priority)
-    const priorityOrder = [
-      MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE,
-      MirrorBehaviorSignal.HEAD_MOVEMENT,
-      MirrorBehaviorSignal.JAW_TENSION,
-      MirrorBehaviorSignal.EYE_CLOSURE,
-      MirrorBehaviorSignal.LIP_PURSING,
-      MirrorBehaviorSignal.BROW_TENSION,
-      MirrorBehaviorSignal.GAZE_AVERSION,
-      MirrorBehaviorSignal.EYE_BLINK_SPIKE,
-    ];
-
-    const signalToShow = priorityOrder.find(s => activeSignals.includes(s));
-
-    if (signalToShow) {
-      setCurrentNudge(signalToShow);
-      lastNudgeTimeRef.current = now;
-
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-
-      if (timerRef.current) clearTimeout(timerRef.current);
-
-      timerRef.current = setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => {
-          setCurrentNudge(null);
-        });
-      }, NUDGE_VISIBLE_MS);
-    }
-  }, [activeSignals, nudgeMode, fadeAnim, currentNudge]);
-
+  // Periodic cleanup for signals that are no longer active AND have passed MIN_VISIBLE_MS
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    const interval = setInterval(() => {
+      setVisibleSignals((prev) => {
+        const next = new Map(prev);
+        const now = Date.now();
+        let changed = false;
 
-  if (!currentNudge) return null;
+        next.forEach((timestamp, sig) => {
+          if (!activeSignals.includes(sig) && now - timestamp >= MIN_VISIBLE_MS) {
+            next.delete(sig);
+            changed = true;
+          }
+        });
 
-  const msg = NUDGE_MESSAGES[currentNudge];
+        return changed ? next : prev;
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [activeSignals]);
+
+  if (visibleSignals.size === 0) return null;
+
+  // Sort by enum key to keep order somewhat stable, or by timestamp
+  const displayedSignals = Array.from(visibleSignals.keys());
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={styles.toast}>
-        <Text style={styles.line1}>{msg.line1}</Text>
-        {msg.line2 && <Text style={styles.line2}>{msg.line2}</Text>}
-      </View>
-    </Animated.View>
+    <View style={styles.container}>
+      {displayedSignals.map((sig) => {
+        const msg = NUDGE_MESSAGES[sig];
+        if (!msg) return null;
+        return (
+          <View key={sig} style={styles.toast}>
+            <Text style={styles.line1}>{msg.line1}</Text>
+            {msg.line2 && <Text style={styles.line2}>{msg.line2}</Text>}
+          </View>
+        );
+      })}
+    </View>
   );
 };
 
@@ -134,6 +151,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     width: '100%',
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

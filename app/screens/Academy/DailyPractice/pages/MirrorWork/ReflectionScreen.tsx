@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 export const ReflectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { scores, promptsAttempted, nudgeMode, sessionDurationSeconds, signalCounts } = route.params || {};
+  const { scores, promptsAttempted, nudgeMode, sessionDurationSeconds, signalCounts, practiceActivityId } = route.params || {};
 
   const [reflectionText, setReflectionText] = useState('');
 
@@ -17,7 +17,8 @@ export const ReflectionScreen: React.FC = () => {
       nudgeMode,
       sessionDurationSeconds,
       signalCounts,
-      reflectionText
+      reflectionText,
+      practiceActivityId,
     });
   };
 

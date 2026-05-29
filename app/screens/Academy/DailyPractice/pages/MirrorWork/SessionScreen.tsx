@@ -18,6 +18,7 @@ export const SessionScreen: React.FC = () => {
   const prompts: MirrorWorkCognitivePrompt[] = route.params?.prompts || [
     { id: '1', category: 'Testing', text: 'If you could talk to your younger self, what would you say?' }
   ];
+  const practiceActivityId: string | undefined = route.params?.practiceActivityId;
 
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -59,13 +60,14 @@ export const SessionScreen: React.FC = () => {
     session.endSession();
     const scores = session.getAwarenessScores();
     
-    // Navigate to Reflection flow
+    // Navigate to Reflection flow, carrying the real activityId through
     navigation.navigate('MirrorWorkReflection', {
       scores,
       promptsAttempted: session.currentPromptIndex + 1,
       nudgeMode: session.nudgeMode,
       sessionDurationSeconds: session.sessionDurationSeconds,
-      signalCounts: session.signalCounts
+      signalCounts: session.signalCounts,
+      practiceActivityId,
     });
   };
 
@@ -127,6 +129,14 @@ export const SessionScreen: React.FC = () => {
               <Text style={styles.calibrationText}>Take a moment to settle in...</Text>
             </View>
           )}
+          
+          {!detectionState.isCalibrating && detectionState.faceInFrame && session.currentPrompt && (
+            <View style={styles.promptWrapper}>
+              <CognitivePromptCard 
+                prompt={session.currentPrompt} 
+              />
+            </View>
+          )}
         </View>
 
         {/* Nudges */}
@@ -139,15 +149,7 @@ export const SessionScreen: React.FC = () => {
 
         {/* Bottom Section: Prompts and Controls */}
         <View style={styles.bottomSection}>
-          {session.currentPrompt && (
-            <View style={styles.promptWrapper}>
-              <CognitivePromptCard 
-                prompt={session.currentPrompt} 
-                onNext={handleNextPrompt} 
-                isLast={session.currentPromptIndex === prompts.length - 1}
-              />
-            </View>
-          )}
+
 
           {/* Google Meet Style Controls */}
           <View style={styles.controlBar}>
@@ -168,6 +170,16 @@ export const SessionScreen: React.FC = () => {
                 {session.nudgeMode === 'ON' ? "Notes ON" : "Notes OFF"}
               </Text>
             </TouchableOpacity>
+
+            {session.currentPromptIndex < prompts.length - 1 && (
+              <TouchableOpacity 
+                style={styles.controlButton} 
+                onPress={handleNextPrompt}
+              >
+                <Icon name="chevron-forward" size={24} color="#FFF" />
+                <Text style={styles.controlLabel}>Next</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity 
               style={[styles.controlButton, styles.endButton]} 

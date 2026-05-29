@@ -210,6 +210,49 @@ export async function completePracticeActivity({
   }
 }
 
+export interface MirrorWorkCompletionApiPayload {
+  detectedSignals: Record<string, { eventCount: number }>;
+  awarenessScores: {
+    gazeMaintained: number;
+    jawEase: number;
+    lipEase: number;
+    overallEaseScore: number;
+  };
+  vitals: {
+    effortScore: number;
+    autonomyScore: number;
+  };
+  detectionAccuracyRating: number;
+  reflectionText: string;
+  promptsAttempted: number;
+  nudgeMode: 'ON' | 'OFF';
+  sessionDurationSeconds: number;
+}
+
+/**
+ * Complete a Mirror Work practice activity.
+ *
+ * Calls the dedicated POST /practice-activities/{id}/complete-mirror-work
+ * endpoint, which stores the full session payload (signals, scores, vitals,
+ * reflection) and feeds overallEaseScore into the IMPAIRMENT_STRUGGLE
+ * clinical domain trend.
+ */
+export async function completeMirrorWorkActivity(
+  id: string,
+  userId: string,
+  mirrorWorkPayload: MirrorWorkCompletionApiPayload,
+): Promise<PracticeActivity> {
+  console.log('>> API: Completing Mirror Work Activity', { id, mirrorWorkPayload });
+  const response = await axiosClient.post(
+    `/practice-activities/${id}/complete-mirror-work`,
+    { userId, mirrorWorkPayload },
+  );
+  console.log('<< API: Mirror Work Activity Completed Successfully', response.data);
+  return response.data;
+}
+
+
+
 // Abort a practice activity (update its status to ABORTED)
 export async function abortPracticeActivity({
   id,

@@ -113,6 +113,13 @@ module.exports = {
       "expo-notifications",
       "expo-web-browser",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "SpeechWorks needs your microphone for awareness exercises.",
+          "speechRecognitionPermission": "SpeechWorks uses speech recognition to analyze speech patterns during exercises."
+        }
+      ],
+      [
         "react-native-vision-camera",
         {
           cameraPermissionText: "SpeechWorks uses your camera for on-device body awareness exercises. No video is recorded or sent anywhere.",

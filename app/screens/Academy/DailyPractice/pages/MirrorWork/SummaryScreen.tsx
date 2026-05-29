@@ -1,52 +1,86 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { MirrorWorkFeedbackModal } from './components/MirrorWorkFeedbackModal';
 import { MirrorBehaviorSignal } from './types';
+import { completeMirrorWorkActivity } from '../../../../../api/practiceActivities';
+import { useUserStore } from '../../../../../stores/user';
+import DonePractice from '../../components/DonePractice';
 
 export const SummaryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { 
-    scores, 
-    promptsAttempted, 
-    nudgeMode, 
-    sessionDurationSeconds, 
-    signalCounts, 
-    reflectionText 
+  const {
+    scores,
+    promptsAttempted,
+    nudgeMode,
+    sessionDurationSeconds,
+    signalCounts,
+    reflectionText,
+    practiceActivityId,
   } = route.params || {};
 
+  const { user, fetchUser } = useUserStore();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = () => {
     setShowFeedbackModal(true);
   };
 
-  const submitFinalData = (feedback: { effortScore: number; autonomyScore: number; detectionAccuracyRating: number }) => {
+  const submitFinalData = async (feedback: { effortScore: number; autonomyScore: number; detectionAccuracyRating: number }) => {
     setShowFeedbackModal(false);
-    
-    // In a real implementation, dispatch to Redux/Zustand or API here:
-    const payload = {
-      practiceActivityId: "TECH_COGNITIVE_MIRROR_WORK_GENERAL", // Ideally passed from route
-      detectedSignals: signalCounts,
-      awarenessScores: scores,
+    setIsSubmitting(true);
+
+    const mirrorWorkPayload = {
+      detectedSignals: signalCounts || {},
+      awarenessScores: scores || { gazeMaintained: 100, jawEase: 100, lipEase: 100, overallEaseScore: 100 },
       vitals: {
         effortScore: feedback.effortScore,
         autonomyScore: feedback.autonomyScore,
       },
       detectionAccuracyRating: feedback.detectionAccuracyRating,
-      reflectionText,
-      promptsAttempted,
-      nudgeMode,
-      sessionDurationSeconds,
+      reflectionText: reflectionText || '',
+      promptsAttempted: promptsAttempted || 0,
+      nudgeMode: nudgeMode || 'ON',
+      sessionDurationSeconds: sessionDurationSeconds || 0,
     };
-    
-    console.log("Submitting Mirror Work Data:", JSON.stringify(payload, null, 2));
 
-    // Navigate back to DailyPractice or Home
-    navigation.navigate('Home'); 
+    if (practiceActivityId && user?.id) {
+      try {
+        await completeMirrorWorkActivity(practiceActivityId, user.id, mirrorWorkPayload);
+        // Refresh user XP in the background — don't block navigation on this
+        fetchUser?.().catch((e: Error) => console.warn('[SummaryScreen] fetchUser failed:', e));
+      } catch (err) {
+        // Log and surface a non-blocking toast. Never block DonePractice on an API failure.
+        console.error('[SummaryScreen] completeMirrorWorkActivity failed:', err);
+        Alert.alert(
+          'Could not save your session',
+          'Your session has ended. We\'ll try to sync your data next time.',
+          [{ text: 'OK' }],
+        );
+      }
+    } else {
+      console.warn('[SummaryScreen] No practiceActivityId or userId — skipping API call.', {
+        practiceActivityId,
+        userId: user?.id,
+      });
+    }
+
+    setIsSubmitting(false);
+    setIsDone(true);
   };
+
+  if (isDone) {
+    return (
+      <DonePractice
+        practiceName="Mirror Work"
+        onDone={() => navigation.navigate('Home')}
+      />
+    );
+  }
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -72,8 +106,8 @@ export const SummaryScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Session Summary</Text>
           <Text style={styles.subtitle}>
-            {nudgeMode === 'OFF' ? 
-              "You practiced in Quiet Mode, but we still kept track of these observations for you." : 
+            {nudgeMode === 'OFF' ?
+              "You practiced in Quiet Mode, but we still kept track of these observations for you." :
               "Here's a breakdown of what we observed while you were speaking."}
           </Text>
         </View>
@@ -123,9 +157,9 @@ export const SummaryScreen: React.FC = () => {
       </ScrollView>
 
       <Modal visible={showFeedbackModal} animationType="slide" transparent>
-        <MirrorWorkFeedbackModal 
-          onSubmit={submitFinalData} 
-          onClose={() => setShowFeedbackModal(false)} 
+        <MirrorWorkFeedbackModal
+          onSubmit={submitFinalData}
+          onClose={() => setShowFeedbackModal(false)}
         />
       </Modal>
     </SafeAreaView>
