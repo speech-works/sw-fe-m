@@ -20,7 +20,7 @@ export interface FaceDetectionState {
   lightingWarning: boolean;
 }
 
-export function useFaceDetection(isActive: boolean) {
+export function useFaceDetection(isActive: boolean, isSilent?: (threshold: number) => boolean) {
   const [state, setState] = useState<FaceDetectionState>({
     isCalibrating: true,
     faceInFrame: true,
@@ -176,7 +176,7 @@ export function useFaceDetection(isActive: boolean) {
       }
     } else {
       // Normal Detection
-      const detectionResult = analyzerRef.current.analyzeFrame(face, timestampMs);
+      const detectionResult = analyzerRef.current.analyzeFrame(face, timestampMs, isSilent);
       setState((prev) => ({
         ...prev,
         activeSignals: detectionResult.activeSignals,

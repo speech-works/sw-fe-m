@@ -3,14 +3,17 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Platform, Statu
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useKeepAwake } from 'expo-keep-awake';
 import { useFaceDetection } from './hooks/useFaceDetection';
 import { useMirrorSession } from './hooks/useMirrorSession';
+import { useSpeechDetection } from './hooks/useSpeechDetection';
 import { AwarenessOverlay } from './components/AwarenessOverlay';
 import { FaceFrameGuard } from './components/FaceFrameGuard';
 import { CognitivePromptCard } from './components/CognitivePromptCard';
 import { MirrorWorkCognitivePrompt } from './types';
 
 export const SessionScreen: React.FC = () => {
+  useKeepAwake();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   
@@ -25,7 +28,8 @@ export const SessionScreen: React.FC = () => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  const { state: detectionState, frameProcessor } = useFaceDetection(isCameraActive);
+  const speech = useSpeechDetection();
+  const { state: detectionState, frameProcessor } = useFaceDetection(isCameraActive, speech.isSilent);
   
   const session = useMirrorSession({ prompts });
 
@@ -40,6 +44,7 @@ export const SessionScreen: React.FC = () => {
     if (hasPermission && device && !session.isSessionActive) {
       session.startSession();
       setIsCameraActive(true);
+      speech.startListening();
     }
   }, [hasPermission, device, session.isSessionActive]);
 
@@ -57,6 +62,7 @@ export const SessionScreen: React.FC = () => {
 
   const handleEndSession = () => {
     setIsCameraActive(false);
+    speech.stopListening();
     session.endSession();
     const scores = session.getAwarenessScores();
     

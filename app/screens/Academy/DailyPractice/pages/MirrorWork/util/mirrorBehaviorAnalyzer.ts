@@ -102,7 +102,7 @@ export class MirrorBehaviorAnalyzer {
     }
   }
 
-  public analyzeFrame(face: Face, timestampMs: number): DetectionResult {
+  public analyzeFrame(face: Face, timestampMs: number, isSilent?: (threshold: number) => boolean): DetectionResult {
     const activeSignals: MirrorBehaviorSignal[] = [];
     const newSignals: MirrorBehaviorSignal[] = [];
 
@@ -171,7 +171,8 @@ export class MirrorBehaviorAnalyzer {
       const apertureRatio = mouthAperture / this.baseline.neutralMouthAperture;
       jawTensed = apertureRatio < 0.5;
     }
-    this.updateState(jawTensed, 'jawTension', 8, MirrorBehaviorSignal.JAW_TENSION, activeSignals, newSignals);
+    const jawSilentGate = isSilent ? isSilent(800) : true;
+    this.updateState(jawTensed && jawSilentGate, 'jawTension', 8, MirrorBehaviorSignal.JAW_TENSION, activeSignals, newSignals);
 
     // ─────────────────────────────────────────────────────────────
     // 3. OPEN_MOUTH_HOLD (Aperture > 150% of rest AND frozen low variance)
@@ -203,7 +204,8 @@ export class MirrorBehaviorAnalyzer {
         }
       }
     }
-    this.updateState(lipPursed, 'lipPursing', 8, MirrorBehaviorSignal.LIP_PURSING, activeSignals, newSignals);
+    const lipSilentGate = isSilent ? isSilent(800) : true;
+    this.updateState(lipPursed && lipSilentGate, 'lipPursing', 8, MirrorBehaviorSignal.LIP_PURSING, activeSignals, newSignals);
 
     // ─────────────────────────────────────────────────────────────
     // 5. BROW_TENSION (Inner brow compression < 85% of rest)
