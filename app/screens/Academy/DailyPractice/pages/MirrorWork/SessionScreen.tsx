@@ -42,11 +42,17 @@ export const SessionScreen: React.FC = () => {
     }
   }, [hasPermission, device, session.isSessionActive]);
 
+  // Record discrete new events (for event count in summary)
   useEffect(() => {
-    if (detectionState.activeSignals.length > 0) {
-      session.recordSignals(detectionState.activeSignals);
+    if (detectionState.newSignals.length > 0) {
+      session.recordNewSignals(detectionState.newSignals);
     }
-  }, [detectionState.activeSignals, session.recordSignals]);
+  }, [detectionState.newSignals, session.recordNewSignals]);
+
+  // Record active signals for time-based ease score computation
+  useEffect(() => {
+    session.recordActiveSignals(detectionState.activeSignals);
+  }, [detectionState.activeSignals, session.recordActiveSignals]);
 
   const handleEndSession = () => {
     setIsCameraActive(false);
