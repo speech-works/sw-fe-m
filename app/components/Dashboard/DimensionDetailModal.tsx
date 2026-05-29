@@ -265,16 +265,15 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
             <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerTopRow}>
-                <Text style={styles.titleText}>{config.label}</Text>
-              </View>
-              <Text style={styles.subtitleText}>{config.description}</Text>
+          {/* Header (Sticky) */}
+          <View style={styles.headerContainer}>
+            <View style={styles.headerTopRow}>
+              <Text style={styles.titleText}>{config.label}</Text>
             </View>
+            <Text style={styles.subtitleText}>{config.description}</Text>
+          </View>
 
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {/* Editorial Card */}
             <View style={styles.card}>
               <View style={styles.switcher}>
@@ -381,11 +380,13 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 28,
-    paddingTop: 32,
+    paddingTop: 8,
     paddingBottom: 80, // Extra space for floating button
   },
-  header: {
-    marginBottom: 28,
+  headerContainer: {
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    marginBottom: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
