@@ -1,12 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/FontAwesome5';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { theme } from '../../../../../Theme/tokens';
+import { parseTextStyle } from '../../../../../util/functions/parseStyles';
 import { MirrorWorkData } from './types';
 
 export const PrepScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
+  
   // Assuming the backend cognitive practice data is passed in route.params
   const practiceData = route.params?.practiceData || {};
   const mirrorWorkData: MirrorWorkData = practiceData.mirrorWorkData || {
@@ -29,15 +36,34 @@ export const PrepScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#1C1C1E" />
+    <View style={styles.screenView}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.headerBar,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>{practiceData.name || "Mirror Work"}</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
-          <Text style={styles.title}>{practiceData.name || "Mirror Work"}</Text>
           <Text style={styles.description}>
             {practiceData.description || "Speak to your camera and notice what your body does. No scores, no performance — just observation."}
           </Text>
@@ -64,7 +90,7 @@ export const PrepScreen: React.FC = () => {
         </View>
 
         <View style={styles.privacyCard}>
-          <Icon name="bulb" size={24} color="#007AFF" style={styles.privacyIcon} />
+          <Icon name="lightbulb" size={24} color="#007AFF" style={styles.privacyIcon} />
           <View style={styles.privacyTextContainer}>
             <Text style={styles.privacyTitle}>Gentle Notes</Text>
             <Text style={styles.privacyText}>
@@ -72,7 +98,6 @@ export const PrepScreen: React.FC = () => {
             </Text>
           </View>
         </View>
-
       </ScrollView>
 
       <View style={styles.footer}>
@@ -80,37 +105,49 @@ export const PrepScreen: React.FC = () => {
           <Text style={styles.startButtonText}>Begin Session</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screenView: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  headerBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
   },
   container: {
     flex: 1,
   },
   content: {
     padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 10 : 40,
-  },
-  backButton: {
-    marginBottom: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
   },
   header: {
     marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1C1C1E',
-    marginBottom: 12,
-    letterSpacing: -0.5,
   },
   description: {
     fontSize: 17,
@@ -194,3 +231,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
