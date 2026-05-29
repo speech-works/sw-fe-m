@@ -26,7 +26,6 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import MasonryTips from "../../../components/MasonryTips";
 import MeditationCard from "./components/MeditationCard";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 
@@ -770,26 +769,38 @@ const Meditation = () => {
         >
           <>
             {selectedIndex !== null && meditationScenarios[selectedIndex] && (
-              <MeditationCard
-                selectedMed={meditationScenarios[selectedIndex]}
-                onMedToggle={() => {
-                  setIsVisible((old) => !old);
-                }}
-              />
+              <View style={{ marginBottom: 32 }}>
+                <MeditationCard
+                  selectedMed={meditationScenarios[selectedIndex]}
+                  onMedToggle={() => {
+                    setIsVisible((old) => !old);
+                  }}
+                />
+              </View>
             )}
 
-            <View style={styles.tipsContainer}>
-              {/* Masonry Tips Grid */}
-              {selectedIndex !== null &&
-              meditationScenarios[selectedIndex]?.guidedMeditationData?.tips ? (
-                <MasonryTips
-                  tips={
-                    meditationScenarios[selectedIndex]?.guidedMeditationData
-                      ?.tips || []
-                  }
-                />
-              ) : null}
-            </View>
+            {selectedIndex !== null &&
+              meditationScenarios[selectedIndex]?.guidedMeditationData?.tips &&
+              meditationScenarios[selectedIndex]?.guidedMeditationData!.tips!.length > 0 && (
+                <View style={styles.timelineSection}>
+                  <Text style={styles.sectionHeader}>Tips</Text>
+                  <View style={styles.timelineContainer}>
+                    {meditationScenarios[selectedIndex]?.guidedMeditationData!.tips!.map((tip, index, arr) => (
+                      <View key={index} style={styles.timelineItem}>
+                        <View style={styles.timelineTrack}>
+                          <View style={styles.timelineDot} />
+                          {index !== arr.length - 1 && (
+                            <View style={styles.timelineLine} />
+                          )}
+                        </View>
+                        <View style={styles.timelineContent}>
+                          <Text style={styles.timelineText}>{tip}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
           </>
         </ScrollView>
 
@@ -866,19 +877,20 @@ const Meditation = () => {
                       end={{ x: 1, y: 1 }}
                       style={styles.medCardGradient}
                     >
-                      <View style={styles.medIconContainerSelected}>
+                      <View style={styles.watermarkIconContainer}>
                         <Icon
                           solid
                           name={med.guidedMeditationData?.icon || "spa"}
-                          size={18}
-                          color="#7C3AED"
+                          size={100}
+                          color="#FFFFFF"
+                          style={{ opacity: 0.1 }}
                         />
                       </View>
                       <View style={styles.medDescContainer}>
                         <Text style={styles.medNameTextSelected}>
                           {med.name}
                         </Text>
-                        <Text style={styles.medDetailTextSelected}>
+                        <Text style={styles.medDetailTextSelected} numberOfLines={2}>
                           {med.description}
                         </Text>
                       </View>
@@ -886,17 +898,18 @@ const Meditation = () => {
                     </LinearGradient>
                   ) : (
                     <View style={styles.medCardContent}>
-                      <View style={styles.medIconContainerUnselected}>
+                      <View style={styles.watermarkIconContainer}>
                         <Icon
                           solid
                           name={med.guidedMeditationData?.icon || "spa"}
-                          size={18}
+                          size={100}
                           color="#94A3B8"
+                          style={{ opacity: 0.1 }}
                         />
                       </View>
                       <View style={styles.medDescContainer}>
                         <Text style={styles.medNameText}>{med.name}</Text>
-                        <Text style={styles.medDetailText}>
+                        <Text style={styles.medDetailText} numberOfLines={2}>
                           {med.description}
                         </Text>
                       </View>
@@ -925,6 +938,7 @@ export default Meditation;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#FAFAFA",
   },
   container: {
     gap: 32,
@@ -1034,53 +1048,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  tipsContainer: {
-    paddingHorizontal: 0,
-    gap: 0,
+  timelineSection: {
+    marginBottom: 16,
   },
-  noteStack: {
-    paddingHorizontal: 0,
-    gap: 16,
-    paddingBottom: 20,
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
   },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    // Premium shadow
-    shadowColor: theme.colors.library.purple[200],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+  timelineContainer: {
+    paddingLeft: 4,
   },
-  noteIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3E8FF", // faint purple
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
+  timelineItem: {
+    flexDirection: 'row',
   },
-  noteContent: {
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.purple[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
     flex: 1,
-    gap: 4,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
   },
-  noteTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: "#171717",
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
   },
-  noteBody: {
+  timelineText: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#525252",
-    lineHeight: 22,
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
   startButton: {
     borderRadius: 20,
@@ -1161,55 +1173,34 @@ const styles = StyleSheet.create({
   // Med Card Styles
   medCardBase: {
     width: "100%",
-    borderRadius: 32, // Squircle / Super-rounded
+    borderRadius: 24, // Squircle / Super-rounded
     overflow: "hidden",
   },
   medCardUnselected: {
-    backgroundColor: "#F8FAFC", // Very subtle slate-50
-    // Minimal floating shadow
-    shadowColor: "#94A3B8",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4,
-    borderWidth: 0, // No border
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   medCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 24, // Generous padding
-    gap: 20,
+    paddingVertical: 20, 
+    paddingHorizontal: 24,
+    minHeight: 90,
   },
   medCardGradient: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 24, // Generous padding
-    gap: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    minHeight: 90,
   },
-
-  // Icons
-  medIconContainerSelected: {
-    width: 56, // Large icon
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.25)", // Frosted glass
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  medIconContainerUnselected: {
-    width: 56, // Large icon
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    // Subtle shadow for icon
-    shadowColor: "#64748B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    transform: [{ rotate: "-15deg" }],
+    zIndex: 0,
   },
 
   // Text

@@ -16,7 +16,7 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
-import MasonryTips from "../../../components/MasonryTips";
+
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -531,16 +531,14 @@ const Twister = () => {
 
   // 1. Pre-Practice (Tips) View
   if (!currentActivityId) {
-    return (
-      <ScreenView style={styles.screenView}>
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEEF8", "#FFFFFF"]}
-            locations={[0, 0.4, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
+    const tipsArray = twisters[currentIndex]?.tongueTwisterData?.hints || [
+      "Start slowly and focus on clarity.",
+      "Repeat the phrase faster each time.",
+      "Exaggerate your mouth movements.",
+    ];
 
+    return (
+      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
         <BlurView
           intensity={80}
           tint="light"
@@ -572,27 +570,42 @@ const Twister = () => {
           contentContainerStyle={{
             paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
+            paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.heroSection}>
+            <Text style={styles.heroTitle}>Tongue Twisters</Text>
+            <Text style={styles.heroDescription}>
+              Challenge your articulation and speed with playful phonetic puzzles.
+            </Text>
+          </View>
+
           <HardModeToggle 
             value={hardMode}
             onValueChange={setHardMode}
             canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 32 }}
           />
 
-          {/* Use hints from current twister or generic */}
-          <MasonryTips
-            tips={
-              twisters[currentIndex]?.tongueTwisterData?.hints || [
-                "Start slowly and focus on clarity.",
-                "Repeat the phrase faster each time.",
-                "Exaggerate your mouth movements.",
-              ]
-            }
-          />
-
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeader}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {tipsArray.map((tip, index, arr) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         </ScrollView>
 
         {/* Fixed Start Button at bottom */}
@@ -950,6 +963,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   startButton: {
+    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     marginBottom: 0,
@@ -1113,5 +1127,69 @@ const styles = StyleSheet.create({
   },
   bottomActionContainer: {
     paddingHorizontal: 24,
+  },
+  // Timeline & Hero Styles
+  heroSection: {
+    marginBottom: 32,
+  },
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  heroDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
 });

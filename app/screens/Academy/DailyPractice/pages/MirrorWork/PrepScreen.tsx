@@ -3,10 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from '
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Button from '../../../../../components/Button';
-import MasonryTips from '../../components/MasonryTips';
 import { theme } from '../../../../../Theme/tokens';
 import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
 import { MirrorWorkData } from './types';
@@ -17,7 +15,6 @@ export const PrepScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   
-  // Assuming the backend cognitive practice data is passed in route.params
   const practiceData = route.params?.practiceData || {};
   const mirrorWorkData: MirrorWorkData = practiceData.mirrorWorkData || {
     tips: [
@@ -30,12 +27,6 @@ export const PrepScreen: React.FC = () => {
     ],
     focusAreas: []
   };
-
-  const combinedTips = [
-    ...mirrorWorkData.tips,
-    "100% Private: Your camera is used only on this device. No video is recorded, stored, or sent anywhere.",
-    "Gentle Notes: During the session, we'll show you a few observations as they happen — not every single one. Your full summary will include everything we noticed."
-  ];
 
   const handleStart = () => {
     navigation.navigate('MirrorWorkSession', {
@@ -72,40 +63,48 @@ export const PrepScreen: React.FC = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroCardWrapper}>
-          <LinearGradient
-            colors={["#3B82F6", "#1E3A8A"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            {/* Decorative Bubbles */}
-            <View style={styles.bubbleTopRight} />
-            <View style={styles.bubbleBottomLeft} />
-
-            {/* Watermark */}
-            <View style={styles.watermarkContainer}>
-              <Icon name="camera" size={120} color="#FFF" style={{ opacity: 0.1 }} />
-            </View>
-
-            <View style={styles.heroContentContainer}>
-              <View style={styles.chip}>
-                <Icon name="eye" size={10} color="#FFF" />
-                <Text style={styles.chipText}>Awareness</Text>
-              </View>
-
-              <View style={styles.textContainer}>
-                <Text style={styles.heroTitleText}>{practiceData.name || "Mirror Work"}</Text>
-                <Text style={styles.heroDescText}>
-                  {practiceData.description || "Speak to your camera and notice what your body does. No scores, no performance — just observation."}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>{practiceData.name || "Mirror Work"}</Text>
+          <Text style={styles.heroDescription}>
+            {practiceData.description || "Speak to your camera and notice what your body does. No scores, no performance — just observation."}
+          </Text>
         </View>
 
-        <View style={styles.tipsContainer}>
-          <MasonryTips tips={combinedTips} />
+        <View style={styles.bentoGrid}>
+          <View style={[styles.bentoCard, styles.bentoCardLeft]}>
+            <View style={[styles.bentoIconBadge, { backgroundColor: '#E8F5E9' }]}>
+              <Icon name="shield-alt" size={16} color="#10B981" solid />
+            </View>
+            <Text style={styles.bentoTitle}>100% Private</Text>
+            <Text style={styles.bentoDesc}>On-device only. No video is recorded or sent.</Text>
+          </View>
+
+          <View style={[styles.bentoCard, styles.bentoCardRight]}>
+            <View style={[styles.bentoIconBadge, { backgroundColor: '#EFF6FF' }]}>
+              <Icon name="lightbulb" size={16} color="#3B82F6" solid />
+            </View>
+            <Text style={styles.bentoTitle}>Gentle Notes</Text>
+            <Text style={styles.bentoDesc}>Non-intrusive feedback as it happens.</Text>
+          </View>
+        </View>
+
+        <View style={styles.timelineSection}>
+          <Text style={styles.sectionHeader}>What to expect</Text>
+          <View style={styles.timelineContainer}>
+            {mirrorWorkData.tips.map((tip, index) => (
+              <View key={index} style={styles.timelineItem}>
+                <View style={styles.timelineTrack}>
+                  <View style={styles.timelineDot} />
+                  {index !== mirrorWorkData.tips.length - 1 && (
+                    <View style={styles.timelineLine} />
+                  )}
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={styles.timelineText}>{tip}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </ScrollView>
 
@@ -119,7 +118,7 @@ export const PrepScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screenView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA', // Soft off-white for a cleaner look
   },
   headerBar: {
     position: "absolute",
@@ -153,78 +152,110 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
-  tipsContainer: {
-    marginTop: 16,
-    marginHorizontal: -24,
+  heroSection: {
+    marginBottom: 40,
   },
-  heroCardWrapper: {
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 34,
+    color: '#111827', // Gray 900
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  heroDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 17,
+    color: '#4B5563', // Gray 600
+    lineHeight: 26,
+  },
+  bentoGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 40,
+  },
+  bentoCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#fff",
-    marginBottom: 8,
+    padding: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E7EB', // Gray 200
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
   },
-  heroGradient: {
-    borderRadius: 24,
-    padding: 24,
-    position: "relative",
-    overflow: "hidden",
+  bentoCardLeft: {
+    marginRight: 8,
   },
-  bubbleTopRight: {
-    position: "absolute",
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  bentoCardRight: {
+    marginLeft: 8,
   },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -30,
-    left: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  bentoIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    transform: [{ rotate: "-15deg" }],
+  bentoTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 6,
   },
-  heroContentContainer: {
-    gap: 16,
+  bentoDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3B82F6',
+    marginTop: 7,
     zIndex: 2,
   },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    gap: 6,
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
   },
-  chipText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
   },
-  textContainer: {
-    gap: 4,
-  },
-  heroTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontSize: 22,
-  },
-  heroDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255, 255, 255, 0.8)",
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151', // Gray 700
+    lineHeight: 24,
   },
   footer: {
     padding: 24,

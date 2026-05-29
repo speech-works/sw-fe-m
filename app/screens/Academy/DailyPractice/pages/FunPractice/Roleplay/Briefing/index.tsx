@@ -24,7 +24,6 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import MasonryTips from "../../../../components/MasonryTips";
 import HardModeToggle from "../../../../components/HardModeToggle";
 
 import { getExposurePracticeById, getFunPracticeById } from "../../../../../../../api/dailyPractice";
@@ -168,45 +167,55 @@ const Briefing = () => {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.heroSectionMinimal}>
+            <Text style={styles.heroTitleMinimal}>{title}</Text>
+            <Text style={styles.heroDescriptionMinimal}>{description}</Text>
+          </View>
 
-          {/* Hero Briefing Card - Matte Modern Orange */}
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.briefCard}
-          >
-            {/* Watermark Icon */}
-            <View style={styles.watermarkIconContainer}>
-              <Icon name="theater-masks" size={120} color="#EA580C" />
+          {/* Scenario Details Section */}
+          <View style={styles.scenarioCardLight}>
+            <View style={styles.scenarioCardHeaderLight}>
+              <Icon name="bookmark" size={14} color="#EA580C" />
+              <Text style={styles.scenarioCardTitleLight}>THE SCENARIO</Text>
             </View>
 
-            <View style={styles.infoContainer}>
-              <View style={styles.roleTextContainer}>
-                <Text style={styles.roleplayTitleText}>{title}</Text>
-                <Text style={styles.roleplayDescText}>{description}</Text>
-              </View>
+            <Text style={styles.scenarioCardTextLight}>{scenarioDescription}</Text>
 
-              {/* Scenario Details Section */}
-              <View style={styles.scenarioSection}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="info-circle" size={14} color="#C2410C" />
-                  <Text style={styles.sectionTitle}>The Scenario</Text>
-                </View>
-                <Text style={styles.scenarioText}>{scenarioDescription}</Text>
-                <View style={styles.durationBadge}>
-                  <Icon name="clock" size={12} color="#1E3A8A" />
-                  <Text style={styles.durationText}>
-                    {roleplay.scenario.duration} mins
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.scenarioDurationPillLight}>
+              <Icon name="clock" size={12} color="#C2410C" />
+              <Text style={styles.scenarioDurationTextLight}>
+                {roleplay.scenario.duration} mins
+              </Text>
             </View>
-          </LinearGradient>
+            
+            <View style={styles.scenarioWatermarkLight} pointerEvents="none">
+              <Icon name="book-open" size={140} color="#FFF7ED" />
+            </View>
+          </View>
+
+          {/* Tips Section */}
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeadingMinimal}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {tips.map((tip, index, arr) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
 
           {/* Role Selection */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeading}>Choose Your Role</Text>
+            <Text style={styles.sectionHeadingMinimal}>Choose Your Role</Text>
             <View style={styles.roleList}>
               {roles.map((role) => (
                 <TouchableOpacity
@@ -233,14 +242,6 @@ const Briefing = () => {
               ))}
             </View>
           </View>
-
-          {/* Tips Section */}
-          <View style={styles.tipsContainer}>
-            {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
-
-            {/* Masonry Tips Grid */}
-            <MasonryTips tips={tips} />
-          </View>
         </ScrollView>
       </View>
     </ScreenView>
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
   screenView: {
     flex: 1,
     paddingBottom: 0,
-    backgroundColor: "#FFFFFF", // Pure White
+    backgroundColor: "#FAFAFA",
   },
   container: {
     flex: 1,
@@ -321,95 +322,86 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#FFF",
   },
-
-  // Hero Card
-  briefCard: {
-    borderRadius: 24,
-    padding: 24,
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 200,
-    ...parseShadowStyle(theme.shadow.elevation1),
+  // Minimal Styles
+  heroSectionMinimal: {
+    marginBottom: 32,
   },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -20,
-    top: -20,
-    opacity: 0.1,
-    transform: [{ rotate: "15deg" }],
+  heroTitleMinimal: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
   },
-  infoContainer: {
-    gap: 24,
-    zIndex: 1,
-  },
-  roleTextContainer: {
-    gap: 8,
-  },
-  roleplayTitleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#9A3412", // Deep Orange
-    fontWeight: "600",
-    fontSize: 24,
-  },
-  roleplayDescText: {
+  heroDescriptionMinimal: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#9A3412",
-    lineHeight: 22,
-    fontWeight: "500",
-    opacity: 0.9,
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
   },
-  scenarioSection: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
+  // Light Warm Scenario Card
+  scenarioCardLight: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 32,
+    marginBottom: 40,
+    padding: 32,
+    gap: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: "#FFEDD5", // Soft warm border
+    ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
   },
-  sectionHeader: {
+  scenarioCardHeaderLight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
+    gap: 10,
   },
-  sectionTitle: {
+  scenarioCardTitleLight: {
     ...parseTextStyle(theme.typography.BodySmall),
+    color: "#EA580C",
+    fontWeight: "800",
+    letterSpacing: 1.5,
     textTransform: "uppercase",
-    color: "#1E40AF",
-    fontWeight: "700",
-    letterSpacing: 0.5,
   },
-  scenarioText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#1E3A8A",
-    lineHeight: 20,
+  scenarioCardTextLight: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#374151",
+    lineHeight: 28,
+    fontSize: 17,
   },
-  durationBadge: {
+  scenarioDurationPillLight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     alignSelf: "flex-start",
-    backgroundColor: "rgba(30, 64, 175, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 4,
+    backgroundColor: "#FFF7ED",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
   },
-  durationText: {
+  scenarioDurationTextLight: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "#1E3A8A",
-    fontWeight: "600",
+    color: "#C2410C",
+    fontWeight: "700",
   },
-
+  scenarioWatermarkLight: {
+    position: "absolute",
+    right: -30,
+    bottom: -30,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
+  },
+  sectionHeadingMinimal: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  
   // Role Selection
   sectionContainer: {
     gap: 16,
-  },
-  sectionHeading: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-    paddingHorizontal: 8,
   },
   roleList: {
     gap: 12,
@@ -417,12 +409,12 @@ const styles = StyleSheet.create({
   roleCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 20,
     gap: 16,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderColor: "#E5E7EB",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
   roleIconContainer: {
@@ -447,13 +439,44 @@ const styles = StyleSheet.create({
     color: theme.colors.text.default,
   },
 
-  // Tips
-  tipsContainer: {
-    gap: 0,
+  timelineSection: {
+    marginTop: 16,
   },
-  tipsScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 16,
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
 });

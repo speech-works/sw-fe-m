@@ -45,51 +45,30 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
       ]}
     >
       <View style={styles.cardBase}>
-        {/* Decorative Glass Bubbles */}
-        <View style={[styles.bubble, styles.bubbleLarge]} />
-        <View style={[styles.bubble, styles.bubbleSmall]} />
-
-        {/* Watermark Icon */}
-        <View style={styles.watermark}>
-          <Icon
-            name="fire"
-            size={100}
-            color={value ? theme.colors.library.orange[500] : "#E2E8F0"}
-            style={{ opacity: value ? 0.08 : 0.15 }}
-            solid
-          />
-        </View>
-
         <View style={styles.content}>
-          <View style={styles.headerRow}>
-            {/* Chip Style Label */}
-            <View style={[styles.chip, value ? styles.chipActive : styles.chipInactive]}>
+          <View style={styles.textBody}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <Icon
                 name="fire"
-                size={10}
-                color={value ? "#EA580C" : "#64748B"}
+                size={16}
+                color={value ? "#EA580C" : "#94A3B8"}
                 solid={value}
               />
-              <Text style={[styles.chipText, value ? styles.chipTextActive : styles.chipTextInactive]}>
-                HARD MODE
+              <Text style={[styles.title, value && { color: "#EA580C" }]}>
+                Hard Mode
               </Text>
             </View>
-
+            <Text style={styles.description}>
+              Intensify your practice by focusing exclusively on your feared sounds.
+            </Text>
+          </View>
+          <View style={styles.toggleContainer}>
             <AnimatedToggle
               value={value}
               onValueChange={handlePress}
               activeColor={theme.colors.library.orange[500]}
-              inactiveColor="#CBD5E1"
+              inactiveColor="#E2E8F0"
             />
-          </View>
-
-          <View style={styles.textBody}>
-            <Text style={styles.title}>
-              Phonetic Focus
-            </Text>
-            <Text style={styles.description}>
-              Intensify your practice by focusing exclusively on your most difficult sounds.
-            </Text>
           </View>
         </View>
       </View>
@@ -138,107 +117,57 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 24,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderWidth: 1,
+    borderColor: "#E5E7EB", // Hairline border for Bento
   },
   cardBase: {
-    padding: 24,
-    minHeight: 140,
+    padding: 20,
     position: "relative",
     overflow: "hidden",
-    borderRadius: 24,
+    borderRadius: 20,
   },
   shadowActive: {
-    borderColor: "rgba(249, 115, 22, 0.3)", // Subtle orange border
+    borderColor: "rgba(234, 88, 12, 0.4)",
+    backgroundColor: "rgba(255, 247, 237, 0.5)", // Faint orange tint
     shadowColor: "#EA580C",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   shadowInactive: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 2,
-  },
-  // Decorations
-  bubble: {
-    position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "rgba(249, 115, 22, 0.03)",
-  },
-  bubbleLarge: {
-    width: 140,
-    height: 140,
-    top: -40,
-    right: -20,
-  },
-  bubbleSmall: {
-    width: 80,
-    height: 80,
-    bottom: -20,
-    left: -20,
-  },
-  watermark: {
-    position: "absolute",
-    bottom: -15,
-    right: -10,
-    transform: [{ rotate: "-15deg" }],
   },
   // Content
   content: {
-    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 16,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 6,
-  },
-  chipActive: {
-    backgroundColor: "rgba(234, 88, 12, 0.1)",
-  },
-  chipInactive: {
-    backgroundColor: "#F1F5F9",
-  },
-  chipText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-  },
-  chipTextActive: {
-    color: "#EA580C",
-  },
-  chipTextInactive: {
-    color: "#64748B",
-  },
   textBody: {
-    gap: 6,
+    flex: 1,
   },
   title: {
     ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 20,
-    fontWeight: "800",
-    color: theme.colors.text.title,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
   },
   description: {
     ...parseTextStyle(theme.typography.BodyDetails),
     fontSize: 14,
     lineHeight: 20,
-    color: theme.colors.text.default,
-    opacity: 0.8,
+    color: "#6B7280",
+  },
+  toggleContainer: {
+    justifyContent: "center",
   },
   // Bottom Sheet Styles
   sheetContent: {
