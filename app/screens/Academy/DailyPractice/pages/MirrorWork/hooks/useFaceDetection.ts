@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useFrameProcessor } from "react-native-vision-camera";
-import { detectFaces, DetectionResult, Face } from "react-native-vision-camera-face-detector";
-import { Worklets, useRunInJS } from "react-native-worklets-core";
+import { useFaceDetector, Face } from "react-native-vision-camera-face-detector";
+import { Worklets, useRunOnJS } from "react-native-worklets-core";
 import { MirrorBehaviorAnalyzer, UserBaseline } from "../util/mirrorBehaviorAnalyzer";
 import { MirrorBehaviorSignal } from "../types";
 
@@ -28,17 +28,17 @@ export function useFaceDetection(isActive: boolean) {
 
   const analyzerRef = useRef(new MirrorBehaviorAnalyzer());
   const frameCountRef = useRef(0);
-  
+
   // Calibration State
   const calibrationStartTimeRef = useRef<number | null>(null);
   const calibrationBufferRef = useRef<Face[]>([]);
-  
+
   // No-Face State
   const noFaceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleDetection = useCallback((result: DetectionResult) => {
+  const handleDetection = useCallback((faces: Face[]) => {
     const timestampMs = Date.now();
-    const faceCount = Object.keys(result.faces).length;
+    const faceCount = faces.length;
 
     if (faceCount === 0) {
       if (!noFaceTimerRef.current) {
@@ -55,8 +55,7 @@ export function useFaceDetection(isActive: boolean) {
       noFaceTimerRef.current = null;
     }
 
-    const faceIds = Object.keys(result.faces);
-    const face = result.faces[faceIds[0]]; // Assume single most prominent face
+    const face = faces[0]; // Assume single most prominent face
 
     setState((prev) => {
       if (!prev.faceInFrame) return { ...prev, faceInFrame: true };
@@ -67,7 +66,7 @@ export function useFaceDetection(isActive: boolean) {
       if (!calibrationStartTimeRef.current) {
         calibrationStartTimeRef.current = timestampMs;
       }
-      
+
       calibrationBufferRef.current.push(face);
 
       if (timestampMs - calibrationStartTimeRef.current >= CALIBRATION_DURATION_MS) {
@@ -119,23 +118,26 @@ export function useFaceDetection(isActive: boolean) {
     }
   }, [state.isCalibrating]);
 
-  const handleDetectionWorklet = Worklets.createRunInJsFn(handleDetection);
+  const { detectFaces } = useFaceDetector({
+    performanceMode: 'accurate',
+    landmarkMode: 'all',
+    contourMode: 'all',
+    classificationMode: 'all',
+    minFaceSize: 0.1,
+    trackingEnabled: true,
+  });
+
+  const handleDetectionWorklet = Worklets.createRunOnJS(handleDetection);
 
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
     if (!isActive) return;
-    
+
     frameCountRef.current += 1;
     if (frameCountRef.current % FRAME_SAMPLING_INTERVAL !== 0) return;
 
-    detectFaces(frame, handleDetectionWorklet, {
-      performanceMode: 'accurate',
-      landmarkMode: 'all',
-      contourMode: 'all',
-      classificationMode: 'all',
-      minFaceSize: 0.1,
-      trackingEnabled: true,
-    });
+    const faces = detectFaces(frame);
+    handleDetectionWorklet(faces);
   }, [isActive, handleDetectionWorklet]);
 
   // Clean up timers on unmount

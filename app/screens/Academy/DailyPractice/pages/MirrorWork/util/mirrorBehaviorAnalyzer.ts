@@ -67,11 +67,15 @@ export class MirrorBehaviorAnalyzer {
 
     // 3. JAW_TENSION (Jaw distance drops >40% below baseline for 3+ frames)
     // Distance from NOSE_BASE to MOUTH_BOTTOM is a good proxy for jaw distance
-    const jawDistance = face.landmarks.MOUTH_BOTTOM.y - face.landmarks.NOSE_BASE.y;
-    if (jawDistance < this.baseline.neutralJawDistance * 0.6) {
-      if (!this.lastJawTensedTime) this.lastJawTensedTime = timestampMs;
-      if (timestampMs - this.lastJawTensedTime > 300) { // Approx 3 frames at 10fps
-        signals.push(MirrorBehaviorSignal.JAW_TENSION);
+    if (face.landmarks && face.landmarks.MOUTH_BOTTOM && face.landmarks.NOSE_BASE) {
+      const jawDistance = face.landmarks.MOUTH_BOTTOM.y - face.landmarks.NOSE_BASE.y;
+      if (jawDistance < this.baseline.neutralJawDistance * 0.6) {
+        if (!this.lastJawTensedTime) this.lastJawTensedTime = timestampMs;
+        if (timestampMs - this.lastJawTensedTime > 300) { // Approx 3 frames at 10fps
+          signals.push(MirrorBehaviorSignal.JAW_TENSION);
+        }
+      } else {
+        this.lastJawTensedTime = null;
       }
     } else {
       this.lastJawTensedTime = null;
