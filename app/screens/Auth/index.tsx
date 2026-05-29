@@ -98,95 +98,113 @@ const LoginScreen = () => {
   };
 
   const onPressOAuth = async (provider: string) => {
-    if (loadingProvider) return; // prevent multi-trigger
+    if (loadingProvider) return;
     setLoadingProvider(provider);
 
     try {
-      // iOS simulators have issues with custom schemes in development
-      // Use Expo's proxy for iOS dev, custom scheme for Android/production
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: "speechworks",
         path: "auth-callback",
       });
 
-      console.log("[Auth] 🔍 Redirect URI:", redirectUri);
-      console.log("[Auth] 🔍 Provider:", provider);
-      console.log("[Auth] 🔍 Platform:", Platform.OS);
-      console.log("[Auth] 🔍 Is Dev:", __DEV__);
+      console.log("[OAuth 1] Provider:", provider);
+      console.log("[OAuth 1] Platform:", Platform.OS, "| isDev:", __DEV__);
+      console.log("[OAuth 1] Redirect URI:", redirectUri);
 
-      const { redirectUrl: authUrl } = await loginUser({
-        provider,
-        redirectTo: redirectUri,
-      });
+      let authUrl: string;
+      try {
+        const res = await loginUser({ provider, redirectTo: redirectUri });
+        authUrl = res.redirectUrl;
+        console.log("[OAuth 2] ✅ Got auth URL from backend:", authUrl);
+      } catch (e: any) {
+        console.error("[OAuth 2] ❌ loginUser() failed:", e?.message, e?.response?.data);
+        throw e;
+      }
 
-      console.log("[Auth] 🔍 Supabase Auth URL:", authUrl);
-
-      // On Android, openAuthSessionAsync often returns { type: 'dismiss' } due to
-      // an AppState race condition, even when the OAuth redirect actually happened.
-      // We set up a Linking listener as a fallback to catch the redirect URL.
       let linkingHandled = false;
 
       const handleRedirect = async (event: { url: string }) => {
-        if (linkingHandled) return;
+        console.log("[OAuth Linking] URL received:", event.url);
+        if (linkingHandled) {
+          console.log("[OAuth Linking] Already handled, skipping.");
+          return;
+        }
         const url = event.url;
-        if (!url.startsWith("speechworks://auth-callback")) return;
+        if (!url.startsWith("speechworks://auth-callback")) {
+          console.log("[OAuth Linking] Not an auth-callback URL, ignoring.");
+          return;
+        }
         linkingHandled = true;
-        console.log("[Auth] 🔍 Deep link captured:", url);
+        console.log("[OAuth 4] ✅ Deep link captured:", url);
         try {
           await processAuthRedirect(url);
         } catch (err: any) {
-          console.error("🚨 OAuth callback failed:", err.message || err);
+          console.error("[OAuth 4] ❌ processAuthRedirect failed:", err.message || err);
           showError(err.message || "Login failed. Please try again.");
         } finally {
           setLoadingProvider(null);
         }
       };
 
-      // Register the listener before opening the browser
+
+      console.log("[OAuth 3] Registering Linking listener & opening browser...");
       const subscription = Linking.addEventListener("url", handleRedirect);
 
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        redirectUri,
-        {
-          preferEphemeralSession: true,
-        },
-      );
+      if (Platform.OS === "ios") {
+        // Both openBrowserAsync (SafariViewService crash: code 4099) and
+        // openAuthSessionAsync (blank page) are broken in iOS Simulator on
+        // macOS 26.3 beta. Linking.openURL opens the full native Safari app
+        // which is unaffected by these simulator bugs.
+        // On real devices this also works: Safari opens, user authenticates,
+        // Supabase redirects to speechworks://auth-callback, iOS opens the app.
+        console.log("[OAuth 3] Opening Safari via Linking.openURL...");
+        await Linking.openURL(authUrl);
+        console.log("[OAuth 3] Linking.openURL resolved. Waiting for deep link...");
 
-      console.log("[Auth] 🔍 Auth session result:", result);
-
-      if (result.type === "success" && result.url) {
-        // Browser returned the URL directly (common on iOS)
-        if (!linkingHandled) {
-          linkingHandled = true;
-          await processAuthRedirect(result.url);
+        // Poll until the Linking listener handles the redirect (up to 5 min).
+        const deadline = Date.now() + 5 * 60 * 1000;
+        while (!linkingHandled && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 200));
         }
-      } else if (result.type === "cancel") {
-        console.log("🔸 User cancelled OAuth");
-        if (!linkingHandled) setLoadingProvider(null);
-      } else {
-        // On Android this often fires as 'dismiss' even on success.
-        // The Linking listener above will handle the redirect if it happened.
-        console.warn(
-          "⚠️ OAuth result type:",
-          result.type,
-          "— waiting for deep link fallback",
-        );
-        // Give the deep link listener a moment to fire
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         if (!linkingHandled) {
-          console.warn(
-            "⚠️ No deep link received. OAuth may have been cancelled.",
-          );
+          console.warn("[OAuth 3] ❌ No deep link received after 5 minutes.");
           showError("Login was interrupted. Please try again.");
           setLoadingProvider(null);
+        } else {
+          console.log("[OAuth 3] ✅ Deep link handled.");
+        }
+      } else {
+        // Android: openBrowserAsync (Custom Tabs) works correctly.
+        const result = await WebBrowser.openBrowserAsync(authUrl);
+        console.log("[OAuth 3] Browser closed. result.type:", result.type);
+
+        const anyResult = result as any;
+        if (anyResult.type === "success" && anyResult.url) {
+          console.log("[OAuth 3] Success URL:", anyResult.url);
+          if (!linkingHandled) {
+            linkingHandled = true;
+            await processAuthRedirect(anyResult.url);
+          }
+        } else if (result.type === "cancel") {
+          console.log("[OAuth 3] User cancelled.");
+          if (!linkingHandled) setLoadingProvider(null);
+        } else {
+          console.warn("[OAuth 3] result.type:", result.type, "— waiting 2s for deep link...");
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          if (!linkingHandled) {
+            console.warn("[OAuth 3] ❌ No deep link received after 2s.");
+            showError("Login was interrupted. Please try again.");
+            setLoadingProvider(null);
+          } else {
+            console.log("[OAuth 3] ✅ Deep link was handled during wait.");
+          }
         }
       }
 
-      // Clean up the listener
       subscription.remove();
+
     } catch (err: any) {
-      console.error("🚨 OAuth failed:", err.message || err);
+      console.error("[OAuth] ❌ Unhandled error:", err.message || err);
       showError(err.message || "Login failed. Please try again.");
       setLoadingProvider(null);
     }
@@ -194,21 +212,34 @@ const LoginScreen = () => {
 
   /** Shared logic to exchange the OAuth code for tokens and log the user in. */
   const processAuthRedirect = async (url: string) => {
-    const params = new URLSearchParams(url.split("?")[1]);
+    console.log("[OAuth 5] processAuthRedirect called with URL:", url);
+
+    const queryString = url.split("?")[1] ?? "";
+    const fragmentString = url.includes("#") ? url.split("#")[1] : "";
+    console.log("[OAuth 5] Query string:", queryString);
+    console.log("[OAuth 5] Fragment:", fragmentString);
+
+    const params = new URLSearchParams(queryString);
     let code = params.get("code");
-    if (!code) throw new Error("No code returned from OAuth");
+    console.log("[OAuth 5] code param:", code);
 
-    // Supabase/Google often appends a trailing '#' to the redirect URL
-    // which URLSearchParams captures. We must strip it or the code exchange fails.
+    if (!code) throw new Error(`No 'code' in OAuth redirect. Full URL: ${url}`);
+
+    // Strip any trailing '#' fragment captured by URLSearchParams
     code = code.replace(/#.*$/, "");
+    console.log("[OAuth 5] code (trimmed):", code);
 
+    console.log("[OAuth 6] Calling handleOAuthCallback...");
     const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
+    console.log("[OAuth 6] ✅ Got appJwt for user:", user?.email ?? user?.id);
+
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
     await SecureStore.setItemAsync(
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
       refreshToken,
     );
 
+    console.log("[OAuth 7] ✅ Stored tokens, logging in.");
     login(appJwt);
     setUser(user);
   };
