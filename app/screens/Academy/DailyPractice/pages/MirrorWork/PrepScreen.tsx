@@ -72,19 +72,23 @@ export const PrepScreen: React.FC = () => {
 
         <View style={styles.bentoGrid}>
           <View style={[styles.bentoCard, styles.bentoCardLeft]}>
-            <View style={[styles.bentoIconBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Icon name="shield-alt" size={16} color="#10B981" solid />
+            <View style={styles.bentoWatermark} pointerEvents="none">
+              <Icon name="shield-alt" size={80} color="#10B981" />
             </View>
-            <Text style={styles.bentoTitle}>100% Private</Text>
-            <Text style={styles.bentoDesc}>On-device only. No video is recorded or sent.</Text>
+            <View style={styles.bentoContent}>
+              <Text style={styles.bentoTitle}>100% Private</Text>
+              <Text style={styles.bentoDesc}>On-device only. No video is recorded or sent.</Text>
+            </View>
           </View>
 
           <View style={[styles.bentoCard, styles.bentoCardRight]}>
-            <View style={[styles.bentoIconBadge, { backgroundColor: '#EFF6FF' }]}>
-              <Icon name="lightbulb" size={16} color="#3B82F6" solid />
+            <View style={styles.bentoWatermark} pointerEvents="none">
+              <Icon name="lightbulb" size={80} color="#3B82F6" />
             </View>
-            <Text style={styles.bentoTitle}>Gentle Notes</Text>
-            <Text style={styles.bentoDesc}>Non-intrusive feedback as it happens.</Text>
+            <View style={styles.bentoContent}>
+              <Text style={styles.bentoTitle}>Gentle Notes</Text>
+              <Text style={styles.bentoDesc}>Non-intrusive feedback as it happens.</Text>
+            </View>
           </View>
         </View>
 
@@ -185,6 +189,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 16,
     elevation: 2,
+    overflow: 'hidden',
   },
   bentoCardLeft: {
     marginRight: 8,
@@ -192,13 +197,16 @@ const styles = StyleSheet.create({
   bentoCardRight: {
     marginLeft: 8,
   },
-  bentoIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+  bentoWatermark: {
+    position: 'absolute',
+    right: -15,
+    top: -15,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
+    zIndex: 0,
+  },
+  bentoContent: {
+    zIndex: 1,
   },
   bentoTitle: {
     ...parseTextStyle(theme.typography.Heading3),
