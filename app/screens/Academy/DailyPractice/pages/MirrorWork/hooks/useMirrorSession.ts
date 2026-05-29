@@ -58,9 +58,9 @@ export function useMirrorSession(config: SessionConfig) {
     if (currentPromptIndex < config.prompts.length - 1) {
       setCurrentPromptIndex((prev) => prev + 1);
     } else {
-      endSession();
+      setCurrentPromptIndex(0);
     }
-  }, [currentPromptIndex, config.prompts.length, endSession]);
+  }, [currentPromptIndex, config.prompts.length]);
 
   const toggleNudgeMode = useCallback(() => {
     setNudgeMode((prev) => {
@@ -93,7 +93,11 @@ export function useMirrorSession(config: SessionConfig) {
         MirrorBehaviorSignal.JAW_TENSION,
         MirrorBehaviorSignal.LIP_PURSING,
         MirrorBehaviorSignal.BROW_TENSION,
-        MirrorBehaviorSignal.EYE_CLOSURE,
+        MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE,
+        MirrorBehaviorSignal.OPEN_MOUTH_HOLD,
+        MirrorBehaviorSignal.FACIAL_GRIMACING,
+        MirrorBehaviorSignal.NOSTRIL_FLARE,
+        MirrorBehaviorSignal.CHEEK_PUFFING,
       ].includes(s),
     );
 

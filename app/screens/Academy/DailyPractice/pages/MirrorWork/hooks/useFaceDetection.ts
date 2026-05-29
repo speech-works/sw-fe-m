@@ -18,6 +18,10 @@ export interface FaceDetectionState {
   newSignals: MirrorBehaviorSignal[];
   baseline: UserBaseline | null;
   lightingWarning: boolean;
+  /** Raw facial contours for rendering the heatmap SVG */
+  latestContours?: Face['contours'];
+  /** Frame size required to map ML Kit coordinates to the screen */
+  frameSize?: { width: number; height: number };
 }
 
 export function useFaceDetection(isActive: boolean, isSilent?: (threshold: number) => boolean) {
@@ -40,7 +44,7 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
   // No-Face State
   const noFaceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleDetection = useCallback((faces: Face[]) => {
+  const handleDetection = useCallback((faces: Face[], frameWidth: number, frameHeight: number) => {
     const timestampMs = Date.now();
     const faceCount = faces.length;
 
@@ -182,6 +186,8 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
         activeSignals: detectionResult.activeSignals,
         newSignals: detectionResult.newSignals,
         lightingWarning: detectionResult.lightingWarning,
+        latestContours: face.contours,
+        frameSize: { width: frameWidth, height: frameHeight },
       }));
     }
   }, [state.isCalibrating]);
@@ -205,7 +211,7 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     if (frameCountRef.current % FRAME_SAMPLING_INTERVAL !== 0) return;
 
     const faces = detectFaces(frame);
-    handleDetectionWorklet(faces);
+    handleDetectionWorklet(faces, frame.width, frame.height);
   }, [isActive, handleDetectionWorklet]);
 
   // Clean up timers on unmount

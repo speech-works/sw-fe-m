@@ -4,6 +4,7 @@ import { MirrorBehaviorSignal } from '../types';
 
 interface AwarenessOverlayProps {
   activeSignals: MirrorBehaviorSignal[];
+  newSignals?: MirrorBehaviorSignal[];
   nudgeMode: 'ON' | 'OFF';
 }
 
@@ -22,14 +23,6 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: stri
     line1: 'Your lips pressed together.',
     line2: 'Resting your lips apart — even slightly — can make the next sound easier to start.',
   },
-  [MirrorBehaviorSignal.EYE_CLOSURE]: {
-    line1: 'Your eyes closed for a moment.',
-    line2: 'Keeping them open can help you stay connected to the moment.',
-  },
-  [MirrorBehaviorSignal.EYE_BLINK_SPIKE]: {
-    line1: 'Blinking picked up just now.',
-    line2: 'A slow breath can help settle things.',
-  },
   [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]: {
     line1: 'Your eyes blinked rapidly or closed hard.',
     line2: 'A slow breath can help settle things.',
@@ -41,10 +34,6 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: stri
   [MirrorBehaviorSignal.GAZE_AVERSION]: {
     line1: 'You looked away for a bit.',
     line2: "Looking away while thinking is normal. Come back when you're ready.",
-  },
-  [MirrorBehaviorSignal.HEAD_MOVEMENT]: {
-    line1: 'Your head moved while your face was tense.',
-    line2: "That sometimes happens when we're working hard to get a word out. It's okay.",
   },
   [MirrorBehaviorSignal.HEAD_JERKING]: {
     line1: 'Your head moved sharply.',
@@ -68,32 +57,57 @@ const NUDGE_MESSAGES: Record<MirrorBehaviorSignal, { line1: string; line2?: stri
   },
 };
 
-export const AwarenessOverlay: React.FC<AwarenessOverlayProps> = ({ activeSignals, nudgeMode }) => {
-  const [visibleSignals, setVisibleSignals] = useState<Map<MirrorBehaviorSignal, number>>(new Map());
+// Inner component for animating toasts
+const ToastMessage: React.FC<{ msg: { line1: string; line2?: string } }> = ({ msg }) => {
+  const [opacity] = useState(new Animated.Value(0));
+  const [scale] = useState(new Animated.Value(0.95));
 
   useEffect(() => {
-    if (nudgeMode === 'OFF') {
-      setVisibleSignals(new Map());
-      return;
-    }
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 8,
+        tension: 100,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.toast, { opacity, transform: [{ scale }] }]}>
+      <Text style={styles.line1}>{msg.line1}</Text>
+      {msg.line2 && <Text style={styles.line2}>{msg.line2}</Text>}
+    </Animated.View>
+  );
+};
+
+export const AwarenessOverlay: React.FC<AwarenessOverlayProps> = ({ activeSignals, newSignals = [], nudgeMode }) => {
+  const [visibleSignals, setVisibleSignals] = useState<Map<MirrorBehaviorSignal, number>>(new Map());
+
+  // Listen for NEW signals to bump their timestamp so they stay on screen / re-animate
+  useEffect(() => {
+    if (nudgeMode === 'OFF' || newSignals.length === 0) return;
 
     const now = Date.now();
     setVisibleSignals((prev) => {
       const next = new Map(prev);
       let changed = false;
       
-      activeSignals.forEach((sig) => {
-        if (!next.has(sig)) {
-          next.set(sig, now);
-          changed = true;
-        }
+      newSignals.forEach((sig) => {
+        next.set(sig, now);
+        changed = true;
       });
 
       return changed ? next : prev;
     });
-  }, [activeSignals, nudgeMode]);
+  }, [newSignals, nudgeMode]);
 
-  // Periodic cleanup for signals that are no longer active AND have passed MIN_VISIBLE_MS
+  // Periodic cleanup for signals that have passed their 3-second window
   useEffect(() => {
     const interval = setInterval(() => {
       setVisibleSignals((prev) => {
@@ -102,7 +116,8 @@ export const AwarenessOverlay: React.FC<AwarenessOverlayProps> = ({ activeSignal
         let changed = false;
 
         next.forEach((timestamp, sig) => {
-          if (!activeSignals.includes(sig) && now - timestamp >= MIN_VISIBLE_MS) {
+          // A signal is removed if 3 seconds have passed since its LAST trigger
+          if (now - timestamp >= MIN_VISIBLE_MS) {
             next.delete(sig);
             changed = true;
           }
@@ -113,24 +128,20 @@ export const AwarenessOverlay: React.FC<AwarenessOverlayProps> = ({ activeSignal
     }, 500);
 
     return () => clearInterval(interval);
-  }, [activeSignals]);
+  }, []);
 
-  if (visibleSignals.size === 0) return null;
+  if (visibleSignals.size === 0 || nudgeMode === 'OFF') return null;
 
-  // Sort by enum key to keep order somewhat stable, or by timestamp
-  const displayedSignals = Array.from(visibleSignals.keys());
+  const displayedSignals = Array.from(visibleSignals.entries());
 
   return (
     <View style={styles.container}>
-      {displayedSignals.map((sig) => {
+      {displayedSignals.map(([sig, timestamp]) => {
         const msg = NUDGE_MESSAGES[sig];
         if (!msg) return null;
-        return (
-          <View key={sig} style={styles.toast}>
-            <Text style={styles.line1}>{msg.line1}</Text>
-            {msg.line2 && <Text style={styles.line2}>{msg.line2}</Text>}
-          </View>
-        );
+        // Key uses timestamp so if it re-triggers, React mounts a fresh ToastMessage 
+        // which runs the entry animation again.
+        return <ToastMessage key={`${sig}-${timestamp}`} msg={msg} />;
       })}
     </View>
   );

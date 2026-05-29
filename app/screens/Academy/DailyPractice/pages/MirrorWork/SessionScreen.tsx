@@ -9,6 +9,7 @@ import { useMirrorSession } from './hooks/useMirrorSession';
 import { useSpeechDetection } from './hooks/useSpeechDetection';
 import { AwarenessOverlay } from './components/AwarenessOverlay';
 import { FaceFrameGuard } from './components/FaceFrameGuard';
+import { FacialOutlines } from './components/FacialOutlines';
 import { CognitivePromptCard } from './components/CognitivePromptCard';
 import { MirrorWorkCognitivePrompt } from './types';
 
@@ -26,6 +27,7 @@ export const SessionScreen: React.FC = () => {
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [viewSize, setViewSize] = useState<{ width: number; height: number } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
   const speech = useSpeechDetection();
@@ -77,14 +79,6 @@ export const SessionScreen: React.FC = () => {
     });
   };
 
-  const handleNextPrompt = () => {
-    if (session.currentPromptIndex >= prompts.length - 1) {
-      handleEndSession();
-    } else {
-      session.nextPrompt();
-    }
-  };
-
   if (!hasPermission) {
     return (
       <View style={styles.centerContainer}>
@@ -102,7 +96,13 @@ export const SessionScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View 
+      style={styles.container}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        setViewSize({ width, height });
+      }}
+    >
       <StatusBar barStyle="light-content" />
       
       {/* Full Screen Camera */}
@@ -113,6 +113,16 @@ export const SessionScreen: React.FC = () => {
         frameProcessor={frameProcessor}
         pixelFormat="yuv"
       />
+
+      {/* Facial SVG Heatmap Outline */}
+      {detectionState.faceInFrame && viewSize && (
+        <FacialOutlines
+          contours={detectionState.latestContours}
+          frameSize={detectionState.frameSize}
+          viewSize={viewSize}
+          activeSignals={detectionState.activeSignals}
+        />
+      )}
 
       {/* Dimming overlay when not in frame */}
       {!detectionState.faceInFrame && (
@@ -148,7 +158,8 @@ export const SessionScreen: React.FC = () => {
         {/* Nudges */}
         {!detectionState.isCalibrating && detectionState.faceInFrame && (
           <AwarenessOverlay 
-            activeSignals={detectionState.activeSignals} 
+            activeSignals={detectionState.activeSignals}
+            newSignals={detectionState.newSignals}
             nudgeMode={session.nudgeMode} 
           />
         )}
@@ -177,13 +188,13 @@ export const SessionScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
 
-            {session.currentPromptIndex < prompts.length - 1 && (
+            {prompts.length > 1 && (
               <TouchableOpacity 
                 style={styles.controlButton} 
-                onPress={handleNextPrompt}
+                onPress={session.nextPrompt}
               >
-                <Icon name="chevron-forward" size={24} color="#FFF" />
-                <Text style={styles.controlLabel}>Next</Text>
+                <Icon name="refresh" size={24} color="#FFF" />
+                <Text style={styles.controlLabel}>Change</Text>
               </TouchableOpacity>
             )}
 

@@ -77,7 +77,6 @@ export const SummaryScreen: React.FC = () => {
     return (
       <DonePractice
         practiceName="Mirror Work"
-        onDone={() => navigation.navigate('Home')}
       />
     );
   }
