@@ -1,68 +1,65 @@
-import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { theme } from "../Theme/tokens";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
+import React from "react"; // Rebuild trigger
 
-import OnboardingQuestions from "../components/OnBoarding/OnboardingQuestions";
-import { questions } from "../data/onboardingQuestions";
 import { ROUTE_NAMES } from "../constants/routes";
-import AcademyStackNavigator from "./stacks/AcademyStack";
+import Community from "../screens/Community";
+import ExploreStackNavigator from "./stacks/ExploreStack";
 import SettingsStackNavigator from "./stacks/SettingsStack";
+import HomeStackNavigator from "./stacks/HomeStackNavigator";
+
+import CustomTabBar from "../components/CustomTabBar";
 
 const Tab = createBottomTabNavigator();
 
+const getTabBarVisibility = (route: any, mainScreenName: string) => {
+  const routeName = getFocusedRouteNameFromRoute(route) ?? mainScreenName;
+  if (routeName === mainScreenName) {
+    return { display: "flex" } as const;
+  }
+  return { display: "none" } as const;
+};
+
 const BottomTabNavigator = () => {
-  const Onboarding = () => {
-    return (
-      <OnboardingQuestions
-        questions={questions}
-        onAnswer={(q, a) => {
-          console.log(q, a);
-        }}
-      />
-    );
-  };
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false, // Hide header for all screens
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === ROUTE_NAMES.ACADEMY) {
-            iconName = "user-graduate";
-          } else if (route.name === ROUTE_NAMES.COMMUNITY) {
-            iconName = "users";
-          } else if (route.name === ROUTE_NAMES.THERAPY) {
-            iconName = "user-md";
-          } else if (route.name === ROUTE_NAMES.SETTINGS) {
-            iconName = "cog";
-          }
-
-          return (
-            <FontAwesome5 name={iconName as any} size={size} color={color} />
-          );
-        },
-        tabBarActiveTintColor: theme.colors.actionPrimary.default,
-        tabBarInactiveTintColor: theme.colors.text.default,
-        tabBarShowLabel: false, // Hide text labels
-        tabBarStyle: {
-          backgroundColor: "white",
-          borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
-          height: 60,
-          paddingTop: 12,
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false, // Managed by CustomTabBar
+        // tabBarStyle and tabBarIcon are now handled by CustomTabBar
+      }}
     >
       <Tab.Screen
-        name={ROUTE_NAMES.ACADEMY}
-        component={AcademyStackNavigator}
+        name={ROUTE_NAMES.HOME}
+        component={HomeStackNavigator}
+        options={({ route }) => ({
+          tabBarLabel: "Home",
+          tabBarStyle: getTabBarVisibility(route, "Home"),
+        })}
       />
-      <Tab.Screen name={ROUTE_NAMES.COMMUNITY} component={Onboarding} />
+
+      <Tab.Screen
+        name={ROUTE_NAMES.EXPLORE}
+        component={ExploreStackNavigator}
+        options={({ route }) => ({
+          tabBarLabel: "Explore",
+          tabBarStyle: getTabBarVisibility(route, "Explore"),
+        })}
+      />
+      <Tab.Screen
+        name={ROUTE_NAMES.COMMUNITY}
+        component={Community}
+        options={{ tabBarLabel: "Community" }}
+      />
       <Tab.Screen
         name={ROUTE_NAMES.SETTINGS}
         component={SettingsStackNavigator}
+        options={({ route }) => ({
+          tabBarLabel: "Settings",
+          tabBarStyle: getTabBarVisibility(route, "Settings"),
+        })}
       />
       {/* <Tab.Screen name={ROUTE_NAMES.THERAPY} component={Logout} /> */}
     </Tab.Navigator>

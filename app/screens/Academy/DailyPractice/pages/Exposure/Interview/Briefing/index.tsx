@@ -1,120 +1,285 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import {
+  createPracticeActivity,
+  createPracticeActivityFromPack,
+  startPracticeActivity,
+} from "../../../../../../../api";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
+
+import ScreenView from "../../../../../../../components/ScreenView";
+import {
+  InterviewEDPStackNavigationProp,
+  InterviewEDPStackParamList,
+} from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
+import { useUserStore } from "../../../../../../../stores/user";
+import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import {
-  InterviewEDPStackParamList,
-  InterviewEDPStackNavigationProp,
-} from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import Button from "../../../../../../../components/Button";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../../components/ScreenView";
-import { useSessionStore } from "../../../../../../../stores/session";
-import {
-  createPracticeActivity,
-  startPracticeActivity,
-} from "../../../../../../../api";
-import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
-import { useActivityStore } from "../../../../../../../stores/activity";
+import MasonryTips from "../../../../components/MasonryTips";
 
 const Briefing = () => {
-  const { practiceSession } = useSessionStore();
+  const { user } = useUserStore();
+  const { practiceSession, setSession, ensureActiveSession } =
+    useSessionStore();
   const { addActivity } = useActivityStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
   const navigation =
     useNavigation<
       InterviewEDPStackNavigationProp<keyof InterviewEDPStackParamList>
     >();
   const route =
     useRoute<RouteProp<InterviewEDPStackParamList, "InterviewBriefing">>();
-  const { interview } = route.params;
+  const { interview, packContext, practiceActivity } = route.params as any; // Cast to any to avoid type issues if packContext is missing from types
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
-    null
+    practiceActivity?.id || null,
   );
 
+  const data = interview.practiceData || interview.interviewPracticeData;
+
   const markActivityStart = async () => {
-    if (!practiceSession) return;
-    const newActivity = await createPracticeActivity({
-      sessionId: practiceSession.id,
-      contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-      contentId: interview.id,
-    });
+    const isPackContext = packContext?.packId;
+
+    let sessionToUse = practiceSession;
+
+    if (!isPackContext && !sessionToUse && user?.id) {
+      try {
+        sessionToUse = await ensureActiveSession(user.id);
+        setSession(sessionToUse);
+      } catch (err) {
+        console.error("Failed to ensure active session", err);
+        return;
+      }
+    }
+
+    // If we are not in a pack and have no session (and creation failed), abort.
+    if (!isPackContext && !sessionToUse) return;
+
+    const sessionId = isPackContext ? undefined : sessionToUse!.id;
+    const userId = isPackContext
+      ? user?.id
+      : (sessionToUse!.user?.id ?? user?.id);
+
+    if (!userId) {
+      console.error("Missing userId");
+      return;
+    }
+
+    // --- DOUBLE-START PREVENTION ---
+    if (packContext?.alreadyStarted) {
+      if (practiceActivity) {
+        console.log(">> Interview: Activity already started by Pack, skipping API call...");
+        addActivity({
+          ...practiceActivity,
+        });
+        useUserStore.getState().fetchUser();
+        setCurrentActivityId(practiceActivity.id);
+        navigation.navigate("InterviewChat", {
+          interview,
+          practiceActivityId: practiceActivity.id,
+          packContext,
+        } as any);
+        return;
+      } else {
+        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
+        showErrorBottomSheet(
+          "Something went wrong",
+          "Activity data was lost. Returning to your Pack."
+        );
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
+        return;
+      }
+    }
+
+    let activityIdToStart = currentActivityId;
+
+    // If we don't have a unique activity ID yet, create one (Standalone mode)
+    if (!activityIdToStart) {
+      if (!interview?.id) {
+        console.error("Interview - Missing contentId (interview.id), cannot create activity");
+        return;
+      }
+
+      if (isPackContext) {
+        console.log("Interview - Creating Activity via POST (Pack)");
+        const newActivity = await createPracticeActivityFromPack({
+          packId: packContext.packId,
+          moduleId: packContext.moduleId,
+          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+          contentId: interview.id,
+        });
+        activityIdToStart = newActivity.id;
+      } else {
+        if (!sessionId)
+          throw new Error("No session ID for standalone activity");
+        console.log("Interview - Creating Activity via POST (Standalone)");
+        let newActivity;
+        try {
+          newActivity = await createPracticeActivity({
+            sessionId,
+            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+            contentId: interview.id,
+          });
+        } catch (createErr: any) {
+          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
+            console.log(">> InterviewBriefing: Stale session detected (404), refreshing...");
+            sessionToUse = await ensureActiveSession(userId, true);
+            newActivity = await createPracticeActivity({
+              sessionId: sessionToUse.id,
+              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+              contentId: interview.id,
+            });
+          } else {
+            throw createErr;
+          }
+        }
+        activityIdToStart = newActivity.id;
+      }
+    }
     const startedActivity = await startPracticeActivity({
-      id: newActivity.id,
-      userId: practiceSession.user.id,
+      id: activityIdToStart,
+      userId: userId,
     });
     addActivity({
       ...startedActivity,
     });
-    setCurrentActivityId(newActivity.id);
-  };
+    useUserStore.getState().fetchUser();
+    setCurrentActivityId(activityIdToStart);
 
-  useEffect(() => {
-    console.log("Begin Interview", { currentActivityId });
-    currentActivityId &&
-      navigation.navigate("InterviewChat", {
-        interview,
-        practiceActivityId: currentActivityId,
-      });
-  }, [currentActivityId]);
+    navigation.navigate("InterviewChat", {
+      interview,
+      practiceActivityId: activityIdToStart,
+      packContext,
+    } as any);
+  };
 
   return (
     <ScreenView style={styles.screenView}>
       <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={[
+            styles.topNavigationContainer,
+            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
+            style={styles.backButton}
           >
             <Icon
               name="chevron-left"
               size={16}
-              color={theme.colors.text.default}
+              color={theme.colors.text.title}
             />
-            <Text style={styles.topNavigationText}>Interview</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Interview</Text>
+          <View style={{ width: 32 }} />
+        </BlurView>
+
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: HEADER_HEIGHT + insets.top + 20,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero Briefing Card - Matte Modern Orange */}
+          <LinearGradient
+            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.briefCard}
+          >
+            {/* Watermark Icon */}
+            <View style={styles.watermarkIconContainer}>
+              <Icon
+                name={
+                  data?.scenario.availableRole.fontAwesomeIcon || "user-tie"
+                }
+                size={120}
+                color="#EA580C"
+              />
+            </View>
+
+            <View style={styles.infoContainer}>
+              <View style={styles.roleTextContainer}>
+                <Text style={styles.roleplayTitleText}>{interview.name}</Text>
+                <Text style={styles.roleplayDescText}>
+                  {interview.description}
+                </Text>
+              </View>
+
+              {/* Scenario Details Section */}
+              <View style={styles.scenarioSection}>
+                <View style={styles.sectionHeader}>
+                  <Icon name="info-circle" size={14} color="#C2410C" />
+                  <Text style={styles.sectionTitle}>The Scenario</Text>
+                </View>
+                <Text style={styles.scenarioText}>
+                  {data?.scenario.scenarioDetails ||
+                    "Prepare for your simulated interview session."}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {/* Tips Section */}
+          <View style={styles.tipsContainer}>
+            {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
+
+            {/* Masonry Tips Grid */}
+            <MasonryTips tips={data?.stage.userCharacter || []} />
+          </View>
+        </ScrollView>
+
+        {/* Fixed Start Button at the bottom */}
+        <View
+          style={[
+            styles.bottomActionContainer,
+            { paddingBottom: Math.max(insets.bottom, 24) },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={markActivityStart}
+            style={styles.startButton}
+          >
+            <LinearGradient
+              colors={[
+                theme.colors.library.orange[400],
+                theme.colors.library.orange[500],
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startButtonGradient}
+            >
+              <Text style={styles.startButtonText}>Begin Interview</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-        <CustomScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.innerContainer}>
-            <View style={styles.briefContainer}>
-              <View style={styles.iconContainer}>
-                <Icon
-                  size={24}
-                  name={
-                    interview.practiceData?.scenario.availableRole
-                      .fontAwesomeIcon || "user-tie"
-                  }
-                  color={theme.colors.library.blue[400]}
-                />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>{interview.name}</Text>
-                <Text style={styles.descText}>{interview.description}</Text>
-              </View>
-            </View>
-            <View style={styles.characterContainer}>
-              <Text style={styles.characterTitleText}>Your Character</Text>
-              {interview.practiceData?.stage.userCharacter.map((c, i) => (
-                <View key={i} style={styles.characterRow}>
-                  <Icon
-                    solid
-                    size={14}
-                    name="check-circle"
-                    color={theme.colors.library.orange[400]}
-                  />
-                  <Text style={styles.characterText}>{c}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-          <Button text="Begin Interview" onPress={markActivityStart} />
-        </CustomScrollView>
       </View>
     </ScreenView>
   );
@@ -124,88 +289,136 @@ export default Briefing;
 
 const styles = StyleSheet.create({
   screenView: {
+    flex: 1,
     paddingBottom: 0,
+    backgroundColor: "#FFFFFF",
   },
   container: {
-    gap: 32,
     flex: 1,
   },
-  scrollContainer: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 80,
   },
   topNavigationContainer: {
-    position: "relative",
+    position: "absolute",
     top: 0,
-    display: "flex",
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 24,
   },
-  topNavigation: {
-    display: "flex",
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
   },
-  innerContainer: {
+
+  // Hero Card
+  briefCard: {
+    borderRadius: 24,
     padding: 24,
-    gap: 24,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
+    position: "relative",
+    overflow: "hidden",
+    minHeight: 200,
     ...parseShadowStyle(theme.shadow.elevation1),
-    //shadowOpacity: 1,
+    marginHorizontal: 0,
   },
-  briefContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    top: -20,
+    opacity: 0.1,
+    transform: [{ rotate: "15deg" }],
   },
-  iconContainer: {
-    height: 64,
-    width: 64,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: "50%",
-    backgroundColor: theme.colors.library.blue[100],
+  infoContainer: {
+    gap: 24,
+    zIndex: 1,
   },
-  textContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+  roleTextContainer: {
     gap: 8,
   },
-  titleText: {
+  roleplayTitleText: {
     ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
+    color: "#9A3412", // Deep Orange
+    fontWeight: "600",
+    fontSize: 24,
   },
-  descText: {
-    textAlign: "center",
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  characterContainer: {
-    padding: 16,
-    borderRadius: 16,
-    gap: 12,
-    backgroundColor: theme.colors.surface.default,
-  },
-  characterTitleText: {
+  roleplayDescText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+    color: "#9A3412",
+    lineHeight: 22,
+    fontWeight: "500",
+    opacity: 0.9,
   },
-  characterRow: {
+  scenarioSection: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
+  },
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    marginBottom: 4,
   },
-  characterText: {
+  sectionTitle: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    flexShrink: 1,
+    textTransform: "uppercase",
+    color: "#1E40AF",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  scenarioText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#1E3A8A",
+    lineHeight: 20,
+  },
+
+  // Tips
+  tipsContainer: {
+    gap: 0,
+  },
+  startButton: {
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 0,
+  },
+  startButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
+  },
+  startButtonText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFF",
+    fontWeight: "700",
+  },
+  bottomActionContainer: {
+    paddingHorizontal: 24,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

@@ -1,18 +1,22 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
-import AuthNavigator from "./AuthNavigator";
 import AppNavigator from "./AppNavigator";
+import AuthNavigator from "./AuthNavigator";
 import OnboardingStackNavigator from "./stacks/OnboardingStack";
 
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { useUserStore } from "../stores/user";
+import { useUserBehaviorTrendsStore } from "../stores/userBehaviorTrends";
 
 export default function MainNavigator() {
   console.log("main navigator loaded..");
-
+  const fetchAllTrends = useUserBehaviorTrendsStore(
+    (state) => state.fetchAllTrends,
+  );
   const { isLoggedIn, logout } = useContext(AuthContext);
   const { user } = useUserStore();
+  const userId = user?.id;
 
   const { events, clear } = useEventStore();
 
@@ -50,6 +54,13 @@ export default function MainNavigator() {
       }
     }
   }, [events, clear, logout]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !userId) return;
+    void fetchAllTrends().catch(() => {
+      // Store-level error handling already captures and persists the failure state.
+    });
+  }, [fetchAllTrends, isLoggedIn, userId]);
 
   // -----------------------------
   // Routing decision

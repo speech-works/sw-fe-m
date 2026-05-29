@@ -1,9 +1,9 @@
 import axiosClient from "../../axiosClient";
 import {
-  AppFeedback,
-  CreateAppFeedbackPayload,
-  CreateReportedIssuePayload,
-  ReportedIssue,
+    AppFeedback,
+    CreateAppFeedbackPayload,
+    CreateReportedIssuePayload,
+    ReportedIssue,
 } from "./types";
 
 /**

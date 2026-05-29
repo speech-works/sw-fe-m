@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TextInputProps,
-  TouchableOpacity,
+    StyleSheet,
+    Text,
+    TextInput,
+    TextInputProps,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";
@@ -38,7 +38,7 @@ const Search: React.FC<SearchProps> = ({ ...textInputProps }) => {
         activeOpacity={1}
         onPress={activateSearch}
       >
-        <Icon name="search" size={20} color={theme.colors.neutral[5]} />
+        <Icon name="search" size={20} color={theme.colors.text.disabled} />
         {isSearchActive ? (
           <TextInput
             ref={textInputRef}
@@ -70,13 +70,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexDirection: "row",
     gap: 4,
-    backgroundColor: theme.colors.neutral[9],
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
   },
   searchText: {
     flex: 1,
-    ...parseTextStyle(theme.typography.paragraphSmall.regular),
-    color: theme.colors.neutral.black,
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
     lineHeight: 13 * 1.2,
   },
 });

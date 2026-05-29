@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Slider from "@react-native-community/slider";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 import { theme } from "../../Theme/tokens";
@@ -17,7 +17,7 @@ interface Props {
   sequence?: number;
   question: string;
   description?: string;
-  questionType: "single" | "multi" | "slider";
+  questionType: "SINGLE" | "MULTI" | "SLIDER";
   options: OnboardingOption[];
   value?: string;
   values?: string[];
@@ -35,8 +35,8 @@ const OnboardingQuestion = ({
   values = [],
   onChange,
 }: Props) => {
-  const isSlider = questionType === "slider";
-  const isMulti = questionType === "multi";
+  const isSlider = questionType === "SLIDER";
+  const isMulti = questionType === "MULTI";
 
   // ---- SLIDER LOGIC ----
   const min = 0;
@@ -45,7 +45,7 @@ const OnboardingQuestion = ({
   // 1. Determine the correct VISUAL position (Index) based on the SAVED VALUE (ID)
   // We compare Strings to ensure "123" matches 123
   const currentOptionIndex = options.findIndex(
-    (opt) => String(opt.id) === String(value)
+    (opt) => String(opt.id) === String(value),
   );
 
   // 2. If the saved value is not found in options (or is empty), default to Index 0
@@ -66,7 +66,7 @@ const OnboardingQuestion = ({
     if (currentValues.includes(optionId)) {
       return onChange(
         id,
-        currentValues.filter((v) => v !== String(optionId))
+        currentValues.filter((v) => v !== String(optionId)),
       );
     }
     return onChange(id, [...currentValues, String(optionId)]);
@@ -110,8 +110,8 @@ const OnboardingQuestion = ({
 
                 console.log(
                   `[Slider] raw: ${v} → ${percentage.toFixed(
-                    1
-                  )}% → Motivation Score: ${score}`
+                    1,
+                  )}% → Motivation Score: ${score}`,
                 );
 
                 onChange(id, score.toString());
@@ -186,16 +186,18 @@ export default OnboardingQuestion;
 
 const styles = StyleSheet.create({
   container: {
-    gap: 18,
-    padding: 16,
+    gap: 32, // Increase gap between Title and content
+    paddingVertical: 12,
   },
   question: {
     ...parseTextStyle(theme.typography.Heading1),
     color: theme.colors.text.title,
+    lineHeight: 42,
   },
   description: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
+    lineHeight: 24,
   },
   sliderBlock: {
     marginTop: 12,
@@ -219,15 +221,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
   },
   nonSliderBlock: {
-    gap: 12,
+    gap: 20, // Clearer separation between description and options
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    gap: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderStyle: "solid",
     borderColor: theme.colors.border.default,

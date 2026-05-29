@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react"; // Import useState and useEffect
+import React, { useEffect, useState } from "react"; // Import useState and useEffect
 import {
-  View,
-  StyleSheet,
-  Text,
-  SafeAreaView,
-  TouchableOpacity,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native"; // Import TouchableOpacity
 import Icon from "react-native-vector-icons/FontAwesome5"; // Ensure you have this installed: expo install react-native-vector-icons
 import { theme } from "../Theme/tokens";

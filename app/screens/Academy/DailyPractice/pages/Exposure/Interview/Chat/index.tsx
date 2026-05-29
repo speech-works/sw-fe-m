@@ -1,41 +1,37 @@
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  LayoutChangeEvent,
-  ScrollView,
-  LayoutAnimation,
   UIManager,
-  Platform,
+  View,
 } from "react-native";
-import React, { useState, useRef, useEffect } from "react";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../../../Theme/tokens";
+import Animated from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../../components/ScreenView";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { InterviewEDPStackParamList } from "../../../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
-import DonePractice from "../../../../components/DonePractice";
-import Separator from "../../../../../../../components/Separator";
-import Button from "../../../../../../../components/Button";
-import VoiceRecorder from "../../../../../Library/TechniquePage/components/VoiceRecorder";
-import { useActivityStore } from "../../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../../stores/session";
-import { completePracticeActivity } from "../../../../../../../api/practiceActivities";
-import { useUserStore } from "../../../../../../../stores/user";
-import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
-import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import {
   FixedRolePlayNode,
   FixedRolePlayNodeOption,
 } from "../../../../../../../api/dailyPractice/types";
+import { completePracticeActivity } from "../../../../../../../api/practiceActivities";
+import { RecordingSourceType } from "../../../../../../../api/recordings/types";
+import CustomScrollView from "../../../../../../../components/CustomScrollView";
+import ScreenView from "../../../../../../../components/ScreenView";
+import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
+import { useActivityStore } from "../../../../../../../stores/activity";
+import { useSessionStore } from "../../../../../../../stores/session";
+import { useUserStore } from "../../../../../../../stores/user";
+import { theme } from "../../../../../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../../../../util/functions/parseStyles";
+import DonePractice from "../../../../components/DonePractice";
+import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -44,12 +40,16 @@ interface ChatMessage {
   text: string;
 }
 
-const Chat = () => {
-  const navigation = useNavigation();
-  const route =
-    useRoute<RouteProp<InterviewEDPStackParamList, "InterviewChat">>();
+import { InterviewEDPStackRouteProp } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
+import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
-  const { interview, practiceActivityId } = route.params;
+const Chat = () => {
+  const navigation =
+    useNavigation<ExploreStackNavigationProp<"InterviewChat">>();
+  const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
+
+  const { interview, practiceActivityId, packContext, from } = route.params;
+  const data = interview.practiceData || interview.interviewPracticeData;
 
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -57,10 +57,9 @@ const Chat = () => {
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
   const [isDone, setIsDone] = useState(false);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [messageHeight, setMessageHeight] = useState<number | null>(null);
-  const chatScrollRef = useRef<ScrollView>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const chatScrollRef = useRef<Animated.ScrollView>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
@@ -68,7 +67,7 @@ const Chat = () => {
     FixedRolePlayNodeOption[]
   >([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false); // To track if the initial node has been processed
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Enable LayoutAnimation on Android for smooth transitions
   useEffect(() => {
@@ -79,25 +78,23 @@ const Chat = () => {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
-
-  // Effect to initialize the chat with the first NPC message
   useEffect(() => {
     if (
       interview &&
-      interview.practiceData?.stage.initialNodeId &&
+      data?.stage.initialNodeId &&
       !hasInitialized &&
-      interview.practiceData?.stage.dialogues
+      data?.stage.dialogues
     ) {
-      setCurrentNodeId(interview.practiceData.stage.initialNodeId);
+      setCurrentNodeId(data.stage.initialNodeId);
       setHasInitialized(true);
     }
-  }, [interview, hasInitialized]);
+  }, [interview, data, hasInitialized]);
 
   // Effect to update messages and options when currentNodeId changes
   useEffect(() => {
-    if (currentNodeId && interview.practiceData?.stage.dialogues) {
+    if (currentNodeId && data?.stage.dialogues) {
       const node: FixedRolePlayNode | undefined =
-        interview.practiceData.stage.dialogues[currentNodeId];
+        data.stage.dialogues[currentNodeId];
       if (node) {
         // Add NPC's line to messages
         setMessages((prevMessages) => [
@@ -129,50 +126,24 @@ const Chat = () => {
       // If currentNodeId becomes null after initialization, it means the conversation has ended
       setCurrentOptions([]);
     }
-  }, [currentNodeId, interview.practiceData, hasInitialized]);
+  }, [currentNodeId, data, hasInitialized]);
 
-  // Effect to scroll to the bottom of the chat when messages update and chat is collapsed
+  // Effect to scroll to the bottom of the chat when messages update
   useEffect(() => {
-    if (!isExpanded && chatScrollRef.current && messages.length > 0) {
-      // Small delay to ensure layout is complete before scrolling
-      setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (chatScrollRef.current && messages.length > 1) {
+      timer = setTimeout(() => {
         chatScrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [messages, isExpanded]);
-
-  // Effect to scroll to the bottom when collapsed if messageHeight is known
-  useEffect(() => {
-    if (!isExpanded && messageHeight != null && chatScrollRef.current) {
-      setTimeout(() => {
-        chatScrollRef.current?.scrollToEnd({ animated: false });
-      }, 0);
-    }
-  }, [messageHeight, isExpanded]);
-
-  // Callback function to capture the layout height of the measuring bubble
-  const onFirstMessageLayout = (e: LayoutChangeEvent) => {
-    const { height } = e.nativeEvent.layout;
-    if (height !== messageHeight && height > 0) {
-      setMessageHeight(height);
-    }
-  };
-
-  // Toggles the expanded state of the chat, with LayoutAnimation for smooth transitions
-  const toggleExpand = () => {
-    const nextIsExpanded = !isExpanded;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut, () => {
-      // After animation, if collapsing, scroll to the end
-      if (!nextIsExpanded && chatScrollRef.current) {
-        chatScrollRef.current?.scrollToEnd({ animated: true });
-      }
-    });
-    setIsExpanded(nextIsExpanded);
-  };
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [messages]);
 
   // Handles the selection of a user response option
   const handleSelectOption = (option: FixedRolePlayNodeOption) => {
-    if (!interview.practiceData?.stage.initialNodeId) return; // Ensure dialogues exist
+    if (!data?.stage.initialNodeId) return; // Ensure dialogues exist
 
     // Add user's selected line to messages
     setMessages((prevMessages) => [
@@ -187,23 +158,58 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId); // Move to the next dialogue node
   };
 
-  const markActivityComplete = async (activityId: string) => {
-    if (!practiceSession || !doesActivityExist(activityId)) return;
+  const markActivityComplete = async (
+    activityId: string,
+    vitals?: {
+      effortScore: number;
+      autonomyScore: number;
+      accuracyScore?: number;
+    },
+  ) => {
+    if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
+      return;
+
+    // Fallback for user id
+    const userId = practiceSession?.user?.id || user?.id; // Always use real ID if available
+
+    if (!userId) {
+      console.warn("Cannot complete activity: Missing userId");
+      return;
+    }
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
-      userId: practiceSession.user.id,
+      userId: userId,
+      packId: packContext?.packId,
+      moduleId: packContext?.moduleId,
+      vitals,
     });
     updateActivity(activityId, {
       ...completedActivity,
     });
+    useUserStore.getState().fetchUser();
   };
 
   const onDonePress = async () => {
+    if (!practiceActivityId) {
+      console.error("Activity could not be started");
+      return;
+    }
+    setShowVitalsModal(true);
+  };
+
+  const handleVitalsSubmit = async (vitals?: {
+    effortScore: number;
+    autonomyScore: number;
+    accuracyScore?: number;
+  }) => {
+    setShowVitalsModal(false);
+    setIsLoading(true);
     try {
       if (!practiceActivityId) {
         throw new Error("Activity could not be started");
       }
-      await markActivityComplete(practiceActivityId);
+      await markActivityComplete(practiceActivityId, vitals);
       await submitVoiceRecording({
         recordingSource: RecordingSourceType.ACTIVITY,
         activityId: practiceActivityId,
@@ -211,181 +217,172 @@ const Chat = () => {
       setIsDone(true);
     } catch (error) {
       console.error("❌ Failed to mark the activity complete:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Background Component
+  const Background = () => (
+    <View style={StyleSheet.absoluteFillObject}>
+      <LinearGradient
+        colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
+        locations={[0, 0.6, 1]}
+        style={{ flex: 1 }}
+      />
+    </View>
+  );
+
+  if (isDone) {
+    return (
+      <DonePractice
+        practiceName="interview practice"
+        onDone={
+          packContext
+            ? () => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("PackModule", {
+                    packId: packContext.packId,
+                    moduleId: packContext.moduleId,
+                    initialBlockIndex: packContext.blockIndex,
+                  });
+                }
+              }
+            : undefined
+        }
+        from={from}
+      />
+    );
+  }
+
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.topNavigationContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.topNavigation}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            {/* Displaying the interview name from route params */}
-            <Text style={styles.topNavigationText}>{interview.name}</Text>
-          </TouchableOpacity>
-          {/* Chevron to toggle expand/collapse, hidden when done or no messages */}
-          <TouchableOpacity
-            onPress={toggleExpand}
-            style={[
-              styles.chevronContainer,
-              // Hide chevron if not initialized or no messages yet
-              isDone || !hasInitialized || messages.length === 0
-                ? { opacity: 0, pointerEvents: "none" }
-                : null,
-            ]}
-          >
-            <Icon
-              name={isExpanded ? "chevron-circle-up" : "chevron-circle-down"}
-              size={16}
-              color={theme.colors.text.default}
-            />
-          </TouchableOpacity>
-        </View>
+      <Background />
 
-        <CustomScrollView contentContainerStyle={styles.scrollContent}>
-          {isDone ? (
-            // Display DonePractice component when the practice is marked complete
-            <DonePractice />
-          ) : (
-            <>
-              {/* No briefContainer needed for interview simulation context */}
-              {/* <View style={styles.briefContainer}>...</View> */}
+      {/* Header */}
+      <View style={styles.topNavigationContainer}>
+        <TouchableOpacity
+          onPress={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : navigation.goBack()
+          }
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {interview.name}
+        </Text>
+        <View style={{ width: 32 }} />
+      </View>
 
-              <View style={styles.messagesContainer}>
-                {/* Hidden measuring bubble to determine message height */}
-                {messageHeight === null && (
-                  <View
-                    style={[styles.incomingMessage, styles.hiddenMeasureBubble]}
-                    onLayout={onFirstMessageLayout}
-                  >
-                    <Text style={styles.incomingMessageText}>
-                      Measuring text: This is a reasonably long message to help
-                      determine bubble height accurately for layout purposes.
-                      Ensure this text results in a height that can accommodate
-                      your tallest typical single message.
-                    </Text>
-                  </View>
-                )}
+      {/* Chat Area - Expands */}
+      <View style={styles.chatAreaContainer}>
+        <CustomScrollView
+          ref={chatScrollRef}
+          contentContainerStyle={styles.chatsScrollView}
+          style={styles.chatsView}
+          scrollEventThrottle={16}
+        >
+          {/* Initial Spacer for top padding */}
+          <View style={{ height: 24 }} />
 
-                {/* Main chat messages scroll view */}
-                {messages.length > 0 && (
-                  <CustomScrollView
-                    ref={chatScrollRef}
-                    contentContainerStyle={
-                      isExpanded
-                        ? styles.chatsScrollViewExpanded
-                        : styles.chatsScrollViewCollapsed
-                    }
-                    style={
-                      isExpanded
-                        ? styles.expandedChatsView
-                        : messageHeight
-                        ? { height: messageHeight, overflow: "hidden" }
-                        : { maxHeight: 0 }
-                    }
-                    pagingEnabled={!isExpanded}
-                    showsVerticalScrollIndicator={isExpanded}
-                    scrollEventThrottle={16}
-                  >
-                    {messages.map((message) => (
-                      <View
-                        key={message.id}
-                        style={
-                          message.type === "incoming"
-                            ? styles.incomingMessage
-                            : styles.outgoingMessage
-                        }
-                      >
-                        <Text
-                          style={
-                            message.type === "incoming"
-                              ? styles.incomingMessageText
-                              : styles.outgoinggMessageText
-                          }
-                        >
-                          {message.text}
-                        </Text>
-                      </View>
-                    ))}
-                    {/* Spacer view only for expanded mode to ensure last message isn't hidden by suggestions */}
-                    {isExpanded && messages.length > 0 && (
-                      <View style={{ height: 60 }} />
-                    )}
-                  </CustomScrollView>
-                )}
+          {messages.map((message) => (
+            <View
+              key={message.id}
+              style={
+                message.type === "incoming"
+                  ? styles.incomingMessage
+                  : styles.outgoingMessage
+              }
+            >
+              <Text
+                style={
+                  message.type === "incoming"
+                    ? styles.incomingMessageText
+                    : styles.outgoinggMessageText
+                }
+              >
+                {message.text}
+              </Text>
+            </View>
+          ))}
 
-                {/* Separator and Suggestions */}
-                {currentOptions.length > 0 && (
-                  <>
-                    <Separator />
-                    <View style={styles.suggestionsContainer}>
-                      <Text style={styles.suggestionsTitleText}>
-                        Suggested Responses:
-                      </Text>
-                      <View style={styles.suggestedTextContainer}>
-                        {currentOptions.map((option) => (
-                          <TouchableOpacity
-                            key={option.id}
-                            style={[
-                              styles.suggestionCard,
-                              option.id === selectedOptionId
-                                ? styles.selectedSuggestionCard
-                                : null,
-                            ]}
-                            onPress={() => handleSelectOption(option)}
-                            // Disable option selection if an option has already been chosen for the current turn
-                            disabled={selectedOptionId !== null}
-                          >
-                            <Text
-                              style={[
-                                styles.suggestionText,
-                                option.id === selectedOptionId
-                                  ? styles.selectedSuggestionText
-                                  : null,
-                              ]}
-                            >
-                              {option.userLine}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  </>
-                )}
-              </View>
-
-              <VoiceRecorder
-                onRecorded={(uri) => {
-                  setVoiceRecordingUri(uri);
-                }}
-              />
-
-              {!!voiceRecordingUri && (
-                <Button
-                  text="Mark Complete"
-                  onPress={async () => {
-                    setIsLoading(true);
-                    try {
-                      await onDonePress();
-                      setIsDone(true);
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
-                  disabled={isLoading}
-                />
-              )}
-            </>
-          )}
+          {/* Bottom Spacer for visual breathing room */}
+          <View style={{ height: 32 }} />
         </CustomScrollView>
       </View>
+
+      {/* Action Dock - Fixed Bottom */}
+      <View style={styles.bottomDockContainer}>
+        {currentOptions.length > 0 && (
+          <View style={styles.suggestionsDock}>
+            <Text style={styles.suggestionsTitleText}>Select a response:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsScrollContent}
+            >
+              {currentOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.suggestionCard,
+                    option.id === selectedOptionId
+                      ? styles.selectedSuggestionCard
+                      : null,
+                  ]}
+                  onPress={() => handleSelectOption(option)}
+                  disabled={selectedOptionId !== null}
+                >
+                  <LinearGradient
+                    colors={
+                      option.id === selectedOptionId
+                        ? [
+                            theme.colors.actionPrimary.default,
+                            theme.colors.actionPrimary.default,
+                          ]
+                        : ["rgba(255,255,255,0.95)", "rgba(255,255,255,0.85)"]
+                    }
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Text
+                    style={[
+                      styles.suggestionText,
+                      option.id === selectedOptionId
+                        ? styles.selectedSuggestionText
+                        : null,
+                    ]}
+                  >
+                    {option.userLine}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <SmartRecorder
+          onRecorded={setVoiceRecordingUri}
+          prevRecordingUri={voiceRecordingUri || undefined}
+          onSubmit={async () => {
+            await onDonePress();
+          }}
+          onDiscard={() => {
+            setVoiceRecordingUri(null);
+          }}
+        />
+      </View>
+
+      <VitalsFeedbackModal
+        visible={showVitalsModal}
+        onSkip={() => handleVitalsSubmit(undefined)}
+        onSubmit={handleVitalsSubmit}
+      />
     </ScreenView>
   );
 };
@@ -393,70 +390,55 @@ const Chat = () => {
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-  },
-  container: {
-    flex: 1,
-    gap: 16,
-  },
-  scrollContent: {
-    gap: 24,
-    flexGrow: 1,
-    paddingHorizontal: SHADOW_BUFFER,
-    paddingTop: SHADOW_BUFFER,
-    paddingBottom: 60 + SHADOW_BUFFER,
+    backgroundColor: "#FFFFFF",
   },
   topNavigationContainer: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: SHADOW_BUFFER,
-    paddingTop: Platform.OS === "ios" ? 10 : SHADOW_BUFFER,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
   },
-  topNavigation: {
-    flexDirection: "row",
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
-    gap: 8,
-    flexShrink: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  topNavigationText: {
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontWeight: "600",
+    textAlign: "center",
+    flex: 1,
+    marginHorizontal: 16,
   },
-  messagesContainer: {
-    padding: 16,
-    gap: 20,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  hiddenMeasureBubble: {
-    position: "absolute",
-    opacity: 0,
-    top: -99999,
-    left: -99999,
-    zIndex: -1,
-    pointerEvents: "none",
-  },
-  expandedChatsView: {
+  chatsView: {
     flex: 1,
   },
-  chatsScrollViewExpanded: {
-    // For isExpanded === true
+  chatsScrollView: {
     gap: 20,
-    // Spacer view is used instead of paddingBottom here
+    paddingHorizontal: 24,
   },
-  chatsScrollViewCollapsed: {
-    // For isExpanded === false
-    gap: 8,
+  chatAreaContainer: {
+    flex: 1,
+    overflow: "hidden",
   },
   incomingMessage: {
     padding: 16,
-    borderRadius: 16,
-    borderTopLeftRadius: 2,
-    backgroundColor: theme.colors.library.blue[100],
+    borderRadius: 20,
+    borderTopLeftRadius: 4,
+    backgroundColor: "#FFFFFF",
     maxWidth: "85%",
     alignSelf: "flex-start",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
   incomingMessageText: {
     ...parseTextStyle(theme.typography.Body),
@@ -464,52 +446,69 @@ const styles = StyleSheet.create({
   },
   outgoingMessage: {
     padding: 16,
-    borderRadius: 16,
-    borderTopRightRadius: 2,
+    borderRadius: 20,
+    borderBottomRightRadius: 4,
     backgroundColor: theme.colors.library.orange[100],
     maxWidth: "85%",
     alignSelf: "flex-end",
+    borderWidth: 1,
+    borderColor: "rgba(251, 146, 60, 0.1)",
   },
   outgoinggMessageText: {
     ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: "#9A3412", // Dark Orange
   },
   chevronContainer: {
     padding: 8,
     alignItems: "center",
   },
-  suggestionsContainer: {
-    gap: 20,
+  // Bottom Dock
+  bottomDockContainer: {
+    // Fixed at bottom, SmartRecorder handles its own positioning
+  },
+  suggestionsDock: {
+    marginTop: 16,
+    marginBottom: 12,
+    gap: 12,
+    paddingVertical: 16,
+  },
+  suggestionsScrollContent: {
+    paddingHorizontal: 24,
+    gap: 12,
+    paddingRight: 40,
+    paddingVertical: 12,
   },
   suggestionsTitleText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
-    fontWeight: "bold",
-  },
-  suggestedTextContainer: {
-    gap: 12,
+    color: theme.colors.text.disabled,
+    fontWeight: "600",
+    marginLeft: 24,
   },
   suggestionCard: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.surface.default,
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: "rgba(255,255,255,0.4)",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
+    maxWidth: 280,
+    minWidth: 100,
   },
   selectedSuggestionCard: {
-    backgroundColor: theme.colors.actionPrimary.default,
     borderColor: theme.colors.actionPrimary.default,
-  },
-  selectedSuggestionText: {
-    color: theme.colors.text.onDark,
   },
   suggestionText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
-    textAlign: "center",
+    textAlign: "left",
+  },
+  selectedSuggestionText: {
+    color: "#FFF",
+    fontWeight: "600",
   },
 });
 

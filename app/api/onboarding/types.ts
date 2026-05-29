@@ -7,7 +7,7 @@ export interface OnboardingOption {
   orderIndex: number;
 }
 
-export type QuestionType = "single" | "multi" | "slider";
+export type QuestionType = "SINGLE" | "MULTI" | "SLIDER";
 
 export interface OnboardingQuestion {
   id: string;
@@ -18,7 +18,7 @@ export interface OnboardingQuestion {
   questionType: QuestionType;
   isRequired: boolean;
   options: OnboardingOption[];
-  adaptiveKey: string | null;
+  adaptiveKey?: string | null;
 }
 
 export interface OnboardingFlow {

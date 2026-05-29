@@ -30,7 +30,9 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
 
 # typescript
 *.tsbuildinfo
@@ -85,3 +87,5 @@ ios/
 .expo
 dist/
 web-build/
+# Tour Guide Metadata
+tour-guide-meta.md

@@ -1,11 +1,11 @@
-import { StyleSheet, Text, View } from "react-native";
 import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import ProgressBar from "../../../../../components/ProgressBar";
 import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
-import ProgressBar from "../../../../../components/ProgressBar";
 
 const TutStats = () => {
   // dummy XP numbers

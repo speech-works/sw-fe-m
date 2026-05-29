@@ -1,15 +1,14 @@
 // AudioRecorderControls.tsx
-import React, { useEffect, useRef } from "react";
-import { Alert, Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import type { AVPlaybackStatus } from "expo-av";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import {
-  AndroidAudioEncoder,
-  AndroidOutputFormat,
-  IOSAudioQuality,
-  IOSOutputFormat,
+    AndroidAudioEncoder,
+    AndroidOutputFormat,
+    IOSAudioQuality,
+    IOSOutputFormat,
 } from "expo-av/build/Audio";
+import React, { useEffect, useRef } from "react";
+import { Alert } from "react-native";
 
 export type RecorderStatus =
   | "idle"
@@ -103,6 +102,15 @@ const AudioRecorderControls: React.FC<AudioRecorderControlsProps> = ({
 
   const startRecording = async () => {
     try {
+      // Cleanup any existing recording first
+      if (recordingRef.current) {
+        try {
+          await recordingRef.current.stopAndUnloadAsync();
+        } catch {}
+        recordingRef.current = null;
+      }
+      stopMeteringTimer();
+
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
@@ -117,32 +125,14 @@ const AudioRecorderControls: React.FC<AudioRecorderControlsProps> = ({
         playsInSilentModeIOS: true,
         interruptionModeIOS: InterruptionModeIOS.DoNotMix,
         interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
       });
 
+      // Crucial Delay for Mode Switch
+      await new Promise((r) => setTimeout(r, 500));
+
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync({
-        android: {
-          extension: ".m4a",
-          outputFormat: AndroidOutputFormat.MPEG_4,
-          audioEncoder: AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: ".m4a",
-          outputFormat: IOSOutputFormat.MPEG4AAC,
-          audioQuality: IOSAudioQuality.HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        isMeteringEnabled: true,
-        web: {
-          mimeType: undefined,
-          bitsPerSecond: undefined,
-        },
-      });
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
 
       await recording.startAsync();
       recordingRef.current = recording;

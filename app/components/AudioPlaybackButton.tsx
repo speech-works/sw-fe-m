@@ -1,15 +1,16 @@
 // AudioPlaybackButton.tsx
-import React, { useState, useEffect, useRef } from "react";
+import { Audio, AVPlaybackStatus } from "expo-av";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
-  StyleSheet,
-  ViewStyle,
   StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { Audio, AVPlaybackStatus } from "expo-av";
 
 interface AudioPlaybackButtonProps {
   audioUrl: string | null | undefined;
@@ -36,7 +37,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     return () => {
       isMountedRef.current = false;
       if (soundInstanceRef.current) {
-        // console.log('Unloading sound on component unmount');
         soundInstanceRef.current
           .unloadAsync()
           .catch((e) => console.error("Error unloading sound on unmount:", e));
@@ -49,7 +49,6 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
   useEffect(() => {
     // If a sound is currently loaded (from a previous URL), unload it.
     if (soundInstanceRef.current) {
-      // console.log('audioUrl changed, unloading previous sound');
       soundInstanceRef.current
         .unloadAsync()
         .catch((e) => console.error("Error unloading sound on URL change:", e));
@@ -76,13 +75,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(status.isBuffering);
 
       if (status.didJustFinish && !status.isLooping) {
-        // console.log('Audio finished playing.');
         setIsPlaying(false); // Mark as not playing
         // Crucial: Stop the sound. This also resets its position to 0,
         // preparing it to be played again from the start.
         try {
           await soundInstanceRef.current.stopAsync();
-          // console.log('Sound stopped and reset after finishing.');
         } catch (error) {
           console.error("Error stopping sound after finish:", error);
         }
@@ -91,11 +88,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       // Sound is not loaded, possibly due to an error or unload
       setIsPlaying(false);
       setIsBuffering(false);
-      if (status.error) {
-        console.error(`Playback Status Error: ${status.error}`);
+      if ((status as any).error) {
+        console.error(`Playback Status Error: ${(status as any).error}`);
         Alert.alert(
           "Audio Error",
-          `An error occurred during playback: ${status.error}`
+          `An error occurred during playback: ${(status as any).error}`,
         );
         // Unload the problematic sound instance and nullify the ref
         if (soundInstanceRef.current) {
@@ -123,11 +120,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         if (status.isLoaded) {
           if (isPlaying) {
             // If currently playing, pause it
-            // console.log('Pausing sound.');
+
             await soundInstanceRef.current.pauseAsync();
           } else {
             // If not playing (it's paused or was stopped after finishing)
-            // console.log('Playing sound (resume or from start).');
+
             await soundInstanceRef.current.playAsync(); // Should start from beginning if stopped, or resume if paused.
           }
         } else {
@@ -158,15 +155,15 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     if (!soundInstanceRef.current) {
       if (!isMountedRef.current) return;
 
-      // console.log('Loading new sound for URL:', audioUrl);
       setIsLoading(true);
       setIsBuffering(false);
 
       try {
+        console.log(`[AudioPlaybackButton] Loading URI: ${audioUrl}`);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true }, // Attempt to play immediately after loading
-          onPlaybackStatusUpdate // Register status callback for ongoing updates
+          onPlaybackStatusUpdate, // Register status callback for ongoing updates
         );
 
         if (isMountedRef.current) {
@@ -175,11 +172,10 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
           // Loading is complete once createAsync resolves.
           setIsLoading(false);
         } else {
-          // console.log('Component unmounted during sound load. Unloading new sound.');
           newSound
             .unloadAsync()
             .catch((e) =>
-              console.error("Error unloading new sound on unmount:", e)
+              console.error("Error unloading new sound on unmount:", e),
             );
         }
       } catch (error) {
@@ -190,7 +186,10 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
         } else if (typeof error === "string") {
           errorMessage = error;
         }
-        Alert.alert("Error", `Could not load audio: ${errorMessage}`);
+        Alert.alert(
+          "Error",
+          `Could not load audio: ${errorMessage}\n\nURI: ${audioUrl}`,
+        );
         if (isMountedRef.current) {
           soundInstanceRef.current = null; // Ensure ref is null on loading error
           setIsLoading(false);
@@ -201,11 +200,11 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
     }
   };
 
-  let iconName = "play-circle";
+  let iconName = "play";
   if (isLoading || isBuffering) {
     // Render loading/buffering indicator
   } else if (isPlaying) {
-    iconName = "pause-circle";
+    iconName = "pause";
   }
 
   return (
@@ -214,15 +213,19 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       disabled={isLoading} // Only disable during the initial load phase
       style={[styles.button, style]}
     >
-      {isLoading || isBuffering ? (
+      {/* Spinner Overlay */}
+      {(isLoading || isBuffering) && (
         <ActivityIndicator
           size="small"
           color={activeColor}
-          style={{ width: iconSize, height: iconSize }}
+          style={StyleSheet.absoluteFill}
         />
-      ) : (
-        <Icon name={iconName} size={iconSize} color={activeColor} />
       )}
+
+      {/* Icon (Invisible when loading) */}
+      <View style={{ opacity: isLoading || isBuffering ? 0 : 1 }}>
+        <Icon name={iconName} size={iconSize} color={activeColor} />
+      </View>
     </TouchableOpacity>
   );
 };

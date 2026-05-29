@@ -1,97 +1,150 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-  Circle,
-} from "react-native-svg";
+import React, { useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+ cancelAnimation} from "react-native-reanimated";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+  size?: number | string;
+  width?: number | string;
+  height?: number | string;
+  transparentBg?: boolean;
+}
 
 const ExposureFace = ({
   size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  transparentBg = false,
   ...props
-}: SvgProps & { size?: number | string }) => (
-  <Svg width={size} height={size} viewBox="0 0 48 48" fill="none" {...props}>
-    <Defs>
-      <Filter
-        id="hero_shadow"
-        x="-50%"
-        y="-50%"
-        width="200%"
-        height="200%"
-        filterUnits="userSpaceOnUse"
-      >
-        <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-        <FeColorMatrix
-          in="SourceAlpha"
-          result="hardAlpha"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        />
-        <FeOffset dx={4} dy={4} />
-        <FeGaussianBlur stdDeviation={1} />
-        <FeComposite in2="hardAlpha" operator="out" />
-        <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-        <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-        <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-      </Filter>
-      <Mask
-        id="hero_mask"
-        x="0"
-        y="0"
-        width="48"
-        height="48"
-        maskUnits="userSpaceOnUse"
-      >
-        <Path
-          fill="#fff"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
-      </Mask>
-    </Defs>
-    <G mask="url(#hero_mask)">
-      {/* Background: Red 200 */}
-      <Path
-        fill="#FFBFBF"
-        d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-      />
-      <G filter="url(#hero_shadow)">
-        {/* Face: Orange 200 */}
-        <Path
-          fill="#FFDABF"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        />
-      </G>
+}: SvgIconProps) => {
+  const activeWidth = width || size;
+  const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const flutter = useSharedValue(0);
 
-      {/* Superhero Eye Mask (Red 600) */}
-      <Path
-        fill="#BF0000"
-        d="M4 24 C 4 18, 14 18, 24 24 C 34 18, 44 18, 44 24 L 42 30 C 38 34, 30 30, 24 30 C 18 30, 10 34, 6 30 Z"
-      />
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 3000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      flutter.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500 }),
+          withTiming(0, { duration: 1500 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      blink.value = 1;
+      flutter.value = 0;
+    }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(flutter);
+    };
+  }, [shouldAnimate]);
 
-      {/* Eyes (White Sclera inside mask) */}
-      <Circle cx="16.8" cy="25" r="2.5" fill="#FFF" />
-      <Circle cx="31.2" cy="25" r="2.5" fill="#FFF" />
-      {/* Pupils (Black) */}
-      <Circle cx="16.8" cy="25" r="1.5" fill="#111215" />
-      <Circle cx="31.2" cy="25" r="1.5" fill="#111215" />
+  const blinkS = useDerivedValue(() => blink.value);
+  const flutS = useDerivedValue(() => 1 + flutter.value * 0.05);
 
-      {/* Confident Grin (Gray 800) */}
-      <Path
-        stroke="#111215"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        d="M20 36 Q 26 38, 30 35"
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
+    originY: 25,
+  }));
+  const bgProps = useAnimatedProps(() => ({
+    transform: [{ scale: flutS.value }] as any,
+    originX: 24,
+    originY: 24,
+  }));
+
+  return (
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (Number(activeWidth) || 48) / 2,
+        overflow: "hidden",
+      }}
+    >
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
         fill="none"
-      />
-    </G>
-  </Svg>
-);
-export default ExposureFace;
+        {...props}
+      >
+        <Defs>
+          <Mask
+            id="expM"
+            x="0"
+            y="0"
+            width="48"
+            height="48"
+            maskUnits="userSpaceOnUse"
+          >
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#expM)">
+          {!transparentBg && (
+            <AnimatedPath
+              fill="#FFBFBF"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+              animatedProps={bgProps}
+            />
+          )}
+          <Path
+            fill="#FFDABF"
+            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+          />
+          <Path
+            fill="#BF0000"
+            d="M4 24C4 18 14 18 24 24s20-6 20 0l-2 6c-4 4-12 0-18 0s-14 4-18 0z"
+          />
+          <AnimatedG animatedProps={eyeProps}>
+            <Circle cx="16.8" cy="25" r="2.5" fill="#FFF" />
+            <Circle cx="31.2" cy="25" r="2.5" fill="#FFF" />
+            <Circle cx="16.8" cy="25" r="1.5" fill="#111215" />
+            <Circle cx="31.2" cy="25" r="1.5" fill="#111215" />
+          </AnimatedG>
+          <Path
+            stroke="#111215"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M20 36q6 2 10-1"
+            fill="none"
+          />
+        </G>
+      </Svg>
+    </View>
+  );
+};
+export default React.memo(ExposureFace);

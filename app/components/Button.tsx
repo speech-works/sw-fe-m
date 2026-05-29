@@ -1,19 +1,19 @@
 import React from "react";
 import {
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  Platform,
-  ActivityIndicator, // 1. --- Import ActivityIndicator ---
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TextStyle,
+    View,
+    ViewStyle
 } from "react-native";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
-import { theme } from "../Theme/tokens";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { theme } from "../Theme/tokens";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../util/functions/parseStyles";
+import { TactileTouchableOpacity } from "./TactileTouchableOpacity";
 
 /**
  * @typedef {'ghost' | 'normal'} ButtonVariant
@@ -152,26 +152,39 @@ const Button: React.FC<ButtonProps> = ({
   // applied and is made redundant by the `gap: 12` in `styles.buttonBase`.
 
   return (
-    <TouchableOpacity
+    <TactileTouchableOpacity
       style={getButtonStyles()}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={isDisabled} // Use combined isDisabled check
     >
-      {/* 3. --- Render spinner OR leftIcon --- */}
-      {loading ? (
-        <ActivityIndicator size="small" color={iconColor} />
-      ) : leftIcon ? (
-        <Icon name={leftIcon} size={20} color={iconColor} />
-      ) : null}
+      {/* Overlay Spinner */}
+      {loading && (
+        <ActivityIndicator
+          size="small"
+          color={iconColor}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
 
-      <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
+      {/* Preserve Content Layout (Invisible when loading) */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          opacity: loading ? 0 : 1,
+        }}
+      >
+        {leftIcon ? <Icon name={leftIcon} size={20} color={iconColor} /> : null}
 
-      {/* Also hide rightIcon when loading for a cleaner look */}
-      {!loading && rightIcon ? (
-        <Icon name={rightIcon} size={20} color={iconColor} />
-      ) : null}
-    </TouchableOpacity>
+        <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
+
+        {rightIcon ? (
+          <Icon name={rightIcon} size={20} color={iconColor} />
+        ) : null}
+      </View>
+    </TactileTouchableOpacity>
   );
 };
 

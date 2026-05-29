@@ -1,17 +1,17 @@
 import * as React from "react";
 import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
+    Defs,
+    FeBlend,
+    FeColorMatrix,
+    FeComposite,
+    FeFlood,
+    FeGaussianBlur,
+    FeOffset,
+    Filter,
+    G,
+    Mask,
+    Path,
+    SvgProps,
 } from "react-native-svg";
 
 interface SvgIconProps extends SvgProps {

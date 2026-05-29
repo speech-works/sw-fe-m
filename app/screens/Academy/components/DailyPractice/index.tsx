@@ -1,24 +1,23 @@
-import { StyleSheet, Text, View } from "react-native";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Button from "../../../../components/Button";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { theme } from "../../../../Theme/tokens";
 
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
 import { useNavigation } from "@react-navigation/native";
-import {
-  AcademyStackNavigationProp,
-  AcademyStackParamList,
-} from "../../../../navigators/stacks/AcademyStack/types";
-import { useSessionStore } from "../../../../stores/session";
-import { isSameDay, isValid, set } from "date-fns";
-import { getUserPreferences } from "../../../../api/settings/userPreference";
+import { isSameDay, isValid } from "date-fns";
 import { getAllPracticeActivitiesBySessionId } from "../../../../api";
-import { useUserStore } from "../../../../stores/user";
+import { getUserPreferences } from "../../../../api/settings/userPreference";
 import OnCallFace from "../../../../assets/sw-faces/OnCallFace";
+import {
+    ExploreStackNavigationProp,
+    ExploreStackParamList,
+} from "../../../../navigators/stacks/ExploreStack/types";
+import { useSessionStore } from "../../../../stores/session";
+import { useUserStore } from "../../../../stores/user";
+import {
+    parseShadowStyle,
+    parseTextStyle,
+} from "../../../../util/functions/parseStyles";
 
 interface DailyPracticeProps {
   onClickStart: () => void;
@@ -27,7 +26,7 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
   const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const [practiceType, setPracticeType] = useState<"TIME_BASED" | "TASK_BASED">(
-    "TIME_BASED"
+    "TIME_BASED",
   );
   const [targetMinutes, setTargetMinutes] = useState<number>(15);
   const [achievedMinutes, setAchievedMinutes] = useState<number>(0);
@@ -42,13 +41,13 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
       isSessionFresh = isSameDay(sessionDate, currentDate);
     } else {
       console.warn(
-        "DailyPractice: practiceSession.startedAt is NOT a valid Date object."
+        "DailyPractice: practiceSession.startedAt is NOT a valid Date object.",
       );
     }
   }
 
   const navigation =
-    useNavigation<AcademyStackNavigationProp<keyof AcademyStackParamList>>();
+    useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
 
   const moveToDailyPractice = () => {
     !isSessionFresh && onClickStart();
@@ -82,11 +81,12 @@ const DailyPractice = ({ onClickStart }: DailyPracticeProps) => {
         setAchievedTaskCount(taskCount);
         let totalAchievedMinutes = 0;
         const completedActivities = activities.filter(
-          (activity) => activity.status === "COMPLETED"
+          (activity) => activity.status === "COMPLETED",
         );
 
         completedActivities.forEach((activity) => {
           if (
+            activity.startedAt &&
             activity.completedAt &&
             isValid(activity.startedAt) &&
             isValid(activity.completedAt)

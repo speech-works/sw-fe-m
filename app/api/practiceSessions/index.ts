@@ -62,8 +62,11 @@ export async function createSession({
   try {
     const response = await axiosClient.post("/sessions", { userId });
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating session:", error);
+    if (error.response) {
+      console.error("Backend Error Data:", error.response.data);
+    }
     throw error;
   }
 }

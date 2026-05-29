@@ -1,6 +1,6 @@
 import * as React from "react";
 import { StyleSheet } from "react-native";
-import Svg, { SvgProps, Rect, G, Circle } from "react-native-svg";
+import Svg, { Circle, G, Rect, SvgProps } from "react-native-svg";
 
 const BgPattern_DriftingPieces = ({ style, ...props }: SvgProps) => {
   const viewBox = "0 0 375 812";

@@ -6,6 +6,7 @@ export async function uploadToS3(
   mimeType: string
 ): Promise<void> {
   try {
+    console.log(`[uploadToS3] Starting upload to S3. URL: ${uploadUrl.substring(0, 50)}..., MIME: ${mimeType}, File: ${fileUri}`);
     const fileBlob = await FileSystem.uploadAsync(uploadUrl, fileUri, {
       httpMethod: "PUT",
       headers: {
@@ -14,11 +15,13 @@ export async function uploadToS3(
       uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
     });
 
-    if (fileBlob.status !== 200) {
+    console.log(`[uploadToS3] Upload finished. Status: ${fileBlob.status}`);
+    if (fileBlob.status !== 200 && fileBlob.status !== 201) {
+      console.error(`[uploadToS3] S3 responded with failure:`, fileBlob.body);
       throw new Error(`Upload to S3 failed with status ${fileBlob.status}`);
     }
   } catch (error) {
-    console.error("uploadToS3 error:", error);
+    console.error("[uploadToS3] Error during S3 upload:", error);
     throw error;
   }
 }

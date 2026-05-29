@@ -1,18 +1,23 @@
 // components/LoadingScreen.tsx
 import React from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { theme } from "../Theme/tokens";
 import { parseTextStyle } from "../util/functions/parseStyles";
 
-const LoadingScreen: React.FC = () => {
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator
-        size="large"
-        color={theme.colors.actionPrimary.default}
-      />
+interface LoadingScreenProps {
+  message?: string;
+  isNested?: boolean;
+}
 
-      <Text style={styles.text}>Loading…</Text>
+const LoadingScreen: React.FC<LoadingScreenProps> = ({
+  message = "Loading…",
+  isNested = false,
+}) => {
+  return (
+    <View style={[styles.container, isNested && styles.nestedContainer]}>
+      <ActivityIndicator size="large" color={theme.colors.actionPrimary.default} />
+
+      <Text style={[styles.text, isNested && styles.nestedText]}>{message}</Text>
     </View>
   );
 };
@@ -33,5 +38,16 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
+  },
+  nestedContainer: {
+    flex: 0,
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  nestedText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    marginTop: 8,
   },
 });

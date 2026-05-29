@@ -1,18 +1,41 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { updateUserById } from "../../../api";
+import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import TextArea from "../../../components/TextArea";
-import Button from "../../../components/Button";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { updateUserById } from "../../../api";
-import { triggerToast } from "../../../util/functions/toast";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../util/functions/parseStyles";
+import { showErrorBottomSheet, showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
 
 interface EditProfileProps {
   onSave: () => void;
 }
+
+// Helper component for lively icons
+const LivelyIcon = ({
+  name,
+  color,
+  bg,
+}: {
+  name: string;
+  color: string;
+  bg: string;
+}) => (
+  <View style={[styles.iconContainer, { backgroundColor: bg }]}>
+    <Icon solid name={name} size={16} color={color} />
+  </View>
+);
 
 const EditProfile = ({ onSave }: EditProfileProps) => {
   const { user, setUser } = useUserStore();
@@ -28,171 +51,324 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
 
   const handleSave = async () => {
     if (!user) return;
-    await updateUserById(user.id, {
-      name,
-      bio,
-      phoneNumber,
-      links: {
-        social: {
-          facebook: socialLinks.facebook,
-          instagram: socialLinks.instagram,
-          whatsapp: socialLinks.whatsapp,
+    try {
+      await updateUserById(user.id, {
+        name,
+        bio,
+        phoneNumber,
+        links: {
+          social: {
+            facebook: socialLinks.facebook,
+            instagram: socialLinks.instagram,
+            whatsapp: socialLinks.whatsapp,
+          },
         },
-      },
-    });
-    triggerToast(
-      "success",
-      "Profile update",
-      "Your profile has been updated successfully."
-    );
-    setUser({
-      ...user,
-      id: user?.id ?? "",
-      name,
-      bio,
-      email: user?.email || "",
-      profilePictureUrl: user?.profilePictureUrl || "",
-      phoneNumber,
-      links: {
-        social: {
-          facebook: socialLinks.facebook,
-          instagram: socialLinks.instagram,
-          whatsapp: socialLinks.whatsapp,
+      });
+      showSuccessBottomSheet(
+        "Profile Updated",
+        "Your changes have been saved successfully.",
+      );
+      setUser({
+        ...user,
+        name,
+        bio,
+        phoneNumber,
+        links: {
+          social: {
+            facebook: socialLinks.facebook,
+            instagram: socialLinks.instagram,
+            whatsapp: socialLinks.whatsapp,
+          },
         },
-      },
-      dob: user?.dob || undefined,
-    });
-    onSave();
+      });
+      onSave();
+    } catch (error) {
+      showErrorBottomSheet("Update Failed", "Could not update profile.");
+      console.error(error);
+    }
   };
 
   return (
-    <CustomScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Edit Profile</Text>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Name</Text>
-        <TextArea
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter your name"
-          numberOfLines={1}
-          multiline
-          inputStyle={styles.input}
-          containerStyle={styles.textAreaContainer}
-        />
+    <View style={styles.root}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerText}>Edit Profile</Text>
       </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Bio</Text>
-        <TextArea
-          value={bio}
-          onChangeText={setBio}
-          placeholder="Tell us something about you"
-          numberOfLines={4}
-          multiline
-          inputStyle={[styles.input, styles.bioInput]}
-          containerStyle={{
-            ...styles.textAreaContainer,
-            ...styles.bioContainer,
-          }}
-        />
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.label}>Phone Number</Text>
-        <TextArea
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-          placeholder="+91-XXXXXX"
-          numberOfLines={1}
-          multiline
-          inputStyle={styles.input}
-          containerStyle={styles.textAreaContainer}
-          keyboardType="phone-pad"
-        />
-      </View>
+      <CustomScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Personal Info Card */}
+        <View style={styles.cardContainer}>
+          <View style={styles.sectionHeader}>
+            <LivelyIcon name="user-edit" color="#EA580C" bg="#FFF7ED" />
+            <Text style={styles.sectionTitle}>Personal Details</Text>
+          </View>
 
-      <Text style={styles.sectionHeader}>Social Links</Text>
+          <View style={styles.inputGroup}>
+            <View>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#94A3B8"
+                  style={styles.input}
+                />
+              </View>
+            </View>
 
-      {Object.entries(socialLinks).map(([platform, value]) => (
-        <View key={platform} style={styles.socialRow}>
-          <Icon name={platform} size={16} color={theme.colors.text.title} />
-          <TextArea
-            value={value}
-            onChangeText={(text) =>
-              setSocialLinks((prev) => ({ ...prev, [platform]: text }))
-            }
-            placeholder={`Enter ${platform} link`}
-            numberOfLines={2}
-            multiline
-            inputStyle={styles.input}
-            containerStyle={{
-              ...styles.textAreaContainer,
-              ...styles.socialInput,
-            }}
-          />
+            <View>
+              <Text style={styles.label}>Bio</Text>
+              <View style={[styles.inputWrapper, styles.bioInputWrapper]}>
+                <TextInput
+                  value={bio}
+                  onChangeText={setBio}
+                  placeholder="Tell us a bit about yourself..."
+                  placeholderTextColor="#94A3B8"
+                  multiline
+                  numberOfLines={4}
+                  style={[styles.input, styles.bioInput]}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+
+            <View>
+              <Text style={styles.label}>Phone Number</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="+91-XXXXXX"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+          </View>
         </View>
-      ))}
 
-      <Button
-        text="Save Changes"
-        onPress={handleSave}
-        style={styles.saveButton}
-      />
-    </CustomScrollView>
+        {/* Social Links Card */}
+        <View style={styles.cardContainer}>
+          <View style={styles.sectionHeader}>
+            <LivelyIcon name="share-alt" color="#10B981" bg="#ECFDF5" />
+            <Text style={styles.sectionTitle}>Social Links</Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <View style={styles.socialRow}>
+              <View style={[styles.socialIcon, { backgroundColor: "#EFF6FF" }]}>
+                <Icon name="facebook-f" size={16} color="#2563EB" />
+              </View>
+              <View style={[styles.inputWrapper, styles.flex1]}>
+                <TextInput
+                  value={socialLinks.facebook}
+                  onChangeText={(text) =>
+                    setSocialLinks((prev) => ({ ...prev, facebook: text }))
+                  }
+                  placeholder="Facebook Profile URL"
+                  placeholderTextColor="#94A3B8"
+                  style={styles.input}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            <View style={styles.socialRow}>
+              <View style={[styles.socialIcon, { backgroundColor: "#FDF2F8" }]}>
+                <Icon name="instagram" size={16} color="#DB2777" />
+              </View>
+              <View style={[styles.inputWrapper, styles.flex1]}>
+                <TextInput
+                  value={socialLinks.instagram}
+                  onChangeText={(text) =>
+                    setSocialLinks((prev) => ({ ...prev, instagram: text }))
+                  }
+                  placeholder="Instagram Profile URL"
+                  placeholderTextColor="#94A3B8"
+                  style={styles.input}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+
+            <View style={styles.socialRow}>
+              <View style={[styles.socialIcon, { backgroundColor: "#F0FDF4" }]}>
+                <Icon name="whatsapp" size={16} color="#16A34A" />
+              </View>
+              <View style={[styles.inputWrapper, styles.flex1]}>
+                <TextInput
+                  value={socialLinks.whatsapp}
+                  onChangeText={(text) =>
+                    setSocialLinks((prev) => ({ ...prev, whatsapp: text }))
+                  }
+                  placeholder="WhatsApp Number / URL"
+                  placeholderTextColor="#94A3B8"
+                  style={styles.input}
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Save Button */}
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleSave}
+            style={styles.saveButtonWrapper}
+          >
+            <LinearGradient
+              colors={["#fb923c", "#ea580c"]} // Orange gradient
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.saveButtonGradient}
+            >
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <Icon name="check" size={16} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={onSave} style={styles.cancelButton}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </CustomScrollView>
+    </View>
   );
 };
 
 export default EditProfile;
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    gap: 16,
+  root: {
+    flex: 1,
   },
-  header: {
+  container: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 40,
+    gap: 20,
+  },
+  headerContainer: {
+    paddingTop: 32, // More padding for bottom sheet context
+    paddingBottom: 20,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    zIndex: 10, // Ensure it stays on top of scrolling content
+  },
+  headerText: {
     color: theme.colors.text.title,
     ...parseTextStyle(theme.typography.Heading3),
-    textAlign: "center",
   },
-  section: {
-    gap: 8,
-  },
-  label: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+  cardContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading3),
-    marginTop: 24,
-    color: theme.colors.text.title,
-  },
-  textAreaContainer: {
-    backgroundColor: theme.colors.background.default,
-    minHeight: 50,
-    borderRadius: 12,
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 20,
+    gap: 12,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  inputGroup: {
+    gap: 16,
+  },
+  label: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  inputWrapper: {
+    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    height: 48,
+    justifyContent: "center",
+  },
+  flex1: {
+    flex: 1,
+  },
+  bioInputWrapper: {
+    height: 120,
+    paddingVertical: 12,
+    justifyContent: "flex-start",
   },
   input: {
-    backgroundColor: theme.colors.background.default,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    padding: 0,
+    color: "#1E293B",
+    fontSize: 16,
+    fontWeight: "500",
+    height: "100%",
   },
   bioInput: {
-    lineHeight: 22,
-  },
-  bioContainer: {
-    minHeight: 100,
+    textAlignVertical: "top", // Android fix
   },
   socialRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 8,
   },
-  socialInput: {
-    flex: 1,
+  socialIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  saveButton: {
-    marginTop: 32,
+  actionContainer: {
+    marginTop: 12,
+    gap: 16,
+  },
+  saveButtonWrapper: {
+    borderRadius: 24,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  saveButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  cancelButton: {
+    alignItems: "center",
+    padding: 12,
+  },
+  cancelButtonText: {
+    color: "#64748B",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

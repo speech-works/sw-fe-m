@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
 import { Audio } from "expo-av";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Turn = "user" | "agent";
 
@@ -60,23 +60,6 @@ export function useCallSession({ userId, websocketUrl }: UseCallSessionProps) {
       binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
-  };
-
-  const getWavAudioData = (wavBuffer: ArrayBuffer): ArrayBuffer => {
-    const view = new DataView(wavBuffer);
-    let offset = 0;
-    if (view.getUint32(offset, false) !== 0x52494646)
-      throw new Error("Invalid WAV: Missing RIFF");
-    offset += 12;
-    while (offset < wavBuffer.byteLength) {
-      const chunkId = view.getUint32(offset, false);
-      offset += 4;
-      const size = view.getUint32(offset, true);
-      offset += 4;
-      if (chunkId === 0x64617461) return wavBuffer.slice(offset, offset + size);
-      offset += size + (size % 2);
-    }
-    throw new Error("WAV data chunk not found");
   };
 
   const createWavFile = (

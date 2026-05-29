@@ -1,9 +1,12 @@
-import React, { createContext, useState, useEffect } from "react";
-import { Text } from "react-native";
 import * as SecureStore from "expo-secure-store"; // or AsyncStorage
+import React, { createContext, useEffect, useState } from "react";
+import { Text } from "react-native";
 import { logoutUser } from "../api";
-import { setUpdateTokenFn } from "../util/functions/authToken";
+import { resetAuthInterceptor } from "../api/axiosClient";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
+import { setUpdateTokenFn } from "../util/functions/authToken";
+import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -25,14 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null | undefined>(null);
 
   useEffect(() => {
-    console.log("token changed", token);
-  }, [token]);
-
-  useEffect(() => {
     // On app startup, try loading token from SecureStore
     const loadToken = async () => {
       const storedToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY
+        SECURE_KEYS_NAME.SW_APP_JWT_KEY,
       );
       if (storedToken) {
         setToken(storedToken);
@@ -56,17 +55,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [updateToken]);
 
   const login = async (newToken: string) => {
-    console.log("context login called with", newToken);
     // Save to SecureStore
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, newToken);
     setToken(newToken);
+
+    // Reset the interceptor state so that future 401s trigger logout events again
+    resetAuthInterceptor();
   };
 
   const logout = async () => {
     // Retrieve tokens for API logout
     const accessToken = token;
     const refreshToken = await SecureStore.getItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
 
     if (accessToken && refreshToken) {
@@ -82,13 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear secure storage
     await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
     await SecureStore.deleteItemAsync(
-      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
+      SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
+    
+    // Clear Zustand stores to prevent leaked state or erroneous fetches on re-login
+    import("../stores/user").then(m => m.useUserStore.getState().clearUser());
+    import("../stores/userBehaviorTrends").then(m => m.useUserBehaviorTrendsStore.getState().clearTrends());
+    import("../stores/progressReport").then(m => m.useProgressReportStore.getState().clearProgressReport());
+    import("../stores/practiceCategorySummary").then(m => m.usePracticeCategorySummaryStore.getState().clearSummary());
+
+    // Reset PostHog identity so subsequent anonymous events don't link to this user
+    track(ANALYTICS_EVENTS.USER_LOGGED_OUT);
+    resetAnalyticsIdentity();
+
     setToken(null);
   };
 
   const isLoggedIn = !!token;
-  console.log("isLoggedIn changed to", isLoggedIn);
 
   return (
     <AuthContext.Provider

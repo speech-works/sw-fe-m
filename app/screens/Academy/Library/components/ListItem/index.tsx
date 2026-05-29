@@ -1,15 +1,15 @@
-import { StyleSheet, Text, View } from "react-native";
 import React, { useMemo } from "react"; // Import useMemo
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../../../../Theme/tokens";
-import ListCard from "../ListCard";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import ListCard from "../ListCard";
 // import { Technique } from "../../data"; // Unused import removed for cleanliness
-import {
-  LibStackNavigationProp,
-  LibStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/LibraryStack/types";
 import { useNavigation } from "@react-navigation/native";
 import { TransformedTechnique } from "../../../../../api/library/types";
+import {
+    LibStackNavigationProp,
+    LibStackParamList,
+} from "../../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { useUserStore } from "../../../../../stores/user";
 
 interface ListItemProps {

@@ -33,6 +33,8 @@ export interface User {
   isPaid?: boolean;
   level?: number;
   currentStamina?: number;
+  maxStaminaCap?: number;
+  staminaRegenRateMs?: number;
   lastStaminaUpdate?: Date;
 
   createdAt?: Date;
@@ -49,6 +51,37 @@ export interface User {
   oauthId?: string;
   oauthProvider?: string;
   stripeCustomerId?: string;
+  fearedSounds?: string[];
+}
+
+export interface LevelStage {
+  level: number;
+  relativeLevel: number;
+  romanRelative: string;
+  title: string;
+  fullTitle: string;
+  shortDescription: string;
+  progressReportCopy: string;
+  minLevel: number;
+  maxLevel: number | null;
+  stamina: {
+    max: number;
+    regenMinutesPerPoint: number;
+  };
+  currentLevelXpFloor: number;
+  nextLevelXpCeiling: number;
+  totalXp: number;
+  stages: {
+    minLevel: number;
+    maxLevel: number | null;
+    title: string;
+    shortDescription: string;
+    progressReportCopy: string;
+    stamina: {
+      max: number;
+      regenMinutesPerPoint: number;
+    };
+  }[];
 }
 
 // Get user by ID
@@ -65,7 +98,7 @@ export async function getUserById(id: string): Promise<User> {
 // Update user by ID
 export async function updateUserById(
   id: string,
-  user: Partial<Omit<User, "id" | "password" | "createdAt">>
+  user: Partial<Omit<User, "id" | "password" | "createdAt">>,
 ): Promise<User> {
   try {
     const response = await axiosClient.patch(`/users/${id}`, user);
@@ -93,6 +126,30 @@ export async function getMyUser(): Promise<User> {
     return response.data;
   } catch (error) {
     console.error("Error getting current user:", error);
+    throw error;
+  }
+}
+
+// Update the current authenticated user (PATCH /users/me)
+export async function updateMyUser(
+  updates: Partial<Omit<User, "id" | "password" | "createdAt">>,
+): Promise<User> {
+  try {
+    const response = await axiosClient.patch("/users/me", updates);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating current user:", error);
+    throw error;
+  }
+}
+
+// Get level stage details for current user
+export async function getLevelStage(): Promise<LevelStage> {
+  try {
+    const response = await axiosClient.get("/users/me/level-stage");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting level stage:", error);
     throw error;
   }
 }

@@ -1,5 +1,5 @@
-import { useRef, useEffect, useCallback } from "react";
 import { Audio } from "expo-av";
+import { useCallback, useEffect, useRef } from "react";
 
 type BreathAudioHook = {
   loadBreathSounds: () => Promise<void>;

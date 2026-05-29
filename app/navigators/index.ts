@@ -1,5 +1,5 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 /**
  * The param list for the Auth Navigator.
@@ -26,10 +26,7 @@ export type AuthStackRouteProp<T extends keyof AuthStackParamList> = RouteProp<
 
 export type HomeStackParamList = {
   Home: undefined;
-  PracticeBreathing: undefined;
-  PracticeAffirmation: undefined;
-  PracticeSmoothSpeech: undefined;
-  PracticeExposure: undefined;
+  ProgressDetail: { scrollTo?: "achievements" } | undefined;
 };
 
 export type HomeStackNavigationProp<T extends keyof HomeStackParamList> =

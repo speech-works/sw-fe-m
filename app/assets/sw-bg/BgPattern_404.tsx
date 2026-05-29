@@ -1,11 +1,11 @@
 import * as React from "react";
 import { StyleSheet } from "react-native";
 import Svg, {
-  SvgProps,
-  Rect,
-  G,
-  Path,
-  Text as SvgText,
+    G,
+    Path,
+    Rect,
+    SvgProps,
+    Text as SvgText,
 } from "react-native-svg";
 
 const BgPattern_404 = ({ style, ...props }: SvgProps) => {

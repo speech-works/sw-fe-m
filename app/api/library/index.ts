@@ -1,11 +1,11 @@
 import axiosClient from "../axiosClient";
 import { parseTechniquesToLibrary } from "./helper";
 import {
-  ExerciseItem,
-  Library,
-  QuizQuestion,
-  TECHNIQUES_ENUM,
-  Tutorial,
+    ExerciseItem,
+    Library,
+    QuizQuestion,
+    TECHNIQUES_ENUM,
+    Tutorial,
 } from "./types";
 
 /**
@@ -54,12 +54,17 @@ export async function getQuizByTechnique(
   techniqueId: TECHNIQUES_ENUM
 ): Promise<QuizQuestion[]> {
   try {
+    console.log("🌐 API: Fetching quiz for techniqueId:", techniqueId);
     const response = await axiosClient.get(`/library/quiz-questions`, {
       params: {
         techniqueId,
       },
     });
     const quiz = response.data;
+    console.log("🌐 API: Quiz response received:", quiz);
+    console.log("🌐 API: Response type:", typeof quiz);
+    console.log("🌐 API: Is array?", Array.isArray(quiz));
+    console.log("🌐 API: Length:", quiz?.length);
     return quiz;
   } catch (error) {
     console.error(

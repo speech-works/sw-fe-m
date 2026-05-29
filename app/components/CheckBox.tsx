@@ -1,6 +1,6 @@
-import React from "react";
-import { Pressable, ViewStyle, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { Pressable, StyleSheet, ViewStyle } from "react-native";
 
 interface CustomCheckboxProps {
   checked: boolean;

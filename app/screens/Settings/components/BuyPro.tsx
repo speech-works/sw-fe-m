@@ -1,93 +1,205 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React from "react";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import { theme } from "../../../Theme/tokens";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   CompositeNavigationProp,
   useNavigation,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
 import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
-import { AcademyStackParamList } from "../../../navigators/stacks/AcademyStack/types";
+import { theme } from "../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../util/functions/parseStyles";
 
-const BuyPro = () => {
-  // non-generic aliases for the whole stacks (easier to compose)
+interface BuyProProps {
+  onLayoutCapture?: (event: any) => void;
+}
+
+const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
-  type AcademyNav = NativeStackNavigationProp<AcademyStackParamList>;
+  type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
+  type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;
 
-  // composite nav prop that supports routes from either stack
-  type CrossNavigationProp = CompositeNavigationProp<SettingsNav, AcademyNav>;
-
-  // usage with useNavigation
   const navigation = useNavigation<CrossNavigationProp>();
 
-  const onSub = () => {
-    navigation.navigate("PaymentStack");
+  const copy = {
+    badge: "EXCLUSIVE OFFER",
+    title: "Go Premium.",
+    subtitle:
+      "Unlock your potential with clinical-grade tools and ultimate freedom.",
+    cta: "Explore Premium",
   };
+
+  const benefits = [
+    { text: "No Daily Caps", icon: "infinity" },
+    { text: "AI Calls", icon: "robot" },
+    { text: "Personal Roadmap", icon: "map-check" },
+  ];
 
   return (
     <LinearGradient
-      colors={["#F97316", "#EC4899"]}
+      onLayout={(event) => onLayoutCapture?.(event)}
+      colors={["#0F172A", "#1E293B", "#0F172A"]} // Premium Dark Slate
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.card}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
     >
-      <View style={styles.textWrapper}>
-        <Text style={styles.titeText}>Exclusive Content for PRO Members</Text>
-        <Text style={styles.descText}>
-          Get new exercises, early access to community features, and weekly
-          progress reports that keep you improving.
-        </Text>
+      {/* Decorative Orbs */}
+      <View
+        style={[
+          styles.glowOrb,
+          { top: -40, right: -40, backgroundColor: "#22D3EE", opacity: 0.1 },
+        ]}
+      />
+      <View
+        style={[
+          styles.glowOrb,
+          { bottom: -30, left: -30, backgroundColor: "#8B5CF6", opacity: 0.08 },
+        ]}
+      />
+
+      {/* Badge */}
+      <View style={styles.badgeContainer}>
+        <Icon name="crown" size={12} color="#D4AF37" />
+        <Text style={styles.badgeText}>{copy.badge}</Text>
       </View>
-      <TouchableOpacity style={styles.subscribeButton} onPress={onSub}>
-        <Text style={styles.subscribeButtonText}>Go PRO</Text>
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.subtitle}>{copy.subtitle}</Text>
+      </View>
+
+      {/* Benefits Grid (Original Compact Style) */}
+      <View style={styles.benefitsGrid}>
+        {benefits.map((benefit, index) => (
+          <View key={index} style={styles.benefitItem}>
+            <Icon
+              name={benefit.icon}
+              size={14}
+              color="#FFF"
+              style={{ opacity: 0.9 }}
+            />
+            <Text style={styles.benefitText}>{benefit.text}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* CTA Button */}
+      <TouchableOpacity
+        style={styles.ctaButton}
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate("PremiumModal" as any)}
+      >
+        <LinearGradient
+          colors={["#D4AF37", "#996515"]} // Metallic Gold
+          style={styles.ctaGradient}
+        >
+          <Text style={styles.ctaText}>{copy.cta}</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </LinearGradient>
   );
 };
 
-export default BuyPro;
+export default React.memo(BuyPro);
 
 const styles = StyleSheet.create({
-  card: {
-    marginBottom: 20,
-    backgroundColor: "linear-gradient(90deg, #F97316 0%, #EC4899 100%)",
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    padding: 24,
-    // paddingTop: 20, // This can be adjusted or removed if screenContainer's paddingTop is sufficient
+  container: {
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 24,
+    ...parseShadowStyle(theme.shadow.elevation4),
+    position: "relative",
+    overflow: "hidden",
+    gap: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  titeText: {
-    color: "#fff",
-    ...parseTextStyle(theme.typography.Heading3),
+  glowOrb: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
-  descText: {
-    color: "#fff",
-    ...parseTextStyle(theme.typography.BodyDetails),
-  },
-
-  subscribeButton: {
+  badgeContainer: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(212, 175, 55, 0.15)", // Translucent Gold
     paddingHorizontal: 12,
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    gap: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.3)",
   },
-  subscribeButtonText: {
-    color: theme.colors.text.title,
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
+  badgeText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    fontWeight: "900",
+    color: "#D4AF37",
+    fontSize: 10,
+    letterSpacing: 1,
   },
-  textWrapper: {
-    marginVertical: 20,
+  header: {
     gap: 8,
+  },
+  title: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  benefitsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 8,
+  },
+  benefitItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.05)",
+  },
+  benefitText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  ctaButton: {
+    marginTop: 12,
+    borderRadius: 100,
+    overflow: "hidden",
+    ...parseShadowStyle(theme.shadow.elevation3),
+  },
+  ctaGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaText: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
   },
 });

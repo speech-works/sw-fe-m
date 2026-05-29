@@ -1,10 +1,10 @@
-import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { theme } from "../../../../../Theme/tokens";
+import { StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import StarRating from "../../../../../components/StarRating";
 import { ExerciseItem } from "../../../../../api/library/types";
+import StarRating from "../../../../../components/StarRating";
+import { theme } from "../../../../../Theme/tokens";
+import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 
 interface CompletedListProps {
   items: ExerciseItem[];

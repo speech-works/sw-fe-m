@@ -1,6 +1,6 @@
 import * as React from "react";
 import { StyleSheet } from "react-native";
-import Svg, { Path, SvgProps, Rect } from "react-native-svg";
+import Svg, { Path, Rect, SvgProps } from "react-native-svg";
 
 const BgPattern_OrganicWaves = ({ style, ...props }: SvgProps) => {
   const viewBox = "0 0 375 812";

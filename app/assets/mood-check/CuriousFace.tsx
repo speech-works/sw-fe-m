@@ -1,119 +1,154 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+import React, { useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+ cancelAnimation} from "react-native-reanimated";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
-const CuriousFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
+const CuriousFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const brow = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 3000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      brow.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      blink.value = 1;
+      brow.value = 0;
+    }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(brow);
+    };
+  }, [shouldAnimate]);
+
+  const blinkS = useDerivedValue(() => blink.value);
+  const lBrowY = useDerivedValue(() => brow.value * -1.5);
+  const rBrowY = useDerivedValue(() => brow.value * 1.5);
+
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
+    originY: 24,
+  }));
+  const lBrowProps = useAnimatedProps(() => ({
+    transform: [{ translateY: lBrowY.value }] as any,
+  }));
+  const rBrowProps = useAnimatedProps(() => ({
+    transform: [{ translateY: rBrowY.value }] as any,
+  }));
 
   return (
-    <Svg
-      width={activeWidth}
-      height={activeHeight}
-      viewBox="0 0 48 48"
-      fill="none"
-      {...props}
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (Number(activeWidth) || 48) / 2,
+        overflow: "hidden",
+      }}
     >
-      <Defs>
-        <Filter
-          id="curious_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-        <Mask
-          id="curious_mask"
-          x="0"
-          y="0"
-          width="48"
-          height="48"
-          maskUnits="userSpaceOnUse"
-        >
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <Defs>
+          <Mask
+            id="curM"
+            x="0"
+            y="0"
+            width="48"
+            height="48"
+            maskUnits="userSpaceOnUse"
+          >
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#curM)">
           <Path
-            fill="#fff"
+            fill="#80CBC4"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </Mask>
-      </Defs>
-      <G mask="url(#curious_mask)">
-        {/* Background - Teal */}
-        <Path
-          fill="#80CBC4"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
-        <G filter="url(#curious_shadow)">
-          {/* Face Shape - Light Teal/Grey */}
           <Path
             fill="#E0F2F1"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
+          <AnimatedG animatedProps={eyeProps}>
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
+            <Path
+              fill="#4A4A4A"
+              d="M20 26a4 4 0 1 0 0-8 4 4 0 0 0 0 8M34.4 26a4 4 0 1 0 0-8 4 4 0 0 0 0 8"
+            />
+          </AnimatedG>
+          <Circle cx="24" cy="34" r="3" fill="#4A4A4A" />
+          <AnimatedPath
+            stroke="#4A4A4A"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M12 16q4.8 0 9.6 0"
+            animatedProps={lBrowProps}
+          />
+          <AnimatedPath
+            stroke="#4A4A4A"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M26.4 12q4.8-4 9.6 0"
+            animatedProps={rBrowProps}
+          />
         </G>
-        {/* Eyes (White) */}
-        <Path
-          fill="#fff"
-          d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-        />
-        <Path
-          fill="#fff"
-          d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-        />
-        {/* Pupils (Dark) - Moved up and right for thinking look */}
-        <Path
-          fill="#4A4A4A"
-          d="M20 26 a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M34.4 26 a4 4 0 1 0 0-8 4 4 0 0 0 0 8"
-        />
-        {/* Pursed Mouth "Hmm" */}
-        <Path
-          fill="#4A4A4A"
-          d="M24 34 m-3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
-        />
-        {/* Curious Eyebrows (one high, one low) */}
-        <Path
-          stroke="#4A4A4A"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M12 16 Q 16.8 16, 21.6 16"
-        />
-        <Path
-          stroke="#4A4A4A"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M26.4 12 Q 31.2 8, 36 12"
-        />
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 };
-
-export default CuriousFace;
+export default React.memo(CuriousFace);

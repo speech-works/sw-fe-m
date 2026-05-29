@@ -1,40 +1,29 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ViewStyle,
-} from "react-native";
-import React from "react";
-import ScreenView from "../../../components/ScreenView";
-import CustomScrollView from "../../../components/CustomScrollView";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
-import { theme } from "../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import ListCard, { ListCardProps } from "./components/ListCard";
 import { useNavigation } from "@react-navigation/native";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import CustomScrollView from "../../../components/CustomScrollView";
+import ScreenView from "../../../components/ScreenView";
 import {
   DPStackNavigationProp,
   DPStackParamList,
-} from "../../../navigators/stacks/AcademyStack/DailyPracticeStack/types";
+} from "../../../navigators/stacks/ExploreStack/DailyPracticeStack/types";
+import { theme } from "../../../Theme/tokens";
+import { parseTextStyle } from "../../../util/functions/parseStyles";
+import ListCard, { ListCardProps } from "./components/ListCard";
 
 import ReaderFace from "../../../assets/mood-check/ReaderFace";
-import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import BreathingFace from "../../../assets/sw-faces/BreathingFace";
+import ExposureFace from "../../../assets/sw-faces/ExposureFace";
 import MovieFace from "../../../assets/sw-faces/MovieFace";
-
-const iconContiainerStyle: ViewStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: 48,
-  width: 48,
-  borderRadius: 24,
-};
+import { useEventStore } from "../../../stores/events";
+import { EVENT_NAMES } from "../../../stores/events/constants";
+import { useUserStore } from "../../../stores/user";
 
 const DailyPractice = () => {
   const navigation =
     useNavigation<DPStackNavigationProp<keyof DPStackParamList>>();
+  const { emit } = useEventStore();
 
   const moveToReadingPractice = () => {
     navigation.navigate("ReadingPracticeStack");
@@ -50,7 +39,35 @@ const DailyPractice = () => {
     navigation.navigate("ExposureStack");
   };
 
+  const { user } = useUserStore();
+  const hasCompletedOnboarding = user?.hasCompletedOnboarding ?? false;
+
   const dailyPracticeData: Array<ListCardProps> = [
+    // Show the structured daily assessment only after onboarding is complete
+    ...(hasCompletedOnboarding
+      ? [
+          {
+            title: "Daily Check-in",
+            description: "Complete your 7-Day Pulse",
+            onPress: () => navigation.navigate("ImpactAssessmentIntro"),
+            icon: (
+              <Icon
+                name="calendar-check"
+                size={52}
+                color={theme.colors.actionPrimary.default}
+              />
+            ),
+          },
+        ]
+      : [
+          // Otherwise show "Complete Profile" to nudge them to finish onboarding
+          {
+            title: "Complete Profile",
+            description: "Finish your clinical intake",
+            onPress: () => emit(EVENT_NAMES.START_ONBOARDING), // Trigger onboarding via event store
+            icon: <Icon name="user-clock" size={52} color={"#F59E0B"} />,
+          },
+        ]),
     {
       title: "Fun Activities",
       description: "Interactive speech games",
@@ -118,6 +135,7 @@ const styles = StyleSheet.create({
   container: {
     gap: 32,
     flex: 1,
+    paddingTop: 40,
   },
   topNavigation: {
     position: "relative",

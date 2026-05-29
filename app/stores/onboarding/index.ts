@@ -1,9 +1,9 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { OnboardingFlow, OnboardingQuestion } from "../../api/onboarding/types";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import { reviveDatesInObject } from "../../util/functions/date";
-import { OnboardingFlow, OnboardingQuestion } from "../../api/onboarding/types";
 
 interface OnboardingState {
   flow: OnboardingFlow | null;
@@ -17,9 +17,9 @@ interface OnboardingState {
   toggleMultiAnswer: (key: string, option: any) => void;
 
   // Helpers
-  getCurrentScreenQuestions: () => OnboardingQuestion[];
+  getCurrentScreenQuestions: (screenNum?: number) => OnboardingQuestion[];
   getTotalScreens: () => number;
-  isCurrentScreenValid: () => boolean;
+  isCurrentScreenValid: (screenNum?: number) => boolean;
 
   // Nav
   nextScreen: () => void;
@@ -65,10 +65,11 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({ answers: { ...get().answers, [key]: updated } });
       },
 
-      getCurrentScreenQuestions: () => {
+      getCurrentScreenQuestions: (screenNum?: number) => {
         const { flow, currentScreen } = get();
         if (!flow) return [];
-        return flow.questions.filter((q) => q.screenNumber === currentScreen);
+        const targetScreen = screenNum ?? currentScreen;
+        return flow.questions.filter((q) => q.screenNumber === targetScreen);
       },
 
       getTotalScreens: () => {
@@ -78,12 +79,13 @@ export const useOnboardingStore = create<OnboardingState>()(
         return Math.max(...flow.questions.map((q) => q.screenNumber));
       },
 
-      isCurrentScreenValid: () => {
-        const questions = get().getCurrentScreenQuestions();
+      isCurrentScreenValid: (screenNum?: number) => {
+        const questions = get().getCurrentScreenQuestions(screenNum);
         const answers = get().answers;
 
         return questions.every((q) => {
-          if (!q.isRequired) return true;
+          // Default to TRUE (required) if 'isRequired' is undefined or true. Only skip if explicitly false.
+          if (q.isRequired === false) return true;
 
           // 🔥 KEY LOGIC: determine storage key
           const key = q.adaptiveKey ?? q.id;
@@ -102,7 +104,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         if (!flow) return;
 
         const maxScreen = Math.max(
-          ...flow.questions.map((q) => q.screenNumber)
+          ...flow.questions.map((q) => q.screenNumber),
         );
         if (currentScreen < maxScreen) {
           set({ currentScreen: currentScreen + 1 });
@@ -131,6 +133,6 @@ export const useOnboardingStore = create<OnboardingState>()(
           state.flow = reviveDatesInObject(state.flow) as OnboardingFlow;
         }
       },
-    }
-  )
+    },
+  ),
 );

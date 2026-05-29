@@ -1,21 +1,23 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import ScreenView from "../../components/ScreenView";
-import Button from "../../components/Button";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../Theme/tokens";
+import Button from "../../components/Button";
+import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
+import { parseTextStyle } from "../../util/functions/parseStyles";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingDone: React.FC = () => {
   const stopOnboarding = useEventStore((s) => s.emit);
   const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
 
   const handleFinish = () => {
+    track(ANALYTICS_EVENTS.ONBOARDING_COMPLETED);
     // Reset local onboarding UI state
     resetOnboarding();
-
     // Ask MainNavigator to switch back to App flow
     stopOnboarding(EVENT_NAMES.STOP_ONBOARDING);
   };

@@ -1,7 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
 import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../../../../../../Theme/tokens";
-import { parse } from "@babel/core";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 
 interface PageCounterProps {

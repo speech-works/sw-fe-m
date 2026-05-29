@@ -47,9 +47,9 @@ export async function speakChorusFrontEnd({
   //    instead, the utterances queue. To reduce that “queued” feel, we can:
   //      a) Reduce to two voices instead of three (so queueing is shorter), or
   //      b) Use a bigger delay so at least they’re less obviously queued.
-  //
+
   //    Feel free to tweak this logic based on your own testing:
-  //
+
   const isAndroid = Platform.OS === "android";
   let actualPitches = pitches;
   let actualDelay = delayMs;

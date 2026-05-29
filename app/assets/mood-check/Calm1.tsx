@@ -1,96 +1,136 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+import React, { useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+ cancelAnimation} from "react-native-reanimated";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+  size?: number | string;
   width?: number | string;
   height?: number | string;
 }
 
-const SvgIcon = ({ width = 48, height = 48 }: SvgIconProps) => (
-  <Svg width={width} height={height} viewBox="0 0 48 48" fill="none">
-    <Mask
-      id="mask0_2132_4802"
-      x={0}
-      y={0}
-      width={48}
-      height={48}
-      maskUnits="userSpaceOnUse"
-      style={{ maskType: "luminance" }}
-    >
-      <Path
-        fill="#fff"
-        d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-      ></Path>
-    </Mask>
-    <G mask="url(#mask0_2132_4802)">
-      <Path
-        fill="#B8DCC2"
-        d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-      ></Path>
-      <G filter="url(#filter0_d_2132_4802)">
-        <Path
-          fill="#E7E2CB"
-          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-        ></Path>
-      </G>
-      <Path
-        fill="#fff"
-        d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-      ></Path>
-      <Path
-        fill="#fff"
-        d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-      ></Path>
-      <Path
-        fill="#4A4A4A"
-        d="M16.8 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64M31.2 28.32a4.32 4.32 0 1 0 0-8.64 4.32 4.32 0 0 0 0 8.64"
-      ></Path>
-    </G>
-    <Defs>
-      <Filter
-        id="filter0_d_2132_4802"
-        x={6}
-        y={8}
-        width={43.35}
-        height={48.886}
-        filterUnits="userSpaceOnUse"
-        //colorInterpolationFilters="sRGB"
-      >
-        <FeFlood floodOpacity={0} result="BackgroundImageFix"></FeFlood>
-        <FeColorMatrix
-          in="SourceAlpha"
-          result="hardAlpha"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        ></FeColorMatrix>
-        <FeOffset dx={4} dy={4}></FeOffset>
-        <FeGaussianBlur stdDeviation={1}></FeGaussianBlur>
-        <FeComposite in2="hardAlpha" operator="out"></FeComposite>
-        <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></FeColorMatrix>
-        <FeBlend
-          in2="BackgroundImageFix"
-          result="effect1_dropShadow_2132_4802"
-        ></FeBlend>
-        <FeBlend
-          in="SourceGraphic"
-          in2="effect1_dropShadow_2132_4802"
-          result="shape"
-        ></FeBlend>
-      </Filter>
-    </Defs>
-  </Svg>
-);
+const Calm1 = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  ...props
+}: SvgIconProps) => {
+  const activeWidth = width || size;
+  const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const pulse = useSharedValue(1);
 
-export default SvgIcon;
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 4000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.03, { duration: 1500, easing: Easing.out(Easing.exp) }),
+          withTiming(1, { duration: 1500, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      blink.value = 1;
+      pulse.value = 1;
+    }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(pulse);
+    };
+  }, [shouldAnimate]);
+
+  const blinkS = useDerivedValue(() => blink.value);
+  const pulseS = useDerivedValue(() => pulse.value);
+
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
+    originY: 24,
+  }));
+  const pulseProps = useAnimatedProps(() => ({
+    transform: [{ scale: pulseS.value }] as any,
+    originX: 24,
+    originY: 24,
+  }));
+
+  return (
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (Number(activeWidth) || 48) / 2,
+        overflow: "hidden",
+      }}
+    >
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <Defs>
+          <Mask
+            id="cal1M"
+            x="0"
+            y="0"
+            width="48"
+            height="48"
+            maskUnits="userSpaceOnUse"
+          >
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#cal1M)">
+          <Path
+            fill="#B8DCC2"
+            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+          />
+          <AnimatedG animatedProps={pulseProps}>
+            <Path
+              fill="#E7E2CB"
+              d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
+            />
+          </AnimatedG>
+          <AnimatedG animatedProps={eyeProps}>
+            <Circle cx="16.8" cy="24" r="7.2" fill="#fff" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#fff" />
+            <Circle cx="16.8" cy="24" r="4.32" fill="#4A4A4A" />
+            <Circle cx="31.2" cy="24" r="4.32" fill="#4A4A4A" />
+          </AnimatedG>
+        </G>
+      </Svg>
+    </View>
+  );
+};
+export default React.memo(Calm1);

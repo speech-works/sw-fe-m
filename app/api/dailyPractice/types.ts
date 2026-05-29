@@ -88,18 +88,14 @@ export interface FunPractice {
 
 export enum CognitivePracticeType {
   GUIDED_BREATHING = "GUIDED_BREATHING",
-  POSITIVE_AFFIRMATIONS = "POSITIVE_AFFIRMATIONS",
   GUIDED_MEDITATION = "GUIDED_MEDITATION",
   REFRAMING_THOUGHTS = "REFRAMING_THOUGHTS",
+  REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
 }
 
 export interface GuidedBreathingData {
   tips: Array<string>;
   durationMinutes: number;
-}
-
-export interface PositiveAffirmationsData {
-  affirmations: Array<string>;
 }
 
 export interface GuidedMeditationData {
@@ -126,18 +122,19 @@ export interface CognitivePractice {
   description: string;
   difficulty: DifficultyLevel;
   guidedBreathingData?: GuidedBreathingData;
-  positiveAffirmationsData?: PositiveAffirmationsData;
   guidedMeditationData?: GuidedMeditationData;
   reframingThoughtsData?: ReframingThoughtsData;
+  realLifeChallengeData?: CognitiveRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 
 //////////// Exposure Practice
 
 export enum ExposurePracticeType {
   // RANDOM_QUESTIONS = "RANDOM_QUESTIONS", // Uppercase values
-  INTERVIEW_SIMULATION = "INTERVIEW_SIMULATION",
-  PHONE_CALL_SIMULATION = "PHONE_CALL_SIMULATION",
-  SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE_SIMULATION",
+  INTERVIEW_SIMULATION = "INTERVIEW",
+  PHONE_CALL_SIMULATION = "PHONE_CALL",
+  SOCIAL_CHALLENGE_SIMULATION = "SOCIAL_CHALLENGE",
+  REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
   // DATING_CONVERSATION = "DATING_CONVERSATION",
   // GIVING_DIRECTIONS = "GIVING_DIRECTIONS",
   // Add other exposure types as needed
@@ -181,6 +178,41 @@ export interface FixedRolePlayData {
   scenario: FixedRolePlayScenario;
 }
 
+// Real-Life Challenge data (for pack-based activities)
+// Real-Life Challenge data (for pack-based activities)
+export enum ExposureRealLifeCategory {
+  SOCIAL_DRILL = "SOCIAL_DRILL",
+  TECHNIQUE_DRILL = "TECHNIQUE_DRILL",
+}
+
+export interface ExposureRealLifeData {
+  category: ExposureRealLifeCategory;
+  instructions: string;
+  encouragement: string;
+  completionCriteria: string;
+  completionPlaceholder: string;
+  xpReward?: number;
+  durationMinutes?: number;
+}
+
+export enum CognitiveRealLifeCategory {
+  MINDFULNESS_DRILL = "MINDFULNESS_DRILL",
+  INTROSPECTION_DRILL = "INTROSPECTION_DRILL",
+}
+
+export interface CognitiveRealLifeData {
+  category: CognitiveRealLifeCategory;
+  instructions: string;
+  encouragement: string;
+  completionPlaceholder: string;
+  xpReward?: number;
+  durationMinutes?: number;
+}
+
+export type RealLifeChallengeData =
+  | ExposureRealLifeData
+  | CognitiveRealLifeData;
+
 export interface ExposurePractice {
   id: string;
   type: ExposurePracticeType;
@@ -188,11 +220,22 @@ export interface ExposurePractice {
   description: string;
   difficulty: DifficultyLevel;
   practiceData?: FixedRolePlayData;
+  socialChallengeData?: FixedRolePlayData;
+  interviewPracticeData?: FixedRolePlayData;
+  phoneCallData?: {
+    agentName: string;
+    agentDesignation: string;
+    icon: string;
+    systemPrompt: string;
+  };
+  realLifeChallengeData?: ExposureRealLifeData; // For REAL_LIFE_CHALLENGE type
 }
 
 // Reading Practice
 
 export enum ReadingPracticeType {
+  WORD = "WORD",
+  PHRASE = "PHRASE",
   POEM = "POEM",
   STORY = "STORY",
   QUOTE = "QUOTE",
@@ -212,12 +255,13 @@ export interface ReadingPractice {
 export interface PhoneCallScenario {
   id: string;
   name: string;
-  icon: string;
   description: string;
   difficulty: DifficultyLevel;
   type: ExposurePracticeType.PHONE_CALL_SIMULATION;
-  agent: {
-    name: string;
-    designation: string;
+  phoneCallData?: {
+    agentName: string;
+    agentDesignation: string;
+    icon: string;
+    systemPrompt: string;
   };
 }

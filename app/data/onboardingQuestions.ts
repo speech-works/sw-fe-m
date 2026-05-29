@@ -1,4 +1,3 @@
-import Onboardingquestion from "../components/OnBoarding/OnboardingQuestion";
 
 export const questions: Onboardingquestion[] = [
   {

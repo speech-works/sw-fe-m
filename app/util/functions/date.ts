@@ -1,14 +1,32 @@
-import { parseISO, isValid } from "date-fns";
+import { isValid, parseISO } from "date-fns";
+
+const DEBUG_DATE_REVIVER = false;
+
+const logDateReviver = (...args: any[]) => {
+  if (DEBUG_DATE_REVIVER) {
+    console.log(...args);
+  }
+};
+
+const isDateLikeString = (value: string): boolean => {
+  return /^(\d{4}-\d{2}-\d{2})(?:[T\s]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2}| .+)?)?$/.test(
+    value,
+  );
+};
 
 const parseAnyDateString = (dateString: string): Date | string => {
   if (typeof dateString !== "string") {
-    console.log(
+    logDateReviver(
       `parseAnyDateString: Not a string, returning as is: ${dateString}`
     );
     return dateString;
   }
 
-  console.log(
+  if (!isDateLikeString(dateString)) {
+    return dateString;
+  }
+
+  logDateReviver(
     `parseAnyDateString: Attempting to parse string: "${dateString}"`
   );
 
@@ -20,12 +38,12 @@ const parseAnyDateString = (dateString: string): Date | string => {
     const isoLikeString = customFormatMatch[1].replace(" ", "T");
     const parsedDate = parseISO(isoLikeString);
     if (isValid(parsedDate)) {
-      console.log(
+      logDateReviver(
         `parseAnyDateString: Successfully parsed custom format to: ${parsedDate}`
       );
       return parsedDate;
     } else {
-      console.log(
+      logDateReviver(
         `parseAnyDateString: Failed to parse custom format for "${dateString}", trying ISO.`
       );
     }
@@ -34,12 +52,12 @@ const parseAnyDateString = (dateString: string): Date | string => {
   // 2. If not the custom format or parsing failed, try parsing as a standard ISO 8601 string
   const parsedIsoDate = parseISO(dateString);
   if (isValid(parsedIsoDate)) {
-    console.log(
+    logDateReviver(
       `parseAnyDateString: Successfully parsed ISO format to: ${parsedIsoDate}`
     );
     return parsedIsoDate;
   } else {
-    console.log(
+    logDateReviver(
       `parseAnyDateString: Failed to parse ISO format for "${dateString}", returning original string.`
     );
   }
@@ -63,21 +81,14 @@ export const reviveDatesInObject = (obj: any): any => {
       const value = obj[key];
 
       if (typeof value === "string") {
-        // Add a log right before calling parseAnyDateString for context
-        console.log(
-          `reviveDatesInObject: Processing string for key "${key}": "${value}"`
-        );
         const parsed = parseAnyDateString(value);
         if (parsed instanceof Date) {
           newObj[key] = parsed;
-          console.log(
+          logDateReviver(
             `reviveDatesInObject: Converted "${value}" to Date for key "${key}"`
           );
         } else {
           newObj[key] = value;
-          console.log(
-            `reviveDatesInObject: Kept "${value}" as string for key "${key}" (not a valid date string).`
-          );
         }
       } else if (typeof value === "object") {
         newObj[key] = reviveDatesInObject(value);

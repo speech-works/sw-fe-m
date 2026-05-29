@@ -1,14 +1,13 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  withDelay,
-  runOnJS,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withTiming
 } from "react-native-reanimated";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
 interface StackedCardSwiperProps {
   cards: React.ReactNode[];

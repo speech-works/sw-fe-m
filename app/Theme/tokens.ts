@@ -1,4 +1,7 @@
+import { Dimensions } from "react-native";
 import colors from "./colors";
+
+const { width, height } = Dimensions.get("window");
 
 export const mobileTypography = {
   Heading1: "700 32px/40px Inter_700Bold, sans-serif",
@@ -11,14 +14,24 @@ export const mobileTypography = {
   BodyDetails: "400 12px/16px Inter_400Regular, sans-serif",
   Button: "500 16px/22px Inter_500Medium, sans-serif",
   XL: "700 32px/42px Inter_700Bold, sans-serif",
+  Heading4: "600 18px/24px Inter_600SemiBold, sans-serif",
+  BodyLarge: "400 18px/26px Inter_400Regular, sans-serif",
+  Label: "500 14px/20px Inter_500Medium, sans-serif",
+  LabelSmall: "500 12px/16px Inter_500Medium, sans-serif",
 };
 
 export const shadow = {
   elevation1: "0px 2px 5px 0px rgba(0, 0, 0, 0.1)",
   elevation2: "0px 2px 5px 0px rgba(0, 0, 0, 0.2)",
+  elevation3: "0px 4px 12px 0px rgba(0, 0, 0, 0.15)",
+  elevation4: "0px 8px 24px 0px rgba(0, 0, 0, 0.2)",
 };
 
 export const theme = {
+  dimensions: {
+    screenWidth: width,
+    screenHeight: height,
+  },
   shadow,
   colors: {
     background: {
@@ -59,6 +72,13 @@ export const theme = {
       base: colors.orange[200],
       bar: colors.orange[800],
       barLight: colors.orange[400],
+    },
+
+    feedback: {
+      error: colors.red[500],
+      success: colors.green[500],
+      warning: colors.yellow[500],
+      info: colors.blue[500],
     },
 
     library: { ...colors },

@@ -1,5 +1,5 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 export type OnboardingStackParamList = {
   OnboardingWelcome: undefined;
@@ -9,8 +9,8 @@ export type OnboardingStackParamList = {
     screenNumber: number;
   };
 
+  OnboardingPhonemes: undefined;
   OnboardingDone: undefined;
-  Academy: undefined;
 };
 
 export type OnboardingStackNavigationProp<

@@ -1,14 +1,13 @@
 // onboarding/index.ts
 
 import axiosClient from "../axiosClient";
-import {
-  OnboardingFlow,
-  SubmitAnswersPayload,
-  SubmitAnswersResponsePayload,
-  UpdateAnswersPayload,
-  UserOnboardingAnswer,
-} from "./types";
 import { normalizeOnboardingFlow } from "./helper";
+import {
+    OnboardingFlow,
+    SubmitAnswersPayload,
+    SubmitAnswersResponsePayload,
+    UserOnboardingAnswer
+} from "./types";
 
 // -----------------------------------------------------
 // FLOW FETCHING
@@ -33,11 +32,11 @@ export async function getActiveOnboardingFlow(): Promise<OnboardingFlow> {
  * Fetch flow by version (rarely needed on app).
  */
 export async function getOnboardingFlowByVersion(
-  version: string
+  version: string,
 ): Promise<OnboardingFlow> {
   try {
     const response = await axiosClient.get(
-      `/onboarding/flows/version/${version}`
+      `/onboarding/flows/version/${version}`,
     );
 
     return normalizeOnboardingFlow(response.data);
@@ -56,7 +55,7 @@ export async function getOnboardingFlowByVersion(
  * Automatically triggers adaptive profile calculation backend-side.
  */
 export async function submitOnboardingAnswers(
-  payload: SubmitAnswersPayload
+  payload: SubmitAnswersPayload,
 ): Promise<SubmitAnswersResponsePayload> {
   try {
     const response = await axiosClient.post(`/onboarding/answers`, payload);
@@ -71,7 +70,7 @@ export async function submitOnboardingAnswers(
  * Get all onboarding answer entries for a user.
  */
 export async function getUserOnboardingAnswers(
-  userId: string
+  userId: string,
 ): Promise<UserOnboardingAnswer[]> {
   try {
     const response = await axiosClient.get(`/onboarding/answers/${userId}`);
@@ -86,7 +85,7 @@ export async function getUserOnboardingAnswers(
  * Delete all onboarding answers for a user.
  */
 export async function deleteUserOnboardingAnswers(
-  userId: string
+  userId: string,
 ): Promise<void> {
   try {
     await axiosClient.delete(`/onboarding/answers/${userId}`);
@@ -111,7 +110,7 @@ export interface OnboardingStatus {
  * Determines whether the user has completed the latest onboarding flow.
  */
 export async function getLatestUserOnboardingStatus(
-  userId: string
+  userId: string,
 ): Promise<OnboardingStatus> {
   const activeFlow = await getActiveOnboardingFlow();
   const latestFlowVersion = activeFlow.version;

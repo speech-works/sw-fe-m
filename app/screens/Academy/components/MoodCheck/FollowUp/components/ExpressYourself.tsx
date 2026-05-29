@@ -1,21 +1,30 @@
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
-  View,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
-import React, { useState } from "react";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 
-import { theme } from "../../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
-import { useUserStore } from "../../../../../../stores/user";
-import VoiceRecorder from "../../../../Library/TechniquePage/components/VoiceRecorder";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
+import { useMoodCheckStore } from "../../../../../../stores/mood";
+import { useProgressReportStore } from "../../../../../../stores/progressReport";
+import { useUserStore } from "../../../../../../stores/user";
+import { theme } from "../../../../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../../../util/functions/parseStyles";
+import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 
 export enum EXPRESSION_TYPE_ENUM {
   WRITE = "WRITE",
@@ -26,26 +35,74 @@ interface ExpressYourselfProps {
   moodType: MoodType;
   expressionType: EXPRESSION_TYPE_ENUM | null;
   onClose: () => void;
+  onAfterClose?: () => void;
   onSubmit: () => void;
+  onError: (payload: {
+    message: string;
+    expressionType: EXPRESSION_TYPE_ENUM;
+  }) => void;
 }
+
+const getMoodSubmitErrorMessage = (error: unknown) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    (error as any).response?.data?.error
+  ) {
+    return String((error as any).response.data.error);
+  }
+
+  if (error instanceof Error) {
+    return error.message.replace(/^Error from backend:\s*/i, "");
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "We couldn't save your mood right now. Please try again.";
+};
 
 const ExpressYourself = ({
   moodType,
   expressionType,
   onClose,
+  onAfterClose,
   onSubmit,
+  onError,
 }: ExpressYourselfProps) => {
+  const insets = useSafeAreaInsets();
   const { user } = useUserStore();
-  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
+  const setMood = useMoodCheckStore((state) => state.setMood);
+  const fetchReport = useProgressReportStore((state) => state.fetchReport);
+  const {
+    voiceRecordingUri,
+    setVoiceRecordingUri,
+    submitVoiceRecording,
+    resetRecording,
+  } =
     useRecordedVoice(user?.id);
   const [writtenText, setWrittenText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!expressionType) {
+      setIsSubmitting(false);
+      setWrittenText("");
+      resetRecording();
+    }
+  }, [expressionType, resetRecording]);
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (!user) return;
     if (!user?.id) {
       console.warn("❌ User ID is missing during mood submission");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
@@ -54,87 +111,178 @@ const ExpressYourself = ({
           mood: moodType,
           textNote: writtenText,
         });
-      } else if (
-        expressionType === EXPRESSION_TYPE_ENUM.TALK &&
-        voiceRecordingUri
-      ) {
-        const uploadedRecording = await submitVoiceRecording({
-          recordingSource: RecordingSourceType.MOOD_CHECK,
-        });
-        if (!uploadedRecording) {
-          throw new Error("Voice recording upload failed!");
+      } else if (expressionType === EXPRESSION_TYPE_ENUM.TALK) {
+        let voiceNoteUrl: string | undefined;
+
+        if (voiceRecordingUri) {
+          const uploadedRecording = await submitVoiceRecording({
+            recordingSource: RecordingSourceType.MOOD_CHECK,
+          });
+          if (!uploadedRecording) {
+            throw new Error("Voice recording upload failed!");
+          }
+          voiceNoteUrl = uploadedRecording.audioUrl;
         }
+
         await logMood({
           userId: user.id,
           mood: moodType,
-          voiceNoteUrl: uploadedRecording.audioUrl, // ✅ Use actual S3 key
+          ...(voiceNoteUrl ? { voiceNoteUrl } : {}),
         });
-
-        console.log("🎤 Voice mood entry logged:", uploadedRecording.audioUrl);
+      } else {
+        return;
       }
 
+      setMood(moodType);
+      await fetchReport(user.id, "weekly", true);
       onSubmit();
-      onClose();
     } catch (error) {
       console.error("❌ Failed to submit mood expression:", error);
-      // Optionally show a toast or alert
+      if (expressionType) {
+        onError({
+          message: getMoodSubmitErrorMessage(error),
+          expressionType,
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // Premium Light Configuration
+  const getConfig = () => {
+    if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
+      return {
+        // Light Purple Gradient (Background)
+        gradient: [
+          theme.colors.library.purple[100],
+          theme.colors.library.purple[200],
+        ] as const,
+        icon: "pencil",
+        title: "Write it down",
+        subtitle: "Clear your mind by putting thoughts into words.",
+        // Vibrant Button
+        buttonGradient: [
+          theme.colors.library.purple[400],
+          theme.colors.library.purple[600],
+        ] as const,
+        // Dark Text for Contrast
+        titleColor: theme.colors.library.purple[800],
+        iconColor: theme.colors.library.purple[400],
+      };
+    }
+    return {
+      // Light Orange Gradient (Background)
+      gradient: [
+        theme.colors.library.orange[100],
+        theme.colors.library.orange[200],
+      ] as const,
+      icon: "microphone",
+      title: "Talk it out",
+      subtitle: "Speak freely to release tension and process emotions.",
+      // Vibrant Button
+      buttonGradient: [
+        theme.colors.library.orange[400],
+        theme.colors.library.red[400],
+      ] as const,
+      // Dark Text for Contrast
+      titleColor: theme.colors.library.orange[800],
+      iconColor: theme.colors.library.orange[400],
+    };
+  };
+
+  const config = getConfig();
+
   return (
     <View>
-      <BottomSheetModal visible={expressionType !== null} onClose={onClose}>
-        {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
-          <View style={styles.container}>
-            <View style={styles.innerContainer}>
-              <Text style={styles.title}>Express Your Thoughts</Text>
-              <Text style={styles.description}>
-                Putting it into words helps. Write down anything you’re feeling.
+      <BottomSheetModal
+        visible={expressionType !== null}
+        onClose={onClose}
+        onAfterClose={onAfterClose}
+        showCloseButton={true}
+        fitContent={true}
+        backgroundColor={config.gradient[1]}
+        hasBottomSafePadding={false}
+      >
+        <LinearGradient
+          colors={config.gradient}
+          style={[styles.container, { paddingBottom: Math.max(insets.bottom, 24) }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Decorative Bubbles (Subtle White) */}
+          <View style={styles.bubbleTopRight} />
+          <View style={styles.bubbleBottomLeft} />
+
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.headerTitle, { color: config.titleColor }]}>
+                {config.title}
               </Text>
+              <Text style={styles.headerSubtitle}>{config.subtitle}</Text>
             </View>
-
-            <TextInput
-              style={styles.textInput}
-              multiline
-              placeholder="Start writing..."
-              value={writtenText}
-              onChangeText={setWrittenText}
-            />
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                writtenText.length < 1 ? styles.disabledButton : null,
-              ]}
-              onPress={handleSubmit}
-              disabled={writtenText.length < 1}
-            >
-              <Text style={styles.submitText}>Let it out</Text>
-            </TouchableOpacity>
+            <View style={styles.iconContainer}>
+              <MaterialIcon
+                name={config.icon}
+                size={32}
+                color={config.iconColor}
+                style={{ opacity: 0.2 }}
+              />
+            </View>
           </View>
-        ) : expressionType === EXPRESSION_TYPE_ENUM.TALK ? (
-          <View style={styles.container}>
-            <Text style={styles.title}>Record Your Voice</Text>
-            <Text style={styles.description}>
-              Speak your mind. Recording your thoughts can help process
-              emotions.
-            </Text>
 
-            <VoiceRecorder
-              onRecorded={(uri) => setVoiceRecordingUri(uri)}
-              prevRecordingUri={voiceRecordingUri || undefined}
-            />
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                !voiceRecordingUri ? styles.disabledButton : null,
-              ]}
-              onPress={handleSubmit}
-              disabled={!voiceRecordingUri}
+          {/* Interaction Section */}
+          {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
+            <View style={styles.card} pointerEvents={isSubmitting ? "none" : "auto"}>
+              <TextInput
+                style={styles.textInput}
+                multiline
+                placeholder="Start writing here..."
+                placeholderTextColor={theme.colors.text.disabled}
+                value={writtenText}
+                onChangeText={setWrittenText}
+              />
+              {/* Action Button for Write mode */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleSubmit}
+                disabled={writtenText.length < 1 || isSubmitting}
+                style={[
+                  styles.buttonContainer,
+                  (writtenText.length < 1 || isSubmitting) &&
+                    styles.disabledButtonContainer,
+                ]}
+              >
+                <LinearGradient
+                  colors={config.buttonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.submitText}>
+                    {isSubmitting ? "Saving..." : "Let it out"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View
+              style={styles.recorderSection}
+              pointerEvents={isSubmitting ? "none" : "auto"}
             >
-              <Text style={styles.submitText}>Let it out</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+              <Text style={styles.recorderHint}>
+                {isSubmitting ? "Saving your mood..." : "Ready to record"}
+              </Text>
+              <SmartRecorder
+                onRecorded={(uri) => setVoiceRecordingUri(uri)}
+                prevRecordingUri={voiceRecordingUri || undefined}
+                onSubmit={handleSubmit}
+                onDiscard={() => setVoiceRecordingUri(null)}
+              />
+            </View>
+          )}
+        </LinearGradient>
       </BottomSheetModal>
     </View>
   );
@@ -144,41 +292,106 @@ export default ExpressYourself;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 16,
+    padding: 24,
+    paddingTop: 54,
+    position: "relative",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: "hidden",
   },
-  innerContainer: {
-    gap: 8,
+  bubbleTopRight: {
+    position: "absolute",
+    top: -50,
+    right: -30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255, 255, 255, 0.4)", // Substle white on light bg
   },
-  title: {
-    color: theme.colors.text.title,
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -20,
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+    zIndex: 1,
+  },
+  headerTextContainer: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    marginBottom: 4,
   },
-  description: {
-    color: theme.colors.text.default,
-    ...parseTextStyle(theme.typography.BodySmall),
+  headerSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.library.gray[500],
+    lineHeight: 20,
+    fontSize: 14,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ rotate: "-15deg" }],
+    // No background, just the icon acting as watermark
+  },
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 32,
+    padding: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: 24,
+    zIndex: 2,
   },
   textInput: {
-    height: 150,
-    borderColor: theme.colors.border.default,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    height: 140,
     textAlignVertical: "top",
-    backgroundColor: theme.colors.background.light,
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.library.gray[800],
+    fontSize: 18,
   },
-  submitButton: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    paddingVertical: 18,
-    borderRadius: 12,
+  recorderSection: {
+    gap: 16,
+    zIndex: 2,
+    paddingBottom: 10,
+  },
+  recorderHint: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  buttonContainer: {
+    borderRadius: 20,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  disabledButtonContainer: {
+    opacity: 0.5,
+  },
+  gradientButton: {
+    paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
-  },
-  disabledButton: {
-    backgroundColor: theme.colors.actionPrimary.disabled,
+    justifyContent: "center",
+    gap: 8,
   },
   submitText: {
-    color: "#fff",
+    color: "#FFF",
     ...parseTextStyle(theme.typography.Body),
     fontWeight: "700",
+    fontSize: 16,
   },
 });

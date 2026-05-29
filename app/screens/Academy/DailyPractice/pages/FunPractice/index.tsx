@@ -1,133 +1,197 @@
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
+  Dimensions,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ViewStyle,
 } from "react-native";
-import React from "react";
-import ScreenView from "../../../../../components/ScreenView";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../../../components/CustomScrollView";
-import ListCard, { ListCardProps } from "../../components/ListCard";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import { theme } from "../../../../../Theme/tokens";
-import { useNavigation } from "@react-navigation/native";
-
+import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
+import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
+import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ScreenView from "../../../../../components/ScreenView";
+import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import {
   FDPStackNavigationProp,
   FDPStackParamList,
-} from "../../../../../navigators/stacks/AcademyStack/DailyPracticeStack/FunPracticeStack/types";
-import { usePracticeStatsStore } from "../../../../../stores/practiceStats";
-import { formatDuration } from "../../../../../util/functions/time";
-import HappyScreamFace from "../../../../../assets/sw-faces/HappyScreamFace";
-import TongueTwisterFace from "../../../../../assets/sw-faces/TongueTwisterFace";
-import MaskedFace from "../../../../../assets/sw-faces/MaskedFace";
+} from "../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/types";
+import { usePracticeCategorySummaryStore } from "../../../../../stores/practiceCategorySummary";
+import { useUserStore } from "../../../../../stores/user";
+import { theme } from "../../../../../Theme/tokens";
+import {
+  parseShadowStyle,
+  parseTextStyle,
+} from "../../../../../util/functions/parseStyles";
 
-const iconContiainerStyle: ViewStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: 48,
-  width: 48,
-  borderRadius: 24,
-};
+const { width } = Dimensions.get("window");
 
 const FunPractice = () => {
   const navigation =
     useNavigation<FDPStackNavigationProp<keyof FDPStackParamList>>();
-  const funPracticeData: Array<ListCardProps> = [
+
+  const { user } = useUserStore();
+  const { categories, fetchSummary } = usePracticeCategorySummaryStore();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user?.id) {
+        return;
+      }
+
+      fetchSummary(user.id).catch((error) => {
+        console.error("FunPractice summary error:", error);
+      });
+    }, [fetchSummary, user?.id]),
+  );
+
+  const funPracticeData = [
     {
       title: "Tongue Twisters",
-      description: "Fun speech challenges",
-      onPress: () => {
-        navigation.navigate("TwisterPracticeStack");
-      },
-      icon: <TongueTwisterFace size={52} />,
+      subtitle: "Fun speech challenges",
+      onPress: () => navigation.navigate("TwisterPracticeStack"),
+      icon: <TongueTwisterFace size={80} />,
+      colors: ["#34D399", "#059669"] as const, // Emerald
+      accentColor: "#FFF",
     },
     {
       title: "Role Play",
-      description: "Practice situational speech",
-      onPress: () => {
-        navigation.navigate("RoleplayPracticeStack");
-      },
-      icon: <MaskedFace size={52} />,
+      subtitle: "Practice situational speech",
+      onPress: () => navigation.navigate("RoleplayPracticeStack"),
+      icon: <MaskedFace size={80} />,
+      colors: ["#60A5FA", "#2563EB"] as const, // Blue
+      accentColor: "#FFF",
     },
     {
       title: "Character Voice",
-      description: "Fun voice effects",
-      onPress: () => {
-        navigation.navigate("CharacterVoicePracticeStack");
-      },
-      icon: <HappyScreamFace size={52} />,
+      subtitle: "Fun voice effects",
+      onPress: () => navigation.navigate("CharacterVoicePracticeStack"),
+      icon: <HappyScreamFace size={80} />,
+      colors: ["#2DD4BF", "#0F766E"] as const, // Teal
+      accentColor: "#FFF",
     },
   ];
 
-  const { practiceStats } = usePracticeStatsStore();
+  const summary = categories.find(
+    (category) => category.contentType === "FUN_PRACTICE",
+  );
 
   return (
     <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.topNavigation}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.default}
-          />
-          <Text style={styles.topNavigationText}>Fun Practice</Text>
-        </TouchableOpacity>
-        <CustomScrollView>
-          <View style={styles.listContainer}>
-            {funPracticeData.map((item, index) => (
-              <ListCard
-                key={index}
-                title={item.title}
-                description={item.description}
-                icon={item.icon}
-                onPress={item.onPress}
-              />
-            ))}
-          </View>
-          <View style={styles.activityStatsContainer}>
-            <Text style={styles.activityStatsTitleText}>
-              Your Activity Stats
-            </Text>
-            <View style={styles.statContainer}>
-              <View style={styles.statInfoContainer}>
-                <Text
-                  style={[
-                    styles.statInfoTitleText,
-                    { color: theme.colors.library.blue[500] },
-                  ]}
-                >
-                  {practiceStats.find(
-                    (stat) => stat.contentType === "FUN_PRACTICE"
-                  )?.itemsCompleted || 0}
-                </Text>
-                <Text style={styles.statInfoDescriptionText}>Completed</Text>
-              </View>
-              <View style={styles.statInfoContainer}>
-                <Text
-                  style={[
-                    styles.statInfoTitleText,
-                    { color: theme.colors.library.green[500] },
-                  ]}
-                >
-                  {formatDuration(
-                    practiceStats.find(
-                      (stat) => stat.contentType === "FUN_PRACTICE"
-                    )?.totalTime
-                  )}
-                </Text>
-                <Text style={styles.statInfoDescriptionText}>Total Time</Text>
-              </View>
-            </View>
-          </View>
-        </CustomScrollView>
+      {/* Aurora Mesh Background */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#ECFEFF", "#FFF", "#FFF"] as const} // Cyan tint
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
       </View>
+
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Fun Practice</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionSubtitle}>
+          Express yourself with fun and engaging exercises.
+        </Text>
+
+        <View style={styles.cardsContainer}>
+          {funPracticeData.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              activeOpacity={0.9}
+              onPress={item.onPress}
+              style={styles.cardWrapper}
+            >
+              <LinearGradient
+                colors={item.colors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientCard}
+              >
+                {/* Decorative Bubbles */}
+                <View
+                  style={[
+                    styles.bubble,
+                    { top: -20, right: -20, width: 80, height: 80 },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.bubble,
+                    {
+                      bottom: 10,
+                      left: 10,
+                      width: 40,
+                      height: 40,
+                      opacity: 0.1,
+                    },
+                  ]}
+                />
+
+                <View style={styles.cardContent}>
+                  <View>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+                  </View>
+                  <View style={styles.iconContainer}>
+                    <View style={styles.iconWrapper}>{item.icon}</View>
+                  </View>
+                </View>
+                <View style={styles.playButton}>
+                  <Icon name="play" size={12} color={item.colors[1]} />
+                  <Text style={[styles.playText, { color: item.colors[1] }]}>
+                    Start
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <PracticeCategoryProgressCard
+          summary={summary ?? null}
+          title="Your Expression Pulse"
+          subtitle="Weekly practice leads. Lifetime expression stays visible below."
+          badgeLabel="Fun"
+          accent={{
+            gradient: ["#F0FDFA", "#F0F9FF"],
+            iconBg: "#CCFBF1",
+            iconColor: "#0D9488",
+            badgeBg: "#CCFBF1",
+            badgeBorder: "#5EEAD4",
+            badgeText: "#0F766E",
+          }}
+        />
+      </ScrollView>
     </ScreenView>
   );
 };
@@ -136,64 +200,186 @@ export default FunPractice;
 
 const styles = StyleSheet.create({
   screenView: {
-    paddingBottom: 0,
-  },
-  container: {
-    gap: 32,
     flex: 1,
   },
-  topNavigation: {
-    position: "relative",
+  header: {
+    position: "absolute",
     top: 0,
-    display: "flex",
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
   },
-  topNavigationText: {
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    marginTop: 2,
   },
-  listContainer: {
-    display: "flex",
-    flexDirection: "column",
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 10,
+  },
+  sectionSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    marginBottom: 24,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  cardsContainer: {
+    gap: 16,
+    marginBottom: 32,
+  },
+  cardWrapper: {
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: "#fff",
+  },
+  gradientCard: {
+    borderRadius: 24,
+    padding: 20,
+    height: 140,
+    position: "relative",
+    overflow: "hidden",
+    justifyContent: "space-between",
+  },
+  bubble: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  cardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    zIndex: 1,
+  },
+  cardTitle: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: "#FFF",
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "rgba(255,255,255,0.9)",
+    fontWeight: "500",
+  },
+  iconContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -50,
+    zIndex: 0,
+  },
+  iconWrapper: {
+    transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
+    opacity: 0.9,
+  },
+  playButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+    gap: 6,
+    zIndex: 2,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginTop: "auto",
+  },
+  playText: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontWeight: "700",
+  },
+  // Stats
+  statsSection: {
     gap: 16,
   },
-  activityStatsContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    paddingVertical: 32,
+  statsDashboard: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  activityStatsTitleText: {
+  dashboardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 24,
+  },
+  dashboardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    fontSize: 20,
   },
-  statContainer: {
-    display: "flex",
+  dashboardSubtitle: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: theme.colors.text.default,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  dashboardGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 16,
-    padding: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 12,
   },
-  statInfoContainer: {
-    display: "flex",
-    flexDirection: "column",
+  statItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8, // Reduced from 12
+  },
+  statIconWrapper: {
+    width: 36, // Reduced from 44
+    height: 36, // Reduced from 44
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
-    flex: 1,
-    paddingVertical: 12,
   },
-  statInfoTitleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontWeight: "600",
+  statValueBig: {
+    fontFamily: "Outfit-Bold",
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text.title,
+    lineHeight: 28,
   },
-  statInfoDescriptionText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+  statLabelSmall: {
+    fontSize: 10,
+    color: theme.colors.text.disabled,
+    fontWeight: "500",
+    flexWrap: "wrap",
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: theme.colors.library.gray[300],
+    marginHorizontal: 8, // Reduced from 16
   },
 });

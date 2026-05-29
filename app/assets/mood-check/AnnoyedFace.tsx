@@ -1,116 +1,142 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-  Circle,
-} from "react-native-svg";
+import React, { useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+ cancelAnimation} from "react-native-reanimated";
+import Svg, { Circle, Defs, G, Mask, Path, SvgProps } from "react-native-svg";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
-const AnnoyedFace = ({ size = 48, width, height, ...props }: SvgIconProps) => {
+const AnnoyedFace = ({
+  size = 48,
+  width,
+  height,
+  shouldAnimate = false,
+  ...props
+}: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const droop = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 2000 + 3000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      droop.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 1000, easing: Easing.out(Easing.exp) }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      blink.value = 1;
+      droop.value = 0;
+    }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(droop);
+    };
+  }, [shouldAnimate]);
+
+  const blinkS = useDerivedValue(() => blink.value);
+  const lidY = useDerivedValue(() => droop.value * 1.2);
+
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
+    originY: 24,
+  }));
+  const lidProps = useAnimatedProps(() => ({
+    transform: [{ translateY: lidY.value }] as any,
+  }));
 
   return (
-    <Svg
-      width={activeWidth}
-      height={activeHeight}
-      viewBox="0 0 48 48"
-      fill="none"
-      {...props}
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (Number(activeWidth) || 48) / 2,
+        overflow: "hidden",
+      }}
     >
-      <Defs>
-        <Filter
-          id="bored_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-        <Mask
-          id="bored_mask"
-          x="0"
-          y="0"
-          width="48"
-          height="48"
-          maskUnits="userSpaceOnUse"
-        >
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
+        <Defs>
+          <Mask
+            id="boredM"
+            x="0"
+            y="0"
+            width="48"
+            height="48"
+            maskUnits="userSpaceOnUse"
+          >
+            <Path
+              fill="#fff"
+              d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
+            />
+          </Mask>
+        </Defs>
+        <G mask="url(#boredM)">
           <Path
-            fill="#fff"
+            fill="#A1887F"
             d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
           />
-        </Mask>
-      </Defs>
-      <G mask="url(#bored_mask)">
-        {/* Background - Dull Greige */}
-        <Path
-          fill="#A1887F"
-          d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-        />
-        <G filter="url(#bored_shadow)">
-          {/* Face Shape - Pale Beige */}
           <Path
             fill="#EFEBE9"
             d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
           />
+          <AnimatedG animatedProps={eyeProps}>
+            <Circle cx="16.8" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="31.2" cy="24" r="7.2" fill="#FFF" />
+            <Circle cx="18" cy="24" r="3" fill="#5D4037" />
+            <Circle cx="32.4" cy="24" r="3" fill="#5D4037" />
+          </AnimatedG>
+          <AnimatedG animatedProps={lidProps}>
+            <Path fill="#EFEBE9" d="M9 22h16v-6H9zM23 22h16v-6H23z" />
+            <Path stroke="#5D4037" strokeWidth="2" d="M10 22h13.6M24.4 22H38" />
+          </AnimatedG>
+          <Path
+            stroke="#5D4037"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            d="M20 34h8"
+          />
         </G>
-
-        {/* Eyes (White) */}
-        <Path
-          fill="#fff"
-          d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-        />
-        <Path
-          fill="#fff"
-          d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-        />
-
-        {/* Half-closed Eyelids (Flat lines covering top of eyes) */}
-        <Path fill="#EFEBE9" d="M9 22 L 25 22 L 25 16 L 9 16 Z" />
-        <Path fill="#EFEBE9" d="M23 22 L 39 22 L 39 16 L 23 16 Z" />
-        <Path stroke="#5D4037" strokeWidth="2" d="M10 22 L 23.6 22" />
-        <Path stroke="#5D4037" strokeWidth="2" d="M24.4 22 L 38 22" />
-
-        {/* Pupils (Looking slightly right, half covered) */}
-        <Circle cx="18" cy="24" r="3" fill="#5D4037" />
-        <Circle cx="32.4" cy="24" r="3" fill="#5D4037" />
-
-        {/* Flat Unimpressed Mouth */}
-        <Path
-          stroke="#5D4037"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M20 34 L 28 34"
-        />
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 };
-
-export default AnnoyedFace;
+export default React.memo(AnnoyedFace);

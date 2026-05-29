@@ -1,122 +1,131 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
-import ScreenView from "../../../../components/ScreenView";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomScrollView from "../../../../components/CustomScrollView";
-import { theme } from "../../../../Theme/tokens";
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
+import BottomSheetModal from "../../../../components/BottomSheetModal";
+import CustomScrollView from "../../../../components/CustomScrollView";
+import ScreenView from "../../../../components/ScreenView";
+import { theme } from "../../../../Theme/tokens";
 import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
-import BottomSheetModal from "../../../../components/BottomSheetModal";
-import ReportProblem from "./ReportProblem";
 import ContactSupport from "./ContactSupport";
 import Feedback from "./Feedback";
+import ReportProblem from "./ReportProblem";
 
-type SettingType = "Report Problem" | "Contact Support" | "Feedback";
+type SettingType =
+  | "Report Problem"
+  | "Contact Support"
+  | "Feedback";
 
 const Support = () => {
-  const navigation = useNavigation();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [openSettingType, setOpenSettingType] = useState<SettingType | null>(
-    null
-  );
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const HEADER_HEIGHT = 60;
+  const supportItems = [
+    {
+      type: "ReportProblem" as const,
+      icon: "bug-outline",
+      iconColor: "#EA580C",
+      bgColor: "#FFF7ED",
+      title: "Report A Problem",
+      desc: "Let us know what needs fixing",
+    },
+    {
+      type: "ContactSupport" as const,
+      icon: "headset",
+      iconColor: "#2563EB",
+      bgColor: "#EFF6FF",
+      title: "Contact Support",
+      desc: "Reach out to our support team",
+    },
+    {
+      type: "Feedback" as const,
+      icon: "lightbulb-on-outline",
+      iconColor: "#DB2777",
+      bgColor: "#FDF2F8",
+      title: "Feedback & Suggestions",
+      desc: "How can we improve?",
+    },
+  ];
 
-  const closeModal = () => setIsModalVisible(false);
+    return (
+        <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
+            {/* Aurora Background */}
+            <View style={StyleSheet.absoluteFillObject}>
+                <LinearGradient
+                    colors={["#FFF7ED", "#FFF", "#FFF"] as const}
+                    locations={[0, 0.4, 1]}
+                    style={{ flex: 1 }}
+                />
+            </View>
 
-  return (
-    <>
-      <ScreenView style={styles.screenView}>
-        <View style={styles.container}>
-          <TouchableOpacity
-            style={styles.topNavigation}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.default}
-            />
-            <Text style={styles.topNavigationText}>Help & Support</Text>
-          </TouchableOpacity>
-          <CustomScrollView contentContainerStyle={styles.scrollView}>
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => {
-                setOpenSettingType("Report Problem");
-                setIsModalVisible(true);
-              }}
-            >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Report A Problem</Text>
-                <Text style={styles.descText}>
-                  Let us know what needs fixing
-                </Text>
-              </View>
-            </TouchableOpacity>
+            <View style={styles.container}>
+                {/* Header */}
+                <BlurView
+                    intensity={80}
+                    tint="light"
+                    style={[
+                        styles.header,
+                        { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+                    ]}
+                >
+                    <TouchableOpacity
+                        onPress={() => navigation.goBack()}
+                        style={styles.backButton}
+                    >
+                        <Icon
+                            name="chevron-left"
+                            size={16}
+                            color={theme.colors.text.title}
+                        />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Help & Support</Text>
+                    <View style={{ width: 32 }} />
+                </BlurView>
 
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => {
-                setOpenSettingType("Contact Support");
-                setIsModalVisible(true);
-              }}
-            >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Contact Support</Text>
-                <Text style={styles.descText}>
-                  Reach out to our friendly support team
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => {
-                setOpenSettingType("Feedback");
-                setIsModalVisible(true);
-              }}
-            >
-              <View style={styles.textContainer}>
-                <Text style={styles.titleText}>Feedback & Suggestions</Text>
-                <Text style={styles.descText}>
-                  How can we improve SpeechWorks?
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </CustomScrollView>
-        </View>
-      </ScreenView>
-      <BottomSheetModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        maxHeight="70%"
-      >
-        <View style={styles.modalContent}>
-          <View style={styles.modalTitleContainer}>
-            <Text style={styles.modalTiteText}>{openSettingType}</Text>
-            <Text style={styles.modalDescText}>
-              {openSettingType === "Report Problem"
-                ? "We usually respond within 24–48 hours. Thank you for helping improve SpeechWorks"
-                : openSettingType === "Feedback"
-                ? "Your feedback is valuable! Share your thoughts to help us make the app better for everyone"
-                : null}
-            </Text>
-          </View>
-          <CustomScrollView>
-            {openSettingType === "Contact Support" && <ContactSupport />}
-            {openSettingType === "Feedback" && (
-              <Feedback onFeedbackSubmit={closeModal} />
-            )}
-            {openSettingType === "Report Problem" && (
-              <ReportProblem onReportSubmit={closeModal} />
-            )}
-          </CustomScrollView>
-        </View>
-      </BottomSheetModal>
-    </>
-  );
+                <CustomScrollView
+                    contentContainerStyle={[
+                        styles.scrollView,
+                        { paddingTop: HEADER_HEIGHT + insets.top + 20 },
+                    ]}
+                >
+                    {/* Professional List Menu */}
+                    <View style={styles.listContainer}>
+                        {supportItems.map((item, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.listItem}
+                                onPress={() => {
+                                    navigation.navigate(item.type as any);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
+                                    <MaterialCommunityIcons
+                                        name={item.icon as any}
+                                        size={22}
+                                        color={item.iconColor}
+                                    />
+                                </View>
+                                <View style={styles.listTextContainer}>
+                                    <Text style={styles.listItemText}>{item.title}</Text>
+                                    <Text style={styles.listItemDesc}>{item.desc}</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
+                                {index < supportItems.length - 1 && <View style={styles.divider} />}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </CustomScrollView>
+            </View>
+        </ScreenView>
+    );
 };
 
 export default Support;
@@ -124,71 +133,92 @@ export default Support;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: "#F8FAFC",
   },
   container: {
-    gap: 32,
+    gap: 24,
     flex: 1,
+    paddingTop: 8,
   },
   topNavigation: {
-    position: "relative",
-    top: 0,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  topNavigationText: {
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
+    marginTop: 2,
   },
   scrollView: {
-    gap: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    gap: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  card: {
-    gap: 16,
-    backgroundColor: theme.colors.surface.elevated,
+  listContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 8,
     ...parseShadowStyle(theme.shadow.elevation1),
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  listItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    padding: 16,
+    position: "relative",
   },
-  textContainer: {
-    gap: 4,
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-  },
-  descText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "400",
-  },
-
-  // modal
-  modalTitleContainer: {
-    gap: 12,
+  listIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
     alignItems: "center",
+    marginRight: 16,
   },
-  modalTiteText: {
-    ...parseTextStyle(theme.typography.Heading3),
+  listTextContainer: {
+    flex: 1,
+  },
+  listItemText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.text.title,
+    marginBottom: 2,
   },
-  modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    textAlign: "center",
+  listItemDesc: {
+    fontSize: 13,
+    color: "#64748B",
   },
-  modalContent: {
-    paddingVertical: 24,
-    width: "100%",
-    flex: 1, // ← valid because the parent Animated.View has a fixed height
-    flexDirection: "column",
-    gap: 32,
+  divider: {
+    position: "absolute",
+    bottom: 0,
+    left: 76,
+    right: 16,
+    height: 1,
+    backgroundColor: "#F1F5F9",
   },
 });

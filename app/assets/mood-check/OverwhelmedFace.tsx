@@ -1,128 +1,167 @@
-import * as React from "react";
-import Svg, {
-  Mask,
-  Path,
-  G,
-  Defs,
-  Filter,
-  FeFlood,
-  FeColorMatrix,
-  FeOffset,
-  FeGaussianBlur,
-  FeComposite,
-  FeBlend,
-  SvgProps,
-} from "react-native-svg";
+import React, { useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+ cancelAnimation} from "react-native-reanimated";
+import Svg, { Circle, G, Path, SvgProps } from "react-native-svg";
+
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface SvgIconProps extends SvgProps {
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
   size?: number | string;
+  width?: number | string;
+  height?: number | string;
 }
 
 const OverwhelmedFace = ({
   size = 48,
   width,
   height,
+  shouldAnimate = false,
   ...props
 }: SvgIconProps) => {
   const activeWidth = width || size;
   const activeHeight = height || size;
+  const blink = useSharedValue(1);
+  const spin = useSharedValue(0);
+  const sweat = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      blink.value = withRepeat(
+        withSequence(
+          withDelay(
+            Math.random() * 1500 + 2000,
+            withTiming(0.1, { duration: 120 }),
+          ),
+          withTiming(1, { duration: 120 }),
+        ),
+        -1,
+        false,
+      );
+      spin.value = withRepeat(
+        withTiming(360, { duration: 3000, easing: Easing.linear }),
+        -1,
+        false,
+      );
+      sweat.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000, easing: Easing.out(Easing.exp) }),
+          withTiming(0, { duration: 0 }),
+          withDelay(2000, withTiming(0, { duration: 0 })),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      blink.value = 1;
+      spin.value = 0;
+      sweat.value = 0;
+    }
+  
+    return () => {
+      cancelAnimation(blink);
+      cancelAnimation(spin);
+      cancelAnimation(sweat);
+    };
+  }, [shouldAnimate]);
+
+  const blinkS = useDerivedValue(() => blink.value);
+  const rot = useDerivedValue(() => `${spin.value}deg`);
+  const iRot = useDerivedValue(() => `${-spin.value}deg`);
+  const sweatY = useDerivedValue(() => sweat.value * 5);
+  const sweatOp = useDerivedValue(() =>
+    sweat.value === 0 ? 0 : 1 - sweat.value * 0.5,
+  );
+
+  const eyeProps = useAnimatedProps(() => ({
+    transform: [{ scaleY: blinkS.value }] as any,
+    originY: 24,
+  }));
+  const lSpin = useAnimatedProps(() => ({
+    transform: [{ rotate: rot.value }] as any,
+    originX: 17,
+    originY: 24,
+  }));
+  const rSpin = useAnimatedProps(() => ({
+    transform: [{ rotate: iRot.value }] as any,
+    originX: 31,
+    originY: 24,
+  }));
+  const sweatProps = useAnimatedProps(() => ({
+    transform: [{ translateY: sweatY.value }] as any,
+    opacity: sweatOp.value,
+  }));
 
   return (
-    <Svg
-      width={activeWidth}
-      height={activeHeight}
-      viewBox="0 0 48 48"
-      fill="none"
-      {...props}
+    <View
+      style={{
+        width: activeWidth as any,
+        height: activeHeight as any,
+        borderRadius: (Number(activeWidth) || 48) / 2,
+        overflow: "hidden",
+      }}
     >
-      <Defs>
-        <Filter
-          id="overwhelmed_shadow"
-          x="-50%"
-          y="-50%"
-          width="200%"
-          height="200%"
-          filterUnits="userSpaceOnUse"
-        >
-          <FeFlood floodOpacity={0} result="BackgroundImageFix" />
-          <FeColorMatrix
-            in="SourceAlpha"
-            result="hardAlpha"
-            values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          />
-          <FeOffset dx={4} dy={4} />
-          <FeGaussianBlur stdDeviation={1} />
-          <FeComposite in2="hardAlpha" operator="out" />
-          <FeColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-          <FeBlend in2="BackgroundImageFix" result="effect1_dropShadow" />
-          <FeBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
-        </Filter>
-        <Mask
-          id="overwhelmed_mask"
-          x="0"
-          y="0"
-          width="48"
-          height="48"
-          maskUnits="userSpaceOnUse"
-        >
-          <Path
-            fill="#fff"
-            d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
-          />
-        </Mask>
-      </Defs>
-      <G mask="url(#overwhelmed_mask)">
-        {/* Background - Intense Orange */}
+      <Svg
+        width={activeWidth}
+        height={activeHeight}
+        viewBox="0 0 48 48"
+        fill="none"
+        {...props}
+      >
         <Path
           fill="#FF7043"
           d="M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24"
         />
-        <G filter="url(#overwhelmed_shadow)">
-          {/* Face Shape - Pale Orange/Peach */}
-          <Path
-            fill="#FFCCBC"
-            d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
-          />
-        </G>
-        {/* Eyes (White) */}
         <Path
-          fill="#fff"
-          d="M16.8 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
+          fill="#FFCCBC"
+          d="M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736"
         />
-        <Path
-          fill="#fff"
-          d="M31.2 31.2a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4"
-        />
-        {/* Pupils (X marks for dizzy/overwhelmed) */}
-        <Path
-          stroke="#BF360C"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M13.5 20.5 L 20.5 27.5 M20.5 20.5 L 13.5 27.5"
-        />
-        <Path
-          stroke="#BF360C"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          d="M27.5 20.5 L 34.5 27.5 M34.5 20.5 L 27.5 27.5"
-        />
-
-        {/* Distressed Wavy Mouth */}
+        <AnimatedG animatedProps={eyeProps}>
+          <Circle cx="16.8" cy="24.2" r="7.2" fill="#FFF" />
+          <Circle cx="31.2" cy="24.2" r="7.2" fill="#FFF" />
+          <AnimatedG animatedProps={lSpin}>
+            <Path
+              stroke="#BF360C"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              d="M13.5 20.5l7 7M20.5 20.5l-7 7"
+            />
+          </AnimatedG>
+          <AnimatedG animatedProps={rSpin}>
+            <Path
+              stroke="#BF360C"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              d="M27.5 20.5l7 7M34.5 20.5l-7 7"
+            />
+          </AnimatedG>
+        </AnimatedG>
         <Path
           stroke="#BF360C"
           strokeWidth="2.5"
           strokeLinecap="round"
           fill="none"
-          d="M17 35 Q 19 33, 21 35 Q 23 37, 25 35 Q 27 33, 29 35"
+          d="M17 35q2-2 4 0q2 2 4 0q2-2 4 0"
         />
-        {/* Sweat drop */}
-        <Path
+        <AnimatedPath
           fill="#42A5F5"
-          d="M38 10 C 38 10, 35 15, 38 17 C 41 15, 40 10, 40 10 Z"
+          d="M38 10c0 0-3 5 0 7c3-2 2-7 2-7z"
+          animatedProps={sweatProps}
         />
-      </G>
-    </Svg>
+      </Svg>
+    </View>
   );
 };
-
-export default OverwhelmedFace;
+export default React.memo(OverwhelmedFace);

@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  Extrapolate,
-  runOnJS,
-} from "react-native-reanimated";
 
 interface FlipSlideProps {
   children: React.ReactNode;
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.9)",
-    shadowColor: theme.colors.neutral[5],
+    shadowColor: theme.colors.text.disabled,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

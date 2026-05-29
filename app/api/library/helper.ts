@@ -1,8 +1,8 @@
 import {
-  Library,
-  Technique,
-  TECHNIQUE_CATEGORIES_ENUM,
-  TransformedTechnique,
+    Library,
+    Technique,
+    TECHNIQUE_CATEGORIES_ENUM,
+    TransformedTechnique,
 } from "./types";
 
 interface RawInputData {

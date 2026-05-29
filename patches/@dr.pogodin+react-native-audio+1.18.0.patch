@@ -1,0 +1,64 @@
+diff --git a/node_modules/@dr.pogodin/react-native-audio/android/build/generated/source/codegen/schema.json b/node_modules/@dr.pogodin/react-native-audio/android/build/generated/source/codegen/schema.json
+new file mode 100644
+index 0000000..d7d75c0
+--- /dev/null
++++ b/node_modules/@dr.pogodin/react-native-audio/android/build/generated/source/codegen/schema.json
+@@ -0,0 +1 @@
++{"modules":{"NativeReactNativeAudio":{"type":"NativeModule","aliasMap":{"AudioChunkEventT":{"type":"ObjectTypeAnnotation","properties":[{"name":"chunkId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"data","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}},{"name":"streamId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]},"InputAudioStreamErrorEventT":{"type":"ObjectTypeAnnotation","properties":[{"name":"error","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}},{"name":"streamId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]},"SamplePlayerErrorEventT":{"type":"ObjectTypeAnnotation","properties":[{"name":"error","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}},{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},"enumMap":{},"spec":{"eventEmitters":[{"name":"onAudioChunk","optional":false,"typeAnnotation":{"type":"EventEmitterTypeAnnotation","typeAnnotation":{"type":"TypeAliasTypeAnnotation","name":"AudioChunkEventT"}}},{"name":"onInputAudioStreamError","optional":false,"typeAnnotation":{"type":"EventEmitterTypeAnnotation","typeAnnotation":{"type":"TypeAliasTypeAnnotation","name":"InputAudioStreamErrorEventT"}}},{"name":"onSamplePlayerError","optional":false,"typeAnnotation":{"type":"EventEmitterTypeAnnotation","typeAnnotation":{"type":"TypeAliasTypeAnnotation","name":"SamplePlayerErrorEventT"}}}],"methods":[{"name":"configAudioSystem","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[]}},{"name":"getConstants","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"ObjectTypeAnnotation","properties":[{"name":"AUDIO_FORMAT_PCM_8BIT","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_FORMAT_PCM_16BIT","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_FORMAT_PCM_FLOAT","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"CHANNEL_IN_MONO","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"CHANNEL_IN_STEREO","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"IS_MAC_CATALYST","optional":false,"typeAnnotation":{"type":"BooleanTypeAnnotation"}},{"name":"AUDIO_SOURCE_CAMCODER","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_DEFAULT","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_MIC","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_REMOTE_SUBMIX","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_UNPROCESSED","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_CALL","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_COMMUNICATION","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_DOWNLINK","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_PERFORMANCE","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_RECOGNITION","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"AUDIO_SOURCE_VOICE_UPLINK","optional":true,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]},"params":[]}},{"name":"getInputAvailable","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"BooleanTypeAnnotation"}},"params":[]}},{"name":"listen","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"streamId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"audioSource","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"sampleRate","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"channelConfig","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"audioFormat","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"samplingSize","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},{"name":"muteInputStream","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"VoidTypeAnnotation"},"params":[{"name":"streamId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"muted","optional":false,"typeAnnotation":{"type":"BooleanTypeAnnotation"}}]}},{"name":"unlisten","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"streamId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},{"name":"addListener","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"VoidTypeAnnotation"},"params":[{"name":"eventName","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}}]}},{"name":"removeListeners","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"VoidTypeAnnotation"},"params":[{"name":"count","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},{"name":"initSamplePlayer","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},{"name":"destroySamplePlayer","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}}]}},{"name":"loadSample","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"sampleName","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}},{"name":"samplePath","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}}]}},{"name":"playSample","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"sampleName","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}},{"name":"loop","optional":false,"typeAnnotation":{"type":"BooleanTypeAnnotation"}}]}},{"name":"stopSample","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"sampleName","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}}]}},{"name":"unloadSample","optional":false,"typeAnnotation":{"type":"FunctionTypeAnnotation","returnTypeAnnotation":{"type":"PromiseTypeAnnotation","elementType":{"type":"VoidTypeAnnotation"}},"params":[{"name":"playerId","optional":false,"typeAnnotation":{"type":"NumberTypeAnnotation"}},{"name":"sampleName","optional":false,"typeAnnotation":{"type":"StringTypeAnnotation"}}]}}]},"moduleName":"ReactNativeAudio"}}}
+\ No newline at end of file
+diff --git a/node_modules/@dr.pogodin/react-native-audio/src/NativeReactNativeAudio.ts b/node_modules/@dr.pogodin/react-native-audio/src/NativeReactNativeAudio.ts
+index 5b9b119..c44d39a 100644
+--- a/node_modules/@dr.pogodin/react-native-audio/src/NativeReactNativeAudio.ts
++++ b/node_modules/@dr.pogodin/react-native-audio/src/NativeReactNativeAudio.ts
+@@ -1,8 +1,8 @@
+ import {
+-  type CodegenTypes,
+   type TurboModule,
+   TurboModuleRegistry,
+ } from 'react-native';
++import type { EventEmitter } from 'react-native/Libraries/Types/CodegenTypes';
+ 
+ type AudioChunkEventT = {
+   chunkId: number;
+@@ -35,17 +35,17 @@ export interface Spec extends TurboModule {
+     IS_MAC_CATALYST: boolean;
+ 
+     // These are currently Android-only.
+-    AUDIO_SOURCE_CAMCODER?: number;
+-    AUDIO_SOURCE_DEFAULT?: number;
+-    AUDIO_SOURCE_MIC?: number;
+-    AUDIO_SOURCE_REMOTE_SUBMIX?: number;
+-    AUDIO_SOURCE_UNPROCESSED?: number;
+-    AUDIO_SOURCE_VOICE_CALL?: number;
+-    AUDIO_SOURCE_VOICE_COMMUNICATION?: number;
+-    AUDIO_SOURCE_VOICE_DOWNLINK?: number;
+-    AUDIO_SOURCE_VOICE_PERFORMANCE?: number;
+-    AUDIO_SOURCE_VOICE_RECOGNITION?: number;
+-    AUDIO_SOURCE_VOICE_UPLINK?: number;
++    AUDIO_SOURCE_CAMCODER: number;
++    AUDIO_SOURCE_DEFAULT: number;
++    AUDIO_SOURCE_MIC: number;
++    AUDIO_SOURCE_REMOTE_SUBMIX: number;
++    AUDIO_SOURCE_UNPROCESSED: number;
++    AUDIO_SOURCE_VOICE_CALL: number;
++    AUDIO_SOURCE_VOICE_COMMUNICATION: number;
++    AUDIO_SOURCE_VOICE_DOWNLINK: number;
++    AUDIO_SOURCE_VOICE_PERFORMANCE: number;
++    AUDIO_SOURCE_VOICE_RECOGNITION: number;
++    AUDIO_SOURCE_VOICE_UPLINK: number;
+   };
+ 
+   getInputAvailable(): Promise<boolean>;
+@@ -61,9 +61,9 @@ export interface Spec extends TurboModule {
+ 
+   muteInputStream(streamId: number, muted: boolean): void;
+ 
+-  readonly onAudioChunk: CodegenTypes.EventEmitter<AudioChunkEventT>;
+-  readonly onInputAudioStreamError: CodegenTypes.EventEmitter<InputAudioStreamErrorEventT>;
+-  readonly onSamplePlayerError: CodegenTypes.EventEmitter<SamplePlayerErrorEventT>;
++  readonly onAudioChunk: EventEmitter<AudioChunkEventT>;
++  readonly onInputAudioStreamError: EventEmitter<InputAudioStreamErrorEventT>;
++  readonly onSamplePlayerError: EventEmitter<SamplePlayerErrorEventT>;
+ 
+   unlisten(streamId: number): Promise<void>;
+ 

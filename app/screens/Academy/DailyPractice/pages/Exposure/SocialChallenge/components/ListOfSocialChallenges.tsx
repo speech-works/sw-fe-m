@@ -1,19 +1,19 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { getExposurePracticeByType } from "../../../../../../../api/dailyPractice";
+import {
+    ExposurePractice,
+    ExposurePracticeType,
+} from "../../../../../../../api/dailyPractice/types";
 import CustomScrollView, {
-  SHADOW_BUFFER,
+    SHADOW_BUFFER,
 } from "../../../../../../../components/CustomScrollView";
 import { theme } from "../../../../../../../Theme/tokens";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import {
-  parseShadowStyle,
-  parseTextStyle,
+    parseShadowStyle,
+    parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import {
-  ExposurePractice,
-  ExposurePracticeType,
-} from "../../../../../../../api/dailyPractice/types";
-import { getExposurePracticeByType } from "../../../../../../../api/dailyPractice";
 
 interface ListOfSocialChallengesProps {
   onSelectSC: (sc: ExposurePractice) => void;

@@ -1,28 +1,34 @@
-import React, { useEffect, useState } from "react";
-import { Audio } from "expo-av";
-import { StyleSheet } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import FontLoader from "./app/util/components/FontLoader";
 import { NavigationContainer } from "@react-navigation/native";
-import MainNavigator from "./app/navigators/MainNavigator";
+import { Audio } from "expo-av";
+import React, { useEffect } from "react";
+import { AppState, StyleSheet } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { PostHogProvider } from "posthog-react-native";
+import UpsellModal from "./app/components/UpsellModal";
+import OutcomeModal from "./app/components/OutcomeModal";
+import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
+import GlobalStaminaController from "./app/components/GlobalStaminaController";
 import { AuthProvider } from "./app/contexts/AuthContext";
-import Toast from "react-native-toast-message";
-import toastConfig from "./app/util/config/toastConfig";
-import * as WebBrowser from "expo-web-browser";
+import MainNavigator from "./app/navigators/MainNavigator";
+import FontLoader from "./app/util/components/FontLoader";
+// import Toast from "react-native-toast-message";
+// import toastConfig from "./app/util/config/toastConfig";
 import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import { SECURE_KEYS_NAME } from "./app/constants/secureStorageKeys";
+import { useMoodCheckStore } from "./app/stores/mood";
+import { useReminderStore } from "./app/stores/reminders";
+import { useUserStore } from "./app/stores/user";
+import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
-import { useReminderStore } from "./app/stores/reminders";
-import { useMoodCheckStore } from "./app/stores/mood";
-
-import { NativeModules } from "react-native";
-import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
+import { initAnalytics, trackScreen } from "./app/util/analytics/postHog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
-console.log("NativeModules keys:", Object.keys(NativeModules));
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 if (__DEV__) {
   require("./ReactotronConfig");
@@ -31,41 +37,38 @@ if (__DEV__) {
 // 👇 This is critical for trapping the OAuth redirect back into your JS:
 WebBrowser.maybeCompleteAuthSession();
 
+// Initialize PostHog once at module scope before any component renders.
+// Disabled automatically in __DEV__ mode (see initAnalytics).
+const posthogClient = initAnalytics();
+
+// Bug Fix #3: Debounce guard for AppState-triggered fetchUser() calls.
+// Android foregrounds apps more aggressively than iOS (screen-on events,
+// notification dismissals, alt-tab, etc.). Without this guard, stamina
+// detection can fire multiple times in a short window, each one a candidate
+// for bypassing the lowStaminaNotified flag before it persists.
+const APPSTATE_FETCH_DEBOUNCE_MS = 5_000;
+let lastAppStateFetchTime = 0;
+
 const App: React.FC = () => {
-  // reset mood log on frontend
-  useMoodCheckStore.getState().checkAndResetIfNeeded();
+  useEffect(() => {
+    // reset mood log on frontend
+    useMoodCheckStore.getState().checkAndResetIfNeeded();
+
+    // Clear mood check local storage every time the app loads
+    const clearMoodStorage = async () => {
+      try {
+        await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_MOOD_CHECK);
+        console.log("Mood check local storage cleared on app load");
+      } catch (e) {
+        console.error("Failed to clear mood check storage", e);
+      }
+    };
+    clearMoodStorage();
+  }, []);
 
   const rescheduleAllActiveNotifications = useReminderStore(
-    (state) => state.rescheduleAllActiveNotifications
+    (state) => state.rescheduleAllActiveNotifications,
   );
-
-  useEffect(() => {
-    const checkToken = async () => {
-      const accessToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_JWT_KEY
-      );
-      const refreshToken = await SecureStore.getItemAsync(
-        SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
-      );
-
-      // await SecureStore.deleteItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY);
-      // await SecureStore.deleteItemAsync(
-      //   SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY
-      // );
-      // await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER);
-      await AsyncStorage.removeItem(ASYNC_KEYS_NAME.SW_ZSTORE_ONBOARDING);
-
-      console.log(".................checkToken................");
-      console.log("accessToken", accessToken);
-      console.log("refreshToken", refreshToken);
-      // console.log(
-      //   "ASYNC_KEYS_NAME.SW_ZSTORE_USER",
-      //   AsyncStorage.getItem(ASYNC_KEYS_NAME.SW_ZSTORE_USER)
-      // );
-    };
-
-    checkToken();
-  }, []);
 
   useEffect(() => {
     const checkForUpdates = async () => {
@@ -92,14 +95,14 @@ const App: React.FC = () => {
     });
 
     // 2. Set up notification listeners for foreground and tap interactions
-    setupNotificationHandlers();
+    const cleanupNotificationHandlers = setupNotificationHandlers();
 
     // 3. Hydration listener for Zustand store to re-schedule notifications
     // This ensures notifications are restored/updated after the app fully loads
     // and the persisted state is available.
     const unsubscribe = useReminderStore.persist.onFinishHydration(() => {
       console.log(
-        "Zustand store rehydrated. Attempting to reschedule notifications."
+        "Zustand store rehydrated. Attempting to reschedule notifications.",
       );
       rescheduleAllActiveNotifications();
     });
@@ -107,26 +110,83 @@ const App: React.FC = () => {
     // Clean up the subscription when the component unmounts
     return () => {
       unsubscribe();
+      cleanupNotificationHandlers();
     };
   }, [rescheduleAllActiveNotifications]);
+
+  // Foreground sync for user data (stamina)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === "active") {
+        void (async () => {
+          // Bug Fix #3: Debounce rapid foreground events (common on Android).
+          const now = Date.now();
+          if (now - lastAppStateFetchTime < APPSTATE_FETCH_DEBOUNCE_MS) {
+            console.log("App foregrounded: Skipping fetchUser (debounced)");
+            return;
+          }
+          lastAppStateFetchTime = now;
+
+          const [accessToken, refreshToken] = await Promise.all([
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY),
+            SecureStore.getItemAsync(SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY),
+          ]);
+
+          if (!accessToken && !refreshToken) {
+            console.log(
+              "App foregrounded: Skipping user refresh (no stored session)",
+            );
+            return;
+          }
+
+          console.log("App foregrounded: Refreshing user data...");
+          await useUserStore.getState().fetchUser();
+        })();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // if (!ready) return <LoadingScreen />;
 
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <SafeAreaView
-          style={styles.safeAreaView}
-          edges={["top", "left", "right"]}
-        >
-          <FontLoader />
-          <NavigationContainer>
-            <MainNavigator />
-          </NavigationContainer>
-          <Toast config={toastConfig} />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </AuthProvider>
+    <PostHogProvider client={posthogClient} autocapture={false}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <SafeAreaProvider style={{ flex: 1 }}>
+            <SafeAreaView
+              style={styles.safeAreaView}
+              edges={["top", "left", "right"]}
+            >
+              <FontLoader />
+              <NavigationContainer
+                ref={navigationRef}
+                onStateChange={() => {
+                  const currentRoute = navigationRef.getCurrentRoute();
+                  if (currentRoute?.name) {
+                    trackScreen(currentRoute.name, currentRoute.params ? { params: currentRoute.params as Record<string, any> } : undefined);
+                  }
+                }}
+              >
+                <MainNavigator />
+                <UpsellModal />
+                <OutcomeModal />
+                <StaminaVignetteOverlay />
+                <GlobalStaminaController />
+              </NavigationContainer>
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </PostHogProvider>
   );
 };
 

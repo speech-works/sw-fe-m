@@ -1,13 +1,13 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  UIManager,
-  findNodeHandle,
-  Dimensions,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+    findNodeHandle,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { theme } from "../Theme/tokens";

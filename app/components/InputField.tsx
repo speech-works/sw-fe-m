@@ -1,13 +1,13 @@
 import React, {
-  forwardRef, // <--- Import forwardRef
+    forwardRef, // <--- Import forwardRef
 } from "react";
 import {
-  View,
-  TextInput,
-  StyleSheet,
-  TextInputProps,
-  ViewStyle,
-  TextStyle,
+    StyleSheet,
+    TextInput,
+    TextInputProps,
+    TextStyle,
+    View,
+    ViewStyle,
 } from "react-native";
 import { theme } from "../Theme/tokens";
 

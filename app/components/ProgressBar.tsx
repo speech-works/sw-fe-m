@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, Animated, StyleSheet } from "react-native";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import { theme } from "../Theme/tokens";
 
 import { parseTextStyle } from "../util/functions/parseStyles";

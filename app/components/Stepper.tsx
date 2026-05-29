@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { theme } from "../Theme/tokens";
 
 // Define TypeScript types
@@ -30,7 +30,7 @@ const Stepper: React.FC<StepperProps> = ({ steps }) => {
                   style={{
                     padding: 4,
                     borderRadius: 50,
-                    backgroundColor: theme.colors.actionSecondary.default,
+                    backgroundColor: theme.colors.actionPrimary.default,
                   }}
                 >
                   <MaterialIcons name="check" size={12} color="white" />
@@ -94,13 +94,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.actionPrimary.default,
   },
   pendingCircle: {
-    borderColor: theme.colors.neutral[7],
-    backgroundColor: theme.colors.neutral[7],
+    borderColor: theme.colors.border.default,
+    backgroundColor: theme.colors.border.default,
   },
   line: {
     width: 2,
     height: 40,
-    backgroundColor: theme.colors.neutral[7],
+    backgroundColor: theme.colors.border.default,
     marginVertical: 5,
   },
   textContainer: {
@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  completedText: {
-    color: theme.colors.actionSecondary.default,
+    completedText: {
+    color: theme.colors.actionPrimary.default,
   },
   currentText: {
     color: theme.colors.actionPrimary.default,
   },
   pendingText: {
-    color: theme.colors.neutral[7],
+    color: theme.colors.text.disabled,
   },
 });
 

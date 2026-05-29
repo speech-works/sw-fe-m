@@ -1,8 +1,8 @@
 import {
-  CognitivePractice,
-  ExposurePractice,
-  FunPractice,
-  ReadingPractice,
+    CognitivePractice,
+    ExposurePractice,
+    FunPractice,
+    ReadingPractice,
 } from "../dailyPractice/types";
 import { PracticeSession } from "../practiceSessions";
 
@@ -18,15 +18,23 @@ export enum PracticeActivityContentType {
 
 export interface PracticeActivity {
   id: string;
-  session: PracticeSession;
-  status: "ONGOING" | "COMPLETED" | "ABORTED";
+  session?: PracticeSession;
+  status: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "ABORTED";
   contentType: PracticeActivityContentType;
   funPractice?: FunPractice;
   readingPractice?: ReadingPractice;
   cognitivePractice?: CognitivePractice;
   exposurePractice?: ExposurePractice;
-  startedAt: Date;
+  startedAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Request interface for completing an activity with optional vitals
+export interface CompleteActivityRequest {
+  userId: string;
+  effortScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
+  autonomyScore?: number; // 20-100, always shown for EXPOSURE/COGNITIVE
+  accuracyScore?: number; // 20-100, only for TECHNIQUE_DRILL
 }

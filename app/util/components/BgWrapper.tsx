@@ -1,25 +1,25 @@
 // app/components/ScreenWrapper.tsx
 
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  View,
-  StyleSheet,
-  StyleProp,
-  ViewStyle,
-  Platform,
-  StatusBar,
+    Platform,
+    StatusBar,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "../../Theme/tokens";
 
-interface BgWrapperrProps {
-  children: React.ReactNode;
+interface BgWrapperProps {
+  children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   edges?: ("top" | "bottom" | "left" | "right")[]; // default to all edges
 }
 
-const BgWrapper: React.FC<BgWrapperrProps> = ({
+const BgWrapper: React.FC<BgWrapperProps> = ({
   children,
   style,
   edges = ["left", "right"],
