@@ -133,7 +133,7 @@ module.exports = {
             minSdkVersion: 26,
           },
           ios: {
-            deploymentTarget: "15.5",
+            deploymentTarget: "16.4",
           },
         },
       ],
