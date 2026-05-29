@@ -4,8 +4,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Button from '../../../../../components/Button';
 import { theme } from '../../../../../Theme/tokens';
-import { parseTextStyle } from '../../../../../util/functions/parseStyles';
+import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
 import { MirrorWorkData } from './types';
 
 export const PrepScreen: React.FC = () => {
@@ -100,10 +101,8 @@ export const PrepScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-          <Text style={styles.startButtonText}>Begin Session</Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <Button text="Start practice" onPress={handleStart} style={styles.startButton} />
       </View>
     </View>
   );
@@ -209,26 +208,13 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 0 : 24,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E5E5EA',
     backgroundColor: '#FFFFFF',
   },
   startButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 18,
-    borderRadius: 30,
-    alignItems: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
 });
 
