@@ -273,7 +273,7 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
             <Text style={styles.subtitleText}>{config.description}</Text>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView style={{ flexShrink: 1, width: '100%' }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             {/* Editorial Card */}
             <View style={styles.card}>
               <View style={styles.switcher}>
@@ -384,8 +384,9 @@ const styles = StyleSheet.create({
     paddingBottom: 80, // Extra space for floating button
   },
   headerContainer: {
-    paddingHorizontal: 28,
-    paddingTop: 24,
+    paddingLeft: 28,
+    paddingRight: 60,
+    paddingTop: 32,
     marginBottom: 16,
   },
   headerTopRow: {
