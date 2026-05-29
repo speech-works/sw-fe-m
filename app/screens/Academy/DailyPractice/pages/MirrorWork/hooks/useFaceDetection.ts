@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Dimensions } from "react-native";
 import { useFrameProcessor } from "react-native-vision-camera";
 import { useFaceDetector, Face } from "react-native-vision-camera-face-detector";
 import { Worklets } from "react-native-worklets-core";
 import { MirrorBehaviorAnalyzer, UserBaseline } from "../util/mirrorBehaviorAnalyzer";
 import { MirrorBehaviorSignal } from "../types";
+
+const SCREEN = Dimensions.get('screen');
+const SCREEN_W = SCREEN.width;
+const SCREEN_H = SCREEN.height;
 
 const CALIBRATION_DURATION_MS = 15000;
 const NO_FACE_DEBOUNCE_MS = 3000;
@@ -198,7 +203,13 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     contourMode: 'all',
     classificationMode: 'all',
     minFaceSize: 0.1,
-    trackingEnabled: true,
+    // autoMode tells the library to handle the front-camera mirror + rotation internally
+    // and return coordinates already mapped to screen space.
+    autoMode: true,
+    windowWidth: SCREEN_W,
+    windowHeight: SCREEN_H,
+    // trackingEnabled is incompatible with contourMode, so it's disabled
+    trackingEnabled: false,
   });
 
   const handleDetectionWorklet = Worklets.createRunOnJS(handleDetection);

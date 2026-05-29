@@ -188,15 +188,13 @@ export const SessionScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
 
-            {prompts.length > 1 && (
-              <TouchableOpacity 
-                style={styles.controlButton} 
-                onPress={session.nextPrompt}
-              >
-                <Icon name="refresh" size={24} color="#FFF" />
-                <Text style={styles.controlLabel}>Change</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={styles.controlButton} 
+              onPress={session.nextPrompt}
+            >
+              <Icon name="refresh" size={24} color="#FFF" />
+              <Text style={styles.controlLabel}>Next</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.controlButton, styles.endButton]} 

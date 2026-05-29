@@ -22,39 +22,14 @@ export const FacialOutlines: React.FC<FacialOutlinesProps> = ({
   viewSize,
   activeSignals,
 }) => {
-  if (!contours || !frameSize || !viewSize) return null;
+  if (!contours || !viewSize) return null;
 
-  // Determine scaling for resizeMode="cover"
-  // Note: Vision Camera might return frame dimensions as landscape (e.g. 1920x1080)
-  // even when in portrait. ML Kit usually accounts for this but if x/y are swapped
-  // or inverted, we would need orientation logic. Assuming standard ML Kit normalized output.
-  const isPortraitFrame = frameSize.height > frameSize.width;
-  const fw = isPortraitFrame ? frameSize.width : frameSize.height;
-  const fh = isPortraitFrame ? frameSize.height : frameSize.width;
-
-  // The true aspect ratio of the incoming frame after adjusting for portrait orientation
-  const scale = Math.max(viewSize.width / fw, viewSize.height / fh);
-  const scaledFrameWidth = fw * scale;
-  const scaledFrameHeight = fh * scale;
-  const offsetX = (viewSize.width - scaledFrameWidth) / 2;
-  const offsetY = (viewSize.height - scaledFrameHeight) / 2;
-
-  const mapPoint = (p: Point): Point => {
-    // If the frame from the camera is strictly landscape but the screen is portrait,
-    // ML Kit usually rotates the coordinates to match the screen's upright orientation.
-    // If we notice a 90-degree rotation in testing, this mapping function can swap x and y.
-    return {
-      x: p.x * scale + offsetX,
-      y: p.y * scale + offsetY,
-    };
-  };
-
+  // With autoMode enabled in useFaceDetector, the library already accounts for
+  // front-camera mirroring and device rotation. Coordinates are in screen space
+  // (0 → SCREEN_W, 0 → SCREEN_H). We just pass them through directly.
   const pointsToPolygonString = (points?: Point[]) => {
     if (!points || points.length === 0) return '';
-    return points.map((p) => {
-      const mapped = mapPoint(p);
-      return `${mapped.x},${mapped.y}`;
-    }).join(' ');
+    return points.map((p) => `${p.x},${p.y}`).join(' ');
   };
 
   // ── Determine which areas to highlight based on active signals ──
