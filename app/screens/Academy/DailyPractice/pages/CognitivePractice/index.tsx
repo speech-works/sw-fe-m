@@ -75,6 +75,13 @@ const CognitivePractice = () => {
       icon: <RewiringFace size={80} />,
       colors: ["#818CF8", "#4F46E5"] as const, // Indigo
     },
+    {
+      title: "Mirror Work",
+      subtitle: "Body Awareness & Feedback",
+      onPress: () => navigation.navigate("MirrorWorkPrep", { practiceData: {} }),
+      icon: <Icon name="camera" size={50} color="#FFFFFF" style={{ opacity: 0.8 }} />,
+      colors: ["#60A5FA", "#2563EB"] as const, // Blue
+    },
   ];
 
   const summary = categories.find(

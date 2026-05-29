@@ -53,6 +53,7 @@ module.exports = {
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.POST_NOTIFICATIONS",
@@ -95,6 +96,21 @@ module.exports = {
       "expo-secure-store",
       "expo-notifications",
       "expo-web-browser",
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "SpeechWorks uses your camera for on-device body awareness exercises. No video is recorded or sent anywhere.",
+          enableCodeScanner: false,
+        },
+      ],
+      [
+        "expo-build-properties",
+        {
+          android: {
+            minSdkVersion: 26,
+          },
+        },
+      ],
     ],
     extra: {
       API_BASE_URL: process.env.API_BASE_URL,
