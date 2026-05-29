@@ -132,6 +132,9 @@ module.exports = {
           android: {
             minSdkVersion: 26,
           },
+          ios: {
+            deploymentTarget: "15.5",
+          },
         },
       ],
     ],
