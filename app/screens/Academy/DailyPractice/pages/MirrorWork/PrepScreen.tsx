@@ -81,7 +81,7 @@ export const PrepScreen: React.FC = () => {
         </View>
 
         <View style={styles.privacyCard}>
-          <Icon name="lock-closed" size={24} color="#34C759" style={styles.privacyIcon} />
+          <Icon name="shield-alt" size={24} color="#34C759" solid style={styles.privacyIcon} />
           <View style={styles.privacyTextContainer}>
             <Text style={styles.privacyTitle}>100% Private</Text>
             <Text style={styles.privacyText}>
@@ -91,7 +91,7 @@ export const PrepScreen: React.FC = () => {
         </View>
 
         <View style={styles.privacyCard}>
-          <Icon name="lightbulb" size={24} color="#007AFF" style={styles.privacyIcon} />
+          <Icon name="lightbulb" size={24} color="#007AFF" solid style={styles.privacyIcon} />
           <View style={styles.privacyTextContainer}>
             <Text style={styles.privacyTitle}>Gentle Notes</Text>
             <Text style={styles.privacyText}>
