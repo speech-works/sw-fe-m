@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useFrameProcessor } from "react-native-vision-camera";
 import { useFaceDetector, Face } from "react-native-vision-camera-face-detector";
-import { Worklets, useRunOnJS } from "react-native-worklets-core";
+import { Worklets } from "react-native-worklets-core";
 import { MirrorBehaviorAnalyzer, UserBaseline } from "../util/mirrorBehaviorAnalyzer";
 import { MirrorBehaviorSignal } from "../types";
 
@@ -12,7 +12,10 @@ const FRAME_SAMPLING_INTERVAL = 3; // Process every 3rd frame
 export interface FaceDetectionState {
   isCalibrating: boolean;
   faceInFrame: boolean;
+  /** Signals that are currently active (for overlay/nudge display). */
   activeSignals: MirrorBehaviorSignal[];
+  /** Signals that transitioned to active THIS frame (for event counting). */
+  newSignals: MirrorBehaviorSignal[];
   baseline: UserBaseline | null;
   lightingWarning: boolean;
 }
@@ -22,6 +25,7 @@ export function useFaceDetection(isActive: boolean) {
     isCalibrating: true,
     faceInFrame: true,
     activeSignals: [],
+    newSignals: [],
     baseline: null,
     lightingWarning: false,
   });
@@ -55,7 +59,7 @@ export function useFaceDetection(isActive: boolean) {
       noFaceTimerRef.current = null;
     }
 
-    const face = faces[0]; // Assume single most prominent face
+    const face = faces[0]; // Most prominent face
 
     setState((prev) => {
       if (!prev.faceInFrame) return { ...prev, faceInFrame: true };
@@ -70,38 +74,79 @@ export function useFaceDetection(isActive: boolean) {
       calibrationBufferRef.current.push(face);
 
       if (timestampMs - calibrationStartTimeRef.current >= CALIBRATION_DURATION_MS) {
-        // Compute baseline
         const buffer = calibrationBufferRef.current;
         if (buffer.length > 0) {
-          let totalBlinks = 0;
+          // ── Compute jaw distance baseline ──
           let totalJaw = 0;
+          let jawFrames = 0;
+
+          // ── Compute brow Y baseline ──
           let totalBrowY = 0;
+          let browFrames = 0;
+
+          // ── Compute lip gap baseline ──
+          let totalLipGap = 0;
+          let lipFrames = 0;
+
+          // ── Compute yaw baseline ──
           let totalYaw = 0;
-          let framesWithBrow = 0;
+
+          // ── Compute blink rate ──
+          // Count unique blink events: transitions from open → closed → open
+          let blinkCount = 0;
+          let wasEyeClosed = false;
 
           buffer.forEach((f) => {
-            if (f.leftEyeOpenProbability < 0.1 && f.rightEyeOpenProbability < 0.1) {
-              totalBlinks++;
-            }
+            // Jaw distance
             if (f.landmarks && f.landmarks.MOUTH_BOTTOM && f.landmarks.NOSE_BASE) {
-              totalJaw += (f.landmarks.MOUTH_BOTTOM.y - f.landmarks.NOSE_BASE.y);
+              totalJaw += f.landmarks.MOUTH_BOTTOM.y - f.landmarks.NOSE_BASE.y;
+              jawFrames++;
             }
+
+            // Brow Y
             if (f.contours && f.contours.LEFT_EYEBROW_BOTTOM) {
-              const browY = f.contours.LEFT_EYEBROW_BOTTOM.reduce((sum, p) => sum + p.y, 0) / f.contours.LEFT_EYEBROW_BOTTOM.length;
+              const browY =
+                f.contours.LEFT_EYEBROW_BOTTOM.reduce((sum, p) => sum + p.y, 0) /
+                f.contours.LEFT_EYEBROW_BOTTOM.length;
               totalBrowY += browY;
-              framesWithBrow++;
+              browFrames++;
             }
+
+            // Lip gap (distance between inner lip edges)
+            if (f.contours && f.contours.UPPER_LIP_BOTTOM && f.contours.LOWER_LIP_TOP) {
+              const upperY =
+                f.contours.UPPER_LIP_BOTTOM.reduce((sum, p) => sum + p.y, 0) /
+                f.contours.UPPER_LIP_BOTTOM.length;
+              const lowerY =
+                f.contours.LOWER_LIP_TOP.reduce((sum, p) => sum + p.y, 0) /
+                f.contours.LOWER_LIP_TOP.length;
+              totalLipGap += Math.abs(lowerY - upperY);
+              lipFrames++;
+            }
+
+            // Yaw
             totalYaw += f.yawAngle;
+
+            // Blink detection (count transitions: open→closed→open)
+            const eyesClosed = f.leftEyeOpenProbability < 0.15 && f.rightEyeOpenProbability < 0.15;
+            if (wasEyeClosed && !eyesClosed) {
+              blinkCount++; // Completed a blink
+            }
+            wasEyeClosed = eyesClosed;
           });
 
-          // A basic heuristic for blink count during 15s. (This counts frames closed, not unique blinks, but it's an ok proxy, or we can just divide).
-          // Actually, we'll just set an average blink rate for now.
+          const calibrationDurationSec = CALIBRATION_DURATION_MS / 1000;
+
           const baseline: UserBaseline = {
-            blinkRatePerSecond: (totalBlinks / buffer.length) * 10, // Approx
-            neutralJawDistance: totalJaw / buffer.length,
-            neutralBrowY: framesWithBrow > 0 ? totalBrowY / framesWithBrow : 0,
+            // Actual blink events per second (not frames-with-eyes-closed)
+            blinkRatePerSecond: blinkCount / calibrationDurationSec,
+            neutralJawDistance: jawFrames > 0 ? totalJaw / jawFrames : 0,
+            neutralBrowY: browFrames > 0 ? totalBrowY / browFrames : 0,
             neutralEulerYaw: totalYaw / buffer.length,
+            neutralLipGap: lipFrames > 0 ? totalLipGap / lipFrames : 0,
           };
+
+          console.log("[MirrorWork] Calibration complete:", JSON.stringify(baseline));
 
           analyzerRef.current.setBaseline(baseline);
           setState((prev) => ({ ...prev, isCalibrating: false, baseline }));
@@ -112,7 +157,8 @@ export function useFaceDetection(isActive: boolean) {
       const detectionResult = analyzerRef.current.analyzeFrame(face, timestampMs);
       setState((prev) => ({
         ...prev,
-        activeSignals: detectionResult.signals,
+        activeSignals: detectionResult.activeSignals,
+        newSignals: detectionResult.newSignals,
         lightingWarning: detectionResult.lightingWarning,
       }));
     }
