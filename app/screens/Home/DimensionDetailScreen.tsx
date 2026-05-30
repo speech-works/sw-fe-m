@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
+import { parseTextStyle } from "../../util/functions/parseStyles";
+import React, { useState } from "react";
 import {
-  Animated,
   Dimensions,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Svg, Circle } from "react-native-svg";
 import { theme } from "../../Theme/tokens";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { HomeStackNavigationProp, HomeStackRouteProp } from "../../navigators/index";
+import ScreenView from "../../components/ScreenView";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -204,44 +208,19 @@ const Gauge = ({ score, color, size = 160 }: { score: number | null; color: stri
   );
 };
 
-interface DimensionDetailModalProps {
-  visible: boolean;
-  domain: ClinicalDomain | null;
-  familyData: Record<DetailFamily, FamilyMetricData>;
-  comparisonLabel: string;
-  onClose: () => void;
-}
+const DimensionDetailScreen = () => {
+  const route = useRoute<HomeStackRouteProp<"DimensionDetail">>();
+  const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
+  const { domain, familyData: rawFamilyData, comparisonLabel } = route.params;
 
-const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
-  visible,
-  domain,
-  familyData,
-  comparisonLabel,
-  onClose,
-}) => {
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const familyData = rawFamilyData as Record<DetailFamily, FamilyMetricData>;
+
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    if (visible) {
-      setSelectedFamily("combined");
-      Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, damping: 25, stiffness: 200, useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [visible]);
+  if (!domain) return null;
 
-  if (!visible || !domain) return null;
-
-  const config = DIMENSION_CONFIG[domain];
+  const config = DIMENSION_CONFIG[domain as ClinicalDomain];
   const activeMetrics = familyData[selectedFamily];
   const isUnavailable = activeMetrics.currentScore === null;
   const hasComparison = activeMetrics.previousScore !== null;
@@ -249,118 +228,120 @@ const DimensionDetailModal: React.FC<DimensionDetailModalProps> = ({
   const trendColor = trend === "IMPROVING" ? "#059669" : trend === "WORSENING" ? "#E11D48" : "#64748B";
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+    <ScreenView style={[styles.screen, { paddingHorizontal: 0 }]}>
+      <View style={styles.globalWatermark}>
+        <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
+      </View>
 
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-          <View style={styles.dragHandle} />
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
+        ]}
+      >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Growth Profile</Text>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <MaterialCommunityIcons name="close" size={20} color="#64748B" />
-          </TouchableOpacity>
-
-          {/* Global Watermark (Visible through all sections) */}
-          <View style={styles.globalWatermark}>
-            <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
+      <ScrollView 
+        style={{ flex: 1, width: '100%' }} 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 60 + insets.top + 16 }]}
+      >
+        <View style={styles.headerContainer}>
+          <View style={styles.headerTopRow}>
+            <Text style={styles.titleText}>{config.label}</Text>
+          </View>
+          <Text style={styles.subtitleText}>{config.description}</Text>
+        </View>
+        <View style={styles.card}>
+          <View style={styles.switcher}>
+            {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
+              const active = f === selectedFamily;
+              return (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setSelectedFamily(f)}
+                  style={[
+                    styles.switcherPill,
+                    active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
+                  ]}
+                >
+                  <Text style={[styles.switcherText, active && styles.switcherTextActive]}>
+                    {FAMILY_CONFIG[f].label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {/* Header (Sticky) */}
-          <View style={styles.headerContainer}>
-            <View style={styles.headerTopRow}>
-              <Text style={styles.titleText}>{config.label}</Text>
-            </View>
-            <Text style={styles.subtitleText}>{config.description}</Text>
+          <Text style={styles.familyDescText}>
+            {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
+          </Text>
+
+          <View style={styles.gaugeWrapper}>
+            <Gauge score={activeMetrics.currentScore} color={config.color} />
           </View>
 
-          <ScrollView style={{ flexShrink: 1, width: '100%' }} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            {/* Editorial Card */}
-            <View style={styles.card}>
-              <View style={styles.switcher}>
-                {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
-                  const active = f === selectedFamily;
-                  return (
-                    <TouchableOpacity
-                      key={f}
-                      onPress={() => setSelectedFamily(f)}
-                      style={[
-                        styles.switcherPill,
-                        active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
-                      ]}
-                    >
-                      <Text style={[styles.switcherText, active && styles.switcherTextActive]}>
-                        {FAMILY_CONFIG[f].label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.familyDescText}>
-                {FAMILY_DESCRIPTIONS[domain][selectedFamily]}
-              </Text>
-
-              <View style={styles.gaugeWrapper}>
-                <Gauge score={activeMetrics.currentScore} color={config.color} />
-              </View>
-
-              <View style={styles.trendRow}>
-                <MaterialCommunityIcons
-                  name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"}
-                  size={16}
-                  color={trendColor}
-                />
-                <Text style={[styles.trendLabel, { color: trendColor }]}>
-                  {!hasComparison
-                    ? "Waiting for history"
-                    : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
-                </Text>
-              </View>
-
-              {hasComparison && (
-                <Text style={styles.previousScoreText}>
-                  Previously {Math.round(activeMetrics.previousScore ?? 0)}
-                </Text>
-              )}
-
-              {/* Experimental Integrated Insight */}
-              <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
-                <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
-                <Text style={styles.integratedInsightText}>
-                  {isUnavailable
-                    ? "Reflection pending..."
-                    : config.recommendations[trend]}
-                </Text>
-              </View>
-            </View>
-
-          </ScrollView>
-
-          <View style={[styles.floatingFooter, { bottom: Math.max(insets.bottom, 12) }]}>
-            <TouchableOpacity style={styles.doneBtn} onPress={onClose} activeOpacity={0.9}>
-              <Text style={styles.doneBtnText}>Continue My Journey</Text>
-            </TouchableOpacity>
+          <View style={styles.trendRow}>
+            <MaterialCommunityIcons
+              name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"}
+              size={16}
+              color={trendColor}
+            />
+            <Text style={[styles.trendLabel, { color: trendColor }]}>
+              {!hasComparison
+                ? "Waiting for history"
+                : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
+            </Text>
           </View>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+
+          {hasComparison && (
+            <Text style={styles.previousScoreText}>
+              Previously {Math.round(activeMetrics.previousScore ?? 0)}
+            </Text>
+          )}
+
+          <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
+            <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
+            <Text style={styles.integratedInsightText}>
+              {isUnavailable
+                ? "Reflection pending..."
+                : config.recommendations[trend]}
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenView>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  screen: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    maxHeight: '90%',
-    width: SCREEN_WIDTH,
+    backgroundColor: "#FAFAFA",
     position: 'relative',
-    overflow: 'hidden',
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+    marginTop: 2,
   },
   globalWatermark: {
     position: 'absolute',
@@ -369,24 +350,23 @@ const styles = StyleSheet.create({
     zIndex: -1,
     transform: [{ rotate: '-15deg' }],
   },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#E2E8F0",
-    alignSelf: 'center',
-    marginTop: 12,
-    zIndex: 10,
-  },
   scrollContent: {
     paddingHorizontal: 28,
     paddingTop: 8,
-    paddingBottom: 80, // Extra space for floating button
+    paddingBottom: 40, 
   },
   headerContainer: {
-    paddingLeft: 28,
-    paddingRight: 60,
-    paddingTop: 32,
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
     marginBottom: 16,
   },
   headerTopRow: {
@@ -401,27 +381,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text.title,
     letterSpacing: -0.5,
   },
-  closeBtn: {
-    position: 'absolute',
-    top: 24,
-    right: 24,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
   subtitleText: {
     fontSize: 15,
     color: '#64748B',
     lineHeight: 22,
     fontWeight: '500',
-    paddingRight: 40,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)', // Glass effect
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
     borderRadius: 36,
     padding: 24,
     alignItems: 'center',
@@ -433,8 +400,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.8)',
-    // Make the card wider to accommodate toggle bar comfortably
-    width: SCREEN_WIDTH - 20, // accounts for 28px horizontal padding on each side of scrollContent
+    width: SCREEN_WIDTH - 20, 
     alignSelf: 'center',
   },
   switcher: {
@@ -521,17 +487,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  insightSection: {
-    marginBottom: 32,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: theme.colors.text.title,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    opacity: 0.4,
-  },
   integratedInsight: {
     marginTop: 28,
     paddingTop: 20,
@@ -552,31 +507,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.1,
   },
-  floatingFooter: {
-    position: 'absolute',
-    left: 28,
-    right: 28,
-    backgroundColor: 'transparent',
-    zIndex: 100,
-  },
-  doneBtn: {
-    width: '100%',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  doneBtnText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
 });
 
-export default DimensionDetailModal;
+export default DimensionDetailScreen;

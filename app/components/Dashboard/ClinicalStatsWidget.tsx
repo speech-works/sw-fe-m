@@ -33,8 +33,9 @@ import { GrowthProfileAxisKey } from "../../api/overallState/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { theme } from "../../Theme/tokens";
 import SkeletonLoader from "../SkeletonLoader";
-import DimensionDetailModal from "./DimensionDetailModal";
 import ErrorStateCard from "./ErrorStateCard";
+import { useNavigation } from "@react-navigation/native";
+import { HomeStackNavigationProp } from "../../navigators/index";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const CHART_LABEL_TOUCH_WIDTH = 112;
@@ -125,13 +126,43 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     loading,
     error,
   } = useUserBehaviorTrendsStore();
-  const [selectedMetric, setSelectedMetric] = useState<ClinicalDomain | null>(
-    null,
-  );
-  const [modalVisible, setModalVisible] = useState(false);
+
+  const navigation = useNavigation<HomeStackNavigationProp<"Home">>();
   const combinedProfile = overallState?.profile?.axes?.combined ?? null;
   const isMomentumSlipping =
     overallState?.profile?.meta?.momentumState === "SLIPPING";
+
+  const handleMetricPress = (domain: ClinicalDomain) => {
+    if (!overallState) return;
+
+    const profileKey = METRIC_CONFIG[domain].profileKey;
+    const buildFamilyData = (
+      family: "combined" | "clinical" | "engagement",
+    ) => {
+      const familyAxes = overallState.profile.axes[family];
+      const familyDelta = overallState.profile.comparison.deltas[family][profileKey];
+
+      return {
+        currentScore: familyAxes[profileKey],
+        previousScore: familyDelta.previous,
+        percentDelta: familyDelta.percentDelta,
+        absoluteDelta: familyDelta.absoluteDelta,
+        trend: familyDelta.trend,
+      };
+    };
+
+    const familyData = {
+      combined: buildFamilyData("combined"),
+      clinical: buildFamilyData("clinical"),
+      engagement: buildFamilyData("engagement"),
+    };
+
+    navigation.navigate("DimensionDetail", {
+      domain,
+      familyData,
+      comparisonLabel: overallState.profile.comparison.comparisonLabel,
+    });
+  };
 
   // --- Refresh Handler ---
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -728,7 +759,6 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                     i * angleStep,
                   );
                   const config = METRIC_CONFIG[domain];
-                  const isSelected = selectedMetric === domain;
 
                   type TextAnchor = "start" | "middle" | "end";
                   let anchor: TextAnchor = "middle";
@@ -740,13 +770,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                       key={`text-${i}`}
                       x={pos.x}
                       y={pos.y}
-                      fill={
-                        isSelected
-                          ? theme.colors.library.orange[500]
-                          : "#666666"
-                      }
-                      fontSize={isSelected ? "11" : "10"}
-                      fontWeight={isSelected ? "800" : "600"}
+                      fill={"#666666"}
+                      fontSize={"10"}
+                      fontWeight={"600"}
                       textAnchor={anchor}
                       alignmentBaseline="middle"
                       letterSpacing={1}
@@ -766,10 +792,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                       key={target.domain}
                       activeOpacity={0.7}
                       hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
-                      onPress={() => {
-                        setSelectedMetric(target.domain);
-                        setModalVisible(true);
-                      }}
+                      onPress={() => handleMetricPress(target.domain)}
                       style={[
                         styles.chartLabelHitbox,
                         { left: target.left, top: target.top },
@@ -857,10 +880,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                 <TouchableOpacity
                                   key={item.key}
                                   activeOpacity={0.7}
-                                  onPress={() => {
-                                    setSelectedMetric(item.domain);
-                                    setModalVisible(true);
-                                  }}
+                                  onPress={() => handleMetricPress(item.domain)}
                                   style={[
                                     styles.miniCard,
                                     styles.compactBreakthroughCard,
@@ -949,10 +969,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                           {heroItem ? (
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={() => {
-                                setSelectedMetric(heroItem.domain);
-                                setModalVisible(true);
-                              }}
+                              onPress={() => handleMetricPress(heroItem.domain)}
                               style={[
                                 styles.miniCard,
                                 styles.heroCard,
@@ -1034,10 +1051,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                 <TouchableOpacity
                                   key={item.key}
                                   activeOpacity={0.7}
-                                  onPress={() => {
-                                    setSelectedMetric(item.domain);
-                                    setModalVisible(true);
-                                  }}
+                                  onPress={() => handleMetricPress(item.domain)}
                                   style={[
                                     styles.miniCard,
                                     {
@@ -1179,43 +1193,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Dimension Detail Modal */}
-        <DimensionDetailModal
-          visible={modalVisible}
-          domain={selectedMetric}
-          comparisonLabel={overallState.profile.comparison.comparisonLabel}
-          familyData={(() => {
-            const profileKey = selectedMetric
-              ? METRIC_CONFIG[selectedMetric].profileKey
-              : "confidence";
-            const buildFamilyData = (
-              family: "combined" | "clinical" | "engagement",
-            ) => {
-              const familyAxes = overallState.profile.axes[family];
-              const familyDelta = overallState.profile.comparison.deltas[family][
-                profileKey
-              ];
-
-              return {
-                currentScore: familyAxes[profileKey],
-                previousScore: familyDelta.previous,
-                percentDelta: familyDelta.percentDelta,
-                absoluteDelta: familyDelta.absoluteDelta,
-                trend: familyDelta.trend,
-              };
-            };
-
-            return {
-              combined: buildFamilyData("combined"),
-              clinical: buildFamilyData("clinical"),
-              engagement: buildFamilyData("engagement"),
-            };
-          })()}
-          onClose={() => {
-            setModalVisible(false);
-            setSelectedMetric(null);
-          }}
-        />
+        {/* Modal removed - now uses DimensionDetailScreen via navigation */}
       </View>
     </View>
   );
