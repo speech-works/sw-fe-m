@@ -1,4 +1,5 @@
 const { withGradleProperties } = require("@expo/config-plugins");
+const withMediaPipeDuplicateFix = require("./plugins/withMediaPipeDuplicateFix");
 
 const apiBaseUrl = process.env.API_BASE_URL || "";
 const allowsInsecureNetworkTraffic =
@@ -94,6 +95,7 @@ module.exports = {
     },
     plugins: [
       withCustomJvmArgs,
+      withMediaPipeDuplicateFix,
       [
         "react-native-permissions",
         {
