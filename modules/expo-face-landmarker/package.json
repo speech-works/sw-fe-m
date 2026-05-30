@@ -1,0 +1,17 @@
+{
+  "name": "expo-face-landmarker",
+  "version": "1.0.0",
+  "description": "MediaPipe Face Landmarker with blendshapes — Expo local module for SpeechWorks",
+  "main": "src/ExpoFaceLandmarkerModule.ts",
+  "types": "src/ExpoFaceLandmarkerModule.ts",
+  "files": [
+    "src",
+    "ios",
+    "android",
+    "expo-module.config.json"
+  ],
+  "peerDependencies": {
+    "expo": "*",
+    "expo-modules-core": "*"
+  }
+}

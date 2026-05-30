@@ -27,9 +27,14 @@ export interface FaceDetectionState {
   latestContours?: Face['contours'];
   /** Frame size required to map ML Kit coordinates to the screen */
   frameSize?: { width: number; height: number };
+  /** Calibration progress 0–1 */
+  calibrationProgress: number;
 }
 
-export function useFaceDetection(isActive: boolean, isSilent?: (threshold: number) => boolean) {
+export function useFaceDetection(
+  isActive: boolean,
+  isSilent?: (threshold: number) => boolean
+) {
   const [state, setState] = useState<FaceDetectionState>({
     isCalibrating: true,
     faceInFrame: true,
@@ -37,14 +42,31 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     newSignals: [],
     baseline: null,
     lightingWarning: false,
+    calibrationProgress: 0,
   });
 
   const analyzerRef = useRef(new MirrorBehaviorAnalyzer());
-  const frameCountRef = useRef(0);
+
+  // ── FIX: Use refs for values read inside worklet-bridged callbacks ──
+  // These avoid stale-closure issues entirely.
+  const isCalibatingRef = useRef(true);
+  const isSilentRef = useRef(isSilent);
+  const frameCountRef = useRef(0); // Only mutated on JS thread now
+
+  // Keep isSilentRef current when prop changes
+  useEffect(() => {
+    isSilentRef.current = isSilent;
+  }, [isSilent]);
+
+  // Keep isCalibatingRef in sync with state
+  useEffect(() => {
+    isCalibatingRef.current = state.isCalibrating;
+  }, [state.isCalibrating]);
 
   // Calibration State
   const calibrationStartTimeRef = useRef<number | null>(null);
   const calibrationBufferRef = useRef<Face[]>([]);
+  const calibrationPausedRef = useRef(false); // Paused when face leaves frame
 
   // No-Face State
   const noFaceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,6 +76,9 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     const faceCount = faces.length;
 
     if (faceCount === 0) {
+      // Pause calibration when face is out of frame
+      calibrationPausedRef.current = true;
+
       if (!noFaceTimerRef.current) {
         noFaceTimerRef.current = setTimeout(() => {
           setState((prev) => ({ ...prev, faceInFrame: false }));
@@ -62,7 +87,9 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
       return;
     }
 
-    // Face is present
+    // Face is present — resume calibration if paused
+    calibrationPausedRef.current = false;
+
     if (noFaceTimerRef.current) {
       clearTimeout(noFaceTimerRef.current);
       noFaceTimerRef.current = null;
@@ -75,75 +102,95 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
       return prev;
     });
 
-    if (state.isCalibrating) {
+    // ── FIX: Read calibration state from ref, not from stale closure ──
+    if (isCalibatingRef.current) {
       if (!calibrationStartTimeRef.current) {
         calibrationStartTimeRef.current = timestampMs;
       }
 
       calibrationBufferRef.current.push(face);
 
-      if (timestampMs - calibrationStartTimeRef.current >= CALIBRATION_DURATION_MS) {
+      const elapsed = timestampMs - calibrationStartTimeRef.current;
+      const progress = Math.min(elapsed / CALIBRATION_DURATION_MS, 1);
+
+      // Update progress every ~500ms to avoid flooding setState
+      setState((prev) => {
+        const prevProgress = prev.calibrationProgress;
+        if (Math.abs(progress - prevProgress) > 0.03) {
+          return { ...prev, calibrationProgress: progress };
+        }
+        return prev;
+      });
+
+      if (elapsed >= CALIBRATION_DURATION_MS) {
         const buffer = calibrationBufferRef.current;
         if (buffer.length > 0) {
           // ── Compute mouth aperture baseline ──
           let totalMouthAperture = 0;
           let apertureFrames = 0;
+          let apertureVarianceSum = 0;
+          const apertureValues: number[] = [];
 
           // ── Compute inner brow distance baseline ──
           let totalInnerBrowDist = 0;
           let browFrames = 0;
+          const browValues: number[] = [];
 
           // ── Compute nostril width baseline ──
           let totalNostrilWidth = 0;
           let nostrilFrames = 0;
+          const nostrilValues: number[] = [];
 
           // ── Compute cheek area baseline ──
           let totalCheekArea = 0;
           let cheekFrames = 0;
+          const cheekValues: number[] = [];
 
           // ── Compute yaw baseline ──
           let totalYaw = 0;
 
           // ── Compute blink rate ──
-          // Count unique blink events: transitions from open → closed → open
           let blinkCount = 0;
           let wasEyeClosed = false;
 
           buffer.forEach((f) => {
-            // Mouth Aperture (distance between inner lip edges)
-            if (f.contours && f.contours.UPPER_LIP_BOTTOM && f.contours.LOWER_LIP_TOP) {
+            // Mouth Aperture
+            if (f.contours?.UPPER_LIP_BOTTOM && f.contours?.LOWER_LIP_TOP) {
               const upperY =
                 f.contours.UPPER_LIP_BOTTOM.reduce((sum, p) => sum + p.y, 0) /
                 f.contours.UPPER_LIP_BOTTOM.length;
               const lowerY =
                 f.contours.LOWER_LIP_TOP.reduce((sum, p) => sum + p.y, 0) /
                 f.contours.LOWER_LIP_TOP.length;
-              totalMouthAperture += Math.abs(lowerY - upperY);
+              const aperture = Math.abs(lowerY - upperY);
+              totalMouthAperture += aperture;
+              apertureValues.push(aperture);
               apertureFrames++;
             }
 
-            // Inner Brow Distance (Horizontal Squeeze)
-            if (f.contours && f.contours.LEFT_EYEBROW_BOTTOM && f.contours.RIGHT_EYEBROW_BOTTOM) {
-              // Find the rightmost point of the left eyebrow
+            // Inner Brow Distance
+            if (f.contours?.LEFT_EYEBROW_BOTTOM && f.contours?.RIGHT_EYEBROW_BOTTOM) {
               const leftInnerX = Math.max(...f.contours.LEFT_EYEBROW_BOTTOM.map(p => p.x));
-              // Find the leftmost point of the right eyebrow
               const rightInnerX = Math.min(...f.contours.RIGHT_EYEBROW_BOTTOM.map(p => p.x));
-              
-              if (rightInnerX > leftInnerX) { // sanity check
-                totalInnerBrowDist += (rightInnerX - leftInnerX);
+              if (rightInnerX > leftInnerX) {
+                const dist = rightInnerX - leftInnerX;
+                totalInnerBrowDist += dist;
+                browValues.push(dist);
                 browFrames++;
               }
             }
 
-            // Nostril Width (NOSE_BOTTOM contour horizontal span)
-            if (f.contours && f.contours.NOSE_BOTTOM && f.contours.NOSE_BOTTOM.length > 0) {
+            // Nostril Width
+            if (f.contours?.NOSE_BOTTOM && f.contours.NOSE_BOTTOM.length > 0) {
               const xs = f.contours.NOSE_BOTTOM.map(p => p.x);
-              totalNostrilWidth += Math.max(...xs) - Math.min(...xs);
+              const width = Math.max(...xs) - Math.min(...xs);
+              totalNostrilWidth += width;
+              nostrilValues.push(width);
               nostrilFrames++;
             }
 
-            // Cheek Area (average bounding-rect area of left + right cheek contours)
-            if (f.contours && f.contours.LEFT_CHEEK && f.contours.RIGHT_CHEEK &&
+            // Cheek Area
+            if (f.contours?.LEFT_CHEEK && f.contours?.RIGHT_CHEEK &&
                 f.contours.LEFT_CHEEK.length > 0 && f.contours.RIGHT_CHEEK.length > 0) {
               const lxs = f.contours.LEFT_CHEEK.map(p => p.x);
               const lys = f.contours.LEFT_CHEEK.map(p => p.y);
@@ -151,41 +198,62 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
               const rys = f.contours.RIGHT_CHEEK.map(p => p.y);
               const leftArea = (Math.max(...lxs) - Math.min(...lxs)) * (Math.max(...lys) - Math.min(...lys));
               const rightArea = (Math.max(...rxs) - Math.min(...rxs)) * (Math.max(...rys) - Math.min(...rys));
-              totalCheekArea += (leftArea + rightArea) / 2;
+              const area = (leftArea + rightArea) / 2;
+              totalCheekArea += area;
+              cheekValues.push(area);
               cheekFrames++;
             }
 
             // Yaw
             totalYaw += f.yawAngle;
 
-            // Blink detection (count transitions: open→closed→open)
-            const eyesClosed = f.leftEyeOpenProbability < 0.15 && f.rightEyeOpenProbability < 0.15;
-            if (wasEyeClosed && !eyesClosed) {
-              blinkCount++; // Completed a blink
-            }
+            // Blink detection
+            const eyesClosed = (f.leftEyeOpenProbability ?? 1) < 0.15 && (f.rightEyeOpenProbability ?? 1) < 0.15;
+            if (wasEyeClosed && !eyesClosed) blinkCount++;
             wasEyeClosed = eyesClosed;
           });
 
           const calibrationDurationSec = CALIBRATION_DURATION_MS / 1000;
 
+          // Compute standard deviations for adaptive thresholding
+          const stddev = (values: number[], mean: number) => {
+            if (values.length < 2) return 0;
+            return Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length);
+          };
+
+          const neutralMouthAperture = apertureFrames > 0 ? totalMouthAperture / apertureFrames : 0;
+          const neutralInnerBrowDist = browFrames > 0 ? totalInnerBrowDist / browFrames : 0;
+          const neutralNostrilWidth = nostrilFrames > 0 ? totalNostrilWidth / nostrilFrames : 0;
+          const neutralCheekArea = cheekFrames > 0 ? totalCheekArea / cheekFrames : 0;
+
           const baseline: UserBaseline = {
             blinkRatePerSecond: blinkCount / calibrationDurationSec,
-            neutralMouthAperture: apertureFrames > 0 ? totalMouthAperture / apertureFrames : 0,
-            neutralInnerBrowDist: browFrames > 0 ? totalInnerBrowDist / browFrames : 0,
-            neutralNostrilWidth: nostrilFrames > 0 ? totalNostrilWidth / nostrilFrames : 0,
-            neutralCheekArea: cheekFrames > 0 ? totalCheekArea / cheekFrames : 0,
+            neutralMouthAperture,
+            neutralInnerBrowDist,
+            neutralNostrilWidth,
+            neutralCheekArea,
             neutralEulerYaw: totalYaw / buffer.length,
+            // Adaptive noise floors (2-sigma)
+            mouthApertureStddev: stddev(apertureValues, neutralMouthAperture),
+            innerBrowDistStddev: stddev(browValues, neutralInnerBrowDist),
+            nostrilWidthStddev: stddev(nostrilValues, neutralNostrilWidth),
+            cheekAreaStddev: stddev(cheekValues, neutralCheekArea),
           };
 
           console.log("[MirrorWork] Calibration complete:", JSON.stringify(baseline));
 
           analyzerRef.current.setBaseline(baseline);
-          setState((prev) => ({ ...prev, isCalibrating: false, baseline }));
+          setState((prev) => ({
+            ...prev,
+            isCalibrating: false,
+            baseline,
+            calibrationProgress: 1,
+          }));
         }
       }
     } else {
-      // Normal Detection
-      const detectionResult = analyzerRef.current.analyzeFrame(face, timestampMs, isSilent);
+      // ── FIX: Read isSilent from ref to avoid stale closure ──
+      const detectionResult = analyzerRef.current.analyzeFrame(face, timestampMs, isSilentRef.current);
       setState((prev) => ({
         ...prev,
         activeSignals: detectionResult.activeSignals,
@@ -195,7 +263,9 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
         frameSize: { width: frameWidth, height: frameHeight },
       }));
     }
-  }, [state.isCalibrating]);
+  // Stable callback — no closures over state/props (using refs instead)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { detectFaces } = useFaceDetector({
     performanceMode: 'accurate',
@@ -203,12 +273,9 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     contourMode: 'all',
     classificationMode: 'all',
     minFaceSize: 0.1,
-    // autoMode tells the library to handle the front-camera mirror + rotation internally
-    // and return coordinates already mapped to screen space.
     autoMode: true,
     windowWidth: SCREEN_W,
     windowHeight: SCREEN_H,
-    // trackingEnabled is incompatible with contourMode, so it's disabled
     trackingEnabled: false,
   });
 
@@ -218,8 +285,10 @@ export function useFaceDetection(isActive: boolean, isSilent?: (threshold: numbe
     'worklet';
     if (!isActive) return;
 
-    frameCountRef.current += 1;
-    if (frameCountRef.current % FRAME_SAMPLING_INTERVAL !== 0) return;
+    // ── FIX: Frame sampling done on the worklet thread with a local counter
+    // stored in the worklet context, not via a React ref (which is JS-thread only)
+    frameCountRef.current = (frameCountRef.current + 1) % FRAME_SAMPLING_INTERVAL;
+    if (frameCountRef.current !== 0) return;
 
     const faces = detectFaces(frame);
     handleDetectionWorklet(faces, frame.width, frame.height);

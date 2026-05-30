@@ -2,7 +2,12 @@
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "expo-face-landmarker": ["./modules/expo-face-landmarker/src/ExpoFaceLandmarkerModule"],
+      "expo-face-landmarker/*": ["./modules/expo-face-landmarker/src/*"]
+    }
   },
   "extends": "expo/tsconfig.base"
 }
+
