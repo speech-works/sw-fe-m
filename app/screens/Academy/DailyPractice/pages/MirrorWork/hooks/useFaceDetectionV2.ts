@@ -131,10 +131,13 @@ export function useFaceDetectionV2(
     }
   );
 
-  // Android path: raw RGBA bytes → detectFacesFromRgba (async native conversion)
+  // Android path: raw RGBA buffer → detectFacesFromRgba (async native conversion)
+  // Pass the raw ArrayBuffer — Expo Modules converts it to ByteArray natively on the Kotlin side.
+  // Do NOT wrap in Uint8Array: it gets serialized as '[object Object]' by the worklet bridge,
+  // which Kotlin cannot convert, causing '[detectFacesFromRgba] Cannot convert...' errors and ANR.
   const handleAndroidFrameWorklet = Worklets.createRunOnJS(
-    (frameWidth: number, frameHeight: number, rgbaBytes: Uint8Array) => {
-      detectFacesFromRgba(frameWidth, frameHeight, rgbaBytes)
+    (frameWidth: number, frameHeight: number, rgbaBuffer: ArrayBuffer) => {
+      detectFacesFromRgba(frameWidth, frameHeight, rgbaBuffer)
         .then(processDetectionResult)
         .catch((e: Error) =>
           console.warn("[MirrorWork] Android face detection error:", e.message)
@@ -172,9 +175,11 @@ export function useFaceDetectionV2(
       // CPU-read. This is emulator-only — real devices work fine. Skip the frame silently.
       try {
         // @ts-ignore — toArrayBuffer is the Android frame method
+        // Pass the raw ArrayBuffer — do NOT wrap in Uint8Array here.
+        // Uint8Array gets serialized as '[object Object]' by the Worklets bridge,
+        // which Kotlin cannot convert to ByteArray (causes ANR on real devices).
         const buffer = frame.toArrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        handleAndroidFrameWorklet(frame.width, frame.height, bytes);
+        handleAndroidFrameWorklet(frame.width, frame.height, buffer);
       } catch {
         // HardwareBuffer lock failed (Android emulator limitation) — skip frame
       }

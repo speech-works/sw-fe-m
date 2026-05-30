@@ -26,13 +26,18 @@ export function detectFacesSync(base64Jpeg: string): FaceLandmarkerResult | null
  * Android-only frame processor path: VisionCamera exposes frame.toArrayBuffer()
  * which returns RGBA_8888 bytes when pixelFormat="rgb" is set on the Camera.
  * Async because pixel-to-bitmap conversion happens on the native thread.
+ *
+ * IMPORTANT: Pass the raw ArrayBuffer (not a Uint8Array wrapper).
+ * Expo Modules natively converts ArrayBuffer → ByteArray on the Kotlin side.
+ * Wrapping in Uint8Array causes the worklet bridge to serialize it as
+ * '[object Object]', which Kotlin cannot convert (causes ANR on real devices).
  */
 export async function detectFacesFromRgba(
   width: number,
   height: number,
-  rgbaBytes: Uint8Array
+  rgbaBuffer: ArrayBuffer
 ): Promise<FaceLandmarkerResult | null> {
-  return ExpoFaceLandmarkerNative.detectFacesFromRgba(width, height, rgbaBytes);
+  return ExpoFaceLandmarkerNative.detectFacesFromRgba(width, height, rgbaBuffer);
 }
 
 
