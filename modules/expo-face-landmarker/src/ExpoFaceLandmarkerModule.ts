@@ -21,6 +21,21 @@ export function detectFacesSync(base64Jpeg: string): FaceLandmarkerResult | null
   return ExpoFaceLandmarkerNative.detectFacesSync(base64Jpeg);
 }
 
+/**
+ * Detect face landmarks and blendshapes from raw RGBA pixel bytes.
+ * Android-only frame processor path: VisionCamera exposes frame.toArrayBuffer()
+ * which returns RGBA_8888 bytes when pixelFormat="rgb" is set on the Camera.
+ * Async because pixel-to-bitmap conversion happens on the native thread.
+ */
+export async function detectFacesFromRgba(
+  width: number,
+  height: number,
+  rgbaBytes: Uint8Array
+): Promise<FaceLandmarkerResult | null> {
+  return ExpoFaceLandmarkerNative.detectFacesFromRgba(width, height, rgbaBytes);
+}
+
+
 export type { FaceLandmarkerResult, Blendshape, FaceLandmark3D } from './ExpoFaceLandmarker.types';
 export { BLENDSHAPE } from './ExpoFaceLandmarker.types';
 

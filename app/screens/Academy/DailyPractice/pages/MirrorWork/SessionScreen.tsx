@@ -169,7 +169,7 @@ export const SessionScreen: React.FC = () => {
         device={device}
         isActive={isCameraActive}
         frameProcessor={frameProcessor}
-        pixelFormat="yuv"
+        pixelFormat={Platform.OS === 'android' ? 'rgb' : 'yuv'}
       />
 
       {/* Facial SVG mesh overlay (only after calibration) */}

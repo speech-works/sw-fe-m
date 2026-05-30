@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Dimensions } from "react-native";
+import { Dimensions, Platform } from "react-native";
 import { useFrameProcessor } from "react-native-vision-camera";
 import { Worklets } from "react-native-worklets-core";
 import { useSharedValue } from "react-native-reanimated";
-import { detectFacesSync, FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
+import { detectFacesSync, detectFacesFromRgba, FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
 import { MirrorBehaviorAnalyzerV2, UserBaselineV2 } from "../util/mirrorBehaviorAnalyzerV2";
 import { MirrorBehaviorSignal } from "../types";
 
@@ -55,18 +55,14 @@ export function useFaceDetectionV2(
   const noFaceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
-   * Convert a Vision Camera frame to a base64 JPEG string.
-   * This runs on the JS thread after being dispatched from the worklet.
+   * Shared result handler — runs on the JS thread for both iOS and Android.
+   * Contains all calibration and behavior-analysis logic.
    */
-  const handleFrame = useCallback(
-    (base64Jpeg: string, frameWidth: number, frameHeight: number) => {
+  const processDetectionResult = useCallback(
+    (result: FaceLandmarkerResult | null) => {
       const timestampMs = Date.now();
 
-      // Run MediaPipe detection
-      const result = detectFacesSync(base64Jpeg);
-
       if (!result || result.landmarks.length === 0) {
-        // No face
         if (!noFaceTimerRef.current) {
           noFaceTimerRef.current = setTimeout(() => {
             setState((prev) => ({ ...prev, faceInFrame: false }));
@@ -75,7 +71,6 @@ export function useFaceDetectionV2(
         return;
       }
 
-      // Face present
       if (noFaceTimerRef.current) {
         clearTimeout(noFaceTimerRef.current);
         noFaceTimerRef.current = null;
@@ -129,12 +124,29 @@ export function useFaceDetectionV2(
     [] // Stable — all state access via refs
   );
 
-  const handleFrameWorklet = Worklets.createRunOnJS(handleFrame);
+  // iOS path: base64 JPEG → detectFacesSync (synchronous, no async overhead)
+  const handleFrameWorklet = Worklets.createRunOnJS(
+    (base64Jpeg: string) => {
+      processDetectionResult(detectFacesSync(base64Jpeg));
+    }
+  );
+
+  // Android path: raw RGBA bytes → detectFacesFromRgba (async native conversion)
+  const handleAndroidFrameWorklet = Worklets.createRunOnJS(
+    (frameWidth: number, frameHeight: number, rgbaBytes: Uint8Array) => {
+      detectFacesFromRgba(frameWidth, frameHeight, rgbaBytes)
+        .then(processDetectionResult)
+        .catch((e: Error) =>
+          console.warn("[MirrorWork] Android face detection error:", e.message)
+        );
+    }
+  );
 
   // useSharedValue is thread-safe: readable and writable from both JS and worklets.
   const frameCounter = useSharedValue(0);
 
-  // Note: Vision Camera frames are YUV. We capture as JPEG to pass to MediaPipe.
+  // Note: Vision Camera frames are YUV on iOS (toBase64String → JPEG) and
+  // RGBA on Android (toArrayBuffer → raw bytes → detectFacesFromRgba).
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
     if (!isActive) return;
@@ -143,11 +155,24 @@ export function useFaceDetectionV2(
     frameCounter.value = (frameCounter.value + 1) % FRAME_SAMPLING_INTERVAL;
     if (frameCounter.value !== 0) return;
 
-    // Convert frame to base64 JPEG for the native module
+    // toBase64String is iOS-only in VisionCamera 4.7.x.
+    // On Android, fall back to toArrayBuffer() with pixelFormat="rgb".
     // @ts-ignore — toBase64String is a VisionCamera frame method not yet in typedefs
-    const base64 = frame.toBase64String('jpeg', 0.7);
-    handleFrameWorklet(base64, frame.width, frame.height);
-  }, [isActive, handleFrameWorklet, frameCounter]);
+    if (typeof frame.toBase64String === 'function') {
+      // iOS path: native JPEG conversion
+      // @ts-ignore
+      const base64 = frame.toBase64String('jpeg', 0.7);
+      if (!base64) return;
+      handleFrameWorklet(base64);
+
+    } else {
+      // Android path: raw RGBA bytes (requires pixelFormat="rgb" on Camera)
+      // @ts-ignore — toArrayBuffer is the Android frame method
+      const buffer = frame.toArrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      handleAndroidFrameWorklet(frame.width, frame.height, bytes);
+    }
+  }, [isActive, handleFrameWorklet, handleAndroidFrameWorklet, frameCounter]);
 
   useEffect(() => {
     return () => {
