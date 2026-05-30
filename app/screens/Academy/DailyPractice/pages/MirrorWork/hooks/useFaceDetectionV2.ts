@@ -166,11 +166,18 @@ export function useFaceDetectionV2(
       handleFrameWorklet(base64);
 
     } else {
-      // Android path: raw RGBA bytes (requires pixelFormat="rgb" on Camera)
-      // @ts-ignore — toArrayBuffer is the Android frame method
-      const buffer = frame.toArrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      handleAndroidFrameWorklet(frame.width, frame.height, bytes);
+      // Android path: raw RGBA bytes (requires pixelFormat="rgb" on Camera).
+      // On the Android emulator, toArrayBuffer() throws "Failed to lock HardwareBuffer
+      // for reading" because the virtual camera uses GPU-backed buffers that can't be
+      // CPU-read. This is emulator-only — real devices work fine. Skip the frame silently.
+      try {
+        // @ts-ignore — toArrayBuffer is the Android frame method
+        const buffer = frame.toArrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        handleAndroidFrameWorklet(frame.width, frame.height, bytes);
+      } catch {
+        // HardwareBuffer lock failed (Android emulator limitation) — skip frame
+      }
     }
   }, [isActive, handleFrameWorklet, handleAndroidFrameWorklet, frameCounter]);
 
