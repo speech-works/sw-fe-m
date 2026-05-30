@@ -336,12 +336,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    marginTop: 2,
   },
   globalWatermark: {
     position: 'absolute',
@@ -367,7 +366,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
-    marginBottom: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
