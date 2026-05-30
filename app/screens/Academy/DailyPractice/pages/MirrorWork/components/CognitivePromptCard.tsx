@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity } from 'react-native';
 import { MirrorWorkCognitivePrompt } from '../types';
 
 interface CognitivePromptCardProps {
@@ -100,8 +100,18 @@ export const CognitivePromptCard: React.FC<CognitivePromptCardProps> = ({
 
       <Text style={styles.promptText}>{prompt.text}</Text>
 
+      {/* Next button + swipe hint */}
       {totalCount > 1 && (
-        <Text style={styles.swipeHint}>← swipe for next</Text>
+        <View style={styles.nextRow}>
+          <Text style={styles.swipeHint}>← swipe for next</Text>
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={onNext}
+            accessibilityLabel="Next question"
+          >
+            <Text style={styles.nextButtonText}>Next →</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </Animated.View>
   );
@@ -160,8 +170,28 @@ const styles = StyleSheet.create({
   swipeHint: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.25)',
-    marginTop: 10,
-    textAlign: 'right',
+    letterSpacing: 0.2,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  nextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+  },
+  nextButton: {
+    backgroundColor: 'rgba(167, 139, 250, 0.2)',
+    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(167, 139, 250, 0.4)',
+  },
+  nextButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#A78BFA',
     letterSpacing: 0.2,
   },
 });

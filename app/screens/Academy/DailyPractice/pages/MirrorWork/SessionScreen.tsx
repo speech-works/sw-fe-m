@@ -34,6 +34,7 @@ export const SessionScreen: React.FC = () => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [viewSize, setViewSize] = useState<{ width: number; height: number } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [calibrationStarted, setCalibrationStarted] = useState(false);
 
   // Session timer (elapsed seconds)
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -43,7 +44,8 @@ export const SessionScreen: React.FC = () => {
   const { state: detectionState, frameProcessor } = useFaceDetectionV2(
     isCameraActive,
     // When muted, treat as always silent (skip speech gating entirely)
-    isMuted ? () => true : speech.isSilent
+    isMuted ? () => true : speech.isSilent,
+    calibrationStarted,
   );
 
   const session = useMirrorSession({ prompts });
@@ -152,6 +154,12 @@ export const SessionScreen: React.FC = () => {
   }
 
   const isCalibrating = detectionState.isCalibrating;
+  // Whether the user has already tapped "I'm Ready" (calibration phase started or done)
+  const isPreCalibration = !calibrationStarted;
+
+  const handleReadyToCalibrate = useCallback(() => {
+    setCalibrationStarted(true);
+  }, []);
 
   return (
     <View
@@ -169,7 +177,7 @@ export const SessionScreen: React.FC = () => {
         device={device}
         isActive={isCameraActive}
         frameProcessor={frameProcessor}
-        pixelFormat={Platform.OS === 'android' ? 'rgb' : 'yuv'}
+        pixelFormat="yuv"
       />
 
       {/* Facial SVG mesh overlay (only after calibration) */}
@@ -191,7 +199,7 @@ export const SessionScreen: React.FC = () => {
         {/* ── TOP SECTION ── */}
         <View style={styles.topContainer}>
 
-          {/* Out-of-frame / lighting warning */}
+          {/* Out-of-frame / lighting warning — shown in all phases */}
           {(!detectionState.faceInFrame || detectionState.lightingWarning) && (
             <FaceFrameGuard
               faceInFrame={detectionState.faceInFrame}
@@ -199,8 +207,19 @@ export const SessionScreen: React.FC = () => {
             />
           )}
 
-          {/* Calibration overlay — replaces the old tiny badge */}
-          {isCalibrating && detectionState.faceInFrame && (
+          {/* PRE-CALIBRATION: camera is live but user hasn't tapped Ready yet */}
+          {isPreCalibration && detectionState.faceInFrame && (
+            <View style={styles.preCalibCard}>
+              <Text style={styles.preCalibEmoji}>🪞</Text>
+              <Text style={styles.preCalibTitle}>Ready to begin?</Text>
+              <Text style={styles.preCalibBody}>
+                Look straight at the camera with a relaxed expression.{"\n"}We'll spend 15 seconds learning your baseline.
+              </Text>
+            </View>
+          )}
+
+          {/* CALIBRATION: user tapped Ready, progress ring running */}
+          {calibrationStarted && isCalibrating && detectionState.faceInFrame && (
             <CalibrationOverlay
               progress={detectionState.calibrationProgress}
               durationSeconds={CALIBRATION_DURATION_S}
@@ -209,7 +228,7 @@ export const SessionScreen: React.FC = () => {
           )}
 
           {/* Calibration overlay when face leaves frame during calibration */}
-          {isCalibrating && !detectionState.faceInFrame && (
+          {calibrationStarted && isCalibrating && !detectionState.faceInFrame && (
             <CalibrationOverlay
               progress={detectionState.calibrationProgress}
               durationSeconds={CALIBRATION_DURATION_S}
@@ -217,7 +236,7 @@ export const SessionScreen: React.FC = () => {
             />
           )}
 
-          {/* Active session: prompt card */}
+          {/* ACTIVE SESSION: prompt card */}
           {!isCalibrating && detectionState.faceInFrame && session.currentPrompt && (
             <View style={styles.promptWrapper}>
               <CognitivePromptCard
@@ -239,7 +258,30 @@ export const SessionScreen: React.FC = () => {
           />
         )}
 
-        {/* ── BOTTOM SECTION: Controls ── */}
+        {/* ── BOTTOM SECTION ── */}
+        {/* PRE-CALIBRATION: Big "I'm Ready" CTA */}
+        {isPreCalibration && (
+          <View style={styles.readyContainer}>
+            <TouchableOpacity
+              style={[
+                styles.readyButton,
+                !detectionState.faceInFrame && styles.readyButtonDisabled,
+              ]}
+              onPress={handleReadyToCalibrate}
+              disabled={!detectionState.faceInFrame}
+              accessibilityLabel="I'm ready to calibrate"
+            >
+              <Text style={styles.readyButtonText}>
+                {detectionState.faceInFrame ? "I'm Ready" : "Move into frame first"}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.readySubtext}>Keep a neutral expression during calibration</Text>
+          </View>
+        )}
+
+        {/* CALIBRATION: no bottom controls, just let the ring do its thing */}
+
+        {/* ACTIVE SESSION: control bar */}
         {!isCalibrating && (
           <View style={styles.bottomSection}>
             {/* Timer */}
@@ -268,15 +310,6 @@ export const SessionScreen: React.FC = () => {
                 <Text style={styles.controlLabel}>
                   {session.nudgeMode === 'ON' ? 'Notes ON' : 'Notes OFF'}
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={session.nextPrompt}
-                accessibilityLabel="Next question"
-              >
-                <Icon name="chevron-forward" size={24} color="#FFF" />
-                <Text style={styles.controlLabel}>Next Q</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -374,6 +407,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 5,
     fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  // ── Pre-calibration ──
+  preCalibCard: {
+    backgroundColor: 'rgba(15, 15, 20, 0.82)',
+    borderRadius: 28,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  preCalibEmoji: {
+    fontSize: 44,
+    marginBottom: 14,
+  },
+  preCalibTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    letterSpacing: -0.4,
+  },
+  preCalibBody: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  readyContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  readyButton: {
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 20,
+    backgroundColor: '#34D399',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#34D399',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  readyButtonDisabled: {
+    backgroundColor: 'rgba(100,100,120,0.6)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  readyButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#000',
+    letterSpacing: 0.1,
+  },
+  readySubtext: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.35)',
+    marginTop: 10,
     letterSpacing: 0.2,
   },
 });

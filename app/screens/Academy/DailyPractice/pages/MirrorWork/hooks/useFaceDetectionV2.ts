@@ -1,19 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Dimensions, Platform } from "react-native";
-import { useFrameProcessor } from "react-native-vision-camera";
+import { useFrameProcessor, runAtTargetFps } from "react-native-vision-camera";
 import { Worklets } from "react-native-worklets-core";
-import { useSharedValue } from "react-native-reanimated";
-import { detectFacesSync, detectFacesFromRgba, FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
+import { faceLandmarkerPlugin, FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
 import { MirrorBehaviorAnalyzerV2, UserBaselineV2 } from "../util/mirrorBehaviorAnalyzerV2";
 import { MirrorBehaviorSignal } from "../types";
 
-const SCREEN = Dimensions.get('screen');
-const SCREEN_W = SCREEN.width;
-const SCREEN_H = SCREEN.height;
 
 const CALIBRATION_DURATION_MS = 15000;
 const NO_FACE_DEBOUNCE_MS = 3000;
-const FRAME_SAMPLING_INTERVAL = 3;
 
 export interface FaceDetectionStateV2 {
   isCalibrating: boolean;
@@ -29,7 +23,8 @@ export interface FaceDetectionStateV2 {
 
 export function useFaceDetectionV2(
   isActive: boolean,
-  isSilent?: (threshold: number) => boolean
+  isSilent?: (threshold: number) => boolean,
+  calibrationStarted: boolean = false
 ) {
   const [state, setState] = useState<FaceDetectionStateV2>({
     isCalibrating: true,
@@ -46,17 +41,69 @@ export function useFaceDetectionV2(
   // Refs to avoid stale closures inside the worklet-bridged callback
   const isCalibatingRef = useRef(true);
   const isSilentRef = useRef(isSilent);
+  const calibrationStartedRef = useRef(calibrationStarted);
 
   useEffect(() => { isSilentRef.current = isSilent; }, [isSilent]);
   useEffect(() => { isCalibatingRef.current = state.isCalibrating; }, [state.isCalibrating]);
+  useEffect(() => { calibrationStartedRef.current = calibrationStarted; }, [calibrationStarted]);
 
-  const calibrationStartTimeRef = useRef<number | null>(null);
   const calibrationBufferRef = useRef<FaceLandmarkerResult[]>([]);
   const noFaceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const calibrationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const calibrationCompleteRef = useRef(false);
+
+  // ── Wall-clock calibration timer ──────────────────────────────────────────
+  // Drives calibrationProgress independently of face detection results.
+  // This ensures the counter always moves even if detectFacesSync returns null.
+  useEffect(() => {
+    if (!calibrationStarted || !isCalibatingRef.current) return;
+
+    const startMs = Date.now();
+    calibrationCompleteRef.current = false;
+
+    const TICK_MS = 100; // update ~10× per second for smooth ring
+    calibrationTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startMs;
+      const progress = Math.min(elapsed / CALIBRATION_DURATION_MS, 1);
+
+      setState((prev) => ({ ...prev, calibrationProgress: progress }));
+
+      if (elapsed >= CALIBRATION_DURATION_MS && !calibrationCompleteRef.current) {
+        calibrationCompleteRef.current = true;
+        if (calibrationTimerRef.current) {
+          clearInterval(calibrationTimerRef.current);
+          calibrationTimerRef.current = null;
+        }
+
+        // Use whatever frames we collected; if none, build a zero baseline.
+        const buffer = calibrationBufferRef.current;
+        const baseline = buffer.length > 0
+          ? computeBlendshapeBaseline(buffer)
+          : buildZeroBaseline();
+
+        console.log('[MirrorWork v2] Calibration complete (timer). frames collected:', buffer.length);
+        analyzerRef.current.setBaseline(baseline);
+        setState((prev) => ({
+          ...prev,
+          isCalibrating: false,
+          baseline,
+          calibrationProgress: 1,
+        }));
+      }
+    }, TICK_MS);
+
+    return () => {
+      if (calibrationTimerRef.current) {
+        clearInterval(calibrationTimerRef.current);
+        calibrationTimerRef.current = null;
+      }
+    };
+  }, [calibrationStarted]);
 
   /**
    * Shared result handler — runs on the JS thread for both iOS and Android.
-   * Contains all calibration and behavior-analysis logic.
+   * During calibration: just accumulates frames into the buffer.
+   * After calibration: runs behavior analysis.
    */
   const processDetectionResult = useCallback(
     (result: FaceLandmarkerResult | null) => {
@@ -71,6 +118,7 @@ export function useFaceDetectionV2(
         return;
       }
 
+      // Face is back in frame — clear any pending "no face" debounce
       if (noFaceTimerRef.current) {
         clearTimeout(noFaceTimerRef.current);
         noFaceTimerRef.current = null;
@@ -81,34 +129,10 @@ export function useFaceDetectionV2(
       });
 
       if (isCalibatingRef.current) {
-        if (!calibrationStartTimeRef.current) {
-          calibrationStartTimeRef.current = timestampMs;
-        }
-        calibrationBufferRef.current.push(result);
-
-        const elapsed = timestampMs - calibrationStartTimeRef.current;
-        const progress = Math.min(elapsed / CALIBRATION_DURATION_MS, 1);
-
-        setState((prev) => {
-          if (Math.abs(progress - prev.calibrationProgress) > 0.03) {
-            return { ...prev, calibrationProgress: progress };
-          }
-          return prev;
-        });
-
-        if (elapsed >= CALIBRATION_DURATION_MS) {
-          const buffer = calibrationBufferRef.current;
-          if (buffer.length > 0) {
-            const baseline = computeBlendshapeBaseline(buffer);
-            console.log("[MirrorWork v2] Calibration complete:", JSON.stringify(baseline));
-            analyzerRef.current.setBaseline(baseline);
-            setState((prev) => ({
-              ...prev,
-              isCalibrating: false,
-              baseline,
-              calibrationProgress: 1,
-            }));
-          }
+        // Accumulate frames into the buffer for baseline computation.
+        // The timer (above useEffect) handles progress + completion.
+        if (calibrationStartedRef.current && !calibrationCompleteRef.current) {
+          calibrationBufferRef.current.push(result);
         }
       } else {
         const detectionResult = analyzerRef.current.analyzeFrame(result, timestampMs, isSilentRef.current);
@@ -124,71 +148,36 @@ export function useFaceDetectionV2(
     [] // Stable — all state access via refs
   );
 
-  // iOS path: base64 JPEG → detectFacesSync (synchronous, no async overhead)
-  const handleFrameWorklet = Worklets.createRunOnJS(
-    (base64Jpeg: string) => {
-      processDetectionResult(detectFacesSync(base64Jpeg));
+  // Use native FrameProcessorPlugin: frame is processed in Kotlin (YUV→Bitmap→MediaPipe).
+  // No ArrayBuffer bridge serialization — the result is a plain JS object (Map),
+  // which worklets-core handles correctly.
+  const handleDetectionResult = Worklets.createRunOnJS(
+    (result: FaceLandmarkerResult | null) => {
+      processDetectionResult(result);
     }
   );
 
-  // Android path: raw RGBA buffer → detectFacesFromRgba (async native conversion)
-  // Pass the raw ArrayBuffer — Expo Modules converts it to ByteArray natively on the Kotlin side.
-  // Do NOT wrap in Uint8Array: it gets serialized as '[object Object]' by the worklet bridge,
-  // which Kotlin cannot convert, causing '[detectFacesFromRgba] Cannot convert...' errors and ANR.
-  const handleAndroidFrameWorklet = Worklets.createRunOnJS(
-    (frameWidth: number, frameHeight: number, rgbaBuffer: ArrayBuffer) => {
-      detectFacesFromRgba(frameWidth, frameHeight, rgbaBuffer)
-        .then(processDetectionResult)
-        .catch((e: Error) =>
-          console.warn("[MirrorWork] Android face detection error:", e.message)
-        );
-    }
-  );
-
-  // useSharedValue is thread-safe: readable and writable from both JS and worklets.
-  const frameCounter = useSharedValue(0);
-
-  // Note: Vision Camera frames are YUV on iOS (toBase64String → JPEG) and
-  // RGBA on Android (toArrayBuffer → raw bytes → detectFacesFromRgba).
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet';
     if (!isActive) return;
 
-    // Increment counter on the worklet thread — no global hacks needed.
-    frameCounter.value = (frameCounter.value + 1) % FRAME_SAMPLING_INTERVAL;
-    if (frameCounter.value !== 0) return;
-
-    // toBase64String is iOS-only in VisionCamera 4.7.x.
-    // On Android, fall back to toArrayBuffer() with pixelFormat="rgb".
-    // @ts-ignore — toBase64String is a VisionCamera frame method not yet in typedefs
-    if (typeof frame.toBase64String === 'function') {
-      // iOS path: native JPEG conversion
-      // @ts-ignore
-      const base64 = frame.toBase64String('jpeg', 0.7);
-      if (!base64) return;
-      handleFrameWorklet(base64);
-
-    } else {
-      // Android path: raw RGBA bytes (requires pixelFormat="rgb" on Camera).
-      // On the Android emulator, toArrayBuffer() throws "Failed to lock HardwareBuffer
-      // for reading" because the virtual camera uses GPU-backed buffers that can't be
-      // CPU-read. This is emulator-only — real devices work fine. Skip the frame silently.
-      try {
-        // @ts-ignore — toArrayBuffer is the Android frame method
-        // Pass the raw ArrayBuffer — do NOT wrap in Uint8Array here.
-        // Uint8Array gets serialized as '[object Object]' by the Worklets bridge,
-        // which Kotlin cannot convert to ByteArray (causes ANR on real devices).
-        const buffer = frame.toArrayBuffer();
-        handleAndroidFrameWorklet(frame.width, frame.height, buffer);
-      } catch {
-        // HardwareBuffer lock failed (Android emulator limitation) — skip frame
+    runAtTargetFps(5, () => {
+      'worklet';
+      if (!faceLandmarkerPlugin) {
+        // Plugin not registered — this means the native rebuild hasn't happened yet.
+        console.warn('[MirrorWork] faceLandmarkerPlugin not available. Run expo run:android.');
+        return;
       }
-    }
-  }, [isActive, handleFrameWorklet, handleAndroidFrameWorklet, frameCounter]);
+      // @ts-ignore — plugin.call() returns Any? on the native side (a Map)
+      const result = faceLandmarkerPlugin.call(frame) as FaceLandmarkerResult | null;
+      handleDetectionResult(result ?? null);
+    });
+  }, [isActive, handleDetectionResult]);
 
   useEffect(() => {
     return () => {
       if (noFaceTimerRef.current) clearTimeout(noFaceTimerRef.current);
+      if (calibrationTimerRef.current) clearInterval(calibrationTimerRef.current);
     };
   }, []);
 
@@ -242,5 +231,20 @@ function computeBlendshapeBaseline(buffer: FaceLandmarkerResult[]): UserBaseline
     eyeBlink: mk(eyeBlinkVals),
     cheekPuff: mk(cheekPuffVals),
     noseSneer: mk(noseSneerVals),
+  };
+}
+
+/** Fallback: calibration timer expired but no face frames were collected. */
+function buildZeroBaseline(): UserBaselineV2 {
+  const zero = { mean: 0, stddev: 0 };
+  return {
+    jawOpen: zero,
+    mouthPucker: zero,
+    mouthTightener: zero,
+    browDown: zero,
+    browInnerUp: zero,
+    eyeBlink: zero,
+    cheekPuff: zero,
+    noseSneer: zero,
   };
 }

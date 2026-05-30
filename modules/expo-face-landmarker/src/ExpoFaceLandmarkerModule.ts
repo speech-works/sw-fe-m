@@ -1,8 +1,16 @@
 import { requireNativeModule } from 'expo-modules-core';
+import { VisionCameraProxy } from 'react-native-vision-camera';
 import type { FaceLandmarkerResult } from './ExpoFaceLandmarker.types';
 
 // Require the native module
 const ExpoFaceLandmarkerNative = requireNativeModule('ExpoFaceLandmarker');
+
+/**
+ * VisionCamera FrameProcessorPlugin — called directly from a frame processor worklet.
+ * Receives the Frame natively (YUV_420_888 → Bitmap → MediaPipe), no bridge serialization.
+ * Returns FaceLandmarkerResult-shaped object or null if no face detected.
+ */
+export const faceLandmarkerPlugin = VisionCameraProxy.initFrameProcessorPlugin('detectFacesFromFrame', {});
 
 /**
  * Detect face landmarks and blendshapes from a base64-encoded JPEG image.
@@ -20,26 +28,6 @@ export async function detectFaces(base64Jpeg: string): Promise<FaceLandmarkerRes
 export function detectFacesSync(base64Jpeg: string): FaceLandmarkerResult | null {
   return ExpoFaceLandmarkerNative.detectFacesSync(base64Jpeg);
 }
-
-/**
- * Detect face landmarks and blendshapes from raw RGBA pixel bytes.
- * Android-only frame processor path: VisionCamera exposes frame.toArrayBuffer()
- * which returns RGBA_8888 bytes when pixelFormat="rgb" is set on the Camera.
- * Async because pixel-to-bitmap conversion happens on the native thread.
- *
- * IMPORTANT: Pass the raw ArrayBuffer (not a Uint8Array wrapper).
- * Expo Modules natively converts ArrayBuffer → ByteArray on the Kotlin side.
- * Wrapping in Uint8Array causes the worklet bridge to serialize it as
- * '[object Object]', which Kotlin cannot convert (causes ANR on real devices).
- */
-export async function detectFacesFromRgba(
-  width: number,
-  height: number,
-  rgbaBuffer: ArrayBuffer
-): Promise<FaceLandmarkerResult | null> {
-  return ExpoFaceLandmarkerNative.detectFacesFromRgba(width, height, rgbaBuffer);
-}
-
 
 export type { FaceLandmarkerResult, Blendshape, FaceLandmark3D } from './ExpoFaceLandmarker.types';
 export { BLENDSHAPE } from './ExpoFaceLandmarker.types';

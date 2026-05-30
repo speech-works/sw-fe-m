@@ -23,10 +23,15 @@ export const PrepScreen: React.FC = () => {
       "Speak at whatever pace feels right. Silences are fine. There's no timer pushing you forward."
     ],
     cognitivePrompts: [
-      { id: '1', category: 'General', text: 'What is one thing you are looking forward to today?' }
+      { id: '1', category: 'Reflection', text: 'What is one thing you are looking forward to today?' },
+      { id: '2', category: 'Reflection', text: 'If you could talk to your younger self, what would you say?' },
+      { id: '3', category: 'Awareness', text: 'Describe a moment this week when you felt most like yourself.' },
+      { id: '4', category: 'Awareness', text: 'What is something small you are proud of recently?' },
+      { id: '5', category: 'Reflection', text: 'What does a good day look like for you?' },
     ],
     focusAreas: []
   };
+
 
   const handleStart = () => {
     navigation.navigate('MirrorWorkSession', {
