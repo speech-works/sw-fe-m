@@ -75,7 +75,7 @@ public class ExpoFaceLandmarkerFrameProcessorPlugin: FrameProcessorPlugin {
       guard let firstFace = result.faceLandmarks.first else { return nil }
 
       var blendshapes: [[String: Any]] = []
-      if let firstBs = result.faceBlendshapes?.first {
+      if let firstBs = result.faceBlendshapes.first {
         blendshapes = firstBs.categories.map { cat in
           ["name": cat.categoryName ?? "", "score": Double(cat.score)]
         }
@@ -107,9 +107,9 @@ public class ExpoFaceLandmarkerFrameProcessorPlugin: FrameProcessorPlugin {
       // ZYX Euler:  yaw=atan2(-R[2][0], R[0][0])=atan2(-data[2], data[0])
       //             pitch=asin(R[1][0])=asin(data[1])
       //             roll=atan2(-R[1][2], R[1][1])=atan2(-data[9], data[5])
-      if let matrix = result.facialTransformationMatrixes?.first {
-        let d = matrix.data  // [Float] x 16, column-major
-        if d.count >= 16 {
+      if let matrix = result.facialTransformationMatrixes.first {
+        let d = matrix.data  // UnsafeMutablePointer<Float>, column-major
+        if matrix.rows * matrix.columns >= 16 {
           let yawRad   = atan2(-Double(d[2]),  Double(d[0]))
           let pitchRad = asin(max(-1, min(1, Double(d[1]))))
           let rollRad  = atan2(-Double(d[9]),  Double(d[5]))
