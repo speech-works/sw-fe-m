@@ -33,7 +33,7 @@ public class ExpoFaceLandmarkerModule: Module {
     AsyncFunction("detectFaces") { (base64Jpeg: String, promise: Promise) in
       guard let data = Data(base64Encoded: base64Jpeg),
             let uiImage = UIImage(data: data),
-            let cgImage = uiImage.cgImage else {
+            uiImage.cgImage != nil else {
         promise.resolve(nil)
         return
       }

@@ -70,7 +70,7 @@ public class ExpoFaceLandmarkerFrameProcessorPlugin: FrameProcessorPlugin {
       // frame.orientation reflects the raw sensor orientation including front-camera mirroring.
       // We pass it to MPImage so MediaPipe knows the physical orientation of the pixels.
       let mpImage = try MPImage(pixelBuffer: pixelBuffer, orientation: frame.orientation)
-      let result = try landmarker.detectForVideo(image: mpImage, timestampMs: timestampMs)
+      let result = try landmarker.detect(videoFrame: mpImage, timestampInMilliseconds: Int(timestampMs))
 
       guard let firstFace = result.faceLandmarks.first else { return nil }
 
@@ -81,8 +81,11 @@ public class ExpoFaceLandmarkerFrameProcessorPlugin: FrameProcessorPlugin {
         }
       }
 
-      let landmarks: [[String: Double]] = firstFace.map { lm in
-        ["x": Double(lm.x), "y": Double(lm.y), "z": Double(lm.z)]
+      let landmarks: [[String: Double]] = firstFace.map { lm -> [String: Double] in
+        let x = Double(lm.x)
+        let y = Double(lm.y)
+        let z = Double(lm.z)
+        return ["x": x, "y": y, "z": z]
       }
 
       var output: [String: Any] = [
