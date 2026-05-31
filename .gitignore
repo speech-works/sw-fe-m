@@ -79,8 +79,14 @@ yarn-error.*
 
 # @end expo-cli
 
-android/
-ios/
+# Prebuild-generated native projects (root only — anchored with a leading slash
+# so these do NOT also match local Expo modules' native source under modules/*/).
+/android/
+/ios/
+
+# Local Expo modules: ignore only their build artifacts, keep the native source.
+modules/*/android/build/
+modules/*/ios/build/
 
 # .expo-shared
 # Expo
