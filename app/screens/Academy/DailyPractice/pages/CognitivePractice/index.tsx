@@ -82,6 +82,7 @@ const CognitivePractice = () => {
       onPress: () => navigation.navigate("MirrorWorkPrep", { practiceData: {} }),
       icon: <SparkleMirrorFace size={80} />,
       colors: ["#60A5FA", "#2563EB"] as const, // Blue
+      badge: "SECONDARY BEHAVIORS",
     },
   ];
 
