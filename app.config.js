@@ -48,6 +48,8 @@ module.exports = {
           "This app needs microphone access to record your voice.",
         NSCameraUsageDescription:
           "This app needs camera access to record videos.",
+        NSMotionUsageDescription:
+          "This app uses motion data to tell your head movements apart from phone movement during awareness exercises.",
         CFBundleURLTypes: [
           {
             CFBundleURLSchemes: ["speechworks"],

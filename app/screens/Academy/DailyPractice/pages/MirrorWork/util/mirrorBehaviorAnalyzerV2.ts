@@ -1,5 +1,24 @@
 import { FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
+import type { FaceLandmark3D } from "expo-face-landmarker/ExpoFaceLandmarker.types";
 import { MirrorBehaviorSignal } from "../types";
+
+/** One blendshape channel's live state — surfaced to the Dev HUD for tuning. */
+export interface ChannelDebug {
+  key: string;
+  raw: number;       // raw value this frame
+  ema: number;       // smoothed value used for detection
+  threshold: number; // current T(sig) — the enter cutoff
+  firing: boolean;   // whether the owning signal is active
+  /** Display scale max for the HUD bar (defaults to MAX_SCALE). Geometric ratios use their own scale. */
+  scaleMax?: number;
+}
+
+export interface DetectionDebug {
+  channels: ChannelDebug[];
+  headPose?: { yaw: number; pitch: number; roll: number };
+  /** Device angular speed (deg/s) from the IMU, for ego-motion tuning. */
+  deviceAngularSpeed?: number;
+}
 
 export interface DetectionResult {
   newSignals: MirrorBehaviorSignal[];
@@ -7,6 +26,8 @@ export interface DetectionResult {
   faceInFrame: boolean;
   lightingWarning: boolean;
   signalTiers: Partial<Record<MirrorBehaviorSignal, 'A' | 'B' | 'C'>>;
+  /** Only populated when debug is enabled (Dev HUD). */
+  debug?: DetectionDebug;
 }
 
 export interface BlendshapeStat {
@@ -25,6 +46,10 @@ export interface UserBaselineV2 {
   cheekPuff: BlendshapeStat;
   noseSneer: BlendshapeStat;
   baselineBlinkRatePerMin: number;
+  // ── Geometric lip baselines (landmark-derived, facial-hair robust) ──
+  mouthWidthGeo: BlendshapeStat;    // resting dist(61,291)/faceScale
+  lipThicknessGeo: BlendshapeStat;  // resting (dist(0,13)+dist(17,14))/faceScale
+  mouthOpenGeo: BlendshapeStat;     // resting dist(13,14)/faceScale
 }
 
 // ── Per-signal absolute minimum threshold floors (spec §2) ──────────────────
@@ -63,10 +88,54 @@ const JAW_FREEZE_VARIANCE = 0.002;
 const JAW_HISTORY_FRAMES = 9;
 
 // K-sigma above baseline to set the adaptive threshold.
-const K_SIGMA = 3;
+// Lowered from 3 → 2.5 for more sensitivity (the reported failure mode was
+// missed detections, not false positives). Robust calibration (median/MAD)
+// keeps stddev tight so this stays safe.
+const K_SIGMA = 2.5;
+
+// Cap how far calibration noise can push a threshold above its absolute floor.
+// A noisy region (e.g. lips under a moustache) inflates mean+K·stddev; without
+// a ceiling the bar climbs so high that genuine expressions never cross it.
+// T can never exceed FLOOR × this multiplier.
+const THRESHOLD_CEILING_MULT = 1.4;
 
 // Hysteresis: signal stays active until value drops below HYST_RATIO * threshold.
 const HYST_RATIO = 0.8;
+
+// ── Geometric lip detection (Fix 1) ──────────────────────────────────────────
+// Facial hair kills the lip blendshapes (mouthPucker/mouthPress read ~0), but
+// the landmark positions still track. These rules detect purse/press from lip
+// GEOMETRY, normalized by inter-ocular distance (invariant to camera distance).
+// All are "drop below a fraction of resting baseline" — tune on-device via HUD.
+//
+// Pursing pulls the mouth corners in → mouthWidthRatio drops. Fire when current
+// width < baseline.mean × (1 − PURSE_FRAC).
+const PURSE_FRAC = 0.12;            // 12% narrowing
+// Pressing rolls the lips inward → lipThicknessRatio thins below baseline.
+const PRESS_THIN_FRAC = 0.15;       // 15% thinning
+// JAW_TENSION geo gate: mouth must be ~closed (open ratio still near resting).
+const MOUTH_CLOSED_FRAC = 1.5;      // open ≤ 1.5× resting open = still basically closed
+// Skip the geo channel if the calibration baseline was too noisy to trust
+// (face never stabilized) — relative stddev guard.
+const GEO_REL_STDDEV_GUARD = 0.10;
+// Hysteresis for "drop below" geo channels — widen the stay band so a held
+// purse/press doesn't flicker. stay cutoff = baseline × (1 − FRAC × GEO_HYST_RATIO).
+const GEO_HYST_RATIO = 0.6;
+
+// ── HEAD_JERKING robustness + ego-motion gating (Fix 2) ─────────────────────
+// Two false-fire sources: (a) the phone moving (ego-motion) and (b) single-frame
+// MediaPipe pose jitter, which is large at low fps (a 30° jitter ÷ 0.16s = 187°/s).
+// Fixes: EMA-smooth the pose first, then require a real angular DISPLACEMENT
+// (anti-jitter) AND high residual velocity AND a steady phone, with a long debounce.
+const HEAD_JERK_THRESHOLD = 70;           // residual angular velocity on SMOOTHED pose (deg/s)
+const HEAD_JERK_MIN_DISPLACEMENT = 12;    // min smoothed pose change in one frame (deg) — anti-jitter
+const HEAD_JERK_DEBOUNCE_MS = 2500;       // min gap between jerk detections
+// If the device itself rotates faster than this, treat the window as ego-motion
+// and suppress. Hand tremor < ~30 deg/s; deliberate phone moves 50–200+.
+const DEVICE_MOTION_GATE = 40;            // deg/s
+// Residual = apparentHeadVel − GAIN × deviceVel. Lower toward 0.5 if real head
+// snaps get over-suppressed.
+const DEVICE_MOTION_SUBTRACT_GAIN = 1.0;
 
 // Tier labels — emergent from combined w_detection × w_clinical but surfaced for UI.
 // Tier A: combined weight ≥ 0.70; Tier B: 0.40–0.69; Tier C: head-pose derived.
@@ -116,8 +185,52 @@ function variance(arr: number[]): number {
   return arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length;
 }
 
+// ── Geometric lip features (Fix 1) ───────────────────────────────────────────
+// MediaPipe 478-mesh landmark indices.
+const LM = {
+  mouthCornerR: 61, mouthCornerL: 291,
+  outerTop: 0, outerBottom: 17,
+  innerTop: 13, innerBottom: 14,
+  eyeOuterR: 33, eyeOuterL: 263,
+} as const;
+
+function dist2D(a: FaceLandmark3D, b: FaceLandmark3D): number {
+  const dx = a.x - b.x, dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export interface LipGeometry {
+  mouthWidthRatio: number;
+  mouthOpenRatio: number;
+  lipThicknessRatio: number;
+}
+
+/**
+ * Lip-shape features from landmark positions, normalized by inter-ocular
+ * distance (dist(33,263)). Eyes don't move when the mouth does, so this is
+ * invariant to both mouth movement and camera distance. Robust to facial hair
+ * because it reads landmark POSITIONS, not lip texture. Returns null if the
+ * landmark array is too short or the face is degenerate.
+ */
+export function computeLipGeometry(lm?: FaceLandmark3D[]): LipGeometry | null {
+  if (!lm || lm.length < 468) return null;
+  const faceScale = dist2D(lm[LM.eyeOuterR], lm[LM.eyeOuterL]);
+  if (faceScale < 1e-4) return null;
+  const mouthWidth   = dist2D(lm[LM.mouthCornerR], lm[LM.mouthCornerL]);
+  const mouthOpen    = dist2D(lm[LM.innerTop], lm[LM.innerBottom]);
+  const lipThickness = dist2D(lm[LM.outerTop], lm[LM.innerTop])
+                     + dist2D(lm[LM.outerBottom], lm[LM.innerBottom]);
+  return {
+    mouthWidthRatio:   mouthWidth   / faceScale,
+    mouthOpenRatio:    mouthOpen    / faceScale,
+    lipThicknessRatio: lipThickness / faceScale,
+  };
+}
+
 export class MirrorBehaviorAnalyzerV2 {
   private baseline: UserBaselineV2 | null = null;
+  private debugEnabled = false;
+  private deviceAngularSpeed = 0; // deg/s from the IMU (ego-motion)
 
   // ── EMA state ──
   private ema: Partial<Record<string, number>> = {};
@@ -152,6 +265,15 @@ export class MirrorBehaviorAnalyzerV2 {
   // ── Head pose hold state (for GAZE_AVERSION) ──
   private headPoseAboveThresholdMs: number | null = null;
 
+  public setDebugEnabled(enabled: boolean) {
+    this.debugEnabled = enabled;
+  }
+
+  /** Latest device angular speed (deg/s) from the IMU, for ego-motion cancellation. */
+  public setDeviceAngularSpeed(degPerSec: number) {
+    this.deviceAngularSpeed = degPerSec;
+  }
+
   public setBaseline(baseline: UserBaselineV2) {
     this.baseline = baseline;
     // Seed EMAs with baseline means
@@ -164,6 +286,10 @@ export class MirrorBehaviorAnalyzerV2 {
     this.ema['cheekPuff']    = baseline.cheekPuff.mean;
     this.ema['noseSneer']    = baseline.noseSneer.mean;
     this.ema['jawOpen']      = baseline.jawOpen.mean;
+    // Geometric lip baselines
+    this.ema['mouthWidthGeo']   = baseline.mouthWidthGeo.mean;
+    this.ema['lipThicknessGeo'] = baseline.lipThicknessGeo.mean;
+    this.ema['mouthOpenGeo']    = baseline.mouthOpenGeo.mean;
   }
 
   private emaUpdate(key: string, raw: number): number {
@@ -174,13 +300,18 @@ export class MirrorBehaviorAnalyzerV2 {
   }
 
   /**
-   * T(sig) = max( FLOOR[blendshape], baseline.mean + K·baseline.stddev )
+   * T(sig) = clamp( baseline.mean + K·baseline.stddev,  FLOOR,  FLOOR × CEILING )
    * Entry condition:  value > T
    * Exit condition:   value < T * HYST_RATIO
+   *
+   * The ceiling is the key fix for noisy regions: a high calibration stddev
+   * (facial hair, occlusion) can no longer raise the bar beyond FLOOR×1.4.
    */
   private threshold(stat: BlendshapeStat, blendshapeKey: string): number {
     const floor = FLOOR[blendshapeKey] ?? 0;
-    return Math.max(floor, stat.mean + K_SIGMA * stat.stddev);
+    const adaptive = stat.mean + K_SIGMA * stat.stddev;
+    if (floor <= 0) return adaptive; // no floor defined → no ceiling
+    return Math.min(Math.max(floor, adaptive), floor * THRESHOLD_CEILING_MULT);
   }
 
   /**
@@ -245,40 +376,80 @@ export class MirrorBehaviorAnalyzerV2 {
     // isSpeaking = NOT silent (inverted from old "silenceGate")
     const isSpeaking = isSilent ? !isSilent(800) : false;
 
+    // ── Raw blendshape values (captured for the Dev HUD) ────────────────────
+    const rawMouthPucker  = bs(result, BLENDSHAPE.MOUTH_PUCKER);
+    const rawMouthPress   = avgBs(result, BLENDSHAPE.MOUTH_PRESS_LEFT, BLENDSHAPE.MOUTH_PRESS_RIGHT);
+    const rawMouthClose   = bs(result, BLENDSHAPE.MOUTH_CLOSE);
+    const rawMouthStretch = avgBs(result, BLENDSHAPE.MOUTH_STRETCH_LEFT, BLENDSHAPE.MOUTH_STRETCH_RIGHT);
+    const rawBrowDown     = avgBs(result, BLENDSHAPE.BROW_DOWN_LEFT, BLENDSHAPE.BROW_DOWN_RIGHT);
+    const rawEyeBlink     = avgBs(result, BLENDSHAPE.EYE_BLINK_LEFT, BLENDSHAPE.EYE_BLINK_RIGHT);
+    const rawCheekPuff    = bs(result, BLENDSHAPE.CHEEK_PUFF);
+    const rawNoseSneer    = avgBs(result, BLENDSHAPE.NOSE_SNEER_LEFT, BLENDSHAPE.NOSE_SNEER_RIGHT);
+    const rawJawOpen      = bs(result, BLENDSHAPE.JAW_OPEN);
+    const rawMouthFunnel  = bs(result, BLENDSHAPE.MOUTH_FUNNEL);
+
     // ── EMA-smoothed blendshape values ──────────────────────────────────────
-    const mouthPucker  = this.emaUpdate('mouthPucker',  bs(result, BLENDSHAPE.MOUTH_PUCKER));
-    const mouthPress   = this.emaUpdate('mouthPress',   avgBs(result, BLENDSHAPE.MOUTH_PRESS_LEFT, BLENDSHAPE.MOUTH_PRESS_RIGHT));
-    const mouthClose   = this.emaUpdate('mouthClose',   bs(result, BLENDSHAPE.MOUTH_CLOSE));
-    const mouthStretch = this.emaUpdate('mouthStretch', avgBs(result, BLENDSHAPE.MOUTH_STRETCH_LEFT, BLENDSHAPE.MOUTH_STRETCH_RIGHT));
-    const browDown     = this.emaUpdate('browDown',     avgBs(result, BLENDSHAPE.BROW_DOWN_LEFT, BLENDSHAPE.BROW_DOWN_RIGHT));
-    const eyeBlink     = this.emaUpdate('eyeBlink',     avgBs(result, BLENDSHAPE.EYE_BLINK_LEFT, BLENDSHAPE.EYE_BLINK_RIGHT));
-    const cheekPuff    = this.emaUpdate('cheekPuff',    bs(result, BLENDSHAPE.CHEEK_PUFF));
-    const noseSneer    = this.emaUpdate('noseSneer',    avgBs(result, BLENDSHAPE.NOSE_SNEER_LEFT, BLENDSHAPE.NOSE_SNEER_RIGHT));
-    const jawOpen      = this.emaUpdate('jawOpen',      bs(result, BLENDSHAPE.JAW_OPEN));
-    const mouthFunnel  = this.emaUpdate('mouthFunnel',  bs(result, BLENDSHAPE.MOUTH_FUNNEL));
+    const mouthPucker  = this.emaUpdate('mouthPucker',  rawMouthPucker);
+    const mouthPress   = this.emaUpdate('mouthPress',   rawMouthPress);
+    const mouthClose   = this.emaUpdate('mouthClose',   rawMouthClose);
+    const mouthStretch = this.emaUpdate('mouthStretch', rawMouthStretch);
+    const browDown     = this.emaUpdate('browDown',     rawBrowDown);
+    const eyeBlink     = this.emaUpdate('eyeBlink',     rawEyeBlink);
+    const cheekPuff    = this.emaUpdate('cheekPuff',    rawCheekPuff);
+    const noseSneer    = this.emaUpdate('noseSneer',    rawNoseSneer);
+    const jawOpen      = this.emaUpdate('jawOpen',      rawJawOpen);
+    const mouthFunnel  = this.emaUpdate('mouthFunnel',  rawMouthFunnel);
+
+    // ── Geometric lip features (landmark-derived, facial-hair robust) ───────
+    const geo = computeLipGeometry(result.landmarks);
+    const geoAvailable = geo !== null;
+    let mouthWidthRatio = NaN, lipThicknessRatio = NaN, mouthOpenRatio = NaN;
+    if (geo) {
+      mouthWidthRatio   = this.emaUpdate('mouthWidthGeo',   geo.mouthWidthRatio);
+      lipThicknessRatio = this.emaUpdate('lipThicknessGeo', geo.lipThicknessRatio);
+      mouthOpenRatio    = this.emaUpdate('mouthOpenGeo',    geo.mouthOpenRatio);
+    }
 
     // jaw open history for stillness guard (OPEN_MOUTH_HOLD)
     this.jawOpenHistory.push(jawOpen);
     if (this.jawOpenHistory.length > JAW_HISTORY_FRAMES) this.jawOpenHistory.shift();
 
-    // ── 1. LIP_PURSING — AU18 (+AU22) ────────────────────────────────────────
-    // mouthPucker > T OR mouthFunnel > T, held ≥ 400ms
+    // ── 1. LIP_PURSING — AU18 (+AU22): blendshape OR geometric narrowing ─────
     {
       const T = this.threshold(this.baseline.mouthPucker, 'mouthPucker');
-      const Tf = this.threshold(this.baseline.mouthPucker, 'mouthPucker'); // same floor for funnel
-      const enter = mouthPucker > T || mouthFunnel > Tf;
-      const stay  = mouthPucker > T * HYST_RATIO || mouthFunnel > Tf * HYST_RATIO;
+      const Tf = T; // funnel shares the floor
+      const bsEnter = mouthPucker > T || mouthFunnel > Tf;
+      const bsStay  = mouthPucker > T * HYST_RATIO || mouthFunnel > Tf * HYST_RATIO;
+
+      // Geometric channel: mouth width drops below baseline × (1 − PURSE_FRAC).
+      const w = this.baseline.mouthWidthGeo;
+      const geoUsable = geoAvailable && w.mean > 0 && (w.stddev / w.mean) < GEO_REL_STDDEV_GUARD;
+      const geoEnter = geoUsable && mouthWidthRatio < w.mean * (1 - PURSE_FRAC);
+      const geoStay  = geoUsable && mouthWidthRatio < w.mean * (1 - PURSE_FRAC * GEO_HYST_RATIO);
+
+      const enter = bsEnter || geoEnter;
+      const stay  = bsStay  || geoStay;
       this.updateSignal('LIP_PURSING', enter ? true : (this.states['LIP_PURSING'].hysteresisActive && stay),
         timestampMs, isSpeaking, active, newSigs, MirrorBehaviorSignal.LIP_PURSING);
     }
 
-    // ── 2. JAW_TENSION — AU24+AU17 (clench proxy) ────────────────────────────
-    // mouthPress > T AND mouthClose > T AND jawOpen < 0.15
+    // ── 2. JAW_TENSION — AU24+AU17: blendshape OR geometric lip-press+closed ──
     {
       const Tp = this.threshold(this.baseline.mouthPress, 'mouthPress');
       const Tc = this.threshold(this.baseline.mouthClose, 'mouthClose');
-      const enter = mouthPress > Tp && mouthClose > Tc && jawOpen < 0.15;
-      const stay  = mouthPress > Tp * HYST_RATIO && mouthClose > Tc * HYST_RATIO && jawOpen < 0.20;
+      const bsEnter = mouthPress > Tp && mouthClose > Tc && jawOpen < 0.15;
+      const bsStay  = mouthPress > Tp * HYST_RATIO && mouthClose > Tc * HYST_RATIO && jawOpen < 0.20;
+
+      // Geometric channel: lips thin (pressing) AND mouth basically closed.
+      const th = this.baseline.lipThicknessGeo;
+      const op = this.baseline.mouthOpenGeo;
+      const geoUsable = geoAvailable && th.mean > 0 && (th.stddev / th.mean) < GEO_REL_STDDEV_GUARD;
+      const closedT = op.mean * MOUTH_CLOSED_FRAC;
+      const geoEnter = geoUsable && lipThicknessRatio < th.mean * (1 - PRESS_THIN_FRAC) && mouthOpenRatio < closedT;
+      const geoStay  = geoUsable && lipThicknessRatio < th.mean * (1 - PRESS_THIN_FRAC * GEO_HYST_RATIO) && mouthOpenRatio < closedT;
+
+      const enter = bsEnter || geoEnter;
+      const stay  = bsStay  || geoStay;
       this.updateSignal('JAW_TENSION', enter ? true : (this.states['JAW_TENSION'].hysteresisActive && stay),
         timestampMs, isSpeaking, active, newSigs, MirrorBehaviorSignal.JAW_TENSION);
     }
@@ -366,30 +537,44 @@ export class MirrorBehaviorAnalyzerV2 {
 
     // ── 9. GAZE_AVERSION — head yaw > 20° sustained 2.5s ─────────────────────
     const headPose = result.headPose;
+    const deviceMoving = this.deviceAngularSpeed > DEVICE_MOTION_GATE;
     if (headPose) {
       const yawAbs = Math.abs(headPose.yaw);
-      const gazeEnter = yawAbs > 20;
+      // Don't START the 2.5s timer while the phone is actively moving (ego-motion),
+      // but once an aversion is held, device motion doesn't reset it.
+      const gazeEnter = yawAbs > 20 && !deviceMoving;
       const gazeStay  = yawAbs > 16;  // hysteresis
       this.updateSignal('GAZE_AVERSION', gazeEnter ? true : (this.states['GAZE_AVERSION'].hysteresisActive && gazeStay),
         timestampMs, false, active, newSigs, MirrorBehaviorSignal.GAZE_AVERSION);
 
-      // ── 10. HEAD_JERKING — angular velocity spike ─────────────────────────
+      // ── 10. HEAD_JERKING — jitter-robust, ego-motion compensated ───────────
+      // EMA-smooth the pose first: single-frame MediaPipe pose jitter (large at
+      // low fps) is the dominant false-fire source, not real movement.
+      const sYaw   = this.emaUpdate('headYaw',   headPose.yaw);
+      const sPitch = this.emaUpdate('headPitch', headPose.pitch);
       if (this.lastYaw !== null && this.lastPitch !== null && this.lastHeadPoseMs !== null) {
         const dt = (timestampMs - this.lastHeadPoseMs) / 1000;
         if (dt > 0 && dt < 0.5) {
-          const dyaw   = Math.abs(headPose.yaw   - this.lastYaw);
-          const dpitch = Math.abs(headPose.pitch - this.lastPitch);
-          const angVel = Math.sqrt(dyaw * dyaw + dpitch * dpitch) / dt;
-          // >180 deg/s = rapid jerk; debounce 1s
-          if (angVel > 180 && timestampMs - this.lastHeadJerkMs > 1000) {
+          const dyaw   = sYaw   - this.lastYaw;
+          const dpitch = sPitch - this.lastPitch;
+          const displacement = Math.sqrt(dyaw * dyaw + dpitch * dpitch); // degrees of smoothed change
+          const apparent = displacement / dt;                           // deg/s
+          // Subtract device ego-motion, then require a real displacement (not just
+          // a velocity spike from a tiny dt), high residual velocity, a steady
+          // phone, and a long debounce.
+          const residual = Math.max(0, apparent - DEVICE_MOTION_SUBTRACT_GAIN * this.deviceAngularSpeed);
+          if (!deviceMoving &&
+              displacement > HEAD_JERK_MIN_DISPLACEMENT &&
+              residual > HEAD_JERK_THRESHOLD &&
+              timestampMs - this.lastHeadJerkMs > HEAD_JERK_DEBOUNCE_MS) {
             active.push(MirrorBehaviorSignal.HEAD_JERKING);
             newSigs.push(MirrorBehaviorSignal.HEAD_JERKING);
             this.lastHeadJerkMs = timestampMs;
           }
         }
       }
-      this.lastYaw = headPose.yaw;
-      this.lastPitch = headPose.pitch;
+      this.lastYaw = sYaw;     // store SMOOTHED pose for next-frame delta
+      this.lastPitch = sPitch;
       this.lastHeadPoseMs = timestampMs;
     }
 
@@ -411,12 +596,41 @@ export class MirrorBehaviorAnalyzerV2 {
 
     const lightingWarning = result.blendshapes.length < 10;
 
+    // ── Dev HUD snapshot (only when enabled) ────────────────────────────────
+    let debug: DetectionDebug | undefined;
+    if (this.debugEnabled) {
+      const has = (s: MirrorBehaviorSignal) => active.includes(s);
+      debug = {
+        channels: [
+          { key: 'mouthPucker',  raw: rawMouthPucker,  ema: mouthPucker,  threshold: this.threshold(this.baseline.mouthPucker, 'mouthPucker'),  firing: has(MirrorBehaviorSignal.LIP_PURSING) },
+          { key: 'mouthFunnel',  raw: rawMouthFunnel,  ema: mouthFunnel,  threshold: this.threshold(this.baseline.mouthPucker, 'mouthPucker'),  firing: has(MirrorBehaviorSignal.LIP_PURSING) },
+          { key: 'mouthPress',   raw: rawMouthPress,   ema: mouthPress,   threshold: this.threshold(this.baseline.mouthPress, 'mouthPress'),     firing: has(MirrorBehaviorSignal.JAW_TENSION) },
+          { key: 'mouthClose',   raw: rawMouthClose,   ema: mouthClose,   threshold: this.threshold(this.baseline.mouthClose, 'mouthClose'),     firing: has(MirrorBehaviorSignal.JAW_TENSION) },
+          { key: 'browDown',     raw: rawBrowDown,     ema: browDown,     threshold: this.threshold(this.baseline.browDown, 'browDown'),         firing: has(MirrorBehaviorSignal.BROW_TENSION) },
+          { key: 'jawOpen',      raw: rawJawOpen,      ema: jawOpen,      threshold: this.threshold(this.baseline.jawOpen, 'jawOpen'),           firing: has(MirrorBehaviorSignal.OPEN_MOUTH_HOLD) },
+          { key: 'mouthStretch', raw: rawMouthStretch, ema: mouthStretch, threshold: this.threshold(this.baseline.mouthStretch, 'mouthStretch'), firing: has(MirrorBehaviorSignal.FACIAL_GRIMACING) },
+          { key: 'eyeBlink',     raw: rawEyeBlink,     ema: eyeBlink,     threshold: this.threshold(this.baseline.eyeBlink, 'eyeBlink'),         firing: has(MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE) },
+          { key: 'cheekPuff',    raw: rawCheekPuff,    ema: cheekPuff,    threshold: this.threshold(this.baseline.cheekPuff, 'cheekPuff'),       firing: has(MirrorBehaviorSignal.CHEEK_PUFFING) },
+          { key: 'noseSneer',    raw: rawNoseSneer,    ema: noseSneer,    threshold: this.threshold(this.baseline.noseSneer, 'noseSneer'),       firing: has(MirrorBehaviorSignal.NOSTRIL_FLARE) },
+          // ── Geometric lip channels (own display scale; fire on DROP below marker) ──
+          ...(geoAvailable ? [
+            { key: 'mouthWidthGeo', raw: geo!.mouthWidthRatio,   ema: mouthWidthRatio,   threshold: this.baseline.mouthWidthGeo.mean * (1 - PURSE_FRAC),       firing: has(MirrorBehaviorSignal.LIP_PURSING), scaleMax: 1.5 },
+            { key: 'lipThickGeo',   raw: geo!.lipThicknessRatio, ema: lipThicknessRatio, threshold: this.baseline.lipThicknessGeo.mean * (1 - PRESS_THIN_FRAC), firing: has(MirrorBehaviorSignal.JAW_TENSION),  scaleMax: 0.4 },
+            { key: 'mouthOpenGeo',  raw: geo!.mouthOpenRatio,    ema: mouthOpenRatio,    threshold: this.baseline.mouthOpenGeo.mean * MOUTH_CLOSED_FRAC,       firing: has(MirrorBehaviorSignal.JAW_TENSION),  scaleMax: 0.4 },
+          ] : []),
+        ],
+        headPose: result.headPose,
+        deviceAngularSpeed: this.deviceAngularSpeed,
+      };
+    }
+
     return {
       newSignals: newSigs,
       activeSignals: active,
       faceInFrame: true,
       lightingWarning,
       signalTiers,
+      debug,
     };
   }
 }

@@ -18,6 +18,7 @@ import { FacialOutlines } from './components/FacialOutlines';
 import { FaceGuide } from './components/FaceGuide';
 import { CognitivePromptCard } from './components/CognitivePromptCard';
 import { CalibrationOverlay } from './components/CalibrationOverlay';
+import { DetectionHUD } from './components/DetectionHUD';
 import { MirrorWorkCognitivePrompt } from './types';
 
 const CALIBRATION_DURATION_S = 15;
@@ -38,6 +39,8 @@ export const SessionScreen: React.FC = () => {
   const [viewSize, setViewSize] = useState<{ width: number; height: number } | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [calibrationStarted, setCalibrationStarted] = useState(false);
+  // Dev-only detection HUD (live blendshape values vs thresholds).
+  const [showHUD, setShowHUD] = useState(false);
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,6 +50,7 @@ export const SessionScreen: React.FC = () => {
     isCameraActive,
     isMuted ? () => true : speech.isSilent,
     calibrationStarted,
+    showHUD,
   );
 
   const session = useMirrorSession({ prompts });
@@ -245,6 +249,20 @@ export const SessionScreen: React.FC = () => {
 
       {!detectionState.faceInFrame && (
         <View style={styles.dimmingOverlay} />
+      )}
+
+      {/* ── Dev-only detection HUD + toggle ── */}
+      {__DEV__ && (
+        <TouchableOpacity
+          style={[styles.hudToggle, showHUD && styles.hudToggleActive]}
+          onPress={() => setShowHUD((v) => !v)}
+          accessibilityLabel="Toggle detection HUD"
+        >
+          <Icon name="bug" size={16} color={showHUD ? '#22D3EE' : 'rgba(255,255,255,0.6)'} />
+        </TouchableOpacity>
+      )}
+      {__DEV__ && showHUD && !isCalibrating && (
+        <DetectionHUD debug={detectionState.debug} />
       )}
 
       <SafeAreaView style={styles.safeArea}>
@@ -449,6 +467,23 @@ const styles = StyleSheet.create({
     right: 0,
     height: 220,
     backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  hudToggle: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 56 : 40,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 201,
+  },
+  hudToggleActive: {
+    backgroundColor: 'rgba(34, 211, 238, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.5)',
   },
   bottomGradient: {
     position: 'absolute',

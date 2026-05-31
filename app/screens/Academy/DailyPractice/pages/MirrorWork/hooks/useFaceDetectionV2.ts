@@ -2,8 +2,24 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useFrameProcessor, runAtTargetFps } from "react-native-vision-camera";
 import { Worklets } from "react-native-worklets-core";
 import { faceLandmarkerPlugin, FaceLandmarkerResult, BLENDSHAPE } from "expo-face-landmarker";
-import { MirrorBehaviorAnalyzerV2, UserBaselineV2 } from "../util/mirrorBehaviorAnalyzerV2";
+import { MirrorBehaviorAnalyzerV2, UserBaselineV2, ChannelDebug, computeLipGeometry } from "../util/mirrorBehaviorAnalyzerV2";
 import { MirrorBehaviorSignal } from "../types";
+
+// ── Crash-safe DeviceMotion loader ───────────────────────────────────────────
+// expo-sensors' barrel (`expo-sensors`) does `import * as Pedometer`, and every
+// sensor's native wrapper calls requireNativeModule(...) which THROWS at import
+// if the native module isn't in the build. A static import therefore crashes the
+// whole screen at startup on any build that predates `expo install expo-sensors`.
+// We load DeviceMotion lazily via a deep path (bypasses Pedometer) inside a
+// try/catch, so a missing native module degrades head-jerk to camera-only
+// instead of crashing. Becomes fully functional after a native rebuild.
+let DeviceMotion: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  DeviceMotion = require("expo-sensors/build/DeviceMotion").default;
+} catch {
+  DeviceMotion = null;
+}
 
 const CALIBRATION_DURATION_MS = 15000;
 const NO_FACE_DEBOUNCE_MS = 3000;
@@ -29,12 +45,21 @@ export interface FaceDetectionStateV2 {
   detectionUnavailable: boolean;
   /** True when calibration completed but collected too few face frames to be reliable. */
   needsRecalibration: boolean;
+  /** Live tuning data — only populated when debugEnabled. */
+  debug?: {
+    channels: ChannelDebug[];
+    headPose?: { yaw: number; pitch: number; roll: number };
+    deviceAngularSpeed?: number;
+    fps: number;
+    framesAnalyzed: number;
+  };
 }
 
 export function useFaceDetectionV2(
   isActive: boolean,
   isSilent?: (threshold: number) => boolean,
-  calibrationStarted: boolean = false
+  calibrationStarted: boolean = false,
+  debugEnabled: boolean = false
 ) {
   const [state, setState] = useState<FaceDetectionStateV2>({
     isCalibrating: true,
@@ -55,15 +80,27 @@ export function useFaceDetectionV2(
   const isSilentRef      = useRef(isSilent);
   const calibrationStartedRef = useRef(calibrationStarted);
   const pluginCheckedRef = useRef(false);
+  const debugEnabledRef  = useRef(debugEnabled);
 
   useEffect(() => { isSilentRef.current = isSilent; }, [isSilent]);
   useEffect(() => { isCalibatingRef.current = state.isCalibrating; }, [state.isCalibrating]);
   useEffect(() => { calibrationStartedRef.current = calibrationStarted; }, [calibrationStarted]);
+  useEffect(() => {
+    debugEnabledRef.current = debugEnabled;
+    analyzerRef.current.setDebugEnabled(debugEnabled);
+  }, [debugEnabled]);
 
   const calibrationBufferRef  = useRef<FaceLandmarkerResult[]>([]);
   const noFaceTimerRef        = useRef<NodeJS.Timeout | null>(null);
   const calibrationTimerRef   = useRef<NodeJS.Timeout | null>(null);
   const calibrationCompleteRef = useRef(false);
+
+  // ── fps + frame-count tracking for the Dev HUD ──
+  const frameTimesRef     = useRef<number[]>([]);
+  const framesAnalyzedRef = useRef(0);
+
+  // ── Device angular speed (deg/s) from the IMU for head-jerk ego-motion cancellation ──
+  const deviceAngularSpeedRef = useRef(0);
 
   // ── Detect if plugin is unavailable (iOS missing native frame processor) ──
   useEffect(() => {
@@ -73,6 +110,33 @@ export function useFaceDetectionV2(
         setState((prev) => ({ ...prev, detectionUnavailable: true }));
       }
     }
+  }, [isActive]);
+
+  // ── IMU listener: track device angular speed for head-jerk ego-motion cancellation ──
+  useEffect(() => {
+    if (!isActive || !DeviceMotion) return; // null when the native module isn't in this build
+    let sub: { remove: () => void } | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const available = await DeviceMotion.isAvailableAsync();
+        if (!available || cancelled) return;
+        DeviceMotion.setUpdateInterval(60); // ~16fps, fresh between 12fps frames
+        sub = DeviceMotion.addListener((d: { rotationRate?: { alpha: number; beta: number; gamma: number } }) => {
+          const r = d.rotationRate; // {alpha,beta,gamma} deg/s; undefined on gyro-less devices
+          if (!r) return;
+          deviceAngularSpeedRef.current =
+            Math.sqrt(r.alpha * r.alpha + r.beta * r.beta + r.gamma * r.gamma);
+        });
+      } catch {
+        // Sensor unavailable — head-jerk falls back to camera-only behavior.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      sub?.remove();
+      deviceAngularSpeedRef.current = 0;
+    };
   }, [isActive]);
 
   // ── Wall-clock calibration timer ─────────────────────────────────────────
@@ -167,7 +231,18 @@ export function useFaceDetectionV2(
           imageSize: imageSize ?? prev.imageSize,
         }));
       } else {
+        analyzerRef.current.setDeviceAngularSpeed(deviceAngularSpeedRef.current);
         const detectionResult = analyzerRef.current.analyzeFrame(result, timestampMs, isSilentRef.current);
+
+        // ── fps tracking (rolling window of last 30 analyzed frames) ──
+        framesAnalyzedRef.current += 1;
+        const times = frameTimesRef.current;
+        times.push(timestampMs);
+        if (times.length > 30) times.shift();
+        const fps = times.length > 1
+          ? (times.length - 1) / ((times[times.length - 1] - times[0]) / 1000)
+          : 0;
+
         setState((prev) => ({
           ...prev,
           activeSignals: detectionResult.activeSignals,
@@ -176,6 +251,15 @@ export function useFaceDetectionV2(
           signalTiers: detectionResult.signalTiers,
           latestLandmarks: result.landmarks,
           imageSize: imageSize ?? prev.imageSize,
+          debug: debugEnabledRef.current && detectionResult.debug
+            ? {
+                channels: detectionResult.debug.channels,
+                headPose: detectionResult.debug.headPose,
+                deviceAngularSpeed: detectionResult.debug.deviceAngularSpeed,
+                fps: Math.round(fps * 10) / 10,
+                framesAnalyzed: framesAnalyzedRef.current,
+              }
+            : prev.debug,
         }));
       }
     },
@@ -230,18 +314,27 @@ function getScore(result: FaceLandmarkerResult, name: string): number {
   return result.blendshapes.find((b) => b.name === name)?.score ?? 0;
 }
 
-function avg(vals: number[]): number {
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
+function median(vals: number[]): number {
+  if (vals.length === 0) return 0;
+  const s = [...vals].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-function stddev(vals: number[], mean: number): number {
-  if (vals.length < 2) return 0;
-  return Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
-}
-
-function stat(vals: number[]): { mean: number; stddev: number } {
-  const m = avg(vals);
-  return { mean: m, stddev: stddev(vals, m) };
+/**
+ * Robust baseline stat: median (location) + scaled MAD (spread).
+ *
+ * Plain mean/stddev are wrecked by a handful of noisy calibration frames —
+ * exactly what facial hair / occlusion produce in the lip region. Median and
+ * MAD ignore outliers, so a few bad frames can't inflate the threshold and
+ * silence a whole signal. The 1.4826 factor makes MAD a consistent estimator
+ * of stddev for normally-distributed data, so downstream K·stddev math is unchanged.
+ */
+function robustStat(vals: number[]): { mean: number; stddev: number } {
+  if (vals.length === 0) return { mean: 0, stddev: 0 };
+  const med = median(vals);
+  const mad = median(vals.map((v) => Math.abs(v - med)));
+  return { mean: med, stddev: 1.4826 * mad };
 }
 
 function computeBlendshapeBaseline(buffer: FaceLandmarkerResult[]): UserBaselineV2 {
@@ -250,9 +343,8 @@ function computeBlendshapeBaseline(buffer: FaceLandmarkerResult[]): UserBaseline
     buffer.map((r) => names.reduce((s, n) => s + getScore(r, n), 0) / names.length);
 
   const blinkVals = collectAvg(BLENDSHAPE.EYE_BLINK_LEFT, BLENDSHAPE.EYE_BLINK_RIGHT);
-  const blinkMean = avg(blinkVals);
-  const blinkStd  = stddev(blinkVals, blinkMean);
-  const blinkThresh = Math.max(0.2, blinkMean + 2 * blinkStd);
+  const blink = robustStat(blinkVals);
+  const blinkThresh = Math.max(0.2, blink.mean + 2 * blink.stddev);
 
   // Count blink edge transitions (below→above threshold) for baseline blink rate
   let blinkCount = 0;
@@ -264,16 +356,27 @@ function computeBlendshapeBaseline(buffer: FaceLandmarkerResult[]): UserBaseline
   }
   const baselineBlinkRatePerMin = (blinkCount / CALIBRATION_DURATION_MS) * 60000;
 
+  // ── Geometric lip baselines (landmark-derived; facial-hair robust) ──
+  const geoFrames = buffer
+    .map((r) => computeLipGeometry(r.landmarks))
+    .filter((g): g is NonNullable<typeof g> => g !== null);
+  const mouthWidthGeo   = robustStat(geoFrames.map((g) => g.mouthWidthRatio));
+  const lipThicknessGeo = robustStat(geoFrames.map((g) => g.lipThicknessRatio));
+  const mouthOpenGeo    = robustStat(geoFrames.map((g) => g.mouthOpenRatio));
+
   return {
-    jawOpen:     stat(collect(BLENDSHAPE.JAW_OPEN)),
-    mouthPucker: stat(collect(BLENDSHAPE.MOUTH_PUCKER)),
-    mouthPress:  stat(collectAvg(BLENDSHAPE.MOUTH_PRESS_LEFT, BLENDSHAPE.MOUTH_PRESS_RIGHT)),
-    mouthClose:  stat(collect(BLENDSHAPE.MOUTH_CLOSE)),
-    mouthStretch:stat(collectAvg(BLENDSHAPE.MOUTH_STRETCH_LEFT, BLENDSHAPE.MOUTH_STRETCH_RIGHT)),
-    browDown:    stat(collectAvg(BLENDSHAPE.BROW_DOWN_LEFT, BLENDSHAPE.BROW_DOWN_RIGHT)),
-    eyeBlink:    { mean: blinkMean, stddev: blinkStd },
-    cheekPuff:   stat(collect(BLENDSHAPE.CHEEK_PUFF)),
-    noseSneer:   stat(collectAvg(BLENDSHAPE.NOSE_SNEER_LEFT, BLENDSHAPE.NOSE_SNEER_RIGHT)),
+    jawOpen:     robustStat(collect(BLENDSHAPE.JAW_OPEN)),
+    mouthPucker: robustStat(collect(BLENDSHAPE.MOUTH_PUCKER)),
+    mouthPress:  robustStat(collectAvg(BLENDSHAPE.MOUTH_PRESS_LEFT, BLENDSHAPE.MOUTH_PRESS_RIGHT)),
+    mouthClose:  robustStat(collect(BLENDSHAPE.MOUTH_CLOSE)),
+    mouthStretch:robustStat(collectAvg(BLENDSHAPE.MOUTH_STRETCH_LEFT, BLENDSHAPE.MOUTH_STRETCH_RIGHT)),
+    browDown:    robustStat(collectAvg(BLENDSHAPE.BROW_DOWN_LEFT, BLENDSHAPE.BROW_DOWN_RIGHT)),
+    eyeBlink:    blink,
+    cheekPuff:   robustStat(collect(BLENDSHAPE.CHEEK_PUFF)),
+    noseSneer:   robustStat(collectAvg(BLENDSHAPE.NOSE_SNEER_LEFT, BLENDSHAPE.NOSE_SNEER_RIGHT)),
     baselineBlinkRatePerMin,
+    mouthWidthGeo,
+    lipThicknessGeo,
+    mouthOpenGeo,
   };
 }

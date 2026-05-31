@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
-import Svg, { Ellipse, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Ellipse, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 
 import type { FaceLandmark3D } from 'expo-face-landmarker/ExpoFaceLandmarker.types';
@@ -37,6 +37,7 @@ const CLOSE_SIZE_MAX = 1.55;
 const STATE_DWELL_MS = 280;
 
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
+const AnimatedLine = Animated.createAnimatedComponent(Line);
 
 type Alignment = 'ok' | 'close' | 'far' | 'no-face';
 
@@ -187,6 +188,22 @@ export const FaceGuide: React.FC<FaceGuideProps> = ({
 
   const hintText = hintOverride ?? getHint(result);
 
+  // ── Sci-fi scan line sweeping vertically across the oval ──
+  const scan = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(scan, { toValue: 1, duration: 2400, useNativeDriver: false })
+    ).start();
+  }, []);
+  const scanY = scan.interpolate({
+    inputRange: [0, 1],
+    outputRange: [ovalCy - ovalRy * 0.92, ovalCy + ovalRy * 0.92],
+  });
+  const scanOpacity = scan.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 0.6, 0.6, 0],
+  });
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width="100%" height="100%">
@@ -194,6 +211,11 @@ export const FaceGuide: React.FC<FaceGuideProps> = ({
           <LinearGradient id="guideGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <Stop offset="0%" stopColor={colors.from} stopOpacity="1" />
             <Stop offset="100%" stopColor={colors.to} stopOpacity="1" />
+          </LinearGradient>
+          <LinearGradient id="scanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <Stop offset="0%" stopColor={colors.from} stopOpacity="0" />
+            <Stop offset="50%" stopColor={colors.from} stopOpacity="1" />
+            <Stop offset="100%" stopColor={colors.from} stopOpacity="0" />
           </LinearGradient>
         </Defs>
 
@@ -210,6 +232,18 @@ export const FaceGuide: React.FC<FaceGuideProps> = ({
             fill="none"
           />
         )}
+
+        {/* Sci-fi scan sweep across the face */}
+        <AnimatedLine
+          x1={ovalCx - ovalRx * 0.82}
+          x2={ovalCx + ovalRx * 0.82}
+          y1={scanY as any}
+          y2={scanY as any}
+          stroke="url(#scanGrad)"
+          strokeWidth={2}
+          strokeOpacity={scanOpacity as any}
+          strokeLinecap="round"
+        />
 
         {/* Main oval guide */}
         <AnimatedEllipse
