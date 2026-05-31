@@ -14,12 +14,24 @@ export interface FaceLandmark3D {
   z: number;
 }
 
+/** Head pose angles in degrees derived from the 4×4 facial transformation matrix. */
+export interface HeadPose {
+  yaw: number;   // left/right turn — positive = turned right
+  pitch: number; // up/down tilt — positive = tilted down
+  roll: number;  // head tilt left/right — positive = tilted right
+}
+
 /** The full detection result returned for one frame. */
 export interface FaceLandmarkerResult {
   /** 52 blendshape coefficients. */
   blendshapes: Blendshape[];
   /** 478 3D facial landmarks (normalized 0-1 screen coords). */
   landmarks: FaceLandmark3D[];
+  /** Head pose from facial transformation matrix (VIDEO mode). */
+  headPose?: HeadPose;
+  /** Image dimensions post-rotation (for overlay cover-crop calculation). */
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 // ── Named blendshape keys (MediaPipe canonical names) ──
@@ -32,6 +44,7 @@ export const BLENDSHAPE = {
   JAW_RIGHT: 'jawRight',
   // Lips
   MOUTH_PUCKER: 'mouthPucker',
+  MOUTH_FUNNEL: 'mouthFunnel',
   MOUTH_TIGHTENER_LEFT: 'mouthTightenerLeft',
   MOUTH_TIGHTENER_RIGHT: 'mouthTightenerRight',
   MOUTH_PRESS_LEFT: 'mouthPressLeft',

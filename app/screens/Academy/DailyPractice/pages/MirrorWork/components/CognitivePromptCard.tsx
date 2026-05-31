@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, PanResponder, TouchableOpacity, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { MirrorWorkCognitivePrompt } from '../types';
 
 interface CognitivePromptCardProps {
@@ -9,189 +11,215 @@ interface CognitivePromptCardProps {
   onNext?: () => void;
 }
 
+const SWIPE_THRESHOLD = 70;
+
 export const CognitivePromptCard: React.FC<CognitivePromptCardProps> = ({
   prompt,
   currentIndex,
   totalCount,
   onNext,
 }) => {
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
+  // translateX follows the finger during a horizontal swipe.
+  const translateX = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
   const prevIndexRef = useRef(currentIndex);
 
-  // Slide in when prompt changes
+  // ── Slide-in when prompt index changes ──
   useEffect(() => {
     if (prevIndexRef.current !== currentIndex) {
-      // Start off-screen to the right
-      slideAnim.setValue(50);
-      opacityAnim.setValue(0);
-
+      translateX.setValue(60);
+      opacity.setValue(0);
       Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          friction: 8,
-          tension: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.spring(translateX, { toValue: 0, friction: 9, tension: 110, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
-
       prevIndexRef.current = currentIndex;
     }
   }, [currentIndex]);
 
-  // Entry animation on first mount
+  // ── Entry animation ──
   useEffect(() => {
-    opacityAnim.setValue(0);
-    slideAnim.setValue(20);
-    Animated.parallel([
-      Animated.timing(opacityAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, friction: 8, tension: 100, useNativeDriver: true }),
-    ]).start();
+    translateX.setValue(0);
+    opacity.setValue(0);
+    Animated.timing(opacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
   }, []);
 
-  // Swipe-left to advance prompt
+  // ── Horizontal swipe with live drag feedback ──
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -40 && onNext) {
-          // Swipe left → next prompt
+      // Don't grab on simple taps so the buttons still work
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
+      onPanResponderMove: (_, g) => {
+        // Drag follows finger; resistance on rightward drags (since we only advance forward)
+        const dx = g.dx > 0 ? g.dx * 0.4 : g.dx;
+        translateX.setValue(dx);
+        opacity.setValue(1 - Math.min(Math.abs(g.dx) / 200, 0.4));
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -SWIPE_THRESHOLD && onNext) {
+          // Commit: fly off-screen then advance
           Animated.parallel([
-            Animated.timing(slideAnim, { toValue: -40, duration: 150, useNativeDriver: true }),
-            Animated.timing(opacityAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+            Animated.timing(translateX, { toValue: -400, duration: 180, useNativeDriver: true }),
+            Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
           ]).start(() => onNext());
+        } else {
+          // Snap back
+          Animated.parallel([
+            Animated.spring(translateX, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }),
+            Animated.spring(opacity, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true }),
+          ]).start();
         }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateX, { toValue: 0, friction: 7, tension: 80, useNativeDriver: true }).start();
+        Animated.spring(opacity, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true }).start();
       },
     })
   ).current;
 
   return (
     <Animated.View
-      style={[
-        styles.card,
-        {
-          opacity: opacityAnim,
-          transform: [{ translateX: slideAnim }],
-        },
-      ]}
+      style={[styles.wrapper, { opacity, transform: [{ translateX }] }]}
       {...panResponder.panHandlers}
     >
-      {/* Counter pill */}
-      <View style={styles.counterRow}>
-        <View style={styles.counterPill}>
-          {Array.from({ length: totalCount }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                i === currentIndex ? styles.dotActive : styles.dotInactive,
-              ]}
-            />
-          ))}
+      <BlurView intensity={Platform.OS === 'ios' ? 60 : 90} tint="dark" style={styles.blurCard}>
+        {/* Decorative watermark icon (clipped by border-radius) */}
+        <View style={styles.watermark} pointerEvents="none">
+          <Icon name="chatbubble-ellipses" size={130} color="#A78BFA" />
         </View>
-        <Text style={styles.counterText}>{currentIndex + 1} of {totalCount}</Text>
-      </View>
 
-      <Text style={styles.promptText}>{prompt.text}</Text>
+        <View style={styles.cardInner}>
+          {/* Header — progress dots + category */}
+          <View style={styles.header}>
+            <View style={styles.dotsRow}>
+              {Array.from({ length: totalCount }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[styles.dot, i === currentIndex && styles.dotActive]}
+                />
+              ))}
+            </View>
+            {prompt.category ? (
+              <Text style={styles.categoryText}>{prompt.category}</Text>
+            ) : (
+              <Text style={styles.categoryText}>{currentIndex + 1} / {totalCount}</Text>
+            )}
+          </View>
 
-      {/* Next button + swipe hint */}
-      {totalCount > 1 && (
-        <View style={styles.nextRow}>
-          <Text style={styles.swipeHint}>← swipe for next</Text>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={onNext}
-            accessibilityLabel="Next question"
-          >
-            <Text style={styles.nextButtonText}>Next →</Text>
-          </TouchableOpacity>
+          {/* Prompt */}
+          <Text style={styles.promptText}>{prompt.text}</Text>
+
+          {/* Footer — swipe hint + next button */}
+          {totalCount > 1 && (
+            <View style={styles.footer}>
+              <Text style={styles.swipeHint}>swipe to skip</Text>
+              <TouchableOpacity
+                style={styles.nextButton}
+                onPress={onNext}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Next prompt"
+              >
+                <Text style={styles.nextButtonText}>Next</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-      )}
+      </BlurView>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(18, 18, 22, 0.88)',
-    borderRadius: 22,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+  wrapper: {
+    marginHorizontal: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: Platform.OS === 'android' ? 0 : 6,
   },
-  counterRow: {
+  blurCard: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(15, 15, 22, 0.78)' : 'rgba(15, 15, 22, 0.34)',
+  },
+  watermark: {
+    position: 'absolute',
+    right: -22,
+    bottom: -32,
+    opacity: 0.11,
+    transform: [{ rotate: '-14deg' }],
+    zIndex: 0,
+  },
+  cardInner: {
+    paddingVertical: 22,
+    paddingHorizontal: 22,
+    zIndex: 1,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  counterPill: {
+  dotsRow: {
     flexDirection: 'row',
     gap: 5,
   },
   dot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
-  },
-  dotActive: {
-    backgroundColor: '#A78BFA',
-    width: 16,
-  },
-  dotInactive: {
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
-  counterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 0.3,
+  dotActive: {
+    width: 18,
+    backgroundColor: '#FFFFFF',
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   promptText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 19,
+    fontWeight: '600',
     color: '#FFFFFF',
-    textAlign: 'left',
-    lineHeight: 24,
+    lineHeight: 27,
+    letterSpacing: -0.3,
   },
-  swipeHint: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.25)',
-    letterSpacing: 0.2,
-    alignSelf: 'flex-start',
-    marginTop: 2,
-  },
-  nextRow: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 14,
+    marginTop: 18,
+  },
+  swipeHint: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.40)',
+    letterSpacing: 0.3,
+    fontWeight: '500',
   },
   nextButton: {
-    backgroundColor: 'rgba(167, 139, 250, 0.2)',
-    borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 24,
+    paddingVertical: 9,
+    paddingHorizontal: 22,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.4)',
+    borderColor: 'rgba(255,255,255,0.20)',
   },
   nextButtonText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#A78BFA',
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 });

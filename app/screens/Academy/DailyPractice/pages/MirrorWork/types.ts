@@ -54,4 +54,8 @@ export interface MirrorWorkCompletionPayload {
   promptsAttempted: number;
   nudgeMode: "ON" | "OFF";
   sessionDurationSeconds: number;
+  /** Per-signal mean confidence values from the detection session. */
+  signalConfidence?: Partial<Record<MirrorBehaviorSignal, number>>;
+  /** Version of the w_detection × w_clinical weight table used to compute overallEaseScore. */
+  weightTableVersion?: string;
 }

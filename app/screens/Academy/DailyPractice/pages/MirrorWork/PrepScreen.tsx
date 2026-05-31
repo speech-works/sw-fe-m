@@ -115,6 +115,48 @@ export const PrepScreen: React.FC = () => {
             ))}
           </View>
         </View>
+
+        {/* ── Confidence legend (spec §5.4) ── */}
+        <View style={styles.legendSection}>
+          <Text style={styles.sectionHeader}>How notes work</Text>
+          <Text style={styles.legendIntro}>
+            When we notice something, a gentle note appears on screen. Different colors tell you how sure we are:
+          </Text>
+
+          <View style={styles.legendRow}>
+            <View style={[styles.legendSwatch, styles.legendSwatchHigh]} />
+            <View style={styles.legendTextGroup}>
+              <Text style={styles.legendLabel}>Firm observation</Text>
+              <Text style={styles.legendDesc}>
+                High-confidence cues like lip pressing or jaw tension. We're quite sure we saw it.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.legendRow}>
+            <View style={[styles.legendSwatch, styles.legendSwatchSoft]} />
+            <View style={styles.legendTextGroup}>
+              <Text style={styles.legendLabel}>Soft observation</Text>
+              <Text style={styles.legendDesc}>
+                Subtler cues — brow tension, cheek puffing. We'll phrase these gently because they're harder to detect precisely.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.legendRow}>
+            <View style={[styles.legendSwatch, styles.legendSwatchHead]} />
+            <View style={styles.legendTextGroup}>
+              <Text style={styles.legendLabel}>Head movement</Text>
+              <Text style={styles.legendDesc}>
+                Gaze shifts and head movements. These are informational — they don't affect your overall score.
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.legendFootnote}>
+            None of this is a diagnosis. It's just a mirror with a memory.
+          </Text>
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
@@ -269,6 +311,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#374151', // Gray 700
     lineHeight: 24,
+  },
+  // ── Confidence legend ──
+  legendSection: {
+    marginBottom: 16,
+  },
+  legendIntro: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 15,
+    color: '#4B5563',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  legendSwatch: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    marginTop: 2,
+    marginRight: 14,
+    borderWidth: 2,
+  },
+  legendSwatchHigh: {
+    backgroundColor: 'rgba(255, 122, 51, 0.25)',
+    borderColor: 'rgba(255, 122, 51, 0.80)',
+  },
+  legendSwatchSoft: {
+    backgroundColor: 'rgba(230, 180, 80, 0.15)',
+    borderColor: 'rgba(230, 180, 80, 0.60)',
+    borderStyle: 'dashed',
+  },
+  legendSwatchHead: {
+    backgroundColor: 'rgba(147, 112, 219, 0.20)',
+    borderColor: 'rgba(147, 112, 219, 0.70)',
+  },
+  legendTextGroup: {
+    flex: 1,
+  },
+  legendLabel: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 2,
+  },
+  legendDesc: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  legendFootnote: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+    marginTop: 8,
+    textAlign: 'center',
   },
   footer: {
     padding: 24,

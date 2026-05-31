@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface FaceFrameGuardProps {
   faceInFrame: boolean;
@@ -7,47 +9,82 @@ interface FaceFrameGuardProps {
 }
 
 export const FaceFrameGuard: React.FC<FaceFrameGuardProps> = ({ faceInFrame, lightingWarning }) => {
-  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const slideAnim = useRef(new Animated.Value(-80)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   const showBanner = !faceInFrame || lightingWarning;
 
   useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: showBanner ? 20 : -100, // Slide down if out of frame or poor lighting
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  }, [showBanner, slideAnim]);
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: showBanner ? 12 : -80,
+        useNativeDriver: true,
+        friction: 9,
+        tension: 80,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: showBanner ? 1 : 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [showBanner]);
 
+  const iconName = !faceInFrame ? 'person-outline' : 'sunny-outline';
   const message = !faceInFrame
-    ? "We can't see your face — try moving back into the frame."
-    : "The lighting isn't ideal for accurate detection. Try moving to a brighter spot.";
+    ? "Move into the frame"
+    : "Try better lighting";
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ translateY: slideAnim }] }]}>
-      <Text style={styles.text}>{message}</Text>
+    <Animated.View
+      style={[
+        styles.wrapper,
+        { opacity: opacityAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+      pointerEvents="none"
+    >
+      <BlurView intensity={Platform.OS === 'ios' ? 60 : 90} tint="dark" style={styles.blurPill}>
+        <View style={styles.row}>
+          <Icon name={iconName} size={16} color="#FCD34D" style={styles.icon} />
+          <Text style={styles.text}>{message}</Text>
+        </View>
+      </BlurView>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     position: 'absolute',
-    top: 40,
+    top: 0,
     alignSelf: 'center',
-    backgroundColor: 'rgba(80, 80, 80, 0.95)', // Soft gray background, not warning red
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 999,
+    overflow: 'hidden',
     zIndex: 90,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: Platform.OS === 'android' ? 0 : 3,
+  },
+  blurPill: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(20, 20, 26, 0.82)' : 'rgba(20, 20, 26, 0.40)',
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 8,
   },
   text: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 13.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
