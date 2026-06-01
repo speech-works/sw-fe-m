@@ -105,7 +105,7 @@ const Settings = () => {
       iconColor: "#7C3AED",
       bgColor: "#F5F3FF",
       text: "Progress Report",
-      desc: "Check your fluency stats and trends",
+      desc: "Check your speaking progress and trends",
       onClick: () => {
         navigation.navigate("ProgressDetail");
       },
