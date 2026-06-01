@@ -24,6 +24,7 @@ import {
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
+import { useToolUsageStore } from "../../../../../../stores/toolUsage";
 import { useUIStore } from "../../../../../../stores/ui";
 import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
@@ -284,12 +285,18 @@ export const useStoryPractice = () => {
       return;
     }
 
+    const { getToolsUsed, clearActivity } = useToolUsageStore.getState();
+    const toolsUsed = getToolsUsed(activityId);
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
       userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
+      toolsUsed,
     });
+
+    clearActivity(activityId);
 
     // Track activity completion
     track(ANALYTICS_EVENTS.ACTIVITY_COMPLETED, {

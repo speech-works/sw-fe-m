@@ -38,6 +38,9 @@ import {
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 import { useQuotePractice } from "./useQuotePractice";
+import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
+import ToolConsentModal from "../../../../../../components/ToolConsentModal";
+import ToolNudge from "../../../../../../components/ToolNudge";
 
 const { width } = Dimensions.get("window");
 
@@ -82,6 +85,24 @@ const QuotePractice = () => {
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // Over-reliance guardrails: consent gate, usage tracking, activity-start nudge.
+  const {
+    consentTool,
+    requireConsent,
+    acknowledgeConsent,
+    toolNudge,
+    nudgeVisible,
+    handleNudgeTryWithout,
+    handleNudgeDismiss,
+    focusMode,
+    toolsExpanded,
+    setToolsExpanded,
+  } = useToolGuardrails(currentActivityId, {
+    [ToolType.DAF]: dafState.isDAFActive,
+    [ToolType.METRONOME]: metronomeState.isPlaying,
+    [ToolType.CHORUS]: vhIsPlaying,
+  });
 
   // --- Rendering Helpers ---
 
@@ -202,18 +223,35 @@ const QuotePractice = () => {
     }
   };
 
-  const handleToolSelect = (toolName: string) => {
-    if (isToolActive(toolName)) {
-      stopTool(toolName);
-      return;
-    }
-
+  const proceedToolSelect = (toolName: string) => {
     if (selectedPracticeTool && selectedPracticeTool !== toolName) {
       stopTool(selectedPracticeTool);
     }
 
     actions.setSelectedPracticeTool(toolName);
     actions.setActiveToolSheet(toolName);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    if (!requireConsent(toolName)) return;
+
+    proceedToolSelect(toolName);
+  };
+
+  const runStart = async () => {
+    actions.setIsStarting(true);
+    try {
+      await actions.markActivityStart();
+    } catch (error) {
+      console.error("[QuotePractice] ❌ Error in markActivityStart:", error);
+    } finally {
+      actions.setIsStarting(false);
+    }
   };
 
   // --- Main Render ---
@@ -288,7 +326,16 @@ const QuotePractice = () => {
             </Text>
           </View>
 
-          <HardModeToggle 
+          {nudgeVisible && toolNudge && (
+            <ToolNudge
+              directive={toolNudge}
+              onTryWithout={() => handleNudgeTryWithout(runStart)}
+              onDismiss={handleNudgeDismiss}
+              style={{ marginBottom: 32 }}
+            />
+          )}
+
+          <HardModeToggle
             value={hardMode}
             onValueChange={actions.setHardMode}
             canUseHardMode={canUseHardMode}
@@ -324,19 +371,7 @@ const QuotePractice = () => {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={async () => {
-              actions.setIsStarting(true);
-              try {
-                await actions.markActivityStart();
-              } catch (error) {
-                console.error(
-                  "[QuotePractice] ❌ Error in markActivityStart:",
-                  error,
-                );
-              } finally {
-                actions.setIsStarting(false);
-              }
-            }}
+            onPress={() => runStart()}
             disabled={isStarting || !hasHydrated || isLoading}
             style={styles.startButton}
           >
@@ -521,7 +556,34 @@ const QuotePractice = () => {
           onDiscard={() => {
             actions.setVoiceRecordingUri(null);
           }}
-          renderTools={() => (
+          renderTools={() =>
+            focusMode && !toolsExpanded ? (
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(148,163,184,0.12)",
+                }}
+                onPress={() => {
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut,
+                  );
+                  setToolsExpanded(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Icon name="sliders-h" size={14} color="#94A3B8" />
+                <Text
+                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
+                >
+                  Tools
+                </Text>
+              </TouchableOpacity>
+            ) : (
             <View style={styles.dockTools}>
               {[
                 { id: ToolType.DAF, icon: "headphones", label: "DAF" },
@@ -564,7 +626,8 @@ const QuotePractice = () => {
                 );
               })}
             </View>
-          )}
+            )
+          }
         />
       </View>
 
@@ -591,6 +654,12 @@ const QuotePractice = () => {
           {renderToolSheetContent()}
         </ScrollView>
       </BottomSheetModal>
+
+      <ToolConsentModal
+        visible={consentTool !== null}
+        tool={consentTool}
+        onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+      />
     </ScreenView>
   );
 };

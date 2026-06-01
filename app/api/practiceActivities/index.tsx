@@ -1,6 +1,7 @@
 import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
+import { ToolType } from "../tools/types";
 
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
@@ -178,12 +179,15 @@ export async function completePracticeActivity({
   packId,
   moduleId,
   vitals,
+  toolsUsed,
 }: UpdateActivityReq & {
   vitals?: {
     effortScore?: number;
     autonomyScore?: number;
     accuracyScore?: number;
   };
+  /** Fluency tools actually activated during this activity (DAF/Chorus/...). */
+  toolsUsed?: ToolType[];
 }): Promise<PracticeActivity> {
   try {
     const requestBody: any = {
@@ -193,6 +197,7 @@ export async function completePracticeActivity({
 
     if (packId) requestBody.packId = packId;
     if (moduleId) requestBody.moduleId = moduleId;
+    if (toolsUsed && toolsUsed.length > 0) requestBody.toolsUsed = toolsUsed;
 
     console.log(">> API: Completing Practice Activity", { id, requestBody });
     const response = await axiosClient.post(

@@ -29,6 +29,9 @@ import Metronome, {
   useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
+import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
+import ToolConsentModal from "../../../../../../components/ToolConsentModal";
+import ToolNudge from "../../../../../../components/ToolNudge";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder"; // Reuse SmartRecorder
@@ -123,6 +126,26 @@ const PoemPractice = () => {
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // Over-reliance guardrails: consent gate, usage tracking, activity-start nudge.
+  // `consumeToolsUsed` feeds the completion payload.
+  const {
+    consumeToolsUsed,
+    consentTool,
+    requireConsent,
+    acknowledgeConsent,
+    toolNudge,
+    nudgeVisible,
+    handleNudgeTryWithout,
+    handleNudgeDismiss,
+    focusMode,
+    toolsExpanded,
+    setToolsExpanded,
+  } = useToolGuardrails(currentActivityId, {
+    [ToolType.DAF]: dafState.isDAFActive,
+    [ToolType.METRONOME]: metronomeState.isPlaying,
+    [ToolType.CHORUS]: vhIsPlaying,
+  });
 
   // --- Effects ---
   // Hide Tab Bar
@@ -331,6 +354,7 @@ const PoemPractice = () => {
       userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
+      toolsUsed: consumeToolsUsed(),
     });
 
     // Track activity completion
@@ -391,18 +415,35 @@ const PoemPractice = () => {
     setActiveToolSheet(null);
   };
 
-  const handleToolSelect = (toolName: string) => {
-    if (isToolActive(toolName)) {
-      stopTool(toolName);
-      return;
-    }
-
+  const proceedToolSelect = (toolName: string) => {
     if (selectedPracticeTool && selectedPracticeTool !== toolName) {
       stopTool(selectedPracticeTool);
     }
 
     setSelectedPracticeTool(toolName);
     setActiveToolSheet(toolName);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    if (!requireConsent(toolName)) return;
+
+    proceedToolSelect(toolName);
+  };
+
+  const runStart = async () => {
+    setIsStarting(true);
+    try {
+      await markActivityStart();
+    } catch (error) {
+      console.error("❌ Error starting activity:", error);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   // --- Render Helpers ---
@@ -559,7 +600,16 @@ const PoemPractice = () => {
             </Text>
           </View>
 
-          <HardModeToggle 
+          {nudgeVisible && toolNudge && (
+            <ToolNudge
+              directive={toolNudge}
+              onTryWithout={() => handleNudgeTryWithout(runStart)}
+              onDismiss={handleNudgeDismiss}
+              style={{ marginBottom: 32 }}
+            />
+          )}
+
+          <HardModeToggle
             value={hardMode}
             onValueChange={setHardMode}
             canUseHardMode={canUseHardMode}
@@ -595,16 +645,7 @@ const PoemPractice = () => {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={async () => {
-              setIsStarting(true);
-              try {
-                await markActivityStart();
-              } catch (error) {
-                console.error("❌ Error starting activity:", error);
-              } finally {
-                setIsStarting(false);
-              }
-            }}
+            onPress={() => runStart()}
             disabled={isStarting || isLoading}
             style={styles.startButton}
           >
@@ -821,7 +862,34 @@ const PoemPractice = () => {
             }
           }}
           onDiscard={() => setVoiceRecordingUri(null)}
-          renderTools={() => (
+          renderTools={() =>
+            focusMode && !toolsExpanded ? (
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(148,163,184,0.12)",
+                }}
+                onPress={() => {
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut,
+                  );
+                  setToolsExpanded(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Icon name="sliders-h" size={14} color="#94A3B8" />
+                <Text
+                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
+                >
+                  Tools
+                </Text>
+              </TouchableOpacity>
+            ) : (
             <View style={styles.dockTools}>
               {[
                 { id: ToolType.DAF, icon: "headphones", label: "DAF" },
@@ -864,7 +932,8 @@ const PoemPractice = () => {
                 );
               })}
             </View>
-          )}
+            )
+          }
         />
       </View>
 
@@ -891,6 +960,12 @@ const PoemPractice = () => {
           {renderToolSheetContent()}
         </ScrollView>
       </BottomSheetModal>
+
+      <ToolConsentModal
+        visible={consentTool !== null}
+        tool={consentTool}
+        onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+      />
     </ScreenView>
   );
 };

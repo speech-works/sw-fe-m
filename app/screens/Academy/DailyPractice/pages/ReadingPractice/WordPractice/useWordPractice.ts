@@ -24,8 +24,10 @@ import {
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ReadingPracticeStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
+import { useToolUsageStore } from "../../../../../../stores/toolUsage";
 import { useUIStore } from "../../../../../../stores/ui";
 import { useUserStore } from "../../../../../../stores/user";
+import { ToolType } from "../../../../../../api/tools/types";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
@@ -266,11 +268,16 @@ export const useWordPractice = () => {
       return;
     }
 
+    // Tools actually activated during this activity (over-reliance guardrails).
+    const { getToolsUsed, clearActivity } = useToolUsageStore.getState();
+    const toolsUsed = getToolsUsed(activityId);
+
     const completedActivity = await completePracticeActivity({
       id: activityId,
       userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
+      toolsUsed,
     });
 
     // Track activity completion
@@ -281,6 +288,17 @@ export const useWordPractice = () => {
       isPackContext: !!packContext?.packId
     });
 
+    // If a nudge was being shown for a tool and the user completed without it,
+    // record the positive outcome (guardrail effectiveness signal).
+    const nudgedTool = user?.toolNudge?.tool;
+    if (nudgedTool && !toolsUsed.includes(nudgedTool as ToolType)) {
+      track(ANALYTICS_EVENTS.TOOL_FREE_COMPLETION_AFTER_NUDGE, {
+        tool: nudgedTool,
+        contentType: PracticeActivityContentType.READING_PRACTICE,
+      });
+    }
+
+    clearActivity(activityId);
     updateActivity(activityId, { ...completedActivity });
     useUserStore.getState().fetchUser();
   };
