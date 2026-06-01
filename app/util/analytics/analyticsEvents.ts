@@ -51,6 +51,13 @@ export const ANALYTICS_EVENTS = {
     LIBRARY_TECHNIQUE_VIEWED: 'library_technique_viewed',   // props: { techniqueId, techniqueName, level }
     LIBRARY_TECHNIQUE_STARTED: 'library_technique_started',  // props: { techniqueId, techniqueName, mode: TUTORIAL | EXERCISE }
 
+    // ── Fluency-aid over-reliance guardrails (DAF/Chorus) ──────────────
+    TOOL_CONSENT_SHOWN: 'tool_consent_shown',           // props: { tool }
+    TOOL_CONSENT_ACK: 'tool_consent_ack',               // props: { tool }
+    TOOL_NUDGE_SHOWN: 'tool_nudge_shown',               // props: { tool, variant }
+    TOOL_NUDGE_ACTION: 'tool_nudge_action',             // props: { tool, variant, action: 'try_without' | 'dismiss' }
+    TOOL_FREE_COMPLETION_AFTER_NUDGE: 'tool_free_completion_after_nudge', // props: { tool, contentType }
+
 } as const;
 
 export type AnalyticsEvent = typeof ANALYTICS_EVENTS[keyof typeof ANALYTICS_EVENTS];

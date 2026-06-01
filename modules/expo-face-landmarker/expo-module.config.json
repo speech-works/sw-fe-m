@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["ExpoFaceLandmarkerModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.facelandmarker.ExpoFaceLandmarkerModule"]
+  }
+}

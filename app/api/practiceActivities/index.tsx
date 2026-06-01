@@ -1,6 +1,7 @@
 import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
+import { ToolType } from "../tools/types";
 
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
@@ -178,12 +179,15 @@ export async function completePracticeActivity({
   packId,
   moduleId,
   vitals,
+  toolsUsed,
 }: UpdateActivityReq & {
   vitals?: {
     effortScore?: number;
     autonomyScore?: number;
     accuracyScore?: number;
   };
+  /** Fluency tools actually activated during this activity (DAF/Chorus/...). */
+  toolsUsed?: ToolType[];
 }): Promise<PracticeActivity> {
   try {
     const requestBody: any = {
@@ -193,6 +197,7 @@ export async function completePracticeActivity({
 
     if (packId) requestBody.packId = packId;
     if (moduleId) requestBody.moduleId = moduleId;
+    if (toolsUsed && toolsUsed.length > 0) requestBody.toolsUsed = toolsUsed;
 
     console.log(">> API: Completing Practice Activity", { id, requestBody });
     const response = await axiosClient.post(
@@ -209,6 +214,49 @@ export async function completePracticeActivity({
     throw error;
   }
 }
+
+export interface MirrorWorkCompletionApiPayload {
+  detectedSignals: Record<string, { eventCount: number }>;
+  awarenessScores: {
+    gazeMaintained: number;
+    jawEase: number;
+    lipEase: number;
+    overallEaseScore: number;
+  };
+  vitals: {
+    effortScore: number;
+    autonomyScore: number;
+  };
+  detectionAccuracyRating: number;
+  reflectionText: string;
+  promptsAttempted: number;
+  nudgeMode: 'ON' | 'OFF';
+  sessionDurationSeconds: number;
+}
+
+/**
+ * Complete a Mirror Work practice activity.
+ *
+ * Calls the dedicated POST /practice-activities/{id}/complete-mirror-work
+ * endpoint, which stores the full session payload (signals, scores, vitals,
+ * reflection) and feeds overallEaseScore into the IMPAIRMENT_STRUGGLE
+ * clinical domain trend.
+ */
+export async function completeMirrorWorkActivity(
+  id: string,
+  userId: string,
+  mirrorWorkPayload: MirrorWorkCompletionApiPayload,
+): Promise<PracticeActivity> {
+  console.log('>> API: Completing Mirror Work Activity', { id, mirrorWorkPayload });
+  const response = await axiosClient.post(
+    `/practice-activities/${id}/complete-mirror-work`,
+    { userId, mirrorWorkPayload },
+  );
+  console.log('<< API: Mirror Work Activity Completed Successfully', response.data);
+  return response.data;
+}
+
+
 
 // Abort a practice activity (update its status to ABORTED)
 export async function abortPracticeActivity({

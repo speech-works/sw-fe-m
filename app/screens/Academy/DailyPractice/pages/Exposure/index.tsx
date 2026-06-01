@@ -76,22 +76,6 @@ const Exposure = () => {
       colors: ["#F472B6", "#DB2777"] as const, // Pink
       disabled: false,
     },
-    {
-      title: "Secondary Behaviors",
-      subtitle: "Coming soon",
-      onPress: () => navigation.navigate("SecondaryBehaviorsStack"),
-      icon: <Icon name="socks" size={40} color="#94A3B8" />,
-      colors: ["#E2E8F0", "#94A3B8"] as const, // Gray
-      disabled: true,
-    },
-    {
-      title: "Random Questions",
-      subtitle: "Coming soon",
-      onPress: () => {},
-      icon: <Icon name="question" size={40} color="#94A3B8" />,
-      colors: ["#E2E8F0", "#94A3B8"] as const, // Gray
-      disabled: true,
-    },
   ];
 
   const summary = categories.find(

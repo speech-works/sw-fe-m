@@ -1,5 +1,7 @@
 import axiosClient from "../axiosClient";
 import { XPLog } from "../userXP/types";
+import { ToolNudgeDirective } from "../tools/types";
+import { ToolType } from "../tools/types";
 
 export interface User {
   id: string;
@@ -52,6 +54,13 @@ export interface User {
   oauthProvider?: string;
   stripeCustomerId?: string;
   fearedSounds?: string[];
+
+  /**
+   * Fluency-aid over-reliance nudge to surface on the activity start screen,
+   * computed server-side and delivered with the user payload. Null when no
+   * nudge is due (below threshold, within frequency cap, or insufficient data).
+   */
+  toolNudge?: ToolNudgeDirective | null;
 }
 
 export interface LevelStage {
@@ -139,6 +148,19 @@ export async function updateMyUser(
     return response.data;
   } catch (error) {
     console.error("Error updating current user:", error);
+    throw error;
+  }
+}
+
+/**
+ * Dismiss the fluency-aid over-reliance nudge for a tool. Starts the 14-day
+ * server-side frequency cap. Fired only when the user actually dismisses.
+ */
+export async function dismissToolNudge(tool: ToolType): Promise<void> {
+  try {
+    await axiosClient.post("/users/me/tool-nudge/dismiss", { tool });
+  } catch (error) {
+    console.error("Error dismissing tool nudge:", error);
     throw error;
   }
 }

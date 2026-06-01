@@ -647,6 +647,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     justifyContent: "space-between",
     width: "100%",
+    overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",

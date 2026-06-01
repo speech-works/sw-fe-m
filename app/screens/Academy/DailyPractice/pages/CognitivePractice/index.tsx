@@ -13,6 +13,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import GuidedBreathingFace from "../../../../../assets/sw-faces/GuidedBreathingFace";
 import MeditationFace from "../../../../../assets/sw-faces/MeditationFace";
 import RewiringFace from "../../../../../assets/sw-faces/RewiringFace";
+import SparkleMirrorFace from "../../../../../assets/sw-faces/SparkleMirrorFace";
 import ScreenView from "../../../../../components/ScreenView";
 import PracticeCategoryProgressCard from "../../components/PracticeCategoryProgressCard";
 import { BlurView } from "expo-blur";
@@ -74,6 +75,14 @@ const CognitivePractice = () => {
       onPress: () => navigation.navigate("ReframePractice"),
       icon: <RewiringFace size={80} />,
       colors: ["#818CF8", "#4F46E5"] as const, // Indigo
+    },
+    {
+      title: "Mirror Work",
+      subtitle: "Body Awareness & Feedback",
+      onPress: () => navigation.navigate("MirrorWorkPrep", { practiceData: {} }),
+      icon: <SparkleMirrorFace size={80} />,
+      colors: ["#60A5FA", "#2563EB"] as const, // Blue
+      badge: "SECONDARY BEHAVIORS",
     },
   ];
 

@@ -123,7 +123,7 @@ export const REMINDER_TEMPLATES: ReminderTemplate[] = [
     messages: [
       {
         title: "Time to read aloud",
-        body: "Reading aloud builds fluency and vocal control.",
+        body: "Reading aloud builds confidence and vocal ease.",
       },
       {
         title: "Your reading session awaits",

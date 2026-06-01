@@ -20,7 +20,6 @@ import {
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
-import MasonryTips from "../../../components/MasonryTips";
 import { BreathingHalo } from "./components/BreathingHalo";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { BlurView } from "expo-blur";
@@ -696,27 +695,34 @@ const Breathing = () => {
 
         <ScrollView
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
             flexGrow: 1,
-            justifyContent: "flex-end",
-            paddingBottom: 24, // Added spacing above the button
+            justifyContent: "flex-start",
+            paddingBottom: 24,
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View>
-            {/* ── Practice Tips ─────────────────────────────────────────────────────────── */}
-            <View style={styles.tipsContainer}>
-              {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
-
-              {/* Masonry Tips Grid */}
-              <MasonryTips
-                tips={[
-                  "Take deep breaths before starting. Feel your diaphragm expand.",
-                  "Maintain a relaxed facial posture. Release jaw tension.",
-                  "It's okay to take your time. Focus on smooth transitions.",
-                ]}
-              />
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeader}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {[
+                "Take deep breaths before starting. Feel your diaphragm expand.",
+                "Maintain a relaxed facial posture. Release jaw tension.",
+                "It's okay to take your time. Focus on smooth transitions.",
+              ].map((tip, index, arr) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
         </ScrollView>
@@ -725,7 +731,7 @@ const Breathing = () => {
         <View
           style={[
             styles.bottomActionContainer,
-            { paddingBottom: insets.bottom || 24 },
+            { paddingBottom: Math.max(insets.bottom, 24) },
           ]}
         >
           <Button
@@ -759,6 +765,7 @@ export default Breathing;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
+    backgroundColor: '#FAFAFA',
   },
   container: {
     gap: 32,
@@ -800,53 +807,67 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 36,
   },
-  tipsContainer: {
-    paddingHorizontal: 0,
-    gap: 0,
+  heroSection: {
+    marginBottom: 40,
   },
-  noteStack: {
-    paddingHorizontal: 0,
-    gap: 16,
-    paddingBottom: 20,
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 34,
+    color: '#111827', // Gray 900
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
-  noteCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: "row",
-    gap: 16,
-    alignItems: "flex-start",
-    // Soft, premium shadow like iOS Notes
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  noteIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FEF3C7", // faint yellow
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 2,
-  },
-  noteContent: {
-    flex: 1,
-    gap: 4,
-  },
-  noteTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "700",
-    color: "#171717",
-  },
-  noteBody: {
+  heroDescription: {
     ...parseTextStyle(theme.typography.Body),
-    color: "#525252",
-    lineHeight: 22,
+    fontSize: 17,
+    color: '#4B5563', // Gray 600
+    lineHeight: 26,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3B82F6',
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151', // Gray 700
+    lineHeight: 24,
   },
   startButton: {
     borderRadius: 20,

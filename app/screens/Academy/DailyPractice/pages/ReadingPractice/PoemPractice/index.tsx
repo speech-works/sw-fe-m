@@ -20,7 +20,7 @@ import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
-import MasonryTips from "../../../components/MasonryTips";
+
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -29,6 +29,9 @@ import Metronome, {
   useMetronome,
 } from "../../../../Library/TechniquePage/components/Metronome";
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
+import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
+import ToolConsentModal from "../../../../../../components/ToolConsentModal";
+import ToolNudge from "../../../../../../components/ToolNudge";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder"; // Reuse SmartRecorder
@@ -123,6 +126,26 @@ const PoemPractice = () => {
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // Over-reliance guardrails: consent gate, usage tracking, activity-start nudge.
+  // `consumeToolsUsed` feeds the completion payload.
+  const {
+    consumeToolsUsed,
+    consentTool,
+    requireConsent,
+    acknowledgeConsent,
+    toolNudge,
+    nudgeVisible,
+    handleNudgeTryWithout,
+    handleNudgeDismiss,
+    focusMode,
+    toolsExpanded,
+    setToolsExpanded,
+  } = useToolGuardrails(currentActivityId, {
+    [ToolType.DAF]: dafState.isDAFActive,
+    [ToolType.METRONOME]: metronomeState.isPlaying,
+    [ToolType.CHORUS]: vhIsPlaying,
+  });
 
   // --- Effects ---
   // Hide Tab Bar
@@ -331,6 +354,7 @@ const PoemPractice = () => {
       userId,
       packId: packContext?.packId,
       moduleId: packContext?.moduleId,
+      toolsUsed: consumeToolsUsed(),
     });
 
     // Track activity completion
@@ -391,18 +415,35 @@ const PoemPractice = () => {
     setActiveToolSheet(null);
   };
 
-  const handleToolSelect = (toolName: string) => {
-    if (isToolActive(toolName)) {
-      stopTool(toolName);
-      return;
-    }
-
+  const proceedToolSelect = (toolName: string) => {
     if (selectedPracticeTool && selectedPracticeTool !== toolName) {
       stopTool(selectedPracticeTool);
     }
 
     setSelectedPracticeTool(toolName);
     setActiveToolSheet(toolName);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    if (!requireConsent(toolName)) return;
+
+    proceedToolSelect(toolName);
+  };
+
+  const runStart = async () => {
+    setIsStarting(true);
+    try {
+      await markActivityStart();
+    } catch (error) {
+      console.error("❌ Error starting activity:", error);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   // --- Render Helpers ---
@@ -523,15 +564,7 @@ const PoemPractice = () => {
   // --- View: Pre-Practice (Tips) ---
   if (!currentActivityId) {
     return (
-      <ScreenView style={styles.screenView}>
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEEF8", "#FFFFFF"]}
-            locations={[0, 0.4, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
-
+      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
         <BlurView
           intensity={80}
           tint="light"
@@ -556,18 +589,51 @@ const PoemPractice = () => {
           contentContainerStyle={{
             paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
+            paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
         >
-          <HardModeToggle 
+          <View style={styles.heroSection}>
+            <Text style={styles.heroTitle}>Poem Practice</Text>
+            <Text style={styles.heroDescription}>
+              Find your rhythm and express emotion through the art of poetry.
+            </Text>
+          </View>
+
+          {nudgeVisible && toolNudge && (
+            <ToolNudge
+              directive={toolNudge}
+              onTryWithout={() => handleNudgeTryWithout(runStart)}
+              onDismiss={handleNudgeDismiss}
+              style={{ marginBottom: 32 }}
+            />
+          )}
+
+          <HardModeToggle
             value={hardMode}
             onValueChange={setHardMode}
             canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 32 }}
           />
 
-          <MasonryTips tips={readingTips.poem} />
-
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeader}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {readingTips.poem.map((tip, index, arr) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         </ScrollView>
 
         {/* Fixed Start Button at bottom */}
@@ -579,16 +645,7 @@ const PoemPractice = () => {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={async () => {
-              setIsStarting(true);
-              try {
-                await markActivityStart();
-              } catch (error) {
-                console.error("❌ Error starting activity:", error);
-              } finally {
-                setIsStarting(false);
-              }
-            }}
+            onPress={() => runStart()}
             disabled={isStarting || isLoading}
             style={styles.startButton}
           >
@@ -805,7 +862,34 @@ const PoemPractice = () => {
             }
           }}
           onDiscard={() => setVoiceRecordingUri(null)}
-          renderTools={() => (
+          renderTools={() =>
+            focusMode && !toolsExpanded ? (
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(148,163,184,0.12)",
+                }}
+                onPress={() => {
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut,
+                  );
+                  setToolsExpanded(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Icon name="sliders-h" size={14} color="#94A3B8" />
+                <Text
+                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
+                >
+                  Tools
+                </Text>
+              </TouchableOpacity>
+            ) : (
             <View style={styles.dockTools}>
               {[
                 { id: ToolType.DAF, icon: "headphones", label: "DAF" },
@@ -848,7 +932,8 @@ const PoemPractice = () => {
                 );
               })}
             </View>
-          )}
+            )
+          }
         />
       </View>
 
@@ -875,6 +960,12 @@ const PoemPractice = () => {
           {renderToolSheetContent()}
         </ScrollView>
       </BottomSheetModal>
+
+      <ToolConsentModal
+        visible={consentTool !== null}
+        tool={consentTool}
+        onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+      />
     </ScreenView>
   );
 };
@@ -959,6 +1050,85 @@ const styles = StyleSheet.create({
   // Tips Styles
   scrollContent: {
     paddingHorizontal: 20,
+  },
+  backButtonMinimal: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  heroSection: {
+    marginBottom: 32,
+  },
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  heroDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
 
   startButton: {

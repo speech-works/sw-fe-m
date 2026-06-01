@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -22,25 +21,11 @@ const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
       onPress={onMedToggle}
       testID="meditation-change-card"
     >
-      <LinearGradient
-        colors={["#7C3AED", "#6D28D9"]} // Violet-600 to Violet-700
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        {/* Decorative Bubbles */}
-        <View style={styles.bubbleTopRight} />
-        <View style={styles.bubbleBottomLeft} />
-
-        {/* Watermark */}
-        <View style={styles.watermarkContainer}>
-          <Icon name="spa" size={120} color="#FFF" style={{ opacity: 0.1 }} />
-        </View>
-
+      <View style={styles.innerCard}>
         <View style={styles.contentContainer}>
           {/* Chip */}
           <View style={styles.chip}>
-            <Icon name="headphones" size={10} color="#FFF" />
+            <Icon name="headphones" size={10} color={theme.colors.library.purple[500]} />
             <Text style={styles.chipText}>Voice Guided</Text>
           </View>
 
@@ -53,20 +38,20 @@ const MeditationCard = ({ onMedToggle, selectedMed }: MeditationCardProps) => {
 
           <View style={styles.cardFooter}>
             <View style={styles.timeBadge}>
-              <Icon name="clock" size={12} color="rgba(255,255,255,0.8)" />
+              <Icon name="clock" size={12} color="#6B7280" />
               <Text style={styles.footerText}>
                 {selectedMed?.guidedMeditationData?.durationMinutes} mins
               </Text>
             </View>
 
             {/* Change Button */}
-            <View style={styles.glassButton}>
-              <Text style={styles.glassButtonText}>Change</Text>
-              <Icon name="chevron-right" size={10} color="#FFF" />
+            <View style={styles.changeButton}>
+              <Text style={styles.changeButtonText}>Change</Text>
+              <Icon name="chevron-right" size={10} color={theme.colors.library.purple[500]} />
             </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -76,48 +61,27 @@ export default MeditationCard;
 const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
+    // Bento-style shadow & border
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
   },
-  gradient: {
+  innerCard: {
     borderRadius: 24,
     padding: 24,
-    position: "relative",
-    overflow: "hidden",
-  },
-  // Decorative
-  bubbleTopRight: {
-    position: "absolute",
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -30,
-    left: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    transform: [{ rotate: "-15deg" }],
   },
   contentContainer: {
     gap: 16,
-    zIndex: 2,
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#F3E8FF", // subtle purple bg
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -125,7 +89,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chipText: {
-    color: "#FFF",
+    color: theme.colors.library.purple[700],
     fontSize: 10,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -136,12 +100,12 @@ const styles = StyleSheet.create({
   },
   titleText: {
     ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
+    color: "#111827", // Gray-900
     fontSize: 22,
   },
   descText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#4B5563", // Gray-600
   },
   cardFooter: {
     flexDirection: "row",
@@ -156,22 +120,22 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "#6B7280", // Gray-500
     fontWeight: "600",
   },
-  glassButton: {
+  changeButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "#F9FAFB", // Gray-50
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "#E5E7EB", // Gray-200
   },
-  glassButtonText: {
-    color: "#FFF",
+  changeButtonText: {
+    color: theme.colors.library.purple[600],
     fontSize: 12,
     fontWeight: "700",
   },

@@ -266,7 +266,7 @@ const SubscribeScreen = () => {
                     desc: "Progress shouldn't be gated. Practice as much as you need to reach your goals.",
                   },
                   {
-                    label: "Real-World Mastery",
+                    label: "Real-World Practice",
                     free: "Basic",
                     pro: "Full Access",
                     icon: "robot",

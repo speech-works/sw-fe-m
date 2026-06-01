@@ -184,23 +184,22 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             </Text>
 
             <View
-              style={[
-                styles.creamCardFooter,
-                {
-                  marginTop: 24,
-                  backgroundColor: "white",
-                  borderRadius: 20,
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  flexDirection: "row",
-                  gap: 8,
-                  elevation: 4,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-              ]}
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 24,
+                backgroundColor: "white",
+                borderRadius: 20,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                flexDirection: "row",
+                gap: 8,
+                elevation: 4,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+              }}
             >
               <MaterialCommunityIcons
                 name="video"
@@ -208,10 +207,12 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                 color="#065F46" // Forest Green
               />
               <Text
-                style={[
-                  styles.creamCardButtonText,
-                  { fontSize: 14, color: "#065F46" },
-                ]}
+                style={{
+                  fontSize: 14,
+                  fontWeight: "900",
+                  color: "#065F46",
+                  letterSpacing: 1.2,
+                }}
               >
                 Browse Library
               </Text>
@@ -369,77 +370,65 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           {/* 3. Next Module Card (Glassmorphism) or Pack Completion Card */}
           {percentComplete >= 1 ? (
             <View style={styles.creamCard}>
-              <View style={styles.creamCardContent}>
-                <View style={styles.trophyContainer}>
+              <View style={[styles.creamCardContent, { alignItems: 'flex-start' }]}>
+                {/* Background Watermark */}
+                <View style={styles.innerCardWatermark}>
                   <MaterialCommunityIcons
                     name="trophy"
-                    size={48}
-                    color="#F97316" // Orange
+                    size={140}
+                    color="#EA580C"
                   />
                 </View>
-                <Text style={styles.creamCardTitle}>Great job!</Text>
-                <Text style={styles.creamCardDesc}>
+                
+                {/* Text Block */}
+                <View style={[styles.moduleLabelContainer, { alignSelf: 'flex-start' }]}>
+                  <Text style={styles.moduleLabelText}>ALL CAUGHT UP</Text>
+                </View>
+                <Text style={[styles.creamCardTitle, { textAlign: 'left' }]}>Great job!</Text>
+                <Text style={[styles.creamCardDesc, { textAlign: 'left', paddingHorizontal: 0 }]}>
                   You have completed all your tasks for this pack. Keep going!
                 </Text>
               </View>
 
-              <View style={styles.creamCardFooter}>
-                {isRefreshing && (
-                  <ActivityIndicator
-                    size="small"
-                    color="#EA580C"
-                    style={StyleSheet.absoluteFill}
-                  />
+              {/* Full Width Action Bar */}
+              <View style={styles.fullWidthActionBar}>
+                {isRefreshing ? (
+                  <ActivityIndicator size="small" color="#EA580C" />
+                ) : (
+                  <>
+                    <Text style={styles.fullWidthActionText}>FIND NEXT</Text>
+                  </>
                 )}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    opacity: isRefreshing ? 0 : 1,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="play"
-                    size={20}
-                    color="#EA580C"
-                  />
-                  <Text style={styles.creamCardButtonText}>Find Next</Text>
-                </View>
               </View>
             </View>
           ) : (
             nextModuleDisplay && (
               <View style={styles.creamCard}>
-                <View style={styles.creamCardContent}>
-                  <View style={styles.trophyContainer}>
+                <View style={[styles.creamCardContent, { alignItems: 'flex-start' }]}>
+                  {/* Background Watermark */}
+                  <View style={styles.innerCardWatermark}>
                     <MaterialCommunityIcons
                       name="microphone"
-                      size={42}
+                      size={140}
                       color="#EA580C"
                     />
                   </View>
-                  <View style={styles.moduleLabelContainer}>
+                  
+                  {/* Text Block */}
+                  <View style={[styles.moduleLabelContainer, { alignSelf: 'flex-start' }]}>
                     <Text style={styles.moduleLabelText}>CURRENT MODULE</Text>
                   </View>
-                  <Text style={styles.creamCardTitle}>
+                  <Text style={[styles.creamCardTitle, { textAlign: 'left' }]}>
                     {nextModuleDisplay.title.replace(/^Module \d+:\s*/, "")}
                   </Text>
-                  <Text style={styles.creamCardDesc} numberOfLines={2}>
+                  <Text style={[styles.creamCardDesc, { textAlign: 'left', paddingHorizontal: 0 }]} numberOfLines={2}>
                     {nextModuleDisplay.description}
                   </Text>
                 </View>
-                <View style={styles.creamCardFooter}>
-                  <View style={styles.startActionRow}>
-                    <MaterialCommunityIcons
-                      name="play-circle"
-                      size={22}
-                      color="#EA580C"
-                    />
-                    <Text style={styles.creamCardButtonText}>
-                      {actionButtonText.toUpperCase()}
-                    </Text>
-                  </View>
+
+                {/* Full Width Action Bar */}
+                <View style={styles.fullWidthActionBar}>
+                  <Text style={styles.fullWidthActionText}>{actionButtonText.toUpperCase()}</Text>
                 </View>
               </View>
             )
@@ -681,43 +670,51 @@ const styles = StyleSheet.create({
   },
   // Cream Vertical Card Styles
   creamCard: {
-    backgroundColor: "rgba(255, 247, 237, 0.95)", // Subtle glass/cream
-    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.98)", // Crisp white glass
+    borderRadius: 24,
     overflow: "hidden",
-    marginTop: 8,
+    marginTop: 12,
     marginBottom: 0,
-    // Card Shadow
-    shadowColor: "#431407",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 1)",
+    // Premium Float Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.15,
+    shadowRadius: 32,
+    elevation: 10,
   },
   creamCardContent: {
-    padding: 20,
+    padding: 24,
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 24,
+    position: "relative",
   },
-  trophyContainer: {
-    marginBottom: 16,
+  innerCardWatermark: {
+    position: "absolute",
+    top: -20,
+    right: -20,
+    opacity: 0.08,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
   },
   moduleLabelContainer: {
-    backgroundColor: "rgba(234, 88, 12, 0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: "#FFEDD5", // Light Orange
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   moduleLabelText: {
     fontSize: 10,
-    fontWeight: "800",
-    color: "#EA580C",
-    letterSpacing: 1,
+    fontWeight: "900",
+    color: "#C2410C", // Orange 700
+    letterSpacing: 1.5,
   },
   creamCardTitle: {
     fontSize: 22,
-    fontWeight: "800",
-    color: "#431407",
+    fontWeight: "900",
+    color: "#0F172A", // Slate 900
     marginBottom: 8,
     textAlign: "center",
     letterSpacing: -0.5,
@@ -725,30 +722,26 @@ const styles = StyleSheet.create({
   },
   creamCardDesc: {
     fontSize: 15,
-    color: "#78350F",
+    color: "#64748B", // Slate 500
     textAlign: "center",
     lineHeight: 22,
-    paddingHorizontal: 12,
-    opacity: 0.8,
+    paddingHorizontal: 8,
   },
-  creamCardFooter: {
-    backgroundColor: "rgba(255, 237, 213, 0.5)",
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(234, 88, 12, 0.05)",
-  },
-  startActionRow: {
+  fullWidthActionBar: {
+    backgroundColor: "rgba(234, 88, 12, 0.05)", // Very subtle orange tint
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
     gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(234, 88, 12, 0.1)",
   },
-  creamCardButtonText: {
+  fullWidthActionText: {
     fontSize: 14,
-    fontWeight: "900",
-    color: "#EA580C",
-    letterSpacing: 1,
+    fontWeight: "800",
+    color: "#EA580C", // Vibrant orange text
+    letterSpacing: 1.5,
   },
   // Modal Styles
   modalGradientContainer: {

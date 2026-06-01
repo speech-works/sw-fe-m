@@ -1,6 +1,22 @@
+const { withGradleProperties } = require("@expo/config-plugins");
+const withMediaPipeDuplicateFix = require("./plugins/withMediaPipeDuplicateFix");
+
 const apiBaseUrl = process.env.API_BASE_URL || "";
 const allowsInsecureNetworkTraffic =
   /^http:\/\//i.test(apiBaseUrl) || /^ws:\/\//i.test(apiBaseUrl);
+
+const withCustomJvmArgs = (config) => {
+  return withGradleProperties(config, (config) => {
+    const property = config.modResults.find((p) => p.key === "org.gradle.jvmargs");
+    const newArgs = "-Xmx4096m -XX:MaxMetaspaceSize=1024m";
+    if (property) {
+      property.value = newArgs;
+    } else {
+      config.modResults.push({ type: "property", key: "org.gradle.jvmargs", value: newArgs });
+    }
+    return config;
+  });
+};
 
 module.exports = {
   expo: {
@@ -32,6 +48,8 @@ module.exports = {
           "This app needs microphone access to record your voice.",
         NSCameraUsageDescription:
           "This app needs camera access to record videos.",
+        NSMotionUsageDescription:
+          "This app uses motion data to tell your head movements apart from phone movement during awareness exercises.",
         CFBundleURLTypes: [
           {
             CFBundleURLSchemes: ["speechworks"],
@@ -53,6 +71,7 @@ module.exports = {
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.POST_NOTIFICATIONS",
@@ -77,6 +96,8 @@ module.exports = {
       favicon: "./app/assets/favicon.png",
     },
     plugins: [
+      withCustomJvmArgs,
+      withMediaPipeDuplicateFix,
       [
         "react-native-permissions",
         {
@@ -95,6 +116,31 @@ module.exports = {
       "expo-secure-store",
       "expo-notifications",
       "expo-web-browser",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "SpeechWorks needs your microphone for awareness exercises.",
+          "speechRecognitionPermission": "SpeechWorks uses speech recognition to analyze speech patterns during exercises."
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "SpeechWorks uses your camera for on-device body awareness exercises. No video is recorded or sent anywhere.",
+          enableCodeScanner: false,
+        },
+      ],
+      [
+        "expo-build-properties",
+        {
+          android: {
+            minSdkVersion: 26,
+          },
+          ios: {
+            deploymentTarget: "16.4",
+          },
+        },
+      ],
     ],
     extra: {
       API_BASE_URL: process.env.API_BASE_URL,

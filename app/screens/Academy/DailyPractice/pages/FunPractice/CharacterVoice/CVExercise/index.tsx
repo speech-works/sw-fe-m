@@ -44,7 +44,7 @@ import {
 } from "../../../../../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
 import DonePractice from "../../../../components/DonePractice";
-import MasonryTips from "../../../../components/MasonryTips";
+
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 import HardModeToggle from "../../../../components/HardModeToggle";
 
@@ -324,13 +324,14 @@ const CVExercise = () => {
 
   // 1. Pre-Practice (Tips) View
   if (!currentActivityId) {
+    const tipsArray = effectiveCvData?.hints || [
+      "Get into character and have fun.",
+      "Vary your pitch and tone.",
+      "Don't hold back, be expressive!",
+    ];
+
     return (
-      <ScreenView style={styles.screenView}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FFEEF8", "#FFFFFF"]}
-          locations={[0, 0.4, 1]}
-          style={StyleSheet.absoluteFillObject}
-        />
+      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
         <View style={styles.container}>
           <BlurView
             intensity={80}
@@ -367,15 +368,35 @@ const CVExercise = () => {
               contentContainerStyle={{
                 paddingHorizontal: 24,
                 paddingTop: HEADER_HEIGHT + insets.top + 20,
-                justifyContent: "flex-end",
-                flexGrow: 1,
+                paddingBottom: 120,
               }}
               showsVerticalScrollIndicator={false}
             >
+              <View style={styles.heroSection}>
+                <Text style={styles.heroTitle}>Character Voice</Text>
+                <Text style={styles.heroDescription}>
+                  Express yourself by adopting fun personas and practicing different vocal styles.
+                </Text>
+              </View>
 
-              {/* Removed legacy Tips banner as Carousel has PRO TIP labels */}
-
-              <MasonryTips tips={effectiveCvData?.hints || []} />
+              <View style={styles.timelineSection}>
+                <Text style={styles.sectionHeader}>Tips</Text>
+                <View style={styles.timelineContainer}>
+                  {tipsArray.map((tip, index, arr) => (
+                    <View key={index} style={styles.timelineItem}>
+                      <View style={styles.timelineTrack}>
+                        <View style={styles.timelineDot} />
+                        {index !== arr.length - 1 && (
+                          <View style={styles.timelineLine} />
+                        )}
+                      </View>
+                      <View style={styles.timelineContent}>
+                        <Text style={styles.timelineText}>{tip}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </ScrollView>
 
             {/* Fixed Start Button at bottom */}
@@ -750,6 +771,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   startButton: {
+    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     marginBottom: 0,
@@ -771,5 +793,69 @@ const styles = StyleSheet.create({
   actionDockWrapper: {},
   bottomActionContainer: {
     paddingHorizontal: 24,
+  },
+  // Timeline & Hero Styles
+  heroSection: {
+    marginBottom: 32,
+  },
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  heroDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
 });

@@ -64,7 +64,7 @@ const CATEGORY_META: Record<
     label: "Mood Check-in",
     icon: "emoticon-outline",
     color: "#10B981",
-    desc: "Log your daily fluency feelings",
+    desc: "Log how speaking felt today",
   },
   CUSTOM: {
     label: "Custom Reminder",

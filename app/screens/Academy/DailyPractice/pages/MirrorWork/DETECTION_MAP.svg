@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="1500" viewBox="0 0 1220 1500" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+  </defs>
+
+  <!-- page bg -->
+  <rect width="1220" height="1500" fill="#0B0B10"/>
+
+  <!-- ── header ── -->
+  <text x="30" y="50" fill="#FFFFFF" font-size="30" font-weight="700">Mirror Work — Detection Map</text>
+  <text x="30" y="80" fill="#9AA1AC" font-size="15">Every facial signal the app detects, with its user-facing label and the FACS Action Unit + MediaPipe blendshape rule behind it.</text>
+  <!-- legend -->
+  <g transform="translate(30,96)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <text x="34" y="4" fill="#9AA1AC" font-size="12">face mesh</text>
+    <ellipse cx="150" cy="0" rx="11" ry="7" fill="rgba(255,122,51,0.30)" filter="url(#glow)"/>
+    <text x="170" y="4" fill="#9AA1AC" font-size="12">activated muscle (tension)</text>
+    <rect x="400" y="-9" width="58" height="18" rx="9" fill="#1F6F4E"/><text x="429" y="4" fill="#9DEFC4" font-size="10" font-weight="700" text-anchor="middle">TIER A</text>
+    <text x="466" y="4" fill="#9AA1AC" font-size="12">high reliability · drives clinical score</text>
+    <rect x="760" y="-9" width="58" height="18" rx="9" fill="#6B5A1F"/><text x="789" y="4" fill="#F4E29D" font-size="10" font-weight="700" text-anchor="middle">TIER B</text>
+    <text x="826" y="4" fill="#9AA1AC" font-size="12">moderate · soft nudge only</text>
+  </g>
+
+  <!-- =========================================================
+       CARD TEMPLATE (local coords): card 360x312
+       face center (180,118)  ·  labels below from y=214
+       ========================================================= -->
+
+  <!-- ROW 0 ───────────────────────────────────────────── -->
+
+  <!-- (1) NEUTRAL / BASELINE -->
+  <g transform="translate(30,120)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 110 C181 126 181 132 173 136" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M156 158 Q180 164 204 158" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Resting face</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">Calibration baseline — 15s neutral</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">reference for every threshold</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#2A2A36"/><text x="180" y="302" text-anchor="middle" fill="#9AA1AC" font-size="9" font-weight="700">BASE</text>
+  </g>
+
+  <!-- (2) LIP PURSING -->
+  <g transform="translate(430,120)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 110 C181 126 181 132 173 136" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- pursed mouth: small forward-pushed -->
+    <ellipse cx="180" cy="160" rx="14" ry="14" fill="rgba(255,122,51,0.30)" filter="url(#glow)"/>
+    <ellipse cx="180" cy="160" rx="9" ry="11" fill="none" stroke="#FF7A33" stroke-width="2"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Lips pursed / tight</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU18 Lip Puckerer (incisivii)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">mouthPucker ↑  (+mouthFunnel)</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#1F6F4E"/><text x="180" y="302" text-anchor="middle" fill="#9DEFC4" font-size="9" font-weight="700">TIER A</text>
+  </g>
+
+  <!-- (3) JAW / LIP CLENCH -->
+  <g transform="translate(830,120)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 110 C181 126 181 132 173 136" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- jaw muscle glow at sides + pressed flat lips + raised chin -->
+    <ellipse cx="124" cy="150" rx="14" ry="20" fill="rgba(255,122,51,0.22)" filter="url(#glow)"/>
+    <ellipse cx="236" cy="150" rx="14" ry="20" fill="rgba(255,122,51,0.22)" filter="url(#glow)"/>
+    <rect x="156" y="156" width="48" height="9" rx="3" fill="rgba(255,122,51,0.30)" filter="url(#glow)"/>
+    <line x1="158" y1="160" x2="202" y2="160" stroke="#FF7A33" stroke-width="3.2"/>
+    <path d="M168 176 Q180 170 192 176" fill="none" stroke="#FF7A33" stroke-width="1.8"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Jaw / lips clenched</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU24 Lip Pressor + AU17 Chin Raiser</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">mouthPress ↑ &amp; mouthClose ↑ · jawOpen ↓</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#1F6F4E"/><text x="180" y="302" text-anchor="middle" fill="#9DEFC4" font-size="9" font-weight="700">TIER A</text>
+  </g>
+
+  <!-- ROW 1 ───────────────────────────────────────────── -->
+
+  <!-- (4) BROW TENSION -->
+  <g transform="translate(30,450)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- furrowed brows: inner ends pulled down + vertical creases -->
+    <ellipse cx="180" cy="84" rx="40" ry="16" fill="rgba(255,122,51,0.24)" filter="url(#glow)"/>
+    <path d="M132 84 Q152 84 176 96" fill="none" stroke="#FF7A33" stroke-width="2.4"/>
+    <path d="M228 84 Q208 84 184 96" fill="none" stroke="#FF7A33" stroke-width="2.4"/>
+    <line x1="174" y1="92" x2="172" y2="104" stroke="#FF7A33" stroke-width="1.6"/>
+    <line x1="186" y1="92" x2="188" y2="104" stroke="#FF7A33" stroke-width="1.6"/>
+    <ellipse cx="155" cy="112" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="112" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="112" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="112" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 116 C181 130 181 134 173 138" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M156 160 Q180 166 204 160" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Brow furrowed</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU4 Brow Lowerer (corrugator)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">browDownLeft / browDownRight ↑</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#1F6F4E"/><text x="180" y="302" text-anchor="middle" fill="#9DEFC4" font-size="9" font-weight="700">TIER A</text>
+  </g>
+
+  <!-- (5) OPEN-MOUTH HOLD -->
+  <g transform="translate(430,450)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 88 Q152 82 174 86" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 88 Q208 82 186 86" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="104" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="104" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="104" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="104" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 106 C181 120 181 124 174 128" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- frozen open mouth (vertical), NOT stretched -->
+    <ellipse cx="180" cy="162" rx="18" ry="24" fill="rgba(255,122,51,0.28)" filter="url(#glow)"/>
+    <ellipse cx="180" cy="162" rx="12" ry="18" fill="none" stroke="#FF7A33" stroke-width="2.2"/>
+    <text x="232" y="150" fill="#FF7A33" font-size="11" font-family="monospace">⏸ frozen</text>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Mouth frozen open</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU26/27 Jaw Drop — held (tonic block)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">jawOpen ↑ · low variance · stretch low</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#1F6F4E"/><text x="180" y="302" text-anchor="middle" fill="#9DEFC4" font-size="9" font-weight="700">TIER A</text>
+  </g>
+
+  <!-- (6) EYE BLINK / SQUEEZE -->
+  <g transform="translate(830,450)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- closed/squeezed eyes -->
+    <ellipse cx="155" cy="108" rx="16" ry="9" fill="rgba(255,122,51,0.26)" filter="url(#glow)"/>
+    <ellipse cx="205" cy="108" rx="16" ry="9" fill="rgba(255,122,51,0.26)" filter="url(#glow)"/>
+    <path d="M143 108 Q155 116 167 108" fill="none" stroke="#FF7A33" stroke-width="2.2"/>
+    <path d="M193 108 Q205 116 217 108" fill="none" stroke="#FF7A33" stroke-width="2.2"/>
+    <line x1="140" y1="100" x2="146" y2="96" stroke="#FF7A33" stroke-width="1.4"/>
+    <line x1="220" y1="100" x2="214" y2="96" stroke="#FF7A33" stroke-width="1.4"/>
+    <path d="M181 112 C181 126 181 132 173 136" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M156 160 Q180 166 204 160" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Eyes squeezing / blinking</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU45 Blink / AU43 Eyes Closed</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">eyeBlink ↑ held  OR  blink rate ↑↑</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#1F6F4E"/><text x="180" y="302" text-anchor="middle" fill="#9DEFC4" font-size="9" font-weight="700">TIER A</text>
+  </g>
+
+  <!-- ROW 2 ───────────────────────────────────────────── -->
+
+  <!-- (7) STRAINED OPEN / GRIMACE -->
+  <g transform="translate(30,780)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 90 Q152 82 174 88" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 90 Q208 82 186 88" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="106" rx="12" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="106" r="3" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="106" rx="12" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="106" r="3" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 108 C181 122 181 126 174 130" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- wide stretched open: horizontal + corners pulled -->
+    <ellipse cx="180" cy="160" rx="34" ry="18" fill="rgba(255,122,51,0.28)" filter="url(#glow)"/>
+    <path d="M146 160 Q180 144 214 160 Q180 182 146 160 Z" fill="none" stroke="#FF7A33" stroke-width="2.2"/>
+    <line x1="214" y1="160" x2="226" y2="156" stroke="#FF7A33" stroke-width="1.8"/>
+    <line x1="146" y1="160" x2="134" y2="156" stroke="#FF7A33" stroke-width="1.8"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Strained open / grimace</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU20 Lip Stretcher + AU27 Mouth Stretch</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">mouthStretch ↑ &amp; jawOpen ↑  (the disambiguator)</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#6B5A1F"/><text x="180" y="302" text-anchor="middle" fill="#F4E29D" font-size="9" font-weight="700">TIER B</text>
+  </g>
+
+  <!-- (8) CHEEK PUFFING -->
+  <g transform="translate(430,780)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <!-- bulged cheeks widen the outline -->
+    <path d="M180 36 C150 36 114 60 110 118 C108 150 124 180 180 200 C236 180 252 150 250 118 C246 60 210 36 180 36 Z" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="126" cy="138" rx="20" ry="22" fill="rgba(255,122,51,0.26)" filter="url(#glow)"/>
+    <ellipse cx="234" cy="138" rx="20" ry="22" fill="rgba(255,122,51,0.26)" filter="url(#glow)"/>
+    <path d="M118 92 Q140 86 158 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M242 92 Q220 86 202 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="150" cy="108" rx="11" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="150" cy="108" r="3" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="210" cy="108" rx="11" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="210" cy="108" r="3" fill="rgba(255,255,255,0.6)"/>
+    <line x1="162" y1="160" x2="198" y2="160" stroke="rgba(255,255,255,0.5)" stroke-width="1.6"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Cheeks puffed</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AD34 Puff (buccinator, trapped air)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">cheekPuff ↑</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#6B5A1F"/><text x="180" y="302" text-anchor="middle" fill="#F4E29D" font-size="9" font-weight="700">TIER B</text>
+  </g>
+
+  <!-- (9) NOSTRIL FLARE -->
+  <g transform="translate(830,780)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="108" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="108" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <!-- flared nose + wrinkle -->
+    <ellipse cx="180" cy="138" rx="22" ry="14" fill="rgba(255,122,51,0.26)" filter="url(#glow)"/>
+    <path d="M181 110 C181 124 181 130 173 134" fill="none" stroke="#FF7A33" stroke-width="1.6"/>
+    <path d="M166 140 Q173 148 180 142" fill="none" stroke="#FF7A33" stroke-width="2"/>
+    <path d="M194 140 Q187 148 180 142" fill="none" stroke="#FF7A33" stroke-width="2"/>
+    <path d="M170 120 Q180 116 190 120" fill="none" stroke="#FF7A33" stroke-width="1.4"/>
+    <path d="M156 160 Q180 164 204 160" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Nostrils flared</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">AU9 Nose Wrinkler (levator labii alaeque nasi)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">noseSneerLeft / noseSneerRight ↑</text>
+    <rect x="150" y="290" width="60" height="16" rx="8" fill="#6B5A1F"/><text x="180" y="302" text-anchor="middle" fill="#F4E29D" font-size="9" font-weight="700">TIER B</text>
+  </g>
+
+  <!-- ROW 3 ───────────────────────────────────────────── -->
+
+  <!-- (10) GAZE AVERSION -->
+  <g transform="translate(30,1110)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M130 92 Q152 86 174 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M230 92 Q208 86 186 90" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="155" cy="108" rx="13" ry="7" fill="rgba(255,122,51,0.20)" filter="url(#glow)"/>
+    <ellipse cx="205" cy="108" rx="13" ry="7" fill="rgba(255,122,51,0.20)" filter="url(#glow)"/>
+    <ellipse cx="155" cy="108" rx="13" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="165" cy="108" r="3.6" fill="#FF7A33"/>
+    <ellipse cx="205" cy="108" rx="13" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="215" cy="108" r="3.6" fill="#FF7A33"/>
+    <path d="M181 110 C181 126 181 132 173 136" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M156 158 Q180 164 204 158" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M236 116 q26 6 0 12" fill="none" stroke="#FF7A33" stroke-width="2"/><path d="M236 128 l8 -2 -2 8 z" fill="#FF7A33"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Looking away</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">Sustained head/eye yaw &gt; 20° (≥ 2.5s)</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">headPose.yaw  +  iris offset</text>
+    <rect x="120" y="290" width="120" height="16" rx="8" fill="#3A2A55"/><text x="180" y="302" text-anchor="middle" fill="#CDB8F0" font-size="9" font-weight="700">TIER C · HEAD POSE</text>
+  </g>
+
+  <!-- (11) HEAD JERKING -->
+  <g transform="translate(430,1110)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <!-- motion: ghost outline + arcs + arrow -->
+    <ellipse cx="168" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,122,51,0.25)" stroke-width="1.2"/>
+    <ellipse cx="192" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M142 90 Q164 84 186 88" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M242 90 Q220 84 198 88" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <ellipse cx="167" cy="108" rx="11" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="167" cy="108" r="3" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="217" cy="108" rx="11" ry="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="217" cy="108" r="3" fill="rgba(255,255,255,0.6)"/>
+    <path d="M156 160 Q192 166 226 160" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <path d="M108 70 q-14 14 0 28" fill="none" stroke="#FF7A33" stroke-width="2"/><path d="M108 98 l-2 -9 9 3 z" fill="#FF7A33"/>
+    <path d="M250 70 q14 14 0 28" fill="none" stroke="#FF7A33" stroke-width="2"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Head jerk / movement</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">Sudden yaw/pitch angular-velocity spike</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">d(headPose)/dt  (debounced 1s)</text>
+    <rect x="120" y="290" width="120" height="16" rx="8" fill="#3A2A55"/><text x="180" y="302" text-anchor="middle" fill="#CDB8F0" font-size="9" font-weight="700">TIER C · HEAD POSE</text>
+  </g>
+
+  <!-- (12) COMPOSITE -->
+  <g transform="translate(830,1110)">
+    <rect width="360" height="312" rx="18" fill="#121219" stroke="#23232E"/>
+    <ellipse cx="180" cy="118" rx="66" ry="82" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <!-- brow + lips both lit -->
+    <ellipse cx="180" cy="84" rx="40" ry="15" fill="rgba(255,122,51,0.24)" filter="url(#glow)"/>
+    <path d="M132 84 Q152 84 176 96" fill="none" stroke="#FF7A33" stroke-width="2.4"/>
+    <path d="M228 84 Q208 84 184 96" fill="none" stroke="#FF7A33" stroke-width="2.4"/>
+    <ellipse cx="155" cy="112" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="155" cy="112" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <ellipse cx="205" cy="112" rx="12" ry="7" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/><circle cx="205" cy="112" r="3.4" fill="rgba(255,255,255,0.6)"/>
+    <path d="M181 116 C181 130 181 134 173 138" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.4"/>
+    <rect x="156" y="158" width="48" height="9" rx="3" fill="rgba(255,122,51,0.30)" filter="url(#glow)"/>
+    <line x1="158" y1="162" x2="202" y2="162" stroke="#FF7A33" stroke-width="3"/>
+    <text x="180" y="232" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700">Multiple signs at once</text>
+    <text x="180" y="256" text-anchor="middle" fill="#9AA1AC" font-size="12">2+ tension signals active simultaneously</text>
+    <text x="180" y="278" text-anchor="middle" fill="#7FD8FF" font-size="11" font-family="monospace">FACIAL_TENSION_COMPOSITE</text>
+    <rect x="135" y="290" width="90" height="16" rx="8" fill="#5A1F2A"/><text x="180" y="302" text-anchor="middle" fill="#F0B8C0" font-size="9" font-weight="700">COMPOSITE</text>
+  </g>
+
+  <!-- footer -->
+  <text x="30" y="1470" fill="#6B7280" font-size="12">Thresholds &amp; hold-times are tuned on-device against the calibration baseline (see REBUILD_SPEC.md §2, §6). Mesh + orange glow mirror the live FacialOutlines overlay.</text>
+</svg>

@@ -48,8 +48,17 @@ const getApiBaseUrl = () => {
     if (isEmulator) {
       configuredUrl = configuredUrl
         .replace("localhost", "10.0.2.2")
-        .replace(/192\.168\.\d+\.\d+/, "10.0.2.2");
+        .replace(/192\.\d+\.\d+\.\d+/, "10.0.2.2");
     }
+  }
+
+  // If running on iOS Simulator in development:
+  // iOS Simulator shares the host network stack, so localhost always reaches
+  // the Mac — even when a LAN IP (192.168.x.x) is set in .env and becomes
+  // unreachable after a network change or sleep/wake cycle.
+  if (Platform.OS === "ios" && __DEV__ && !Device.isDevice) {
+    configuredUrl = configuredUrl
+      .replace(/192\.\d+\.\d+\.\d+/, "localhost");
   }
 
   return configuredUrl;

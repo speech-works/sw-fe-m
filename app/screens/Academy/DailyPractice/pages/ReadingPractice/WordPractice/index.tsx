@@ -15,7 +15,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
-import MasonryTips from "../../../components/MasonryTips";
+
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,6 +37,11 @@ import {
 } from "../../../../../../util/functions/parseStyles";
 import { readingTips } from "../data";
 import { useWordPractice } from "./useWordPractice";
+
+// Fluency-aid over-reliance guardrails
+import ToolConsentModal from "../../../../../../components/ToolConsentModal";
+import ToolNudge from "../../../../../../components/ToolNudge";
+import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 
 const { width } = Dimensions.get("window");
 
@@ -81,6 +86,24 @@ const WordPractice = () => {
     selectedPracticeTool !== ToolType.METRONOME,
   );
   const dafState = useDAF(selectedPracticeTool !== ToolType.DAF);
+
+  // --- Over-reliance guardrails (consent gate, usage tracking, nudge) ---
+  const {
+    consentTool,
+    requireConsent,
+    acknowledgeConsent,
+    toolNudge,
+    nudgeVisible,
+    handleNudgeTryWithout,
+    handleNudgeDismiss,
+    focusMode,
+    toolsExpanded,
+    setToolsExpanded,
+  } = useToolGuardrails(currentActivityId, {
+    [ToolType.DAF]: dafState.isDAFActive,
+    [ToolType.METRONOME]: metronomeState.isPlaying,
+    [ToolType.CHORUS]: vhIsPlaying,
+  });
 
   // --- Rendering Helpers ---
 
@@ -201,18 +224,36 @@ const WordPractice = () => {
     }
   };
 
-  const handleToolSelect = (toolName: string) => {
-    if (isToolActive(toolName)) {
-      stopTool(toolName);
-      return;
-    }
-
+  const proceedToolSelect = (toolName: string) => {
     if (selectedPracticeTool && selectedPracticeTool !== toolName) {
       stopTool(selectedPracticeTool);
     }
 
     actions.setSelectedPracticeTool(toolName);
     actions.setActiveToolSheet(toolName);
+  };
+
+  const handleToolSelect = (toolName: string) => {
+    if (isToolActive(toolName)) {
+      stopTool(toolName);
+      return;
+    }
+
+    // First-time educational consent gate for monitored fluency aids.
+    if (!requireConsent(toolName)) return;
+
+    proceedToolSelect(toolName);
+  };
+
+  const runStart = async () => {
+    actions.setIsStarting(true);
+    try {
+      await actions.markActivityStart();
+    } catch (error) {
+      console.error("[WordPractice] ❌ Error in markActivityStart:", error);
+    } finally {
+      actions.setIsStarting(false);
+    }
   };
 
   // --- Main Render ---
@@ -244,15 +285,7 @@ const WordPractice = () => {
   // Pre-Practice (Tips) View
   if (!currentActivityId) {
     return (
-      <ScreenView style={styles.screenView}>
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEEF8", "#FFFFFF"]}
-            locations={[0, 0.4, 1]}
-            style={{ flex: 1 }}
-          />
-        </View>
-
+      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
         <BlurView
           intensity={80}
           tint="light"
@@ -282,22 +315,53 @@ const WordPractice = () => {
         <ScrollView
           key="tips-scroll"
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingTop: HEADER_HEIGHT + insets.top + 20,
+            paddingBottom: 120,
           }}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.heroSection}>
+            <Text style={styles.heroTitle}>Word Practice</Text>
+            <Text style={styles.heroDescription}>
+              Focus on articulation and clarity with individual words.
+            </Text>
+          </View>
 
+          {nudgeVisible && toolNudge && (
+            <ToolNudge
+              directive={toolNudge}
+              onTryWithout={() => handleNudgeTryWithout(runStart)}
+              onDismiss={handleNudgeDismiss}
+              style={{ marginBottom: 32 }}
+            />
+          )}
 
-          <HardModeToggle 
+          <HardModeToggle
             value={hardMode}
             onValueChange={actions.setHardMode}
             canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 32 }}
           />
 
-          <MasonryTips tips={readingTips.word} />
-
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeader}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {readingTips.word.map((tip, index, arr) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         </ScrollView>
 
         {/* Fixed Start Button at bottom */}
@@ -309,19 +373,7 @@ const WordPractice = () => {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={async () => {
-              actions.setIsStarting(true);
-              try {
-                await actions.markActivityStart();
-              } catch (error) {
-                console.error(
-                  "[WordPractice] ❌ Error in markActivityStart:",
-                  error,
-                );
-              } finally {
-                actions.setIsStarting(false);
-              }
-            }}
+            onPress={() => runStart()}
             disabled={isStarting || !hasHydrated || isLoading}
             style={styles.startButton}
           >
@@ -503,7 +555,34 @@ const WordPractice = () => {
           onDiscard={() => {
             actions.setVoiceRecordingUri(null);
           }}
-          renderTools={() => (
+          renderTools={() =>
+            focusMode && !toolsExpanded ? (
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(148,163,184,0.12)",
+                }}
+                onPress={() => {
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut,
+                  );
+                  setToolsExpanded(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Icon name="sliders-h" size={14} color="#94A3B8" />
+                <Text
+                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
+                >
+                  Tools
+                </Text>
+              </TouchableOpacity>
+            ) : (
             <View style={styles.dockTools}>
               {[
                 { id: ToolType.DAF, icon: "headphones", label: "DAF" },
@@ -546,7 +625,8 @@ const WordPractice = () => {
                 );
               })}
             </View>
-          )}
+            )
+          }
         />
       </View>
 
@@ -573,6 +653,12 @@ const WordPractice = () => {
           {renderToolSheetContent()}
         </ScrollView>
       </BottomSheetModal>
+
+      <ToolConsentModal
+        visible={consentTool !== null}
+        tool={consentTool}
+        onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+      />
     </ScreenView>
   );
 };
@@ -658,6 +744,85 @@ const styles = StyleSheet.create({
   // Tips Styles
   scrollContent: {
     paddingHorizontal: 24,
+  },
+  backButtonMinimal: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  heroSection: {
+    marginBottom: 32,
+  },
+  heroTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  heroDescription: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  timelineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 24,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
   },
 
   startButton: {

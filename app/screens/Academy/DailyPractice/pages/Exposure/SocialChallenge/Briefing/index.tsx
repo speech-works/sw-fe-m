@@ -33,7 +33,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import MasonryTips from "../../../../components/MasonryTips";
+
 
 const Briefing = () => {
   const { user } = useUserStore();
@@ -210,47 +210,49 @@ const Briefing = () => {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero Briefing Card - Matte Modern Orange */}
-          <LinearGradient
-            colors={["#FFF7ED", "#FFEDD5"]} // Orange 50 -> 100
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.briefCard}
-          >
-            {/* Watermark Icon */}
-            <View style={styles.watermarkIconContainer}>
-              <Icon
-                name={
-                  data?.scenario?.availableRole?.fontAwesomeIcon || "user-tie"
-                }
-                size={120}
-                color="#EA580C"
+          <View style={styles.heroSectionMinimal}>
+            <Text style={styles.heroTitleMinimal}>{sc.name}</Text>
+            <Text style={styles.heroDescriptionMinimal}>{sc.description}</Text>
+          </View>
+
+          {/* Scenario Details Section */}
+          <View style={styles.scenarioCardLight}>
+            <View style={styles.scenarioCardHeaderLight}>
+              <Icon name="bookmark" size={14} color="#EA580C" />
+              <Text style={styles.scenarioCardTitleLight}>THE SCENARIO</Text>
+            </View>
+
+            <Text style={styles.scenarioCardTextLight}>
+              {data?.scenario?.scenarioDetails || "Navigate this social situation with confidence."}
+            </Text>
+
+            <View style={styles.scenarioWatermarkLight} pointerEvents="none">
+              <Icon 
+                name={data?.scenario?.availableRole?.fontAwesomeIcon || "user-tie"} 
+                size={140} 
+                color="#FFF7ED" 
               />
             </View>
-
-            <View style={styles.infoContainer}>
-              <View style={styles.roleTextContainer}>
-                <Text style={styles.roleplayTitleText}>{sc.name}</Text>
-                <Text style={styles.roleplayDescText}>{sc.description}</Text>
-              </View>
-
-              {/* Scenario Details Section */}
-              <View style={styles.scenarioSection}>
-                <View style={styles.sectionHeader}>
-                  <Icon name="info-circle" size={14} color="#C2410C" />
-                  <Text style={styles.sectionTitle}>The Scenario</Text>
-                </View>
-                <Text style={styles.scenarioText}>
-                  {data?.scenario?.scenarioDetails ||
-                    "Navigate this social situation with confidence."}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+          </View>
 
           {/* Tips Section */}
-          <View style={styles.tipsContainer}>
-            <MasonryTips tips={data?.stage?.userCharacter || []} />
+          <View style={styles.timelineSection}>
+            <Text style={styles.sectionHeadingMinimal}>Tips</Text>
+            <View style={styles.timelineContainer}>
+              {(data?.stage?.userCharacter || []).map((tip: string, index: number, arr: string[]) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineTrack}>
+                    <View style={styles.timelineDot} />
+                    {index !== arr.length - 1 && (
+                      <View style={styles.timelineLine} />
+                    )}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineText}>{tip}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         </ScrollView>
 
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   screenView: {
     flex: 1,
     paddingBottom: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FAFAFA",
   },
   container: {
     flex: 1,
@@ -337,75 +339,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Hero Card
-  briefCard: {
-    borderRadius: 24,
-    padding: 24,
-    position: "relative",
-    overflow: "hidden",
-    minHeight: 200,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginHorizontal: 0,
-  },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -20,
-    top: -20,
-    opacity: 0.1,
-    transform: [{ rotate: "15deg" }],
-  },
-  infoContainer: {
-    gap: 24,
-    zIndex: 1,
-  },
-  roleTextContainer: {
-    gap: 8,
-  },
-  roleplayTitleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#9A3412", // Deep Orange
-    fontWeight: "600",
-    fontSize: 24,
-  },
-  roleplayDescText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#9A3412",
-    lineHeight: 22,
-    fontWeight: "500",
-    opacity: 0.9,
-  },
-  scenarioSection: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    textTransform: "uppercase",
-    color: "#1E40AF",
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  scenarioText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#1E3A8A",
-    lineHeight: 20,
-  },
-
-  // Tips
-  tipsContainer: {
-    gap: 0,
-  },
   startButton: {
+    marginTop: 20,
     borderRadius: 20,
     ...parseShadowStyle(theme.shadow.elevation1),
     marginBottom: 0,
@@ -425,9 +360,106 @@ const styles = StyleSheet.create({
   },
   bottomActionContainer: {
     paddingHorizontal: 24,
+  },
+  // Minimal Styles
+  heroSectionMinimal: {
+    marginBottom: 32,
+  },
+  heroTitleMinimal: {
+    ...parseTextStyle(theme.typography.Heading1),
+    fontSize: 40,
+    color: '#111827',
+    marginBottom: 12,
+    letterSpacing: -1,
+    lineHeight: 48,
+  },
+  heroDescriptionMinimal: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  sectionHeadingMinimal: {
+    ...parseTextStyle(theme.typography.Heading2),
+    fontSize: 22,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  timelineSection: {
+    marginTop: 16,
+  },
+  timelineContainer: {
+    paddingLeft: 4,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+  },
+  timelineTrack: {
+    alignItems: 'center',
+    width: 20,
+    marginRight: 16,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.library.blue[500],
+    marginTop: 7,
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
+    marginBottom: -4,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 32,
+  },
+  timelineText: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
+  },
+  // Light Warm Scenario Card
+  scenarioCardLight: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 32,
+    marginBottom: 40,
+    padding: 32,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: "#FFEDD5", // Soft warm border
+    ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
+  },
+  scenarioCardHeaderLight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  scenarioCardTitleLight: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: "#EA580C",
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  scenarioCardTextLight: {
+    ...parseTextStyle(theme.typography.Body),
+    color: "#374151",
+    lineHeight: 28,
+    fontSize: 17,
+  },
+  scenarioWatermarkLight: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    right: -30,
+    bottom: -30,
+    zIndex: 0,
+    transform: [{ rotate: "-15deg" }],
   },
 });
