@@ -43,6 +43,7 @@ import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import DonePractice from "../../../components/DonePractice";
+import PhoneCallReport from "./Report";
 
 const PhoneCall = () => {
   const navigation =
@@ -91,6 +92,8 @@ const PhoneCall = () => {
 
   // State for bottom sheet visibility
   const [isDone, setIsDone] = useState(false);
+  const [reportActivityId, setReportActivityId] = useState<string | null>(null);
+  const [reportDismissed, setReportDismissed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const closeModal = () => setIsModalVisible(false);
@@ -231,6 +234,8 @@ const PhoneCall = () => {
       });
       useUserStore.getState().fetchUser();
 
+      // Capture the id for the post-call report before we clear it below.
+      setReportActivityId(activityId);
       // Clear the local activity ID state so starting another call creates a new one
       setTrackedActivityId(null);
       setIsDone(true);
@@ -340,6 +345,14 @@ const PhoneCall = () => {
   }, []);
 
   if (isDone) {
+    if (reportActivityId && !reportDismissed) {
+      return (
+        <PhoneCallReport
+          practiceActivityId={reportActivityId}
+          onContinue={() => setReportDismissed(true)}
+        />
+      );
+    }
     return (
       <DonePractice
         practiceName="AI conversation"
