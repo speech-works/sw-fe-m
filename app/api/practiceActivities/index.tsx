@@ -304,8 +304,12 @@ export interface PhoneCallReportData {
   areas_to_improve: string[];
   handled_pressure?: string;
   scores?: { confidence: number; clarity: number; engagement: number };
+  score_rationale?: { confidence: string; clarity: string; engagement: string };
+  disfluency_moments?: { quote: string; note?: string }[];
   suggested_next_practice?: string;
   encouragement: string;
+  // The conversation transcript, returned so the user can verify the report.
+  transcript?: string;
 }
 
 /**
