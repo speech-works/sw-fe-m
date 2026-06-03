@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import axios from "axios";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -48,16 +49,47 @@ const PhoneCallReport: React.FC<Props> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Keep the latest onContinue without making it a dep of load() (which would
+  // re-trigger the fetch effect every render).
+  const onContinueRef = useRef(onContinue);
+  onContinueRef.current = onContinue;
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
-    try {
-      const data = await getPhoneCallReport(practiceActivityId);
-      setReport(data);
-    } catch (e) {
-      setError(true);
-    } finally {
-      setLoading(false);
+    // The transcript is persisted when the call socket closes; if the app gets
+    // here a moment early, the endpoint returns 400 ("not ready"). Briefly retry
+    // on 400 so the report appears smoothly.
+    const MAX_ATTEMPTS = 4;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const data = await getPhoneCallReport(practiceActivityId);
+        if (!data) {
+          // No report for this call (e.g. Groq provider, or nothing to report)
+          // → skip straight to the done flow rather than showing anything.
+          onContinueRef.current();
+          return;
+        }
+        setReport(data);
+        setLoading(false);
+        return;
+      } catch (e) {
+        const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+        if (status === 400) {
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise((r) => setTimeout(r, 1500));
+            continue;
+          }
+          // Still no transcript after retries → trivial/empty call, nothing to
+          // report → skip to done instead of showing an error.
+          onContinueRef.current();
+          return;
+        }
+        // Genuine failure (500 / network) → show the error card.
+        setError(true);
+        setLoading(false);
+        return;
+      }
     }
   }, [practiceActivityId]);
 

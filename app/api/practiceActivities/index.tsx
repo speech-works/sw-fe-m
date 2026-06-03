@@ -316,7 +316,7 @@ export interface PhoneCallReportData {
  */
 export async function getPhoneCallReport(
   practiceActivityId: string,
-): Promise<PhoneCallReportData> {
+): Promise<PhoneCallReportData | null> {
   try {
     console.log(">> API: Generating phone-call report", { practiceActivityId });
     const response = await axiosClient.post(
@@ -324,6 +324,11 @@ export async function getPhoneCallReport(
       {},
       { timeout: 30000 },
     );
+    // 204 = no report for this call (e.g. running on the Groq provider). Empty
+    // body → treat as "no report" so the app skips straight to the done flow.
+    if (response.status === 204 || !response.data) {
+      return null;
+    }
     return response.data;
   } catch (error) {
     console.error("Error generating phone call report:", error);
