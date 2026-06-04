@@ -723,6 +723,8 @@ const Meditation = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="meditation"
         onDone={undefined}
         isAborted={isAborted}

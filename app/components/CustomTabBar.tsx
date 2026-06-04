@@ -19,10 +19,7 @@ import Animated, {
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
-import { LinearGradient } from "expo-linear-gradient";
-
 const { width } = Dimensions.get("window");
-const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
 
 const CustomTabBar = ({
   state,
@@ -93,11 +90,6 @@ const CustomTabBar = ({
           let activeColor = theme.colors.library.orange[400];
           let activeContentColor = "#FFFFFF";
 
-          if (routeName === ROUTE_NAMES.COMMUNITY) {
-            activeColor = "#d8b02cff"; // Dark background from image
-            activeContentColor = "#fff"; // Gold content from image
-          }
-
           return (
             <TabItem
               key={route.key}
@@ -140,13 +132,11 @@ const TabItem = ({
     };
   });
 
-  const isCommunity = routeName === ROUTE_NAMES.COMMUNITY;
-
   const pillStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["transparent", isCommunity ? "transparent" : activeColor],
+      ["transparent", activeColor],
     );
     return {
       backgroundColor,
@@ -206,16 +196,6 @@ const TabItem = ({
         style={styles.touchable}
       >
         <Animated.View style={pillStyle}>
-          {isCommunity && (
-            <Animated.View style={[StyleSheet.absoluteFill, gradientStyle]}>
-              <LinearGradient
-                colors={GOLD_GRADIENT}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-          )}
           <View
             style={{
               width: 24,

@@ -547,6 +547,8 @@ const Twister = () => {
   if (practiceComplete) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="tongue twister"
         onDone={
           packContext

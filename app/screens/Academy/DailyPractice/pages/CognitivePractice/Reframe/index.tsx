@@ -355,6 +355,8 @@ const Reframe = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="reframe practice"
         onDone={undefined}
         from={from}

@@ -4,6 +4,7 @@ import SubscribeScreen from "../screens/Payments";
 import BottomTabNavigator from "./BottomTabNavigator";
 
 import ExploreStackNavigator from "./stacks/ExploreStack";
+import PostComposer from "../screens/PostComposer";
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,11 @@ export default function AppNavigator() {
           presentation: "transparentModal",
           animation: "none",
         }}
+      />
+      <Stack.Screen
+        name="PostComposer"
+        component={PostComposer}
+        options={{ presentation: "modal" }}
       />
     </Stack.Navigator>
   );

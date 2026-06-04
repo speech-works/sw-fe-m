@@ -91,6 +91,9 @@ export const useUserStore = create<UserState>()(
             currentStamina:      user.currentStamina ?? null,
             // Account age (enables cohort analysis by sign-up date)
             createdAt:           user.createdAt?.toISOString() ?? null,
+            // Practice Buddy attribution (compare buddy-invited users vs organic)
+            acquisitionSource:   user.acquisitionSource ?? null,
+            invitedBy:           user.invitedByUserId ?? null,
           });
           // --- Low Stamina Threshold Detection (phone-battery style, paid only) ---
           if (

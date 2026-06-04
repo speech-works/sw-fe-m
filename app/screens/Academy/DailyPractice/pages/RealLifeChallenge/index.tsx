@@ -503,6 +503,12 @@ const RealLifeChallenge = () => {
   const renderSummaryScreen = () => (
     <DonePractice
       practiceName="real-life challenge"
+      activityId={currentActivityId ?? undefined}
+      contentType={
+        practiceActivityState?.cognitivePractice
+          ? PracticeActivityContentType.COGNITIVE_PRACTICE
+          : PracticeActivityContentType.EXPOSURE_PRACTICE
+      }
       onDone={packContext ? handleDone : undefined}
       from={from as any}
     />

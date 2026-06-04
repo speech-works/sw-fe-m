@@ -58,6 +58,28 @@ export const ANALYTICS_EVENTS = {
     TOOL_NUDGE_ACTION: 'tool_nudge_action',             // props: { tool, variant, action: 'try_without' | 'dismiss' }
     TOOL_FREE_COMPLETION_AFTER_NUDGE: 'tool_free_completion_after_nudge', // props: { tool, contentType }
 
+    // ── Practice Buddy (v1: invite-by-code) ───────────────────────────
+    BUDDY_INVITE_VIEWED: 'buddy_invite_viewed',         // props: { source: 'done_practice' | 'settings' }
+    BUDDY_INVITE_SHARED: 'buddy_invite_shared',         // props: { source }
+    BUDDY_CODE_ENTERED: 'buddy_code_entered',           // props: { source: 'onboarding' }
+    BUDDY_LINKED: 'buddy_linked',                       // props: { role: 'inviter' | 'invitee' }
+    BUDDY_STARTED: 'buddy_started',                     // invitee completed first practice (may also be server-side)
+    BUDDY_REPORT_CONSENT_SET: 'buddy_report_consent_set', // props: { shared: boolean }
+    BUDDY_REPORT_VIEWED: 'buddy_report_viewed',
+    BUDDY_CHEER_SENT: 'buddy_cheer_sent',               // props: { type }
+    BUDDY_CHEER_RECEIVED: 'buddy_cheer_received',       // props: { type }
+    BUDDY_LEFT: 'buddy_left',                           // props: { by: 'me' | 'them' }
+
+    // ── Posts / Feed (session card-posts; audience carried by `visibility`) ──
+    POST_COMPOSER_OPENED: 'post_composer_opened',       // props: { source: 'done_practice', activityKind, visibility }
+    POST_TEMPLATE_SELECTED: 'post_template_selected',   // props: { templateId, activityKind }
+    POST_CREATED: 'post_created',                       // props: { templateId, activityKind, visibility, hasCaption, includedFields }
+    POST_CANCELLED: 'post_cancelled',                   // props: { activityKind }
+    POST_FEED_VIEWED: 'post_feed_viewed',               // props: { scope, count }
+    POST_REACTION_SENT: 'post_reaction_sent',           // props: { type }
+    POST_REACTION_REMOVED: 'post_reaction_removed',     // props: { type }
+    POST_DELETED: 'post_deleted',
+
 } as const;
 
 export type AnalyticsEvent = typeof ANALYTICS_EVENTS[keyof typeof ANALYTICS_EVENTS];

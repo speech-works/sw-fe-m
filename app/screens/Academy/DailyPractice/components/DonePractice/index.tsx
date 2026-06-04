@@ -1,5 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
 import {
     Dimensions,
     StyleSheet,
@@ -18,6 +19,9 @@ import {
 } from "../../../../../util/functions/parseStyles";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
+import { getMyBuddy } from "../../../../../api/buddies";
+import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
+import { activityKindFromContentType } from "../../../../../util/functions/post";
 
 const { width } = Dimensions.get("window");
 
@@ -26,6 +30,9 @@ interface DonePracticeProps {
   onDone?: () => void;
   isAborted?: boolean;
   from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+  /** The completed activity — enables sharing it as a card-post (when paired). */
+  activityId?: string;
+  contentType?: PracticeActivityContentType;
 }
 
 const DonePractice = ({
@@ -33,8 +40,18 @@ const DonePractice = ({
   onDone,
   isAborted = false,
   from,
+  activityId,
+  contentType,
 }: DonePracticeProps) => {
   const navigation = useNavigation<any>();
+  const [hasBuddy, setHasBuddy] = useState(false);
+
+  useEffect(() => {
+    if (isAborted) return;
+    getMyBuddy()
+      .then((s) => setHasBuddy(s.link?.status === "active"))
+      .catch(() => {}); // silently ignore — default is show the button
+  }, [isAborted]);
 
   return (
     <View style={styles.container}>
@@ -87,8 +104,98 @@ const DonePractice = ({
 
         {/* Actions */}
         <View style={styles.actionContainer}>
+          {/* 1a. Share this session as a post — shown when paired */}
+          {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate("PostComposer", {
+                  activityId,
+                  activityKind: activityKindFromContentType(contentType),
+                  activityName: practiceName,
+                  visibility: "buddy",
+                })
+              }
+            >
+              <Text style={styles.secondaryButtonText}>Share this session</Text>
+              <Icon
+                name="share-alt"
+                size={56}
+                color={theme.colors.text.default}
+                style={styles.secondaryWatermark}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* 1b. Invite buddy — top, hidden when already paired or aborted */}
+          {!isAborted && !hasBuddy && from !== "MOOD_CHECK" && (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate("Root", {
+                  screen: ROUTE_NAMES.COMMUNITY,
+                })
+              }
+            >
+              <Text style={styles.secondaryButtonText}>
+                Invite a practice buddy
+              </Text>
+              <Icon
+                name="user-friends"
+                size={60}
+                color={theme.colors.text.default}
+                style={styles.secondaryWatermark}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* 2. Set Reminder — middle */}
+          {from !== "MOOD_CHECK" && (
+            <View style={styles.reminderWrapper}>
+              <Reminder
+                suggestedCategory={mapPracticeToCategory(practiceName)}
+                renderTrigger={(onOpen) => (
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={onOpen}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.secondaryButtonText}>Set Reminder</Text>
+                    <Icon
+                      name="bell"
+                      size={64}
+                      color={theme.colors.text.default}
+                      style={styles.secondaryWatermark}
+                    />
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
+
+          {/* 3. Primary CTA — always at the bottom */}
           {from === "MOOD_CHECK" ? (
             <>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  navigation.navigate("Root", {
+                    screen: ROUTE_NAMES.EXPLORE,
+                    params: { screen: "Explore", params: { scrollToJumpIn: true } },
+                  });
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>Explore More</Text>
+                <Icon
+                  name="compass"
+                  size={64}
+                  color={theme.colors.text.default}
+                  style={styles.secondaryWatermark}
+                />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.exploreButton}
                 activeOpacity={0.9}
@@ -115,25 +222,6 @@ const DonePractice = ({
                     style={styles.exploreWatermark}
                   />
                 </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                activeOpacity={0.7}
-                onPress={() => {
-                  navigation.navigate("Root", {
-                    screen: ROUTE_NAMES.EXPLORE,
-                    params: { screen: "Explore", params: { scrollToJumpIn: true } },
-                  });
-                }}
-              >
-                <Text style={styles.secondaryButtonText}>Explore More</Text>
-                <Icon
-                  name="compass"
-                  size={64}
-                  color={theme.colors.text.default}
-                  style={styles.secondaryWatermark}
-                />
               </TouchableOpacity>
             </>
           ) : onDone ? (
@@ -181,7 +269,6 @@ const DonePractice = ({
                 style={styles.exploreGradient}
               >
                 <Text style={styles.exploreText}>Explore More</Text>
-                {/* Compass Watermark */}
                 <Icon
                   name="compass"
                   size={80}
@@ -190,30 +277,6 @@ const DonePractice = ({
                 />
               </LinearGradient>
             </TouchableOpacity>
-          )}
-
-          {from !== "MOOD_CHECK" && (
-            <View style={styles.reminderWrapper}>
-              <Reminder
-                suggestedCategory={mapPracticeToCategory(practiceName)}
-                renderTrigger={(onOpen) => (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={onOpen}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.secondaryButtonText}>Set Reminder</Text>
-                    {/* Bell Watermark */}
-                    <Icon
-                      name="bell"
-                      size={64}
-                      color={theme.colors.text.default}
-                      style={styles.secondaryWatermark}
-                    />
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
           )}
         </View>
       </View>

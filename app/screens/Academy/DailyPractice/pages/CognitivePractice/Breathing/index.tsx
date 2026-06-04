@@ -654,6 +654,8 @@ const Breathing = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="breathing exercise"
         onDone={undefined}
         isAborted={isAborted}

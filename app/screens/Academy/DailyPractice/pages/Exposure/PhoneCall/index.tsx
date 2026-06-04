@@ -355,6 +355,8 @@ const PhoneCall = () => {
     }
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="AI conversation"
         onDone={
           packContext

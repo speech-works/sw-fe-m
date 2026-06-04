@@ -545,6 +545,8 @@ const PoemPractice = () => {
   if (practiceComplete) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="poem practice"
         onDone={
           packContext

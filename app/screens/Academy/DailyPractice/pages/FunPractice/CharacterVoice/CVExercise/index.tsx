@@ -301,6 +301,8 @@ const CVExercise = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="character voice exercise"
         onDone={
           packContext

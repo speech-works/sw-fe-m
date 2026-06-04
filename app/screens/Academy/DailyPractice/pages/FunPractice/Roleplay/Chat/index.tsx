@@ -332,6 +332,8 @@ const Chat = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="roleplay"
         onDone={
           packContext

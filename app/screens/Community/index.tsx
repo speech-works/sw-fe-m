@@ -1,582 +1,714 @@
-import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import React, { useCallback, useState } from "react";
 import {
-  Dimensions,
+  ActivityIndicator,
+  Alert,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
-import {
-  parseTextStyle,
-  parseShadowStyle,
-} from "../../util/functions/parseStyles";
-import { theme } from "../../Theme/tokens";
+import Feed from "../../components/Feed";
 import ButterflyFace from "../../assets/sw-faces/ButterflyFace";
+import { theme } from "../../Theme/tokens";
+import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
+import {
+  BuddySummary,
+  CheerType,
+  getMyBuddy,
+  leaveBuddy,
+  sendCheer,
+  setReportConsent,
+} from "../../api/buddies";
+import { shareBuddyInvite } from "../../util/functions/share";
+import { BUDDY_CHEERS } from "../../constants/buddyCheers";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
-const { width } = Dimensions.get("window");
+const HEADER_HEIGHT = 100;
 
-// Mock Data for the Current Tier
-const CURRENT_TIER = {
-  name: "THE FIRST 100 PIONEERS",
-  totalSpots: 100,
-  filledSpots: 64,
-  perks: [
-    "Connect with Experts & Peers",
-    "Earn Pioneer Recognition",
-    "Direct the Product Vision",
-    "Free with Annual Pro",
-  ],
+// Brand palette (warm orange scale) — keeps this screen cohesive with the app.
+const C = {
+  orange400: theme.colors.library.orange[400], // #FF9040
+  orange500: theme.colors.library.orange[500], // #FF6B00
+  orange600: theme.colors.library.orange[600], // #BF5000
+  orange700: theme.colors.library.orange[700], // #803600
+  title: theme.colors.text.title, // orange[800] #401B00
+  textMuted: theme.colors.text.default, // gray[400]
+  peach: "#FFF7ED",
+  peachSurface: theme.colors.library.orange[100], // #FFF0E5
+  warmBorder: theme.colors.library.orange[200], // #FFDABF
+  hairline: theme.colors.library.gray[100], // #ECEDEE
+  faint: theme.colors.library.gray[300], // #A1A4AA
+  online: theme.colors.feedback.success, // #0DA500
+  dangerBg: theme.colors.library.red[100], // #FFE5E5
+  danger: theme.colors.library.red[400], // #FF4040
+  gold: theme.colors.library.yellow[400], // #FFEC40
 };
 
-const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
-
 const Community = () => {
-  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
-  // Animation for the glow effect
-  const glowOpacity = useSharedValue(0.3);
-  const progressWidth = useSharedValue(0);
-  const tipOscillation = useSharedValue(0);
-  const tipPulse = useSharedValue(1);
+  const [summary, setSummary] = useState<BuddySummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    // Elegant pulsing glow
-    glowOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.8, { duration: 2000 }),
-        withTiming(0.3, { duration: 2000 }),
-      ),
-      -1,
-      true,
-    );
+  const [activeTab, setActiveTab] = useState<"activity" | "motivation">("activity");
 
-    // Animate the progress bar
-    progressWidth.value = withTiming(
-      (CURRENT_TIER.filledSpots / CURRENT_TIER.totalSpots) * 100,
-      { duration: 2000 },
-    );
-
-    // Tip oscillation (move to and fro)
-    tipOscillation.value = withRepeat(
-      withSequence(
-        withTiming(4, { duration: 1500 }),
-        withTiming(0, { duration: 1500 }),
-      ),
-      -1,
-      true,
-    );
-
-    // Tip pulse (glow intensity)
-    tipPulse.value = withRepeat(
-      withSequence(
-        withTiming(2.5, { duration: 800 }),
-        withTiming(1, { duration: 800 }),
-      ),
-      -1,
-      true,
-    );
+  const load = useCallback(async () => {
+    try {
+      setError(false);
+      const data = await getMyBuddy();
+      setSummary(data);
+    } catch (e) {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const animatedGlow = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
+  useFocusEffect(
+    useCallback(() => {
+      track(ANALYTICS_EVENTS.BUDDY_INVITE_VIEWED, { source: "community" });
+      load();
+    }, [load]),
+  );
 
-  const animatedProgress = useAnimatedStyle(() => ({
-    width: `${progressWidth.value}%`,
-  }));
+  const link = summary?.link ?? null;
+  const isPaired = link?.status === "active";
+  const isPending = link?.status === "pending";
 
-  const animatedTip = useAnimatedStyle(() => ({
-    left: `${progressWidth.value}%`,
-    transform: [
-      { translateX: -5 + tipOscillation.value },
-      { scale: tipPulse.value },
-    ],
-    opacity: tipPulse.value - 0.1,
-  }));
+  const handleShare = async () => {
+    if (!summary?.referralCode) return;
+    const shared = await shareBuddyInvite(summary.referralCode);
+    if (shared) {
+      track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community" });
+    }
+  };
+
+  const handleCheer = async (type: CheerType) => {
+    if (busy) return;
+    try {
+      setBusy(true);
+      await sendCheer(type);
+      track(ANALYTICS_EVENTS.BUDDY_CHEER_SENT, { type });
+      Alert.alert("Sent!", "Your buddy will see your cheer.");
+    } catch (e) {
+      Alert.alert("Couldn't send", "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleConsent = async (shared: boolean) => {
+    if (!link) return;
+    try {
+      const updated = await setReportConsent(shared);
+      track(ANALYTICS_EVENTS.BUDDY_REPORT_CONSENT_SET, { shared });
+      setSummary((prev) => (prev ? { ...prev, link: updated } : prev));
+    } catch (e) {
+      Alert.alert("Couldn't update", "Please try again.");
+    }
+  };
+
+  const handleLeave = () => {
+    Alert.alert(
+      "Leave buddy?",
+      "You'll stop sharing progress with each other, and your slot frees up to invite someone else.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setBusy(true);
+              await leaveBuddy();
+              track(ANALYTICS_EVENTS.BUDDY_LEFT, { by: "me" });
+              await load();
+            } catch (e) {
+              Alert.alert("Couldn't leave", "Please try again.");
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const buddyName = link?.buddy?.name ?? "Your Buddy";
+  const buddyFirstName = buddyName.split(" ")[0];
+
+  const renderHeader = () => (
+    <BlurView
+      intensity={80}
+      tint="light"
+      style={[
+        styles.header,
+        { paddingTop: insets.top + 20, height: HEADER_HEIGHT + insets.top },
+      ]}
+    >
+      <Text style={styles.title}>Community</Text>
+      <Text style={styles.subtitle}>
+        {isPaired
+          ? `You & ${buddyFirstName} — keep it up together.`
+          : "Find a practice partner and keep each other going."}
+      </Text>
+    </BlurView>
+  );
+
+  const renderInvite = () => (
+    <View style={styles.inviteCardWrapper}>
+      <View style={styles.inviteCard}>
+        <LinearGradient
+          colors={["#FF8A3D", "#F2630C"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        
+        <Text style={styles.bigHeadline}>Find your{"\n"}practice partner!</Text>
+        
+        <View style={styles.bottomBlock}>
+          {isPending && (
+            <View style={styles.pendingPillImm}>
+              <MaterialCommunityIcons name="clock-fast" size={14} color="#FFFFFF" />
+              <Text style={styles.pendingTextImm}>Waiting for them to join…</Text>
+            </View>
+          )}
+          <View style={styles.codeBox}>
+            <Text style={styles.codeLabelImm}>YOUR INVITE CODE</Text>
+            <Text style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleShare}
+            disabled={!summary?.referralCode}
+            style={styles.sharePill}
+          >
+            <Text style={styles.sharePillText}>Share invite</Text>
+            <MaterialCommunityIcons name="share-variant" size={18} color="#F2630C" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderPaired = () => {
+    const buddy = link?.buddy;
+    const buddyInitials = buddyName.substring(0, 2).toUpperCase();
+
+    return (
+      <View style={styles.pairedWrapper}>
+        {/* Profile Header Block */}
+        <View style={styles.profileHeaderBlock}>
+          <View style={styles.avatarWrapper}>
+            {buddy?.profilePictureUrl ? (
+              <Image source={{ uri: buddy.profilePictureUrl }} style={styles.avatarCircle} />
+            ) : (
+              <View style={styles.avatarCircleFallback}>
+                <Text style={styles.avatarLetter}>{buddyInitials}</Text>
+              </View>
+            )}
+            <View style={styles.statusBadge}>
+              <View style={styles.statusBadgeInner} />
+            </View>
+          </View>
+
+          <View style={styles.profileInfoText}>
+            <View style={styles.nameRow}>
+              <Text style={styles.buddyName} numberOfLines={1}>
+                {buddyName}
+              </Text>
+              <MaterialCommunityIcons name="check-decagram" size={16} color={C.orange500} />
+            </View>
+            <Text style={styles.buddyBio}>
+              Dedicated to improving speech. Practice Partner. Let's hit our goals together!
+            </Text>
+
+            <View style={styles.tagsRow}>
+              <View style={styles.tagItem}>
+                <Text style={styles.tagText}>Speech 🗣️</Text>
+              </View>
+              <View style={styles.tagItemSecondary}>
+                <Text style={styles.tagTextSecondary}>supporter ⭐</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Action Row */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={link?.iShareReports ? styles.actionBtnMuted : styles.actionBtnSolid}
+            activeOpacity={0.7}
+            onPress={() => handleConsent(!link?.iShareReports)}
+          >
+            <Text
+              style={link?.iShareReports ? styles.actionBtnMutedText : styles.actionBtnSolidText}
+            >
+              {link?.iShareReports ? "Stop Sharing" : "Share Progress"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtnCircleNeutral}
+            activeOpacity={0.7}
+            onPress={handleShare}
+          >
+            <MaterialCommunityIcons name="send" size={20} color={C.orange700} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtnCircleDestructive}
+            activeOpacity={0.7}
+            onPress={handleLeave}
+          >
+            <MaterialCommunityIcons name="account-minus" size={20} color={C.danger} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Underline Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab("activity")}
+            style={[styles.tab, activeTab === "activity" && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, activeTab === "activity" && styles.tabTextActive]}>
+              Activity
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab("motivation")}
+            style={[styles.tab, activeTab === "motivation" && styles.tabActive]}
+          >
+            <Text
+              style={[styles.tabText, activeTab === "motivation" && styles.tabTextActive]}
+            >
+              Motivation
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab Content Area */}
+        <View style={styles.tabContentArea}>
+          {activeTab === "activity" && <Feed scope="buddy" />}
+
+          {activeTab === "motivation" && (
+            <View>
+              {BUDDY_CHEERS.map((c) => (
+                <View key={c.type} style={styles.postItem}>
+                  <View style={styles.postAvatarFallback}>
+                    <MaterialCommunityIcons name="account" size={16} color="#FFF" />
+                  </View>
+                  <View style={styles.postContent}>
+                    <View style={styles.postHeader}>
+                      <Text style={styles.postName}>You</Text>
+                      <Text style={styles.postTime}>Now</Text>
+                    </View>
+                    <Text style={styles.postBody}>
+                      {c.emoji} {c.label}
+                    </Text>
+                    <View style={styles.postActions}>
+                      <TouchableOpacity
+                        style={styles.postActionBtn}
+                        onPress={() => handleCheer(c.type)}
+                      >
+                        <MaterialCommunityIcons
+                          name="heart-outline"
+                          size={18}
+                          color={C.faint}
+                        />
+                        <Text style={styles.postActionText}>Send</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+
 
   return (
     <ScreenView style={styles.screenView}>
-      <CustomScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          {/* Subtle Branding */}
-          <Animated.View
-            entering={FadeInDown.duration(800).delay(100)}
-            style={styles.brandingHeader}
-          >
-            <View style={styles.brandingDot} />
-            <Text style={styles.brandingText}>MEMBERS ONLY</Text>
-          </Animated.View>
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={[C.peach, "#FFF", "#FFF"]}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
 
-          {/* Scarcity Hero */}
-          <Animated.View
-            entering={FadeInDown.duration(1000).delay(200)}
-            style={styles.heroSection}
-          >
-            <Text style={styles.heroTitle}>Your journey</Text>
-            <Text style={styles.heroTitle}>can guide</Text>
-            <Text style={[styles.heroTitle, styles.heroTitleAccent]}>
-              others.
-            </Text>
-          </Animated.View>
+      {renderHeader()}
 
-          <Animated.View
-            entering={FadeInDown.duration(1000).delay(300)}
-            style={styles.subtextSection}
-          >
-            <Text style={styles.subtext}>
-              Connect directly with vetted therapists and peers who understand.
-              This is the first curated space of its kind. Become a founding
-              member to offer support, shape our culture, and protect this
-              community's integrity.
-            </Text>
-          </Animated.View>
-
-          {/* Digital Tracker Card */}
-          <View style={{ position: "relative", marginTop: 40 }}>
-            <View
-              style={{
-                position: "absolute",
-                top: -100,
-                right: 0,
-                zIndex: 1,
-                width: 160,
-                height: 100,
-                overflow: "hidden",
-              }}
-            >
-              <ButterflyFace
-                size={160}
-                shouldAnimate={true}
-                transparentBg
-                skinColor="#7A4A2A"
-                inkColor="#1A0A00"
-                butterflyColor="#D4AF37"
-              />
-            </View>
-            <Animated.View
-              entering={FadeInDown.duration(1000).delay(400)}
-              style={styles.trackerCard}
-            >
-              <View style={styles.trackerTop}>
-                <Text style={styles.trackerLabel}>{CURRENT_TIER.name}</Text>
-                <Text style={styles.liveIndicator}>• LIVE</Text>
-              </View>
-
-              <View style={styles.countContainer}>
-                <Text style={styles.countNumber}>
-                  {CURRENT_TIER.filledSpots}
-                </Text>
-                <Text style={styles.countTotal}>
-                  / {CURRENT_TIER.totalSpots}
-                </Text>
-                <Text style={styles.countLabel}>FOUNDING SEATS RESERVED</Text>
-              </View>
-
-              {/* Glowing Progress Indicator */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressTrack}>
-                  <Animated.View
-                    style={[styles.progressFill, animatedProgress]}
-                  />
-                  {/* Glow Overlay */}
-                  <Animated.View
-                    style={[
-                      styles.progressGlow,
-                      animatedProgress,
-                      animatedGlow,
-                    ]}
-                  />
-                  {/* Visual "Tip" and Pulse */}
-                  <Animated.View style={[styles.progressTip, animatedTip]} />
-                </View>
-              </View>
-
-              <Text style={styles.spotsLeft}>
-                ONLY {CURRENT_TIER.totalSpots - CURRENT_TIER.filledSpots}{" "}
-                RESERVATIONS LEFT
-              </Text>
-            </Animated.View>
+      <View style={styles.container}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={C.orange500} size="large" />
           </View>
-
-          {/* Benefits List */}
-          <Animated.View
-            entering={FadeInDown.duration(1000).delay(500)}
-            style={styles.benefitsSection}
+        ) : error ? (
+          <View style={styles.center}>
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={48}
+              color={C.faint}
+              style={{ marginBottom: 12 }}
+            />
+            <Text style={styles.errorText}>Couldn't load Community.</Text>
+            <TouchableOpacity onPress={load} style={styles.retryBtn}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <CustomScrollView
+            contentContainerStyle={[
+              styles.scrollView,
+              { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
+              !isPaired && { flexGrow: 1, justifyContent: "center" }
+            ]}
           >
-            <Text style={styles.benefitsTitle}>EXCLUSIVE BENEFITS</Text>
-            <View style={styles.bentoContainer}>
-              {/* Row 1: Hero Perk */}
-              <View style={styles.heroCard}>
-                <View
-                  style={[styles.benefitIconWrapper, styles.heroIconWrapper]}
-                >
-                  <Icon name="account-group" size={24} color="#D4AF37" />
-                </View>
-                <View style={styles.heroCardContent}>
-                  <Text style={styles.heroCardTitle}>
-                    Connect with Experts & Peers
-                  </Text>
-                  <Text style={styles.heroCardSubtext}>
-                    Direct access to a vetted, elite network.
-                  </Text>
-                </View>
-              </View>
-
-              {/* Row 2: Supporting Perks */}
-              <View style={styles.perkRow}>
-                <View style={styles.perkCard}>
-                  <Icon name="medal" size={20} color="#D4AF37" />
-                  <View style={styles.perkCardContent}>
-                    <Text style={styles.perkCardText}>Pioneer Recognition</Text>
-                    <Text style={styles.perkCardSubtext}>
-                      Elite profile badge & status.
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.perkCard}>
-                  <Icon name="eye-outline" size={20} color="#D4AF37" />
-                  <View style={styles.perkCardContent}>
-                    <Text style={styles.perkCardText}>Product Vision</Text>
-                    <Text style={styles.perkCardSubtext}>
-                      Vote on future features.
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Row 3: Membership Status */}
-              <View style={styles.membershipBanner}>
-                <Icon name="crown-outline" size={16} color="#D4AF37" />
-                <Text style={styles.membershipText}>Free with Annual Pro</Text>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-
-        {/* GO PRO CTA - Integrated Layout */}
-        <Animated.View
-          entering={FadeInUp.duration(800).delay(600)}
-          style={styles.ctaContainer}
-        >
-          <TouchableOpacity
-            style={styles.ctaButton}
-            activeOpacity={0.9}
-            onPress={() => navigation.navigate("PremiumModal")}
-          >
-            <LinearGradient
-              colors={GOLD_GRADIENT}
-              style={styles.ctaGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.ctaText}>GET PRO & RESERVE SPOT</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <Text style={styles.ctaFooterText}>
-            Requires Annual Pro Subscription. Cancel anytime.
-          </Text>
-        </Animated.View>
-      </CustomScrollView>
+            {isPaired ? renderPaired() : renderInvite()}
+          </CustomScrollView>
+        )}
+      </View>
     </ScreenView>
   );
 };
 
+export default Community;
+
 const styles = StyleSheet.create({
   screenView: {
-    backgroundColor: "#0A0A0B", // Deep charcoal/black
-  },
-  scrollContent: {
-    paddingBottom: 120, // Reduced to avoid hiding behind dock
-  },
-  container: {
-    paddingHorizontal: 28,
-    paddingTop: 60,
-  },
-  brandingHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 40,
-    gap: 8,
-  },
-  brandingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#D4AF37", // Gold dot for premium
-  },
-  brandingText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 2,
-    fontWeight: "700",
-  },
-  heroSection: {
-    marginBottom: 24,
-  },
-  heroTitle: {
-    fontSize: 48,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    lineHeight: 52,
-    letterSpacing: -1.5,
-  },
-  heroTitleAccent: {
-    color: "#D4AF37", // Gold highlight
-  },
-  subtextSection: {
-    marginBottom: 40,
-  },
-  subtext: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.5)",
-    lineHeight: 26,
-    fontWeight: "400",
-  },
-  trackerCard: {
-    backgroundColor: "rgba(212, 175, 55, 0.03)", // Translucent gold hint
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.1)",
-    marginBottom: 40,
-  },
-  trackerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  trackerLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.4)",
-    letterSpacing: 1.5,
-  },
-  liveIndicator: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#D4AF37",
-    letterSpacing: 1,
-  },
-  countContainer: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    flexWrap: "wrap",
-    marginBottom: 20,
-  },
-  countNumber: {
-    fontSize: 64,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -2,
-    lineHeight: 70,
-  },
-  countTotal: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.2)",
-    marginLeft: 8,
-  },
-  countLabel: {
-    width: "100%",
-    fontSize: 11,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 1,
-    marginTop: -4,
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#D4AF37",
-    borderRadius: 2,
-    zIndex: 1,
-  },
-  progressGlow: {
-    position: "absolute",
-    height: "100%",
-    backgroundColor: "#D4AF37",
-    borderRadius: 2,
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  progressTip: {
-    position: "absolute",
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FFFFFF",
-    top: -3,
-    shadowColor: "#D4AF37",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  spotsLeft: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.3)",
-    letterSpacing: 0.5,
-  },
-  benefitsSection: {
-    marginBottom: 32,
-  },
-  benefitsTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.3)",
-    letterSpacing: 2,
-    marginBottom: 20,
-  },
-  bentoContainer: {
-    gap: 12,
-  },
-  heroCard: {
-    width: "100%",
-    backgroundColor: "rgba(212, 175, 55, 0.05)",
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.15)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
-  },
-  heroCardContent: {
     flex: 1,
+    paddingHorizontal: 0,
   },
-  heroCardTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    marginBottom: 4,
-  },
-  heroCardSubtext: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
-  },
-  perkRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  perkCard: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.05)",
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-    gap: 16,
-    minHeight: 130,
-  },
-  perkCardContent: {
+  container: { flex: 1 },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: 16,
     gap: 4,
   },
-  perkCardText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFFFFF",
+  title: {
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
   },
-  perkCardSubtext: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
+  subtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
   },
-  membershipBanner: {
-    width: "100%",
-    backgroundColor: "rgba(255, 255, 255, 0.02)",
-    borderRadius: 12,
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
+  },
+  errorText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    marginBottom: 20,
+  },
+  retryBtn: {
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 100,
+    backgroundColor: C.orange500,
+  },
+  retryText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
+  scrollView: { paddingHorizontal: 0 },
+
+  // Invite Layout (cardless / editorial)
+  invite: { alignItems: "center", paddingHorizontal: 28, paddingTop: 8 },
+  heroBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 22,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.3,
+  },
+  inviteTitle: {
+    ...parseTextStyle(theme.typography.Heading1),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  inviteSubtitle: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    lineHeight: 23,
+    marginBottom: 28,
+  },
+  pendingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 24,
+  },
+  pendingText: { color: C.orange700, fontSize: 14, fontWeight: "700" },
+  codeBlock: { alignItems: "center", marginBottom: 32 },
+  codeLabel: {
+    ...parseTextStyle(theme.typography.LabelSmall),
+    letterSpacing: 2,
+    color: C.orange600,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  codeValue: {
+    fontSize: 40,
+    fontWeight: "900",
+    letterSpacing: 6,
+    color: theme.colors.text.title,
+    textAlign: "center",
+  },
+  codeUnderline: {
+    marginTop: 14,
+    width: 64,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: C.warmBorder,
+  },
+  primaryBtnWrap: { width: "100%" },
+  primaryBtn: {
+    width: "100%",
+    height: 56,
+    borderRadius: 100,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.03)",
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.25,
   },
-  membershipText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.3)",
-    letterSpacing: 1,
-    textTransform: "uppercase",
+  primaryBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
+  helperText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: C.faint,
+    textAlign: "center",
+    marginTop: 14,
   },
-  benefitIconWrapper: {
+
+  // Paired Layout
+  pairedWrapper: { paddingTop: 16 },
+  profileHeaderBlock: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    alignItems: "flex-start",
+  },
+  avatarWrapper: { position: "relative", marginRight: 16 },
+  avatarCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.warmBorder },
+  avatarCircleFallback: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: theme.colors.text.title,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarLetter: { fontSize: 28, fontWeight: "800", color: "#FFFFFF" },
+  statusBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusBadgeInner: { width: 14, height: 14, borderRadius: 7, backgroundColor: C.online },
+  profileInfoText: { flex: 1, justifyContent: "center" },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  buddyName: { fontSize: 20, fontWeight: "800", color: theme.colors.text.title },
+  buddyBio: { fontSize: 15, color: theme.colors.text.default, lineHeight: 22, marginBottom: 14 },
+  tagsRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  tagItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 100,
+    backgroundColor: C.peachSurface,
+  },
+  tagText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
+  tagItemSecondary: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 100,
+    backgroundColor: C.gold,
+  },
+  tagTextSecondary: { fontSize: 13, fontWeight: "700", color: theme.colors.text.title },
+
+  // Action Row
+  actionRow: { flexDirection: "row", paddingHorizontal: 16, marginBottom: 24, gap: 12 },
+  actionBtnSolid: {
+    flex: 1,
+    height: 44,
+    borderRadius: 100,
+    backgroundColor: C.orange500,
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.3,
+  },
+  actionBtnSolidText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF" },
+  actionBtnMuted: {
+    flex: 1,
+    height: 44,
+    borderRadius: 100,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionBtnMutedText: { fontSize: 15, fontWeight: "700", color: C.orange700 },
+  actionBtnCircleNeutral: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    backgroundColor: C.peachSurface,
     alignItems: "center",
     justifyContent: "center",
   },
-  heroIconWrapper: {
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  actionBtnCircleDestructive: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: C.dangerBg,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  ctaContainer: {
-    padding: 28,
-    paddingTop: 0,
-    paddingBottom: 20, // Reduced gap for tighter layout
+
+  // Underline Tabs
+  tabContainer: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: C.hairline,
   },
-  ctaButton: {
-    height: 64,
-    borderRadius: 16,
+  tab: { flex: 1, paddingVertical: 14, alignItems: "center", justifyContent: "center" },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: C.orange500 },
+  tabText: { fontSize: 15, fontWeight: "600", color: C.faint },
+  tabTextActive: { color: theme.colors.text.title, fontWeight: "800" },
+
+  // Tab Content Area
+  tabContentArea: { minHeight: 300 },
+  postItem: {
+    flexDirection: "row",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.hairline,
+  },
+  postAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.text.title,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  postContent: { flex: 1 },
+  postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  postName: { fontSize: 15, fontWeight: "700", color: theme.colors.text.title },
+  postTime: { fontSize: 14, color: C.faint, marginLeft: 6 },
+  postBody: { fontSize: 15, color: theme.colors.text.default, lineHeight: 22, marginBottom: 12 },
+  postActions: { flexDirection: "row", alignItems: "center", gap: 24 },
+  postActionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  postActionText: { fontSize: 13, fontWeight: "600", color: theme.colors.text.default },
+
+  // Invite Referral Card
+  inviteCardWrapper: {
+    marginHorizontal: 24,
+    marginTop: 40,
+    position: "relative",
+  },
+  inviteCard: {
+    width: "100%",
+    borderRadius: 32,
+    paddingTop: 54,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    alignItems: "center",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation4),
+    ...parseShadowStyle(theme.shadow.elevation3),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.25,
   },
-  ctaGradient: {
-    flex: 1,
+  bigHeadline: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    textAlign: "center",
+    lineHeight: 34,
+    letterSpacing: -0.5,
+    marginBottom: 40,
+  },
+  bottomBlock: { alignItems: "center", width: "100%", gap: 24 },
+  codeBox: {
+    width: "100%",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+    borderStyle: "dashed",
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  codeLabelImm: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  codeValueImm: {
+    color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
+  sharePill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    width: "100%",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    borderRadius: 100,
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
-  ctaText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: 1,
+  sharePillText: { color: "#F2630C", fontSize: 18, fontWeight: "800" },
+  pendingPillImm: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
   },
-  ctaFooterText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.4)",
-    textAlign: "center",
-    marginTop: 16,
-  },
+  pendingTextImm: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
 });
-
-export default Community;
