@@ -162,7 +162,7 @@ const Community = () => {
       <Text style={styles.subtitle}>
         {isPaired
           ? `You & ${buddyFirstName} — keep it up together.`
-          : "Find a practice partner and keep each other going."}
+          : "Get yourself a practice partner."}
       </Text>
     </BlurView>
   );
@@ -170,25 +170,28 @@ const Community = () => {
   const renderInvite = () => (
     <View style={styles.inviteCardWrapper}>
       <View style={styles.inviteCard}>
-        <LinearGradient
-          colors={["#FF8A3D", "#F2630C"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-        
-        <Text style={styles.bigHeadline}>Find your{"\n"}practice partner!</Text>
-        
+        {/* Watermark Layer */}
+        <View style={styles.watermarkLayer} pointerEvents="none">
+          <MaterialCommunityIcons name="gift" size={260} color={C.orange500} style={styles.watermarkIcon} />
+        </View>
+
+        <Text style={styles.bigHeadline}>Invite a practice buddy</Text>
+        <Text style={styles.inviteSubtitleText}>
+          Practice together, stay accountable, and cheer each other on.
+        </Text>
+
         <View style={styles.bottomBlock}>
           {isPending && (
             <View style={styles.pendingPillImm}>
-              <MaterialCommunityIcons name="clock-fast" size={14} color="#FFFFFF" />
+              <MaterialCommunityIcons name="clock-fast" size={14} color={C.orange600} />
               <Text style={styles.pendingTextImm}>Waiting for them to join…</Text>
             </View>
           )}
           <View style={styles.codeBox}>
-            <Text style={styles.codeLabelImm}>YOUR INVITE CODE</Text>
-            <Text style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
+            <View style={styles.codeRow}>
+              <MaterialCommunityIcons name="content-copy" size={20} color={C.orange500} style={{ marginRight: 12 }} />
+              <Text style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
+            </View>
           </View>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -196,8 +199,7 @@ const Community = () => {
             disabled={!summary?.referralCode}
             style={styles.sharePill}
           >
-            <Text style={styles.sharePillText}>Share invite</Text>
-            <MaterialCommunityIcons name="share-variant" size={18} color="#F2630C" />
+            <Text style={styles.sharePillText}>SHARE INVITE</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -639,76 +641,98 @@ const styles = StyleSheet.create({
   postActionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
   postActionText: { fontSize: 13, fontWeight: "600", color: theme.colors.text.default },
 
-  // Invite Referral Card
+  // Invite Referral Card (Premium White)
   inviteCardWrapper: {
     marginHorizontal: 24,
-    marginTop: 40,
+    marginTop: 20,
     position: "relative",
   },
   inviteCard: {
     width: "100%",
+    backgroundColor: "#FFFFFF",
     borderRadius: 32,
-    paddingTop: 54,
-    paddingBottom: 32,
+    paddingTop: 32,
+    paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: "center",
-    overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation3),
-    shadowColor: C.orange500,
-    shadowOpacity: 0.25,
+    zIndex: 1,
+  },
+  watermarkLayer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 32,
+    overflow: "hidden",
+    zIndex: -1,
+  },
+  watermarkIcon: {
+    position: "absolute",
+    right: -50,
+    bottom: -50,
+    opacity: 0.12,
+    transform: [{ rotate: "-15deg" }],
   },
   bigHeadline: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#FFFFFF",
+    ...parseTextStyle(theme.typography.Heading2),
+    color: theme.colors.text.title,
     textAlign: "center",
-    lineHeight: 34,
-    letterSpacing: -0.5,
-    marginBottom: 40,
+    marginBottom: 8,
   },
-  bottomBlock: { alignItems: "center", width: "100%", gap: 24 },
+  inviteSubtitleText: {
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.default,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+    paddingHorizontal: 12,
+  },
+  bottomBlock: { alignItems: "center", width: "100%", gap: 16 },
   codeBox: {
     width: "100%",
+    backgroundColor: C.peachSurface,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderColor: C.warmBorder,
     borderStyle: "dashed",
-    borderRadius: 20,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
-  codeLabelImm: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 2,
-    marginBottom: 4,
+  codeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   codeValueImm: {
-    color: "#FFFFFF",
-    fontSize: 26,
+    color: theme.colors.text.title,
+    fontSize: 24,
     fontWeight: "900",
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   sharePill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    gap: 8,
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
+    backgroundColor: C.orange500,
+    paddingVertical: 14,
     borderRadius: 100,
     ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: C.orange500,
   },
-  sharePillText: { color: "#F2630C", fontSize: 18, fontWeight: "800" },
+  sharePillText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
   pendingPillImm: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: C.peachSurface,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
   },
-  pendingTextImm: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  pendingTextImm: { color: C.orange700, fontSize: 13, fontWeight: "700" },
 });
