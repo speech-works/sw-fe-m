@@ -175,10 +175,15 @@ const Community = () => {
           <MaterialCommunityIcons name="gift" size={260} color={C.orange500} style={styles.watermarkIcon} />
         </View>
 
-        <Text style={styles.bigHeadline}>Invite a practice buddy</Text>
-        <Text style={styles.inviteSubtitleText}>
-          Practice together, stay accountable, and cheer each other on.
-        </Text>
+        <View style={styles.inviteTextContainer}>
+          <Text style={styles.bigHeadline}>Invite a practice buddy</Text>
+          <Text style={styles.inviteSubtitleText}>
+            Practice together, stay accountable, and cheer each other on.
+          </Text>
+        </View>
+
+        {/* Flexible spacer expands on taller screens, compacts on smaller ones */}
+        <View style={{ flex: 1, minHeight: 24 }} />
 
         <View style={styles.bottomBlock}>
           {isPending && (
@@ -381,7 +386,7 @@ const Community = () => {
             contentContainerStyle={[
               styles.scrollView,
               { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
-              !isPaired && { flexGrow: 1, justifyContent: "center" }
+              !isPaired && { flexGrow: 1, justifyContent: "flex-end" }
             ]}
           >
             {isPaired ? renderPaired() : renderInvite()}
@@ -644,14 +649,17 @@ const styles = StyleSheet.create({
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {
     marginHorizontal: 24,
-    marginTop: 20,
-    position: "relative",
+    flex: 1,
+    justifyContent: "flex-end",
   },
   inviteCard: {
     width: "100%",
+    flex: 1,
+    minHeight: 340,
+    maxHeight: 460,
     backgroundColor: "#FFFFFF",
     borderRadius: 32,
-    paddingTop: 48,
+    paddingTop: 40,
     paddingBottom: 32,
     paddingHorizontal: 24,
     alignItems: "center",
@@ -671,21 +679,24 @@ const styles = StyleSheet.create({
     opacity: 0.12,
     transform: [{ rotate: "-15deg" }],
   },
+  inviteTextContainer: {
+    alignItems: "center",
+    marginTop: 12,
+  },
   bigHeadline: {
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inviteSubtitleText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
-    marginBottom: 32,
     lineHeight: 22,
     paddingHorizontal: 12,
   },
-  bottomBlock: { alignItems: "center", width: "100%", gap: 24 },
+  bottomBlock: { alignItems: "center", width: "100%", gap: 16 },
   codeBox: {
     width: "100%",
     backgroundColor: C.peachSurface,
