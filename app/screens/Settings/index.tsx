@@ -21,7 +21,6 @@ import BottomSheetModal from "../../components/BottomSheetModal";
 import { ScrollView } from "react-native";
 import ScreenView from "../../components/ScreenView";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
-import { ROUTE_NAMES } from "../../constants/routes";
 import { BlurView } from "expo-blur";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
@@ -109,16 +108,6 @@ const Settings = () => {
       desc: "Check your speaking progress and trends",
       onClick: () => {
         navigation.navigate("ProgressDetail");
-      },
-    },
-    {
-      icon: "account-heart",
-      iconColor: "#EA580C",
-      bgColor: "#FFF7ED",
-      text: "Practice Buddy",
-      desc: "Invite a friend to Practice with you",
-      onClick: () => {
-        navigation.navigate("Root", { screen: ROUTE_NAMES.COMMUNITY });
       },
     },
     {
