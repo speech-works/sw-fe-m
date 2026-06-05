@@ -163,7 +163,7 @@ const Community = () => {
       <Text style={styles.subtitle}>
         {isPaired
           ? `You & ${buddyFirstName} — keep it up together.`
-          : "Get yourself a practice partner."}
+          : "Practice sticks when someone's in it with you."}
       </Text>
     </BlurView>
   );
@@ -178,7 +178,7 @@ const Community = () => {
           </View>
           <View style={styles.stepTextContent}>
             <Text style={styles.stepTitle}>Share your code</Text>
-            <Text style={styles.stepDescription}>Send your unique invite code to a friend.</Text>
+            <Text style={styles.stepDescription}>Send your invite code to a friend.</Text>
           </View>
         </View>
 
@@ -188,7 +188,7 @@ const Community = () => {
           </View>
           <View style={styles.stepTextContent}>
             <Text style={styles.stepTitle}>They sign up</Text>
-            <Text style={styles.stepDescription}>Your friend enters the code when creating an account.</Text>
+            <Text style={styles.stepDescription}>They enter it when they create their account.</Text>
           </View>
         </View>
 
@@ -198,7 +198,7 @@ const Community = () => {
           </View>
           <View style={styles.stepTextContent}>
             <Text style={styles.stepTitle}>Grow together</Text>
-            <Text style={styles.stepDescription}>Practice, stay accountable, and cheer each other on.</Text>
+            <Text style={styles.stepDescription}>Keep each other going — share wins and cheer each other on.</Text>
           </View>
         </View>
       </View>
@@ -212,9 +212,9 @@ const Community = () => {
         </View>
 
         <View style={styles.inviteTextContainer}>
-          <Text style={styles.bigHeadline}>Invite a practice buddy</Text>
+          <Text style={styles.bigHeadline}>Don't practice alone</Text>
           <Text style={styles.inviteSubtitleText}>
-            Practice together, stay accountable, and cheer each other on.
+            You'll both show up more often when someone's counting on you.
           </Text>
         </View>
 
@@ -240,7 +240,7 @@ const Community = () => {
             disabled={!summary?.referralCode}
             style={styles.sharePill}
           >
-            <Text style={styles.sharePillText}>SHARE INVITE</Text>
+            <Text style={styles.sharePillText}>Invite my buddy</Text>
           </TouchableOpacity>
         </View>
       </View>
