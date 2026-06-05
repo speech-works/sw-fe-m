@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -169,6 +170,41 @@ const Community = () => {
 
   const renderInvite = () => (
     <View style={styles.inviteCardWrapper}>
+      
+      <View style={styles.howItWorksSection}>
+        <View style={styles.stepItem}>
+          <View style={styles.stepIconBox}>
+            <MaterialCommunityIcons name="share-variant" size={24} color={C.orange500} />
+          </View>
+          <View style={styles.stepTextContent}>
+            <Text style={styles.stepTitle}>Share your code</Text>
+            <Text style={styles.stepDescription}>Send your unique invite code to a friend.</Text>
+          </View>
+        </View>
+
+        <View style={styles.stepItem}>
+          <View style={styles.stepIconBox}>
+            <MaterialCommunityIcons name="account-plus" size={24} color={C.orange500} />
+          </View>
+          <View style={styles.stepTextContent}>
+            <Text style={styles.stepTitle}>They sign up</Text>
+            <Text style={styles.stepDescription}>Your friend enters the code when creating an account.</Text>
+          </View>
+        </View>
+
+        <View style={styles.stepItem}>
+          <View style={styles.stepIconBox}>
+            <MaterialCommunityIcons name="rocket-launch" size={24} color={C.orange500} />
+          </View>
+          <View style={styles.stepTextContent}>
+            <Text style={styles.stepTitle}>Grow together</Text>
+            <Text style={styles.stepDescription}>Practice, stay accountable, and cheer each other on.</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={{ flexGrow: 1, minHeight: 40 }} />
+
       <View style={styles.inviteCard}>
         {/* Watermark Layer */}
         <View style={styles.watermarkLayer} pointerEvents="none">
@@ -182,8 +218,8 @@ const Community = () => {
           </Text>
         </View>
 
-        {/* Flexible spacer expands on taller screens, compacts on smaller ones */}
-        <View style={{ flex: 1, minHeight: 24 }} />
+        {/* Fixed spacer for consistent breathing room */}
+        <View style={{ height: 24 }} />
 
         <View style={styles.bottomBlock}>
           {isPending && (
@@ -386,7 +422,7 @@ const Community = () => {
             contentContainerStyle={[
               styles.scrollView,
               { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
-              !isPaired && { flexGrow: 1, justifyContent: "flex-end" }
+              !isPaired && { flexGrow: 1 }
             ]}
           >
             {isPaired ? renderPaired() : renderInvite()}
@@ -649,18 +685,14 @@ const styles = StyleSheet.create({
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {
     marginHorizontal: 24,
-    flex: 1,
-    justifyContent: "flex-end",
+    flexGrow: 1,
   },
   inviteCard: {
     width: "100%",
-    flex: 1,
-    minHeight: 340,
-    maxHeight: 460,
     backgroundColor: "#FFFFFF",
     borderRadius: 32,
-    paddingTop: 40,
-    paddingBottom: 32,
+    paddingTop: 32,
+    paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: "center",
     ...parseShadowStyle(theme.shadow.elevation3),
@@ -687,16 +719,49 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.Heading2),
     color: theme.colors.text.title,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   inviteSubtitleText: {
     ...parseTextStyle(theme.typography.Body),
     color: theme.colors.text.default,
     textAlign: "center",
+    marginBottom: 16,
     lineHeight: 22,
     paddingHorizontal: 12,
   },
   bottomBlock: { alignItems: "center", width: "100%", gap: 16 },
+  howItWorksSection: {
+    paddingHorizontal: 4,
+    paddingTop: 12,
+  },
+  stepItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 16,
+  },
+  stepIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepTextContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    marginBottom: 2,
+  },
+  stepDescription: {
+    fontSize: 14,
+    color: theme.colors.text.default,
+    lineHeight: 20,
+  },
   codeBox: {
     width: "100%",
     backgroundColor: C.peachSurface,
