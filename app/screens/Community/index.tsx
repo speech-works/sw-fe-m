@@ -341,73 +341,84 @@ const Community = () => {
         </View>
       );
 
-    const renderStatBlock = (name: string, data: typeof me, locked: boolean) => (
-      <View style={styles.statBlock}>
-        <View style={styles.statBlockHead}>
-          <Text style={styles.statBlockName} numberOfLines={1}>
-            {name}
-          </Text>
-          {!locked ? (
-            <View style={styles.stagePill}>
-              <Text style={styles.stagePillText} numberOfLines={1}>
-                {data.stage}
-              </Text>
+    const renderProgressComparison = () => {
+      const myMaxXp = Math.max(me.xp || 1, them.xp || 1, 100);
+      const myBarWidth = `${((me.xp || 0) / myMaxXp) * 100}%` as import("react-native").DimensionValue;
+      const themBarWidth = `${((them.xp || 0) / myMaxXp) * 100}%` as import("react-native").DimensionValue;
+
+      return (
+        <View style={styles.progressComparisonWrapper}>
+          {/* Level Comparison */}
+          <View style={styles.compRow}>
+            <View style={styles.compSideLeft}>
+              <Text style={styles.compVal}>{me.level}</Text>
+              <Text style={styles.compLabel}>Your Level</Text>
             </View>
-          ) : null}
+            <View style={styles.compDivider} />
+            <View style={styles.compSideRight}>
+              <Text style={styles.compVal}>{!buddyShares ? "?" : them.level}</Text>
+              <Text style={styles.compLabel}>{buddyFirstName}'s Level</Text>
+            </View>
+          </View>
+          
+          <View style={styles.compBlockDivider} />
+          
+          {/* XP Comparison Bars */}
+          <View style={styles.compRowVertical}>
+            <Text style={styles.compSectionTitle}>XP Comparison</Text>
+            <View style={styles.barRow}>
+              <Text style={styles.barLabel}>You</Text>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: myBarWidth, backgroundColor: C.orange500 }]} />
+              </View>
+              <Text style={styles.barValue}>{fmtXp(me.xp)}</Text>
+            </View>
+            <View style={styles.barRow}>
+              <Text style={styles.barLabel}>{buddyFirstName}</Text>
+              <View style={styles.barTrack}>
+                {!buddyShares ? (
+                   <View style={styles.lockedBarWrap}>
+                     <MaterialCommunityIcons name="lock-outline" size={14} color={C.faint} />
+                     <Text style={styles.lockedBarText}>Hidden</Text>
+                   </View>
+                ) : (
+                   <View style={[styles.barFill, { width: themBarWidth, backgroundColor: C.orange600 }]} />
+                )}
+              </View>
+              <Text style={styles.barValue}>{!buddyShares ? "—" : fmtXp(them.xp)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.compBlockDivider} />
+
+          {/* Activity Comparison */}
+          <View style={styles.compRowVerticalCenter}>
+            <Text style={styles.compSectionTitle}>Last Active</Text>
+            <View style={styles.activityRow}>
+              <Text style={styles.activityText}>You: <Text style={{ fontWeight: '800' }}>{me.active}</Text></Text>
+              <Text style={styles.activityText}> • </Text>
+              <Text style={styles.activityText}>{buddyFirstName}: <Text style={{ fontWeight: '800' }}>{!buddyShares ? "Hidden" : them.active}</Text></Text>
+            </View>
+          </View>
         </View>
-        {locked ? (
-          <View style={styles.lockedRow}>
-            <MaterialCommunityIcons name="lock-outline" size={15} color={C.faint} />
-            <Text style={styles.lockedText}>Hidden until {buddyFirstName} turns on sharing</Text>
-          </View>
-        ) : (
-          <View style={styles.statMetrics}>
-            <View style={styles.metric}>
-              <Text style={styles.metricValue} numberOfLines={1}>
-                Lv {data.level}
-              </Text>
-              <Text style={styles.metricLabel}>LEVEL</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metric}>
-              <Text style={styles.metricValue} numberOfLines={1}>
-                {fmtXp(data.xp)}
-              </Text>
-              <Text style={styles.metricLabel}>XP</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metric}>
-              <Text style={styles.metricValue} numberOfLines={1}>
-                {data.active}
-              </Text>
-              <Text style={styles.metricLabel}>ACTIVE</Text>
-            </View>
-          </View>
-        )}
-      </View>
-    );
+      );
+    };
 
     return (
       <View style={styles.pairedWrapper}>
-        {/* Partnership banner — equal, together (no ranking) */}
+        {/* Partnership banner — overlapping avatars */}
         <View style={styles.partnerCard}>
-          <View style={styles.partnerRow}>
-            <View style={styles.partnerPerson}>
+          <View style={styles.overlappingAvatars}>
+            <View style={[styles.avatarWrapper, { zIndex: 2 }]}>
               {renderAvatar(user?.profilePictureUrl, myInitials)}
-              <Text style={styles.partnerName} numberOfLines={1}>
-                You
-              </Text>
             </View>
-            <View style={styles.partnerLink}>
-              <MaterialCommunityIcons name="hand-heart" size={20} color={C.orange500} />
-            </View>
-            <View style={styles.partnerPerson}>
+            <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -20 }]}>
               {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
-              <Text style={styles.partnerName} numberOfLines={1}>
-                {buddyFirstName}
-              </Text>
             </View>
           </View>
+          <Text style={styles.partnerUnifiedName}>
+            You & {buddyFirstName}
+          </Text>
           {since ? (
             <View style={styles.partnerMeta}>
               <MaterialCommunityIcons name="calendar-heart" size={14} color={C.orange600} />
@@ -421,15 +432,13 @@ const Community = () => {
           ) : null}
         </View>
 
-        {/* Progress — two calm profiles, never a contest */}
+        {/* Progress — Side-by-side Comparison */}
         <View style={styles.sectionHeadRow}>
           <Text style={styles.sectionHeadTitle}>Progress</Text>
           <Text style={styles.sectionHeadHint}>Effort, not perfection</Text>
         </View>
         <View style={styles.progressCard}>
-          {renderStatBlock("You", me, false)}
-          <View style={styles.blockDivider} />
-          {renderStatBlock(buddyFirstName, them, !buddyShares)}
+          {renderProgressComparison()}
         </View>
 
         {/* Share my progress */}
@@ -451,45 +460,38 @@ const Community = () => {
 
         {/* Send a cheer */}
         <Text style={styles.sectionLabel}>Send a cheer</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cheerRow}
-        >
+        <View style={styles.cheerDock}>
           {BUDDY_CHEERS.map((c) => {
             const isSending = sendingCheer === c.type;
             return (
               <TouchableOpacity
                 key={c.type}
-                style={[styles.cheerBtn, isSending && { opacity: 0.7 }]}
+                style={[styles.cheerDockItem, isSending && { opacity: 0.5 }]}
                 activeOpacity={0.7}
                 disabled={busy}
                 onPress={() => handleCheer(c.type)}
               >
                 {isSending ? (
-                  <View style={styles.cheerLoaderWrap}>
-                    <ActivityIndicator color={C.orange500} size="small" />
-                  </View>
+                  <ActivityIndicator color={C.orange500} size="small" />
                 ) : (
-                  <Text style={styles.cheerEmoji}>{c.emoji}</Text>
+                  <Text style={styles.cheerDockEmoji}>{c.emoji}</Text>
                 )}
-                <Text style={styles.cheerLabel} numberOfLines={1}>
-                  {isSending ? "Sending…" : c.label}
-                </Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
         {/* Activity */}
-        <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Recent activity</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Recent activity</Text>
         <Feed scope="buddy" />
 
         {/* Leave */}
-        <TouchableOpacity style={styles.leaveRow} activeOpacity={0.7} onPress={handleLeave}>
-          <MaterialCommunityIcons name="account-minus" size={15} color={C.faint} />
-          <Text style={styles.leaveText}>Leave buddy</Text>
-        </TouchableOpacity>
+        <View style={styles.leaveContainer}>
+          <TouchableOpacity style={styles.leaveBtn} activeOpacity={0.7} onPress={handleLeave}>
+            <MaterialCommunityIcons name="exit-run" size={18} color={theme.colors.library.red[500]} />
+            <Text style={styles.leaveBtnText}>End Partnership</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -681,31 +683,22 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 10,
   },
-  partnerRow: {
+  overlappingAvatars: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-  },
-  partnerPerson: {
     alignItems: "center",
-    width: 104,
+    marginBottom: 16,
   },
-  partnerLink: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 2,
+  avatarWrapper: {
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.98)", 
   },
   pAvatarImg: {
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: C.peachSurface,
-    borderWidth: 3,
-    borderColor: "#FFF",
   },
   pAvatarFallback: {
     width: 64,
@@ -714,16 +707,14 @@ const styles = StyleSheet.create({
     backgroundColor: C.peachSurface,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
   },
   pAvatarLetter: { fontSize: 24, fontWeight: "800", color: C.orange600 },
-  partnerName: {
-    fontSize: 15,
-    fontWeight: "800",
+  partnerUnifiedName: {
+    fontSize: 22,
+    fontWeight: "900",
     color: theme.colors.text.title,
-    marginTop: 10,
-    maxWidth: 100,
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   partnerMeta: {
     flexDirection: "row",
@@ -758,46 +749,26 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 10,
   },
-  statBlock: { paddingVertical: 18 },
-  statBlockHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  statBlockName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-    flexShrink: 1,
-  },
-  stagePill: {
-    backgroundColor: C.peachSurface,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 100,
-    marginLeft: 12,
-  },
-  stagePillText: { fontSize: 12, fontWeight: "800", color: C.orange700 },
-  statMetrics: { flexDirection: "row", alignItems: "center" },
-  metric: { flex: 1, alignItems: "center" },
-  metricValue: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
-  metricLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: C.faint,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
-  metricDivider: { width: 1, height: 30, backgroundColor: C.hairline },
-  blockDivider: { height: 1, backgroundColor: C.hairline },
-  lockedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 6,
-  },
-  lockedText: { fontSize: 13, fontWeight: "600", color: C.faint, flexShrink: 1 },
+  progressComparisonWrapper: { width: "100%", paddingVertical: 8 },
+  compRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginVertical: 12 },
+  compSideLeft: { flex: 1, alignItems: "center" },
+  compSideRight: { flex: 1, alignItems: "center" },
+  compDivider: { width: 1, height: 40, backgroundColor: C.hairline },
+  compVal: { fontSize: 32, fontWeight: "900", color: theme.colors.text.title },
+  compLabel: { fontSize: 11, fontWeight: "700", color: C.faint, marginTop: 4, letterSpacing: 0.5, textTransform: "uppercase" },
+  compBlockDivider: { height: 1, backgroundColor: C.hairline, marginVertical: 12 },
+  compRowVertical: { paddingVertical: 4, gap: 12 },
+  compRowVerticalCenter: { paddingVertical: 4, alignItems: "center" },
+  compSectionTitle: { fontSize: 11, fontWeight: "800", color: C.faint, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 },
+  barRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  barLabel: { width: 55, fontSize: 13, fontWeight: "800", color: theme.colors.text.title },
+  barTrack: { flex: 1, height: 12, backgroundColor: C.peachSurface, borderRadius: 6, overflow: "hidden", flexDirection: "row", alignItems: "center" },
+  barFill: { height: "100%", borderRadius: 6 },
+  lockedBarWrap: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
+  lockedBarText: { fontSize: 10, fontWeight: "700", color: C.faint },
+  barValue: { width: 55, fontSize: 13, fontWeight: "800", color: theme.colors.text.title, textAlign: "right" },
+  activityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  activityText: { fontSize: 13, color: theme.colors.text.default },
 
   // Share my progress toggle
   toggleCard: {
@@ -848,35 +819,50 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: theme.colors.text.title,
   },
-  cheerRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 4 },
-  cheerBtn: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 18,
+  cheerDock: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    minWidth: 96,
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
+    marginHorizontal: 20,
+    marginBottom: 28,
+    borderRadius: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 16,
     elevation: 6,
   },
-  cheerEmoji: { fontSize: 28, marginBottom: 6 },
-  cheerLoaderWrap: { height: 34, marginBottom: 6, alignItems: "center", justifyContent: "center" },
-  cheerLabel: { fontSize: 12, fontWeight: "700", color: C.orange700, textAlign: "center" },
+  cheerDockItem: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cheerDockEmoji: { fontSize: 26 },
 
   // Leave
-  leaveRow: {
+  leaveContainer: { marginHorizontal: 20, marginTop: 16, marginBottom: 24 },
+  leaveBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    marginTop: 28,
-    paddingVertical: 8,
+    paddingVertical: 16,
+    borderRadius: 20,
+    backgroundColor: "rgba(239, 68, 68, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.15)",
+    gap: 8,
   },
-  leaveText: { fontSize: 14, fontWeight: "600", color: C.faint },
+  leaveBtnText: {
+    color: theme.colors.library.red[600],
+    fontSize: 14,
+    fontWeight: "800",
+  },
 
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {
