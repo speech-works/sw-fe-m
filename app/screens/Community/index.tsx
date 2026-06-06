@@ -239,22 +239,6 @@ const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
   </View>
 );
 
-/** Soft glow behind the hero avatars that gently breathes (ambient life). */
-const PulseGlow = () => {
-  const reduceMotion = useReducedMotion();
-  const p = useSharedValue(0);
-  useEffect(() => {
-    p.value = reduceMotion
-      ? 0
-      : withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1, true);
-  }, [reduceMotion]);
-  const s = useAnimatedStyle(() => ({
-    opacity: 0.18 + 0.12 * p.value,
-    transform: [{ scale: 1 + 0.06 * p.value }],
-  }));
-  return <Animated.View pointerEvents="none" style={[styles.avatarGlow, s]} />;
-};
-
 /** A cheer emoji that floats up and fades when a cheer is sent. */
 const CheerBurst = ({ emoji }: { emoji: string }) => {
   const p = useSharedValue(0);
@@ -558,41 +542,55 @@ const Community = () => {
       <View style={styles.pairedWrapper}>
         {/* Partnership banner — overlapping avatars + stage pills */}
         <Animated.View entering={enter(0)} style={styles.partnerCard}>
-          <View style={styles.overlappingAvatars}>
-            <PulseGlow />
-            <View style={[styles.avatarWrapper, { zIndex: 2 }]}>
-              {renderAvatar(user?.profilePictureUrl, myInitials)}
+          <LinearGradient
+            colors={[theme.colors.library.red[300], theme.colors.library.orange[400]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.partnerGradient}
+          >
+            {/* Decorative bubbles (matches Home's feature card) */}
+            <View style={styles.bubbleTopRight} pointerEvents="none" />
+            <View style={styles.bubbleBottomLeft} pointerEvents="none" />
+
+            <View style={styles.overlappingAvatars}>
+              <View style={[styles.avatarWrapper, { zIndex: 2 }]}>
+                {renderAvatar(user?.profilePictureUrl, myInitials)}
+              </View>
+              <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -20 }]}>
+                {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
+              </View>
             </View>
-            <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -20 }]}>
-              {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
-            </View>
-          </View>
-          <Text style={styles.partnerUnifiedName}>You & {buddyFirstName}</Text>
-          {since ? (
-            <View style={styles.partnerMeta}>
-              <MaterialCommunityIcons name="calendar-heart" size={14} color={C.orange600} />
-              <Text style={styles.partnerMetaText}>Practice partners since {since}</Text>
-            </View>
-          ) : null}
-          <View style={styles.stagePillsRow}>
-            <View style={styles.stagePill}>
-              <Text style={styles.stagePillText} numberOfLines={1}>
-                You · {me.stage}
-              </Text>
-            </View>
-            {buddyShares ? (
-              <View style={styles.stagePill}>
-                <Text style={styles.stagePillText} numberOfLines={1}>
-                  {buddyFirstName} · {them.stage}
-                </Text>
+            <Text style={styles.partnerUnifiedName}>You & {buddyFirstName}</Text>
+            {since ? (
+              <View style={styles.partnerMeta}>
+                <MaterialCommunityIcons
+                  name="calendar-heart"
+                  size={14}
+                  color="rgba(255,255,255,0.9)"
+                />
+                <Text style={styles.partnerMetaText}>Practice partners since {since}</Text>
               </View>
             ) : null}
-          </View>
-          {cheerEmojis ? (
-            <Text style={styles.partnerCheers}>
-              {buddyFirstName} cheered you {cheerEmojis}
-            </Text>
-          ) : null}
+            <View style={styles.stagePillsRow}>
+              <View style={styles.stagePill}>
+                <Text style={styles.stagePillText} numberOfLines={1}>
+                  You · {me.stage}
+                </Text>
+              </View>
+              {buddyShares ? (
+                <View style={styles.stagePill}>
+                  <Text style={styles.stagePillText} numberOfLines={1}>
+                    {buddyFirstName} · {them.stage}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {cheerEmojis ? (
+              <Text style={styles.partnerCheers}>
+                {buddyFirstName} cheered you {cheerEmojis}
+              </Text>
+            ) : null}
+          </LinearGradient>
         </Animated.View>
 
         {/* Together — cooperative progress (no head-to-head) */}
@@ -712,6 +710,15 @@ const Community = () => {
 
   return (
     <ScreenView style={styles.screenView}>
+      {/* Background gradient — matches Explore (peach → white) */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFF", "#FFF"]}
+          locations={[0, 0.4, 1]}
+          style={{ flex: 1 }}
+        />
+      </View>
+
       {renderHeader()}
 
       <View style={styles.container}>
@@ -764,17 +771,6 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1 },
 
-  avatarGlow: {
-    position: "absolute",
-    top: -44,
-    left: "50%",
-    marginLeft: -82,
-    width: 164,
-    height: 164,
-    borderRadius: 82,
-    backgroundColor: theme.colors.library.orange[300],
-    opacity: 0.22,
-  },
 
   // Loading skeleton
   skelBlock: { backgroundColor: theme.colors.library.gray[100] },
@@ -908,13 +904,34 @@ const styles = StyleSheet.create({
   partnerCard: {
     marginHorizontal: 16,
     marginBottom: 28,
-    backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingVertical: 22,
+    ...parseShadowStyle(theme.shadow.elevation3),
+  },
+  partnerGradient: {
+    borderRadius: 24,
+    paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: "center",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation3),
+    position: "relative",
+  },
+  bubbleTopRight: {
+    position: "absolute",
+    top: -70,
+    right: -70,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+  },
+  bubbleBottomLeft: {
+    position: "absolute",
+    bottom: -50,
+    left: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
   },
   overlappingAvatars: {
     flexDirection: "row",
@@ -945,7 +962,7 @@ const styles = StyleSheet.create({
   partnerUnifiedName: {
     fontSize: 22,
     fontWeight: "900",
-    color: theme.colors.text.title,
+    color: "#FFFFFF",
     marginBottom: 4,
     letterSpacing: -0.5,
   },
@@ -955,7 +972,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 14,
   },
-  partnerMetaText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
+  partnerMetaText: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.92)" },
   stagePillsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -964,14 +981,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   stagePill: {
-    backgroundColor: C.peachSurface,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     borderRadius: 100,
     paddingHorizontal: 12,
     paddingVertical: 5,
     maxWidth: 160,
   },
-  stagePillText: { fontSize: 12, fontWeight: "800", color: C.orange700 },
-  partnerCheers: { fontSize: 13, color: C.textMuted, marginTop: 14, textAlign: "center" },
+  stagePillText: { fontSize: 12, fontWeight: "800", color: "#FFFFFF" },
+  partnerCheers: { fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 14, textAlign: "center" },
 
   // Section header (label + hint)
   sectionHeadRow: {
