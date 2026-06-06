@@ -652,37 +652,49 @@ const Community = () => {
         {/* Send a cheer */}
         <Animated.View entering={enter(3)}>
           <SectionHeading title="Send a cheer" />
-          <View style={styles.cheerDockWrap}>
+          <View style={styles.cheerCardWrap}>
             {cheerBurst && !reduceMotion ? (
               <CheerBurst key={cheerBurst.id} emoji={cheerBurst.emoji} />
             ) : null}
-            <View style={styles.cheerDock}>
-            {BUDDY_CHEERS.map((c) => {
-              const isSending = sendingCheer === c.type;
-              const isDone = justCheered === c.type;
-              return (
-                <PressableScale
-                  key={c.type}
-                  style={styles.cheerDockItem}
-                  scaleTo={0.88}
-                  disabled={busy}
-                  onPress={() => handleCheer(c.type)}
-                  accessibilityLabel={c.label}
-                >
-                  {isSending ? (
-                    <ActivityIndicator color={C.orange500} size="small" />
-                  ) : isDone ? (
-                    <Animated.View
-                      entering={reduceMotion ? FadeIn.duration(150) : ZoomIn.springify().damping(11)}
+            <View style={styles.cheerCard}>
+              <Text style={styles.cheerPrompt}>
+                Let {buddyFirstName} know you're in their corner.
+              </Text>
+              <View style={styles.cheerGrid}>
+                {BUDDY_CHEERS.map((c) => {
+                  const isSending = sendingCheer === c.type;
+                  const isDone = justCheered === c.type;
+                  return (
+                    <PressableScale
+                      key={c.type}
+                      style={[styles.cheerChip, isDone && styles.cheerChipDone]}
+                      scaleTo={0.95}
+                      disabled={busy}
+                      onPress={() => handleCheer(c.type)}
+                      accessibilityLabel={`Send cheer: ${c.label}`}
                     >
-                      <MaterialCommunityIcons name="check-bold" size={24} color={C.orange600} />
-                    </Animated.View>
-                  ) : (
-                    <Text style={styles.cheerDockEmoji}>{c.emoji}</Text>
-                  )}
-                </PressableScale>
-              );
-            })}
+                      {isSending ? (
+                        <ActivityIndicator color={C.orange500} size="small" />
+                      ) : isDone ? (
+                        <Animated.View
+                          style={styles.cheerChipInner}
+                          entering={reduceMotion ? FadeIn.duration(150) : ZoomIn.springify().damping(12)}
+                        >
+                          <MaterialCommunityIcons name="check-circle" size={18} color={C.orange600} />
+                          <Text style={styles.cheerChipLabel}>Sent</Text>
+                        </Animated.View>
+                      ) : (
+                        <View style={styles.cheerChipInner}>
+                          <Text style={styles.cheerChipEmoji}>{c.emoji}</Text>
+                          <Text style={styles.cheerChipLabel} numberOfLines={1}>
+                            {c.label}
+                          </Text>
+                        </View>
+                      )}
+                    </PressableScale>
+                  );
+                })}
+              </View>
             </View>
           </View>
         </Animated.View>
@@ -782,7 +794,7 @@ const styles = StyleSheet.create({
   skelDock: { height: 76, marginHorizontal: 16, borderRadius: 24 },
 
   // Cheer burst (rising emoji on send)
-  cheerDockWrap: { position: "relative" },
+  cheerCardWrap: { position: "relative" },
   cheerBurst: { position: "absolute", top: -6, left: 0, right: 0, alignItems: "center", zIndex: 5 },
   cheerBurstEmoji: { fontSize: 34 },
   header: {
@@ -1099,27 +1111,39 @@ const styles = StyleSheet.create({
   },
 
   // Cheers
-  cheerDock: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  cheerCard: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
     marginBottom: 28,
     borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     ...parseShadowStyle(theme.shadow.elevation1),
   },
-  cheerDockItem: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: C.peachSurface,
+  cheerPrompt: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: C.textMuted,
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  cheerGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  cheerChip: {
+    width: "48%",
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: C.peachSurface,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
-  cheerDockEmoji: { fontSize: 26 },
+  cheerChipDone: { backgroundColor: C.warmBorder, borderColor: C.orange500 },
+  cheerChipInner: { flexDirection: "row", alignItems: "center", gap: 7 },
+  cheerChipEmoji: { fontSize: 19 },
+  cheerChipLabel: { fontSize: 13, fontWeight: "800", color: C.orange700, flexShrink: 1 },
 
   // Leave (quiet)
   leaveLink: {
