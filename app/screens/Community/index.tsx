@@ -209,10 +209,7 @@ const SectionHeading = ({
   topMargin?: number;
 }) => (
   <View style={[styles.sectionHeadRow, topMargin != null ? { marginTop: topMargin } : null]}>
-    <View style={styles.sectionTitleWrap}>
-      <View style={styles.sectionAccent} />
-      <Text style={styles.sectionHeadTitle}>{title}</Text>
-    </View>
+    <Text style={styles.sectionHeadTitle}>{title}</Text>
     {hint ? <Text style={styles.sectionHeadHint}>{hint}</Text> : null}
   </View>
 );
@@ -715,13 +712,6 @@ const Community = () => {
 
   return (
     <ScreenView style={styles.screenView}>
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient colors={["#FFFCF9", "#FFF7ED"]} style={{ flex: 1 }} />
-        {/* Organic warm depth (biophilic) */}
-        <View style={styles.blobTopRight} pointerEvents="none" />
-        <View style={styles.blobLeft} pointerEvents="none" />
-      </View>
-
       {renderHeader()}
 
       <View style={styles.container}>
@@ -774,27 +764,6 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1 },
 
-  // Organic warm depth (biophilic background)
-  blobTopRight: {
-    position: "absolute",
-    top: -120,
-    right: -90,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: theme.colors.library.orange[300],
-    opacity: 0.1,
-  },
-  blobLeft: {
-    position: "absolute",
-    top: 260,
-    left: -130,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: theme.colors.library.orange[200],
-    opacity: 0.16,
-  },
   avatarGlow: {
     position: "absolute",
     top: -44,
@@ -806,17 +775,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.library.orange[300],
     opacity: 0.22,
   },
-  sectionTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sectionAccent: { width: 4, height: 16, borderRadius: 2, backgroundColor: C.orange500 },
 
   // Loading skeleton
   skelBlock: { backgroundColor: theme.colors.library.gray[100] },
-  skelBanner: { height: 196, marginHorizontal: 20, borderRadius: 28, marginBottom: 28 },
-  skelLabel: { height: 16, width: 130, marginHorizontal: 24, borderRadius: 8, marginBottom: 14 },
-  skelCard: { height: 184, marginHorizontal: 20, borderRadius: 24, marginBottom: 28 },
-  skelToggle: { height: 72, marginHorizontal: 20, borderRadius: 20, marginBottom: 28 },
-  skelLabelSm: { height: 16, width: 104, marginHorizontal: 24, borderRadius: 8, marginBottom: 14 },
-  skelDock: { height: 76, marginHorizontal: 20, borderRadius: 100 },
+  skelBanner: { height: 196, marginHorizontal: 16, borderRadius: 24, marginBottom: 28 },
+  skelLabel: { height: 16, width: 130, marginHorizontal: 16, borderRadius: 8, marginBottom: 14 },
+  skelCard: { height: 184, marginHorizontal: 16, borderRadius: 24, marginBottom: 28 },
+  skelToggle: { height: 72, marginHorizontal: 16, borderRadius: 24, marginBottom: 28 },
+  skelLabelSm: { height: 16, width: 104, marginHorizontal: 16, borderRadius: 8, marginBottom: 14 },
+  skelDock: { height: 76, marginHorizontal: 16, borderRadius: 24 },
 
   // Cheer burst (rising emoji on send)
   cheerDockWrap: { position: "relative" },
@@ -939,13 +906,14 @@ const styles = StyleSheet.create({
 
   // Partnership banner (equal, together)
   partnerCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
-    borderRadius: 28,
+    borderRadius: 24,
     paddingVertical: 22,
     paddingHorizontal: 20,
     alignItems: "center",
+    overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation3),
   },
   overlappingAvatars: {
@@ -1008,17 +976,20 @@ const styles = StyleSheet.create({
   // Section header (label + hint)
   sectionHeadRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "baseline",
     justifyContent: "space-between",
-    marginHorizontal: 24,
+    marginHorizontal: 16,
     marginBottom: 12,
   },
-  sectionHeadTitle: { fontSize: 16, fontWeight: "800", color: theme.colors.text.title },
+  sectionHeadTitle: {
+    ...parseTextStyle(theme.typography.Heading3),
+    color: theme.colors.text.title,
+  },
   sectionHeadHint: { fontSize: 12, fontWeight: "600", color: C.textMuted },
 
   // Together (cooperative) card
   progressCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -1083,10 +1054,10 @@ const styles = StyleSheet.create({
   toggleCard: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 16,
     ...parseShadowStyle(theme.shadow.elevation1),
@@ -1116,9 +1087,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 28,
-    borderRadius: 100,
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 14,
     ...parseShadowStyle(theme.shadow.elevation1),
