@@ -6,11 +6,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
   View,
+  ViewStyle,
 } from "react-native";
 import Animated, {
   Easing,
@@ -21,6 +23,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -214,6 +217,64 @@ const SectionHeading = ({
   </View>
 );
 
+/** A pulsing placeholder block for the loading skeleton. */
+const SkeletonBlock = ({ style }: { style?: StyleProp<ViewStyle> }) => {
+  const reduceMotion = useReducedMotion();
+  const o = useSharedValue(0.5);
+  useEffect(() => {
+    o.value = reduceMotion
+      ? 0.6
+      : withRepeat(withTiming(1, { duration: 850, easing: Easing.inOut(Easing.ease) }), -1, true);
+  }, [reduceMotion]);
+  const s = useAnimatedStyle(() => ({ opacity: o.value }));
+  return <Animated.View style={[styles.skelBlock, style, s]} />;
+};
+
+/** Shimmer skeleton that mirrors the paired layout while data loads. */
+const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
+  <View style={{ paddingTop: topPad }}>
+    <SkeletonBlock style={styles.skelBanner} />
+    <SkeletonBlock style={styles.skelLabel} />
+    <SkeletonBlock style={styles.skelCard} />
+    <SkeletonBlock style={styles.skelToggle} />
+    <SkeletonBlock style={styles.skelLabelSm} />
+    <SkeletonBlock style={styles.skelDock} />
+  </View>
+);
+
+/** Soft glow behind the hero avatars that gently breathes (ambient life). */
+const PulseGlow = () => {
+  const reduceMotion = useReducedMotion();
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = reduceMotion
+      ? 0
+      : withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1, true);
+  }, [reduceMotion]);
+  const s = useAnimatedStyle(() => ({
+    opacity: 0.18 + 0.12 * p.value,
+    transform: [{ scale: 1 + 0.06 * p.value }],
+  }));
+  return <Animated.View pointerEvents="none" style={[styles.avatarGlow, s]} />;
+};
+
+/** A cheer emoji that floats up and fades when a cheer is sent. */
+const CheerBurst = ({ emoji }: { emoji: string }) => {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withTiming(1, { duration: 900, easing: EASE_OUT });
+  }, []);
+  const s = useAnimatedStyle(() => ({
+    opacity: 1 - p.value,
+    transform: [{ translateY: -52 * p.value }, { scale: 1 + 0.5 * p.value }],
+  }));
+  return (
+    <Animated.View pointerEvents="none" style={[styles.cheerBurst, s]}>
+      <Text style={styles.cheerBurstEmoji}>{emoji}</Text>
+    </Animated.View>
+  );
+};
+
 const Community = () => {
   const insets = useSafeAreaInsets();
 
@@ -225,6 +286,8 @@ const Community = () => {
   const [busy, setBusy] = useState(false);
   const [sendingCheer, setSendingCheer] = useState<CheerType | null>(null);
   const [justCheered, setJustCheered] = useState<CheerType | null>(null);
+  const [cheerBurst, setCheerBurst] = useState<{ emoji: string; id: number } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const user = useUserStore((s) => s.user);
   const reduceMotion = useReducedMotion();
 
@@ -259,6 +322,12 @@ const Community = () => {
     }
   }, []);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
   useFocusEffect(
     useCallback(() => {
       track(ANALYTICS_EVENTS.BUDDY_INVITE_VIEWED, { source: "community" });
@@ -286,7 +355,12 @@ const Community = () => {
       await sendCheer(type);
       track(ANALYTICS_EVENTS.BUDDY_CHEER_SENT, { type });
       setJustCheered(type);
-      setTimeout(() => setJustCheered(null), 1400);
+      const emoji = BUDDY_CHEERS.find((b) => b.type === type)?.emoji ?? "👏";
+      setCheerBurst((prev) => ({ emoji, id: (prev?.id ?? 0) + 1 }));
+      setTimeout(() => {
+        setJustCheered(null);
+        setCheerBurst(null);
+      }, 1400);
     } catch (e) {
       Alert.alert("Couldn't send", "Please try again.");
     } finally {
@@ -488,7 +562,7 @@ const Community = () => {
         {/* Partnership banner — overlapping avatars + stage pills */}
         <Animated.View entering={enter(0)} style={styles.partnerCard}>
           <View style={styles.overlappingAvatars}>
-            <View style={styles.avatarGlow} pointerEvents="none" />
+            <PulseGlow />
             <View style={[styles.avatarWrapper, { zIndex: 2 }]}>
               {renderAvatar(user?.profilePictureUrl, myInitials)}
             </View>
@@ -583,7 +657,11 @@ const Community = () => {
         {/* Send a cheer */}
         <Animated.View entering={enter(3)}>
           <SectionHeading title="Send a cheer" />
-          <View style={styles.cheerDock}>
+          <View style={styles.cheerDockWrap}>
+            {cheerBurst && !reduceMotion ? (
+              <CheerBurst key={cheerBurst.id} emoji={cheerBurst.emoji} />
+            ) : null}
+            <View style={styles.cheerDock}>
             {BUDDY_CHEERS.map((c) => {
               const isSending = sendingCheer === c.type;
               const isDone = justCheered === c.type;
@@ -610,6 +688,7 @@ const Community = () => {
                 </PressableScale>
               );
             })}
+            </View>
           </View>
         </Animated.View>
 
@@ -647,9 +726,7 @@ const Community = () => {
 
       <View style={styles.container}>
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={C.orange500} size="large" />
-          </View>
+          <CommunitySkeleton topPad={HEADER_HEIGHT + insets.top + 20} />
         ) : error ? (
           <View style={styles.center}>
             <MaterialCommunityIcons
@@ -670,6 +747,15 @@ const Community = () => {
               { paddingTop: HEADER_HEIGHT + insets.top + (isPaired ? 20 : 28), paddingBottom: 130 },
               !isPaired && { flexGrow: 1 }
             ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={C.orange500}
+                colors={[C.orange500]}
+                progressViewOffset={HEADER_HEIGHT + insets.top}
+              />
+            }
           >
             {isPaired ? renderPaired() : renderInvite()}
           </CustomScrollView>
@@ -722,6 +808,20 @@ const styles = StyleSheet.create({
   },
   sectionTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionAccent: { width: 4, height: 16, borderRadius: 2, backgroundColor: C.orange500 },
+
+  // Loading skeleton
+  skelBlock: { backgroundColor: theme.colors.library.gray[100] },
+  skelBanner: { height: 196, marginHorizontal: 20, borderRadius: 28, marginBottom: 28 },
+  skelLabel: { height: 16, width: 130, marginHorizontal: 24, borderRadius: 8, marginBottom: 14 },
+  skelCard: { height: 184, marginHorizontal: 20, borderRadius: 24, marginBottom: 28 },
+  skelToggle: { height: 72, marginHorizontal: 20, borderRadius: 20, marginBottom: 28 },
+  skelLabelSm: { height: 16, width: 104, marginHorizontal: 24, borderRadius: 8, marginBottom: 14 },
+  skelDock: { height: 76, marginHorizontal: 20, borderRadius: 100 },
+
+  // Cheer burst (rising emoji on send)
+  cheerDockWrap: { position: "relative" },
+  cheerBurst: { position: "absolute", top: -6, left: 0, right: 0, alignItems: "center", zIndex: 5 },
+  cheerBurstEmoji: { fontSize: 34 },
   header: {
     position: "absolute",
     top: 0,
