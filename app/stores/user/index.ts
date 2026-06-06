@@ -29,6 +29,163 @@ interface UserState {
 let fetchUserInFlight = false;
 
 /**
+ * Identify the user in PostHog with key segmentation traits.
+ * All values come directly from the /users/me API response.
+ * ⚠️  PII (email, name, phone, dob) and sensitive internal fields
+ *     (password, stripeCustomerId, oauthId) are intentionally excluded.
+ */
+function identifyUserInAnalytics(user: User): void {
+  identifyUser(String(user.id), {
+    // Subscription & access
+    isPaid:              user.isPaid ?? null,
+    isVerified:          user.isVerified ?? null,
+    freeTasksRemaining:  user.freeTasksRemaining ?? null,
+    // Onboarding
+    hasOnboarded:        user.hasCompletedOnboarding ?? null,
+    // Progression
+    level:               user.level ?? null,
+    totalXp:             user.totalXp ?? null,
+    // Stamina
+    staminaCap:          user.maxStaminaCap ?? null,
+    currentStamina:      user.currentStamina ?? null,
+    // Account age (enables cohort analysis by sign-up date)
+    createdAt:           user.createdAt?.toISOString() ?? null,
+    // Practice Buddy attribution (compare buddy-invited users vs organic)
+    acquisitionSource:   user.acquisitionSource ?? null,
+    invitedBy:           user.invitedByUserId ?? null,
+  });
+}
+
+/**
+ * Low Stamina Threshold Detection (phone-battery style, paid only).
+ *
+ * Fires a one-shot alert when stamina crosses below 10%.
+ * Re-arms when stamina recovers above 10%.
+ * Clears stale notification state for non-paid or missing-stamina users.
+ *
+ * Bug Fix #2: Waits for the persisted notification store to finish
+ * loading from AsyncStorage before reading lowStaminaNotified.
+ */
+function handleStaminaAlerts(user: User): void {
+  if (
+    user.isPaid &&
+    user.currentStamina !== undefined &&
+    user.maxStaminaCap
+  ) {
+    if (!useStaminaNotificationStore.persist.hasHydrated()) {
+      console.log(
+        "[StaminaAlert] Notification store not yet hydrated — deferring detection",
+      );
+      return;
+    }
+
+    const pct = (user.currentStamina / user.maxStaminaCap) * 100;
+    const {
+      lowStaminaNotified,
+      setLowStaminaNotified,
+      setStaminaModalQueued,
+      resetAll,
+    } = useStaminaNotificationStore.getState();
+
+    // Fire once when crossing below 10% going downward
+    if (pct < 10 && !lowStaminaNotified) {
+      console.log(
+        "[StaminaAlert] Stamina crossed below 10% →",
+        pct.toFixed(1) + "%",
+      );
+      setLowStaminaNotified(true);
+      setStaminaModalQueued(true);
+      dispatchCustomEvent(EVENT_NAMES.STAMINA_ALERT_TRIGGERED);
+      // Analytics: track low stamina alert for funnel analysis
+      import("../../util/analytics/postHog").then(({ track }) => {
+        import("../../util/analytics/analyticsEvents").then(({ ANALYTICS_EVENTS }) => {
+          track(ANALYTICS_EVENTS.STAMINA_LOW_ALERT_SHOWN, { staminaPct: Math.round(pct) });
+        });
+      });
+    }
+
+    // Re-arm: stamina recovered back above 10% — ready for next crossing
+    if (pct >= 10 && lowStaminaNotified) {
+      console.log(
+        "[StaminaAlert] Stamina recovered above 10% → re-arming",
+      );
+      resetAll();
+    }
+  } else if (useStaminaNotificationStore.persist.hasHydrated()) {
+    const {
+      lowStaminaNotified,
+      staminaModalQueued,
+      resetAll,
+    } = useStaminaNotificationStore.getState();
+
+    if (lowStaminaNotified || staminaModalQueued) {
+      console.log(
+        "[StaminaAlert] Clearing stale stamina notification state",
+      );
+      resetAll();
+    }
+  }
+}
+
+/**
+ * Low Free Activity Threshold Detection (free users only).
+ *
+ * Fires a one-shot alert when freeTasksRemaining drops to 1.
+ * Re-arms when it recovers above 1.
+ * Clears stale notification state for paid or undefined-count users.
+ */
+function handleFreeActivityAlerts(user: User): void {
+  if (!user.isPaid && user.freeTasksRemaining !== undefined) {
+    if (!useFreeActivityNotificationStore.persist.hasHydrated()) {
+      console.log(
+        "[FreeActivityAlert] Notification store not yet hydrated — deferring detection",
+      );
+      return;
+    }
+
+    const {
+      lowFreeActivityNotified,
+      freeActivityModalQueued,
+      setLowFreeActivityNotified,
+      setFreeActivityModalQueued,
+      resetAll,
+    } = useFreeActivityNotificationStore.getState();
+
+    if (user.freeTasksRemaining === 1 && !lowFreeActivityNotified) {
+      console.log(
+        "[FreeActivityAlert] Free activity dropped to 1 → queueing warning",
+      );
+      setLowFreeActivityNotified(true);
+      setFreeActivityModalQueued(true);
+      dispatchCustomEvent(EVENT_NAMES.FREE_ACTIVITY_ALERT_TRIGGERED);
+    }
+
+    if (
+      user.freeTasksRemaining > 1 &&
+      (lowFreeActivityNotified || freeActivityModalQueued)
+    ) {
+      console.log(
+        "[FreeActivityAlert] Free activity recovered above warning threshold → re-arming",
+      );
+      resetAll();
+    }
+  } else if (useFreeActivityNotificationStore.persist.hasHydrated()) {
+    const {
+      lowFreeActivityNotified,
+      freeActivityModalQueued,
+      resetAll,
+    } = useFreeActivityNotificationStore.getState();
+
+    if (lowFreeActivityNotified || freeActivityModalQueued) {
+      console.log(
+        "[FreeActivityAlert] Clearing stale free activity notification state",
+      );
+      resetAll();
+    }
+  }
+}
+
+/**
  * `persist` saves the user data is saved to AsyncStorage.
  */
 export const useUserStore = create<UserState>()(
@@ -72,141 +229,9 @@ export const useUserStore = create<UserState>()(
           const user = await getMyUser();
           set({ user });
 
-          // Identify the user in PostHog with key segmentation traits.
-          // All values come directly from the /users/me API response.
-          // ⚠️  PII (email, name, phone, dob) and sensitive internal fields
-          //     (password, stripeCustomerId, oauthId) are intentionally excluded.
-          identifyUser(String(user.id), {
-            // Subscription & access
-            isPaid:              user.isPaid ?? null,
-            isVerified:          user.isVerified ?? null,
-            freeTasksRemaining:  user.freeTasksRemaining ?? null,
-            // Onboarding
-            hasOnboarded:        user.hasCompletedOnboarding ?? null,
-            // Progression
-            level:               user.level ?? null,
-            totalXp:             user.totalXp ?? null,
-            // Stamina
-            staminaCap:          user.maxStaminaCap ?? null,
-            currentStamina:      user.currentStamina ?? null,
-            // Account age (enables cohort analysis by sign-up date)
-            createdAt:           user.createdAt?.toISOString() ?? null,
-            // Practice Buddy attribution (compare buddy-invited users vs organic)
-            acquisitionSource:   user.acquisitionSource ?? null,
-            invitedBy:           user.invitedByUserId ?? null,
-          });
-          // --- Low Stamina Threshold Detection (phone-battery style, paid only) ---
-          if (
-            user.isPaid &&
-            user.currentStamina !== undefined &&
-            user.maxStaminaCap
-          ) {
-            // Bug Fix #2: Wait for the persisted notification store to finish
-            // loading from AsyncStorage before reading lowStaminaNotified.
-            // On Android cold starts, hydration can lag behind the first
-            // fetchUser() call (triggered by AppState or useFocusEffect),
-            // making lowStaminaNotified appear false and bypassing the guard.
-            if (!useStaminaNotificationStore.persist.hasHydrated()) {
-              console.log(
-                "[StaminaAlert] Notification store not yet hydrated — deferring detection",
-              );
-            } else {
-              const pct = (user.currentStamina / user.maxStaminaCap) * 100;
-              const {
-                lowStaminaNotified,
-                setLowStaminaNotified,
-                setStaminaModalQueued,
-                resetAll,
-              } = useStaminaNotificationStore.getState();
-
-              // Fire once when crossing below 10% going downward
-              if (pct < 10 && !lowStaminaNotified) {
-                console.log(
-                  "[StaminaAlert] Stamina crossed below 10% →",
-                  pct.toFixed(1) + "%",
-                );
-                setLowStaminaNotified(true);
-                setStaminaModalQueued(true);
-                dispatchCustomEvent(EVENT_NAMES.STAMINA_ALERT_TRIGGERED);
-                // Analytics: track low stamina alert for funnel analysis
-                import("../../util/analytics/postHog").then(({ track }) => {
-                  import("../../util/analytics/analyticsEvents").then(({ ANALYTICS_EVENTS }) => {
-                    track(ANALYTICS_EVENTS.STAMINA_LOW_ALERT_SHOWN, { staminaPct: Math.round(pct) });
-                  });
-                });
-              }
-
-              // Re-arm: stamina recovered back above 10% — ready for next crossing
-              if (pct >= 10 && lowStaminaNotified) {
-                console.log(
-                  "[StaminaAlert] Stamina recovered above 10% → re-arming",
-                );
-                resetAll();
-              }
-            }
-          } else if (useStaminaNotificationStore.persist.hasHydrated()) {
-            const {
-              lowStaminaNotified,
-              staminaModalQueued,
-              resetAll,
-            } = useStaminaNotificationStore.getState();
-
-            if (lowStaminaNotified || staminaModalQueued) {
-              console.log(
-                "[StaminaAlert] Clearing stale stamina notification state",
-              );
-              resetAll();
-            }
-          }
-
-          // --- Low Free Activity Threshold Detection (free users only) ---
-          if (!user.isPaid && user.freeTasksRemaining !== undefined) {
-            if (!useFreeActivityNotificationStore.persist.hasHydrated()) {
-              console.log(
-                "[FreeActivityAlert] Notification store not yet hydrated — deferring detection",
-              );
-            } else {
-              const {
-                lowFreeActivityNotified,
-                freeActivityModalQueued,
-                setLowFreeActivityNotified,
-                setFreeActivityModalQueued,
-                resetAll,
-              } = useFreeActivityNotificationStore.getState();
-
-              if (user.freeTasksRemaining === 1 && !lowFreeActivityNotified) {
-                console.log(
-                  "[FreeActivityAlert] Free activity dropped to 1 → queueing warning",
-                );
-                setLowFreeActivityNotified(true);
-                setFreeActivityModalQueued(true);
-                dispatchCustomEvent(EVENT_NAMES.FREE_ACTIVITY_ALERT_TRIGGERED);
-              }
-
-              if (
-                user.freeTasksRemaining > 1 &&
-                (lowFreeActivityNotified || freeActivityModalQueued)
-              ) {
-                console.log(
-                  "[FreeActivityAlert] Free activity recovered above warning threshold → re-arming",
-                );
-                resetAll();
-              }
-            }
-          } else if (useFreeActivityNotificationStore.persist.hasHydrated()) {
-            const {
-              lowFreeActivityNotified,
-              freeActivityModalQueued,
-              resetAll,
-            } = useFreeActivityNotificationStore.getState();
-
-            if (lowFreeActivityNotified || freeActivityModalQueued) {
-              console.log(
-                "[FreeActivityAlert] Clearing stale free activity notification state",
-              );
-              resetAll();
-            }
-          }
+          identifyUserInAnalytics(user);
+          handleStaminaAlerts(user);
+          handleFreeActivityAlerts(user);
         } catch (error) {
           console.error("UserStore fetchUser error:", error);
         } finally {

@@ -6,11 +6,11 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -18,17 +18,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
 import Feed from "../../components/Feed";
-import ButterflyFace from "../../assets/sw-faces/ButterflyFace";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
 import {
   BuddySummary,
   CheerType,
+  getBuddyReport,
   getMyBuddy,
   leaveBuddy,
   sendCheer,
   setReportConsent,
 } from "../../api/buddies";
+import { getLevelStage, LevelStage } from "../../api/users";
+import { useUserStore } from "../../stores/user";
 import { shareBuddyInvite } from "../../util/functions/share";
 import { BUDDY_CHEERS } from "../../constants/buddyCheers";
 import { track } from "../../util/analytics/postHog";
@@ -36,9 +38,7 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const HEADER_HEIGHT = 100;
 
-// Brand palette (warm orange scale) — keeps this screen cohesive with the app.
 const C = {
-  orange400: theme.colors.library.orange[400], // #FF9040
   orange500: theme.colors.library.orange[500], // #FF6B00
   orange600: theme.colors.library.orange[600], // #BF5000
   orange700: theme.colors.library.orange[700], // #803600
@@ -49,27 +49,81 @@ const C = {
   warmBorder: theme.colors.library.orange[200], // #FFDABF
   hairline: theme.colors.library.gray[100], // #ECEDEE
   faint: theme.colors.library.gray[300], // #A1A4AA
-  online: theme.colors.feedback.success, // #0DA500
-  dangerBg: theme.colors.library.red[100], // #FFE5E5
-  danger: theme.colors.library.red[400], // #FF4040
-  gold: theme.colors.library.yellow[400], // #FFEC40
+  trackOff: "#E5E5EA",
+};
+
+/** Buddy's shared progress (from GET /buddies/report; null when they don't share). */
+interface BuddyReport {
+  name?: string;
+  level?: number;
+  totalXp?: number;
+  lastPracticeAt?: string | Date | null;
+}
+
+const fmtXp = (n?: number) => (typeof n === "number" ? n.toLocaleString() : "—");
+
+const monthYear = (d?: string | Date | null) =>
+  d ? new Date(d).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : null;
+
+const relativeAgo = (d?: string | Date | null): string | null => {
+  if (!d) return null;
+  const t = new Date(d).getTime();
+  if (Number.isNaN(t)) return null;
+  const mins = Math.floor((Date.now() - t) / 60000);
+  if (mins < 60) return "just now";
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return new Date(d).toLocaleDateString();
+};
+
+/** Map a level number to its stage title using the (global) stage ladder from my own LevelStage. */
+const stageTitleForLevel = (stage: LevelStage | null, level?: number): string => {
+  if (!stage || typeof level !== "number") return "—";
+  const found = stage.stages.find(
+    (s) => level >= s.minLevel && (s.maxLevel == null || level <= s.maxLevel),
+  );
+  return found?.title ?? stage.title;
 };
 
 const Community = () => {
   const insets = useSafeAreaInsets();
 
   const [summary, setSummary] = useState<BuddySummary | null>(null);
+  const [report, setReport] = useState<BuddyReport | null>(null);
+  const [myStage, setMyStage] = useState<LevelStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  const [activeTab, setActiveTab] = useState<"activity" | "motivation">("activity");
+  const [sendingCheer, setSendingCheer] = useState<CheerType | null>(null);
+  const user = useUserStore((s) => s.user);
 
   const load = useCallback(async () => {
     try {
       setError(false);
       const data = await getMyBuddy();
       setSummary(data);
+      if (data.link?.status === "active") {
+        try {
+          setMyStage(await getLevelStage());
+        } catch {
+          setMyStage(null);
+        }
+        if (data.link.buddySharesReports) {
+          try {
+            setReport((await getBuddyReport()) as BuddyReport);
+          } catch {
+            setReport(null);
+          }
+        } else {
+          setReport(null);
+        }
+      } else {
+        setMyStage(null);
+        setReport(null);
+      }
     } catch (e) {
       setError(true);
     } finally {
@@ -100,6 +154,7 @@ const Community = () => {
     if (busy) return;
     try {
       setBusy(true);
+      setSendingCheer(type);
       await sendCheer(type);
       track(ANALYTICS_EVENTS.BUDDY_CHEER_SENT, { type });
       Alert.alert("Sent!", "Your buddy will see your cheer.");
@@ -107,6 +162,7 @@ const Community = () => {
       Alert.alert("Couldn't send", "Please try again.");
     } finally {
       setBusy(false);
+      setSendingCheer(null);
     }
   };
 
@@ -150,27 +206,26 @@ const Community = () => {
   const buddyName = link?.buddy?.name ?? "Your Buddy";
   const buddyFirstName = buddyName.split(" ")[0];
 
-  const renderHeader = () => (
-    <BlurView
-      intensity={80}
-      tint="light"
-      style={[
-        styles.header,
-        { paddingTop: insets.top + 20, height: HEADER_HEIGHT + insets.top },
-      ]}
-    >
-      <Text style={styles.title}>Community</Text>
-      <Text style={styles.subtitle}>
-        {isPaired
-          ? `You & ${buddyFirstName} — keep it up together.`
-          : "Practice sticks when someone's in it with you."}
-      </Text>
-    </BlurView>
-  );
+  const renderHeader = () => {
+    return (
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[styles.header, { paddingTop: insets.top + 20, height: HEADER_HEIGHT + insets.top }]}
+      >
+        <Text style={styles.title}>Community</Text>
+        <Text style={styles.subtitle}>
+          {isPaired 
+            ? `You & ${buddyFirstName} — keep it up together.`
+            : "Practice sticks when someone's in it with you."}
+        </Text>
+      </BlurView>
+    );
+  };
 
   const renderInvite = () => (
     <View style={styles.inviteCardWrapper}>
-      
+
       <View style={styles.howItWorksSection}>
         <View style={styles.stepItem}>
           <View style={styles.stepIconBox}>
@@ -249,143 +304,195 @@ const Community = () => {
 
   const renderPaired = () => {
     const buddy = link?.buddy;
-    const buddyInitials = buddyName.substring(0, 2).toUpperCase();
+    const buddyShares = !!link?.buddySharesReports;
+    const iShare = !!link?.iShareReports;
+    const since = monthYear(link?.activatedAt ?? link?.createdAt);
+
+    const myInitials = (user?.name ?? "You").substring(0, 1).toUpperCase();
+    const buddyInitials = buddyName.substring(0, 1).toUpperCase();
+
+    const cheerEmojis = Array.from(
+      new Set(
+        (summary?.receivedCheers ?? [])
+          .map((c) => BUDDY_CHEERS.find((b) => b.type === c.type)?.emoji)
+          .filter(Boolean),
+      ),
+    ).join(" ");
+
+    const me = {
+      stage: myStage?.title ?? "—",
+      level: myStage?.level ?? user?.level ?? 1,
+      xp: myStage?.totalXp ?? user?.totalXp,
+      active: relativeAgo(user?.lastLogin) ?? "—",
+    };
+    const them = {
+      stage: stageTitleForLevel(myStage, report?.level),
+      level: report?.level ?? 1,
+      xp: report?.totalXp,
+      active: relativeAgo(report?.lastPracticeAt) ?? "—",
+    };
+
+    const renderAvatar = (url?: string | null, initials?: string) =>
+      url ? (
+        <Image source={{ uri: url }} style={styles.pAvatarImg} />
+      ) : (
+        <View style={styles.pAvatarFallback}>
+          <Text style={styles.pAvatarLetter}>{initials}</Text>
+        </View>
+      );
+
+    const renderStatBlock = (name: string, data: typeof me, locked: boolean) => (
+      <View style={styles.statBlock}>
+        <View style={styles.statBlockHead}>
+          <Text style={styles.statBlockName} numberOfLines={1}>
+            {name}
+          </Text>
+          {!locked ? (
+            <View style={styles.stagePill}>
+              <Text style={styles.stagePillText} numberOfLines={1}>
+                {data.stage}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        {locked ? (
+          <View style={styles.lockedRow}>
+            <MaterialCommunityIcons name="lock-outline" size={15} color={C.faint} />
+            <Text style={styles.lockedText}>Hidden until {buddyFirstName} turns on sharing</Text>
+          </View>
+        ) : (
+          <View style={styles.statMetrics}>
+            <View style={styles.metric}>
+              <Text style={styles.metricValue} numberOfLines={1}>
+                Lv {data.level}
+              </Text>
+              <Text style={styles.metricLabel}>LEVEL</Text>
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metric}>
+              <Text style={styles.metricValue} numberOfLines={1}>
+                {fmtXp(data.xp)}
+              </Text>
+              <Text style={styles.metricLabel}>XP</Text>
+            </View>
+            <View style={styles.metricDivider} />
+            <View style={styles.metric}>
+              <Text style={styles.metricValue} numberOfLines={1}>
+                {data.active}
+              </Text>
+              <Text style={styles.metricLabel}>ACTIVE</Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
 
     return (
       <View style={styles.pairedWrapper}>
-        {/* Profile Header Block */}
-        <View style={styles.profileHeaderBlock}>
-          <View style={styles.avatarWrapper}>
-            {buddy?.profilePictureUrl ? (
-              <Image source={{ uri: buddy.profilePictureUrl }} style={styles.avatarCircle} />
-            ) : (
-              <View style={styles.avatarCircleFallback}>
-                <Text style={styles.avatarLetter}>{buddyInitials}</Text>
-              </View>
-            )}
-            <View style={styles.statusBadge}>
-              <View style={styles.statusBadgeInner} />
-            </View>
-          </View>
-
-          <View style={styles.profileInfoText}>
-            <View style={styles.nameRow}>
-              <Text style={styles.buddyName} numberOfLines={1}>
-                {buddyName}
+        {/* Partnership banner — equal, together (no ranking) */}
+        <View style={styles.partnerCard}>
+          <View style={styles.partnerRow}>
+            <View style={styles.partnerPerson}>
+              {renderAvatar(user?.profilePictureUrl, myInitials)}
+              <Text style={styles.partnerName} numberOfLines={1}>
+                You
               </Text>
-              <MaterialCommunityIcons name="check-decagram" size={16} color={C.orange500} />
             </View>
-            <Text style={styles.buddyBio}>
-              Dedicated to improving speech. Practice Partner. Let's hit our goals together!
-            </Text>
-
-            <View style={styles.tagsRow}>
-              <View style={styles.tagItem}>
-                <Text style={styles.tagText}>Speech 🗣️</Text>
-              </View>
-              <View style={styles.tagItemSecondary}>
-                <Text style={styles.tagTextSecondary}>supporter ⭐</Text>
-              </View>
+            <View style={styles.partnerLink}>
+              <MaterialCommunityIcons name="hand-heart" size={20} color={C.orange500} />
+            </View>
+            <View style={styles.partnerPerson}>
+              {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
+              <Text style={styles.partnerName} numberOfLines={1}>
+                {buddyFirstName}
+              </Text>
             </View>
           </View>
-        </View>
-
-        {/* Action Row */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={link?.iShareReports ? styles.actionBtnMuted : styles.actionBtnSolid}
-            activeOpacity={0.7}
-            onPress={() => handleConsent(!link?.iShareReports)}
-          >
-            <Text
-              style={link?.iShareReports ? styles.actionBtnMutedText : styles.actionBtnSolidText}
-            >
-              {link?.iShareReports ? "Stop Sharing" : "Share Progress"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtnCircleNeutral}
-            activeOpacity={0.7}
-            onPress={handleShare}
-          >
-            <MaterialCommunityIcons name="send" size={20} color={C.orange700} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtnCircleDestructive}
-            activeOpacity={0.7}
-            onPress={handleLeave}
-          >
-            <MaterialCommunityIcons name="account-minus" size={20} color={C.danger} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Underline Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setActiveTab("activity")}
-            style={[styles.tab, activeTab === "activity" && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, activeTab === "activity" && styles.tabTextActive]}>
-              Activity
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setActiveTab("motivation")}
-            style={[styles.tab, activeTab === "motivation" && styles.tabActive]}
-          >
-            <Text
-              style={[styles.tabText, activeTab === "motivation" && styles.tabTextActive]}
-            >
-              Motivation
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tab Content Area */}
-        <View style={styles.tabContentArea}>
-          {activeTab === "activity" && <Feed scope="buddy" />}
-
-          {activeTab === "motivation" && (
-            <View>
-              {BUDDY_CHEERS.map((c) => (
-                <View key={c.type} style={styles.postItem}>
-                  <View style={styles.postAvatarFallback}>
-                    <MaterialCommunityIcons name="account" size={16} color="#FFF" />
-                  </View>
-                  <View style={styles.postContent}>
-                    <View style={styles.postHeader}>
-                      <Text style={styles.postName}>You</Text>
-                      <Text style={styles.postTime}>Now</Text>
-                    </View>
-                    <Text style={styles.postBody}>
-                      {c.emoji} {c.label}
-                    </Text>
-                    <View style={styles.postActions}>
-                      <TouchableOpacity
-                        style={styles.postActionBtn}
-                        onPress={() => handleCheer(c.type)}
-                      >
-                        <MaterialCommunityIcons
-                          name="heart-outline"
-                          size={18}
-                          color={C.faint}
-                        />
-                        <Text style={styles.postActionText}>Send</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))}
+          {since ? (
+            <View style={styles.partnerMeta}>
+              <MaterialCommunityIcons name="calendar-heart" size={14} color={C.orange600} />
+              <Text style={styles.partnerMetaText}>Practice partners since {since}</Text>
             </View>
-          )}
+          ) : null}
+          {cheerEmojis ? (
+            <Text style={styles.partnerCheers}>
+              {buddyFirstName} cheered you {cheerEmojis}
+            </Text>
+          ) : null}
         </View>
+
+        {/* Progress — two calm profiles, never a contest */}
+        <View style={styles.sectionHeadRow}>
+          <Text style={styles.sectionHeadTitle}>Progress</Text>
+          <Text style={styles.sectionHeadHint}>Effort, not perfection</Text>
+        </View>
+        <View style={styles.progressCard}>
+          {renderStatBlock("You", me, false)}
+          <View style={styles.blockDivider} />
+          {renderStatBlock(buddyFirstName, them, !buddyShares)}
+        </View>
+
+        {/* Share my progress */}
+        <TouchableOpacity
+          style={styles.toggleCard}
+          activeOpacity={0.7}
+          onPress={() => handleConsent(!iShare)}
+        >
+          <View style={styles.toggleTextWrap}>
+            <Text style={styles.toggleTitle}>Share my progress</Text>
+            <Text style={styles.toggleSub}>
+              Let {buddyFirstName} see your level, XP and activity.
+            </Text>
+          </View>
+          <View style={[styles.toggleTrack, iShare && styles.toggleTrackOn]}>
+            <View style={[styles.toggleThumb, iShare && styles.toggleThumbOn]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Send a cheer */}
+        <Text style={styles.sectionLabel}>Send a cheer</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cheerRow}
+        >
+          {BUDDY_CHEERS.map((c) => {
+            const isSending = sendingCheer === c.type;
+            return (
+              <TouchableOpacity
+                key={c.type}
+                style={[styles.cheerBtn, isSending && { opacity: 0.7 }]}
+                activeOpacity={0.7}
+                disabled={busy}
+                onPress={() => handleCheer(c.type)}
+              >
+                {isSending ? (
+                  <View style={styles.cheerLoaderWrap}>
+                    <ActivityIndicator color={C.orange500} size="small" />
+                  </View>
+                ) : (
+                  <Text style={styles.cheerEmoji}>{c.emoji}</Text>
+                )}
+                <Text style={styles.cheerLabel} numberOfLines={1}>
+                  {isSending ? "Sending…" : c.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Activity */}
+        <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Recent activity</Text>
+        <Feed scope="buddy" />
+
+        {/* Leave */}
+        <TouchableOpacity style={styles.leaveRow} activeOpacity={0.7} onPress={handleLeave}>
+          <MaterialCommunityIcons name="account-minus" size={15} color={C.faint} />
+          <Text style={styles.leaveText}>Leave buddy</Text>
+        </TouchableOpacity>
       </View>
     );
   };
-
-
 
   return (
     <ScreenView style={styles.screenView}>
@@ -421,7 +528,7 @@ const Community = () => {
           <CustomScrollView
             contentContainerStyle={[
               styles.scrollView,
-              { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
+              { paddingTop: HEADER_HEIGHT + insets.top + (isPaired ? 20 : 28), paddingBottom: 130 },
               !isPaired && { flexGrow: 1 }
             ]}
           >
@@ -554,133 +661,202 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 
-  // Paired Layout
-  pairedWrapper: { paddingTop: 16 },
-  profileHeaderBlock: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    marginBottom: 20,
-    alignItems: "flex-start",
+  // Paired — partnership layout
+  pairedWrapper: {
+    paddingTop: 4,
+    paddingBottom: 24,
   },
-  avatarWrapper: { position: "relative", marginRight: 16 },
-  avatarCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.warmBorder },
-  avatarCircleFallback: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: theme.colors.text.title,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: { fontSize: 28, fontWeight: "800", color: "#FFFFFF" },
-  statusBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+
+  // Partnership banner (equal, together)
+  partnerCard: {
+    marginHorizontal: 20,
+    marginBottom: 28,
     backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  statusBadgeInner: { width: 14, height: 14, borderRadius: 7, backgroundColor: C.online },
-  profileInfoText: { flex: 1, justifyContent: "center" },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
-  buddyName: { fontSize: 20, fontWeight: "800", color: theme.colors.text.title },
-  buddyBio: { fontSize: 15, color: theme.colors.text.default, lineHeight: 22, marginBottom: 14 },
-  tagsRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-  tagItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 100,
-    backgroundColor: C.peachSurface,
-  },
-  tagText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
-  tagItemSecondary: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 100,
-    backgroundColor: C.gold,
-  },
-  tagTextSecondary: { fontSize: 13, fontWeight: "700", color: theme.colors.text.title },
-
-  // Action Row
-  actionRow: { flexDirection: "row", paddingHorizontal: 16, marginBottom: 24, gap: 12 },
-  actionBtnSolid: {
-    flex: 1,
-    height: 44,
-    borderRadius: 100,
-    backgroundColor: C.orange500,
-    alignItems: "center",
-    justifyContent: "center",
     ...parseShadowStyle(theme.shadow.elevation1),
-    shadowColor: C.orange500,
-    shadowOpacity: 0.3,
   },
-  actionBtnSolidText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF" },
-  actionBtnMuted: {
-    flex: 1,
-    height: 44,
-    borderRadius: 100,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionBtnMutedText: { fontSize: 15, fontWeight: "700", color: C.orange700 },
-  actionBtnCircleNeutral: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionBtnCircleDestructive: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.dangerBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Underline Tabs
-  tabContainer: {
+  partnerRow: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: C.hairline,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  tab: { flex: 1, paddingVertical: 14, alignItems: "center", justifyContent: "center" },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: C.orange500 },
-  tabText: { fontSize: 15, fontWeight: "600", color: C.faint },
-  tabTextActive: { color: theme.colors.text.title, fontWeight: "800" },
-
-  // Tab Content Area
-  tabContentArea: { minHeight: 300 },
-  postItem: {
-    flexDirection: "row",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: C.hairline,
+  partnerPerson: {
+    alignItems: "center",
+    width: 104,
   },
-  postAvatarFallback: {
+  partnerLink: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.text.title,
+    backgroundColor: C.peachSurface,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginHorizontal: 2,
   },
-  postContent: { flex: 1 },
-  postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
-  postName: { fontSize: 15, fontWeight: "700", color: theme.colors.text.title },
-  postTime: { fontSize: 14, color: C.faint, marginLeft: 6 },
-  postBody: { fontSize: 15, color: theme.colors.text.default, lineHeight: 22, marginBottom: 12 },
-  postActions: { flexDirection: "row", alignItems: "center", gap: 24 },
-  postActionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  postActionText: { fontSize: 13, fontWeight: "600", color: theme.colors.text.default },
+  pAvatarImg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: C.peachSurface,
+    borderWidth: 3,
+    borderColor: "#FFF",
+  },
+  pAvatarFallback: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: C.warmBorder,
+  },
+  pAvatarLetter: { fontSize: 24, fontWeight: "800", color: C.orange600 },
+  partnerName: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    marginTop: 10,
+    maxWidth: 100,
+  },
+  partnerMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 18,
+  },
+  partnerMetaText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
+  partnerCheers: { fontSize: 13, color: C.textMuted, marginTop: 8, textAlign: "center" },
+
+  // Section header (label + hint)
+  sectionHeadRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginHorizontal: 24,
+    marginBottom: 12,
+  },
+  sectionHeadTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
+  sectionHeadHint: { fontSize: 12, fontWeight: "600", color: C.faint },
+
+  // Progress card (two calm profiles)
+  progressCard: {
+    marginHorizontal: 20,
+    marginBottom: 28,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  statBlock: { paddingVertical: 18 },
+  statBlockHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  statBlockName: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    flexShrink: 1,
+  },
+  stagePill: {
+    backgroundColor: C.peachSurface,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 100,
+    marginLeft: 12,
+  },
+  stagePillText: { fontSize: 12, fontWeight: "800", color: C.orange700 },
+  statMetrics: { flexDirection: "row", alignItems: "center" },
+  metric: { flex: 1, alignItems: "center" },
+  metricValue: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: C.faint,
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  metricDivider: { width: 1, height: 30, backgroundColor: C.hairline },
+  blockDivider: { height: 1, backgroundColor: C.hairline },
+  lockedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 6,
+  },
+  lockedText: { fontSize: 13, fontWeight: "600", color: C.faint, flexShrink: 1 },
+
+  // Share my progress toggle
+  toggleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 28,
+    backgroundColor: C.peachSurface,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  toggleTextWrap: { flex: 1, paddingRight: 16 },
+  toggleTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
+  toggleSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
+  toggleTrack: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.trackOff,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleTrackOn: { backgroundColor: C.orange500 },
+  toggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#FFFFFF",
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  toggleThumbOn: { transform: [{ translateX: 20 }] },
+
+  // Section labels + cheers
+  sectionLabel: {
+    marginLeft: 24,
+    marginBottom: 12,
+    fontSize: 15,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+  },
+  cheerRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 4 },
+  cheerBtn: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 96,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  cheerEmoji: { fontSize: 28, marginBottom: 6 },
+  cheerLoaderWrap: { height: 34, marginBottom: 6, alignItems: "center", justifyContent: "center" },
+  cheerLabel: { fontSize: 12, fontWeight: "700", color: C.orange700, textAlign: "center" },
+
+  // Leave
+  leaveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 28,
+    paddingVertical: 8,
+  },
+  leaveText: { fontSize: 14, fontWeight: "600", color: C.faint },
 
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {
