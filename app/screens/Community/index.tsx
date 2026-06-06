@@ -496,13 +496,7 @@ const Community = () => {
 
   return (
     <ScreenView style={styles.screenView}>
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={[C.peach, "#FFF", "#FFF"]}
-          locations={[0, 0.4, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "#FFFFFF" }]} />
 
       {renderHeader()}
 
@@ -594,9 +588,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 22,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: C.orange500,
-    shadowOpacity: 0.3,
+    borderWidth: 1,
+    borderColor: C.hairline,
+    backgroundColor: "#FFFFFF",
   },
   inviteTitle: {
     ...parseTextStyle(theme.typography.Heading1),
@@ -649,9 +643,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: C.orange500,
-    shadowOpacity: 0.25,
   },
   primaryBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
   helperText: {
@@ -672,11 +663,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: 20,
     paddingVertical: 22,
     paddingHorizontal: 20,
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   partnerRow: {
     flexDirection: "row",
@@ -691,10 +683,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 2,
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   pAvatarImg: {
     width: 64,
@@ -708,11 +702,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: C.warmBorder,
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   pAvatarLetter: { fontSize: 24, fontWeight: "800", color: C.orange600 },
   partnerName: {
@@ -747,9 +741,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: 20,
     paddingHorizontal: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   statBlock: { paddingVertical: 18 },
   statBlockHead: {
@@ -798,10 +793,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 20,
     marginBottom: 28,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   toggleTextWrap: { flex: 1, paddingRight: 16 },
   toggleTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
@@ -820,7 +817,8 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   toggleThumbOn: { transform: [{ translateX: 20 }] },
 
@@ -841,7 +839,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 96,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   cheerEmoji: { fontSize: 28, marginBottom: 6 },
   cheerLoaderWrap: { height: 34, marginBottom: 6, alignItems: "center", justifyContent: "center" },
@@ -866,12 +865,13 @@ const styles = StyleSheet.create({
   inviteCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 32,
+    borderRadius: 24,
     paddingTop: 32,
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation3),
+    borderWidth: 1,
+    borderColor: C.hairline,
     zIndex: 1,
   },
   watermarkLayer: {
@@ -920,9 +920,11 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   stepTextContent: {
     flex: 1,
@@ -968,8 +970,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.orange500,
     paddingVertical: 14,
     borderRadius: 100,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: C.orange500,
   },
   sharePillText: {
     color: "#FFFFFF",
@@ -981,10 +981,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.hairline,
   },
   pendingTextImm: { color: C.orange700, fontSize: 13, fontWeight: "700" },
 });
