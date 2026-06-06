@@ -195,6 +195,25 @@ const ToggleSwitch = ({ on }: { on: boolean }) => {
   );
 };
 
+/** Section header with a small organic accent bar + optional right-side hint. */
+const SectionHeading = ({
+  title,
+  hint,
+  topMargin,
+}: {
+  title: string;
+  hint?: string;
+  topMargin?: number;
+}) => (
+  <View style={[styles.sectionHeadRow, topMargin != null ? { marginTop: topMargin } : null]}>
+    <View style={styles.sectionTitleWrap}>
+      <View style={styles.sectionAccent} />
+      <Text style={styles.sectionHeadTitle}>{title}</Text>
+    </View>
+    {hint ? <Text style={styles.sectionHeadHint}>{hint}</Text> : null}
+  </View>
+);
+
 const Community = () => {
   const insets = useSafeAreaInsets();
 
@@ -469,6 +488,7 @@ const Community = () => {
         {/* Partnership banner — overlapping avatars + stage pills */}
         <Animated.View entering={enter(0)} style={styles.partnerCard}>
           <View style={styles.overlappingAvatars}>
+            <View style={styles.avatarGlow} pointerEvents="none" />
             <View style={[styles.avatarWrapper, { zIndex: 2 }]}>
               {renderAvatar(user?.profilePictureUrl, myInitials)}
             </View>
@@ -506,10 +526,7 @@ const Community = () => {
 
         {/* Together — cooperative progress (no head-to-head) */}
         <Animated.View entering={enter(1)}>
-          <View style={styles.sectionHeadRow}>
-            <Text style={styles.sectionHeadTitle}>Together</Text>
-            <Text style={styles.sectionHeadHint}>Effort, not perfection</Text>
-          </View>
+          <SectionHeading title="Together" hint="Effort, not perfection" />
           <View style={styles.progressCard}>
             <View style={styles.goalHeader}>
               <Text style={styles.goalCaption}>COMBINED XP</Text>
@@ -539,7 +556,7 @@ const Community = () => {
 
             {bothActive ? (
               <View style={styles.bothActiveChip}>
-                <Text style={styles.bothActiveEmoji}>🔥</Text>
+                <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
                 <Text style={styles.bothActiveText}>You've both shown up this week</Text>
               </View>
             ) : null}
@@ -565,7 +582,7 @@ const Community = () => {
 
         {/* Send a cheer */}
         <Animated.View entering={enter(3)}>
-          <Text style={styles.sectionLabel}>Send a cheer</Text>
+          <SectionHeading title="Send a cheer" />
           <View style={styles.cheerDock}>
             {BUDDY_CHEERS.map((c) => {
               const isSending = sendingCheer === c.type;
@@ -598,7 +615,7 @@ const Community = () => {
 
         {/* Activity */}
         <Animated.View entering={enter(4)}>
-          <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Recent activity</Text>
+          <SectionHeading title="Recent activity" topMargin={8} />
           <Feed scope="buddy" />
         </Animated.View>
 
@@ -620,10 +637,10 @@ const Community = () => {
   return (
     <ScreenView style={styles.screenView}>
       <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFFCF9", "#FFF7ED"]}
-          style={{ flex: 1 }}
-        />
+        <LinearGradient colors={["#FFFCF9", "#FFF7ED"]} style={{ flex: 1 }} />
+        {/* Organic warm depth (biophilic) */}
+        <View style={styles.blobTopRight} pointerEvents="none" />
+        <View style={styles.blobLeft} pointerEvents="none" />
       </View>
 
       {renderHeader()}
@@ -670,6 +687,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   container: { flex: 1 },
+
+  // Organic warm depth (biophilic background)
+  blobTopRight: {
+    position: "absolute",
+    top: -120,
+    right: -90,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: theme.colors.library.orange[300],
+    opacity: 0.1,
+  },
+  blobLeft: {
+    position: "absolute",
+    top: 260,
+    left: -130,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: theme.colors.library.orange[200],
+    opacity: 0.16,
+  },
+  avatarGlow: {
+    position: "absolute",
+    top: -44,
+    left: "50%",
+    marginLeft: -82,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: theme.colors.library.orange[300],
+    opacity: 0.22,
+  },
+  sectionTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionAccent: { width: 4, height: 16, borderRadius: 2, backgroundColor: C.orange500 },
   header: {
     position: "absolute",
     top: 0,
@@ -790,7 +842,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 28,
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: 28,
     paddingVertical: 22,
     paddingHorizontal: 20,
     alignItems: "center",
@@ -856,13 +908,13 @@ const styles = StyleSheet.create({
   // Section header (label + hint)
   sectionHeadRow: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 24,
     marginBottom: 12,
   },
-  sectionHeadTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
-  sectionHeadHint: { fontSize: 12, fontWeight: "600", color: C.faint },
+  sectionHeadTitle: { fontSize: 16, fontWeight: "800", color: theme.colors.text.title },
+  sectionHeadHint: { fontSize: 12, fontWeight: "600", color: C.textMuted },
 
   // Together (cooperative) card
   progressCard: {
@@ -879,8 +931,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  goalCaption: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: C.faint },
-  goalGoal: { fontSize: 12, fontWeight: "700", color: C.faint },
+  goalCaption: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: C.textMuted },
+  goalGoal: { fontSize: 12, fontWeight: "700", color: C.textMuted },
   goalValueRow: { flexDirection: "row", alignItems: "baseline", marginTop: 6, marginBottom: 12 },
   goalValue: {
     fontSize: 30,
@@ -896,7 +948,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   goalFill: { height: "100%", borderRadius: 6, overflow: "hidden" },
-  goalSub: { fontSize: 12, color: C.faint, marginTop: 8, fontWeight: "600" },
+  goalSub: { fontSize: 12, color: C.textMuted, marginTop: 8, fontWeight: "600" },
   tilesRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -910,7 +962,7 @@ const styles = StyleSheet.create({
   tileLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: C.faint,
+    color: C.textMuted,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -925,7 +977,6 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingVertical: 10,
   },
-  bothActiveEmoji: { fontSize: 15 },
   bothActiveText: { fontSize: 13, fontWeight: "800", color: C.orange700 },
 
   // Share my progress toggle
@@ -959,14 +1010,7 @@ const styles = StyleSheet.create({
     ...parseShadowStyle(theme.shadow.elevation1),
   },
 
-  // Section labels + cheers
-  sectionLabel: {
-    marginLeft: 24,
-    marginBottom: 12,
-    fontSize: 15,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-  },
+  // Cheers
   cheerDock: {
     flexDirection: "row",
     alignItems: "center",
@@ -997,7 +1041,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
-  leaveLinkText: { fontSize: 14, fontWeight: "600", color: C.faint },
+  leaveLinkText: { fontSize: 14, fontWeight: "600", color: C.textMuted },
 
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {
