@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Post, PostPayload, PostPayloadField } from "../../api/posts";
 import { CheerType } from "../../api/buddies";
-import { BUDDY_CHEERS } from "../../constants/buddyCheers";
+import { CHEER_CATALOG, getCheersForActivity } from "../../constants/cheerSets";
 import { getPostTemplate } from "../../constants/postTemplates";
 
 type Variant = "feed" | "preview";
@@ -121,7 +121,7 @@ const PostCard = ({
     if (interactive) {
       return (
         <View style={styles.reactionRow}>
-          {BUDDY_CHEERS.map((c) => {
+          {getCheersForActivity(post.activityKind).map((c) => {
             const selected = post.myReaction === c.type;
             return (
               <TouchableOpacity
@@ -153,7 +153,7 @@ const PostCard = ({
       const emojis = Array.from(
         new Set(
           post.reactions
-            .map((r) => BUDDY_CHEERS.find((c) => c.type === r.type)?.emoji)
+            .map((r) => CHEER_CATALOG[r.type]?.emoji)
             .filter(Boolean),
         ),
       ).join(" ");

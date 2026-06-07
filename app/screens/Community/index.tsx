@@ -1,4 +1,4 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import React, { useCallback, useEffect, useState } from "react";
@@ -37,8 +37,12 @@ import { theme } from "../../Theme/tokens";
 import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
 import {
   BuddySummary,
+  BuddyTeam,
   CheerType,
+  CommunityPulse,
   getBuddyReport,
+  getBuddyTeam,
+  getCommunityPulse,
   getMyBuddy,
   leaveBuddy,
   sendCheer,
@@ -48,6 +52,7 @@ import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { shareBuddyInvite } from "../../util/functions/share";
 import { BUDDY_CHEERS } from "../../constants/buddyCheers";
+import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -74,8 +79,6 @@ interface BuddyReport {
   totalXp?: number;
   lastPracticeAt?: string | Date | null;
 }
-
-const fmtXp = (n?: number) => (typeof n === "number" ? n.toLocaleString() : "—");
 
 const monthYear = (d?: string | Date | null) =>
   d ? new Date(d).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : null;
@@ -111,13 +114,6 @@ const daysBetween = (d?: string | Date | null): number => {
   const t = new Date(d).getTime();
   if (Number.isNaN(t)) return 0;
   return Math.max(0, Math.floor((Date.now() - t) / 86400000));
-};
-
-const isWithinDays = (d?: string | Date | null, days = 7): boolean => {
-  if (!d) return false;
-  const t = new Date(d).getTime();
-  if (Number.isNaN(t)) return false;
-  return Date.now() - t <= days * 86400000;
 };
 
 /** Counts up 0 → value on mount (easeOutCubic); instant under reduced motion. */
@@ -258,9 +254,12 @@ const CheerBurst = ({ emoji }: { emoji: string }) => {
 
 const Community = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
 
   const [summary, setSummary] = useState<BuddySummary | null>(null);
   const [report, setReport] = useState<BuddyReport | null>(null);
+  const [team, setTeam] = useState<BuddyTeam | null>(null);
+  const [pulse, setPulse] = useState<CommunityPulse | null>(null);
   const [myStage, setMyStage] = useState<LevelStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -292,9 +291,22 @@ const Community = () => {
         } else {
           setReport(null);
         }
+        // Cooperative team score (server-computed) + non-ranked community pool.
+        try {
+          setTeam(await getBuddyTeam());
+        } catch {
+          setTeam(null);
+        }
+        try {
+          setPulse(await getCommunityPulse());
+        } catch {
+          setPulse(null);
+        }
       } else {
         setMyStage(null);
         setReport(null);
+        setTeam(null);
+        setPulse(null);
       }
     } catch (e) {
       setError(true);
@@ -319,6 +331,10 @@ const Community = () => {
   const link = summary?.link ?? null;
   const isPaired = link?.status === "active";
   const isPending = link?.status === "pending";
+
+  const handleStartPractice = () => {
+    navigation.navigate("Root", { screen: ROUTE_NAMES.EXPLORE });
+  };
 
   const handleShare = async () => {
     if (!summary?.referralCode) return;
@@ -524,16 +540,18 @@ const Community = () => {
         </View>
       );
 
-    // Cooperative figures — all real, never a contest.
-    const myXp = me.xp ?? 0;
-    const buddyXp = buddyShares ? them.xp ?? 0 : 0;
-    const combinedXp = myXp + buddyXp;
-    const nextMilestone = Math.max(1000, Math.ceil((combinedXp + 1) / 1000) * 1000);
-    const toGo = Math.max(0, nextMilestone - combinedXp);
-    const daysTogether = daysBetween(link?.activatedAt ?? link?.createdAt);
-    const cheersCount = summary?.receivedCheers?.length ?? 0;
-    const bothActive =
-      buddyShares && isWithinDays(user?.lastLogin, 7) && isWithinDays(report?.lastPracticeAt, 7);
+    // Cooperative figures — server-computed, cumulative, never a contest.
+    const bondFloor = team?.bondXpFloor ?? 0;
+    const bondCeil = team?.bondXpCeiling ?? 1;
+    const bondXpVal = team?.bondXp ?? 0;
+    const bondRatio =
+      bondCeil > bondFloor ? (bondXpVal - bondFloor) / (bondCeil - bondFloor) : 0;
+    const bondToNext = Math.max(0, bondCeil - bondXpVal);
+    const daysTogether =
+      team?.daysTogether ?? daysBetween(link?.activatedAt ?? link?.createdAt);
+    const momentumLine = team?.buddyLastPracticeAt
+      ? `${buddyFirstName} practiced ${relativeAgo(team.buddyLastPracticeAt)}`
+      : null;
 
     const enter = (i: number) =>
       reduceMotion ? FadeIn.duration(220) : FadeInDown.duration(280).delay(i * 60);
@@ -597,36 +615,82 @@ const Community = () => {
         <Animated.View entering={enter(1)}>
           <SectionHeading title="Together" hint="Effort, not perfection" />
           <View style={styles.progressCard}>
-            <View style={styles.goalHeader}>
-              <Text style={styles.goalCaption}>COMBINED XP</Text>
-              <Text style={styles.goalGoal}>Goal {fmtXp(nextMilestone)}</Text>
+            {/* Bond Level — shared-era combined XP through the user level engine */}
+            <View style={styles.tierRow}>
+              <View style={styles.tierIcon}>
+                <MaterialCommunityIcons
+                  name={(team?.bondStageIcon ?? "account-heart") as any}
+                  size={30}
+                  color={C.orange600}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tierName}>{team?.bondStageTitle ?? "Kindred"}</Text>
+                <Text style={styles.tierSub}>
+                  Bond Level {team?.bondLevel ?? 1} · {bondXpVal.toLocaleString()} XP together
+                </Text>
+              </View>
             </View>
-            <View style={styles.goalValueRow}>
-              <AnimatedNumber value={combinedXp} style={styles.goalValue} />
-              <Text style={styles.goalUnit}> XP together</Text>
-            </View>
-            <SharedGoalBar ratio={combinedXp / nextMilestone} />
+            <SharedGoalBar ratio={bondRatio} />
             <Text style={styles.goalSub}>
-              {fmtXp(toGo)} to your next milestone
-              {!buddyShares ? ` · ${buddyFirstName}'s XP joins once they share` : ""}
+              {bondToNext.toLocaleString()} XP to Bond Level {(team?.bondLevel ?? 1) + 1}
+              {team && !team.buddyShares
+                ? ` · ${buddyFirstName}'s XP joins once they share`
+                : ""}
             </Text>
 
+            {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
+            <View style={styles.questBlock}>
+              <View style={styles.goalHeader}>
+                <Text style={styles.goalCaption}>THIS WEEK, TOGETHER</Text>
+                <Text style={styles.goalGoal}>
+                  {team?.weeklyCombinedDays ?? 0}/{team?.weeklyQuestTarget ?? 4} days
+                </Text>
+              </View>
+              <SharedGoalBar
+                ratio={
+                  team && team.weeklyQuestTarget > 0
+                    ? team.weeklyCombinedDays / team.weeklyQuestTarget
+                    : 0
+                }
+              />
+              {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
+                <Text style={styles.questDone}>🎉 You hit this week's goal together!</Text>
+              ) : null}
+            </View>
+
+            {/* Momentum + relationship */}
             <View style={styles.tilesRow}>
+              <View style={styles.tile}>
+                <AnimatedNumber
+                  value={team?.combinedXpThisWeek ?? 0}
+                  style={styles.tileValue}
+                />
+                <Text style={styles.tileLabel}>XP THIS WEEK</Text>
+              </View>
+              <View style={styles.tileDivider} />
               <View style={styles.tile}>
                 <AnimatedNumber value={daysTogether} style={styles.tileValue} />
                 <Text style={styles.tileLabel}>DAYS TOGETHER</Text>
               </View>
-              <View style={styles.tileDivider} />
-              <View style={styles.tile}>
-                <AnimatedNumber value={cheersCount} style={styles.tileValue} />
-                <Text style={styles.tileLabel}>CHEERS</Text>
-              </View>
             </View>
 
-            {bothActive ? (
+            {team?.bothActiveThisWeek ? (
               <View style={styles.bothActiveChip}>
                 <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
                 <Text style={styles.bothActiveText}>You've both shown up this week</Text>
+              </View>
+            ) : null}
+
+            {momentumLine ? <Text style={styles.momentumLine}>{momentumLine}</Text> : null}
+
+            {pulse ? (
+              <View style={styles.poolRow}>
+                <MaterialCommunityIcons name="account-group" size={14} color={C.orange600} />
+                <Text style={styles.poolText}>
+                  Together the community showed up{" "}
+                  {pulse.activitiesThisWeek.toLocaleString()} times this week
+                </Text>
               </View>
             ) : null}
           </View>
@@ -702,11 +766,21 @@ const Community = () => {
         {/* Activity */}
         <Animated.View entering={enter(4)}>
           <SectionHeading title="Recent activity" topMargin={8} />
-          <Feed scope="buddy" />
+          <Feed scope="buddy" buddyName={buddyFirstName} onStartPractice={handleStartPractice} />
         </Animated.View>
 
-        {/* Leave */}
+        {/* Resources + Leave */}
         <Animated.View entering={enter(5)}>
+          <PressableScale
+            style={styles.resourcesLink}
+            scaleTo={0.97}
+            haptic={false}
+            onPress={() => navigation.navigate("Resources")}
+            accessibilityLabel="Help and resources"
+          >
+            <MaterialCommunityIcons name="lifebuoy" size={15} color={C.orange700} />
+            <Text style={styles.resourcesLinkText}>Help & Resources</Text>
+          </PressableScale>
           <PressableScale
             style={styles.leaveLink}
             scaleTo={0.96}
@@ -1033,14 +1107,6 @@ const styles = StyleSheet.create({
   },
   goalCaption: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: C.textMuted },
   goalGoal: { fontSize: 12, fontWeight: "700", color: C.textMuted },
-  goalValueRow: { flexDirection: "row", alignItems: "baseline", marginTop: 6, marginBottom: 12 },
-  goalValue: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: theme.colors.text.title,
-    letterSpacing: -0.5,
-  },
-  goalUnit: { fontSize: 14, fontWeight: "700", color: C.textMuted },
   goalTrack: {
     height: 12,
     borderRadius: 6,
@@ -1078,6 +1144,44 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   bothActiveText: { fontSize: 13, fontWeight: "800", color: C.orange700 },
+
+  // Living shared visual (tier) + weekly quest + momentum
+  tierRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 12 },
+  tierIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tierName: { fontSize: 18, fontWeight: "900", color: theme.colors.text.title },
+  tierSub: { fontSize: 13, color: C.textMuted, marginTop: 2, fontWeight: "600" },
+  questBlock: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: C.hairline,
+  },
+  questDone: { fontSize: 13, fontWeight: "800", color: C.orange600, marginTop: 8 },
+  momentumLine: {
+    fontSize: 13,
+    color: C.orange700,
+    fontWeight: "700",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  poolRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.hairline,
+  },
+  poolText: { fontSize: 12, color: C.textMuted, fontWeight: "600", flexShrink: 1 },
 
   // Share my progress toggle
   toggleCard: {
@@ -1154,6 +1258,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   leaveLinkText: { fontSize: 14, fontWeight: "600", color: C.textMuted },
+  resourcesLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 20,
+    paddingVertical: 8,
+  },
+  resourcesLinkText: { fontSize: 14, fontWeight: "700", color: C.orange700 },
 
   // Invite Referral Card (Premium White)
   inviteCardWrapper: {

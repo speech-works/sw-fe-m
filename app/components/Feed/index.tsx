@@ -25,6 +25,10 @@ import PostCard from "../PostCard";
 
 interface FeedProps {
   scope?: FeedScope;
+  /** Buddy first-name for warm first-run empty-state copy. */
+  buddyName?: string;
+  /** Optional empty-state CTA (e.g. navigate to a practice). */
+  onStartPractice?: () => void;
 }
 
 /**
@@ -32,7 +36,7 @@ interface FeedProps {
  * feed is small, and this nests safely inside the Community screen's ScrollView).
  * Swap to a FlatList when community scale arrives. No aggregate like-counts.
  */
-const Feed = ({ scope = "buddy" }: FeedProps) => {
+const Feed = ({ scope = "buddy", buddyName, onStartPractice }: FeedProps) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,11 +145,29 @@ const Feed = ({ scope = "buddy" }: FeedProps) => {
   }
 
   if (posts.length === 0) {
+    const who = buddyName || "your buddy";
     return (
-      <View style={styles.center}>
-        <MaterialCommunityIcons name="leaf" size={36} color="#FFDABF" />
-        <Text style={styles.emptyTitle}>No posts yet</Text>
-        <Text style={styles.muted}>Finish a practice and share it here!</Text>
+      <View style={styles.emptyWrap}>
+        <View style={styles.emptyHero}>
+          <View style={styles.emptyIconCircle}>
+            <MaterialCommunityIcons name="hand-heart" size={28} color="#FF6B00" />
+          </View>
+          <Text style={styles.emptyTitle}>Your shared wins live here</Text>
+          <Text style={styles.muted}>
+            Finish any practice and tap <Text style={styles.mutedStrong}>Share</Text> — {who}{" "}
+            will see it here and can cheer you on.
+          </Text>
+          {onStartPractice ? (
+            <TouchableOpacity
+              onPress={onStartPractice}
+              style={styles.emptyCta}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="play" size={16} color="#FFFFFF" />
+              <Text style={styles.emptyCtaText}>Start a practice</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -192,8 +214,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     gap: 8,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: "#803600", marginTop: 4 },
-  muted: { fontSize: 14, color: "#A1A4AA", textAlign: "center" },
+  emptyTitle: { fontSize: 17, fontWeight: "800", color: "#803600", marginTop: 4 },
+  muted: { fontSize: 14, color: "#737780", textAlign: "center", lineHeight: 20 },
+  mutedStrong: { fontWeight: "800", color: "#803600" },
+
+  // First-run empty state
+  emptyWrap: { paddingHorizontal: 16, paddingTop: 4 },
+  emptyHero: { alignItems: "center", paddingVertical: 20, paddingHorizontal: 12, gap: 8 },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFF0E5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  emptyCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 14,
+    backgroundColor: "#FF6B00",
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 100,
+  },
+  emptyCtaText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   retryBtn: {
     marginTop: 12,
     paddingHorizontal: 24,

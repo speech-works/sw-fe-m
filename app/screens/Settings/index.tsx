@@ -130,6 +130,16 @@ const Settings = () => {
         navigation.navigate("Reminders");
       },
     },
+    {
+      icon: "lifebuoy",
+      iconColor: "#FF6B00",
+      bgColor: "#FFF0E5",
+      text: "Help & Resources",
+      desc: "Stuttering organizations & crisis support",
+      onClick: () => {
+        navigation.navigate("Resources");
+      },
+    },
   ];
 
   useEffect(() => {

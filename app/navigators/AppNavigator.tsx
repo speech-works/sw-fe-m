@@ -5,6 +5,7 @@ import BottomTabNavigator from "./BottomTabNavigator";
 
 import ExploreStackNavigator from "./stacks/ExploreStack";
 import PostComposer from "../screens/PostComposer";
+import Resources from "../screens/Resources";
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,7 @@ export default function AppNavigator() {
         component={PostComposer}
         options={{ presentation: "modal" }}
       />
+      <Stack.Screen name="Resources" component={Resources} />
     </Stack.Navigator>
   );
 }

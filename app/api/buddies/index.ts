@@ -1,8 +1,17 @@
 // api/buddies/index.ts
 import axiosClient from "../axiosClient";
 
-/** Canonical cheer reaction keys (UI labels live in constants/buddyCheers.ts). */
-export type CheerType = "proud" | "keep_going" | "well_done" | "high_five";
+/** Canonical cheer reaction keys (UI labels live in constants/cheerSets.ts). */
+export type CheerType =
+  | "proud"
+  | "keep_going"
+  | "well_done"
+  | "high_five"
+  // Contextual (activity-specific) cheers — still canned, effort/courage, never fluency.
+  | "courage"
+  | "brave"
+  | "centered"
+  | "consistent";
 
 export type BuddyRole = "inviter" | "invitee";
 export type BuddyLinkStatus = "pending" | "active" | "ended";
@@ -98,6 +107,55 @@ export async function getBuddyReport(): Promise<BuddySharedReport> {
     return response.data;
   } catch (error) {
     console.error("Error fetching buddy report:", error);
+    throw error;
+  }
+}
+
+/** Cooperative "team" snapshot — effort-only, cumulative, never-lose-able. */
+export interface BuddyTeam {
+  hasBuddy: boolean;
+  buddyName: string | null;
+  buddyShares: boolean;
+  combinedEffortTotal: number;
+  daysTogether: number;
+  weeklyCombinedDays: number;
+  weeklyQuestTarget: number;
+  combinedXpThisWeek: number;
+  bothActiveThisWeek: boolean;
+  myLastPracticeAt: string | Date | null;
+  buddyLastPracticeAt: string | Date | null;
+  // Bond Level — shared-era combined XP through the user level engine.
+  bondXp: number;
+  bondLevel: number;
+  bondStageTitle: string;
+  bondFullTitle: string;
+  bondStageIcon: string;
+  bondXpFloor: number;
+  bondXpCeiling: number;
+}
+
+export interface CommunityPulse {
+  activitiesThisWeek: number;
+}
+
+// Cooperative team snapshot (combined effort, weekly quest, momentum).
+export async function getBuddyTeam(): Promise<BuddyTeam> {
+  try {
+    const response = await axiosClient.get("/buddies/team");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching buddy team:", error);
+    throw error;
+  }
+}
+
+// Non-ranked, whole-community effort this week (belonging, not competition).
+export async function getCommunityPulse(): Promise<CommunityPulse> {
+  try {
+    const response = await axiosClient.get("/buddies/community-pulse");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching community pulse:", error);
     throw error;
   }
 }
