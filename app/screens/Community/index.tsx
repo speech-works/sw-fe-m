@@ -235,6 +235,30 @@ const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
   </View>
 );
 
+/** A small pulsing "live" dot for the buddy-freshness row. */
+const PulseDot = () => {
+  const reduceMotion = useReducedMotion();
+  const s = useSharedValue(1);
+  useEffect(() => {
+    if (reduceMotion) return;
+    s.value = withRepeat(
+      withTiming(2, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false,
+    );
+  }, [reduceMotion]);
+  const ring = useAnimatedStyle(() => ({
+    transform: [{ scale: s.value }],
+    opacity: 0.5 * (2 - s.value),
+  }));
+  return (
+    <View style={styles.liveDotWrap}>
+      {!reduceMotion ? <Animated.View style={[styles.liveDotPulse, ring]} /> : null}
+      <View style={styles.liveDot} />
+    </View>
+  );
+};
+
 /** A cheer emoji that floats up and fades when a cheer is sent. */
 const CheerBurst = ({ emoji }: { emoji: string }) => {
   const p = useSharedValue(0);
@@ -611,82 +635,93 @@ const Community = () => {
           </LinearGradient>
         </Animated.View>
 
-        {/* Together — cooperative progress (no head-to-head) */}
+        {/* Together — cooperative progress, bento layout */}
         <Animated.View entering={enter(1)}>
           <SectionHeading title="Together" hint="Effort, not perfection" />
-          <View style={styles.progressCard}>
-            {/* Bond Level — shared-era combined XP through the user level engine */}
-            <View style={styles.tierRow}>
-              <View style={styles.tierIcon}>
-                <MaterialCommunityIcons
-                  name={(team?.bondStageIcon ?? "account-heart") as any}
-                  size={30}
-                  color={C.orange600}
-                />
+          <View style={styles.bento}>
+            {/* Bond Level — hero tile (shared-era combined XP via the level engine) */}
+            <View style={styles.bondCard}>
+              <View style={styles.tierRow}>
+                <View style={styles.tierIcon}>
+                  <MaterialCommunityIcons
+                    name={(team?.bondStageIcon ?? "account-heart") as any}
+                    size={30}
+                    color={C.orange600}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.tierName}>{team?.bondStageTitle ?? "Kindred"}</Text>
+                  <Text style={styles.tierSub}>Bond Level {team?.bondLevel ?? 1}</Text>
+                </View>
+                <Text style={styles.bondXpBadge}>{bondXpVal.toLocaleString()} XP</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tierName}>{team?.bondStageTitle ?? "Kindred"}</Text>
-                <Text style={styles.tierSub}>
-                  Bond Level {team?.bondLevel ?? 1} · {bondXpVal.toLocaleString()} XP together
-                </Text>
+              <SharedGoalBar ratio={bondRatio} />
+              <Text style={styles.goalSub}>
+                {bondToNext.toLocaleString()} XP to Bond Level {(team?.bondLevel ?? 1) + 1}
+                {team && !team.buddyShares
+                  ? ` · ${buddyFirstName}'s XP joins once they share`
+                  : ""}
+              </Text>
+              {momentumLine ? (
+                <View style={styles.liveRow}>
+                  <PulseDot />
+                  <Text style={styles.liveText}>{momentumLine}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Two stat tiles */}
+            <View style={styles.statsRow}>
+              <View style={styles.statTile}>
+                <View style={styles.statTileIcon}>
+                  <MaterialCommunityIcons name="lightning-bolt" size={16} color={C.orange600} />
+                </View>
+                <AnimatedNumber
+                  value={team?.combinedXpThisWeek ?? 0}
+                  style={styles.statTileValue}
+                />
+                <Text style={styles.statTileLabel}>XP THIS WEEK</Text>
+              </View>
+              <View style={styles.statTile}>
+                <View style={styles.statTileIcon}>
+                  <MaterialCommunityIcons name="calendar-heart" size={16} color={C.orange600} />
+                </View>
+                <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
+                <Text style={styles.statTileLabel}>DAYS TOGETHER</Text>
               </View>
             </View>
-            <SharedGoalBar ratio={bondRatio} />
-            <Text style={styles.goalSub}>
-              {bondToNext.toLocaleString()} XP to Bond Level {(team?.bondLevel ?? 1) + 1}
-              {team && !team.buddyShares
-                ? ` · ${buddyFirstName}'s XP joins once they share`
-                : ""}
-            </Text>
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
-            <View style={styles.questBlock}>
+            <View style={styles.questCard}>
               <View style={styles.goalHeader}>
                 <Text style={styles.goalCaption}>THIS WEEK, TOGETHER</Text>
                 <Text style={styles.goalGoal}>
                   {team?.weeklyCombinedDays ?? 0}/{team?.weeklyQuestTarget ?? 4} days
                 </Text>
               </View>
-              <SharedGoalBar
-                ratio={
-                  team && team.weeklyQuestTarget > 0
-                    ? team.weeklyCombinedDays / team.weeklyQuestTarget
-                    : 0
-                }
-              />
+              <View style={{ marginTop: 12 }}>
+                <SharedGoalBar
+                  ratio={
+                    team && team.weeklyQuestTarget > 0
+                      ? team.weeklyCombinedDays / team.weeklyQuestTarget
+                      : 0
+                  }
+                />
+              </View>
               {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
                 <Text style={styles.questDone}>🎉 You hit this week's goal together!</Text>
+              ) : team?.bothActiveThisWeek ? (
+                <View style={styles.bothActiveChip}>
+                  <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
+                  <Text style={styles.bothActiveText}>You've both shown up this week</Text>
+                </View>
               ) : null}
             </View>
 
-            {/* Momentum + relationship */}
-            <View style={styles.tilesRow}>
-              <View style={styles.tile}>
-                <AnimatedNumber
-                  value={team?.combinedXpThisWeek ?? 0}
-                  style={styles.tileValue}
-                />
-                <Text style={styles.tileLabel}>XP THIS WEEK</Text>
-              </View>
-              <View style={styles.tileDivider} />
-              <View style={styles.tile}>
-                <AnimatedNumber value={daysTogether} style={styles.tileValue} />
-                <Text style={styles.tileLabel}>DAYS TOGETHER</Text>
-              </View>
-            </View>
-
-            {team?.bothActiveThisWeek ? (
-              <View style={styles.bothActiveChip}>
-                <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
-                <Text style={styles.bothActiveText}>You've both shown up this week</Text>
-              </View>
-            ) : null}
-
-            {momentumLine ? <Text style={styles.momentumLine}>{momentumLine}</Text> : null}
-
+            {/* Non-ranked community pool — belonging, not competition */}
             {pulse ? (
-              <View style={styles.poolRow}>
-                <MaterialCommunityIcons name="account-group" size={14} color={C.orange600} />
+              <View style={styles.poolStrip}>
+                <MaterialCommunityIcons name="account-group" size={16} color={C.orange600} />
                 <Text style={styles.poolText}>
                   Together the community showed up{" "}
                   {pulse.activitiesThisWeek.toLocaleString()} times this week
@@ -696,25 +731,8 @@ const Community = () => {
           </View>
         </Animated.View>
 
-        {/* Share my progress */}
-        <Animated.View entering={enter(2)}>
-          <PressableScale
-            style={styles.toggleCard}
-            scaleTo={0.98}
-            onPress={() => handleConsent(!iShare)}
-          >
-            <View style={styles.toggleTextWrap}>
-              <Text style={styles.toggleTitle}>Share my progress</Text>
-              <Text style={styles.toggleSub}>
-                Let {buddyFirstName} see your level, XP and activity.
-              </Text>
-            </View>
-            <ToggleSwitch on={iShare} />
-          </PressableScale>
-        </Animated.View>
-
         {/* Send a cheer */}
-        <Animated.View entering={enter(3)}>
+        <Animated.View entering={enter(2)}>
           <SectionHeading title="Send a cheer" />
           <View style={styles.cheerCardWrap}>
             {cheerBurst && !reduceMotion ? (
@@ -764,13 +782,26 @@ const Community = () => {
         </Animated.View>
 
         {/* Activity */}
-        <Animated.View entering={enter(4)}>
+        <Animated.View entering={enter(3)}>
           <SectionHeading title="Recent activity" topMargin={8} />
           <Feed scope="buddy" buddyName={buddyFirstName} onStartPractice={handleStartPractice} />
         </Animated.View>
 
-        {/* Resources + Leave */}
-        <Animated.View entering={enter(5)}>
+        {/* Manage — share toggle, resources, leave */}
+        <Animated.View entering={enter(4)}>
+          <PressableScale
+            style={styles.toggleCard}
+            scaleTo={0.98}
+            onPress={() => handleConsent(!iShare)}
+          >
+            <View style={styles.toggleTextWrap}>
+              <Text style={styles.toggleTitle}>Share my progress</Text>
+              <Text style={styles.toggleSub}>
+                Let {buddyFirstName} see your level, XP and activity.
+              </Text>
+            </View>
+            <ToggleSwitch on={iShare} />
+          </PressableScale>
           <PressableScale
             style={styles.resourcesLink}
             scaleTo={0.97}
@@ -1090,15 +1121,100 @@ const styles = StyleSheet.create({
   },
   sectionHeadHint: { fontSize: 12, fontWeight: "600", color: C.textMuted },
 
-  // Together (cooperative) card
-  progressCard: {
+  // Together — bento layout
+  bento: { marginBottom: 16 },
+
+  // Bond Level — hero tile
+  bondCard: {
     marginHorizontal: 16,
-    marginBottom: 28,
+    marginBottom: 12,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 18,
     ...parseShadowStyle(theme.shadow.elevation2),
+  },
+  tierRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 },
+  tierIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tierName: { fontSize: 18, fontWeight: "900", color: theme.colors.text.title },
+  tierSub: { fontSize: 13, color: C.textMuted, marginTop: 2, fontWeight: "600" },
+  bondXpBadge: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: C.orange700,
+    backgroundColor: C.peachSurface,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 100,
+    overflow: "hidden",
+  },
+  goalSub: { fontSize: 12, color: C.textMuted, marginTop: 8, fontWeight: "600" },
+
+  // Live freshness row (momentum)
+  liveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.hairline,
+  },
+  liveDotWrap: { width: 8, height: 8, alignItems: "center", justifyContent: "center" },
+  liveDotPulse: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.orange500,
+  },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.orange500 },
+  liveText: { fontSize: 13, fontWeight: "700", color: C.orange700, flexShrink: 1 },
+
+  // Two stat tiles
+  statsRow: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginBottom: 12 },
+  statTile: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  statTileIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statTileValue: { fontSize: 26, fontWeight: "900", color: theme.colors.text.title },
+  statTileLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: C.textMuted,
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+
+  // Weekly shared quest tile
+  questCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   goalHeader: {
     flexDirection: "row",
@@ -1114,83 +1230,42 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   goalFill: { height: "100%", borderRadius: 6, overflow: "hidden" },
-  goalSub: { fontSize: 12, color: C.textMuted, marginTop: 8, fontWeight: "600" },
-  tilesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: C.hairline,
-    paddingTop: 16,
-  },
-  tile: { flex: 1, alignItems: "center" },
-  tileValue: { fontSize: 22, fontWeight: "900", color: theme.colors.text.title },
-  tileLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: C.textMuted,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
-  tileDivider: { width: 1, height: 32, backgroundColor: C.hairline },
+  questDone: { fontSize: 13, fontWeight: "800", color: C.orange600, marginTop: 10 },
   bothActiveChip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 16,
+    marginTop: 12,
     backgroundColor: C.peachSurface,
     borderRadius: 100,
     paddingVertical: 10,
   },
   bothActiveText: { fontSize: 13, fontWeight: "800", color: C.orange700 },
 
-  // Living shared visual (tier) + weekly quest + momentum
-  tierRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 12 },
-  tierIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tierName: { fontSize: 18, fontWeight: "900", color: theme.colors.text.title },
-  tierSub: { fontSize: 13, color: C.textMuted, marginTop: 2, fontWeight: "600" },
-  questBlock: {
-    marginTop: 18,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: C.hairline,
-  },
-  questDone: { fontSize: 13, fontWeight: "800", color: C.orange600, marginTop: 8 },
-  momentumLine: {
-    fontSize: 13,
-    color: C.orange700,
-    fontWeight: "700",
-    marginTop: 16,
-    textAlign: "center",
-  },
-  poolRow: {
+  // Non-ranked community pool strip
+  poolStrip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: C.hairline,
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: C.peachSurface,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  poolText: { fontSize: 12, color: C.textMuted, fontWeight: "600", flexShrink: 1 },
+  poolText: { fontSize: 12, color: C.orange700, fontWeight: "700", flexShrink: 1 },
 
   // Share my progress toggle
   toggleCard: {
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
-    marginBottom: 28,
+    marginTop: 20,
+    marginBottom: 8,
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
     ...parseShadowStyle(theme.shadow.elevation1),
@@ -1263,7 +1338,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 20,
+    marginTop: 10,
     paddingVertical: 8,
   },
   resourcesLinkText: { fontSize: 14, fontWeight: "700", color: C.orange700 },
