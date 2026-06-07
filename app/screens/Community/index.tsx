@@ -641,14 +641,19 @@ const Community = () => {
           <View style={styles.bento}>
             {/* Bond Level — hero tile (shared-era combined XP via the level engine) */}
             <View style={styles.bondCard}>
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: "hidden" }]}
+                pointerEvents="none"
+              >
+                <MaterialCommunityIcons
+                  name={(team?.bondStageIcon ?? "account-heart") as any}
+                  size={120}
+                  color={C.orange500}
+                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                />
+              </View>
+
               <View style={styles.tierRow}>
-                <View style={styles.tierIcon}>
-                  <MaterialCommunityIcons
-                    name={(team?.bondStageIcon ?? "account-heart") as any}
-                    size={30}
-                    color={C.orange600}
-                  />
-                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.tierName}>{team?.bondStageTitle ?? "Kindred"}</Text>
                   <Text style={styles.tierSub}>Bond Level {team?.bondLevel ?? 1}</Text>
@@ -673,8 +678,16 @@ const Community = () => {
             {/* Two stat tiles */}
             <View style={styles.statsRow}>
               <View style={styles.statTile}>
-                <View style={styles.statTileIcon}>
-                  <MaterialCommunityIcons name="lightning-bolt" size={16} color={C.orange600} />
+                <View
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
+                  pointerEvents="none"
+                >
+                  <MaterialCommunityIcons
+                    name="lightning-bolt"
+                    size={76}
+                    color={C.orange500}
+                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                  />
                 </View>
                 <AnimatedNumber
                   value={team?.combinedXpThisWeek ?? 0}
@@ -683,8 +696,16 @@ const Community = () => {
                 <Text style={styles.statTileLabel}>XP THIS WEEK</Text>
               </View>
               <View style={styles.statTile}>
-                <View style={styles.statTileIcon}>
-                  <MaterialCommunityIcons name="calendar-heart" size={16} color={C.orange600} />
+                <View
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
+                  pointerEvents="none"
+                >
+                  <MaterialCommunityIcons
+                    name="calendar-heart"
+                    size={70}
+                    color={C.orange500}
+                    style={{ position: "absolute", right: -15, bottom: -15, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                  />
                 </View>
                 <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
                 <Text style={styles.statTileLabel}>DAYS TOGETHER</Text>
@@ -721,7 +742,17 @@ const Community = () => {
             {/* Non-ranked community pool — belonging, not competition */}
             {pulse ? (
               <View style={styles.poolStrip}>
-                <MaterialCommunityIcons name="account-group" size={16} color={C.orange600} />
+                <View
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 16, overflow: "hidden" }]}
+                  pointerEvents="none"
+                >
+                  <MaterialCommunityIcons
+                    name="account-group"
+                    size={60}
+                    color={C.orange500}
+                    style={{ position: "absolute", right: -10, top: -10, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                  />
+                </View>
                 <Text style={styles.poolText}>
                   Together the community showed up{" "}
                   {pulse.activitiesThisWeek.toLocaleString()} times this week
