@@ -647,9 +647,9 @@ const Community = () => {
               >
                 <MaterialCommunityIcons
                   name={(team?.bondStageIcon ?? "account-heart") as any}
-                  size={120}
+                  size={140}
                   color={C.orange500}
-                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
                 />
               </View>
 
@@ -684,9 +684,9 @@ const Community = () => {
                 >
                   <MaterialCommunityIcons
                     name="lightning-bolt"
-                    size={76}
+                    size={86}
                     color={C.orange500}
-                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                    style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
                   />
                 </View>
                 <AnimatedNumber
@@ -702,9 +702,9 @@ const Community = () => {
                 >
                   <MaterialCommunityIcons
                     name="calendar-heart"
-                    size={70}
+                    size={80}
                     color={C.orange500}
-                    style={{ position: "absolute", right: -15, bottom: -15, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
                   />
                 </View>
                 <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
@@ -714,6 +714,17 @@ const Community = () => {
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
             <View style={styles.questCard}>
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
+                pointerEvents="none"
+              >
+                <MaterialCommunityIcons
+                  name="target"
+                  size={100}
+                  color={C.orange500}
+                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                />
+              </View>
               <View style={styles.goalHeader}>
                 <Text style={styles.goalCaption}>THIS WEEK, TOGETHER</Text>
                 <Text style={styles.goalGoal}>
@@ -748,9 +759,9 @@ const Community = () => {
                 >
                   <MaterialCommunityIcons
                     name="account-group"
-                    size={60}
+                    size={70}
                     color={C.orange500}
-                    style={{ position: "absolute", right: -10, top: -10, opacity: 0.06, transform: [{ rotate: "-10deg" }] }}
+                    style={{ position: "absolute", right: -15, top: -15, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
                   />
                 </View>
                 <Text style={styles.poolText}>
@@ -770,6 +781,17 @@ const Community = () => {
               <CheerBurst key={cheerBurst.id} emoji={cheerBurst.emoji} />
             ) : null}
             <View style={styles.cheerCard}>
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: "hidden" }]}
+                pointerEvents="none"
+              >
+                <MaterialCommunityIcons
+                  name="party-popper"
+                  size={120}
+                  color={C.orange500}
+                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                />
+              </View>
               <Text style={styles.cheerPrompt}>
                 Let {buddyFirstName} know you're in their corner.
               </Text>
