@@ -13,11 +13,25 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
+import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
+import PathfinderFace from "../../../../../assets/sw-faces/PathfinderFace";
+import VanguardFace from "../../../../../assets/sw-faces/VanguardFace";
+import CatalystFace from "../../../../../assets/sw-faces/CatalystFace";
+import BeaconFace from "../../../../../assets/sw-faces/BeaconFace";
 import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import SkeletonLoader from "../../../../../components/SkeletonLoader";
 import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
+
+/** Speaker's Journey stage → animated camel face (keyed by the stage title). */
+const LEVEL_FACES: Record<string, React.ComponentType<{ size?: number; shouldAnimate?: boolean; transparentBg?: boolean }>> = {
+  seeker: SeekerFace,
+  pathfinder: PathfinderFace,
+  vanguard: VanguardFace,
+  catalyst: CatalystFace,
+  beacon: BeaconFace,
+};
 
 export const WeeklySummarySkeleton = () => (
   <View style={styles.shadowContainer}>
@@ -438,6 +452,18 @@ const DetailedWeeklySummary = ({
           />
         </View>
 
+        {/* Level-stage character, bleeding off the bottom-right corner */}
+        {(() => {
+          const key = levelStage?.title?.toLowerCase().split(" ")[0] ?? "";
+          const LevelFace = LEVEL_FACES[key];
+          if (!LevelFace) return null;
+          return (
+            <View style={styles.levelFaceWatermark} pointerEvents="none">
+              <LevelFace size={150} shouldAnimate transparentBg />
+            </View>
+          );
+        })()}
+
         {/* Content Layer */}
         <View style={styles.contentLayer}>
           {/* Header */}
@@ -599,6 +625,13 @@ const styles = StyleSheet.create({
     right: -40,
     top: -20,
     opacity: 0.6,
+  },
+  levelFaceWatermark: {
+    position: "absolute",
+    right: -16,
+    bottom: -22, // bleeds off the bottom-right corner, cropped by the card
+    zIndex: 0, // behind the content
+    opacity: 0.18, // faint watermark so text stays legible over it
   },
   contentLayer: {
     flex: 1,

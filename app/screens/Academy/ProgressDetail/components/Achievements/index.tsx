@@ -8,8 +8,27 @@ import { getLevelStage, LevelStage } from "../../../../../api/users";
 import {
     parseTextStyle
 } from "../../../../../util/functions/parseStyles";
+import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
+import PathfinderFace from "../../../../../assets/sw-faces/PathfinderFace";
+import VanguardFace from "../../../../../assets/sw-faces/VanguardFace";
+import CatalystFace from "../../../../../assets/sw-faces/CatalystFace";
+import BeaconFace from "../../../../../assets/sw-faces/BeaconFace";
 
 const { width: windowWidth } = Dimensions.get("window");
+
+type LevelFaceComp = React.ComponentType<{
+  size?: number;
+  shouldAnimate?: boolean;
+  transparentBg?: boolean;
+}>;
+
+const LEVEL_FACES: Record<string, LevelFaceComp> = {
+  seeker: SeekerFace,
+  pathfinder: PathfinderFace,
+  vanguard: VanguardFace,
+  catalyst: CatalystFace,
+  beacon: BeaconFace,
+};
 
 type AchievementsProps = {
   stageData?: LevelStage | null;
@@ -210,6 +229,7 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                   {stage.stages.map((s, index) => {
                     const isUnlocked = stage.level >= s.minLevel;
                     const isCurrent = stage.level >= s.minLevel && (s.maxLevel === null || stage.level <= s.maxLevel);
+                    const StageFace = LEVEL_FACES[s.title?.toLowerCase().split(" ")[0] ?? ""];
 
                     return (
                       <View
@@ -220,6 +240,19 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                           isUnlocked ? styles.unlockedCard : styles.lockedCard
                         ]}
                       >
+                        {/* Stage character (full face, fully visible) */}
+                        {StageFace && (
+                          <View
+                            style={[
+                              styles.innerFaceWatermark,
+                              { opacity: isUnlocked ? 1 : 0.4 },
+                            ]}
+                            pointerEvents="none"
+                          >
+                            <StageFace size={84} shouldAnimate={isUnlocked} />
+                          </View>
+                        )}
+
                         {/* Current Stage Ribbon */}
                         {isCurrent && (
                           <View style={styles.currentBadge}>
@@ -495,6 +528,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
     lineHeight: 16,
+    paddingRight: 92, // reserve a gutter so text wraps clear of the face
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -528,6 +562,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.15)",
     position: "relative",
     overflow: "visible", // Critical fix for badge clipping
+  },
+  innerFaceWatermark: {
+    position: "absolute",
+    right: 12,
+    bottom: 12, // fully inside the card so the whole face + circle shows
+    zIndex: 0, // behind the text content
+    // opacity set inline: 1 unlocked, 0.4 locked (ghosted)
   },
   unlockedCard: {
     backgroundColor: "rgba(255,255,255,0.15)",

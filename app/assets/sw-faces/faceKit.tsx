@@ -1,0 +1,307 @@
+import React, { createContext, useContext, useEffect } from "react";
+import { View } from "react-native";
+import Animated, {
+  useAnimatedProps,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withDelay,
+  cancelAnimation,
+  Easing,
+} from "react-native-reanimated";
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  G,
+  Line,
+  LinearGradient,
+  Mask,
+  Path,
+  Polygon,
+  RadialGradient,
+  Rect,
+  Stop,
+  SvgProps,
+} from "react-native-svg";
+
+/* ───────────────────────────────────────────────────────────────────────
+   Shared kit for the "Pixar style" sw-faces. Each face component imports
+   the primitives + helpers + animated wrappers from here and supplies only
+   its own shapes. Animations are gated by `shouldAnimate` via context.
+   ─────────────────────────────────────────────────────────────────────── */
+
+// re-export the SVG primitives so face files import everything from one place
+export { Circle, Ellipse, G, Line, Path, Polygon, Rect } from "react-native-svg";
+
+export const AnimatedG = Animated.createAnimatedComponent(G);
+
+export const TILE = "M48 24C48 10.745 37.255 0 24 0S0 10.745 0 24s10.745 24 24 24 24-10.745 24-24";
+export const HEAD =
+  "M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736";
+
+export interface SvgIconProps extends SvgProps {
+  size?: number | string;
+  width?: number | string;
+  height?: number | string;
+  shouldAnimate?: boolean;
+  loop?: boolean;
+  repeatCount?: number;
+  transparentBg?: boolean;
+}
+
+const AnimCtx = createContext(false);
+const useAnim = () => useContext(AnimCtx);
+
+const lin = Easing.linear;
+const io = Easing.inOut(Easing.ease);
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+
+/* ── animation hooks (gated by shouldAnimate `sa`) ────────────────────── */
+function useBreathe(sa: boolean) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (sa) t.value = withDelay(Math.random() * 1500, withRepeat(withTiming(1, { duration: 1750, easing: io }), -1, true));
+    else t.value = 0;
+    return () => cancelAnimation(t);
+  }, [sa]);
+  return useAnimatedProps(() => ({
+    transform: [
+      { translateY: -t.value * 0.5 },
+      { translateX: 24 }, { translateY: 24 },
+      { scale: 1 + t.value * 0.015 },
+      { translateX: -24 }, { translateY: -24 },
+    ] as any,
+  }));
+}
+function useBlink(sa: boolean) {
+  const b = useSharedValue(1);
+  useEffect(() => {
+    if (sa)
+      b.value = withDelay(
+        Math.random() * 2000 + 500,
+        withRepeat(withSequence(withTiming(1, { duration: 3600 }), withTiming(0.1, { duration: 80 }), withTiming(1, { duration: 130 })), -1, false)
+      );
+    else b.value = 1;
+    return () => cancelAnimation(b);
+  }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateY: 24 }, { scaleY: b.value }, { translateY: -24 }] as any }));
+}
+function usePan(sa: boolean, dur: number) {
+  const v = useSharedValue(0);
+  useEffect(() => { if (sa) v.value = withRepeat(withTiming(1, { duration: dur, easing: lin }), -1, false); else v.value = 0; return () => cancelAnimation(v); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: -48 * v.value }] as any }));
+}
+function useWind(sa: boolean, dur: number, delay = 0) {
+  const v = useSharedValue(0);
+  useEffect(() => { if (sa) v.value = withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: lin }), -1, false)); else v.value = 0; return () => cancelAnimation(v); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: 48 - 96 * v.value }] as any }));
+}
+function useTwinkleP(sa: boolean, cx: number, cy: number, dur = 3000, delay = 0) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withDelay(delay, withRepeat(withTiming(1, { duration: dur / 2, easing: io }), -1, true)); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ opacity: 1 - 0.6 * t.value, transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 - 0.4 * t.value }, { translateX: -cx }, { translateY: -cy }] as any }));
+}
+function useFlickerP(sa: boolean, dur = 2000) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur / 2, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ opacity: 1 - 0.4 * t.value }));
+}
+function useShimmerP(sa: boolean, dur = 3000) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur / 2, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ opacity: 0.5 + 0.4 * t.value }));
+}
+function useSpinP(sa: boolean, cx: number, cy: number, dur = 30000) {
+  const v = useSharedValue(0);
+  useEffect(() => { if (sa) v.value = withRepeat(withTiming(1, { duration: dur, easing: lin }), -1, false); else v.value = 0; return () => cancelAnimation(v); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { rotate: `${360 * v.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any }));
+}
+function useSwayP(sa: boolean, cx: number, cy: number, dur = 3000) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur / 2, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { rotate: `${-5 + 10 * t.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any }));
+}
+function useFlutterP(sa: boolean, cx: number, cy: number, dur = 150) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { rotate: `${-10 * t.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any }));
+}
+function useTrekP(sa: boolean, dur = 3000) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return useAnimatedProps(() => ({ transform: [{ translateX: -2 + 4 * t.value }, { translateY: 2 - 4 * t.value }, { scale: 0.9 + 0.2 * t.value }] as any }));
+}
+
+/* ── animated wrappers (read shouldAnimate from context) ──────────────── */
+type K = { children: React.ReactNode };
+export const Head: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useBreathe(useAnim())}>{children}</AnimatedG>;
+export const Blink: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useBlink(useAnim())}>{children}</AnimatedG>;
+export const Pan: React.FC<K & { dur: number }> = ({ dur, children }) => <AnimatedG animatedProps={usePan(useAnim(), dur)}>{children}</AnimatedG>;
+export const Wind: React.FC<K & { dur: number; delay?: number }> = ({ dur, delay, children }) => <AnimatedG animatedProps={useWind(useAnim(), dur, delay)}>{children}</AnimatedG>;
+export const Twinkle: React.FC<K & { cx: number; cy: number; dur?: number; delay?: number }> = ({ cx, cy, dur, delay, children }) => <AnimatedG animatedProps={useTwinkleP(useAnim(), cx, cy, dur, delay)}>{children}</AnimatedG>;
+export const Flicker: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useFlickerP(useAnim())}>{children}</AnimatedG>;
+export const Shimmer: React.FC<K & { dur?: number }> = ({ dur, children }) => <AnimatedG animatedProps={useShimmerP(useAnim(), dur)}>{children}</AnimatedG>;
+export const Spin: React.FC<K & { cx: number; cy: number; dur?: number }> = ({ cx, cy, dur, children }) => <AnimatedG animatedProps={useSpinP(useAnim(), cx, cy, dur)}>{children}</AnimatedG>;
+export const Sway: React.FC<K & { cx: number; cy: number }> = ({ cx, cy, children }) => <AnimatedG animatedProps={useSwayP(useAnim(), cx, cy)}>{children}</AnimatedG>;
+export const Flutter: React.FC<K & { cx: number; cy: number }> = ({ cx, cy, children }) => <AnimatedG animatedProps={useFlutterP(useAnim(), cx, cy)}>{children}</AnimatedG>;
+export const Trek: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useTrekP(useAnim())}>{children}</AnimatedG>;
+
+/* ── signature-gesture primitives ─────────────────────────────────────── */
+// continuous oscillation 0↔1
+function useOsc(sa: boolean, dur: number) {
+  const t = useSharedValue(0);
+  useEffect(() => { if (sa) t.value = withRepeat(withTiming(1, { duration: dur, easing: io }), -1, true); else t.value = 0; return () => cancelAnimation(t); }, [sa]);
+  return t;
+}
+// linear 0→1 loop (for phase math)
+function useLoop(sa: boolean, dur: number) {
+  const v = useSharedValue(0);
+  useEffect(() => { if (sa) v.value = withRepeat(withTiming(1, { duration: dur, easing: lin }), -1, false); else v.value = 0; return () => cancelAnimation(v); }, [sa]);
+  return v;
+}
+// "gesture beat": rests at 0, briefly rises to 1, falls back — once per cycle
+function useBeatSV(sa: boolean, rest: number, up: number, down: number) {
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 1500, withRepeat(withSequence(withDelay(rest, withTiming(1, { duration: up, easing: EASE_OUT })), withTiming(0, { duration: down, easing: io })), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  return g;
+}
+
+export const Buzz: React.FC<any> = ({ px, py, dur = 120, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: px }, { translateY: py }, { scaleX: 1 - 0.5 * t.value }, { translateX: -px }, { translateY: -py }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const Hover: React.FC<any> = ({ dur = 2200, children }) => {
+  const v = useLoop(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: Math.sin(v.value * Math.PI * 2) * 0.6 }, { translateY: -Math.abs(Math.sin(v.value * Math.PI)) * 1.6 }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const Scan: React.FC<any> = ({ amp = 3, dur = 2400, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: amp * (2 * t.value - 1) }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const Float: React.FC<any> = ({ dur = 4000, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ opacity: 1 - 0.18 * t.value, transform: [{ translateY: -2.2 * t.value }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const Glow: React.FC<any> = ({ cx, cy, from = 0.45, to = 0.95, sc0 = 0.95, sc1 = 1.1, dur = 2600, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ opacity: from + (to - from) * t.value, transform: [{ translateX: cx }, { translateY: cy }, { scale: sc0 + (sc1 - sc0) * t.value }, { translateX: -cx }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const Glitch: React.FC<any> = ({ children }) => {
+  const g = useBeatSV(useAnim(), 3000, 60, 120);
+  const p = useAnimatedProps(() => ({ opacity: 1 - 0.4 * g.value, transform: [{ translateX: 0.8 * g.value }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const OscRotate: React.FC<any> = ({ deg, cx, cy, dur = 3000, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { rotate: `${-deg + 2 * deg * t.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const OscScaleY: React.FC<any> = ({ cy, from = 1, to = 0.85, dur = 500, children }) => {
+  const t = useOsc(useAnim(), dur);
+  const p = useAnimatedProps(() => ({ transform: [{ translateY: cy }, { scaleY: from + (to - from) * t.value }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const BeatRotate: React.FC<any> = ({ deg, cx, cy, rest = 4000, up = 180, down = 340, children }) => {
+  const g = useBeatSV(useAnim(), rest, up, down);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { rotate: `${deg * g.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const BeatScale: React.FC<any> = ({ to, cx, cy, rest = 4000, up = 180, down = 340, children }) => {
+  const g = useBeatSV(useAnim(), rest, up, down);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 + (to - 1) * g.value }, { translateX: -cx }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const BeatScaleY: React.FC<any> = ({ to, cy, rest = 4000, up = 140, down = 260, children }) => {
+  const g = useBeatSV(useAnim(), rest, up, down);
+  const p = useAnimatedProps(() => ({ transform: [{ translateY: cy }, { scaleY: 1 + (to - 1) * g.value }, { translateY: -cy }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+export const BeatTranslate: React.FC<any> = ({ dx = 0, dy = 0, rest = 4000, up = 200, down = 400, children }) => {
+  const g = useBeatSV(useAnim(), rest, up, down);
+  const p = useAnimatedProps(() => ({ transform: [{ translateX: dx * g.value }, { translateY: dy * g.value }] as any }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+/* ── shared defs + building blocks ────────────────────────────────────── */
+export const FaceDefs = () => (
+  <Defs>
+    <LinearGradient id="volume" x1="0%" y1="0%" x2="100%" y2="100%">
+      <Stop offset="0%" stopColor="#FFF" stopOpacity="0.25" />
+      <Stop offset="40%" stopColor="#FFF" stopOpacity="0" />
+      <Stop offset="60%" stopColor="#000" stopOpacity="0" />
+      <Stop offset="100%" stopColor="#000" stopOpacity="0.2" />
+    </LinearGradient>
+    <RadialGradient id="sphere" cx="35%" cy="35%" r="65%">
+      <Stop offset="0%" stopColor="#FFF" stopOpacity="0.6" />
+      <Stop offset="25%" stopColor="#FFF" stopOpacity="0.1" />
+      <Stop offset="100%" stopColor="#000" stopOpacity="0.25" />
+    </RadialGradient>
+    <Mask id="circ" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48"><Path fill="#fff" d={TILE} /></Mask>
+    <Mask id="head" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48"><Path fill="#fff" d={HEAD} /></Mask>
+    <LinearGradient id="dawn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <Stop offset="0%" stopColor="#006064" /><Stop offset="60%" stopColor="#4DB6AC" /><Stop offset="100%" stopColor="#FFAB91" />
+    </LinearGradient>
+    <LinearGradient id="sunrise" x1="0%" y1="100%" x2="0%" y2="0%">
+      <Stop offset="0%" stopColor="#FFC107" /><Stop offset="50%" stopColor="#FF9800" /><Stop offset="100%" stopColor="#E65100" />
+    </LinearGradient>
+    <LinearGradient id="dusk" x1="0%" y1="0%" x2="0%" y2="100%">
+      <Stop offset="0%" stopColor="#1A237E" /><Stop offset="100%" stopColor="#311B92" />
+    </LinearGradient>
+  </Defs>
+);
+
+export const Plate: React.FC<{ c: string }> = ({ c }) => (
+  <>
+    <Path fill="#000" opacity="0.1" transform="translate(0 4)" d={HEAD} />
+    <Path fill="#000" opacity="0.08" transform="translate(0 2)" d={HEAD} />
+    <Path fill={c} d={HEAD} />
+    <Path fill="url(#volume)" d={HEAD} />
+  </>
+);
+export const Eye: React.FC<{ x: number; y: number }> = ({ x, y }) => (
+  <>
+    <Circle cx={x} cy={y} r="3" fill="#191A1F" />
+    <Circle cx={x - 1} cy={y - 1} r="1" fill="#fff" />
+    <Circle cx={x + 1.2} cy={y + 1.2} r="0.4" fill="#fff" opacity="0.7" />
+  </>
+);
+
+/* The shell every face uses: View + Svg + defs + circle-clipped bg.
+   Provides `shouldAnimate` to the animated wrappers via context. */
+export const FaceShell: React.FC<SvgIconProps & { bg: string; children: React.ReactNode }> = ({
+  size = 48,
+  width,
+  height,
+  transparentBg = false,
+  shouldAnimate = false,
+  bg,
+  children,
+  ...rest
+}) => {
+  const w = width || size;
+  const h = height || size;
+  return (
+    <AnimCtx.Provider value={!!shouldAnimate}>
+      <View style={{ width: w as any, height: h as any, borderRadius: (Number(w) || 48) / 2, overflow: "hidden" }}>
+        <Svg width={w} height={h} viewBox="0 0 48 48" fill="none" {...rest}>
+          <FaceDefs />
+          <G mask="url(#circ)">
+            {!transparentBg && <Path fill={bg} d={TILE} />}
+            {children}
+          </G>
+        </Svg>
+      </View>
+    </AnimCtx.Provider>
+  );
+};
