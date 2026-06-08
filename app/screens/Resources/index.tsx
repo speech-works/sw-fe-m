@@ -59,7 +59,7 @@ const SUPPORT: ResourceItem[] = [
 
 const CRISIS: ResourceItem[] = [
   {
-    label: "988 Suicide & Crisis Lifeline",
+    label: "988 Crisis Helpline",
     desc: "Call or text 988 — free and confidential, 24/7.",
     icon: "phone-in-talk",
     action: "tel:988",
