@@ -51,7 +51,7 @@ import {
 import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { shareBuddyInvite } from "../../util/functions/share";
-import { BUDDY_CHEERS } from "../../constants/buddyCheers";
+import { BUDDY_CHEERS } from "../../constants/cheerSets";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";

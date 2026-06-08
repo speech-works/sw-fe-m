@@ -1,6 +1,10 @@
 import { CheerType } from "../api/buddies";
 import { PostActivityKind } from "../api/posts";
-import { BUDDY_CHEERS, CheerOption } from "./buddyCheers";
+export interface CheerOption {
+  type: CheerType;
+  emoji: string;
+  label: string;
+}
 
 /**
  * Master catalog of every cheer. All effort/courage framed — NEVER fluency/outcome.
@@ -17,6 +21,14 @@ export const CHEER_CATALOG: Record<CheerType, CheerOption> = {
   centered: { type: "centered", emoji: "🧘", label: "So centered" },
   consistent: { type: "consistent", emoji: "🔥", label: "Consistency!" },
 };
+
+/** Canned, one-tap encouragements buddies can send. No free text → nothing to moderate. */
+export const BUDDY_CHEERS: CheerOption[] = [
+  CHEER_CATALOG.proud,
+  CHEER_CATALOG.keep_going,
+  CHEER_CATALOG.well_done,
+  CHEER_CATALOG.high_five,
+];
 
 /** Contextual reaction sets per activity kind (effort/courage only). */
 const SETS: Record<PostActivityKind, CheerType[]> = {
