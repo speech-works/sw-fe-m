@@ -8,7 +8,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
+import { BlurView } from "expo-blur";
 
 import PressableScale from "../../components/PressableScale";
 import { theme } from "../../Theme/tokens";
@@ -101,28 +103,35 @@ const Resources = () => {
         <Text style={styles.rowLabel}>{item.label}</Text>
         <Text style={styles.rowDesc}>{item.desc}</Text>
       </View>
-      <MaterialCommunityIcons name="open-in-new" size={18} color={C.faint} />
+      <Ionicons name="open-outline" size={18} color={C.faint} />
     </PressableScale>
   );
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <BlurView
+        intensity={80}
+        tint="light"
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
+        ]}
+      >
         <PressableScale
-          style={styles.backBtn}
+          style={styles.backButton}
           scaleTo={0.92}
           haptic={false}
           onPress={() => navigation.goBack()}
           accessibilityLabel="Back"
         >
-          <MaterialCommunityIcons name="chevron-left" size={26} color={C.title} />
+          <Icon name="chevron-left" size={16} color={C.title} />
         </PressableScale>
         <Text style={styles.headerTitle}>Help & Resources</Text>
-        <View style={styles.backBtn} />
-      </View>
+        <View style={{ width: 32 }} />
+      </BlurView>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ padding: 20, paddingTop: 60 + insets.top + 20, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.intro}>
@@ -150,17 +159,30 @@ export default Resources;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#FFFBF7" },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
   headerTitle: {
-    flex: 1,
-    textAlign: "center",
     ...parseTextStyle(theme.typography.Heading3),
     color: C.title,
+    marginTop: 2,
   },
   intro: {
     ...parseTextStyle(theme.typography.Body),
