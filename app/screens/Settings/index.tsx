@@ -295,10 +295,6 @@ const Settings = () => {
 
           <View style={{ height: 28 }} />
 
-          <BuyPro />
-
-          <View style={{ height: 28 }} />
-
           {/* Minimal Footer */}
           <View style={styles.footer}>
             {/* Floating WaveFace watermark */}

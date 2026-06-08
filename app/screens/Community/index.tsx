@@ -439,7 +439,7 @@ const Community = () => {
       >
         <Text style={styles.title}>Community</Text>
         <Text style={styles.subtitle}>
-          {isPaired 
+          {isPaired
             ? `You & ${buddyFirstName} — keep it up together.`
             : "Practice sticks when someone's in it with you."}
         </Text>
@@ -765,7 +765,7 @@ const Community = () => {
                   />
                 </View>
                 <Text style={styles.poolText}>
-                  Together the community showed up{" "}
+                  Together you showed up{" "}
                   {pulse.activitiesThisWeek.toLocaleString()} times this week
                 </Text>
               </View>
