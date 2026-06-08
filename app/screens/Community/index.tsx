@@ -487,7 +487,7 @@ const Community = () => {
       <View style={styles.inviteCard}>
         {/* Watermark Layer */}
         <View style={styles.watermarkLayer} pointerEvents="none">
-          <MaterialCommunityIcons name="gift" size={260} color={C.orange500} style={styles.watermarkIcon} />
+          <MaterialCommunityIcons name="gift" size={260} color="#CBD5E1" style={styles.watermarkIcon} />
         </View>
 
         <View style={styles.inviteTextContainer}>
@@ -637,7 +637,7 @@ const Community = () => {
 
         {/* Together — cooperative progress, bento layout */}
         <Animated.View entering={enter(1)}>
-          <SectionHeading title="Together" hint="Effort, not perfection" />
+          <SectionHeading title="Together" />
           <View style={styles.bento}>
             {/* Bond Level — hero tile (shared-era combined XP via the level engine) */}
             <View style={styles.bondCard}>
@@ -648,8 +648,8 @@ const Community = () => {
                 <MaterialCommunityIcons
                   name={(team?.bondStageIcon ?? "account-heart") as any}
                   size={140}
-                  color={C.orange500}
-                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                  color="#CBD5E1"
+                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
                 />
               </View>
 
@@ -685,8 +685,8 @@ const Community = () => {
                   <MaterialCommunityIcons
                     name="lightning-bolt"
                     size={86}
-                    color={C.orange500}
-                    style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                    color="#CBD5E1"
+                    style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
                   />
                 </View>
                 <AnimatedNumber
@@ -703,8 +703,8 @@ const Community = () => {
                   <MaterialCommunityIcons
                     name="calendar-heart"
                     size={80}
-                    color={C.orange500}
-                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                    color="#CBD5E1"
+                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
                   />
                 </View>
                 <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
@@ -721,8 +721,8 @@ const Community = () => {
                 <MaterialCommunityIcons
                   name="target"
                   size={100}
-                  color={C.orange500}
-                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                  color="#CBD5E1"
+                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
                 />
               </View>
               <View style={styles.goalHeader}>
@@ -748,28 +748,27 @@ const Community = () => {
                   <Text style={styles.bothActiveText}>You've both shown up this week</Text>
                 </View>
               ) : null}
-            </View>
 
-            {/* Non-ranked community pool — belonging, not competition */}
-            {pulse ? (
-              <View style={styles.poolStrip}>
-                <View
-                  style={[StyleSheet.absoluteFillObject, { borderRadius: 16, overflow: "hidden" }]}
-                  pointerEvents="none"
-                >
-                  <MaterialCommunityIcons
-                    name="account-group"
-                    size={70}
-                    color={C.orange500}
-                    style={{ position: "absolute", right: -15, top: -15, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
-                  />
+              {pulse ? (
+                <View style={styles.poolStrip}>
+                  <View
+                    style={[StyleSheet.absoluteFillObject, { borderRadius: 12, overflow: "hidden" }]}
+                    pointerEvents="none"
+                  >
+                    <MaterialCommunityIcons
+                      name="paw"
+                      size={60}
+                      color="#CBD5E1"
+                      style={{ position: "absolute", right: -10, bottom: -10, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
+                    />
+                  </View>
+                  <Text style={styles.poolText}>
+                    Together you showed up{" "}
+                    {pulse.activitiesThisWeek.toLocaleString()} times this week
+                  </Text>
                 </View>
-                <Text style={styles.poolText}>
-                  Together you showed up{" "}
-                  {pulse.activitiesThisWeek.toLocaleString()} times this week
-                </Text>
-              </View>
-            ) : null}
+              ) : null}
+            </View>
           </View>
         </Animated.View>
 
@@ -788,8 +787,8 @@ const Community = () => {
                 <MaterialCommunityIcons
                   name="party-popper"
                   size={120}
-                  color={C.orange500}
-                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.12, transform: [{ rotate: "-10deg" }] }}
+                  color="#CBD5E1"
+                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
                 />
               </View>
               <Text style={styles.cheerPrompt}>
@@ -1301,10 +1300,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginTop: 16,
     backgroundColor: C.peachSurface,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -1422,7 +1420,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -50,
     bottom: -50,
-    opacity: 0.12,
+    opacity: 0.04,
     transform: [{ rotate: "-15deg" }],
   },
   inviteTextContainer: {
