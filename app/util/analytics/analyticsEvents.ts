@@ -8,6 +8,7 @@ export const ANALYTICS_EVENTS = {
     USER_SIGNED_UP: 'user_signed_up',
     USER_LOGGED_IN: 'user_logged_in',
     USER_LOGGED_OUT: 'user_logged_out',
+    ACCOUNT_DELETED: 'account_deleted',
 
     // ── Onboarding ────────────────────────────────────────────────────
     ONBOARDING_STARTED: 'onboarding_started',

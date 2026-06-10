@@ -133,6 +133,18 @@ export async function deleteUserById(id: string): Promise<void> {
   }
 }
 
+// Permanently delete the authenticated user's own account. The server reads the
+// user id from the verified auth token (DELETE /users/me), so the client never
+// supplies an id; a user can only ever delete themselves.
+export async function deleteMe(): Promise<void> {
+  try {
+    await axiosClient.delete("/users/me");
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    throw error;
+  }
+}
+
 // Get my user (current authenticated user)
 export async function getMyUser(): Promise<User> {
   try {

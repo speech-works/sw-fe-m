@@ -38,7 +38,7 @@ export {
     getSubscriptionById,
     updateSubscriptionById
 } from "./subscription";
-export { deleteUserById, getUserById, updateUserById } from "./users";
+export { deleteUserById, deleteMe, getUserById, updateUserById } from "./users";
 
 // Form Submission API (for exposure feedback, pack reflections, etc.)
 export { submitFormResponse } from "./forms";

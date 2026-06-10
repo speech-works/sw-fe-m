@@ -32,18 +32,20 @@ import {
 } from "../../util/functions/parseStyles";
 import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
+import DeleteAccountModal from "./components/DeleteAccountModal";
 
 const HEADER_HEIGHT = 100;
 
 const Settings = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { logout } = useContext(AuthContext);
+  const { logout, deleteAccount } = useContext(AuthContext);
   const { user } = useUserStore();
 
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const floatAnim = useRef(new Animated.Value(0)).current;
 
@@ -326,6 +328,14 @@ const Settings = () => {
               <Text style={styles.signOutText}>Log Out</Text>
               <Icon name="sign-out-alt" size={14} color="#EF4444" />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteAccountButton}
+              onPress={() => setShowDeleteModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Delete account"
+            >
+              <Text style={styles.deleteAccountText}>Delete Account</Text>
+            </TouchableOpacity>
             <Text style={styles.versionText}>v2.4.0 (Build 302)</Text>
           </View>
         </ScrollView>
@@ -340,6 +350,12 @@ const Settings = () => {
       >
         <FullProfile levelStage={levelStage} />
       </BottomSheetModal>
+
+      <DeleteAccountModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={deleteAccount}
+      />
     </>
   );
 };
@@ -574,6 +590,16 @@ const styles = StyleSheet.create({
     ...parseTextStyle(theme.typography.BodySmall),
     color: "#EF4444", // Red
     fontWeight: "600",
+  },
+  deleteAccountButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  deleteAccountText: {
+    ...parseTextStyle(theme.typography.BodyDetails),
+    color: "#DC2626",
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
   versionText: {
     ...parseTextStyle(theme.typography.BodyDetails),
