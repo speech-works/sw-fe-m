@@ -697,11 +697,14 @@ const Community = () => {
                 />
               </View>
               {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
-                <Text style={styles.questDone}>🎉 You hit this week's goal together!</Text>
+                <View style={styles.liveRow}>
+                  <Text style={{ fontSize: 14 }}>🎉</Text>
+                  <Text style={styles.liveText}>You hit this week's goal together!</Text>
+                </View>
               ) : team?.bothActiveThisWeek ? (
-                <View style={styles.bothActiveChip}>
+                <View style={styles.liveRow}>
                   <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
-                  <Text style={styles.bothActiveText}>You've both shown up this week</Text>
+                  <Text style={styles.liveText}>You've both shown up this week</Text>
                 </View>
               ) : null}
             </View>
@@ -1219,18 +1222,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   goalFill: { height: "100%", borderRadius: 6, overflow: "hidden" },
-  questDone: { fontSize: 13, fontWeight: "800", color: C.orange600, marginTop: 10 },
-  bothActiveChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 12,
-    backgroundColor: C.peachSurface,
-    borderRadius: 100,
-    paddingVertical: 10,
-  },
-  bothActiveText: { fontSize: 13, fontWeight: "800", color: C.orange700 },
+
 
   // Non-ranked community pool strip
   poolStrip: {
