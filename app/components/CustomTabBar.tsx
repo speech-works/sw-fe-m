@@ -4,6 +4,7 @@ import React from "react";
 import {
   Dimensions,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -19,10 +20,8 @@ import Animated, {
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
-import { LinearGradient } from "expo-linear-gradient";
-
+import { useInboxStore } from "../stores/inbox";
 const { width } = Dimensions.get("window");
-const GOLD_GRADIENT = ["#D4AF37", "#996515"] as const;
 
 const CustomTabBar = ({
   state,
@@ -30,6 +29,7 @@ const CustomTabBar = ({
   navigation,
 }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
+  const unreadCount = useInboxStore((s) => s.unreadCount);
 
   const focusedRoute = state.routes[state.index];
   const focusedDescriptor = descriptors[focusedRoute.key];
@@ -93,10 +93,7 @@ const CustomTabBar = ({
           let activeColor = theme.colors.library.orange[400];
           let activeContentColor = "#FFFFFF";
 
-          if (routeName === ROUTE_NAMES.COMMUNITY) {
-            activeColor = "#d8b02cff"; // Dark background from image
-            activeContentColor = "#fff"; // Gold content from image
-          }
+          const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
 
           return (
             <TabItem
@@ -109,6 +106,7 @@ const CustomTabBar = ({
               onPress={onPress}
               onLongPress={onLongPress}
               routeName={routeName}
+              badge={badge}
             />
           );
         })}
@@ -126,6 +124,7 @@ const TabItem = ({
   activeColor,
   activeContentColor,
   routeName,
+  badge = 0,
 }: any) => {
   const focusedValue = useDerivedValue(() => {
     return withTiming(isFocused ? 1 : 0, {
@@ -134,19 +133,35 @@ const TabItem = ({
     });
   }, [isFocused]);
 
+  const getLabelWidth = (text: string) => {
+    switch (text) {
+      case "Home":
+        return 42;
+      case "Stats":
+        return 42;
+      case "Explore":
+        return 58;
+      case "Community":
+        return 82;
+      case "Settings":
+        return 65;
+      default:
+        return 60;
+    }
+  };
+  const labelWidth = getLabelWidth(label);
+
   const containerStyle = useAnimatedStyle(() => {
     return {
       flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]),
     };
   });
 
-  const isCommunity = routeName === ROUTE_NAMES.COMMUNITY;
-
   const pillStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["transparent", isCommunity ? "transparent" : activeColor],
+      ["transparent", activeColor],
     );
     return {
       backgroundColor,
@@ -159,7 +174,6 @@ const TabItem = ({
       paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]),
       borderWidth: 0,
       borderColor: "transparent",
-      overflow: "hidden",
     };
   });
 
@@ -171,8 +185,8 @@ const TabItem = ({
 
   const textWrapperStyle = useAnimatedStyle(() => {
     return {
-      width: interpolate(focusedValue.value, [0, 1], [0, 85]),
-      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 2]),
+      width: interpolate(focusedValue.value, [0, 1], [0, labelWidth]),
+      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 8]),
       overflow: "hidden",
       opacity: focusedValue.value,
       justifyContent: "center",
@@ -197,6 +211,17 @@ const TabItem = ({
     opacity: focusedValue.value,
   }));
 
+  const badgeAnimatedStyle = useAnimatedStyle(() => {
+    const borderColor = interpolateColor(
+      focusedValue.value,
+      [0, 1],
+      ["#FFFFFF", activeColor]
+    );
+    return {
+      borderColor,
+    };
+  });
+
   return (
     <Animated.View style={[styles.tabItemContainer, containerStyle]}>
       <TouchableOpacity
@@ -206,16 +231,6 @@ const TabItem = ({
         style={styles.touchable}
       >
         <Animated.View style={pillStyle}>
-          {isCommunity && (
-            <Animated.View style={[StyleSheet.absoluteFill, gradientStyle]}>
-              <LinearGradient
-                colors={GOLD_GRADIENT}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-            </Animated.View>
-          )}
           <View
             style={{
               width: 24,
@@ -238,6 +253,13 @@ const TabItem = ({
                 color={activeContentColor}
               />
             </Animated.View>
+            {badge > 0 ? (
+              <Animated.View style={[styles.badge, badgeAnimatedStyle]}>
+                <Text style={styles.badgeText} numberOfLines={1}>
+                  {badge > 9 ? "9+" : badge}
+                </Text>
+              </Animated.View>
+            ) : null}
           </View>
 
           <Animated.View style={textWrapperStyle}>
@@ -294,6 +316,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "center",
   },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: "#FF3B30",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
 });
 
 export default CustomTabBar;

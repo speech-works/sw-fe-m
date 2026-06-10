@@ -6,9 +6,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../api";
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -30,15 +27,15 @@ import { useUserStore } from "../../../../../../stores/user";
 import { ChorusManager } from "../../../../Tools/Chorus/chorusManager";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
-import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 
 export const useQuotePractice = () => {
   const { setTabBarVisible } = useUIStore();
   const chorusManagerRef = useRef(new ChorusManager());
   const navigation =
     useNavigation<RDPStackNavigationProp<keyof RDPStackParamList>>();
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, hasHydrated, setSession, ensureActiveSession } =
+  const { updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession, hasHydrated } =
     useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
@@ -131,132 +128,18 @@ export const useQuotePractice = () => {
 
   const onBackPress = () => navigation.goBack();
 
-  const markActivityStart = async () => {
-    const isPackContext = packContext?.packId;
-
-    if (!isPackContext && !practiceSession && !user) {
-      console.error("[useQuotePractice] ❌ No user/session found!");
-      return;
-    }
-
-    try {
-      // Create session if it doesn't exist
-      let sessionToUse = practiceSession;
-      if (!isPackContext && !sessionToUse && user) {
-        const newSession = await ensureActiveSession(user.id);
-        setSession(newSession);
-        sessionToUse = newSession;
-      }
-
-      if (!isPackContext && !sessionToUse) return;
-
-      const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext
-        ? user?.id
-        : (sessionToUse!.user?.id ?? user?.id);
-
-      if (!userId) {
-        console.error("Missing userId");
-        return;
-      }
-
-      let activityIdToStart = currentActivityId || initialActivity?.id;
-      const contentId = allQuotes[selectedIndex]?.id;
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (initialActivity) {
-          console.log(
-            ">> useQuotePractice: Activity already started by Pack, skipping API call...",
-          );
-          addActivity(initialActivity);
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(initialActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but initialActivity is missing!");
-          setIsStarting(false);
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-
-      // If we don't have a unique activity ID yet, create one (Standalone mode)
-      if (!activityIdToStart) {
-        if (!contentId) {
-          console.error("useQuotePractice - Missing contentId, cannot create activity. User might be attempting to start before data is loaded.");
-          setIsStarting(false);
-          return;
-        }
-
-        if (isPackContext) {
-          console.log("useQuotePractice - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId: contentId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          if (!sessionId)
-            throw new Error("No session ID for standalone activity");
-          console.log(
-            "useQuotePractice - Creating Activity via POST (Standalone)",
-          );
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId,
-              contentType: PracticeActivityContentType.READING_PRACTICE,
-              contentId: contentId,
-            });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> useQuotePractice: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.READING_PRACTICE,
-                contentId: contentId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId,
-      });
-
-      addActivity({ ...startedActivity });
-      
-      // Track activity start
-      track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
-        activityId: activityIdToStart,
-        contentType: PracticeActivityContentType.READING_PRACTICE,
-        title: allQuotes[selectedIndex]?.title,
-        isPackContext: !!packContext?.packId
-      });
-
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(activityIdToStart);
-    } catch (error) {
-      console.error("[useQuotePractice] ❌ Error in markActivityStart:", error);
-      throw error;
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.READING_PRACTICE,
+    contentId: allQuotes[selectedIndex]?.id,
+    contentTitle: allQuotes[selectedIndex]?.title,
+    initialActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    onEarlyExit: () => setIsStarting(false),
+    navigation,
+    logTag: "useQuotePractice",
+  });
 
   const markActivityComplete = async (activityId: string) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))

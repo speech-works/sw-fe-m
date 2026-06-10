@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { BlurView } from "expo-blur";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -391,9 +392,9 @@ export default function ConfigureReminder() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{reminderId ? "Edit Reminder" : "Configure"}</Text>
+        <Text style={styles.headerTitle}>{CATEGORY_META[selectedCategory].label}</Text>
         <View style={{ width: 32 }} />
       </BlurView>
 
@@ -401,21 +402,6 @@ export default function ConfigureReminder() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: 80, paddingBottom: Math.max(insets.bottom, 40) }]}
       >
-        {/* Category Header */}
-        <View style={styles.categoryHeader}>
-          <View style={[styles.categoryIconCircle, { backgroundColor: CATEGORY_META[selectedCategory].color + "15" }]}>
-            <MaterialCommunityIcons 
-              name={CATEGORY_META[selectedCategory].icon as any} 
-              size={28} 
-              color={CATEGORY_META[selectedCategory].color} 
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.categoryHeaderLabel}>{CATEGORY_META[selectedCategory].label}</Text>
-            <Text style={styles.categoryHeaderDesc}>{CATEGORY_META[selectedCategory].desc}</Text>
-          </View>
-        </View>
-
         {renderConfigureForm()}
       </ScrollView>
 
@@ -606,17 +592,19 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   saveButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: theme.colors.actionPrimary.default,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation3),
+    gap: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   saveButtonText: {
     fontSize: 16,
     color: "#FFFFFF",
-    fontWeight: "800",
+    fontWeight: "700",
   },
   deleteButton: {
     flexDirection: "row",

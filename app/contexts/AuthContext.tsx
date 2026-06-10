@@ -7,6 +7,7 @@ import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { setUpdateTokenFn } from "../util/functions/authToken";
 import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
+import { unregisterPushToken } from "../util/functions/notifications";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -69,6 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const refreshToken = await SecureStore.getItemAsync(
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
+
+    // Deregister this device's push token while still authenticated (best-effort).
+    await unregisterPushToken();
 
     if (accessToken && refreshToken) {
       try {

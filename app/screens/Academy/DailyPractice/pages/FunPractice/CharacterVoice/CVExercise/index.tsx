@@ -26,9 +26,6 @@ import { getFunPracticeById } from "../../../../../../../api/dailyPractice";
 
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { createSession } from "../../../../../../../api/practiceSessions";
@@ -42,7 +39,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import DonePractice from "../../../../components/DonePractice";
 
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -90,8 +87,8 @@ const CVExercise = () => {
   const effectiveName = data.name;
   const effectiveId = id || practiceActivity?.funPractice?.id;
 
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } = useSessionStore();
+  const { updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -113,117 +110,18 @@ const CVExercise = () => {
     }
   };
 
-  const markActivityStart = async () => {
-    // If not in a pack and no session, we can't track
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure session", err);
-        return;
-      }
-    }
-
-    if (!isPackContext && !sessionToUse) {
-      console.error("❌ practiceSession or packContext is undefined.");
-      return;
-    }
-
-    try {
-      const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext
-        ? user?.id
-        : (sessionToUse!.user?.id ?? user?.id);
-
-      if (!userId) {
-        console.error("Missing userId");
-        return;
-      }
-
-      let activityIdToStart = currentActivityId || practiceActivity?.id;
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (practiceActivity) {
-          console.log(">> CVExercise: Activity already started by Pack, skipping API call...");
-          addActivity(practiceActivity);
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(practiceActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-      if (!activityIdToStart) {
-        if (!effectiveId) {
-          console.error("CVExercise - Missing effectiveId, cannot create activity");
-          return;
-        }
-
-        if (isPackContext) {
-          console.log("CVExercise - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: effectiveId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          if (!sessionId)
-            throw new Error("No session ID for standalone activity");
-          console.log("CVExercise - Creating Activity via POST (Standalone)");
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId,
-              contentType: PracticeActivityContentType.FUN_PRACTICE,
-              contentId: effectiveId,
-            });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> CVExercise: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.FUN_PRACTICE,
-                contentId: effectiveId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId,
-      });
-
-      addActivity({
-        ...startedActivity,
-      });
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(activityIdToStart);
-    } catch (error) {
-      console.error("❌ Failed to start activity:", error);
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.FUN_PRACTICE,
+    contentId: effectiveId,
+    initialActivity: practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: "CVExercise",
+    // CVExercise historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+  });
 
   const markActivityComplete = async (activityId: string) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))
@@ -301,6 +199,8 @@ const CVExercise = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="character voice exercise"
         onDone={
           packContext

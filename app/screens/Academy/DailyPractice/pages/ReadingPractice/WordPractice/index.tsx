@@ -15,6 +15,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -261,6 +262,8 @@ const WordPractice = () => {
   if (practiceComplete) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="word practice"
         onDone={
           packContext

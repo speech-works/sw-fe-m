@@ -32,6 +32,7 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
+import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 
@@ -340,6 +341,8 @@ const Chat = () => {
   if (isDone) {
     return (
       <DonePractice
+        activityId={practiceActivityId ?? undefined}
+        contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="social challenge"
         onDone={
           packContext

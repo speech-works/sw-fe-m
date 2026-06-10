@@ -55,6 +55,11 @@ export interface User {
   stripeCustomerId?: string;
   fearedSounds?: string[];
 
+  // Practice Buddy (v1) — backend-provided
+  referralCode?: string; // the user's own shareable invite code
+  invitedByUserId?: string | null; // who invited them (null if organic)
+  acquisitionSource?: "organic" | "buddy_invite";
+
   /**
    * Fluency-aid over-reliance nudge to surface on the activity start screen,
    * computed server-side and delivered with the user payload. Null when no

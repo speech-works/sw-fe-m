@@ -12,6 +12,7 @@
   ],
   "peerDependencies": {
     "expo": "*",
-    "expo-modules-core": "*"
+    "expo-modules-core": "*",
+    "react-native-vision-camera": "*"
   }
 }

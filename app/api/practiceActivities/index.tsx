@@ -295,3 +295,47 @@ export async function getPracticeActivity(
   );
   return response.data;
 }
+
+// Shape of the AI-generated post-call feedback report (mirrors the backend).
+export interface PhoneCallReportData {
+  headline: string;
+  summary: string;
+  what_went_well: string[];
+  areas_to_improve: string[];
+  handled_pressure?: string;
+  scores?: { confidence: number; clarity: number; engagement: number };
+  score_rationale?: { confidence: string; clarity: string; engagement: string };
+  disfluency_moments?: { quote: string; note?: string }[];
+  suggested_next_practice?: string;
+  encouragement: string;
+  // The conversation transcript, returned so the user can verify the report.
+  transcript?: string;
+}
+
+/**
+ * Generate (and cache) the AI post-call feedback report for a completed
+ * phone-call practice. The backend generates it from the saved transcript on
+ * the first call, then returns the cached report on subsequent calls. We allow
+ * extra time because the first call runs an LLM generation.
+ */
+export async function getPhoneCallReport(
+  practiceActivityId: string,
+): Promise<PhoneCallReportData | null> {
+  try {
+    console.log(">> API: Generating phone-call report", { practiceActivityId });
+    const response = await axiosClient.post(
+      `/practice-activities/${practiceActivityId}/phone-call-report`,
+      {},
+      { timeout: 30000 },
+    );
+    // 204 = no report for this call (e.g. running on the Groq provider). Empty
+    // body → treat as "no report" so the app skips straight to the done flow.
+    if (response.status === 204 || !response.data) {
+      return null;
+    }
+    return response.data;
+  } catch (error) {
+    console.error("Error generating phone call report:", error);
+    throw error;
+  }
+}

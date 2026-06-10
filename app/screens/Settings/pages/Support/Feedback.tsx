@@ -106,7 +106,7 @@ const Feedback = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Feedback & Suggestions</Text>
         <View style={{ width: 32 }} />

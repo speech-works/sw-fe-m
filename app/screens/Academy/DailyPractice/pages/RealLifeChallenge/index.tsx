@@ -18,20 +18,16 @@ import { getCognitivePracticeById, getExposurePracticeById } from "../../../../.
 import { RealLifeChallengeData } from "../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import Button from "../../../../../components/Button";
 import { TactileTouchableOpacity } from "../../../../../components/TactileTouchableOpacity";
 import { ExploreStackParamList } from "../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../stores/activity";
-import { useSessionStore } from "../../../../../stores/session";
 import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-import { showErrorBottomSheet } from "../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../hooks/useMarkActivityStart";
 import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
@@ -59,9 +55,7 @@ const RealLifeChallenge = () => {
   const params = route.params as RealLifeChallengeParams & { from?: string };
   const { practiceActivity, packContext, from } = params || {};
   const { user } = useUserStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
-  const { addActivity, updateActivity } = useActivityStore();
+  const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 64;
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
@@ -120,6 +114,26 @@ const RealLifeChallenge = () => {
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const [showIRLModal, setShowIRLModal] = useState(false);
 
+  const rlcContentId =
+    practiceActivity?.cognitivePractice?.id ||
+    practiceActivity?.exposurePractice?.id;
+  const rlcContentType = practiceActivity?.cognitivePractice
+    ? PracticeActivityContentType.COGNITIVE_PRACTICE
+    : PracticeActivityContentType.EXPOSURE_PRACTICE;
+
+  const markActivityStart = useMarkActivityStart({
+    contentType: rlcContentType,
+    contentId: rlcContentId,
+    initialActivity: practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: "RealLifeChallenge",
+    // RealLifeChallenge historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+  });
+
   // Auto-start activity on mount if not already started
   useEffect(() => {
     if (!packContext?.alreadyStarted && currentStep === ChallengeStep.INSTRUCTION && !isFetching && challengeData) {
@@ -153,136 +167,6 @@ const RealLifeChallenge = () => {
     "Complete this real-world task.";
 
   // --- Handlers ---
-
-  const markActivityStart = async () => {
-    // If we're in a pack, we might not have a global practiceSession.
-    // However, if we are NOT in a pack, we absolutely need one.
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return;
-      }
-    }
-
-    // If passed packContext but it was invalid/empty AND we failed to create session, abort.
-    if (!isPackContext && !sessionToUse) return;
-
-    try {
-      const userId = isPackContext
-        ? user?.id
-        : (sessionToUse!.user?.id ?? user?.id);
-
-      if (!userId) {
-        console.error("Missing userId for activity start");
-        return;
-      }
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (practiceActivity) {
-          console.log("RealLifeChallenge - Already started by pack, skipping API call...");
-          addActivity(practiceActivity);
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(practiceActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-
-      let activityIdToStart = currentActivityId;
-
-      // If we don't have a unique activity ID yet, create one (Standalone mode)
-      if (!activityIdToStart) {
-        const contentId =
-          practiceActivity?.cognitivePractice?.id ||
-          practiceActivity?.exposurePractice?.id;
-
-        if (!contentId) {
-          console.error("Missing contentId for RealLifeChallenge");
-          return;
-        }
-
-        const contentType = practiceActivity?.cognitivePractice
-          ? PracticeActivityContentType.COGNITIVE_PRACTICE
-          : PracticeActivityContentType.EXPOSURE_PRACTICE;
-
-        if (isPackContext) {
-          console.log("RealLifeChallenge - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType,
-            contentId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          if (!sessionToUse) {
-            throw new Error("No session for standalone activity");
-          }
-          console.log(
-            "RealLifeChallenge - Creating Activity via POST (Standalone)",
-          );
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType,
-              contentId,
-            });
-          } catch (createErr: any) {
-            if (
-              createErr?.response?.status === 404 &&
-              createErr?.response?.data?.error
-                ?.toLowerCase()
-                .includes("session")
-            ) {
-              console.log(
-                ">> RealLifeChallenge: Stale session detected (404), refreshing...",
-              );
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType,
-                contentId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId: userId,
-      });
-
-      addActivity({
-        ...startedActivity,
-      });
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(activityIdToStart);
-    } catch (err) {
-      console.error("Failed to start activity", err);
-    }
-  };
 
   const markActivityComplete = async (vitals?: {
     effortScore: number;
@@ -503,6 +387,12 @@ const RealLifeChallenge = () => {
   const renderSummaryScreen = () => (
     <DonePractice
       practiceName="real-life challenge"
+      activityId={currentActivityId ?? undefined}
+      contentType={
+        practiceActivityState?.cognitivePractice
+          ? PracticeActivityContentType.COGNITIVE_PRACTICE
+          : PracticeActivityContentType.EXPOSURE_PRACTICE
+      }
       onDone={packContext ? handleDone : undefined}
       from={from as any}
     />

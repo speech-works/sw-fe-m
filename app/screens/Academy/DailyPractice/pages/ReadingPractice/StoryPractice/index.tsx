@@ -17,6 +17,7 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
+import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -263,6 +264,8 @@ const StoryPractice = () => {
   if (practiceComplete) {
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="story practice"
         onDone={
           packContext

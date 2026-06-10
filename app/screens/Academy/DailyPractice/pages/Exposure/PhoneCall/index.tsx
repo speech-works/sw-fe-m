@@ -29,20 +29,19 @@ import { useUserStore } from "../../../../../../stores/user";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
 
 import {
   abortPracticeActivity,
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../api";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../stores/session";
+
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import DonePractice from "../../../components/DonePractice";
+import PhoneCallReport from "./Report";
 
 const PhoneCall = () => {
   const navigation =
@@ -50,9 +49,7 @@ const PhoneCall = () => {
       PhoneCallEDPStackNavigationProp<keyof PhoneCallEDPStackParamList>
     >();
   const { user } = useUserStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
-  const { addActivity, updateActivity } = useActivityStore();
+  const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
@@ -91,120 +88,23 @@ const PhoneCall = () => {
 
   // State for bottom sheet visibility
   const [isDone, setIsDone] = useState(false);
+  const [reportActivityId, setReportActivityId] = useState<string | null>(null);
+  const [reportDismissed, setReportDismissed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showVitalsModal, setShowVitalsModal] = useState(false);
   const closeModal = () => setIsModalVisible(false);
 
-  const markActivityStart = async (): Promise<string | null> => {
-    if (!selectedScenario) return null;
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return null;
-      }
-    }
-
-    // If not in a pack and no session, we can't track
-    if (!isPackContext && !sessionToUse) return null;
-
-    try {
-      const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = user?.id;
-
-      if (!userId) {
-        console.error("Missing userId");
-        return null;
-      }
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (practiceActivity) {
-          console.log(">> PhoneCall: Activity already started by Pack, syncing state...");
-          addActivity({
-            ...practiceActivity,
-          });
-          useUserStore.getState().fetchUser();
-          setTrackedActivityId(practiceActivity.id);
-          return practiceActivity.id;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return null;
-        }
-      }
-
-      let activityIdToStart = currentActivityId;
-
-      // If we don't have a unique activity ID yet, create one (Standalone mode)
-      if (!activityIdToStart) {
-        if (isPackContext) {
-          console.log("PhoneCall - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-            contentId: selectedScenario.id,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          if (!sessionId) {
-            console.error("No session ID for standalone activity");
-            return null;
-          }
-          console.log("PhoneCall - Creating Activity via POST (Standalone)");
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId,
-              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-              contentId: selectedScenario.id,
-            });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> PhoneCall: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-                contentId: selectedScenario.id,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId,
-      });
-
-      addActivity({
-        ...startedActivity,
-      });
-      setTrackedActivityId(activityIdToStart);
-      useUserStore.getState().fetchUser();
-      return activityIdToStart;
-    } catch (error) {
-      console.error("Failed to start phone call activity", error);
-      return null;
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+    contentId: selectedScenario?.id,
+    contentTitle: selectedScenario?.name,
+    initialActivity: practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setTrackedActivityId,
+    navigation,
+    logTag: "PhoneCall",
+  });
 
   const markActivityComplete = async (vitals?: {
     effortScore: number;
@@ -231,6 +131,8 @@ const PhoneCall = () => {
       });
       useUserStore.getState().fetchUser();
 
+      // Capture the id for the post-call report before we clear it below.
+      setReportActivityId(activityId);
       // Clear the local activity ID state so starting another call creates a new one
       setTrackedActivityId(null);
       setIsDone(true);
@@ -340,8 +242,18 @@ const PhoneCall = () => {
   }, []);
 
   if (isDone) {
+    if (reportActivityId && !reportDismissed) {
+      return (
+        <PhoneCallReport
+          practiceActivityId={reportActivityId}
+          onContinue={() => setReportDismissed(true)}
+        />
+      );
+    }
     return (
       <DonePractice
+        activityId={currentActivityId ?? undefined}
+        contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="AI conversation"
         onDone={
           packContext

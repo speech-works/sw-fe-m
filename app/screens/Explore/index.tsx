@@ -182,10 +182,7 @@ const Explore = () => {
 
           <View style={{ height: 28 }} />
 
-          {/* Upgrade CTA */}
-          <BuyPro onLayoutCapture={() => {}} />
 
-          <View style={{ height: 28 }} />
 
           {/* Inline Library Section */}
           <LibrarySection onLayoutCapture={() => {}} />

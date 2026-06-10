@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -31,6 +32,9 @@ import Button from "../../components/Button";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
+import { attachInviteCode } from "../../api/buddies";
+import { track } from "../../util/analytics/postHog";
+import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import LoginBackground from "./components/LoginBackground";
@@ -62,6 +66,7 @@ const LoginScreen = () => {
   const { setUser } = useUserStore();
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState("");
 
   // Animation Refs
   const logoScaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -242,6 +247,19 @@ const LoginScreen = () => {
     console.log("[OAuth 7] ✅ Stored tokens, logging in.");
     login(appJwt);
     setUser(user);
+
+    // Practice Buddy: if the user entered an invite code, link them to their buddy.
+    // Non-blocking and new-sign-ups-only (the server rejects non-new accounts).
+    const buddyCode = inviteCode.trim();
+    if (buddyCode) {
+      try {
+        track(ANALYTICS_EVENTS.BUDDY_CODE_ENTERED, { source: "signup" });
+        await attachInviteCode(buddyCode);
+        track(ANALYTICS_EVENTS.BUDDY_LINKED, { role: "invitee" });
+      } catch (e) {
+        console.warn("[Buddy] Invite code not applied:", (e as any)?.message);
+      }
+    }
   };
 
   const providers = getDisplayProviders();
@@ -352,6 +370,20 @@ const LoginScreen = () => {
                 />
               );
             })}
+          </View>
+
+          {/* Optional invite code */}
+          <View style={styles.inviteWrap}>
+            <TextInput
+              value={inviteCode}
+              onChangeText={(t) => setInviteCode(t.toUpperCase())}
+              placeholder="Have an invite code? (optional)"
+              placeholderTextColor={theme.colors.text.disabled}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={12}
+              style={styles.inviteInput}
+            />
           </View>
 
           {/* Footer / Legal */}
@@ -476,6 +508,22 @@ const styles = StyleSheet.create({
   loginButtons: {
     width: "100%",
     marginBottom: 12, // Reduced from 24
+  },
+  inviteWrap: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  inviteInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: theme.colors.border.default,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    ...parseTextStyle(theme.typography.Body),
+    color: theme.colors.text.title,
+    textAlign: "center",
+    letterSpacing: 1,
   },
 
   legalContainer: {

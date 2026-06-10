@@ -139,7 +139,7 @@ const DEVICE_MOTION_SUBTRACT_GAIN = 1.0;
 
 // Tier labels — emergent from combined w_detection × w_clinical but surfaced for UI.
 // Tier A: combined weight ≥ 0.70; Tier B: 0.40–0.69; Tier C: head-pose derived.
-export const SIGNAL_TIER: Partial<Record<MirrorBehaviorSignal, 'A' | 'B' | 'C'>> = {
+const SIGNAL_TIER: Partial<Record<MirrorBehaviorSignal, 'A' | 'B' | 'C'>> = {
   [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]:        'A',  // 0.95
   [MirrorBehaviorSignal.LIP_PURSING]:            'A',  // 0.85
   [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]:  'A',  // 0.85

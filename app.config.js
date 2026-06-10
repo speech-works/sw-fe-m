@@ -37,7 +37,7 @@ module.exports = {
       backgroundColor: "#ffffff",
     },
     ios: {
-      bundleIdentifier: "com.mayankav.speechworks",
+      bundleIdentifier: "com.speechworks.app",
       supportsTablet: true,
       language: "objective-c",
       infoPlist: {
@@ -57,16 +57,16 @@ module.exports = {
         ],
         ...(allowsInsecureNetworkTraffic
           ? {
-              NSAppTransportSecurity: {
-                NSAllowsArbitraryLoads: true,
-              },
-            }
+            NSAppTransportSecurity: {
+              NSAllowsArbitraryLoads: true,
+            },
+          }
           : {}),
       },
     },
     android: {
       usesCleartextTraffic: allowsInsecureNetworkTraffic,
-      package: "com.mayankav.speechworks",
+      package: "com.speechworks.app",
       permissions: [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
