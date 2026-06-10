@@ -6,6 +6,7 @@ import BottomTabNavigator from "./BottomTabNavigator";
 import ExploreStackNavigator from "./stacks/ExploreStack";
 import PracticeComposer from "../screens/PracticeComposer";
 import Resources from "../screens/Resources";
+import ShareMomentScreen from "../screens/ShareMoment";
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +36,10 @@ export default function AppNavigator() {
         options={{ presentation: "modal" }}
       />
       <Stack.Screen name="Resources" component={Resources} />
+      <Stack.Screen
+        name="ShareMoment"
+        component={ShareMomentScreen}
+      />
     </Stack.Navigator>
   );
 }

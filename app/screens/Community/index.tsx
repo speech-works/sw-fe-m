@@ -31,7 +31,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
 import Timeline from "../../components/Timeline";
-import ShareMomentSheet from "../../components/ShareMomentSheet";
 import BuddySupportSheet from "../../components/BuddySupportSheet";
 import SegmentedTabs from "../../components/SegmentedTabs";
 import PressableScale from "../../components/PressableScale";
@@ -270,7 +269,6 @@ const Community = () => {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showMoment, setShowMoment] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [view, setView] = useState<"us" | "timeline">("us");
@@ -348,7 +346,11 @@ const Community = () => {
 
   const handleOpenMoment = () => {
     track(ANALYTICS_EVENTS.MOMENT_COMPOSER_OPENED, { source: "community" });
-    setShowMoment(true);
+    navigation.navigate("ShareMoment", {
+      threadId: thread?.id ?? "",
+      buddyName: buddyFirstName,
+      onCreated: () => setFeedRefreshKey((k) => k + 1),
+    });
   };
 
   const handleShare = async () => {
@@ -853,14 +855,6 @@ const Community = () => {
           </CustomScrollView>
         )}
       </View>
-
-      <ShareMomentSheet
-        visible={showMoment}
-        onClose={() => setShowMoment(false)}
-        threadId={thread?.id ?? ""}
-        buddyName={buddyFirstName}
-        onCreated={() => setFeedRefreshKey((k) => k + 1)}
-      />
 
       <BuddySupportSheet
         visible={!!supportSignal}
