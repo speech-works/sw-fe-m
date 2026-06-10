@@ -394,7 +394,7 @@ export default function ConfigureReminder() {
         >
           <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{reminderId ? "Edit Reminder" : "Configure"}</Text>
+        <Text style={styles.headerTitle}>{CATEGORY_META[selectedCategory].label}</Text>
         <View style={{ width: 32 }} />
       </BlurView>
 
@@ -402,21 +402,6 @@ export default function ConfigureReminder() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: 80, paddingBottom: Math.max(insets.bottom, 40) }]}
       >
-        {/* Category Header */}
-        <View style={styles.categoryHeader}>
-          <View style={[styles.categoryIconCircle, { backgroundColor: CATEGORY_META[selectedCategory].color + "15" }]}>
-            <MaterialCommunityIcons 
-              name={CATEGORY_META[selectedCategory].icon as any} 
-              size={28} 
-              color={CATEGORY_META[selectedCategory].color} 
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.categoryHeaderLabel}>{CATEGORY_META[selectedCategory].label}</Text>
-            <Text style={styles.categoryHeaderDesc}>{CATEGORY_META[selectedCategory].desc}</Text>
-          </View>
-        </View>
-
         {renderConfigureForm()}
       </ScrollView>
 
