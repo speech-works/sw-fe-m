@@ -208,9 +208,11 @@ const SignalCard = ({
       const themeColor = moment.gradient[0];
       return (
         <View style={[styles.card, { backgroundColor: themeColor + "1A" }]}>
+          <Text style={styles.watermarkEmoji} pointerEvents="none">
+            {moment.emoji}
+          </Text>
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderTitleRow}>
-              <Text style={styles.momentEmoji}>{moment.emoji}</Text>
               <Text style={[styles.cardTitle, { color: themeColor }]}>Shared a moment</Text>
             </View>
             <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
@@ -231,9 +233,15 @@ const SignalCard = ({
     if (isBeat(signal)) {
       return (
         <View style={[styles.card, { backgroundColor: "#FFF7ED" }]}>
+          <MaterialCommunityIcons 
+            name={(signal.payload.icon ?? "star-shooting") as any} 
+            size={100} 
+            color="#EA580C" 
+            style={styles.watermarkIcon} 
+            pointerEvents="none"
+          />
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderTitleRow}>
-              <MaterialCommunityIcons name={(signal.payload.icon ?? "star-shooting") as any} size={16} color="#EA580C" />
               <Text style={[styles.cardTitle, { color: "#EA580C" }]}>{signal.payload.label}</Text>
             </View>
             <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
@@ -248,9 +256,15 @@ const SignalCard = ({
       const isPrompt = signal.cardKind === "prompt";
       return (
         <View style={[styles.card, { backgroundColor: "#F8FAFC" }]}>
+          <MaterialCommunityIcons 
+            name={meta.icon as any} 
+            size={100} 
+            color="#475569" 
+            style={styles.watermarkIcon} 
+            pointerEvents="none"
+          />
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderTitleRow}>
-              <MaterialCommunityIcons name={meta.icon as any} size={16} color="#475569" />
               <Text style={[styles.cardTitle, { color: "#475569" }]}>{meta.label}</Text>
             </View>
             <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
@@ -301,9 +315,15 @@ const SignalCard = ({
 
     return (
       <View style={[styles.card, { backgroundColor: themeColor + "1A" }]}>
+        <MaterialCommunityIcons 
+          name={template.icon as any} 
+          size={120} 
+          color={themeColor} 
+          style={styles.watermarkIcon} 
+          pointerEvents="none"
+        />
         <View style={styles.cardHeaderRow}>
           <View style={styles.cardHeaderTitleRow}>
-            <MaterialCommunityIcons name={template.icon as any} size={16} color={themeColor} />
             <Text style={[styles.cardTitle, { color: themeColor }]}>{template.label}</Text>
           </View>
           <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
@@ -367,6 +387,23 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
     padding: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  watermarkEmoji: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    fontSize: 100,
+    opacity: 0.08,
+    transform: [{ rotate: "-15deg" }],
+  },
+  watermarkIcon: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    opacity: 0.08,
+    transform: [{ rotate: "-15deg" }],
   },
   cardHeaderRow: {
     flexDirection: "row",
