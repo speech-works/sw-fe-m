@@ -101,7 +101,12 @@ export const useMarkActivityStart = (
   const markActivityStart = async (): Promise<string | null> => {
     const isPackContext = packContext?.packId;
 
-    if (!isPackContext && !practiceSession && !user) {
+    // Null-user guard (applies to pack AND standalone): never create or
+    // register an activity — including a pack double-start — when there is no
+    // identifiable user and no session to derive one from. This makes the
+    // protection explicit for the pack path; `userId` is re-validated below
+    // once a session is resolved (standalone) or read from the user (pack).
+    if (!user && !practiceSession) {
       console.error(`[${logTag}] ❌ No user/session found!`);
       return null;
     }
