@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { BlurView } from "expo-blur";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -391,7 +392,7 @@ export default function ConfigureReminder() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <MaterialCommunityIcons name="chevron-left" size={20} color={theme.colors.text.title} />
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{reminderId ? "Edit Reminder" : "Configure"}</Text>
         <View style={{ width: 32 }} />
