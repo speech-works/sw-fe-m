@@ -53,12 +53,10 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
@@ -67,7 +65,6 @@ import { useUserStore } from "../../../../../../stores/user";
 import { toPascalCase } from "../../../../../../util/functions/strings";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
-import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 
 const { width } = Dimensions.get("window");
 
@@ -81,8 +78,8 @@ const PoemPractice = () => {
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const { setTabBarVisible } = useUIStore();
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, ensureActiveSession } = useSessionStore();
+  const { updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
     useRecordedVoice(user?.id);
@@ -217,127 +214,18 @@ const PoemPractice = () => {
     }
   };
 
-  const markActivityStart = async () => {
-    // If not in a pack and no session, we can't track
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse: any = practiceSession;
-
-    if (!isPackContext) {
-      if (!user?.id) {
-        console.error("Missing userId");
-        return;
-      }
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return;
-      }
-    }
-
-    if (!isPackContext && !sessionToUse) return;
-
-    const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext
-      ? user?.id
-      : (sessionToUse!.user?.id ?? user?.id);
-
-    if (!userId) {
-      console.error("Missing userId");
-      return;
-    }
-
-    let activityIdToStart =
-      currentActivityId || (route.params as any)?.practiceActivity?.id;
-
-    // --- DOUBLE-START PREVENTION ---
-    const practiceActivity = (route.params as any)?.practiceActivity;
-    if (packContext?.alreadyStarted) {
-      if (practiceActivity) {
-        console.log(
-          ">> PoemPractice: Activity already started by Pack, skipping API call...",
-        );
-        addActivity(practiceActivity);
-        useUserStore.getState().fetchUser();
-        setCurrentActivityId(practiceActivity.id);
-        return;
-      } else {
-        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-        setIsStarting(false);
-        showErrorBottomSheet(
-          "Something went wrong",
-          "Activity data was lost. Returning to your Pack."
-        );
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        }
-        return;
-      }
-    }
-    // If we don't have a unique activity ID yet, create one (Standalone mode)
-    if (!activityIdToStart) {
-      const contentId = allPoems[selectedIndex]?.id;
-      if (!contentId) {
-        console.error("PoemPractice - Missing contentId, cannot create activity. User might be attempting to start before data is loaded.");
-        setIsStarting(false);
-        return;
-      }
-
-      if (isPackContext) {
-        console.log("PoemPractice - Creating Activity via POST (Pack)");
-        const newActivity = await createPracticeActivityFromPack({
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          contentType: PracticeActivityContentType.READING_PRACTICE,
-          contentId,
-        });
-        activityIdToStart = newActivity.id;
-      } else {
-        if (!sessionId)
-          throw new Error("No session ID for standalone activity");
-        console.log("PoemPractice - Creating Activity via POST (Standalone)");
-        let newActivity;
-        try {
-          newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.READING_PRACTICE,
-            contentId,
-          });
-        } catch (createErr: any) {
-          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-            console.log(">> PoemPractice: Stale session detected (404), refreshing...");
-            sessionToUse = await ensureActiveSession(userId, true);
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType: PracticeActivityContentType.READING_PRACTICE,
-              contentId,
-            });
-          } else {
-            throw createErr;
-          }
-        }
-        activityIdToStart = newActivity.id;
-      }
-    }
-
-    const startedActivity = await startPracticeActivity({
-      id: activityIdToStart,
-      userId,
-    });
-
-    // Track activity start
-    track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
-      activityId: activityIdToStart,
-      contentType: PracticeActivityContentType.READING_PRACTICE,
-      title: allPoems[selectedIndex]?.title,
-      isPackContext: !!packContext?.packId
-    });
-
-    addActivity({ ...startedActivity });
-    useUserStore.getState().fetchUser();
-    setCurrentActivityId(activityIdToStart);
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.READING_PRACTICE,
+    contentId: allPoems[selectedIndex]?.id,
+    contentTitle: allPoems[selectedIndex]?.title,
+    initialActivity: (route.params as any)?.practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    onEarlyExit: () => setIsStarting(false),
+    navigation,
+    logTag: "PoemPractice",
+  });
 
   const markActivityComplete = async (activityId: string) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))

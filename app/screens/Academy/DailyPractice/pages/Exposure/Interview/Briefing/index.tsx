@@ -11,11 +11,7 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
-} from "../../../../../../../api";
+import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 
 import ScreenView from "../../../../../../../components/ScreenView";
@@ -23,10 +19,6 @@ import {
   InterviewEDPStackNavigationProp,
   InterviewEDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/InterviewSimulationStack/types";
-import { useActivityStore } from "../../../../../../../stores/activity";
-import { useSessionStore } from "../../../../../../../stores/session";
-import { useUserStore } from "../../../../../../../stores/user";
-import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -35,10 +27,6 @@ import {
 
 
 const Briefing = () => {
-  const { user } = useUserStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
-  const { addActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 60;
   const navigation =
@@ -54,123 +42,18 @@ const Briefing = () => {
 
   const data = interview.practiceData || interview.interviewPracticeData;
 
-  const markActivityStart = async () => {
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return;
-      }
-    }
-
-    // If we are not in a pack and have no session (and creation failed), abort.
-    if (!isPackContext && !sessionToUse) return;
-
-    const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext
-      ? user?.id
-      : (sessionToUse!.user?.id ?? user?.id);
-
-    if (!userId) {
-      console.error("Missing userId");
-      return;
-    }
-
-    // --- DOUBLE-START PREVENTION ---
-    if (packContext?.alreadyStarted) {
-      if (practiceActivity) {
-        console.log(">> Interview: Activity already started by Pack, skipping API call...");
-        addActivity({
-          ...practiceActivity,
-        });
-        useUserStore.getState().fetchUser();
-        setCurrentActivityId(practiceActivity.id);
-        navigation.navigate("InterviewChat", {
-          interview,
-          practiceActivityId: practiceActivity.id,
-          packContext,
-        } as any);
-        return;
-      } else {
-        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-        showErrorBottomSheet(
-          "Something went wrong",
-          "Activity data was lost. Returning to your Pack."
-        );
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        }
-        return;
-      }
-    }
-
-    let activityIdToStart = currentActivityId;
-
-    // If we don't have a unique activity ID yet, create one (Standalone mode)
-    if (!activityIdToStart) {
-      if (!interview?.id) {
-        console.error("Interview - Missing contentId (interview.id), cannot create activity");
-        return;
-      }
-
-      if (isPackContext) {
-        console.log("Interview - Creating Activity via POST (Pack)");
-        const newActivity = await createPracticeActivityFromPack({
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-          contentId: interview.id,
-        });
-        activityIdToStart = newActivity.id;
-      } else {
-        if (!sessionId)
-          throw new Error("No session ID for standalone activity");
-        console.log("Interview - Creating Activity via POST (Standalone)");
-        let newActivity;
-        try {
-          newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-            contentId: interview.id,
-          });
-        } catch (createErr: any) {
-          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-            console.log(">> InterviewBriefing: Stale session detected (404), refreshing...");
-            sessionToUse = await ensureActiveSession(userId, true);
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
-              contentId: interview.id,
-            });
-          } else {
-            throw createErr;
-          }
-        }
-        activityIdToStart = newActivity.id;
-      }
-    }
-    const startedActivity = await startPracticeActivity({
-      id: activityIdToStart,
-      userId: userId,
-    });
-    addActivity({
-      ...startedActivity,
-    });
-    useUserStore.getState().fetchUser();
-    setCurrentActivityId(activityIdToStart);
-
-    navigation.navigate("InterviewChat", {
-      interview,
-      practiceActivityId: activityIdToStart,
-      packContext,
-    } as any);
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.EXPOSURE_PRACTICE,
+    contentId: interview?.id,
+    initialActivity: practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: "Interview",
+    // Interview briefing historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+  });
 
   return (
     <ScreenView style={styles.screenView}>
@@ -261,7 +144,16 @@ const Briefing = () => {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={markActivityStart}
+            onPress={async () => {
+              const activityId = await markActivityStart();
+              if (activityId) {
+                navigation.navigate("InterviewChat", {
+                  interview,
+                  practiceActivityId: activityId,
+                  packContext,
+                } as any);
+              }
+            }}
             style={styles.startButton}
           >
             <LinearGradient

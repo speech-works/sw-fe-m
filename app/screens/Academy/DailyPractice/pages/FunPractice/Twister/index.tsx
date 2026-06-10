@@ -29,9 +29,6 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
@@ -47,7 +44,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
-import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 
 import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
@@ -77,9 +74,8 @@ const Twister = () => {
   const HEADER_HEIGHT = 60;
   const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
   const { packContext, from } = route.params || {};
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
+  const { updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
   const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
   const {
@@ -258,6 +254,10 @@ const Twister = () => {
   });
 
   const runStart = async () => {
+    if (!twisters || twisters.length === 0) {
+      console.warn("Cannot start activity: Tongue twisters not yet loaded.");
+      return;
+    }
     setIsStarting(true);
     try {
       await markActivityStart();
@@ -327,128 +327,23 @@ const Twister = () => {
     }
   };
 
-  const markActivityStart = async () => {
-    // If not in a pack and no session, we can't track
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return;
-      }
-    }
-
-    if (!isPackContext && !sessionToUse) return;
-
-    if (!twisters || twisters.length === 0) {
-      console.warn("Cannot start activity: Tongue twisters not yet loaded.");
-      return;
-    }
-    try {
-      const sessionId = isPackContext ? undefined : sessionToUse!.id;
-      const userId = isPackContext
-        ? user?.id
-        : (sessionToUse!.user?.id ?? user?.id);
-
-      if (!userId) {
-        console.error("Missing userId");
-        return;
-      }
-
-      let activityIdToStart =
-        currentActivityId || route.params?.practiceActivity?.id;
-
-      // --- DOUBLE-START PREVENTION ---
-      const practiceActivity = route.params?.practiceActivity;
-      if (packContext?.alreadyStarted) {
-        if (practiceActivity) {
-          console.log(">> Twister: Activity already started by Pack, skipping API call...");
-          addActivity({
-            ...practiceActivity,
-            funPractice: twisters[currentIndex],
-          });
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(practiceActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-      if (!activityIdToStart) {
-        const contentId = twisters[currentIndex]?.id;
-        if (!contentId) {
-          console.error("Twister - Missing contentId, cannot create activity");
-          return;
-        }
-
-        if (isPackContext) {
-          console.log("Twister - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          if (!sessionId)
-            throw new Error("No session ID for standalone activity");
-          console.log("Twister - Creating Activity via POST (Standalone)");
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId,
-              contentType: PracticeActivityContentType.FUN_PRACTICE,
-              contentId,
-            });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> Twister: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.FUN_PRACTICE,
-                contentId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId,
-      });
-      console.log(
-        "<< Twister: Activity started successfully",
-        startedActivity.id,
-      );
-      addActivity({
-        ...startedActivity,
-        funPractice: twisters[currentIndex],
-      });
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(activityIdToStart);
-    } catch (e) {
-      console.error("!! Twister: Failed to start activity", e);
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.FUN_PRACTICE,
+    contentId: twisters[currentIndex]?.id,
+    initialActivity: route.params?.practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    // Attach the current tongue-twister to the stored activity.
+    decorateActivity: (activity) => ({
+      ...activity,
+      funPractice: twisters[currentIndex],
+    }),
+    navigation,
+    logTag: "Twister",
+    // Twister historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+  });
 
   const markActivityComplete = async (activityId: string) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))

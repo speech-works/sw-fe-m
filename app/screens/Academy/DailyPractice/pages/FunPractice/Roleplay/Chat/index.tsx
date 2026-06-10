@@ -22,7 +22,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import { showErrorBottomSheet } from "../../../../../../../util/functions/bottomSheet";
+import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import DonePractice from "../../../../components/DonePractice";
 
 import {
@@ -33,9 +33,6 @@ import { RoleplayFDPStackParamList } from "../../../../../../../navigators/stack
 
 import {
   completePracticeActivity,
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-  startPracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import { useActivityStore } from "../../../../../../../stores/activity";
@@ -64,9 +61,8 @@ const Chat = () => {
     useRoute<RouteProp<RoleplayFDPStackParamList, "RoleplayChat">>();
   const { title, roleplay, selectedRoleName, id, packContext, from } = route.params;
 
-  const { updateActivity, addActivity, doesActivityExist } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
+  const { updateActivity, doesActivityExist } = useActivityStore();
+  const { practiceSession } = useSessionStore();
 
   const { user } = useUserStore();
   const insets = useSafeAreaInsets();
@@ -183,110 +179,18 @@ const Chat = () => {
     setCurrentNodeId(option.nextNodeId);
   };
 
-  const markActivityStart = async () => {
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (!isPackContext && !sessionToUse && user?.id) {
-      try {
-        sessionToUse = await ensureActiveSession(user.id);
-        setSession(sessionToUse);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        return;
-      }
-    }
-
-    if (!sessionToUse && !isPackContext) return;
-
-    const sessionId = isPackContext ? undefined : sessionToUse!.id;
-    const userId = isPackContext
-      ? user?.id
-      : (sessionToUse!.user?.id ?? user?.id);
-
-    if (!userId) {
-      console.error("Missing userId");
-      return;
-    }
-
-    let activityIdToStart = currentActivityId;
-
-    // --- DOUBLE-START PREVENTION ---
-    const practiceActivity = (route.params as any).practiceActivity;
-    if (packContext?.alreadyStarted) {
-      if (practiceActivity) {
-        console.log(
-          ">> RoleplayChat: Activity already started by Pack, skipping API call...",
-        );
-        addActivity(practiceActivity);
-        useUserStore.getState().fetchUser();
-        setCurrentActivityId(practiceActivity.id);
-        return;
-      } else {
-        console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-        showErrorBottomSheet(
-          "Something went wrong",
-          "Activity data was lost. Returning to your Pack."
-        );
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        }
-        return;
-      }
-    }
-    if (!activityIdToStart) {
-      if (!id) {
-        console.error("RoleplayChat - Missing contentId (id), cannot create activity");
-        return;
-      }
-
-      if (isPackContext) {
-        console.log("RoleplayChat - Creating Activity via POST (Pack)");
-        const newActivity = await createPracticeActivityFromPack({
-          packId: packContext.packId,
-          moduleId: packContext.moduleId,
-          contentType: PracticeActivityContentType.FUN_PRACTICE,
-          contentId: id,
-        });
-        activityIdToStart = newActivity.id;
-      } else {
-        if (!sessionId)
-          throw new Error("No session ID for standalone activity");
-        console.log("RoleplayChat - Creating Activity via POST (Standalone)");
-        let newActivity;
-        try {
-          newActivity = await createPracticeActivity({
-            sessionId,
-            contentType: PracticeActivityContentType.FUN_PRACTICE,
-            contentId: id,
-          });
-        } catch (createErr: any) {
-          if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-            console.log(">> RoleplayChat: Stale session detected (404), refreshing...");
-            sessionToUse = await ensureActiveSession(userId, true);
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType: PracticeActivityContentType.FUN_PRACTICE,
-              contentId: id,
-            });
-          } else {
-            throw createErr;
-          }
-        }
-        activityIdToStart = newActivity.id;
-      }
-    }
-    const startedActivity = await startPracticeActivity({
-      id: activityIdToStart,
-      userId,
-    });
-    addActivity({
-      ...startedActivity,
-    });
-    useUserStore.getState().fetchUser();
-    setCurrentActivityId(activityIdToStart);
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.FUN_PRACTICE,
+    contentId: id,
+    initialActivity: (route.params as any).practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: "RoleplayChat",
+    // RoleplayChat historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+  });
 
   const markActivityComplete = async (activityId: string) => {
     if ((!practiceSession && !packContext) || !doesActivityExist(activityId))

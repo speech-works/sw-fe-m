@@ -25,15 +25,11 @@ import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-} from "../../../../../../api";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
-  startPracticeActivity,
   abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
@@ -88,8 +84,8 @@ const Breathing = () => {
   const { loadBackground, toggleBackground, stopBackground } =
     useBackgroundAudio();
 
-  const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession, ensureActiveSession } = useSessionStore();
+  const { updateActivity } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
 
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
@@ -427,122 +423,22 @@ const Breathing = () => {
   const displayMinutes = Math.floor(elapsedSeconds / 60);
   const displaySeconds = elapsedSeconds % 60;
 
-  const markActivityStart = async () => {
-    console.log("Breathing Screen - markActivityStart", {
-      currentActivityId,
-      hasPracticeSession: !!practiceSession,
-      packContext,
-    });
-
-    const userId = practiceSession?.user?.id || user?.id;
-    if (!userId) {
-      console.error("Breathing Screen - Missing user ID");
-      return;
-    }
-
-    try {
-      let activityIdToStart = currentActivityId || passedActivity?.id;
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (passedActivity) {
-          console.log(">> Breathing: Activity already started by Pack, skipping API call...");
-          addActivity(passedActivity);
-          setCurrentActivity(passedActivity);
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(passedActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but passedActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-
-      // If we don't have a unique activity ID yet, create one
-      if (!activityIdToStart) {
-        const contentId = apiContentId || cognitivePracticeId;
-        if (!contentId) {
-          console.error("Breathing Screen - Missing contentId, cannot create activity");
-          return;
-        }
-
-        if (packContext?.packId) {
-          console.log("Breathing - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          console.log("Breathing - Creating Activity via POST (Standalone)");
-
-          let sessionToUse: any = practiceSession;
-          try {
-            sessionToUse = await ensureActiveSession(user!.id);
-          } catch (err) {
-            console.error(
-              "Breathing Screen - Failed to ensure active session",
-              err,
-            );
-            return;
-          }
-
-          if (!sessionToUse) {
-            console.error(
-              "Breathing Screen - Missing session for standalone activity",
-            );
-            return;
-          }
-
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-              contentId,
-            });
-          } catch (createErr: any) {
-            if (createErr?.response?.status === 404 && createErr?.response?.data?.error?.toLowerCase().includes("session")) {
-              console.log(">> Breathing: Stale session detected (404), refreshing...");
-              sessionToUse = await ensureActiveSession(userId, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-                contentId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      console.log("Starting activity with ID:", activityIdToStart);
-
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId,
-      });
-
-      addActivity(startedActivity);
-      useUserStore.getState().fetchUser();
-      setCurrentActivity(startedActivity);
-      setCurrentActivityId(activityIdToStart);
-    } catch (e) {
-      console.error("Failed to start activity", e);
-      throw e; // Re-throw to be handled by the caller
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+    contentId: apiContentId || cognitivePracticeId || undefined,
+    initialActivity: passedActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    // Mirror the page-local currentActivity state on start.
+    onActivityStarted: (activity) => setCurrentActivity(activity),
+    navigation,
+    logTag: "Breathing",
+    // Breathing historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+    // Caller catches the thrown error; preserve throw.
+    rethrowErrors: true,
+  });
 
   if (currentActivityId && !isDone) {
     return (

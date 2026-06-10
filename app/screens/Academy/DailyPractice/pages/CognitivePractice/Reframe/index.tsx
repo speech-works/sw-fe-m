@@ -9,10 +9,7 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import {
-  createPracticeActivity,
-  createPracticeActivityFromPack,
-} from "../../../../../../api";
+import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
   CognitivePracticeType,
@@ -20,7 +17,6 @@ import {
 } from "../../../../../../api/dailyPractice/types";
 import {
   completePracticeActivity,
-  startPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import Button from "../../../../../../components/Button";
@@ -67,9 +63,8 @@ const Reframe = () => {
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null,
   );
-  const { addActivity, updateActivity } = useActivityStore();
-  const { practiceSession, setSession, ensureActiveSession } =
-    useSessionStore();
+  const { updateActivity } = useActivityStore();
+  const { practiceSession } = useSessionStore();
   const { user } = useUserStore();
 
   const [writtenReframe, setWrittenReframe] = React.useState<string>("");
@@ -104,145 +99,25 @@ const Reframe = () => {
     }
   };
 
-  const markActivityStart = async () => {
-    console.log("markActivityStart [Reframe] called", {
-      packContext,
-      practiceSession,
-      cognitivePracticeId,
-      user: user?.id,
-    });
-
-    if (!cognitivePracticeId) {
-      console.warn("Missing cognitivePracticeId in Reframe start");
-      return;
-    }
-
-    const isPackContext = packContext?.packId;
-
-    let sessionToUse = practiceSession;
-
-    if (isPackContext && packContext) {
-      console.warn("Reframe: active session check skipped for pack context");
-    } else if (!isPackContext && !sessionToUse && user) {
-      try {
-        console.log("Ensuring active session for Reframe...");
-        const newSession = await ensureActiveSession(user.id);
-        setSession(newSession);
-        sessionToUse = newSession;
-        console.log("Active session ensured:", sessionToUse.id);
-      } catch (err) {
-        console.error("Failed to ensure active session", err);
-        showErrorBottomSheet(
-          "Session Error",
-          "We couldn't initialize your practice session. Please try again.",
-        );
-        return;
-      }
-    }
-
-    if (!sessionToUse && !isPackContext) {
-      console.warn("No session and no pack context for Reframe");
-      return;
-    }
-
-    const userId = isPackContext
-      ? user?.id
-      : (sessionToUse!.user?.id ?? user?.id);
-
-    if (!userId) {
-      console.error("Missing userId for activity start");
-      return;
-    }
-
-    try {
-      let activityIdToStart = currentActivityId;
-
-      // --- DOUBLE-START PREVENTION ---
-      if (packContext?.alreadyStarted) {
-        if (practiceActivity) {
-          console.log(">> Reframe: Activity already started by Pack, skipping API call...");
-          addActivity(practiceActivity);
-          useUserStore.getState().fetchUser();
-          setCurrentActivityId(practiceActivity.id);
-          return;
-        } else {
-          console.error("FATAL: Pack marked activity as started, but practiceActivity is missing!");
-          showErrorBottomSheet(
-            "Something went wrong",
-            "Activity data was lost. Returning to your Pack."
-          );
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          }
-          return;
-        }
-      }
-
-      // If we don't have a unique activity ID yet, create one
-      if (!activityIdToStart) {
-        if (isPackContext) {
-          console.log("Reframe - Creating Activity via POST (Pack)");
-          const newActivity = await createPracticeActivityFromPack({
-            packId: packContext.packId,
-            moduleId: packContext.moduleId,
-            contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-            contentId: cognitivePracticeId,
-          });
-          activityIdToStart = newActivity.id;
-        } else {
-          console.log("Reframe - Creating Activity via POST (Standalone)");
-          if (!sessionToUse) {
-            console.error("Missing session for standalone activity");
-            return;
-          }
-          let newActivity;
-          try {
-            newActivity = await createPracticeActivity({
-              sessionId: sessionToUse.id,
-              contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-              contentId: cognitivePracticeId,
-            });
-          } catch (createErr: any) {
-            if (
-              createErr?.response?.status === 404 &&
-              createErr?.response?.data?.error
-                ?.toLowerCase()
-                .includes("session")
-            ) {
-              console.log(
-                ">> Reframe: Stale session detected (404), refreshing...",
-              );
-              sessionToUse = await ensureActiveSession(userId!, true);
-              newActivity = await createPracticeActivity({
-                sessionId: sessionToUse.id,
-                contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
-                contentId: cognitivePracticeId,
-              });
-            } else {
-              throw createErr;
-            }
-          }
-          activityIdToStart = newActivity.id;
-        }
-      }
-
-      // Fallback to user from store if session is missing (e.g. in pack mode)
-      // Note: ensure user is available in store
-      const startedActivity = await startPracticeActivity({
-        id: activityIdToStart,
-        userId: userId,
-      });
-
-      console.log("Reframe Activity STARTED:", startedActivity);
-
-      addActivity(startedActivity);
-      useUserStore.getState().fetchUser();
-      setCurrentActivityId(activityIdToStart);
-    } catch (e) {
-      console.error("Failed to start activity", e);
-      throw e; // Re-throw to handle in UI
-    }
-  };
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+    contentId: cognitivePracticeId ?? undefined,
+    initialActivity: practiceActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: "Reframe",
+    // Reframe historically does not emit ACTIVITY_STARTED analytics.
+    trackStart: false,
+    // Caller branches on the thrown error (stamina upsell); preserve throw.
+    rethrowErrors: true,
+    onSessionError: () =>
+      showErrorBottomSheet(
+        "Session Error",
+        "We couldn't initialize your practice session. Please try again.",
+      ),
+  });
 
   const markActivityDone = async (vitals?: {
     effortScore: number;
@@ -531,6 +406,10 @@ const Reframe = () => {
             <Button
               text="Start Exercise"
               onPress={async () => {
+                if (!cognitivePracticeId) {
+                  console.warn("Missing cognitivePracticeId in Reframe start");
+                  return;
+                }
                 try {
                   await markActivityStart();
                 } catch (error: any) {

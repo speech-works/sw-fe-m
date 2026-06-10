@@ -16,8 +16,8 @@ interface UseMarkActivityStartParams {
   contentType: PracticeActivityContentType;
   /** ID of the content item (reading practice ID, scenario ID, etc.) */
   contentId: string | undefined;
-  /** Title for analytics tracking */
-  contentTitle: string | undefined;
+  /** Title for analytics tracking. Optional — only included in the ACTIVITY_STARTED payload when present. */
+  contentTitle?: string | undefined;
   /** Pre-started activity from pack navigation (route.params.practiceActivity) */
   initialActivity: any | undefined;
   /** Pack context from route params */
@@ -32,6 +32,30 @@ interface UseMarkActivityStartParams {
   navigation: { canGoBack: () => boolean; goBack: () => void };
   /** A tag for console logs, e.g. "useStoryPractice" */
   logTag: string;
+  /**
+   * Optional: transform the activity object right before it is added to the
+   * store, e.g. to attach page-specific data (`{ ...activity, cognitivePractice }`).
+   * Applied in both the normal-start and pack double-start paths. Defaults to identity.
+   */
+  decorateActivity?: (activity: any) => any;
+  /**
+   * Optional: called with the activity after it has been added to the store
+   * (the freshly started activity, or the pre-started pack activity). Use for
+   * page-local state setters such as `setCurrentActivity`.
+   */
+  onActivityStarted?: (activity: any) => void;
+  /**
+   * Optional: called when ensuring an active session fails, e.g. to surface a
+   * custom error UI. Default behavior (no handler) is a console.error + null return.
+   */
+  onSessionError?: (error: unknown) => void;
+  /**
+   * When true, re-throw errors from the create/start flow instead of swallowing
+   * them, for callers that branch on the thrown error. Default false.
+   */
+  rethrowErrors?: boolean;
+  /** When false, skip the ACTIVITY_STARTED analytics event. Default true. */
+  trackStart?: boolean;
 }
 
 /**
@@ -64,7 +88,15 @@ export const useMarkActivityStart = (
     onEarlyExit,
     navigation,
     logTag,
+    decorateActivity,
+    onActivityStarted,
+    onSessionError,
+    rethrowErrors = false,
+    trackStart = true,
   } = params;
+
+  const decorate = (activity: any) =>
+    decorateActivity ? decorateActivity(activity) : activity;
 
   const markActivityStart = async (): Promise<string | null> => {
     const isPackContext = packContext?.packId;
@@ -84,6 +116,7 @@ export const useMarkActivityStart = (
         sessionToUse = newSession;
       } catch (err) {
         console.error(`[${logTag}] Failed to ensure active session`, err);
+        onSessionError?.(err);
         return null;
       }
     }
@@ -109,7 +142,9 @@ export const useMarkActivityStart = (
           console.log(
             `>> ${logTag}: Activity already started by Pack, skipping API call...`,
           );
-          addActivity(initialActivity);
+          const decorated = decorate(initialActivity);
+          addActivity(decorated);
+          onActivityStarted?.(decorated);
           useUserStore.getState().fetchUser();
           setActivityId(initialActivity.id);
           return initialActivity.id;
@@ -190,21 +225,26 @@ export const useMarkActivityStart = (
         userId,
       });
 
-      addActivity({ ...startedActivity });
+      const decorated = decorate({ ...startedActivity });
+      addActivity(decorated);
+      onActivityStarted?.(decorated);
 
       // Track activity start
-      track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
-        activityId: activityIdToStart,
-        contentType,
-        ...(contentTitle ? { title: contentTitle } : {}),
-        isPackContext: !!packContext?.packId,
-      });
+      if (trackStart) {
+        track(ANALYTICS_EVENTS.ACTIVITY_STARTED, {
+          activityId: activityIdToStart,
+          contentType,
+          ...(contentTitle ? { title: contentTitle } : {}),
+          isPackContext: !!packContext?.packId,
+        });
+      }
 
       useUserStore.getState().fetchUser();
       setActivityId(activityIdToStart);
       return activityIdToStart;
     } catch (error) {
       console.error(`[${logTag}] ❌ Error in markActivityStart:`, error);
+      if (rethrowErrors) throw error;
       return null;
     }
   };
