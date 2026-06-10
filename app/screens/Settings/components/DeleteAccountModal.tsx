@@ -69,10 +69,10 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
       hasBottomSafePadding
     >
       <View style={styles.container}>
-        <View style={styles.iconCircle}>
+        <View style={styles.watermark} pointerEvents="none">
           <MaterialCommunityIcons
-            name="alert-octagon-outline"
-            size={32}
+            name="alert-octagon"
+            size={160}
             color={DANGER}
           />
         </View>
@@ -128,18 +128,19 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
-    paddingTop: 32,
+    paddingTop: 48,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     alignItems: "center",
+    position: "relative",
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FEF2F2",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+  watermark: {
+    position: "absolute",
+    bottom: -20,
+    right: -20,
+    opacity: 0.08,
+    transform: [{ rotate: "-15deg" }],
+    zIndex: 0,
   },
   title: {
     ...parseTextStyle(theme.typography.Heading2),
