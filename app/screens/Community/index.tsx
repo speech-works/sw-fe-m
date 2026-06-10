@@ -40,10 +40,8 @@ import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyl
 import {
   BuddySummary,
   BuddyTeam,
-  CommunityPulse,
   getBuddyReport,
   getBuddyTeam,
-  getCommunityPulse,
   getMyBuddy,
   leaveBuddy,
   setReportConsent,
@@ -267,7 +265,6 @@ const Community = () => {
   const [summary, setSummary] = useState<BuddySummary | null>(null);
   const [report, setReport] = useState<BuddyReport | null>(null);
   const [team, setTeam] = useState<BuddyTeam | null>(null);
-  const [pulse, setPulse] = useState<CommunityPulse | null>(null);
   const [myStage, setMyStage] = useState<LevelStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -309,23 +306,17 @@ const Community = () => {
         } else {
           setReport(null);
         }
-        // Cooperative team score (server-computed) + non-ranked community pool.
+        // Cooperative team score (server-computed)
         try {
           setTeam(await getBuddyTeam());
         } catch {
           setTeam(null);
-        }
-        try {
-          setPulse(await getCommunityPulse());
-        } catch {
-          setPulse(null);
         }
       } else {
         setThread(null);
         setMyStage(null);
         setReport(null);
         setTeam(null);
-        setPulse(null);
       }
     } catch (e) {
       setError(true);
@@ -711,26 +702,6 @@ const Community = () => {
                 <View style={styles.bothActiveChip}>
                   <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
                   <Text style={styles.bothActiveText}>You've both shown up this week</Text>
-                </View>
-              ) : null}
-
-              {pulse ? (
-                <View style={styles.poolStrip}>
-                  <View
-                    style={[StyleSheet.absoluteFillObject, { borderRadius: 12, overflow: "hidden" }]}
-                    pointerEvents="none"
-                  >
-                    <MaterialCommunityIcons
-                      name="paw"
-                      size={60}
-                      color="#CBD5E1"
-                      style={{ position: "absolute", right: -10, bottom: -10, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                    />
-                  </View>
-                  <Text style={styles.poolText}>
-                    Together you showed up{" "}
-                    {pulse.activitiesThisWeek.toLocaleString()} times this week
-                  </Text>
                 </View>
               ) : null}
             </View>
