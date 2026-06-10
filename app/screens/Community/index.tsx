@@ -711,36 +711,38 @@ const Community = () => {
           </View>
         </Animated.View>
 
-        {/* Share a moment — canned struggle/win check-in */}
+        {/* Actions & Settings — unified bento box */}
         <Animated.View entering={enter(3)}>
-          <SectionHeading title="Share a moment" />
-          <PressableScale style={styles.momentCard} scaleTo={0.98} onPress={handleOpenMoment}>
-            <View style={styles.momentIconCircle}>
-              <MaterialCommunityIcons name="hand-heart-outline" size={22} color={C.orange500} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.momentCardTitle}>Tell {buddyFirstName} how it's going</Text>
-              <Text style={styles.momentCardSub}>Share a win or a hard moment.</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={C.faint} />
-          </PressableScale>
+          <SectionHeading title="Manage" />
+          <View style={styles.actionGroup}>
+            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleOpenMoment}>
+              <View style={[styles.actionIconCircle, { backgroundColor: C.peachSurface }]}>
+                <MaterialCommunityIcons name="hand-heart" size={22} color={C.orange500} />
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={styles.actionTitle}>Tell {buddyFirstName} how it's going</Text>
+                <Text style={styles.actionSub}>Share a win or a hard moment.</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={C.faint} />
+            </PressableScale>
+
+            <View style={styles.actionDivider} />
+
+            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
+              <View style={[styles.actionIconCircle, { backgroundColor: "#F1F5F9" }]}>
+                <MaterialCommunityIcons name="chart-box" size={20} color="#64748B" />
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={styles.actionTitle}>Share my progress</Text>
+                <Text style={styles.actionSub}>Let {buddyFirstName} see your XP and level.</Text>
+              </View>
+              <ToggleSwitch on={iShare} />
+            </PressableScale>
+          </View>
         </Animated.View>
 
-        {/* Manage — share toggle, resources, leave */}
+        {/* Resources & Leave */}
         <Animated.View entering={enter(4)}>
-          <PressableScale
-            style={styles.toggleCard}
-            scaleTo={0.98}
-            onPress={() => handleConsent(!iShare)}
-          >
-            <View style={styles.toggleTextWrap}>
-              <Text style={styles.toggleTitle}>Share my progress</Text>
-              <Text style={styles.toggleSub}>
-                Let {buddyFirstName} see your level, XP and activity.
-              </Text>
-            </View>
-            <ToggleSwitch on={iShare} />
-          </PressableScale>
           <PressableScale
             style={styles.resourcesLink}
             scaleTo={0.97}
@@ -1237,22 +1239,37 @@ const styles = StyleSheet.create({
   },
   poolText: { fontSize: 12, color: C.orange700, fontWeight: "700", flexShrink: 1 },
 
-  // Share my progress toggle
-  toggleCard: {
+  // Unified Action Group
+  actionGroup: {
+    marginHorizontal: 16,
+    marginBottom: 28,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
+  },
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: 14,
   },
-  toggleTextWrap: { flex: 1, paddingRight: 16 },
-  toggleTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
-  toggleSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
+  actionDivider: {
+    height: 1,
+    backgroundColor: C.hairline,
+    marginLeft: 16 + 44 + 14, // align with text (paddingLeft + iconCircle + gap)
+  },
+  actionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTextWrap: { flex: 1, paddingRight: 8 },
+  actionTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
+  actionSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
   toggleTrack: {
     width: 50,
     height: 30,
@@ -1304,29 +1321,7 @@ const styles = StyleSheet.create({
   cheerChipEmoji: { fontSize: 19 },
   cheerChipLabel: { fontSize: 13, fontWeight: "800", color: C.orange700, flexShrink: 1 },
 
-  // Share a moment — entry card
-  momentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginHorizontal: 16,
-    marginBottom: 28,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  momentIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  momentCardTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
-  momentCardSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
+  // Removed old separate cards
 
   // Leave (quiet)
   leaveLink: {
