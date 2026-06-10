@@ -133,6 +133,24 @@ const TabItem = ({
     });
   }, [isFocused]);
 
+  const getLabelWidth = (text: string) => {
+    switch (text) {
+      case "Home":
+        return 42;
+      case "Stats":
+        return 42;
+      case "Explore":
+        return 58;
+      case "Community":
+        return 82;
+      case "Settings":
+        return 65;
+      default:
+        return 60;
+    }
+  };
+  const labelWidth = getLabelWidth(label);
+
   const containerStyle = useAnimatedStyle(() => {
     return {
       flex: interpolate(focusedValue.value, [0, 1], [1, 2.5]),
@@ -167,7 +185,7 @@ const TabItem = ({
 
   const textWrapperStyle = useAnimatedStyle(() => {
     return {
-      width: interpolate(focusedValue.value, [0, 1], [0, 95]),
+      width: interpolate(focusedValue.value, [0, 1], [0, labelWidth]),
       marginLeft: interpolate(focusedValue.value, [0, 1], [0, 8]),
       overflow: "hidden",
       opacity: focusedValue.value,
