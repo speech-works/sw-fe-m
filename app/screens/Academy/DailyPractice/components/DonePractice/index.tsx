@@ -110,11 +110,10 @@ const DonePractice = ({
               style={styles.secondaryButton}
               activeOpacity={0.7}
               onPress={() =>
-                navigation.navigate("PostComposer", {
+                navigation.navigate("PracticeComposer", {
                   activityId,
                   activityKind: activityKindFromContentType(contentType),
                   activityName: practiceName,
-                  visibility: "buddy",
                 })
               }
             >

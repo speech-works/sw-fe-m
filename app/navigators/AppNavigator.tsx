@@ -4,7 +4,7 @@ import SubscribeScreen from "../screens/Payments";
 import BottomTabNavigator from "./BottomTabNavigator";
 
 import ExploreStackNavigator from "./stacks/ExploreStack";
-import PostComposer from "../screens/PostComposer";
+import PracticeComposer from "../screens/PracticeComposer";
 import Resources from "../screens/Resources";
 
 const Stack = createNativeStackNavigator();
@@ -30,8 +30,8 @@ export default function AppNavigator() {
         }}
       />
       <Stack.Screen
-        name="PostComposer"
-        component={PostComposer}
+        name="PracticeComposer"
+        component={PracticeComposer}
         options={{ presentation: "modal" }}
       />
       <Stack.Screen name="Resources" component={Resources} />

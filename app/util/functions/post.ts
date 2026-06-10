@@ -8,19 +8,19 @@ import {
   PracticeActivity,
   PracticeActivityContentType,
 } from "../../api/practiceActivities/types";
-import { PostActivityKind, PostPayloadField, PostTemplateId } from "../../api/posts";
+import { ActivityKind, PracticePayloadField, TemplateId } from "../../api/threads/types";
 
 /** Map a completed activity to its share "kind". */
-export const activityKindFor = (activity: PracticeActivity): PostActivityKind =>
+export const activityKindFor = (activity: PracticeActivity): ActivityKind =>
   activityKindFromContentType(activity.contentType);
 
 /**
- * Map a PracticeActivityContentType (what DonePractice holds) to a PostActivityKind.
+ * Map a PracticeActivityContentType (what DonePractice holds) to a ActivityKind.
  * The enum values align 1:1 today; this stays explicit so a future divergence is caught.
  */
 export const activityKindFromContentType = (
   contentType?: PracticeActivityContentType,
-): PostActivityKind => {
+): ActivityKind => {
   switch (contentType) {
     case PracticeActivityContentType.READING_PRACTICE:
       return "READING_PRACTICE";
@@ -38,8 +38,8 @@ export const activityKindFromContentType = (
 
 /** Templates offered for an activity, best-first. Every list ends with `minimal` (custom). */
 export const templatesForActivity = (
-  kind: PostActivityKind,
-): PostTemplateId[] => {
+  kind: ActivityKind,
+): TemplateId[] => {
   switch (kind) {
     case "EXPOSURE_PRACTICE":
       // The courage of facing it is the story — never the score.
@@ -58,9 +58,9 @@ export const templatesForActivity = (
 
 /** Safe payload fields a user may toggle on/off for this activity. */
 export const candidateFieldsFor = (
-  kind: PostActivityKind,
-): PostPayloadField[] => {
-  const base: PostPayloadField[] = [
+  kind: ActivityKind,
+): PracticePayloadField[] => {
+  const base: PracticePayloadField[] = [
     "activityName",
     "durationSeconds",
     "timeOfDay",
@@ -84,7 +84,7 @@ export const candidateFieldsFor = (
  * used before/if the preview resolves.) Prefer any `practiceName` passed from the
  * completion screen over this default.
  */
-export const defaultActivityNameForKind = (kind: PostActivityKind): string => {
+export const defaultActivityNameForKind = (kind: ActivityKind): string => {
   switch (kind) {
     case "EXPOSURE_PRACTICE":
       return "Faced a challenge";

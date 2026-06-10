@@ -18,7 +18,6 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
-  ZoomIn,
   interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
@@ -31,27 +30,29 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
-import Feed from "../../components/Feed";
+import Timeline from "../../components/Timeline";
+import ShareMomentSheet from "../../components/ShareMomentSheet";
+import BuddySupportSheet from "../../components/BuddySupportSheet";
+import SegmentedTabs from "../../components/SegmentedTabs";
 import PressableScale from "../../components/PressableScale";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle, parseShadowStyle } from "../../util/functions/parseStyles";
 import {
   BuddySummary,
   BuddyTeam,
-  CheerType,
   CommunityPulse,
   getBuddyReport,
   getBuddyTeam,
   getCommunityPulse,
   getMyBuddy,
   leaveBuddy,
-  sendCheer,
   setReportConsent,
 } from "../../api/buddies";
+import { Signal, Thread, getThread } from "../../api/threads";
 import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
+import { useInboxStore } from "../../stores/inbox";
 import { shareBuddyInvite } from "../../util/functions/share";
-import { BUDDY_CHEERS } from "../../constants/cheerSets";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
@@ -259,23 +260,6 @@ const PulseDot = () => {
   );
 };
 
-/** A cheer emoji that floats up and fades when a cheer is sent. */
-const CheerBurst = ({ emoji }: { emoji: string }) => {
-  const p = useSharedValue(0);
-  useEffect(() => {
-    p.value = withTiming(1, { duration: 900, easing: EASE_OUT });
-  }, []);
-  const s = useAnimatedStyle(() => ({
-    opacity: 1 - p.value,
-    transform: [{ translateY: -52 * p.value }, { scale: 1 + 0.5 * p.value }],
-  }));
-  return (
-    <Animated.View pointerEvents="none" style={[styles.cheerBurst, s]}>
-      <Text style={styles.cheerBurstEmoji}>{emoji}</Text>
-    </Animated.View>
-  );
-};
-
 const Community = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -288,11 +272,14 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [sendingCheer, setSendingCheer] = useState<CheerType | null>(null);
-  const [justCheered, setJustCheered] = useState<CheerType | null>(null);
-  const [cheerBurst, setCheerBurst] = useState<{ emoji: string; id: number } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showMoment, setShowMoment] = useState(false);
+  const [thread, setThread] = useState<Thread | null>(null);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+  const [view, setView] = useState<"us" | "timeline">("us");
+  const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
   const user = useUserStore((s) => s.user);
+  const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
 
   const load = useCallback(async () => {
@@ -301,6 +288,13 @@ const Community = () => {
       const data = await getMyBuddy();
       setSummary(data);
       if (data.link?.status === "active") {
+        try {
+          const t = await getThread();
+          setThread(t);
+          useInboxStore.getState().setUnreadCount(t?.unreadCount ?? 0);
+        } catch {
+          setThread(null);
+        }
         try {
           setMyStage(await getLevelStage());
         } catch {
@@ -327,6 +321,7 @@ const Community = () => {
           setPulse(null);
         }
       } else {
+        setThread(null);
         setMyStage(null);
         setReport(null);
         setTeam(null);
@@ -360,33 +355,16 @@ const Community = () => {
     navigation.navigate("Root", { screen: ROUTE_NAMES.EXPLORE });
   };
 
+  const handleOpenMoment = () => {
+    track(ANALYTICS_EVENTS.MOMENT_COMPOSER_OPENED, { source: "community" });
+    setShowMoment(true);
+  };
+
   const handleShare = async () => {
     if (!summary?.referralCode) return;
     const shared = await shareBuddyInvite(summary.referralCode);
     if (shared) {
       track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community" });
-    }
-  };
-
-  const handleCheer = async (type: CheerType) => {
-    if (busy) return;
-    try {
-      setBusy(true);
-      setSendingCheer(type);
-      await sendCheer(type);
-      track(ANALYTICS_EVENTS.BUDDY_CHEER_SENT, { type });
-      setJustCheered(type);
-      const emoji = BUDDY_CHEERS.find((b) => b.type === type)?.emoji ?? "👏";
-      setCheerBurst((prev) => ({ emoji, id: (prev?.id ?? 0) + 1 }));
-      setTimeout(() => {
-        setJustCheered(null);
-        setCheerBurst(null);
-      }, 1400);
-    } catch (e) {
-      Alert.alert("Couldn't send", "Please try again.");
-    } finally {
-      setBusy(false);
-      setSendingCheer(null);
     }
   };
 
@@ -534,14 +512,6 @@ const Community = () => {
     const myInitials = (user?.name ?? "You").substring(0, 1).toUpperCase();
     const buddyInitials = buddyName.substring(0, 1).toUpperCase();
 
-    const cheerEmojis = Array.from(
-      new Set(
-        (summary?.receivedCheers ?? [])
-          .map((c) => BUDDY_CHEERS.find((b) => b.type === c.type)?.emoji)
-          .filter(Boolean),
-      ),
-    ).join(" ");
-
     const me = {
       stage: myStage?.title ?? "—",
       level: myStage?.level ?? user?.level ?? 1,
@@ -627,11 +597,6 @@ const Community = () => {
                 </View>
               ) : null}
             </View>
-            {cheerEmojis ? (
-              <Text style={styles.partnerCheers}>
-                {buddyFirstName} cheered you {cheerEmojis}
-              </Text>
-            ) : null}
           </LinearGradient>
         </Animated.View>
 
@@ -772,71 +737,19 @@ const Community = () => {
           </View>
         </Animated.View>
 
-        {/* Send a cheer */}
-        <Animated.View entering={enter(2)}>
-          <SectionHeading title="Send a cheer" />
-          <View style={styles.cheerCardWrap}>
-            {cheerBurst && !reduceMotion ? (
-              <CheerBurst key={cheerBurst.id} emoji={cheerBurst.emoji} />
-            ) : null}
-            <View style={styles.cheerCard}>
-              <View
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: "hidden" }]}
-                pointerEvents="none"
-              >
-                <MaterialCommunityIcons
-                  name="party-popper"
-                  size={120}
-                  color="#CBD5E1"
-                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                />
-              </View>
-              <Text style={styles.cheerPrompt}>
-                Let {buddyFirstName} know you're in their corner.
-              </Text>
-              <View style={styles.cheerGrid}>
-                {BUDDY_CHEERS.map((c) => {
-                  const isSending = sendingCheer === c.type;
-                  const isDone = justCheered === c.type;
-                  return (
-                    <PressableScale
-                      key={c.type}
-                      style={[styles.cheerChip, isDone && styles.cheerChipDone]}
-                      scaleTo={0.95}
-                      disabled={busy}
-                      onPress={() => handleCheer(c.type)}
-                      accessibilityLabel={`Send cheer: ${c.label}`}
-                    >
-                      {isSending ? (
-                        <ActivityIndicator color={C.orange500} size="small" />
-                      ) : isDone ? (
-                        <Animated.View
-                          style={styles.cheerChipInner}
-                          entering={reduceMotion ? FadeIn.duration(150) : ZoomIn.springify().damping(12)}
-                        >
-                          <MaterialCommunityIcons name="check-circle" size={18} color={C.orange600} />
-                          <Text style={styles.cheerChipLabel}>Sent</Text>
-                        </Animated.View>
-                      ) : (
-                        <View style={styles.cheerChipInner}>
-                          <Text style={styles.cheerChipEmoji}>{c.emoji}</Text>
-                          <Text style={styles.cheerChipLabel} numberOfLines={1}>
-                            {c.label}
-                          </Text>
-                        </View>
-                      )}
-                    </PressableScale>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Activity */}
+        {/* Share a moment — canned struggle/win check-in */}
         <Animated.View entering={enter(3)}>
-          <SectionHeading title="Recent activity" topMargin={8} />
-          <Feed scope="buddy" buddyName={buddyFirstName} onStartPractice={handleStartPractice} />
+          <SectionHeading title="Share a moment" />
+          <PressableScale style={styles.momentCard} scaleTo={0.98} onPress={handleOpenMoment}>
+            <View style={styles.momentIconCircle}>
+              <MaterialCommunityIcons name="hand-heart-outline" size={22} color={C.orange500} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.momentCardTitle}>Tell {buddyFirstName} how it's going</Text>
+              <Text style={styles.momentCardSub}>Share a win or a hard moment.</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color={C.faint} />
+          </PressableScale>
         </Animated.View>
 
         {/* Manage — share toggle, resources, leave */}
@@ -906,12 +819,49 @@ const Community = () => {
               <Text style={styles.retryText}>Retry</Text>
             </PressableScale>
           </View>
+        ) : isPaired ? (
+          <View style={{ flex: 1, paddingTop: HEADER_HEIGHT + insets.top + 12 }}>
+            <View style={styles.segmentWrap}>
+              <SegmentedTabs
+                tabs={[
+                  { key: "us", label: "Us" },
+                  { key: "timeline", label: "Timeline", badge: unreadCount },
+                ]}
+                active={view}
+                onChange={(k) => setView(k as "us" | "timeline")}
+              />
+            </View>
+            <CustomScrollView
+              contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130 }]}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={C.orange500}
+                  colors={[C.orange500]}
+                  progressViewOffset={8}
+                />
+              }
+            >
+              {view === "us" ? (
+                renderPaired()
+              ) : thread ? (
+                <Timeline
+                  key={`timeline-${feedRefreshKey}`}
+                  threadId={thread.id}
+                  buddyName={buddyFirstName}
+                  onStartPractice={handleStartPractice}
+                  onReachOut={setSupportSignal}
+                />
+              ) : null}
+            </CustomScrollView>
+          </View>
         ) : (
           <CustomScrollView
             contentContainerStyle={[
               styles.scrollView,
-              { paddingTop: HEADER_HEIGHT + insets.top + (isPaired ? 20 : 28), paddingBottom: 130 },
-              !isPaired && { flexGrow: 1 }
+              { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
+              { flexGrow: 1 },
             ]}
             refreshControl={
               <RefreshControl
@@ -923,10 +873,25 @@ const Community = () => {
               />
             }
           >
-            {isPaired ? renderPaired() : renderInvite()}
+            {renderInvite()}
           </CustomScrollView>
         )}
       </View>
+
+      <ShareMomentSheet
+        visible={showMoment}
+        onClose={() => setShowMoment(false)}
+        threadId={thread?.id ?? ""}
+        buddyName={buddyFirstName}
+        onCreated={() => setFeedRefreshKey((k) => k + 1)}
+      />
+
+      <BuddySupportSheet
+        visible={!!supportSignal}
+        signal={supportSignal}
+        onClose={() => setSupportSignal(null)}
+        onSupported={() => setFeedRefreshKey((k) => k + 1)}
+      />
     </ScreenView>
   );
 };
@@ -990,6 +955,7 @@ const styles = StyleSheet.create({
   },
   retryText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
   scrollView: { paddingHorizontal: 0 },
+  segmentWrap: { paddingHorizontal: 16, marginBottom: 4 },
 
   // Invite Layout (cardless / editorial)
   invite: { alignItems: "center", paddingHorizontal: 28, paddingTop: 8 },
@@ -1049,7 +1015,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     width: "100%",
     height: 56,
-    borderRadius: 100,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1375,6 +1341,30 @@ const styles = StyleSheet.create({
   cheerChipEmoji: { fontSize: 19 },
   cheerChipLabel: { fontSize: 13, fontWeight: "800", color: C.orange700, flexShrink: 1 },
 
+  // Share a moment — entry card
+  momentCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginHorizontal: 16,
+    marginBottom: 28,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    ...parseShadowStyle(theme.shadow.elevation1),
+  },
+  momentIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: C.peachSurface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  momentCardTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
+  momentCardSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
+
   // Leave (quiet)
   leaveLink: {
     alignSelf: "center",
@@ -1503,19 +1493,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     backgroundColor: C.orange500,
-    paddingVertical: 14,
-    borderRadius: 100,
-    shadowColor: C.orange500,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 16,
+    borderRadius: 16,
+    ...parseShadowStyle(theme.shadow.elevation2),
   },
   sharePillText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   pendingPillImm: {
     flexDirection: "row",

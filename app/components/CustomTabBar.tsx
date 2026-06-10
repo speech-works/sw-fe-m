@@ -4,6 +4,7 @@ import React from "react";
 import {
   Dimensions,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -19,6 +20,7 @@ import Animated, {
 import { theme } from "../Theme/tokens";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
+import { useInboxStore } from "../stores/inbox";
 const { width } = Dimensions.get("window");
 
 const CustomTabBar = ({
@@ -27,6 +29,7 @@ const CustomTabBar = ({
   navigation,
 }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
+  const unreadCount = useInboxStore((s) => s.unreadCount);
 
   const focusedRoute = state.routes[state.index];
   const focusedDescriptor = descriptors[focusedRoute.key];
@@ -90,6 +93,8 @@ const CustomTabBar = ({
           let activeColor = theme.colors.library.orange[400];
           let activeContentColor = "#FFFFFF";
 
+          const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
+
           return (
             <TabItem
               key={route.key}
@@ -101,6 +106,7 @@ const CustomTabBar = ({
               onPress={onPress}
               onLongPress={onLongPress}
               routeName={routeName}
+              badge={badge}
             />
           );
         })}
@@ -118,6 +124,7 @@ const TabItem = ({
   activeColor,
   activeContentColor,
   routeName,
+  badge = 0,
 }: any) => {
   const focusedValue = useDerivedValue(() => {
     return withTiming(isFocused ? 1 : 0, {
@@ -149,7 +156,6 @@ const TabItem = ({
       paddingHorizontal: interpolate(focusedValue.value, [0, 1], [0, 18]),
       borderWidth: 0,
       borderColor: "transparent",
-      overflow: "hidden",
     };
   });
 
@@ -161,8 +167,8 @@ const TabItem = ({
 
   const textWrapperStyle = useAnimatedStyle(() => {
     return {
-      width: interpolate(focusedValue.value, [0, 1], [0, 85]),
-      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 2]),
+      width: interpolate(focusedValue.value, [0, 1], [0, 95]),
+      marginLeft: interpolate(focusedValue.value, [0, 1], [0, 8]),
       overflow: "hidden",
       opacity: focusedValue.value,
       justifyContent: "center",
@@ -186,6 +192,17 @@ const TabItem = ({
   const activeIconStyle = useAnimatedStyle(() => ({
     opacity: focusedValue.value,
   }));
+
+  const badgeAnimatedStyle = useAnimatedStyle(() => {
+    const borderColor = interpolateColor(
+      focusedValue.value,
+      [0, 1],
+      ["#FFFFFF", activeColor]
+    );
+    return {
+      borderColor,
+    };
+  });
 
   return (
     <Animated.View style={[styles.tabItemContainer, containerStyle]}>
@@ -218,6 +235,13 @@ const TabItem = ({
                 color={activeContentColor}
               />
             </Animated.View>
+            {badge > 0 ? (
+              <Animated.View style={[styles.badge, badgeAnimatedStyle]}>
+                <Text style={styles.badgeText} numberOfLines={1}>
+                  {badge > 9 ? "9+" : badge}
+                </Text>
+              </Animated.View>
+            ) : null}
           </View>
 
           <Animated.View style={textWrapperStyle}>
@@ -274,6 +298,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     textAlign: "center",
   },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: "#FF3B30",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
 });
 
 export default CustomTabBar;

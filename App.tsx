@@ -22,8 +22,11 @@ import { useUserStore } from "./app/stores/user";
 import { navigationRef } from "./app/util/functions/navigation";
 import {
   registerForNotifications,
+  registerPushToken,
   setupNotificationHandlers,
 } from "./app/util/functions/notifications";
+import { getThread } from "./app/api/threads";
+import { useInboxStore } from "./app/stores/inbox";
 import { initAnalytics, trackScreen } from "./app/util/analytics/postHog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
@@ -87,6 +90,8 @@ const App: React.FC = () => {
     registerForNotifications().then((granted) => {
       if (granted) {
         console.log("Notification permissions granted.");
+        // Register this device's Expo push token so the backend can deliver buddy pushes.
+        void registerPushToken();
       } else {
         console.log("Notification permissions denied.");
         // Consider showing a persistent UI message to the user
@@ -141,6 +146,14 @@ const App: React.FC = () => {
 
           console.log("App foregrounded: Refreshing user data...");
           await useUserStore.getState().fetchUser();
+
+          // Refresh buddy-thread unread count for the Community tab badge (best-effort).
+          try {
+            const thread = await getThread();
+            useInboxStore.getState().setUnreadCount(thread?.unreadCount ?? 0);
+          } catch {
+            // ignore — badge is non-critical
+          }
         })();
       }
     };

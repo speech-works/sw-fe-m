@@ -1,17 +1,9 @@
 // api/buddies/index.ts
+//
+// The buddy RELATIONSHIP layer only: link lifecycle (invite-code), report-sharing consent, and
+// cooperative scoring (bond/team/pulse). All COMMUNICATION (signals, reactions, support) lives in
+// api/threads — cheering is now a reaction on a timeline signal, not a standalone buddy action.
 import axiosClient from "../axiosClient";
-
-/** Canonical cheer reaction keys (UI labels live in constants/cheerSets.ts). */
-export type CheerType =
-  | "proud"
-  | "keep_going"
-  | "well_done"
-  | "high_five"
-  // Contextual (activity-specific) cheers — still canned, effort/courage, never fluency.
-  | "courage"
-  | "brave"
-  | "centered"
-  | "consistent";
 
 export type BuddyRole = "inviter" | "invitee";
 export type BuddyLinkStatus = "pending" | "active" | "ended";
@@ -39,21 +31,11 @@ export interface BuddyLink {
   activatedAt?: Date | null;
 }
 
-export interface Cheer {
-  id: string;
-  type: CheerType;
-  fromUserId: string;
-  toUserId: string;
-  createdAt: Date;
-}
-
 export interface BuddySummary {
   /** The current user's own shareable invite code. */
   referralCode: string;
   /** The user's current link, or null if they have no buddy. */
   link: BuddyLink | null;
-  /** Cheers the user has received (most recent first). */
-  receivedCheers: Cheer[];
 }
 
 /**
@@ -156,17 +138,6 @@ export async function getCommunityPulse(): Promise<CommunityPulse> {
     return response.data;
   } catch (error) {
     console.error("Error fetching community pulse:", error);
-    throw error;
-  }
-}
-
-// Send a one-tap cheer to the buddy
-export async function sendCheer(type: CheerType): Promise<Cheer> {
-  try {
-    const response = await axiosClient.post("/buddies/cheer", { type });
-    return response.data;
-  } catch (error) {
-    console.error("Error sending cheer:", error);
     throw error;
   }
 }

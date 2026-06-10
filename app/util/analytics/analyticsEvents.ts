@@ -80,6 +80,21 @@ export const ANALYTICS_EVENTS = {
     POST_REACTION_REMOVED: 'post_reaction_removed',     // props: { type }
     POST_DELETED: 'post_deleted',
 
+    // ── Share a moment (canned struggle/win check-ins, buddy-to-buddy) ──
+    MOMENT_COMPOSER_OPENED: 'moment_composer_opened',         // props: { source: 'community' }
+    MOMENT_SELECTED: 'moment_selected',                       // props: { momentId, valence }
+    MOMENT_SHARED: 'moment_shared',                           // props: { momentId, valence, sensitive }
+    MOMENT_CANCELLED: 'moment_cancelled',                     // props: { hadSelection }
+    MOMENT_CRISIS_PROMPT_SHOWN: 'moment_crisis_prompt_shown', // props: { momentId }
+    MOMENT_CRISIS_RESOURCE_TAPPED: 'moment_crisis_resource_tapped', // props: { resource: '988' | 'text_line' | 'resources' }
+
+    // ── Buddy crisis support (responding to a sensitive "Share a moment") ──
+    BUDDY_SUPPORT_OPENED: 'buddy_support_opened',             // props: { postId }
+    BUDDY_SUPPORT_NOTE_SENT: 'buddy_support_note_sent',       // props: { noteId }
+    BUDDY_SUPPORT_LIFELINE_SENT: 'buddy_support_lifeline_sent',
+    BUDDY_SUPPORT_GUIDE_VIEWED: 'buddy_support_guide_viewed',
+    BUDDY_SUPPORT_SELF_RESOURCE_TAPPED: 'buddy_support_self_resource_tapped', // props: { resource: '988' | 'resources' }
+
 } as const;
 
 export type AnalyticsEvent = typeof ANALYTICS_EVENTS[keyof typeof ANALYTICS_EVENTS];

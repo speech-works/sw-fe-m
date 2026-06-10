@@ -1,4 +1,4 @@
-import { PostPayloadField, PostTemplateId } from "../api/posts";
+import { PracticePayloadField, TemplateId } from "../api/threads/types";
 
 /**
  * Card templates the poster chooses from. Visual-only catalog (mirrors buddyCheers.ts).
@@ -10,13 +10,13 @@ import { PostPayloadField, PostTemplateId } from "../api/posts";
  * only ever contains effort/process facts (see PostPayload).
  */
 export interface PostTemplate {
-  id: PostTemplateId;
+  id: TemplateId;
   label: string;
   /** MaterialCommunityIcons name. */
   icon: string;
   /** expo-linear-gradient colors. */
   gradient: readonly [string, string, ...string[]];
-  emphasizes: PostPayloadField[];
+  emphasizes: PracticePayloadField[];
   blurb: string;
 }
 
@@ -63,5 +63,5 @@ export const POST_TEMPLATES: PostTemplate[] = [
   },
 ];
 
-export const getPostTemplate = (id: PostTemplateId): PostTemplate =>
+export const getPostTemplate = (id: TemplateId): PostTemplate =>
   POST_TEMPLATES.find((t) => t.id === id) ?? POST_TEMPLATES[POST_TEMPLATES.length - 1];

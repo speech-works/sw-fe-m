@@ -1,6 +1,8 @@
 // notifications.ts
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Linking, Platform } from "react-native";
 import {
   getTemplateForCategory,
@@ -8,10 +10,20 @@ import {
 } from "../../constants/reminderTemplates";
 import type { Reminder } from "../../stores/reminders";
 import { useUserStore } from "../../stores/user";
+import {
+  registerPushToken as apiRegisterPushToken,
+  removePushToken as apiRemovePushToken,
+} from "../../api/devices";
 import { navigate } from "./navigation";
 import { ROUTE_NAMES } from "../../constants/routes";
 
 const DEFAULT_REMINDER_CHANNEL_ID = "default_reminders";
+
+/** AsyncStorage key for the last-registered Expo push token (so we can deregister on logout). */
+const PUSH_TOKEN_KEY = "SW_EXPO_PUSH_TOKEN";
+
+/** Buddy/community push data.type values that should deep-link to the Community tab. */
+const BUDDY_PUSH_TYPES = ["signal", "reaction", "support_note", "support_lifeline"];
 
 const hasGrantedNotificationPermission = (
   settings: Notifications.NotificationPermissionsStatus,
@@ -104,6 +116,16 @@ export const setupNotificationHandlers = () => {
     }
 
     const data = response.notification.request.content.data;
+
+    // 1b. Buddy/community signal (reaction, moment, support…) → open the Community tab.
+    const pushType = typeof data?.type === "string" ? (data.type as string) : undefined;
+    if (data?.threadId || (pushType && BUDDY_PUSH_TYPES.includes(pushType))) {
+      setTimeout(() => {
+        navigate("Root", { screen: ROUTE_NAMES.COMMUNITY });
+      }, 500);
+      return;
+    }
+
     const category = data?.category as ReminderCategory | undefined;
 
     // 2. Handle Custom Reminders or Fallbacks
@@ -189,6 +211,41 @@ export async function registerForNotifications(): Promise<boolean> {
 export async function hasNotificationPermission(): Promise<boolean> {
   const settings = await Notifications.getPermissionsAsync();
   return hasGrantedNotificationPermission(settings);
+}
+
+/**
+ * Fetch this device's Expo push token and register it with the backend so it can deliver buddy
+ * pushes ("Alex shared a moment", "Alex reacted…", crisis support). No-ops on simulators (Expo push
+ * only works on real devices). Best-effort — never throws into the caller. PII: never logged.
+ */
+export async function registerPushToken(): Promise<void> {
+  try {
+    if (!Device.isDevice) return;
+    const projectId =
+      (Constants.expoConfig as any)?.extra?.eas?.projectId ??
+      (Constants as any)?.easConfig?.projectId;
+    const { data: token } = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined,
+    );
+    if (!token) return;
+    await apiRegisterPushToken(token);
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+  } catch (err) {
+    console.warn("[Push] token registration failed:", err);
+  }
+}
+
+/** Deregister this device's push token (call on logout). Best-effort. */
+export async function unregisterPushToken(): Promise<void> {
+  try {
+    const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+    if (token) {
+      await apiRemovePushToken(token);
+      await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+    }
+  } catch (err) {
+    console.warn("[Push] token removal failed:", err);
+  }
 }
 
 /**
