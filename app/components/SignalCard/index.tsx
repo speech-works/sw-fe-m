@@ -1,7 +1,8 @@
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { theme } from "../../Theme/tokens";
 
 import {
   PracticePayload,
@@ -21,25 +22,20 @@ type Variant = "feed" | "preview";
 interface SignalCardProps {
   signal: Signal;
   variant?: Variant;
-  /** React to a buddy's signal (feed only). */
   onReact?: (type: ReactionType) => void;
-  /** Tap your existing reaction again to remove it. */
   onUnreact?: () => void;
-  /** Delete your own signal (feed only). */
   onDelete?: () => void;
-  /** Open the crisis-support flow for a buddy's *sensitive* moment (feed only). */
   onReachOut?: () => void;
-  /** One-tap canned answer to a prompt card. */
   onReplyPrompt?: (replyId: string) => void;
-  /** Disable the prompt reply pills while a reply request is in flight. */
   replyPending?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const formatRelativeTime = (input: Date | string | number | null | undefined): string => {
   if (input == null) return "";
-  // API dates may arrive as ISO strings (e.g. if not date-revived) — coerce safely.
   const date = input instanceof Date ? input : new Date(input);
   const ms = Date.now() - date.getTime();
   if (Number.isNaN(ms)) return "";
@@ -51,10 +47,9 @@ const formatRelativeTime = (input: Date | string | number | null | undefined): s
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
-  return date.toLocaleDateString();
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
-/** A renderable stat chip for a practice payload field, or null. */
 const statForField = (
   field: PracticePayloadField,
   payload: PracticePayload,
@@ -116,19 +111,12 @@ const SignalCard = ({
   onReachOut,
   onReplyPrompt,
   replyPending,
+  isFirst = false,
+  isLast = false,
 }: SignalCardProps) => {
   const authorName = signal.authorIsMe ? "You" : signal.author?.name ?? "Your buddy";
   const initials = (signal.author?.name ?? "?").substring(0, 1).toUpperCase();
   const interactive = variant === "feed" && !signal.authorIsMe;
-
-  const headerRight =
-    variant === "feed" && signal.authorIsMe && onDelete ? (
-      <TouchableOpacity onPress={onDelete} style={styles.overflowBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <MaterialCommunityIcons name="dots-horizontal" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
-    ) : (
-      <View style={styles.overflowSpacer} />
-    );
 
   const authorRow = (
     <View style={styles.authorRow}>
@@ -139,18 +127,13 @@ const SignalCard = ({
           <Text style={styles.avatarLetter}>{initials}</Text>
         </View>
       )}
-      <View style={styles.authorMeta}>
-        <Text style={styles.authorName} numberOfLines={1}>
-          {authorName}
-        </Text>
-        <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
-      </View>
+      <Text style={styles.authorName} numberOfLines={1}>
+        {authorName}
+      </Text>
     </View>
   );
 
-  // The reaction row — ONLY for member-authored content (practice + non-sensitive moment).
   const renderReactionRow = () => {
-    // Buddy's signal → the fixed Speechworks reactions.
     if (interactive) {
       return (
         <View style={styles.reactionRow}>
@@ -178,7 +161,6 @@ const SignalCard = ({
         </View>
       );
     }
-    // Own / non-interactive → read-only summary of reactions received.
     if (signal.reactions.length > 0) {
       const emojis = Array.from(
         new Set(signal.reactions.map((r) => getReaction(r.type)?.emoji).filter(Boolean)),
@@ -196,44 +178,46 @@ const SignalCard = ({
     );
   };
 
-  // ── MOMENT — mood-toned header + the canned line. No title/stats. ──
-  if (isMoment(signal)) {
-    const moment = getMoment(signal.momentId);
-    // Sensitive → "Reach out" / "✓ Reached out" (responder only; nothing on the author's own card).
-    // Non-sensitive → the fixed reactions.
-    let response: React.ReactNode = null;
-    if (moment.sensitive) {
-      if (interactive) {
-        response = signal.iReachedOut ? (
-          <View style={styles.reachedOutPill}>
-            <MaterialCommunityIcons name="check-circle" size={18} color="#0DA500" />
-            <Text style={styles.reachedOutText}>Reached out</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.reachOutBtn}
-            activeOpacity={0.85}
-            onPress={onReachOut}
-            accessibilityLabel={`Reach out to ${authorName.split(" ")[0]}`}
-          >
-            <MaterialCommunityIcons name="hand-heart" size={18} color="#FFFFFF" />
-            <Text style={styles.reachOutText}>Reach out to {authorName.split(" ")[0]}</Text>
-          </TouchableOpacity>
-        );
+  const renderContent = () => {
+    if (isMoment(signal)) {
+      const moment = getMoment(signal.momentId);
+      let response: React.ReactNode = null;
+      if (moment.sensitive) {
+        if (interactive) {
+          response = signal.iReachedOut ? (
+            <View style={styles.reachedOutPill}>
+              <MaterialCommunityIcons name="check-circle" size={16} color="#0DA500" />
+              <Text style={styles.reachedOutText}>Reached out</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.reachOutBtn}
+              activeOpacity={0.85}
+              onPress={onReachOut}
+              accessibilityLabel={`Reach out to ${authorName.split(" ")[0]}`}
+            >
+              <MaterialCommunityIcons name="hand-heart" size={16} color="#FFFFFF" />
+              <Text style={styles.reachOutText}>Reach out to {authorName.split(" ")[0]}</Text>
+            </TouchableOpacity>
+          );
+        }
+      } else {
+        response = renderReactionRow();
       }
-    } else {
-      response = renderReactionRow();
-    }
-    return (
-      <View style={styles.card}>
-        <LinearGradient colors={moment.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader}>
-          <Text style={styles.momentEmoji}>{moment.emoji}</Text>
-          <Text style={styles.templateLabel}>Shared a moment</Text>
-          {headerRight}
-        </LinearGradient>
-        <View style={styles.body}>
+      
+      const themeColor = moment.gradient[0];
+      return (
+        <View style={[styles.card, { backgroundColor: themeColor + "1A" }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={styles.cardHeaderTitleRow}>
+              <Text style={styles.momentEmoji}>{moment.emoji}</Text>
+              <Text style={[styles.cardTitle, { color: themeColor }]}>Shared a moment</Text>
+            </View>
+            <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
+          </View>
+          <Text style={styles.title}>{moment.text}</Text>
+          <View style={styles.spacer} />
           {authorRow}
-          <Text style={styles.momentText}>{moment.text}</Text>
           {response ? (
             <>
               <View style={styles.divider} />
@@ -241,42 +225,39 @@ const SignalCard = ({
             </>
           ) : null}
         </View>
-      </View>
-    );
-  }
+      );
+    }
 
-  // ── BEAT — compact cooperative/support beat (system). No reactions (no member receives them). ──
-  if (isBeat(signal)) {
-    return (
-      <View style={styles.card}>
-        <View style={styles.body}>
-          <View style={styles.beatRow}>
-            <View style={styles.beatIcon}>
-              <MaterialCommunityIcons name={(signal.payload.icon ?? "star-shooting") as any} size={22} color="#BF5000" />
+    if (isBeat(signal)) {
+      return (
+        <View style={[styles.card, { backgroundColor: "#FFF7ED" }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={styles.cardHeaderTitleRow}>
+              <MaterialCommunityIcons name={(signal.payload.icon ?? "star-shooting") as any} size={16} color="#EA580C" />
+              <Text style={[styles.cardTitle, { color: "#EA580C" }]}>{signal.payload.label}</Text>
             </View>
-            <Text style={styles.beatLabel}>{signal.payload.label}</Text>
+            <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
           </View>
-          {signal.payload.body ? <Text style={styles.beatBody}>{signal.payload.body}</Text> : null}
+          {signal.payload.body ? <Text style={styles.cardBody}>{signal.payload.body}</Text> : null}
         </View>
-      </View>
-    );
-  }
+      );
+    }
 
-  // ── CARD — curated content (prompt / affirmation / tip / challenge). No reactions. ──
-  if (isCard(signal)) {
-    const meta = CARD_KIND_META[signal.cardKind] ?? CARD_KIND_META.affirmation;
-    const isPrompt = signal.cardKind === "prompt";
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <MaterialCommunityIcons name={meta.icon as any} size={15} color="#803600" />
-          <Text style={styles.cardKindLabel}>{meta.label}</Text>
-        </View>
-        <View style={styles.body}>
-          {signal.payload.title ? <Text style={styles.cardTitle}>{signal.payload.title}</Text> : null}
+    if (isCard(signal)) {
+      const meta = CARD_KIND_META[signal.cardKind] ?? CARD_KIND_META.affirmation;
+      const isPrompt = signal.cardKind === "prompt";
+      return (
+        <View style={[styles.card, { backgroundColor: "#F8FAFC" }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={styles.cardHeaderTitleRow}>
+              <MaterialCommunityIcons name={meta.icon as any} size={16} color="#475569" />
+              <Text style={[styles.cardTitle, { color: "#475569" }]}>{meta.label}</Text>
+            </View>
+            <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
+          </View>
+          {signal.payload.title ? <Text style={styles.title}>{signal.payload.title}</Text> : null}
           <Text style={styles.cardBody}>{signal.payload.body}</Text>
 
-          {/* Prompt → one-tap canned replies (both members see who answered). */}
           {isPrompt && signal.replyOptions?.length ? (
             <View style={styles.replyRow}>
               {signal.replyOptions.map((opt) => {
@@ -296,7 +277,6 @@ const SignalCard = ({
             </View>
           ) : null}
 
-          {/* Tip / affirmation / challenge → a gentle "buddy saw this" once they've opened the timeline. */}
           {!isPrompt && signal.seenByBuddy ? (
             <View style={styles.seenRow}>
               <MaterialCommunityIcons name="eye-check-outline" size={14} color="#A1A4AA" />
@@ -304,45 +284,62 @@ const SignalCard = ({
             </View>
           ) : null}
         </View>
-      </View>
-    );
-  }
+      );
+    }
 
-  // ── PRACTICE — template header + activity title + safe stat chips. ──
-  const template = getPostTemplate(signal.templateId);
-  const emphasized = template.emphasizes;
-  const orderedFields: PracticePayloadField[] = [
-    ...emphasized,
-    ...STAT_ORDER.filter((f) => !emphasized.includes(f)),
-  ];
-  const stats = orderedFields
-    .map((f) => statForField(f, signal.payload))
-    .filter((s): s is { icon: string; label: string } => s !== null);
+    const template = getPostTemplate(signal.templateId);
+    const emphasized = template.emphasizes;
+    const orderedFields: PracticePayloadField[] = [
+      ...emphasized,
+      ...STAT_ORDER.filter((f) => !emphasized.includes(f)),
+    ];
+    const stats = orderedFields
+      .map((f) => statForField(f, signal.payload))
+      .filter((s): s is { icon: string; label: string } => s !== null);
 
-  return (
-    <View style={styles.card}>
-      <LinearGradient colors={template.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader}>
-        <MaterialCommunityIcons name={template.icon as any} size={18} color="#FFFFFF" />
-        <Text style={styles.templateLabel}>{template.label}</Text>
-        {headerRight}
-      </LinearGradient>
+    const themeColor = template.gradient[0];
 
-      <View style={styles.body}>
-        {authorRow}
+    return (
+      <View style={[styles.card, { backgroundColor: themeColor + "1A" }]}>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderTitleRow}>
+            <MaterialCommunityIcons name={template.icon as any} size={16} color={themeColor} />
+            <Text style={[styles.cardTitle, { color: themeColor }]}>{template.label}</Text>
+          </View>
+          <Text style={styles.time}>{formatRelativeTime(signal.createdAt)}</Text>
+        </View>
+
         <Text style={styles.title}>{signal.payload.activityName}</Text>
         {signal.caption ? <Text style={styles.caption}>{signal.caption}</Text> : null}
+        
+        <View style={styles.spacer} />
+        {authorRow}
+
         {stats.length > 0 ? (
           <View style={styles.statRow}>
             {stats.map((s) => (
-              <View key={s.label} style={styles.statChip}>
-                <MaterialCommunityIcons name={s.icon as any} size={13} color="#803600" />
-                <Text style={styles.statText}>{s.label}</Text>
+              <View key={s.label} style={[styles.statChip, { backgroundColor: themeColor + "20" }]}>
+                <MaterialCommunityIcons name={s.icon as any} size={13} color={themeColor} />
+                <Text style={[styles.statText, { color: themeColor }]}>{s.label}</Text>
               </View>
             ))}
           </View>
         ) : null}
         <View style={styles.divider} />
         {renderReactionRow()}
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.timelineRow}>
+      <View style={styles.axisCol}>
+        <View style={[styles.axisLineTop, isFirst && { backgroundColor: "transparent" }]} />
+        <View style={styles.axisDot} />
+        <View style={[styles.axisLineBottom, isLast && { backgroundColor: "transparent" }]} />
+      </View>
+      <View style={styles.cardWrap}>
+        {renderContent()}
       </View>
     </View>
   );
@@ -351,130 +348,135 @@ const SignalCard = ({
 export default SignalCard;
 
 const styles = StyleSheet.create({
-  card: {
+  timelineRow: { flexDirection: "row", marginBottom: 16 },
+  axisCol: { width: 24, alignItems: "center", marginRight: 12, position: "relative" },
+  axisLineTop: { width: 2, height: 26, backgroundColor: "#E2E8F0" },
+  axisLineBottom: { flex: 1, width: 2, backgroundColor: "#E2E8F0" },
+  axisDot: {
+    position: "absolute",
+    top: 20,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2.5,
+    borderColor: "#3B82F6",
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ECEDEE",
-    marginBottom: 14,
+    zIndex: 2,
   },
-  gradientHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
-  templateLabel: { flex: 1, color: "#FFFFFF", fontSize: 13, fontWeight: "800", letterSpacing: 0.5 },
-  momentEmoji: { fontSize: 18 },
-  momentText: { fontSize: 18, fontWeight: "700", color: "#401B00", lineHeight: 26 },
-  overflowBtn: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
-  overflowSpacer: { width: 24, height: 24 },
-  body: { padding: 16 },
-  authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: "#FFDABF" },
-  avatarFallback: {
-    width: 40,
-    height: 40,
+  cardWrap: { flex: 1 },
+  card: {
     borderRadius: 20,
-    marginRight: 12,
+    padding: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  cardHeaderTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 1,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    flexShrink: 1,
+  },
+  time: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94A3B8",
+    flexShrink: 0,
+    marginLeft: 8,
+  },
+  momentEmoji: { fontSize: 16 },
+  title: { fontSize: 16, fontWeight: "800", color: "#1E293B", marginBottom: 4 },
+  cardBody: { fontSize: 15, color: "#334155", lineHeight: 22 },
+  caption: { fontSize: 14, color: "#475569", lineHeight: 20, marginBottom: 8 },
+  momentText: { fontSize: 16, fontWeight: "600", color: "#1E293B", lineHeight: 24 },
+  spacer: { height: 4 },
+  authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  avatar: { width: 24, height: 24, borderRadius: 12, marginRight: 8, backgroundColor: "#FFDABF" },
+  avatarFallback: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
     backgroundColor: "#401B00",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarLetter: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-  authorMeta: { flex: 1 },
-  authorName: { fontSize: 15, fontWeight: "700", color: "#401B00" },
-  time: { fontSize: 13, color: "#A1A4AA", marginTop: 1 },
-  title: { fontSize: 18, fontWeight: "800", color: "#401B00", marginBottom: 6 },
-  caption: { fontSize: 15, color: "#333740", lineHeight: 22, marginBottom: 12 },
-  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  avatarLetter: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
+  authorName: { fontSize: 14, fontWeight: "600", color: "#475569", flexShrink: 1 },
+  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   statChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FFF0E5",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 100,
   },
-  statText: { fontSize: 13, fontWeight: "700", color: "#803600" },
-
-  // Beat
-  beatRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  beatIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFF0E5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  beatLabel: { flex: 1, fontSize: 16, fontWeight: "800", color: "#401B00", lineHeight: 22 },
-  beatBody: { fontSize: 15, color: "#333740", lineHeight: 22, marginTop: 12 },
-
-  // Curated card
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-  },
-  cardKindLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 0.4, color: "#803600", textTransform: "uppercase" },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: "#401B00", marginBottom: 6 },
-  cardBody: { fontSize: 16, color: "#333740", lineHeight: 24 },
-  replyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
+  statText: { fontSize: 12, fontWeight: "700" },
+  replyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   replyChip: {
-    backgroundColor: "#FFF0E5",
-    borderWidth: 1.5,
-    borderColor: "transparent",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 100,
   },
-  replyChipSelected: { backgroundColor: "#FFFFFF", borderColor: "#FF6B00" },
+  replyChipSelected: { borderColor: "#3B82F6", backgroundColor: "#EFF6FF" },
   replyChipDisabled: { opacity: 0.5 },
-  replyLabel: { fontSize: 13, fontWeight: "700", color: "#803600" },
-  replyLabelSelected: { color: "#BF5000" },
-  seenRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14 },
-  seenText: { fontSize: 12, fontWeight: "600", color: "#A1A4AA" },
-
-  divider: { height: 1, backgroundColor: "#ECEDEE", marginTop: 16, marginBottom: 12 },
-  reactionRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  replyLabel: { fontSize: 12, fontWeight: "700", color: "#475569" },
+  replyLabelSelected: { color: "#1D4ED8" },
+  seenRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
+  seenText: { fontSize: 12, fontWeight: "600", color: "#94A3B8" },
+  divider: { height: 1, backgroundColor: "rgba(0,0,0,0.05)", marginVertical: 12 },
+  reactionRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
   reactionChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#FFDABF",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  reactionChipSelected: { backgroundColor: "#FFF0E5", borderColor: "#FF6B00" },
-  reactionEmoji: { fontSize: 14 },
-  reactionLabel: { fontSize: 12, fontWeight: "700", color: "#737780" },
-  reactionLabelSelected: { color: "#BF5000" },
+  reactionChipSelected: { backgroundColor: "#FFF7ED", borderColor: "#FF6B00" },
+  reactionEmoji: { fontSize: 12 },
+  reactionLabel: { fontSize: 11, fontWeight: "700", color: "#64748B" },
+  reactionLabelSelected: { color: "#EA580C" },
   reachOutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
     backgroundColor: "#FF6B00",
     borderRadius: 100,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  reachOutText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
+  reachOutText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800", letterSpacing: 0.3 },
   reachedOutPill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
-    backgroundColor: "#E7F6E5",
+    gap: 6,
+    backgroundColor: "#DCFCE7",
     borderRadius: 100,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  reachedOutText: { color: "#0C6304", fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
-  previewHint: { fontSize: 13, color: "#A1A4AA", fontStyle: "italic" },
-  receivedText: { flexShrink: 1, fontSize: 13, color: "#803600", fontWeight: "600" },
-  receivedTextMuted: { flexShrink: 1, fontSize: 13, color: "#A1A4AA" },
+  reachedOutText: { color: "#166534", fontSize: 13, fontWeight: "800", letterSpacing: 0.3 },
+  previewHint: { fontSize: 12, color: "#94A3B8", fontStyle: "italic" },
+  receivedText: { flexShrink: 1, fontSize: 12, color: "#475569", fontWeight: "600" },
+  receivedTextMuted: { flexShrink: 1, fontSize: 12, color: "#94A3B8" },
 });

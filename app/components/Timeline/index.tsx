@@ -201,9 +201,11 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
 
   return (
     <View style={styles.list}>
-      {signals.map((signal) => (
+      {signals.map((signal, index) => (
         <SignalCard
           key={signal.id}
+          isFirst={index === 0}
+          isLast={index === signals.length - 1}
           signal={signal}
           variant="feed"
           onReact={(type) => handleReact(signal.id, type)}
@@ -234,7 +236,7 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
 export default Timeline;
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingTop: 8 },
+  list: { paddingTop: 8, paddingHorizontal: 16 },
   center: { alignItems: "center", justifyContent: "center", paddingVertical: 48, paddingHorizontal: 30, gap: 8 },
   emptyTitle: { fontSize: 17, fontWeight: "800", color: "#803600", marginTop: 4 },
   muted: { fontSize: 14, color: "#737780", textAlign: "center", lineHeight: 20 },
