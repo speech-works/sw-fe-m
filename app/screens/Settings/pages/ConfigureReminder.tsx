@@ -607,17 +607,19 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   saveButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: theme.colors.actionPrimary.default,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation3),
+    gap: 8,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   saveButtonText: {
     fontSize: 16,
     color: "#FFFFFF",
-    fontWeight: "800",
+    fontWeight: "700",
   },
   deleteButton: {
     flexDirection: "row",
