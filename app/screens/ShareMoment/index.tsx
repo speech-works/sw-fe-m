@@ -2,6 +2,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
@@ -120,11 +121,6 @@ const ShareMomentScreen = () => {
                   <View style={styles.actionTextWrap}>
                     <Text style={[styles.actionTitle, isSel && styles.actionTitleSelected]}>{m.text}</Text>
                   </View>
-                  {isSel ? (
-                    <MaterialCommunityIcons name="check-circle" size={24} color={C.orange500} />
-                  ) : (
-                    <MaterialCommunityIcons name="circle-outline" size={24} color={theme.colors.library.gray[200]} />
-                  )}
                 </PressableScale>
                 {!isLast && <View style={styles.actionDivider} />}
               </React.Fragment>
@@ -145,9 +141,15 @@ const ShareMomentScreen = () => {
           { paddingTop: insets.top + 10, height: 60 + insets.top },
         ]}
       >
-        <Pressable onPress={handleDismiss} hitSlop={12} style={styles.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={16} color={theme.colors.text.title} />
-        </Pressable>
+        <PressableScale
+          style={styles.backBtn}
+          scaleTo={0.92}
+          haptic={false}
+          onPress={handleDismiss}
+          hitSlop={12}
+        >
+          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+        </PressableScale>
         <Text style={styles.screenHeaderTitle}>Share Moment</Text>
         <View style={{ width: 36 }} />
       </BlurView>
@@ -166,37 +168,37 @@ const ShareMomentScreen = () => {
           {renderGroup("Wins", "win")}
           {renderGroup("Struggles", "struggle")}
         </ScrollView>
+      </View>
 
-        <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 24 }]}>
-          <View style={styles.footerRowWrap}>
-            <PressableScale
-              style={styles.footerRow}
-              haptic={false}
-              scaleTo={0.98}
-              onPress={call988}
-              accessibilityLabel="In crisis, call or text 988"
-            >
-              <MaterialCommunityIcons name="lifebuoy" size={15} color={C.orange700} />
-              <Text style={styles.footerText}>In crisis? Call or text 988</Text>
-            </PressableScale>
-            <PressableScale haptic={false} scaleTo={0.98} onPress={openResources}>
-              <Text style={styles.footerLink}>More resources</Text>
-            </PressableScale>
-          </View>
-
+      <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 24 }]}>
+        <View style={styles.footerRowWrap}>
           <PressableScale
-            style={[styles.shareBtn, (!selected || posting) && styles.shareBtnDisabled]}
-            scaleTo={0.97}
-            disabled={!selected || posting}
-            onPress={handleShare}
+            style={styles.footerRow}
+            haptic={false}
+            scaleTo={0.98}
+            onPress={call988}
+            accessibilityLabel="In crisis, call or text 988"
           >
-            {posting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.shareBtnText}>Share with {buddyFirstName}</Text>
-            )}
+            <MaterialCommunityIcons name="lifebuoy" size={15} color={C.orange700} />
+            <Text style={styles.footerText}>In crisis? Call or text 988</Text>
+          </PressableScale>
+          <PressableScale haptic={false} scaleTo={0.98} onPress={openResources}>
+            <Text style={styles.footerLink}>More resources</Text>
           </PressableScale>
         </View>
+
+        <PressableScale
+          style={[styles.shareBtn, (!selected || posting) && styles.shareBtnDisabled]}
+          scaleTo={0.97}
+          disabled={!selected || posting}
+          onPress={handleShare}
+        >
+          {posting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.shareBtnText}>Share with {buddyFirstName}</Text>
+          )}
+        </PressableScale>
       </View>
 
       <PromptBottomSheet
@@ -232,12 +234,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
@@ -309,16 +311,22 @@ const styles = StyleSheet.create({
   actionTitleSelected: { fontWeight: "800", color: C.orange700 },
 
   stickyFooter: {
-    paddingTop: 12,
+    paddingTop: 24,
+    paddingHorizontal: 20,
     backgroundColor: "#FAFAFA",
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.library.gray[100],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.03,
+    shadowRadius: 16,
+    elevation: 4,
   },
   footerRowWrap: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.library.gray[100],
+    marginBottom: 20,
   },
   footerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   footerText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
@@ -331,7 +339,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.orange500,
     paddingVertical: 16,
     borderRadius: 16,
-    marginTop: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   shareBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
