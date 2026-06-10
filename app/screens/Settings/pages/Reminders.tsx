@@ -269,7 +269,7 @@ const Reminders = () => {
           activeOpacity={0.9}
           onPress={handleCreateNew}
         >
-          <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
+          <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
           <Text style={styles.createButtonText}>Create Reminder</Text>
         </TouchableOpacity>
       </View>
@@ -499,19 +499,19 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   createButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: theme.colors.actionPrimary.default,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    ...parseShadowStyle(theme.shadow.elevation3),
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   createButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: "700",
   },
   modalContent: {
     paddingHorizontal: 20,
