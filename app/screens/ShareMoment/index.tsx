@@ -97,31 +97,43 @@ const ShareMomentScreen = () => {
     navigation.navigate("Resources");
   };
 
-  const renderGroup = (label: string, valence: MomentValence) => (
-    <View style={styles.group}>
-      <Text style={styles.groupLabel}>{label}</Text>
-      {momentsByValence(valence).map((m) => {
-        const isSel = selected === m.id;
-        return (
-          <PressableScale
-            key={m.id}
-            style={[styles.chip, isSel && styles.chipSelected]}
-            scaleTo={0.97}
-            onPress={() => handleSelect(m.id)}
-            accessibilityLabel={`Share: ${m.text}`}
-          >
-            <View style={[styles.emojiWrap, isSel && styles.emojiWrapSelected]}>
-              <Text style={styles.chipEmoji}>{m.emoji}</Text>
-            </View>
-            <Text style={[styles.chipText, isSel && styles.chipTextSelected]}>{m.text}</Text>
-            {isSel ? (
-              <MaterialCommunityIcons name="check-circle" size={24} color={C.orange500} />
-            ) : null}
-          </PressableScale>
-        );
-      })}
-    </View>
-  );
+  const renderGroup = (label: string, valence: MomentValence) => {
+    const items = momentsByValence(valence);
+    return (
+      <View style={styles.group}>
+        <Text style={styles.groupLabel}>{label}</Text>
+        <View style={styles.actionGroup}>
+          {items.map((m, index) => {
+            const isSel = selected === m.id;
+            const isLast = index === items.length - 1;
+            return (
+              <React.Fragment key={m.id}>
+                <PressableScale
+                  style={[styles.actionRow, isSel && styles.actionRowSelected]}
+                  scaleTo={0.98}
+                  onPress={() => handleSelect(m.id)}
+                  accessibilityLabel={`Share: ${m.text}`}
+                >
+                  <View style={[styles.actionIconCircle, isSel ? { backgroundColor: C.peachSurface } : { backgroundColor: theme.colors.library.gray[100] }]}>
+                    <Text style={styles.actionEmoji}>{m.emoji}</Text>
+                  </View>
+                  <View style={styles.actionTextWrap}>
+                    <Text style={[styles.actionTitle, isSel && styles.actionTitleSelected]}>{m.text}</Text>
+                  </View>
+                  {isSel ? (
+                    <MaterialCommunityIcons name="check-circle" size={24} color={C.orange500} />
+                  ) : (
+                    <MaterialCommunityIcons name="circle-outline" size={24} color={theme.colors.library.gray[200]} />
+                  )}
+                </PressableScale>
+                {!isLast && <View style={styles.actionDivider} />}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <ScreenView style={styles.screen}>
@@ -205,7 +217,7 @@ export default ShareMomentScreen;
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background.default,
+    backgroundColor: "#FAFAFA",
   },
   header: {
     position: "absolute",
@@ -263,43 +275,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 4,
   },
-  chip: {
+  actionGroup: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    overflow: "hidden",
+  },
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     gap: 14,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: theme.colors.library.gray[100],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
   },
-  chipSelected: { borderColor: C.orange500, backgroundColor: "#FFFBF7" },
-  emojiWrap: {
+  actionRowSelected: {
+    backgroundColor: "#FFFBF7",
+  },
+  actionDivider: {
+    height: 1,
+    backgroundColor: theme.colors.library.gray[100],
+    marginLeft: 16 + 44 + 14,
+  },
+  actionIconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.library.gray[100],
     alignItems: "center",
     justifyContent: "center",
   },
-  emojiWrapSelected: {
-    backgroundColor: "#FFFFFF",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  chipEmoji: { fontSize: 20 },
-  chipText: { flex: 1, fontSize: 15, fontWeight: "600", color: C.title, lineHeight: 20 },
-  chipTextSelected: { fontWeight: "800", color: C.orange700 },
+  actionEmoji: { fontSize: 20 },
+  actionTextWrap: { flex: 1, paddingRight: 8 },
+  actionTitle: { fontSize: 15, fontWeight: "600", color: C.title, lineHeight: 20 },
+  actionTitleSelected: { fontWeight: "800", color: C.orange700 },
 
   stickyFooter: {
     paddingTop: 12,
-    backgroundColor: theme.colors.background.default,
+    backgroundColor: "#FAFAFA",
   },
   footerRowWrap: {
     flexDirection: "row",
