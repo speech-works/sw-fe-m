@@ -33,14 +33,27 @@ export const getSignalIconBg = (signal?: Signal) => {
 };
 
 export const getSignalGradient = (signal?: Signal): readonly [string, string, ...string[]] => {
-  if (!signal) return ["#E2E8F0", "#CBD5E1"];
-  if (isMoment(signal)) return ["#C084FC", "#9333EA"]; // Purple
+  if (!signal) return ["#FFFFFF", "#FFFFFF"];
+  
+  // Milestones (beats that are not support) get a golden gradient
   if (isBeat(signal)) {
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
-    return isSupport ? ["#F472B6", "#DB2777"] : ["#FBBF24", "#D97706"]; // Pink or Yellow/Amber
+    if (!isSupport) return ["#FFE082", "#FFCD4B"];
   }
-  if (isCard(signal)) return ["#60A5FA", "#2563EB"]; // Blue
-  return ["#4ADE80", "#16A34A"]; // Green
+  
+  // System cards get vibrant gradients
+  if (isCard(signal)) {
+    switch (signal.cardKind) {
+      case "prompt": return ["#EBCBF5", "#D8A7F0"]; // Lilac
+      case "affirmation": return ["#FFD8B5", "#FFAB76"]; // Peach
+      case "tip": return ["#Cbf0f0", "#98E6E6"]; // Cyan
+      case "challenge": return ["#FFC8C8", "#FF9E9E"]; // Rose
+      default: return ["#E2E8F0", "#CBD5E1"]; // Generic light blue/gray
+    }
+  }
+
+  // User-generated cards (moments, beats/practice) are purely white
+  return ["#FFFFFF", "#FFFFFF"]; 
 };
 
 export const getSignalCardBg = (_signal?: Signal) => "#FFFFFF";
@@ -168,6 +181,11 @@ const SignalCard = ({
   };
 
   let cardGradient = getSignalGradient(signal);
+  const isColored = cardGradient[0] !== "#FFFFFF";
+  const primaryText = isColored ? { color: "rgba(0,0,0,0.9)" } : null;
+  const secondaryText = isColored ? { color: "rgba(0,0,0,0.7)" } : null;
+  const tertiaryText = isColored ? { color: "rgba(0,0,0,0.5)" } : null;
+
   let cardBg = getSignalCardBg(signal);
   let iconBg = getSignalIconBg(signal);
   let statusText = "Update";
@@ -256,8 +274,8 @@ const SignalCard = ({
     } else if (!isPrompt && signal.seenByBuddy) {
       dynamicContent = (
         <View style={styles.seenRow}>
-          <MaterialCommunityIcons name="eye-check-outline" size={14} color="#A1A4AA" />
-          <Text style={styles.seenText}>{buddyName ?? "Your buddy"} saw this</Text>
+          <MaterialCommunityIcons name="eye-check-outline" size={14} color={isColored ? "rgba(0,0,0,0.5)" : "#A1A4AA"} />
+          <Text style={[styles.seenText, tertiaryText]}>{buddyName ?? "Your buddy"} saw this</Text>
         </View>
       );
     }
@@ -344,29 +362,34 @@ const SignalCard = ({
   };
 
   const cardBody = (
-    <View ref={cardRef} collapsable={false} style={[styles.mainBodyShadow, { backgroundColor: cardBg }]}>
-      <View style={[styles.mainBody, { backgroundColor: cardBg }]}>
+    <View ref={cardRef} collapsable={false} style={[styles.mainBodyShadow, { backgroundColor: cardGradient[0] }]}>
+      <LinearGradient 
+        colors={cardGradient as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.mainBody}
+      >
         {/* Simple header row */}
         <View style={styles.headerRow}>
-          <Text style={styles.statusLabel} numberOfLines={1}>{statusText}</Text>
-          <Text style={styles.timeText}>{relativeTime}</Text>
+          <Text style={[styles.statusLabel, primaryText]} numberOfLines={1}>{statusText}</Text>
+          <Text style={[styles.timeText, secondaryText]}>{relativeTime}</Text>
         </View>
 
         {/* Content */}
         <View style={styles.bodyContentRow}>
           <View style={styles.textContent}>
-            {title ? <Text style={styles.title}>{title}</Text> : null}
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            {title ? <Text style={[styles.title, primaryText]}>{title}</Text> : null}
+            {subtitle ? <Text style={[styles.subtitle, secondaryText]}>{subtitle}</Text> : null}
           </View>
         </View>
 
-        {bodyText ? <Text style={styles.bodyParagraph}>{bodyText}</Text> : null}
-        {captionText ? <Text style={styles.caption}>{captionText}</Text> : null}
+        {bodyText ? <Text style={[styles.bodyParagraph, primaryText]}>{bodyText}</Text> : null}
+        {captionText ? <Text style={[styles.caption, secondaryText]}>{captionText}</Text> : null}
 
         {dynamicContent ? (
           <View style={{ marginTop: 12 }}>{dynamicContent}</View>
         ) : null}
-      </View>
+      </LinearGradient>
       
       {/* Mobile-native floating reaction badge */}
       {renderReactionBadge()}
