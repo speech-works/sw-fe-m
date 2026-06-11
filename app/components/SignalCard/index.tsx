@@ -20,6 +20,7 @@ import { getPostTemplate } from "../../constants/postTemplates";
 import { REACTIONS, getReaction } from "../../constants/reactions";
 
 import ReactionPicker from "../ReactionPicker";
+import { AnimatedReaction } from "../AnimatedReactions";
 
 export const getSignalIconBg = (signal?: Signal) => {
   if (!signal) return "#E2E8F0";
@@ -319,9 +320,9 @@ const SignalCard = ({
   // --- Reaction display ---
   const myReaction = signal.myReaction;
   const selectedReaction = myReaction ? getReaction(myReaction) : null;
-  const buddyReactionEmojis = Array.from(
-    new Set(signal.reactions.map((r) => getReaction(r.type)?.emoji).filter(Boolean)),
-  ).join(" ");
+  const buddyReactionTypes = Array.from(
+    new Set(signal.reactions.map((r) => r.type)),
+  );
 
   const renderReactionBadge = () => {
     if (!canReact) return null;
@@ -333,17 +334,21 @@ const SignalCard = ({
           onPress={() => onUnreact?.()}
           style={styles.reactionBadgeFloating}
         >
-          <Text style={styles.reactionBadgeEmoji}>{selectedReaction.emoji}</Text>
+          <AnimatedReaction type={selectedReaction.type} selected={true} size={18} />
           <Text style={styles.reactionBadgeName}>You</Text>
         </TouchableOpacity>
       );
     }
 
-    if (!interactive && buddyReactionEmojis) {
+    if (!interactive && buddyReactionTypes.length > 0) {
       const bName = buddyName ? buddyName.split(" ")[0] : "Buddy";
       return (
         <View style={styles.reactionBadgeFloating}>
-          <Text style={styles.reactionBadgeEmoji}>{buddyReactionEmojis}</Text>
+          <View style={{ flexDirection: "row", gap: 2 }}>
+            {buddyReactionTypes.map((type) => (
+              <AnimatedReaction key={type} type={type} selected={true} size={18} />
+            ))}
+          </View>
           <Text style={styles.reactionBadgeName}>{bName}</Text>
         </View>
       );

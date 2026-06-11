@@ -9,6 +9,7 @@ import Animated, {
   withDelay,
   cancelAnimation,
   Easing,
+  withSpring,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
@@ -33,7 +34,7 @@ import Svg, {
    ─────────────────────────────────────────────────────────────────────── */
 
 // re-export the SVG primitives so face files import everything from one place
-export { Circle, Ellipse, G, Line, Path, Polygon, Rect } from "react-native-svg";
+export { Circle, Ellipse, G, Line, Path, Polygon, Rect, Mask } from "react-native-svg";
 
 export const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -232,6 +233,169 @@ export const BeatTranslate: React.FC<any> = ({ dx = 0, dy = 0, rest = 4000, up =
   const p = useAnimatedProps(() => ({ transform: [{ translateX: dx * g.value }, { translateY: dy * g.value }] as any }));
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
 };
+
+/* ── complex genuine animations ─────────────────────────────────────── */
+
+function useFoldSV(sa: boolean) {
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(withDelay(1200, withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) })), withDelay(1500, withTiming(0, { duration: 300, easing: io }))), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  return g;
+}
+
+export const FoldFingers: React.FC<any> = ({ cx, cy, children }) => {
+  const sa = useAnim();
+  const g = useFoldSV(sa);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: cx }, { translateY: cy }, { scaleY: 1 - 2 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const FoldThumb: React.FC<any> = ({ cx, cy, children }) => {
+  const sa = useAnim();
+  const g = useFoldSV(sa);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: cx }, { translateY: cy }, { scaleX: 1 - 2 * g.value }, { rotate: `${25 * g.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const PowerPunch: React.FC<any> = ({ children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
+      withTiming(0, { duration: 1500 }),
+      withTiming(-0.2, { duration: 300, easing: Easing.in(Easing.quad) }),
+      withTiming(1, { duration: 150, easing: Easing.out(Easing.back(1.5)) }),
+      withTiming(1, { duration: 800 }),
+      withTiming(0, { duration: 600, easing: io })
+    ), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateY: 10 - 15 * g.value }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const RepLift: React.FC<any> = ({ children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
+      withTiming(0, { duration: 1000 }),
+      withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }),
+      withTiming(1, { duration: 400 }),
+      withTiming(0, { duration: 600, easing: io })
+    ), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateY: 10 - 20 * g.value }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const Heartbeat: React.FC<any> = ({ cx, cy, children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
+      withTiming(0, { duration: 800 }),
+      withTiming(1, { duration: 100, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 150, easing: Easing.in(Easing.quad) }),
+      withTiming(1, { duration: 100, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 250, easing: Easing.in(Easing.quad) })
+    ), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 + 0.25 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const ZoomSpring: React.FC<any> = ({ cx, cy, children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
+      withTiming(0, { duration: 1500 }),
+      withSpring(1, { damping: 6, stiffness: 120 }),
+      withDelay(2000, withTiming(0, { duration: 400 }))
+    ), -1, false));
+    else g.value = 1;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: cx }, { translateY: cy }, { scale: g.value }, { translateX: -cx }, { translateY: -cy }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const ConfettiBlast: React.FC<any> = ({ tx, ty, rot, delay = 0, children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(delay, withRepeat(withSequence(
+      withTiming(0, { duration: 1500 }),
+      withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }),
+      withTiming(1, { duration: 1000 })
+    ), -1, false));
+    else g.value = 1;
+    return () => cancelAnimation(g);
+  }, [sa, delay]);
+  const p = useAnimatedProps(() => ({
+    opacity: g.value < 0.1 ? 0 : (g.value > 0.8 ? 1 - (g.value - 0.8) * 5 : 1),
+    transform: [{ translateX: tx * g.value }, { translateY: ty * g.value }, { rotate: `${rot * g.value}deg` }, { scale: g.value < 0.2 ? 5 * g.value : 1 }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const ShineSweep: React.FC<any> = ({ children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 1000, withRepeat(withSequence(
+      withTiming(0, { duration: 2500 }),
+      withTiming(1, { duration: 500, easing: lin })
+    ), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: -48 + 96 * g.value }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const PopLid: React.FC<any> = ({ children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
+      withTiming(0, { duration: 1200 }),
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }),
+      withTiming(1, { duration: 1000 }),
+      withTiming(0, { duration: 400, easing: Easing.in(Easing.cubic) })
+    ), -1, false));
+    else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa]);
+  const p = useAnimatedProps(() => ({
+    transform: [{ translateX: 24 }, { translateY: 20 }, { translateY: -20 * g.value }, { rotate: `${15 * g.value}deg` }, { translateX: -24 }, { translateY: -20 }] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
 
 /* ── shared defs + building blocks ────────────────────────────────────── */
 export const FaceDefs = () => (

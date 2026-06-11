@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { REACTIONS } from "../../constants/reactions";
 import { ReactionType } from "../../api/threads/types";
+import { AnimatedReaction } from "../AnimatedReactions";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -60,7 +61,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
               style={[
                 styles.container,
                 {
-                  top: Math.max(50, anchorY - 70), // Appear above the button
+                  top: Math.max(50, anchorY - 85), // Appear above the button, adjusted for taller pill
                   transform: [
                     { scale: scaleAnim },
                     { translateY: scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
@@ -79,6 +80,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
                 >
                   <Animated.View
                     style={{
+                      alignItems: "center",
                       transform: [
                         { scale: emojiAnims[i] },
                         {
@@ -90,7 +92,8 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
                       ],
                     }}
                   >
-                    <Text style={styles.emoji}>{r.emoji}</Text>
+                    <AnimatedReaction type={r.type} selected={false} isPicker={true} size={38} />
+                    <Text style={styles.reactionLabel}>{r.label}</Text>
                   </Animated.View>
                 </View>
               ))}
@@ -111,10 +114,10 @@ const styles = StyleSheet.create({
   container: {
     position: "absolute",
     backgroundColor: "#FFFFFF",
-    borderRadius: 35,
+    borderRadius: 24,
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
@@ -123,12 +126,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emojiContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     alignItems: "center",
     justifyContent: "center",
   },
-  emoji: {
-    fontSize: 32,
+  reactionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#6B7280",
+    marginTop: 6,
+    textAlign: "center",
   },
 });
 
