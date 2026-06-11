@@ -802,8 +802,8 @@ const Community = () => {
             <View style={styles.segmentWrap}>
               <SegmentedTabs
                 tabs={[
-                  { key: "us", label: "Us" },
-                  { key: "timeline", label: "Timeline", badge: unreadCount },
+                  { key: "us", label: "Us", icon: "account-multiple-outline" },
+                  { key: "timeline", label: "Timeline", badge: unreadCount, icon: "history" },
                 ]}
                 active={view}
                 onChange={(k) => setView(k as "us" | "timeline")}
