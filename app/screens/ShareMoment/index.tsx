@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 
 import ScreenView from "../../components/ScreenView";
 import PromptBottomSheet from "../../components/PromptBottomSheet";
@@ -100,30 +101,25 @@ const ShareMomentScreen = () => {
 
   const renderGroup = (label: string, valence: MomentValence) => {
     const items = momentsByValence(valence);
+
     return (
       <View style={styles.group}>
         <Text style={styles.groupLabel}>{label}</Text>
-        <View style={styles.actionGroup}>
-          {items.map((m, index) => {
+        <View style={styles.actionList}>
+          {items.map((m) => {
             const isSel = selected === m.id;
-            const isLast = index === items.length - 1;
+            
             return (
-              <React.Fragment key={m.id}>
-                <PressableScale
-                  style={[styles.actionRow, isSel && styles.actionRowSelected]}
-                  scaleTo={0.98}
-                  onPress={() => handleSelect(m.id)}
-                  accessibilityLabel={`Share: ${m.text}`}
-                >
-                  <View style={[styles.actionIconCircle, isSel ? { backgroundColor: C.peachSurface } : { backgroundColor: theme.colors.library.gray[100] }]}>
-                    <Text style={styles.actionEmoji}>{m.emoji}</Text>
-                  </View>
-                  <View style={styles.actionTextWrap}>
-                    <Text style={[styles.actionTitle, isSel && styles.actionTitleSelected]}>{m.text}</Text>
-                  </View>
-                </PressableScale>
-                {!isLast && <View style={styles.actionDivider} />}
-              </React.Fragment>
+              <PressableScale
+                key={m.id}
+                style={[styles.actionChip, isSel && styles.actionChipSelected]}
+                scaleTo={0.96}
+                onPress={() => handleSelect(m.id)}
+                accessibilityLabel={`Share: ${m.text}`}
+              >
+                <Text style={styles.actionEmoji}>{m.emoji}</Text>
+                <Text style={[styles.actionTitle, isSel && styles.actionTitleSelected]}>{m.text}</Text>
+              </PressableScale>
             );
           })}
         </View>
@@ -188,16 +184,18 @@ const ShareMomentScreen = () => {
         </View>
 
         <PressableScale
-          style={[styles.shareBtn, (!selected || posting) && styles.shareBtnDisabled]}
+          style={[styles.shareBtnWrap, (!selected || posting) && styles.shareBtnDisabled]}
           scaleTo={0.97}
           disabled={!selected || posting}
           onPress={handleShare}
         >
-          {posting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.shareBtnText}>Share with {buddyFirstName}</Text>
-          )}
+          <View style={styles.shareBtn}>
+            {posting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.shareBtnText}>Share with {buddyFirstName}</Text>
+            )}
+          </View>
         </PressableScale>
       </View>
 
@@ -277,38 +275,29 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 4,
   },
-  actionGroup: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    overflow: "hidden",
+  actionList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
   },
-  actionRow: {
+  actionChip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 14,
+    paddingVertical: 12,
+    borderRadius: 100,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 8,
   },
-  actionRowSelected: {
-    backgroundColor: "#FFFBF7",
+  actionChipSelected: {
+    backgroundColor: "#0F172A",
+    borderColor: "#0F172A",
   },
-  actionDivider: {
-    height: 1,
-    backgroundColor: theme.colors.library.gray[100],
-    marginLeft: 16 + 44 + 14,
-  },
-  actionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionEmoji: { fontSize: 20 },
-  actionTextWrap: { flex: 1, paddingRight: 8 },
-  actionTitle: { fontSize: 15, fontWeight: "600", color: C.title, lineHeight: 20 },
-  actionTitleSelected: { fontWeight: "800", color: C.orange700 },
+  actionEmoji: { fontSize: 16 },
+  actionTitle: { fontSize: 15, fontWeight: "600", color: "#334155" },
+  actionTitleSelected: { color: "#FFFFFF" },
 
   stickyFooter: {
     paddingTop: 24,
@@ -332,15 +321,18 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
   footerLink: { fontSize: 13, fontWeight: "700", color: C.faint },
 
+  shareBtnWrap: {
+    borderRadius: 100,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    overflow: "hidden",
+  },
   shareBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.orange500,
     paddingVertical: 16,
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: "#0F172A", // Pure minimalist dark slate
   },
   shareBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
-  shareBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
+  shareBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });
