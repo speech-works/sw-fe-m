@@ -45,6 +45,7 @@ const DonePractice = ({
 }: DonePracticeProps) => {
   const navigation = useNavigation<any>();
   const [hasBuddy, setHasBuddy] = useState(false);
+  const [hasShared, setHasShared] = useState(false);
 
   useEffect(() => {
     if (isAborted) return;
@@ -105,7 +106,7 @@ const DonePractice = ({
         {/* Actions */}
         <View style={styles.actionContainer}>
           {/* 1a. Share this session as a post — shown when paired */}
-          {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && (
+          {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && !hasShared && (
             <TouchableOpacity
               style={styles.secondaryButton}
               activeOpacity={0.7}
@@ -114,6 +115,7 @@ const DonePractice = ({
                   activityId,
                   activityKind: activityKindFromContentType(contentType),
                   activityName: practiceName,
+                  onShared: () => setHasShared(true),
                 })
               }
             >

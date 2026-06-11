@@ -199,6 +199,7 @@ const PracticeComposer = () => {
         hasCaption: !!caption.trim(),
         includedFields,
       });
+      params.onShared?.();
       navigation.goBack();
     } catch (e) {
       Alert.alert("Couldn't share", "Please try again.");
