@@ -20,6 +20,7 @@ interface SegmentedTabsProps {
 }
 
 const C = {
+  orange400: theme.colors.library.orange[400],
   orange500: theme.colors.library.orange[500],
   title: theme.colors.text.title,
   muted: theme.colors.text.default,
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   activePill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: C.dark,
+    backgroundColor: C.title,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 100,
