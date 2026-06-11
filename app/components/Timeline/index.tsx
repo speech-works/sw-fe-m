@@ -20,24 +20,12 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import SignalCard from "../SignalCard";
 
 interface TimelineProps {
-  /** The thread whose signal stream to render. */
   threadId: string;
-  /** Buddy first-name for warm first-run empty-state copy. */
   buddyName?: string;
-  /** Optional empty-state CTA (e.g. navigate to a practice). */
   onStartPractice?: () => void;
-  /**
-   * Open the crisis-support flow for a buddy's sensitive moment. Owned by the parent screen so the
-   * support sheet renders OUTSIDE this scroll view (RN modals nested in a ScrollView fail to present).
-   */
   onReachOut?: (signal: Signal) => void;
 }
 
-/**
- * Reverse-chronological stream of a thread's signals (practice / moment / beat / card). v1 renders
- * via map (a 1:1 buddy timeline is small and this nests inside Community's ScrollView); swap to a
- * FlatList when the timeline becomes its own scroll view at community scale.
- */
 const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: TimelineProps) => {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -54,7 +42,6 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
       setSignals(page.signals);
       setNextCursor(page.nextCursor);
       track(ANALYTICS_EVENTS.POST_FEED_VIEWED, { scope: "buddy", count: page.signals.length });
-      // Viewing the timeline marks it read → clear the Community tab badge.
       useInboxStore.getState().clearUnread();
       void markThreadRead(threadId).catch(() => {});
     } catch (e) {
@@ -78,7 +65,6 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
       setSignals((prev) => [...prev, ...page.signals]);
       setNextCursor(page.nextCursor);
     } catch (e) {
-      // Keep what we have; the same button retries.
     } finally {
       setLoadingMore(false);
     }
@@ -113,7 +99,6 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
   const handleReplyPrompt = async (signalId: string, replyId: string) => {
     if (replyingId) return;
     const prev = signals;
-    // Optimistically mark my reply so the pill highlights instantly.
     setSignals((ss) =>
       ss.map((s) => {
         if (s.id !== signalId || s.type !== "card") return s;

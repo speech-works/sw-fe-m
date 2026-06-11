@@ -810,7 +810,7 @@ const Community = () => {
               />
             </View>
             <CustomScrollView
-              contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130 }]}
+              contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
