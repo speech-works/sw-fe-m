@@ -328,6 +328,18 @@ const SignalCard = ({
       );
     }
 
+    if (interactive && !selectedReaction) {
+      return (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={openPicker}
+          style={styles.reactionCueFloating}
+        >
+          <MaterialCommunityIcons name="heart-outline" size={16} color="#94A3B8" />
+        </TouchableOpacity>
+      );
+    }
+
     return null;
   };
 
@@ -562,6 +574,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#475569",
+  },
+  reactionCueFloating: {
+    position: "absolute",
+    bottom: -10,
+    right: 16,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
   },
 
   // Dynamic content styles
