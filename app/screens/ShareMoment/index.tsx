@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   actionList: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
   },
   actionChip: {
     flexDirection: "row",
@@ -332,14 +332,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 100,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "#F1F5F9",
     gap: 8,
   },
   actionChipSelected: {
     backgroundColor: C.title,
-    borderColor: C.title,
   },
   actionEmoji: { fontSize: 16 },
   actionTitle: { fontSize: 15, fontWeight: "600", color: "#334155" },
