@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionChipSelected: {
-    backgroundColor: "#0F172A",
-    borderColor: "#0F172A",
+    backgroundColor: C.title,
+    borderColor: C.title,
   },
   actionEmoji: { fontSize: 16 },
   actionTitle: { fontSize: 15, fontWeight: "600", color: "#334155" },
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   footerLink: { fontSize: 13, fontWeight: "700", color: C.faint },
 
   shareBtnWrap: {
-    borderRadius: 100,
+    borderRadius: 16,
     ...parseShadowStyle(theme.shadow.elevation2),
     overflow: "hidden",
   },
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 16,
-    backgroundColor: "#0F172A", // Pure minimalist dark slate
+    backgroundColor: C.title, // Match title text color
   },
   shareBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
   shareBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },

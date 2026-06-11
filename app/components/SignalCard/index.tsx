@@ -302,11 +302,13 @@ const SignalCard = ({
     if (stats.length > 0) {
       const chipColor = "#803600";
       dynamicContent = (
-        <View style={styles.statRow}>
+        <View style={styles.statColumn}>
           {stats.map((s) => (
-            <View key={s.label} style={[styles.statChip, { backgroundColor: chipColor + "15" }]}>
-              <MaterialCommunityIcons name={s.icon as any} size={13} color={chipColor} />
-              <Text style={[styles.statText, { color: chipColor }]}>{s.label}</Text>
+            <View key={s.label} style={styles.statRowItem}>
+              <View style={[styles.statIconBox, { backgroundColor: chipColor + "15" }]}>
+                <MaterialCommunityIcons name={s.icon as any} size={14} color={chipColor} />
+              </View>
+              <Text style={[styles.statListText, { color: chipColor }]} numberOfLines={2}>{s.label}</Text>
             </View>
           ))}
         </View>
@@ -619,16 +621,10 @@ const styles = StyleSheet.create({
   },
 
   // Dynamic content styles
-  statRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  statChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 100,
-  },
-  statText: { fontSize: 12, fontWeight: "700" },
+  statColumn: { gap: 8, marginTop: 4 },
+  statRowItem: { flexDirection: "row", alignItems: "center", gap: 10 },
+  statIconBox: { width: 26, height: 26, borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  statListText: { fontSize: 13, fontWeight: "600", flex: 1 },
   replyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   replyChip: {
     backgroundColor: "#FFFFFF",
