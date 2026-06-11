@@ -1,13 +1,14 @@
 import React from "react";
-import { FaceShell, Float, TreeGrow, SvgIconProps, Path, G, Polygon, Ellipse } from "./faceKit";
+import { FaceShell, Float, TreeGrow, DayNightCycle, SvgIconProps, Path, G, Polygon, Ellipse, Circle } from "./faceKit";
 
 const StrengthFace = (props: SvgIconProps) => (
-  <FaceShell bg="#B3E5FC" {...props}>
-    <Float dur={6000}>
-      <G transform="translate(24, 28)">
-        
-        {/* Grass Base */}
-        <Ellipse cx={0} cy={14} rx={22} ry={5} fill="#8BC34A" />
+  <FaceShell bg="transparent" {...props}>
+    <DayNightCycle>
+      <Float dur={6000}>
+        <G transform="translate(24, 28)">
+          
+          {/* Grass Base */}
+          <Ellipse cx={0} cy={14} rx={22} ry={5} fill="#8BC34A" />
         
         {/* === RIGHT PEAK (In back) === */}
         <Polygon points="2,14 10,14 10,-10" fill="#9E9E9E" />
@@ -32,15 +33,16 @@ const StrengthFace = (props: SvgIconProps) => (
 
         {/* === PINE TREES === */}
         {/* Far Left */}
-        <TreeGrow originY={16} delay={0}><Polygon points="-17,16 -11,16 -14,5" fill="#2E7D32" /></TreeGrow>
+        <TreeGrow originY={16} delay={0}><Polygon points="-18,16 -10,16 -14,-2" fill="#2E7D32" /></TreeGrow>
         {/* Mid Left */}
-        <TreeGrow originY={18} delay={200}><Polygon points="-10,18 -4,18 -7,7" fill="#1B5E20" /></TreeGrow>
+        <TreeGrow originY={18} delay={200}><Polygon points="-11,18 -3,18 -7,2" fill="#1B5E20" /></TreeGrow>
         {/* Right near main peak */}
-        <TreeGrow originY={18} delay={400}><Polygon points="5,18 11,18 8,7" fill="#2E7D32" /></TreeGrow>
+        <TreeGrow originY={18} delay={400}><Polygon points="4,18 12,18 8,2" fill="#2E7D32" /></TreeGrow>
         {/* Far Right */}
-        <TreeGrow originY={16} delay={600}><Polygon points="13,16 19,16 16,5" fill="#1B5E20" /></TreeGrow>
+        <TreeGrow originY={16} delay={600}><Polygon points="12,16 20,16 16,-2" fill="#1B5E20" /></TreeGrow>
       </G>
     </Float>
+    </DayNightCycle>
   </FaceShell>
 );
 

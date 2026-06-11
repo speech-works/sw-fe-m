@@ -536,27 +536,86 @@ export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ or
   const g = useSharedValue(0);
   useEffect(() => {
     if (sa) {
-      g.value = withDelay(delay, withRepeat(
-        withSequence(
-          withTiming(0, { duration: 800 }),
-          withTiming(1, { duration: 800, easing: Easing.out(Easing.back(2)) }),
-          withTiming(1, { duration: 3400 }),
-          withTiming(0, { duration: 400 })
-        ), -1, false));
+      g.value = withDelay(delay, withTiming(1, { duration: 1200, easing: Easing.out(Easing.back(1.5)) }));
     } else g.value = 0;
     return () => cancelAnimation(g);
   }, [sa, delay]);
   
   const p = useAnimatedProps(() => ({
-    opacity: g.value > 0.1 ? 1 : g.value * 10,
+    opacity: 1,
     transform: [
       { translateY: originY },
-      { scaleY: g.value },
-      { scaleX: 0.5 + 0.5 * g.value },
+      { scaleY: 0.8 + 0.6 * g.value },
       { translateY: -originY }
     ] as any
   }));
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+import { interpolateColor } from "react-native-reanimated";
+
+export const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+export const DayNightCycle: React.FC<K> = ({ children }) => {
+  const sa = useAnim();
+  const t = useSharedValue(0.5); // Default to day
+  useEffect(() => {
+    if (sa) {
+      t.value = withTiming(1, { duration: 18000, easing: Easing.inOut(Easing.sin) });
+    } else t.value = 0.5;
+    return () => cancelAnimation(t);
+  }, [sa]);
+  
+  const skyProps = useAnimatedProps(() => ({
+    fill: interpolateColor(
+      t.value,
+      [0, 0.2, 0.5, 0.8, 1],
+      ["#1A237E", "#FF8A65", "#4FC3F7", "#FF8A65", "#1A237E"]
+    )
+  }));
+
+  const sunProps = useAnimatedProps(() => {
+    const angle = t.value * Math.PI;
+    return {
+      fill: interpolateColor(
+        t.value,
+        [0, 0.2, 0.5, 0.8, 1],
+        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19"]
+      ),
+      opacity: 0.6 + 0.4 * Math.sin(angle),
+      transform: [
+        { translateX: -15 * Math.cos(angle) },
+        { translateY: 10 - 25 * Math.sin(angle) }
+      ] as any
+    };
+  });
+
+  const sunGlowProps = useAnimatedProps(() => {
+    const angle = t.value * Math.PI;
+    return {
+      fill: interpolateColor(
+        t.value,
+        [0, 0.2, 0.5, 0.8, 1],
+        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19"]
+      ),
+      opacity: (0.6 + 0.4 * Math.sin(angle)) * 0.4,
+      transform: [
+        { translateX: -15 * Math.cos(angle) },
+        { translateY: 10 - 25 * Math.sin(angle) }
+      ] as any
+    };
+  });
+
+  return (
+    <>
+      <AnimatedCircle cx={24} cy={24} r={24} animatedProps={skyProps as any} />
+      <G transform="translate(24, 28)">
+        <AnimatedCircle cx={0} cy={0} r={10} animatedProps={sunProps as any} />
+        <AnimatedCircle cx={0} cy={0} r={18} animatedProps={sunGlowProps as any} />
+      </G>
+      {children}
+    </>
+  );
 };
 
 
