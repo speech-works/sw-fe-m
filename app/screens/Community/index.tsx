@@ -1,12 +1,14 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   RefreshControl,
+  ScrollView,
   StyleProp,
   StyleSheet,
   Text,
@@ -55,6 +57,7 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const HEADER_HEIGHT = 100;
+const screenWidth = Dimensions.get("window").width;
 
 const C = {
   orange500: theme.colors.library.orange[500], // #FF6B00
@@ -272,10 +275,21 @@ const Community = () => {
   const [thread, setThread] = useState<Thread | null>(null);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [view, setView] = useState<"us" | "timeline">("us");
+  const scrollViewRef = useRef<ScrollView>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
+
+  // Sync state -> scroll
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        x: view === "us" ? 0 : screenWidth,
+        animated: true,
+      });
+    }
+  }, [view]);
 
   const load = useCallback(async () => {
     try {
@@ -809,30 +823,59 @@ const Community = () => {
                 onChange={(k) => setView(k as "us" | "timeline")}
               />
             </View>
-            <CustomScrollView
-              contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={C.orange500}
-                  colors={[C.orange500]}
-                  progressViewOffset={8}
-                />
-              }
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const pageIndex = Math.round(offsetX / screenWidth);
+                setView(pageIndex === 0 ? "us" : "timeline");
+              }}
+              style={{ flex: 1 }}
             >
-              {view === "us" ? (
-                renderPaired()
-              ) : thread ? (
-                <Timeline
-                  key={`timeline-${feedRefreshKey}`}
-                  threadId={thread.id}
-                  buddyName={buddyFirstName}
-                  onStartPractice={handleStartPractice}
-                  onReachOut={setSupportSignal}
-                />
-              ) : null}
-            </CustomScrollView>
+              <View style={{ width: screenWidth }}>
+                <CustomScrollView
+                  contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={C.orange500}
+                      colors={[C.orange500]}
+                      progressViewOffset={8}
+                    />
+                  }
+                >
+                  {renderPaired()}
+                </CustomScrollView>
+              </View>
+              <View style={{ width: screenWidth }}>
+                <CustomScrollView
+                  contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={C.orange500}
+                      colors={[C.orange500]}
+                      progressViewOffset={8}
+                    />
+                  }
+                >
+                  {thread ? (
+                    <Timeline
+                      key={`timeline-${feedRefreshKey}`}
+                      threadId={thread.id}
+                      buddyName={buddyFirstName}
+                      onStartPractice={handleStartPractice}
+                      onReachOut={setSupportSignal}
+                    />
+                  ) : null}
+                </CustomScrollView>
+              </View>
+            </ScrollView>
           </View>
         ) : (
           <CustomScrollView
