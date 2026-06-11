@@ -613,22 +613,17 @@ const Community = () => {
         <Animated.View entering={enter(1)}>
           <SectionHeading title="Together" />
           <View style={styles.bento}>
-            {/* Bond Level — hero tile (shared-era combined XP via the level engine) */}
-            <View style={styles.bondCard}>
-              <View
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 24, overflow: "hidden" }]}
-                pointerEvents="none"
-              >
-                <MaterialCommunityIcons
-                  name={(team?.bondStageIcon ?? "account-heart") as any}
-                  size={140}
-                  color="#CBD5E1"
-                  style={{ position: "absolute", right: -30, bottom: -30, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                />
-              </View>
-
+            {/* Bond Level — hero tile */}
+            <View style={[styles.bondCard, { backgroundColor: "#E9D5FF" }]}>
               <View style={styles.tierRow}>
-                <View style={{ flex: 1 }}>
+                <View style={[styles.statIconCircle, { marginBottom: 0 }]}>
+                  <MaterialCommunityIcons
+                    name={(team?.bondStageIcon ?? "account-heart") as any}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.tierName}>{team?.bondStageTitle ?? "Kindred"}</Text>
                   <Text style={styles.tierSub}>Bond Level {team?.bondLevel ?? 1}</Text>
                 </View>
@@ -651,17 +646,9 @@ const Community = () => {
 
             {/* Two stat tiles */}
             <View style={styles.statsRow}>
-              <View style={styles.statTile}>
-                <View
-                  style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
-                  pointerEvents="none"
-                >
-                  <MaterialCommunityIcons
-                    name="lightning-bolt"
-                    size={86}
-                    color="#CBD5E1"
-                    style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                  />
+              <View style={[styles.statTile, { backgroundColor: "#FEF08A" }]}>
+                <View style={styles.statIconCircle}>
+                  <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFFFFF" />
                 </View>
                 <AnimatedNumber
                   value={team?.combinedXpThisWeek ?? 0}
@@ -669,17 +656,9 @@ const Community = () => {
                 />
                 <Text style={styles.statTileLabel}>XP THIS WEEK</Text>
               </View>
-              <View style={styles.statTile}>
-                <View
-                  style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
-                  pointerEvents="none"
-                >
-                  <MaterialCommunityIcons
-                    name="calendar-heart"
-                    size={80}
-                    color="#CBD5E1"
-                    style={{ position: "absolute", right: -20, bottom: -20, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                  />
+              <View style={[styles.statTile, { backgroundColor: "#A5F3FC" }]}>
+                <View style={styles.statIconCircle}>
+                  <MaterialCommunityIcons name="calendar-heart" size={20} color="#FFFFFF" />
                 </View>
                 <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
                 <Text style={styles.statTileLabel}>DAYS TOGETHER</Text>
@@ -687,18 +666,7 @@ const Community = () => {
             </View>
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
-            <View style={styles.questCard}>
-              <View
-                style={[StyleSheet.absoluteFillObject, { borderRadius: 20, overflow: "hidden" }]}
-                pointerEvents="none"
-              >
-                <MaterialCommunityIcons
-                  name="target"
-                  size={100}
-                  color="#CBD5E1"
-                  style={{ position: "absolute", right: -25, bottom: -25, opacity: 0.04, transform: [{ rotate: "-10deg" }] }}
-                />
-              </View>
+            <View style={[styles.questCard, { backgroundColor: "#FFEDD5" }]}>
               <View style={styles.goalHeader}>
                 <Text style={styles.goalCaption}>THIS WEEK, TOGETHER</Text>
                 <Text style={styles.goalGoal}>
@@ -1158,34 +1126,33 @@ const styles = StyleSheet.create({
   bondCard: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 18,
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
-  tierRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 },
-  tierIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: C.peachSurface,
+  tierRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  statIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#1E293B",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 14,
   },
-  tierName: { fontSize: 18, fontWeight: "900", color: theme.colors.text.title },
-  tierSub: { fontSize: 13, color: C.textMuted, marginTop: 2, fontWeight: "600" },
+  tierName: { fontSize: 18, fontWeight: "900", color: "#1E293B" },
+  tierSub: { fontSize: 13, color: "#475569", marginTop: 2, fontWeight: "600" },
   bondXpBadge: {
     fontSize: 12,
     fontWeight: "800",
-    color: C.orange700,
-    backgroundColor: C.peachSurface,
+    color: "#1E293B",
+    backgroundColor: "rgba(0,0,0,0.06)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 100,
     overflow: "hidden",
   },
-  goalSub: { fontSize: 12, color: C.textMuted, marginTop: 8, fontWeight: "600" },
+  goalSub: { fontSize: 12, color: "#475569", marginTop: 8, fontWeight: "600" },
 
   // Live freshness row (momentum)
   liveRow: {
@@ -1212,26 +1179,15 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginBottom: 12 },
   statTile: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  statTileIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: C.peachSurface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  statTileValue: { fontSize: 26, fontWeight: "900", color: theme.colors.text.title },
+  statTileValue: { fontSize: 26, fontWeight: "900", color: "#1E293B" },
   statTileLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "800",
-    color: C.textMuted,
+    color: "#475569",
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -1240,23 +1196,21 @@ const styles = StyleSheet.create({
   questCard: {
     marginHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
   goalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  goalCaption: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: C.textMuted },
-  goalGoal: { fontSize: 12, fontWeight: "700", color: C.textMuted },
+  goalCaption: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: "#475569" },
+  goalGoal: { fontSize: 12, fontWeight: "700", color: "#475569" },
   goalTrack: {
     height: 12,
     borderRadius: 6,
-    backgroundColor: C.peachSurface,
+    backgroundColor: "rgba(0,0,0,0.06)",
     overflow: "hidden",
   },
   goalFill: { height: "100%", borderRadius: 6, overflow: "hidden" },
