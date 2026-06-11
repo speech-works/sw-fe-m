@@ -150,7 +150,7 @@ const AnimatedNumber = ({
 };
 
 /** A shared-progress bar that fills 0 → ratio on mount. */
-const SharedGoalBar = ({ ratio }: { ratio: number }) => {
+const SharedGoalBar = ({ ratio, colors }: { ratio: number; colors?: readonly [string, string, ...string[]] }) => {
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
   useEffect(() => {
@@ -164,7 +164,7 @@ const SharedGoalBar = ({ ratio }: { ratio: number }) => {
     <View style={styles.goalTrack}>
       <Animated.View style={[styles.goalFill, fillStyle]}>
         <LinearGradient
-          colors={[theme.colors.library.orange[400], C.orange500]}
+          colors={colors ?? [theme.colors.library.orange[400], C.orange500]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}
@@ -238,7 +238,7 @@ const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
 );
 
 /** A small pulsing "live" dot for the buddy-freshness row. */
-const PulseDot = () => {
+const PulseDot = ({ color = C.orange500 }: { color?: string }) => {
   const reduceMotion = useReducedMotion();
   const s = useSharedValue(1);
   useEffect(() => {
@@ -255,8 +255,8 @@ const PulseDot = () => {
   }));
   return (
     <View style={styles.liveDotWrap}>
-      {!reduceMotion ? <Animated.View style={[styles.liveDotPulse, ring]} /> : null}
-      <View style={styles.liveDot} />
+      {!reduceMotion ? <Animated.View style={[styles.liveDotPulse, ring, { backgroundColor: color }]} /> : null}
+      <View style={[styles.liveDot, { backgroundColor: color }]} />
     </View>
   );
 };
@@ -614,7 +614,12 @@ const Community = () => {
           <SectionHeading title="Together" />
           <View style={styles.bento}>
             {/* Bond Level — hero tile */}
-            <View style={[styles.bondCard, { backgroundColor: "#E9D5FF" }]}>
+            <LinearGradient
+              colors={["#FFD8B5", "#FFAB76"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.bondCard}
+            >
               <View style={styles.tierRow}>
                 <View style={[styles.statIconCircle, { marginBottom: 0 }]}>
                   <MaterialCommunityIcons
@@ -629,7 +634,6 @@ const Community = () => {
                 </View>
                 <Text style={styles.bondXpBadge}>{bondXpVal.toLocaleString()} XP</Text>
               </View>
-              <SharedGoalBar ratio={bondRatio} />
               <Text style={styles.goalSub}>
                 {bondToNext.toLocaleString()} XP to Bond Level {(team?.bondLevel ?? 1) + 1}
                 {team && !team.buddyShares
@@ -638,15 +642,20 @@ const Community = () => {
               </Text>
               {momentumLine ? (
                 <View style={styles.liveRow}>
-                  <PulseDot />
+                  <PulseDot color="#1E293B" />
                   <Text style={styles.liveText}>{momentumLine}</Text>
                 </View>
               ) : null}
-            </View>
+            </LinearGradient>
 
             {/* Two stat tiles */}
             <View style={styles.statsRow}>
-              <View style={[styles.statTile, { backgroundColor: "#FEF08A" }]}>
+              <LinearGradient
+                colors={["#EBCBF5", "#D8A7F0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statTile}
+              >
                 <View style={styles.statIconCircle}>
                   <MaterialCommunityIcons name="lightning-bolt" size={20} color="#FFFFFF" />
                 </View>
@@ -655,32 +664,33 @@ const Community = () => {
                   style={styles.statTileValue}
                 />
                 <Text style={styles.statTileLabel}>XP THIS WEEK</Text>
-              </View>
-              <View style={[styles.statTile, { backgroundColor: "#A5F3FC" }]}>
+              </LinearGradient>
+              <LinearGradient
+                colors={["#Cbf0f0", "#98E6E6"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statTile}
+              >
                 <View style={styles.statIconCircle}>
                   <MaterialCommunityIcons name="calendar-heart" size={20} color="#FFFFFF" />
                 </View>
                 <AnimatedNumber value={daysTogether} style={styles.statTileValue} />
                 <Text style={styles.statTileLabel}>DAYS TOGETHER</Text>
-              </View>
+              </LinearGradient>
             </View>
 
             {/* Weekly shared quest — vs your own pace, celebrated, never penalised */}
-            <View style={[styles.questCard, { backgroundColor: "#FFEDD5" }]}>
+            <LinearGradient
+              colors={["#FFC8C8", "#FF9E9E"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.questCard}
+            >
               <View style={styles.goalHeader}>
                 <Text style={styles.goalCaption}>THIS WEEK, TOGETHER</Text>
                 <Text style={styles.goalGoal}>
                   {team?.weeklyCombinedDays ?? 0}/{team?.weeklyQuestTarget ?? 4} days
                 </Text>
-              </View>
-              <View style={{ marginTop: 12 }}>
-                <SharedGoalBar
-                  ratio={
-                    team && team.weeklyQuestTarget > 0
-                      ? team.weeklyCombinedDays / team.weeklyQuestTarget
-                      : 0
-                  }
-                />
               </View>
               {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
                 <View style={styles.liveRow}>
@@ -690,10 +700,10 @@ const Community = () => {
               ) : team?.bothActiveThisWeek ? (
                 <View style={styles.liveRow}>
                   <MaterialCommunityIcons name="fire" size={16} color={C.orange500} />
-                  <Text style={styles.liveText}>You've both shown up this week</Text>
+                  <Text style={styles.liveText}>You hit this week's goal together!</Text>
                 </View>
               ) : null}
-            </View>
+            </LinearGradient>
           </View>
         </Animated.View>
 
@@ -1162,7 +1172,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: C.hairline,
+    borderTopColor: "rgba(0,0,0,0.1)",
   },
   liveDotWrap: { width: 8, height: 8, alignItems: "center", justifyContent: "center" },
   liveDotPulse: {
@@ -1173,7 +1183,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.orange500,
   },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.orange500 },
-  liveText: { fontSize: 13, fontWeight: "700", color: C.orange700, flexShrink: 1 },
+  liveText: { fontSize: 13, fontWeight: "700", color: "#1E293B", flexShrink: 1 },
 
   // Two stat tiles
   statsRow: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginBottom: 12 },
