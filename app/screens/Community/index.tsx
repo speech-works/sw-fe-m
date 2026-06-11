@@ -871,7 +871,7 @@ const Community = () => {
                   activeOpacity={0.85}
                   onPress={handleOpenMoment}
                 >
-                  <MaterialCommunityIcons name="plus" size={26} color="#FFFFFF" />
+                  <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -1511,9 +1511,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 110,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     backgroundColor: C.title,
     alignItems: "center",
     justifyContent: "center",
