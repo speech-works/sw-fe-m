@@ -1,6 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import ScreenView from "../../components/ScreenView";
 import PromptBottomSheet from "../../components/PromptBottomSheet";
 import PressableScale from "../../components/PressableScale";
+import SegmentedTabs from "../../components/SegmentedTabs";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle, parseTextStyle } from "../../util/functions/parseStyles";
 import { createMomentSignal, MomentId, MomentValence, Signal } from "../../api/threads";
@@ -41,9 +42,22 @@ const ShareMomentScreen = () => {
   const buddyFirstName = buddyName.split(" ")[0];
 
   const [selected, setSelected] = useState<MomentId | null>(null);
+  const [activeTab, setActiveTab] = useState<"win" | "struggle">("win");
   const [posting, setPosting] = useState(false);
   const [crisisVisible, setCrisisVisible] = useState(false);
   const [acknowledgedCrisis, setAcknowledgedCrisis] = useState(false);
+
+  const screenWidth = Dimensions.get("window").width;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        x: activeTab === "win" ? 0 : screenWidth,
+        animated: true,
+      });
+    }
+  }, [activeTab, screenWidth]);
 
   const handleSelect = (id: MomentId) => {
     setSelected(id);
@@ -104,7 +118,7 @@ const ShareMomentScreen = () => {
 
     return (
       <View style={styles.group}>
-        <Text style={styles.groupLabel}>{label}</Text>
+        {label ? <Text style={styles.groupLabel}>{label}</Text> : null}
         <View style={styles.actionList}>
           {items.map((m) => {
             const isSel = selected === m.id;
@@ -151,18 +165,51 @@ const ShareMomentScreen = () => {
       </BlurView>
 
       <View style={[styles.container, { paddingTop: 60 + insets.top + 20 }]}>
-        <Text style={styles.title}>Share a moment</Text>
-        <Text style={styles.subtitle}>
-          Let {buddyFirstName} know how it's really going — the hard ones count too.
-        </Text>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Text style={styles.title}>Share a moment</Text>
+          <Text style={styles.subtitle}>
+            Let {buddyFirstName} know how it's really going — the hard ones count too.
+          </Text>
+
+          <View style={{ marginBottom: 24 }}>
+            <SegmentedTabs
+              tabs={[
+                { key: "win", label: "Wins", icon: "star-outline" },
+                { key: "struggle", label: "Struggles", icon: "cloud-outline" },
+              ]}
+              active={activeTab}
+              onChange={(k) => setActiveTab(k as "win" | "struggle")}
+            />
+          </View>
+        </View>
 
         <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => {
+            const offsetX = e.nativeEvent.contentOffset.x;
+            const pageIndex = Math.round(offsetX / screenWidth);
+            setActiveTab(pageIndex === 0 ? "win" : "struggle");
+          }}
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 }]}
-          showsVerticalScrollIndicator={false}
         >
-          {renderGroup("Wins", "win")}
-          {renderGroup("Struggles", "struggle")}
+          <ScrollView
+            style={{ width: screenWidth }}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 32, paddingHorizontal: 20 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderGroup("", "win")}
+          </ScrollView>
+
+          <ScrollView
+            style={{ width: screenWidth }}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 32, paddingHorizontal: 20 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderGroup("", "struggle")}
+          </ScrollView>
         </ScrollView>
       </View>
 
@@ -247,7 +294,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   title: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -265,7 +311,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  group: { marginTop: 16 },
+  group: { marginTop: 4 },
   groupLabel: {
     fontSize: 12,
     fontWeight: "800",
