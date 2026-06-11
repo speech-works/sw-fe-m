@@ -43,16 +43,7 @@ export const getSignalGradient = (signal?: Signal): readonly [string, string, ..
   return ["#4ADE80", "#16A34A"]; // Green
 };
 
-export const getSignalCardBg = (signal?: Signal) => {
-  if (!signal) return "#FFFFFF";
-  if (isMoment(signal)) return "#F3E8E0";
-  if (isBeat(signal)) {
-    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
-    return isSupport ? "#FFEDD5" : "#FEF3C7";
-  }
-  if (isCard(signal)) return "#EFE9E5";
-  return "#FFF0E5";
-};
+export const getSignalCardBg = (_signal?: Signal) => "#FFFFFF";
 
 type Variant = "feed" | "preview";
 
@@ -311,69 +302,43 @@ const SignalCard = ({
     new Set(signal.reactions.map((r) => getReaction(r.type)?.emoji).filter(Boolean)),
   ).join(" ");
 
-  const renderReactionFooter = () => {
+  const renderReactionBadge = () => {
     if (!canReact) return null;
 
-    if (interactive) {
+    if (interactive && selectedReaction) {
       return (
-        <View style={styles.reactionFooter}>
-          {selectedReaction ? (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => onUnreact?.()}
-              style={styles.myReactionPill}
-            >
-              <Text style={styles.myReactionEmoji}>{selectedReaction.emoji}</Text>
-              <Text style={styles.myReactionLabel}>{selectedReaction.label}</Text>
-              <MaterialCommunityIcons name="close-circle" size={14} color="#94A3B8" style={{ marginLeft: 2 }} />
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.longPressHint}>Long press to react</Text>
-          )}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => onUnreact?.()}
+          style={styles.reactionBadgeFloating}
+        >
+          <Text style={styles.reactionBadgeEmoji}>{selectedReaction.emoji}</Text>
+          <Text style={styles.reactionBadgeName}>You</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (!interactive && buddyReactionEmojis) {
+      const bName = buddyName ? buddyName.split(" ")[0] : "Buddy";
+      return (
+        <View style={styles.reactionBadgeFloating}>
+          <Text style={styles.reactionBadgeEmoji}>{buddyReactionEmojis}</Text>
+          <Text style={styles.reactionBadgeName}>{bName}</Text>
         </View>
       );
     }
 
-    if (variant === "preview") {
-      return (
-        <View style={styles.reactionFooter}>
-          <Text style={styles.previewHint}>Your buddy can react to this 🦁</Text>
-        </View>
-      );
-    }
-
-    if (buddyReactionEmojis) {
-      return (
-        <View style={styles.reactionFooter}>
-          <Text style={styles.receivedText}>{buddyReactionEmojis} from {buddyName ?? "your buddy"}</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.reactionFooter}>
-        <Text style={styles.receivedTextMuted}>No reactions yet</Text>
-      </View>
-    );
+    return null;
   };
 
-  // The entire card body — wrapped in TouchableOpacity for long-press
   const cardBody = (
-    <View ref={cardRef} collapsable={false}>
+    <View ref={cardRef} collapsable={false} style={[styles.mainBodyShadow, { backgroundColor: cardBg }]}>
       <View style={[styles.mainBody, { backgroundColor: cardBg }]}>
         {/* Simple header row */}
         <View style={styles.headerRow}>
           <Text style={styles.statusLabel} numberOfLines={1}>{statusText}</Text>
           <Text style={styles.timeText}>{relativeTime}</Text>
         </View>
-
-        {/* Large watermark icon in background — fixed per card type */}
-        <MaterialCommunityIcons 
-          name={watermarkIcon as any} 
-          size={100} 
-          color={iconBg} 
-          style={styles.watermarkIcon} 
-          pointerEvents="none" 
-        />
 
         {/* Content */}
         <View style={styles.bodyContentRow}>
@@ -389,10 +354,10 @@ const SignalCard = ({
         {dynamicContent ? (
           <View style={{ marginTop: 12 }}>{dynamicContent}</View>
         ) : null}
-
-        {/* Reaction footer */}
-        {renderReactionFooter()}
       </View>
+      
+      {/* Mobile-native floating reaction badge */}
+      {renderReactionBadge()}
     </View>
   );
 
@@ -455,9 +420,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   axisCol: {
-    width: 40,
+    width: 32,
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 18,
     flexShrink: 0,
   },
   axisLineTop: {
@@ -522,17 +487,19 @@ const styles = StyleSheet.create({
   },
 
   // Main Card Body
+  mainBodyShadow: {
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   mainBody: {
     borderRadius: 20,
     padding: 16,
-    overflow: "hidden", // contains the watermark
-  },
-  watermarkIcon: {
-    position: "absolute",
-    right: 8,
-    bottom: 8,
-    opacity: 0.08,
-    transform: [{ rotate: "-15deg" }],
+    overflow: "hidden",
   },
   bodyContentRow: {
     flexDirection: "row",
@@ -568,42 +535,34 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
-  // Reaction footer
-  reactionFooter: {
+  // Reaction Badge (Mobile Native)
+  reactionBadgeFloating: {
+    position: "absolute",
+    bottom: -12,
+    right: 16,
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 14,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
-  },
-  myReactionPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "#FFF7ED",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#FDBA7440",
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+    gap: 4,
   },
-  myReactionEmoji: {
-    fontSize: 14,
+  reactionBadgeEmoji: {
+    fontSize: 16,
   },
-  myReactionLabel: {
+  reactionBadgeName: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#EA580C",
+    color: "#475569",
   },
-  longPressHint: {
-    fontSize: 12,
-    color: "#94A3B8",
-    fontStyle: "italic",
-  },
-  previewHint: { fontSize: 12, color: "#94A3B8", fontStyle: "italic" },
-  receivedText: { flexShrink: 1, fontSize: 12, color: "#475569", fontWeight: "600" },
-  receivedTextMuted: { flexShrink: 1, fontSize: 12, color: "#94A3B8" },
 
   // Dynamic content styles
   statRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
