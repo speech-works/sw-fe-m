@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextStyle,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
@@ -732,19 +733,6 @@ const Community = () => {
         <Animated.View entering={enter(3)}>
           <SectionHeading title="Manage" />
           <View style={styles.actionGroup}>
-            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleOpenMoment}>
-              <View style={[styles.actionIconCircle, { backgroundColor: C.peachSurface }]}>
-                <MaterialCommunityIcons name="hand-heart" size={22} color={C.orange500} />
-              </View>
-              <View style={styles.actionTextWrap}>
-                <Text style={styles.actionTitle}>Tell {buddyFirstName} how it's going</Text>
-                <Text style={styles.actionSub}>Share a win or a hard moment.</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={22} color={C.faint} />
-            </PressableScale>
-
-            <View style={styles.actionDivider} />
-
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
               <View style={[styles.actionIconCircle, { backgroundColor: "#F1F5F9" }]}>
                 <MaterialCommunityIcons name="chart-box" size={20} color="#64748B" />
@@ -877,6 +865,14 @@ const Community = () => {
                     />
                   ) : null}
                 </CustomScrollView>
+
+                <TouchableOpacity
+                  style={styles.stickyFab}
+                  activeOpacity={0.85}
+                  onPress={handleOpenMoment}
+                >
+                  <MaterialCommunityIcons name="plus" size={26} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </View>
@@ -1511,4 +1507,20 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   pendingTextImm: { color: C.orange700, fontSize: 13, fontWeight: "700" },
+  stickyFab: {
+    position: "absolute",
+    bottom: 110,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.title,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
 });

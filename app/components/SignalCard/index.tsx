@@ -335,7 +335,7 @@ const SignalCard = ({
           onPress={openPicker}
           style={styles.reactionCueFloating}
         >
-          <MaterialCommunityIcons name="heart-outline" size={20} color="#94A3B8" />
+          <MaterialCommunityIcons name="heart-outline" size={13} color="#94A3B8" />
         </TouchableOpacity>
       );
     }
@@ -550,14 +550,14 @@ const styles = StyleSheet.create({
   // Reaction Badge (Mobile Native)
   reactionBadgeFloating: {
     position: "absolute",
-    bottom: -16,
+    bottom: -10,
     right: 16,
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 100,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
     shadowColor: "#000",
@@ -565,26 +565,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     elevation: 4,
-    gap: 6,
+    gap: 4,
   },
   reactionBadgeEmoji: {
-    fontSize: 20,
+    fontSize: 13,
   },
   reactionBadgeName: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "700",
     color: "#475569",
   },
   reactionCueFloating: {
     position: "absolute",
-    bottom: -16,
+    bottom: -10,
     right: 16,
     backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 100,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     shadowColor: "#000",
