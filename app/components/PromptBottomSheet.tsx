@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16,
     overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation2),
   },
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
