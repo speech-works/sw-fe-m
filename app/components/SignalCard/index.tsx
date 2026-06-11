@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { theme } from "../../Theme/tokens";
 
@@ -20,10 +21,23 @@ import { REACTIONS, getReaction } from "../../constants/reactions";
 
 import ReactionPicker from "../ReactionPicker";
 
+export const getSignalIconBg = (signal?: Signal) => {
+  if (!signal) return "#E2E8F0";
+  if (isMoment(signal)) return "#9333EA";
+  if (isBeat(signal)) {
+    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
+    return isSupport ? "#DB2777" : "#CA8A04";
+  }
+  if (isCard(signal)) return "#0284C7";
+  return "#16A34A";
+};
+
 type Variant = "feed" | "preview";
 
 interface SignalCardProps {
   signal: Signal;
+  prevSignal?: Signal;
+  nextSignal?: Signal;
   variant?: Variant;
   onReact?: (type: ReactionType) => void;
   onUnreact?: () => void;
@@ -120,6 +134,8 @@ const SignalCard = ({
   buddyName,
   isFirst = false,
   isLast = false,
+  prevSignal,
+  nextSignal,
 }: SignalCardProps) => {
   const authorName = signal.authorIsMe ? "You" : signal.author?.name ?? "Your buddy";
   const initials = (signal.author?.name ?? "?").substring(0, 1).toUpperCase();
@@ -367,12 +383,18 @@ const SignalCard = ({
     </View>
   );
 
+  const prevColor = getSignalIconBg(prevSignal);
+  const nextColor = getSignalIconBg(nextSignal);
+
   return (
     <View style={styles.row}>
       {/* Timeline axis — avatar of who posted */}
       <View style={styles.axisCol}>
-        <View style={[styles.axisLineTop, isFirst && { opacity: 0 }]} />
-        <View style={styles.timelineAvatarWrap}>
+        <LinearGradient 
+          colors={[prevColor + "40", iconBg + "40"]} 
+          style={[styles.axisLineTop, isFirst && { opacity: 0 }]} 
+        />
+        <View style={[styles.timelineAvatarWrap, { shadowColor: iconBg }]}>
           {signal.author?.profilePictureUrl ? (
             <Image source={{ uri: signal.author.profilePictureUrl }} style={[styles.timelineAvatar, { borderColor: iconBg + "40" }]} />
           ) : (
@@ -381,7 +403,10 @@ const SignalCard = ({
             </View>
           )}
         </View>
-        <View style={[styles.axisLineBottom, isLast && { opacity: 0 }]} />
+        <LinearGradient 
+          colors={[iconBg + "40", nextColor + "40"]} 
+          style={[styles.axisLineBottom, isLast && { opacity: 0 }]} 
+        />
       </View>
 
       {/* Card */}
@@ -423,22 +448,22 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   axisLineTop: {
-    width: 1,
+    width: 2,
     height: 12,
-    borderStyle: "dashed",
-    borderColor: "#CBD5E1",
-    borderWidth: 1,
+    borderRadius: 2,
   },
   axisLineBottom: {
     flex: 1,
-    width: 1,
-    borderStyle: "dashed",
-    borderColor: "#CBD5E1",
-    borderWidth: 1,
+    width: 2,
+    borderRadius: 2,
   },
   timelineAvatarWrap: {
-    marginVertical: 2,
+    marginVertical: 4,
     zIndex: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   timelineAvatar: {
     width: 32,

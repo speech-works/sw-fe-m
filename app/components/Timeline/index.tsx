@@ -192,6 +192,8 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
           isFirst={index === 0}
           isLast={index === signals.length - 1}
           signal={signal}
+          prevSignal={index > 0 ? signals[index - 1] : undefined}
+          nextSignal={index < signals.length - 1 ? signals[index + 1] : undefined}
           variant="feed"
           buddyName={buddyName}
           onReact={(type) => handleReact(signal.id, type)}
