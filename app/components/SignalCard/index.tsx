@@ -300,12 +300,13 @@ const SignalCard = ({
       .filter((s): s is { icon: string; label: string } => s !== null);
 
     if (stats.length > 0) {
+      const chipColor = "#803600";
       dynamicContent = (
         <View style={styles.statRow}>
           {stats.map((s) => (
-            <View key={s.label} style={[styles.statChip, { backgroundColor: iconBg + "20" }]}>
-              <MaterialCommunityIcons name={s.icon as any} size={13} color={iconBg} />
-              <Text style={[styles.statText, { color: iconBg }]}>{s.label}</Text>
+            <View key={s.label} style={[styles.statChip, { backgroundColor: chipColor + "15" }]}>
+              <MaterialCommunityIcons name={s.icon as any} size={13} color={chipColor} />
+              <Text style={[styles.statText, { color: chipColor }]}>{s.label}</Text>
             </View>
           ))}
         </View>
