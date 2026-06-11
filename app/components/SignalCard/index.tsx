@@ -140,6 +140,7 @@ const SignalCard = ({
   let iconBg = "#FF6B00";
   let statusText = "Update";
   let mainIcon = "star-shooting";
+  let watermarkIcon = "star-shooting"; // fixed per card TYPE for consistency
   let title = "";
   let subtitle = "";
   let bodyText = "";
@@ -153,6 +154,7 @@ const SignalCard = ({
     statusText = "Moment";
     const moment = getMoment(signal.momentId);
     mainIcon = "hand-heart";
+    watermarkIcon = "hand-heart";
     title = moment.text;
     subtitle = `${authorName} shared a moment`;
     
@@ -182,6 +184,7 @@ const SignalCard = ({
     iconBg = "#CA8A04";
     statusText = "Milestone";
     mainIcon = signal.payload.icon ?? "trophy";
+    watermarkIcon = "trophy"; // always trophy for milestones
     title = signal.payload.label ?? "Beat";
     const body = signal.payload.body ?? "";
     subtitle = body ? `${authorName} • ${body}` : `${authorName} reached a milestone`;
@@ -191,6 +194,7 @@ const SignalCard = ({
     const meta = CARD_KIND_META[signal.cardKind] ?? CARD_KIND_META.affirmation;
     statusText = meta.label;
     mainIcon = meta.icon;
+    watermarkIcon = meta.icon; // consistent per card kind
     if (signal.payload.title && signal.payload.title !== meta.label) {
       title = signal.payload.title;
     }
@@ -231,6 +235,7 @@ const SignalCard = ({
     const template = getPostTemplate(signal.templateId);
     statusText = "Practice";
     mainIcon = template.icon;
+    watermarkIcon = "dumbbell"; // always dumbbell for practice
     title = signal.payload.activityName ?? "Practice Session";
     captionText = signal.caption ?? "";
     const actLabel = template.label;
@@ -269,7 +274,6 @@ const SignalCard = ({
   const renderReactionFooter = () => {
     if (!canReact) return null;
 
-    // Interactive: buddy's card — show tap-to-react + existing reaction
     if (interactive) {
       return (
         <View style={styles.reactionFooter}>
@@ -290,7 +294,6 @@ const SignalCard = ({
       );
     }
 
-    // Preview mode
     if (variant === "preview") {
       return (
         <View style={styles.reactionFooter}>
@@ -299,7 +302,6 @@ const SignalCard = ({
       );
     }
 
-    // Own card — show buddy's reactions or "no reactions"
     if (buddyReactionEmojis) {
       return (
         <View style={styles.reactionFooter}>
@@ -317,35 +319,36 @@ const SignalCard = ({
   // The entire card body — wrapped in TouchableOpacity for long-press
   const cardBody = (
     <View ref={cardRef} collapsable={false}>
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        {/* Header row */}
+      <View style={[styles.mainBody, { backgroundColor: cardBg }]}>
+        {/* Simple header row */}
         <View style={styles.headerRow}>
-          <View style={styles.headerTextCol}>
-            <Text style={styles.statusLabel} numberOfLines={1}>{statusText}</Text>
-            <Text style={styles.timeText}>{relativeTime}</Text>
-          </View>
+          <Text style={styles.statusLabel} numberOfLines={1}>{statusText}</Text>
+          <Text style={styles.timeText}>{relativeTime}</Text>
         </View>
+
+        {/* Large watermark icon in background — fixed per card type */}
+        <MaterialCommunityIcons 
+          name={watermarkIcon as any} 
+          size={100} 
+          color={iconBg} 
+          style={styles.watermarkIcon} 
+          pointerEvents="none" 
+        />
 
         {/* Content */}
-        <View style={styles.contentSection}>
-          <View style={styles.bodyContentRow}>
-            <View style={styles.diamondWrap}>
-              <View style={[styles.diamond, { backgroundColor: iconBg }]} />
-              <MaterialCommunityIcons name={mainIcon as any} size={24} color="#FFFFFF" style={styles.diamondIcon} />
-            </View>
-            <View style={styles.textContent}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            </View>
+        <View style={styles.bodyContentRow}>
+          <View style={styles.textContent}>
+            {title ? <Text style={styles.title}>{title}</Text> : null}
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
-
-          {bodyText ? <Text style={styles.bodyParagraph}>{bodyText}</Text> : null}
-          {captionText ? <Text style={styles.caption}>{captionText}</Text> : null}
-
-          {dynamicContent ? (
-            <View style={{ marginTop: 12 }}>{dynamicContent}</View>
-          ) : null}
         </View>
+
+        {bodyText ? <Text style={styles.bodyParagraph}>{bodyText}</Text> : null}
+        {captionText ? <Text style={styles.caption}>{captionText}</Text> : null}
+
+        {dynamicContent ? (
+          <View style={{ marginTop: 12 }}>{dynamicContent}</View>
+        ) : null}
 
         {/* Reaction footer */}
         {renderReactionFooter()}
@@ -400,7 +403,7 @@ export default SignalCard;
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   axisCol: {
     width: 40,
@@ -439,69 +442,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  
-  cardCol: {
-    flex: 1,
-    minWidth: 0, 
-  },
-  card: {
-    borderRadius: 20,
-    padding: 16,
-    overflow: "hidden",
-  },
-
-  // Header
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
   avatarLetter: {
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",
   },
-  headerTextCol: {
+  
+  cardCol: {
     flex: 1,
+    minWidth: 0, 
+  },
+  
+  // Header
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
   statusLabel: {
     fontSize: 13,
     fontWeight: "800",
     color: "#1E293B",
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   timeText: {
     color: "#94A3B8",
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 1,
+    fontSize: 12,
+    fontWeight: "700",
   },
 
-  // Content
-  contentSection: {
-    // empty wrapper
+  // Main Card Body
+  mainBody: {
+    borderRadius: 20,
+    padding: 16,
+    overflow: "hidden", // contains the watermark
+  },
+  watermarkIcon: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+    opacity: 0.08,
+    transform: [{ rotate: "-15deg" }],
   },
   bodyContentRow: {
     flexDirection: "row",
-    alignItems: "center",
-  },
-  diamondWrap: {
-    width: 48,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-    flexShrink: 0,
-  },
-  diamond: {
-    position: "absolute",
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    transform: [{ rotate: "45deg" }],
-  },
-  diamondIcon: {
-    zIndex: 1,
+    alignItems: "flex-start",
   },
   textContent: {
     flex: 1,

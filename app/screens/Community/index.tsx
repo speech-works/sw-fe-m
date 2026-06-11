@@ -579,7 +579,7 @@ const Community = () => {
             <View style={styles.stagePillsRow}>
               <View style={styles.stagePill}>
                 <Text style={styles.stagePillText} numberOfLines={1}>
-                  You · {me.stage}
+                  {me.stage}
                 </Text>
               </View>
               {buddyShares ? (
