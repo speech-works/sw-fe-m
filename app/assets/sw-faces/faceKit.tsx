@@ -23,8 +23,9 @@ import Svg, {
   Polygon,
   RadialGradient,
   Rect,
-  Stop,
+  ClipPath,
   SvgProps,
+  Stop,
 } from "react-native-svg";
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -34,7 +35,25 @@ import Svg, {
    ─────────────────────────────────────────────────────────────────────── */
 
 // re-export the SVG primitives so face files import everything from one place
-export { Circle, Ellipse, G, Line, Path, Polygon, Rect, Mask } from "react-native-svg";
+/* ───────────────────────────────────────────────────────────────────────
+   Shared kit for the "Pixar style" sw-faces. Each face component imports
+   the primitives + helpers + animated wrappers from here and supplies only
+   its own shapes. Animations are gated by `shouldAnimate` via context.
+   ─────────────────────────────────────────────────────────────────────── */
+// re-export the SVG primitives so face files import everything from one place
+/* ───────────────────────────────────────────────────────────────────────
+   Shared kit for the "Pixar style" sw-faces. Each face component imports
+   the primitives + helpers + animated wrappers from here and supplies only
+   its own shapes. Animations are gated by `shouldAnimate` via context.
+   ─────────────────────────────────────────────────────────────────────── */
+// re-export the SVG primitives so face files import everything from one place
+/* ───────────────────────────────────────────────────────────────────────
+   Shared kit for the "Pixar style" sw-faces. Each face component imports
+   the primitives + helpers + animated wrappers from here and supplies only
+   its own shapes. Animations are gated by `shouldAnimate` via context.
+   ─────────────────────────────────────────────────────────────────────── */
+// re-export the SVG primitives so face files import everything from one place
+export { Circle, Ellipse, G, Line, Path, Polygon, Rect, Mask, ClipPath, Defs } from "react-native-svg";
 
 export const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -421,7 +440,7 @@ function useFlameSV(sa: boolean) {
   return useAnimatedProps(() => ({
     opacity: 0.8 + 0.2 * t.value,
     transform: [
-      { translateY: 12 }, 
+      { translateY: 12 },
       { scaleY: 1 + 0.1 * t.value },
       { scaleX: 1 - 0.05 * t.value },
       { skewX: `${-2 + 4 * t.value}deg` },
@@ -472,7 +491,7 @@ function useCorkPopSV(sa: boolean) {
           withTiming(1, { duration: 950 }),
           withTiming(0, { duration: 0 })
         ), -1, false);
-        
+
       shake.value = withRepeat(
         withSequence(
           withTiming(0, { duration: 1050 }),
@@ -488,7 +507,7 @@ function useCorkPopSV(sa: boolean) {
     }
     return () => { cancelAnimation(pop); cancelAnimation(shake); };
   }, [sa]);
-  
+
   return useAnimatedProps(() => {
     const p = pop.value;
     const s = shake.value * (1 - p);
@@ -519,7 +538,7 @@ export const SprayShoot: React.FC<K & { tx: number; ty: number; delay?: number }
     } else g.value = 0;
     return () => cancelAnimation(g);
   }, [sa, delay]);
-  
+
   const p = useAnimatedProps(() => ({
     opacity: g.value === 0 ? 0 : (g.value > 0.6 ? 1 - (g.value - 0.6) * 2.5 : 1),
     transform: [
@@ -546,7 +565,7 @@ export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ or
     } else g.value = 0;
     return () => cancelAnimation(g);
   }, [sa, delay]);
-  
+
   const p = useAnimatedProps(() => ({
     opacity: 1,
     transform: [
@@ -559,7 +578,7 @@ export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ or
 };
 
 import { interpolateColor } from "react-native-reanimated";
-
+export const AnimatedPath = Animated.createAnimatedComponent(Path);
 export const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const DayNightCycle: React.FC<K> = ({ children }) => {
@@ -578,7 +597,7 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
     } else t.value = 0.5;
     return () => cancelAnimation(t);
   }, [sa]);
-  
+
   const skyProps = useAnimatedProps(() => ({
     fill: interpolateColor(
       t.value,
@@ -628,6 +647,49 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
       </G>
       {children}
     </>
+  );
+};
+
+export const ProudAnim: React.FC<any> = ({ children, renderShine }) => {
+  const sa = useAnim();
+  const scale = useSharedValue(1);
+  const shineTx = useSharedValue(-40);
+
+  useEffect(() => {
+    if (sa) {
+      scale.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 2500 }),
+          withTiming(0, { duration: 400, easing: Easing.in(Easing.back(2)) }),
+          withTiming(1, { duration: 600, easing: Easing.out(Easing.back(2)) })
+        ), -1, false);
+
+      shineTx.value = withRepeat(
+        withSequence(
+          withTiming(-40, { duration: 500 }),
+          withTiming(40, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+          withTiming(-40, { duration: 2200 })
+        ), -1, false);
+    } else {
+      scale.value = 1;
+      shineTx.value = -40;
+    }
+    return () => { cancelAnimation(scale); cancelAnimation(shineTx); };
+  }, [sa]);
+
+  const scaleProps = useAnimatedProps(() => ({
+    transform: [{ translateX: 24 }, { translateY: 24 }, { scale: scale.value }, { translateX: -24 }, { translateY: -24 }] as any
+  }));
+
+  const shineProps = useAnimatedProps(() => ({
+    transform: [{ translateX: shineTx.value }] as any
+  }));
+
+  return (
+    <AnimatedG animatedProps={scaleProps}>
+      {children}
+      {renderShine && renderShine(shineProps)}
+    </AnimatedG>
   );
 };
 

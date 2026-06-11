@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, ZoomSpring, SvgIconProps, Path, G, Rect } from "./faceKit";
+import { FaceShell, ProudAnim, SvgIconProps, Path, G, Rect, Defs, ClipPath, AnimatedG } from "./faceKit";
 
 const ProudFace = (props: SvgIconProps) => (
   <FaceShell bg="#283593" {...props}>
@@ -7,7 +7,24 @@ const ProudFace = (props: SvgIconProps) => (
     <Path d="M24 4 L24 10 M24 38 L24 44 M4 24 L10 24 M38 24 L44 24" stroke="#FFD54F" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
     <Path d="M10 10 L14 14 M38 10 L34 14 M10 38 L14 34 M38 38 L34 34" stroke="#FFD54F" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
 
-    <ZoomSpring cx={24} cy={24}>
+    <Defs>
+      <ClipPath id="medal-clip">
+        <Path d="M4 0 L20 0 L20 12 Q20 20 12 22 Q4 20 4 12 Z" />
+      </ClipPath>
+    </Defs>
+
+    <ProudAnim
+      renderShine={(shineProps: any) => (
+        <G transform="translate(12, 12)">
+          <G clipPath="url(#medal-clip)">
+            <AnimatedG animatedProps={shineProps}>
+              <Path d="M -10 -10 L -4 -10 L 16 30 L 10 30 Z" fill="#FFF" opacity={0.6} />
+              <Path d="M 0 -10 L 2 -10 L 22 30 L 20 30 Z" fill="#FFF" opacity={0.3} />
+            </AnimatedG>
+          </G>
+        </G>
+      )}
+    >
       <G transform="translate(12, 12)">
         <G fill="#000" opacity="0.2" transform="translate(0 5)">
           <Path d="M4 0 L20 0 L20 12 Q20 20 12 22 Q4 20 4 12 Z" />
@@ -24,7 +41,7 @@ const ProudFace = (props: SvgIconProps) => (
         <Path d="M6 26 L18 26 L20 30 L4 30 Z" fill="url(#volume)" />
         <Path d="M8 3 L10 16" stroke="#FFF" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
       </G>
-    </ZoomSpring>
+    </ProudAnim>
   </FaceShell>
 );
 
