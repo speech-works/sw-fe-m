@@ -31,6 +31,7 @@ interface SignalCardProps {
   onReachOut?: () => void;
   onReplyPrompt?: (replyId: string) => void;
   replyPending?: boolean;
+  buddyName?: string;
   isFirst?: boolean;
   isLast?: boolean;
 }
@@ -116,6 +117,7 @@ const SignalCard = ({
   onReachOut,
   onReplyPrompt,
   replyPending,
+  buddyName,
   isFirst = false,
   isLast = false,
 }: SignalCardProps) => {
@@ -224,7 +226,7 @@ const SignalCard = ({
       dynamicContent = (
         <View style={styles.seenRow}>
           <MaterialCommunityIcons name="eye-check-outline" size={14} color="#A1A4AA" />
-          <Text style={styles.seenText}>Your buddy saw this</Text>
+          <Text style={styles.seenText}>{buddyName ?? "Your buddy"} saw this</Text>
         </View>
       );
     }

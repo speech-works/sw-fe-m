@@ -193,6 +193,7 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
           isLast={index === signals.length - 1}
           signal={signal}
           variant="feed"
+          buddyName={buddyName}
           onReact={(type) => handleReact(signal.id, type)}
           onUnreact={() => handleUnreact(signal.id)}
           onDelete={() => handleDelete(signal.id)}
