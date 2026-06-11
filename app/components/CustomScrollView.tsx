@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import Animated, {
+  runOnJS,
   scrollTo,
   useAnimatedRef,
   useAnimatedScrollHandler,
@@ -29,6 +30,10 @@ interface CustomScrollViewProps {
   buttonIconStyle?: StyleProp<TextStyle>;
   showButtonsInitially?: boolean;
   showScrollButtons?: boolean;
+  /** Called when the user scrolls within `onEndReachedThreshold` px of the bottom. */
+  onEndReached?: () => void;
+  /** Distance (px) from the bottom at which `onEndReached` fires. Defaults to 320. */
+  onEndReachedThreshold?: number;
   [key: string]: any;
 }
 
@@ -44,6 +49,8 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       buttonIconStyle,
       showButtonsInitially = false,
       showScrollButtons = false,
+      onEndReached,
+      onEndReachedThreshold = 320,
       ...rest
     },
     ref,
@@ -55,15 +62,35 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     const scrollY = useSharedValue(0);
     const contentHeight = useSharedValue(0);
     const layoutHeight = useSharedValue(0);
+    // Guards onEndReached so it fires once per entry into the bottom zone,
+    // re-arming only after the user scrolls back out of it.
+    const canFireEndReached = useSharedValue(true);
 
     // Scroll Handler running on UI thread
-    const scrollHandler = useAnimatedScrollHandler({
-      onScroll: (event) => {
-        scrollY.value = event.contentOffset.y;
-        contentHeight.value = event.contentSize.height;
-        layoutHeight.value = event.layoutMeasurement.height;
+    const scrollHandler = useAnimatedScrollHandler(
+      {
+        onScroll: (event) => {
+          scrollY.value = event.contentOffset.y;
+          contentHeight.value = event.contentSize.height;
+          layoutHeight.value = event.layoutMeasurement.height;
+
+          if (onEndReached) {
+            const distanceFromBottom =
+              event.contentSize.height -
+              (event.contentOffset.y + event.layoutMeasurement.height);
+            if (distanceFromBottom <= onEndReachedThreshold) {
+              if (canFireEndReached.value) {
+                canFireEndReached.value = false;
+                runOnJS(onEndReached)();
+              }
+            } else {
+              canFireEndReached.value = true;
+            }
+          }
+        },
       },
-    });
+      [onEndReached, onEndReachedThreshold],
+    );
 
     // Helper to sync external ref if provided (optional/advanced, avoiding for simplicity unless needed)
     // For this refactor, we primarily rely on internalRef for the buttons.

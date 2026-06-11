@@ -32,7 +32,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import CustomScrollView from "../../components/CustomScrollView";
 import ScreenView from "../../components/ScreenView";
-import Timeline from "../../components/Timeline";
+import Timeline, { TimelineHandle } from "../../components/Timeline";
 import BuddySupportSheet from "../../components/BuddySupportSheet";
 import SegmentedTabs from "../../components/SegmentedTabs";
 import PressableScale from "../../components/PressableScale";
@@ -276,6 +276,7 @@ const Community = () => {
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
   const [view, setView] = useState<"us" | "timeline">("us");
   const scrollViewRef = useRef<ScrollView>(null);
+  const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
@@ -854,6 +855,7 @@ const Community = () => {
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
                   contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
+                  onEndReached={() => timelineRef.current?.loadMore()}
                   refreshControl={
                     <RefreshControl
                       refreshing={refreshing}
@@ -866,6 +868,7 @@ const Community = () => {
                 >
                   {thread ? (
                     <Timeline
+                      ref={timelineRef}
                       key={`timeline-${feedRefreshKey}`}
                       threadId={thread.id}
                       buddyName={buddyFirstName}

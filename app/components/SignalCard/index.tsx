@@ -32,6 +32,28 @@ export const getSignalIconBg = (signal?: Signal) => {
   return "#FF6B00";
 };
 
+export const getSignalGradient = (signal?: Signal): readonly [string, string, ...string[]] => {
+  if (!signal) return ["#E2E8F0", "#CBD5E1"];
+  if (isMoment(signal)) return ["#C084FC", "#9333EA"]; // Purple
+  if (isBeat(signal)) {
+    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
+    return isSupport ? ["#F472B6", "#DB2777"] : ["#FBBF24", "#D97706"]; // Pink or Yellow/Amber
+  }
+  if (isCard(signal)) return ["#60A5FA", "#2563EB"]; // Blue
+  return ["#4ADE80", "#16A34A"]; // Green
+};
+
+export const getSignalCardBg = (signal?: Signal) => {
+  if (!signal) return "#FFFFFF";
+  if (isMoment(signal)) return "#F3E8E0";
+  if (isBeat(signal)) {
+    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
+    return isSupport ? "#FFEDD5" : "#FEF3C7";
+  }
+  if (isCard(signal)) return "#EFE9E5";
+  return "#FFF0E5";
+};
+
 type Variant = "feed" | "preview";
 
 interface SignalCardProps {
@@ -154,7 +176,8 @@ const SignalCard = ({
     });
   };
 
-  let cardBg = "#FFFFFF";
+  let cardGradient = getSignalGradient(signal);
+  let cardBg = getSignalCardBg(signal);
   let iconBg = getSignalIconBg(signal);
   let statusText = "Update";
   let mainIcon = "star-shooting";
@@ -503,9 +526,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     overflow: "hidden", // contains the watermark
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
   },
   watermarkIcon: {
     position: "absolute",

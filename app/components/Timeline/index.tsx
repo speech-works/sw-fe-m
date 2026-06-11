@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -26,7 +26,15 @@ interface TimelineProps {
   onReachOut?: (signal: Signal) => void;
 }
 
-const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: TimelineProps) => {
+/** Imperative API so the enclosing scroll view can drive infinite-scroll pagination. */
+export interface TimelineHandle {
+  loadMore: () => void;
+}
+
+const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
+  { threadId, buddyName, onStartPractice, onReachOut },
+  ref,
+) {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +65,7 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
     }, [load]),
   );
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore) return;
     try {
       setLoadingMore(true);
@@ -68,7 +76,9 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [threadId, nextCursor, loadingMore]);
+
+  useImperativeHandle(ref, () => ({ loadMore }), [loadMore]);
 
   const handleReact = async (signalId: string, type: ReactionType) => {
     const prev = signals;
@@ -208,18 +218,20 @@ const Timeline = ({ threadId, buddyName, onStartPractice, onReachOut }: Timeline
         />
       ))}
 
-      {nextCursor ? (
-        <TouchableOpacity onPress={loadMore} style={styles.loadMoreBtn} disabled={loadingMore} activeOpacity={0.7}>
-          {loadingMore ? (
-            <ActivityIndicator color="#803600" size="small" />
-          ) : (
-            <Text style={styles.loadMoreText}>Load more</Text>
-          )}
+      {loadingMore ? (
+        <View style={styles.loadMoreFooter}>
+          <ActivityIndicator color="#803600" size="small" />
+        </View>
+      ) : nextCursor ? (
+        // Fallback for the rare case the first page doesn't fill the viewport
+        // (so onEndReached never fires): a low-emphasis tap target to fetch more.
+        <TouchableOpacity onPress={loadMore} style={styles.loadMoreFooter} activeOpacity={0.7}>
+          <Text style={styles.loadMoreText}>Load more</Text>
         </TouchableOpacity>
       ) : null}
     </View>
   );
-};
+});
 
 export default Timeline;
 
@@ -253,16 +265,13 @@ const styles = StyleSheet.create({
   emptyCtaText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
   retryBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 100, backgroundColor: "#FF6B00" },
   retryText: { color: "#FFFFFF", fontWeight: "700", fontSize: 15 },
-  loadMoreBtn: {
-    alignSelf: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: "#FFF0E5",
-    marginTop: 4,
-    marginBottom: 16,
-    minWidth: 120,
+  loadMoreFooter: {
+    alignSelf: "stretch",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    marginTop: 4,
+    marginBottom: 8,
   },
   loadMoreText: { color: "#803600", fontWeight: "700", fontSize: 14 },
 });
