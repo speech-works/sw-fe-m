@@ -37,6 +37,8 @@ import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import SignalCard from "../../components/SignalCard";
+import BottomSheetModal from "../../components/BottomSheetModal";
+import Button from "../../components/Button";
 
 const CAPTION_MAX = 280;
 
@@ -175,11 +177,6 @@ const PracticeComposer = () => {
     setIncludedFields((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   };
 
-  const handleSelectTemplate = (t: TemplateId) => {
-    setTemplateId(t);
-    track(ANALYTICS_EVENTS.POST_TEMPLATE_SELECTED, { templateId: t, activityKind });
-  };
-
   const handleClose = () => {
     track(ANALYTICS_EVENTS.POST_CANCELLED, { activityKind });
     navigation.goBack();
@@ -210,18 +207,19 @@ const PracticeComposer = () => {
     }
   };
 
-  const offered = POST_TEMPLATES.filter((t) => offeredTemplates.includes(t.id));
   const canPost = !!activityId && !!threadId;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose} style={styles.headerBtn} hitSlop={8}>
-          <MaterialCommunityIcons name="close" size={22} color="#401B00" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Share to your buddy</Text>
-        <View style={styles.headerBtn} />
-      </View>
+    <BottomSheetModal
+      visible={true}
+      onClose={handleClose}
+      maxHeight="95%"
+      showHandle
+      showCloseButton
+      backgroundColor="#FFFDF9"
+    >
+      <View style={styles.container}>
+        <Text style={styles.sheetTitle}>Share with your buddy</Text>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -229,26 +227,6 @@ const PracticeComposer = () => {
         keyboardVerticalOffset={insets.top + 8}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionLabel}>CHOOSE A STYLE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
-            {offered.map((t) => {
-              const selected = t.id === templateId;
-              return (
-                <TouchableOpacity
-                  key={t.id}
-                  activeOpacity={0.8}
-                  onPress={() => handleSelectTemplate(t.id)}
-                  style={[styles.templateChip, selected && styles.templateChipSelected]}
-                >
-                  <LinearGradient colors={t.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.templateIcon}>
-                    <MaterialCommunityIcons name={t.icon as any} size={18} color="#FFF" />
-                  </LinearGradient>
-                  <Text style={[styles.templateLabel, selected && styles.templateLabelSelected]}>{t.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
           <Text style={styles.sectionLabel}>PREVIEW</Text>
           {loadingPreview ? (
             <View style={styles.previewLoading}>
@@ -297,23 +275,16 @@ const PracticeComposer = () => {
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <TouchableOpacity
-          activeOpacity={0.9}
+        <Button
+          text="Share with buddy"
           onPress={handlePost}
-          disabled={posting || !canPost}
-          style={[styles.postBtn, (posting || !canPost) && styles.postBtnDisabled]}
-        >
-          {posting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="send" size={18} color="#FFFFFF" />
-              <Text style={styles.postBtnText}>Share with buddy</Text>
-            </>
-          )}
-        </TouchableOpacity>
+          disabled={!canPost}
+          loading={posting}
+          leftIcon="paper-plane"
+        />
       </View>
     </View>
+    </BottomSheetModal>
   );
 };
 
@@ -321,25 +292,16 @@ export default PracticeComposer;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFDF9" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    height: 52,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#401B00",
+    textAlign: "center",
+    marginTop: 48,
+    marginBottom: 8,
   },
-  headerBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "800", color: "#401B00" },
   scroll: { padding: 16, paddingBottom: 32 },
   sectionLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1, color: "#A1A4AA", marginTop: 16, marginBottom: 10 },
-  carousel: { gap: 12, paddingRight: 8 },
-  templateChip: { alignItems: "center", width: 76, paddingVertical: 10, borderRadius: 16, borderWidth: 1.5, borderColor: "transparent" },
-  templateChipSelected: { borderColor: "#FF6B00", backgroundColor: "#FFFFFF" },
-  templateIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  templateLabel: { fontSize: 12, fontWeight: "700", color: "#A1A4AA" },
-  templateLabelSelected: { color: "#401B00", fontWeight: "800" },
   previewLoading: { height: 160, alignItems: "center", justifyContent: "center" },
   toggleRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   toggleChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, backgroundColor: "#FFF0E5" },
@@ -359,7 +321,4 @@ const styles = StyleSheet.create({
   },
   captionCount: { alignSelf: "flex-end", fontSize: 12, color: "#A1A4AA", marginTop: 6 },
   footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(0,0,0,0.05)", backgroundColor: "#FFFDF9" },
-  postBtn: { height: 52, borderRadius: 100, backgroundColor: "#FF6B00", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  postBtnDisabled: { opacity: 0.5 },
-  postBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
 });

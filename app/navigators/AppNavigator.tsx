@@ -33,7 +33,10 @@ export default function AppNavigator() {
       <Stack.Screen
         name="PracticeComposer"
         component={PracticeComposer}
-        options={{ presentation: "modal" }}
+        options={{
+          presentation: "transparentModal",
+          animation: "none",
+        }}
       />
       <Stack.Screen name="Resources" component={Resources} />
       <Stack.Screen
