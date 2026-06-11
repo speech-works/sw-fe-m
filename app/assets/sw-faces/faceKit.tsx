@@ -309,16 +309,19 @@ export const Heartbeat: React.FC<any> = ({ cx, cy, children }) => {
   useEffect(() => {
     if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
       withTiming(0, { duration: 800 }),
-      withTiming(1, { duration: 100, easing: Easing.out(Easing.quad) }),
-      withTiming(0, { duration: 150, easing: Easing.in(Easing.quad) }),
-      withTiming(1, { duration: 100, easing: Easing.out(Easing.quad) }),
-      withTiming(0, { duration: 250, easing: Easing.in(Easing.quad) })
+      // Lub (small, fast)
+      withTiming(0.4, { duration: 80, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 120, easing: Easing.in(Easing.cubic) }),
+      // Dub (large, fast expansion)
+      withTiming(1, { duration: 120, easing: Easing.out(Easing.cubic) }),
+      // Elastic recoil back to rest
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.back(1.5)) })
     ), -1, false));
     else g.value = 0;
     return () => cancelAnimation(g);
   }, [sa]);
   const p = useAnimatedProps(() => ({
-    transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 + 0.25 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
+    transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 + 0.3 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
   }));
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
 };

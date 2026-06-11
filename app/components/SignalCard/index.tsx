@@ -334,7 +334,7 @@ const SignalCard = ({
           onPress={() => onUnreact?.()}
           style={styles.reactionBadgeFloating}
         >
-          <AnimatedReaction type={selectedReaction.type} selected={true} size={18} />
+          <AnimatedReaction type={selectedReaction.type} selected={true} size={28} />
           <Text style={styles.reactionBadgeName}>You</Text>
         </TouchableOpacity>
       );
@@ -344,9 +344,9 @@ const SignalCard = ({
       const bName = buddyName ? buddyName.split(" ")[0] : "Buddy";
       return (
         <View style={styles.reactionBadgeFloating}>
-          <View style={{ flexDirection: "row", gap: 2 }}>
+          <View style={{ flexDirection: "row", gap: 4 }}>
             {buddyReactionTypes.map((type) => (
-              <AnimatedReaction key={type} type={type} selected={true} size={18} />
+              <AnimatedReaction key={type} type={type} selected={true} size={28} />
             ))}
           </View>
           <Text style={styles.reactionBadgeName}>{bName}</Text>
@@ -581,13 +581,13 @@ const styles = StyleSheet.create({
   // Reaction Badge (Mobile Native)
   reactionBadgeFloating: {
     position: "absolute",
-    bottom: -10,
+    bottom: -14,
     right: 16,
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 100,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
@@ -602,9 +602,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   reactionBadgeName: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
     color: "#475569",
+    marginLeft: 4,
   },
   reactionCueFloating: {
     position: "absolute",

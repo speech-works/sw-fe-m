@@ -92,7 +92,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
                       ],
                     }}
                   >
-                    <AnimatedReaction type={r.type} selected={false} isPicker={true} size={38} />
+                    <AnimatedReaction type={r.type} selected={false} isPicker={true} size={54} />
                     <Text style={styles.reactionLabel}>{r.label}</Text>
                   </Animated.View>
                 </View>
