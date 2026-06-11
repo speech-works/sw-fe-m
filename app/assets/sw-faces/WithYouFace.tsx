@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import Animated, { useSharedValue, useAnimatedProps, withDelay, withRepeat, withSequence, withTiming, Easing, cancelAnimation } from "react-native-reanimated";
+import { LinearGradient, Stop } from "react-native-svg";
 import { FaceShell, Glow, SvgIconProps, Path, G, Rect, Circle, Defs, ClipPath, AnimatedG } from "./faceKit";
 
 const BeerMug = ({ isRight, sa }: { isRight: boolean; sa: boolean }) => {
@@ -55,36 +56,50 @@ const BeerMug = ({ isRight, sa }: { isRight: boolean; sa: boolean }) => {
     };
   });
 
-  const splashProps1 = useAnimatedProps(() => {
-    const s = splash.value;
+  const foamProps = useAnimatedProps(() => {
+    const pull = Math.min(0, t.value);
+    const clink = Math.max(0, t.value);
+
     return {
-      opacity: s > 0 ? 1 - s : 0,
       transform: [
-        { translateX: -dir * 12 * s },
-        { translateY: -20 * s },
-        { scale: 0.5 + 0.8 * s }
+        { translateX: -2 * clink },
+        { translateY: 3 * clink },
+        { scaleX: 1 + 0.1 * clink },
+        { scaleY: 1 + 0.1 * clink },
+        { skewX: `${10 * pull}deg` }
       ] as any
     };
   });
-  const splashProps2 = useAnimatedProps(() => {
+
+  const sparkProps1 = useAnimatedProps(() => {
     const s = splash.value;
     return {
       opacity: s > 0 ? 1 - s : 0,
       transform: [
-        { translateX: dir * 8 * s },
-        { translateY: -28 * s },
-        { scale: 0.5 + 0.6 * s }
+        { translateX: -10 * s },
+        { translateY: -10 * s },
+        { scale: 0.5 + 0.5 * s }
       ] as any
     };
   });
-  const splashProps3 = useAnimatedProps(() => {
+  const sparkProps2 = useAnimatedProps(() => {
     const s = splash.value;
     return {
       opacity: s > 0 ? 1 - s : 0,
       transform: [
-        { translateX: -dir * 4 * s },
         { translateY: -15 * s },
-        { scale: 0.5 + 0.7 * s }
+        { scale: 0.5 + 0.5 * s }
+      ] as any
+    };
+  });
+  const sparkProps3 = useAnimatedProps(() => {
+    const s = splash.value;
+    return {
+      opacity: s > 0 ? 1 - s : 0,
+      transform: [
+        { translateX: 10 * s },
+        { translateY: -10 * s },
+        { scale: 0.5 + 0.5 * s }
       ] as any
     };
   });
@@ -93,77 +108,110 @@ const BeerMug = ({ isRight, sa }: { isRight: boolean; sa: boolean }) => {
 
   const Handle = (
     <G transform={isRight ? "" : "scale(-1, 1)"}>
-      <Path d="M 8 -2 C 15 -2, 16 8, 8 10" fill="none" stroke="#000" strokeWidth="3" />
-      <Path d="M 8 -2 C 15 -2, 16 8, 8 10" fill="none" stroke="#FFC107" strokeWidth="1.5" />
+      <Path d="M 7 -1 L 11 -1 A 2.5 2.5 0 0 1 13.5 1.5 L 13.5 7 A 2.5 2.5 0 0 1 11 9.5 L 7 9.5" fill="none" stroke="#90A4AE" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M 7 -1 L 11 -1 A 2.5 2.5 0 0 1 13.5 1.5 L 13.5 7 A 2.5 2.5 0 0 1 11 9.5 L 7 9.5" fill="none" stroke="#CFD8DC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </G>
   );
 
   const Foam = (
     <G transform={isRight ? "" : "scale(-1, 1)"}>
-      <Path d="M 8 -4 C 10 -9, 5 -11, 3 -9 C 3 -15, -3 -15, -3 -11 C -5 -16, -11 -13, -9 -8 C -14 -8, -14 -2, -10 1 C -12 5, -6 6, -5 3 C -3 6, 1 5, 2 3 C 5 6, 9 2, 8 -4 Z" fill="#FFF" stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
-      <Path d="M 2 -9 Q 1 -6 3 -5" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M -3 -11 Q -4 -8 -2 -7" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M -8 -8 Q -7 -5 -9 -4" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" />
-      <Path d="M -10 -1 Q -8 0 -9 2" fill="none" stroke="#000" strokeWidth="1" strokeLinecap="round" />
+      <AnimatedG animatedProps={foamProps}>
+        {/* Soft, smooth single-blob foam */}
+        <Path d="M 9 -4 
+                 C 9 -11, -5 -11, -7 -6
+                 C -13 -6, -13 3, -8 2
+                 C -5 1.5, -4 -1, -2 -2
+                 C 1 -1, 4 -1, 5 -2
+                 C 7 -1, 9 -1, 9 -4 Z" 
+              fill="url(#foamShade)" />
+      </AnimatedG>
     </G>
   );
 
-  const Splashes = (
-    <>
-      <AnimatedG animatedProps={splashProps1}>
-        <Circle cx="0" cy="0" r="2" fill="#FFF" stroke="#000" strokeWidth="1" />
-      </AnimatedG>
-      <AnimatedG animatedProps={splashProps2}>
-        <Circle cx="0" cy="0" r="1.5" fill="#FFC107" stroke="#000" strokeWidth="1" />
-      </AnimatedG>
-      <AnimatedG animatedProps={splashProps3}>
-        <Circle cx="0" cy="0" r="2.5" fill="#FFF" stroke="#000" strokeWidth="1" />
-      </AnimatedG>
-    </>
-  );
-
   return (
-    <AnimatedG animatedProps={mugProps}>
-      {/* 1. Handle */}
-      {Handle}
+    <>
+      <AnimatedG animatedProps={mugProps}>
+        {/* 1. Handle */}
+        {Handle}
 
-      {/* 2. Glass Background */}
-      <Path d="M -8 -6 L -7 12 Q 0 15 7 12 L 8 -6 Z" fill="#FFF" />
-
-      {/* 3. Liquid */}
-      <Defs>
+        {/* 2. Glass Backing */}
+        <Path d="M -9 -6 L 9 -6 L 8 11 L -8 11 Z" fill="url(#glassGlare)" opacity="0.3" />
+        
+        {/* 3. Liquid */}
         <ClipPath id={clipId}>
-          <Path d="M -7.5 -6 L -6.5 11.5 Q 0 14 6.5 11.5 L 7.5 -6 Z" />
+          <Path d="M -8.5 -6 L 8.5 -6 L 7.5 11 L -7.5 11 Z" />
         </ClipPath>
-      </Defs>
-      <G clipPath={`url(#${clipId})`}>
-        <AnimatedG animatedProps={liquidProps}>
-          {/* Beer Body */}
-          <Rect x="-20" y="-1" width="40" height="25" fill="#FFC107" />
-          {/* Internal Foam */}
-          <Rect x="-20" y="-3" width="40" height="4" fill="#FFF" />
-          <Path d="M -20 -3 L 20 -3" stroke="#000" strokeWidth="1" />
-        </AnimatedG>
-      </G>
+        <G clipPath={`url(#${clipId})`}>
+          <AnimatedG animatedProps={liquidProps}>
+            {/* Beer Gradient Body */}
+            <Rect x="-20" y="-1" width="40" height="25" fill="url(#beerGrad)" />
+            {/* Soft bubbles inside */}
+            <Circle cx="-4" cy="2" r="1.2" fill="#FFF" opacity="0.5" />
+            <Circle cx="3" cy="5" r="1.5" fill="#FFF" opacity="0.4" />
+            <Circle cx="-6" cy="8" r="0.8" fill="#FFF" opacity="0.6" />
+            <Circle cx="2" cy="1" r="1.2" fill="#FFF" opacity="0.5" />
+            {/* Internal Foam Layer */}
+            <Rect x="-20" y="-3" width="40" height="4" fill="#FFFFFF" opacity="0.8" />
+          </AnimatedG>
+        </G>
 
-      {/* 4. Glass Outlines & Dimples */}
-      <Path d="M -8 -6 L -7 12 Q 0 15 7 12 L 8 -6 Z" fill="none" stroke="#000" strokeWidth="1.5" />
-      <Rect x="-5.5" y="-2" width="3" height="11" rx="1.5" fill="none" stroke="#000" strokeWidth="1.2" />
-      <Rect x="-1.5" y="-2" width="3" height="11" rx="1.5" fill="none" stroke="#000" strokeWidth="1.2" />
-      <Rect x="2.5" y="-2" width="3" height="11" rx="1.5" fill="none" stroke="#000" strokeWidth="1.2" />
-      <Path d="M -6.5 12.5 Q 0 15.5 6.5 12.5" fill="none" stroke="#000" strokeWidth="1.5" />
+        {/* 4. Glass Glare / Reflections */}
+        <Path d="M -7.5 -6 L -2.5 -6 L -3.5 11 L -6.5 11 Z" fill="#FFF" opacity="0.4" />
+        <Path d="M 6.5 -6 L 8.5 -6 L 7.5 11 L 6 11 Z" fill="#FFF" opacity="0.2" />
 
-      {/* 5. Foam */}
-      {Foam}
+        {/* 5. Top Rim */}
+        <Path d="M -9 -6 L 9 -6 L 9 -3 L -9 -3 Z" fill="url(#glassRim)" opacity="0.6" />
+        
+        {/* 6. Thick Glass Base */}
+        <Path d="M -8.5 11 L 8.5 11 A 2 2 0 0 1 8.5 15 L -8.5 15 A 2 2 0 0 1 -8.5 11 Z" fill="url(#glassRim)" />
+        <Path d="M -8 13 L 8 13" stroke="#78909C" strokeWidth="1" />
 
-      {/* 6. Splashes */}
-      {Splashes}
-    </AnimatedG>
+        {/* 7. Foam */}
+        {Foam}
+      </AnimatedG>
+      
+      {/* 8. Sparks (rendered above everything, outside the mug rotation) */}
+      {isRight && (
+        <G transform="translate(-8, -12)">
+          <AnimatedG animatedProps={sparkProps1}>
+             <Path d="M -4 -8 L -10 -18 L -2 -14 Z" fill="#FF3D00" />
+          </AnimatedG>
+          <AnimatedG animatedProps={sparkProps2}>
+             <Path d="M 0 -10 L -2 -20 L 4 -18 Z" fill="#FF6D00" />
+          </AnimatedG>
+          <AnimatedG animatedProps={sparkProps3}>
+             <Path d="M 4 -8 L 12 -14 L 6 -18 Z" fill="#FF3D00" />
+          </AnimatedG>
+        </G>
+      )}
+    </>
   );
 };
 
 const WithYouFace = (props: SvgIconProps) => (
   <FaceShell bg="#3949AB" {...props}>
+    <Defs>
+      <LinearGradient id="beerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <Stop offset="0%" stopColor="#FFD54F" />
+        <Stop offset="50%" stopColor="#FF8F00" />
+        <Stop offset="100%" stopColor="#E65100" />
+      </LinearGradient>
+      <LinearGradient id="glassRim" x1="0%" y1="0%" x2="100%" y2="100%">
+        <Stop offset="0%" stopColor="#B0BEC5" />
+        <Stop offset="30%" stopColor="#ECEFF1" />
+        <Stop offset="80%" stopColor="#90A4AE" />
+        <Stop offset="100%" stopColor="#78909C" />
+      </LinearGradient>
+      <LinearGradient id="foamShade" x1="0%" y1="0%" x2="0%" y2="100%">
+        <Stop offset="40%" stopColor="#FFFFFF" />
+        <Stop offset="100%" stopColor="#E0E0E0" />
+      </LinearGradient>
+      <LinearGradient id="glassGlare" x1="0%" y1="0%" x2="100%" y2="100%">
+        <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
+        <Stop offset="30%" stopColor="#FFFFFF" stopOpacity="0.1" />
+        <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+      </LinearGradient>
+    </Defs>
     <G transform="translate(24, 24)">
       {/* Background Sparkles */}
       <Glow cx={0} cy={0} from={0.4} to={0.8} dur={4000}>
@@ -181,11 +229,6 @@ const WithYouFace = (props: SvgIconProps) => (
       <G transform="translate(8, 6) rotate(-10)">
         <BeerMug isRight={true} sa={!!props.shouldAnimate} />
       </G>
-      
-      {/* Clink Sparkles */}
-      <Glow cx={0} cy={0} from={0.2} to={1} sc0={0.8} sc1={1.2} dur={1500}>
-        <Path d="M 0 -2 L 2 2 L 6 0 L 2 4 L 4 8 L 0 5 L -4 8 L -2 4 L -6 0 L -2 2 Z" fill="#FFEB3B" transform="scale(0.5) translate(0, -6)" />
-      </Glow>
     </G>
   </FaceShell>
 );
