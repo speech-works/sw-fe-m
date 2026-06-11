@@ -158,7 +158,7 @@ const SignalCard = ({
     mainIcon = "hand-heart";
     watermarkIcon = "hand-heart";
     title = moment.text;
-    subtitle = `${authorName} shared a moment`;
+    subtitle = signal.authorIsMe ? "You shared a moment" : `${authorName} shared a moment`;
     
     if (moment.sensitive) {
       if (interactive) {
@@ -189,7 +189,7 @@ const SignalCard = ({
     watermarkIcon = "trophy"; // always trophy for milestones
     title = signal.payload.label ?? "Beat";
     const body = signal.payload.body ?? "";
-    subtitle = body ? `${authorName} • ${body}` : `${authorName} reached a milestone`;
+    subtitle = body || (signal.authorIsMe ? "Reached a milestone" : `${authorName} reached a milestone`);
   } else if (isCard(signal)) {
     cardBg = "#E0F2FE";
     iconBg = "#0284C7";
@@ -241,7 +241,7 @@ const SignalCard = ({
     title = signal.payload.activityName ?? "Practice Session";
     captionText = signal.caption ?? "";
     const actLabel = template.label;
-    subtitle = `${authorName} practiced • ${actLabel}`;
+    subtitle = signal.authorIsMe ? `Practiced • ${actLabel}` : `${authorName} practiced • ${actLabel}`;
     
     const emphasized = template.emphasizes || [];
     const orderedFields: PracticePayloadField[] = [
