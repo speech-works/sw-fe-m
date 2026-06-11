@@ -570,8 +570,10 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
       t.value = 0; // Start at sunrise
       t.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 18000, easing: Easing.inOut(Easing.sin) }), // Day across the sky
-          withTiming(2, { duration: 4000, easing: Easing.inOut(Easing.sin) }) // Night traveling underground
+          withTiming(0.5, { duration: 6000, easing: Easing.out(Easing.sin) }), // Rise to Noon
+          withTiming(0.5, { duration: 4000 }), // Hold at Noon
+          withTiming(1, { duration: 6000, easing: Easing.in(Easing.sin) }), // Set to Sunset
+          withTiming(2, { duration: 4000, easing: Easing.linear }) // Night traveling underground
         ), -1, false);
     } else t.value = 0.5;
     return () => cancelAnimation(t);
