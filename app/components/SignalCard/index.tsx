@@ -23,13 +23,13 @@ import ReactionPicker from "../ReactionPicker";
 
 export const getSignalIconBg = (signal?: Signal) => {
   if (!signal) return "#E2E8F0";
-  if (isMoment(signal)) return "#9333EA";
+  if (isMoment(signal)) return "#803600";
   if (isBeat(signal)) {
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
-    return isSupport ? "#DB2777" : "#CA8A04";
+    return isSupport ? "#EA580C" : "#D97706";
   }
-  if (isCard(signal)) return "#0284C7";
-  return "#16A34A";
+  if (isCard(signal)) return "#4A2511";
+  return "#FF6B00";
 };
 
 type Variant = "feed" | "preview";
@@ -154,8 +154,8 @@ const SignalCard = ({
     });
   };
 
-  let cardBg = "#FFF0E5";
-  let iconBg = "#FF6B00";
+  let cardBg = "#FFFFFF";
+  let iconBg = getSignalIconBg(signal);
   let statusText = "Update";
   let mainIcon = "star-shooting";
   let watermarkIcon = "star-shooting"; // fixed per card TYPE for consistency
@@ -167,8 +167,6 @@ const SignalCard = ({
   let canReact = false; // only practice + non-sensitive moment
 
   if (isMoment(signal)) {
-    cardBg = "#F3E8FF";
-    iconBg = "#9333EA";
     statusText = "Moment";
     const moment = getMoment(signal.momentId);
     mainIcon = "hand-heart";
@@ -179,9 +177,9 @@ const SignalCard = ({
     if (moment.sensitive) {
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
-          <View style={[styles.reachedOutPill, { backgroundColor: iconBg + "20" }]}>
-            <MaterialCommunityIcons name="check-circle" size={16} color={iconBg} />
-            <Text style={[styles.reachedOutText, { color: iconBg }]}>Reached out</Text>
+          <View style={styles.seenRow}>
+            <MaterialCommunityIcons name="hand-heart" size={14} color={iconBg} />
+            <Text style={[styles.seenText, { color: iconBg }]}>You reached out</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -200,14 +198,10 @@ const SignalCard = ({
   } else if (isBeat(signal)) {
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
     if (isSupport) {
-      cardBg = "#FCE7F3";
-      iconBg = "#DB2777";
       statusText = "Support";
       mainIcon = signal.payload.icon ?? "hand-heart";
       watermarkIcon = "heart-multiple";
     } else {
-      cardBg = "#FEF9C3";
-      iconBg = "#CA8A04";
       statusText = "Milestone";
       mainIcon = signal.payload.icon ?? "trophy";
       watermarkIcon = "trophy";
@@ -216,8 +210,6 @@ const SignalCard = ({
     const body = signal.payload.body ?? "";
     subtitle = body || (signal.authorIsMe ? (isSupport ? "Reached out" : "Reached a milestone") : `${authorName} ${isSupport ? "reached out" : "reached a milestone"}`);
   } else if (isCard(signal)) {
-    cardBg = "#E0F2FE";
-    iconBg = "#0284C7";
     const meta = CARD_KIND_META[signal.cardKind] ?? CARD_KIND_META.affirmation;
     statusText = meta.label;
     mainIcon = meta.icon;
@@ -257,8 +249,6 @@ const SignalCard = ({
     }
   } else {
     canReact = true;
-    cardBg = "#DCFCE7";
-    iconBg = "#16A34A";
     const template = getPostTemplate(signal.templateId);
     statusText = "Practice";
     mainIcon = template.icon;
@@ -513,6 +503,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     overflow: "hidden", // contains the watermark
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
   },
   watermarkIcon: {
     position: "absolute",
