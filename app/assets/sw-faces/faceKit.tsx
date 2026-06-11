@@ -399,6 +399,167 @@ export const PopLid: React.FC<any> = ({ children }) => {
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
 };
 
+/* ── realistic custom animations ─────────────────────────────────────── */
+
+function useFlameSV(sa: boolean) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (sa) {
+      t.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 150, easing: io }),
+          withTiming(0.4, { duration: 100, easing: io }),
+          withTiming(0.8, { duration: 180, easing: io }),
+          withTiming(0, { duration: 250, easing: io })
+        ),
+        -1,
+        false
+      );
+    } else t.value = 0;
+    return () => cancelAnimation(t);
+  }, [sa]);
+  return useAnimatedProps(() => ({
+    opacity: 0.8 + 0.2 * t.value,
+    transform: [
+      { translateY: 12 }, 
+      { scaleY: 1 + 0.1 * t.value },
+      { scaleX: 1 - 0.05 * t.value },
+      { skewX: `${-2 + 4 * t.value}deg` },
+      { translateY: -12 }
+    ] as any
+  }));
+}
+export const FlameDance: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useFlameSV(useAnim())}>{children}</AnimatedG>;
+
+function useClinkSV(sa: boolean, isRight: boolean) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (sa) {
+      t.value = withDelay(500, withRepeat(
+        withSequence(
+          withTiming(0, { duration: 2000 }),
+          withTiming(-0.3, { duration: 600, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) }),
+          withTiming(0, { duration: 500, easing: Easing.out(Easing.back(1.5)) })
+        ),
+        -1,
+        false
+      ));
+    } else t.value = 0;
+    return () => cancelAnimation(t);
+  }, [sa]);
+  const dir = isRight ? -1 : 1;
+  return useAnimatedProps(() => ({
+    transform: [
+      { rotate: `${dir * 10 * t.value}deg` },
+      { translateX: dir * 6 * t.value },
+      { translateY: -2 * t.value }
+    ] as any
+  }));
+}
+export const MugClinkLeft: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useClinkSV(useAnim(), false)}>{children}</AnimatedG>;
+export const MugClinkRight: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useClinkSV(useAnim(), true)}>{children}</AnimatedG>;
+
+function useCorkPopSV(sa: boolean) {
+  const pop = useSharedValue(0);
+  const shake = useSharedValue(0);
+  useEffect(() => {
+    if (sa) {
+      pop.value = withRepeat(
+        withSequence(
+          withTiming(0, { duration: 1250 }),
+          withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }),
+          withTiming(1, { duration: 950 }),
+          withTiming(0, { duration: 0 })
+        ), -1, false);
+        
+      shake.value = withRepeat(
+        withSequence(
+          withTiming(0, { duration: 1050 }),
+          withTiming(1, { duration: 50 }),
+          withTiming(-1, { duration: 50 }),
+          withTiming(1, { duration: 50 }),
+          withTiming(0, { duration: 50 }),
+          withTiming(0, { duration: 1250 })
+        ), -1, false);
+    } else {
+      pop.value = 0;
+      shake.value = 0;
+    }
+    return () => { cancelAnimation(pop); cancelAnimation(shake); };
+  }, [sa]);
+  
+  return useAnimatedProps(() => {
+    const p = pop.value;
+    const s = shake.value * (1 - p);
+    return {
+      opacity: p > 0.6 ? 1 - (p - 0.6) * 2.5 : 1,
+      transform: [
+        { translateX: 1.5 * s },
+        { translateY: -70 * p },
+        { rotate: `${180 * p + 5 * s}deg` }
+      ] as any
+    };
+  });
+}
+export const CorkPop: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useCorkPopSV(useAnim())}>{children}</AnimatedG>;
+
+export const SprayShoot: React.FC<K & { tx: number; ty: number; delay?: number }> = ({ tx, ty, delay = 0, children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) {
+      g.value = withRepeat(
+        withSequence(
+          withTiming(0, { duration: 1250 + delay }),
+          withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }),
+          withTiming(1, { duration: 850 - delay }),
+          withTiming(0, { duration: 0 })
+        ), -1, false);
+    } else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa, delay]);
+  
+  const p = useAnimatedProps(() => ({
+    opacity: g.value === 0 ? 0 : (g.value > 0.6 ? 1 - (g.value - 0.6) * 2.5 : 1),
+    transform: [
+      { translateX: tx * g.value },
+      { translateY: ty * g.value },
+      { scale: 0.5 + 1.5 * g.value }
+    ] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ originY, delay = 0, children }) => {
+  const sa = useAnim();
+  const g = useSharedValue(0);
+  useEffect(() => {
+    if (sa) {
+      g.value = withDelay(delay, withRepeat(
+        withSequence(
+          withTiming(0, { duration: 800 }),
+          withTiming(1, { duration: 800, easing: Easing.out(Easing.back(2)) }),
+          withTiming(1, { duration: 3400 }),
+          withTiming(0, { duration: 400 })
+        ), -1, false));
+    } else g.value = 0;
+    return () => cancelAnimation(g);
+  }, [sa, delay]);
+  
+  const p = useAnimatedProps(() => ({
+    opacity: g.value > 0.1 ? 1 : g.value * 10,
+    transform: [
+      { translateY: originY },
+      { scaleY: g.value },
+      { scaleX: 0.5 + 0.5 * g.value },
+      { translateY: -originY }
+    ] as any
+  }));
+  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
+};
+
+
 
 /* ── shared defs + building blocks ────────────────────────────────────── */
 export const FaceDefs = () => (

@@ -1,48 +1,72 @@
 import React from "react";
-import { FaceShell, ConfettiBlast, PopLid, SvgIconProps, Path, Rect, G } from "./faceKit";
+import { FaceShell, SprayShoot, CorkPop, SvgIconProps, Path, G, Circle, Ellipse, Polygon } from "./faceKit";
 
 const CelebrateFace = (props: SvgIconProps) => (
   <FaceShell bg="#4A148C" {...props}>
-    {/* Blasting Confetti (origin inside the box) */}
-    <G transform="translate(24, 20)">
-      <ConfettiBlast tx={-15} ty={-25} rot={120} delay={0}><Path d="M0 0 L4 4 L0 8 L-4 4 Z" fill="#FFEB3B" /></ConfettiBlast>
-      <ConfettiBlast tx={5} ty={-28} rot={-90} delay={50}><Path d="M0 0 L6 0 L6 6 L0 6 Z" fill="#00E5FF" /></ConfettiBlast>
-      <ConfettiBlast tx={25} ty={-20} rot={180} delay={100}><Path d="M0 -4 L2 2 L8 2 L3 6 L5 12 L0 8 L-5 12 L-3 6 L-8 2 L-2 2 Z" fill="#FF4081" transform="scale(0.5)" /></ConfettiBlast>
-      <ConfettiBlast tx={-25} ty={-15} rot={45} delay={150}><Path d="M0 0 L4 4 L0 8 L-4 4 Z" fill="#76FF03" /></ConfettiBlast>
-      <ConfettiBlast tx={15} ty={-35} rot={-120} delay={80}><Path d="M0 0 L6 0 L6 6 L0 6 Z" fill="#FF9800" /></ConfettiBlast>
-    </G>
-    
-    <G transform="translate(10, 16)">
-      {/* Box Drop Shadow */}
-      <Rect x={4} y={12} width={20} height={16} fill="#000" opacity="0.2" transform="translate(0 4)" />
-      
-      {/* Box Body */}
-      <Rect x={4} y={12} width={20} height={16} rx={1} fill="#FF9800" />
-      <Rect x={4} y={12} width={20} height={16} rx={1} fill="url(#volume)" />
-      
-      {/* Box Ribbon */}
-      <Rect x={12} y={12} width={4} height={16} fill="#D32F2F" />
-      <Rect x={12} y={12} width={4} height={16} fill="url(#volume)" />
+    <G transform="translate(24, 24) rotate(40) scale(0.45)">
 
-      <PopLid>
-        {/* Lid Shadow (casting on box) */}
-        <Rect x={2} y={8} width={24} height={4} rx={1} fill="#000" opacity="0.2" transform="translate(0 2)" />
-        
-        {/* Lid */}
-        <Rect x={2} y={8} width={24} height={4} rx={1} fill="#FF9800" />
-        <Rect x={2} y={8} width={24} height={4} rx={1} fill="url(#volume)" />
-        
-        {/* Lid Ribbon */}
-        <Rect x={12} y={8} width={4} height={4} fill="#D32F2F" />
-        <Rect x={12} y={8} width={4} height={4} fill="url(#volume)" />
-        
-        {/* The Bow */}
-        <Path d="M14 8 C6 2, 6 8, 14 8 Z" fill="#D32F2F" />
-        <Path d="M14 8 C22 2, 22 8, 14 8 Z" fill="#D32F2F" />
-        <Path d="M14 8 C6 2, 6 8, 14 8 Z" fill="url(#volume)" />
-        <Path d="M14 8 C22 2, 22 8, 14 8 Z" fill="url(#volume)" />
-        <Rect x={13} y={6} width={2} height={2} fill="#B71C1C" />
-      </PopLid>
+      {/* 1. Yellow Starburst (Behind) */}
+      <SprayShoot tx={0} ty={0} delay={0}>
+        <Path d="M 0 -5 L 15 -25 L 20 -10 L 40 -15 L 25 5 L 45 25 L 20 15 L 5 40 L -5 20 L -25 25 L -15 5 L -35 -15 L -10 -10 Z" fill="#FFF59D" />
+      </SprayShoot>
+
+      {/* 2. Foam Stream & Cloud */}
+      <SprayShoot tx={0} ty={0} delay={0}>
+        <G transform="scale(0.8)">
+          {/* Puffy Cloud */}
+          <Path d="M -20 -40 C -40 -50, -30 -80, -5 -85 C 5 -105, 30 -100, 35 -80 C 55 -70, 45 -45, 25 -35 C 15 -30, -5 -30, -20 -40 Z" fill="#E6EE9C" />
+          {/* Stream to bottle */}
+          <Path d="M -5 -7 L 5 -7 L 15 -40 L -15 -40 Z" fill="#E6EE9C" />
+
+          {/* Foam Bubbles */}
+          <Circle cx={5} cy={-60} r={6} fill="#FFF" />
+          <Circle cx={-12} cy={-70} r={4} fill="#FFF" />
+          <Circle cx={22} cy={-75} r={5} fill="#FFF" />
+          <Circle cx={15} cy={-45} r={3} fill="#FFF" />
+          <Circle cx={-5} cy={-40} r={4} fill="#FFF" />
+        </G>
+      </SprayShoot>
+
+      {/* 3. Splashing Foam Particles */}
+      <SprayShoot tx={-15} ty={-40} delay={50}><Circle cx={0} cy={0} r={3} fill="#E6EE9C" /></SprayShoot>
+      <SprayShoot tx={25} ty={-50} delay={80}><Circle cx={0} cy={0} r={4} fill="#FFF" /></SprayShoot>
+      <SprayShoot tx={-25} ty={-20} delay={120}><Circle cx={0} cy={0} r={2.5} fill="#FFF" /></SprayShoot>
+      <SprayShoot tx={15} ty={-70} delay={100}><Circle cx={0} cy={0} r={3} fill="#E6EE9C" /></SprayShoot>
+
+      {/* 4. Bottle Shape */}
+      {/* Body & Neck */}
+      <Path d="M -7 0 L 7 0 L 7 10 C 7 20, 18 25, 18 35 L 18 70 L -18 70 L -18 35 C -18 25, -7 20, -7 10 Z" fill="#2E7D32" />
+
+      {/* Curved White Highlight on Left */}
+      <Path d="M -14 36 L -14 62 A 2 2 0 0 0 -11 62 L -11 36 A 2 2 0 0 0 -14 36 Z" fill="#81C784" />
+      <Path d="M -12 28 C -9 23, -5 18, -5 13 L -2 13 C -2 18, -6 23, -9 28 Z" fill="#81C784" />
+
+      {/* Yellow Label */}
+      <Polygon points="-18,44 18,44 18,60 -18,60" fill="#FBC02D" />
+      <Polygon points="-18,48 18,48 18,56 -18,56" fill="#F57F17" />
+      {/* Round Gold Seal on Neck Base */}
+      <Ellipse cx={0} cy={30} rx={8} ry={6} fill="#FBC02D" />
+      <Ellipse cx={0} cy={30} rx={5} ry={3.5} fill="#FFF" />
+
+      {/* Gold Foil */}
+      <Path d="M -7 0 L 7 0 L 7 10 C 7 14, 11 17, 12 18 L -12 18 C -11 17, -7 14, -7 10 Z" fill="#FBC02D" />
+
+      {/* Green Lip at Top */}
+      <Polygon points="-8,-5 8,-5 8,0 -8,0" fill="#1B5E20" />
+      <Polygon points="-7,-7 7,-7 7,-5 -7,-5" fill="#388E3C" />
+
+      {/* 5. The Cork */}
+      <CorkPop>
+        <G transform="rotate(20)">
+          {/* Cork Stem */}
+          <Path d="M -5 -8 L 5 -8 L 4 0 L -4 0 Z" fill="#A06A42" />
+          {/* Cork Cap */}
+          <Path d="M -7 -8 C -7 -16, 7 -16, 7 -8 Z" fill="#D4A373" />
+          {/* Cap Top Highlight */}
+          <Ellipse cx={0} cy={-12} rx={3} ry={1.5} fill="#E6C280" />
+        </G>
+      </CorkPop>
+
     </G>
   </FaceShell>
 );
