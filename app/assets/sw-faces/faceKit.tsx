@@ -536,7 +536,13 @@ export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ or
   const g = useSharedValue(0);
   useEffect(() => {
     if (sa) {
-      g.value = withDelay(delay, withTiming(1, { duration: 1200, easing: Easing.out(Easing.back(1.5)) }));
+      g.value = withDelay(delay, withRepeat(
+        withSequence(
+          withTiming(0, { duration: 500 }),
+          withTiming(1, { duration: 1200, easing: Easing.out(Easing.back(1.5)) }),
+          withTiming(1, { duration: 3000 }),
+          withTiming(0, { duration: 0 })
+        ), -1, false));
     } else g.value = 0;
     return () => cancelAnimation(g);
   }, [sa, delay]);
@@ -561,7 +567,12 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
   const t = useSharedValue(0.5); // Default to day
   useEffect(() => {
     if (sa) {
-      t.value = withTiming(1, { duration: 18000, easing: Easing.inOut(Easing.sin) });
+      t.value = 0; // Start at sunrise
+      t.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 18000, easing: Easing.inOut(Easing.sin) }), // Day across the sky
+          withTiming(2, { duration: 4000, easing: Easing.inOut(Easing.sin) }) // Night traveling underground
+        ), -1, false);
     } else t.value = 0.5;
     return () => cancelAnimation(t);
   }, [sa]);
@@ -569,8 +580,8 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
   const skyProps = useAnimatedProps(() => ({
     fill: interpolateColor(
       t.value,
-      [0, 0.2, 0.5, 0.8, 1],
-      ["#1A237E", "#FF8A65", "#4FC3F7", "#FF8A65", "#1A237E"]
+      [0, 0.2, 0.5, 0.8, 1, 2],
+      ["#1A237E", "#FF8A65", "#4FC3F7", "#FF8A65", "#1A237E", "#1A237E"]
     )
   }));
 
@@ -579,10 +590,10 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
     return {
       fill: interpolateColor(
         t.value,
-        [0, 0.2, 0.5, 0.8, 1],
-        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19"]
+        [0, 0.2, 0.5, 0.8, 1, 2],
+        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19", "#E64A19"]
       ),
-      opacity: 0.6 + 0.4 * Math.sin(angle),
+      opacity: t.value > 1 ? 0 : 0.6 + 0.4 * Math.sin(angle),
       transform: [
         { translateX: -15 * Math.cos(angle) },
         { translateY: 10 - 25 * Math.sin(angle) }
@@ -595,10 +606,10 @@ export const DayNightCycle: React.FC<K> = ({ children }) => {
     return {
       fill: interpolateColor(
         t.value,
-        [0, 0.2, 0.5, 0.8, 1],
-        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19"]
+        [0, 0.2, 0.5, 0.8, 1, 2],
+        ["#E64A19", "#FF9800", "#FFF59D", "#FF9800", "#E64A19", "#E64A19"]
       ),
-      opacity: (0.6 + 0.4 * Math.sin(angle)) * 0.4,
+      opacity: t.value > 1 ? 0 : (0.6 + 0.4 * Math.sin(angle)) * 0.4,
       transform: [
         { translateX: -15 * Math.cos(angle) },
         { translateY: 10 - 25 * Math.sin(angle) }
