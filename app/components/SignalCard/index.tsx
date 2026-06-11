@@ -182,14 +182,23 @@ const SignalCard = ({
       canReact = true;
     }
   } else if (isBeat(signal)) {
-    cardBg = "#FEF9C3";
-    iconBg = "#CA8A04";
-    statusText = "Milestone";
-    mainIcon = signal.payload.icon ?? "trophy";
-    watermarkIcon = "trophy"; // always trophy for milestones
-    title = signal.payload.label ?? "Beat";
+    const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
+    if (isSupport) {
+      cardBg = "#FCE7F3";
+      iconBg = "#DB2777";
+      statusText = "Support";
+      mainIcon = signal.payload.icon ?? "hand-heart";
+      watermarkIcon = "heart-multiple";
+    } else {
+      cardBg = "#FEF9C3";
+      iconBg = "#CA8A04";
+      statusText = "Milestone";
+      mainIcon = signal.payload.icon ?? "trophy";
+      watermarkIcon = "trophy";
+    }
+    title = signal.payload.label ?? (isSupport ? "Support" : "Beat");
     const body = signal.payload.body ?? "";
-    subtitle = body || (signal.authorIsMe ? "Reached a milestone" : `${authorName} reached a milestone`);
+    subtitle = body || (signal.authorIsMe ? (isSupport ? "Reached out" : "Reached a milestone") : `${authorName} ${isSupport ? "reached out" : "reached a milestone"}`);
   } else if (isCard(signal)) {
     cardBg = "#E0F2FE";
     iconBg = "#0284C7";
