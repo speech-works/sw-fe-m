@@ -178,7 +178,7 @@ const SignalCard = ({
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
           <View style={styles.seenRow}>
-            <MaterialCommunityIcons name="hand-heart" size={14} color={iconBg} />
+            <MaterialCommunityIcons name="check-circle" size={14} color={iconBg} />
             <Text style={[styles.seenText, { color: iconBg }]}>You reached out</Text>
           </View>
         ) : (
