@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   exploreButton: {
     width: "100%",
     height: 56, // Fixed height for absolute positioning
-    borderRadius: 28,
+    borderRadius: 16,
     overflow: "hidden", // Clip the watermark
     ...parseShadowStyle(theme.shadow.elevation2),
   },
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     width: "100%",
     height: 56,
-    borderRadius: 28,
+    borderRadius: 16,
     backgroundColor: "#FFF",
     flexDirection: "row",
     alignItems: "center",
