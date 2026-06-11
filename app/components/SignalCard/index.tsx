@@ -307,7 +307,7 @@ const SignalCard = ({
     if (buddyReactionEmojis) {
       return (
         <View style={styles.reactionFooter}>
-          <Text style={styles.receivedText}>{buddyReactionEmojis} from your buddy</Text>
+          <Text style={styles.receivedText}>{buddyReactionEmojis} from {buddyName ?? "your buddy"}</Text>
         </View>
       );
     }
