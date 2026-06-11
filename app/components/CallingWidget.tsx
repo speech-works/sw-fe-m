@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 // Import icons
 import Icon from "react-native-vector-icons/Feather"; // For UI Controls
 import FAIcon from "react-native-vector-icons/FontAwesome5"; // For Scenario Icon (compatibility)
@@ -424,6 +425,7 @@ const CallingWidget: React.FC<Props> = ({
   scenarioIcon,
   practiceActivityId, // <-- ADDED
 }) => {
+  const navigation = useNavigation<any>();
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
   const [, setTurn] = useState<"user" | "agent" | null>(null);
@@ -2852,6 +2854,15 @@ const CallingWidget: React.FC<Props> = ({
               >
                 <Text style={styles.promptButtonTextPri}>Check Again</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.promptButtonSecondary}
+                onPress={() => {
+                  setShowHeadsetPrompt(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.promptButtonTextSec}>Go Back</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -3469,8 +3480,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   promptButtonRow: {
-    flexDirection: "row",
+    flexDirection: "column",
+    alignItems: "center",
     justifyContent: "center",
+    gap: 12,
     width: "100%",
   },
   promptButtonPrimary: {
@@ -3484,6 +3497,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
+  promptButtonSecondary: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
   promptButtonDisabled: {
     opacity: 0.72,
   },
@@ -3492,6 +3509,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.5,
+  },
+  promptButtonTextSec: {
+    color: "#94A3B8",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
