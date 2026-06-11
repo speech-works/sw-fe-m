@@ -55,7 +55,7 @@ const SegmentedTabs = ({ tabs, active, onChange }: SegmentedTabsProps) => (
                 </Text>
               </>
             ) : (
-              <MaterialCommunityIcons name={t.icon} size={24} color={C.title} />
+              <MaterialCommunityIcons name={t.icon} size={20} color={C.title} />
             )}
 
             {t.badge && t.badge > 0 ? (
@@ -82,20 +82,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: C.title,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    height: 44,
     borderRadius: 100,
-    gap: 8,
+    gap: 6,
   },
   activeLabel: {
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 14,
+    fontWeight: "700",
     color: "#FFFFFF",
   },
   inactiveCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: C.lightCircle,
     alignItems: "center",
     justifyContent: "center",
