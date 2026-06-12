@@ -300,21 +300,39 @@ const SignalCard = ({
     const actLabel = template.label;
     subtitle = signal.authorIsMe ? `Practiced • ${actLabel}` : `${authorName} practiced • ${actLabel}`;
 
-    // Journey (pack/module) context ribbon — names + progress, rendered above the
-    // effort stats (kept out of STAT_ORDER so it never double-renders).
-    const journeyBits: string[] = [];
-    if (p.journeyTitle) journeyBits.push(p.journeyTitle);
-    if (p.moduleTitle) journeyBits.push(p.moduleTitle);
-    if (p.journeyProgress) {
-      journeyBits.push(`${p.journeyProgress.moduleIndex} of ${p.journeyProgress.moduleTotal}`);
-    }
-    if (journeyBits.length > 0) {
+    // Journey (pack/module) context — a compact inset block so nothing truncates:
+    // an uppercase journey eyebrow with a pinned "X of N" badge on top, and the
+    // module title wrapping below. Kept out of STAT_ORDER so it never double-renders.
+    const jp = p.journeyProgress;
+    if (p.journeyTitle || p.moduleTitle || jp) {
       journeyRibbon = (
-        <View style={styles.journeyRibbon}>
-          <MaterialCommunityIcons name="map-marker-path" size={13} color="#803600" />
-          <Text style={styles.journeyRibbonText} numberOfLines={1}>
-            {journeyBits.join("  ·  ")}
-          </Text>
+        <View style={styles.journeyBox}>
+          {p.journeyTitle || jp ? (
+            <View style={styles.journeyTopRow}>
+              <View style={styles.journeyIconDot}>
+                <MaterialCommunityIcons name="map-marker-path" size={12} color="#9A4B16" />
+              </View>
+              {p.journeyTitle ? (
+                <Text style={styles.journeyEyebrow} numberOfLines={1}>
+                  {p.journeyTitle}
+                </Text>
+              ) : (
+                <View style={styles.journeyFlexSpacer} />
+              )}
+              {jp ? (
+                <View style={styles.journeyProgressBadge}>
+                  <Text style={styles.journeyProgressText}>
+                    {jp.moduleIndex} of {jp.moduleTotal}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          {p.moduleTitle ? (
+            <Text style={styles.journeyModuleText} numberOfLines={2}>
+              {p.moduleTitle}
+            </Text>
+          ) : null}
         </View>
       );
     }
@@ -671,25 +689,54 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Journey (pack/module) context ribbon
-  journeyRibbonWrap: { marginTop: 10 },
-  journeyRibbon: {
+  // Journey (pack/module) context — soft, evenly-rounded chip (no accent stripe)
+  journeyRibbonWrap: { marginTop: 12 },
+  journeyBox: {
+    borderRadius: 14,
+    backgroundColor: "rgba(128,54,0,0.05)",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  journeyTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 6,
-    maxWidth: "100%",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 100,
-    backgroundColor: "rgba(128,54,0,0.08)",
+    gap: 7,
   },
-  journeyRibbonText: {
-    flexShrink: 1,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#803600",
-    letterSpacing: 0.2,
+  journeyIconDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    backgroundColor: "rgba(128,54,0,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  journeyFlexSpacer: { flex: 1 },
+  journeyEyebrow: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    color: "#9A4B16",
+    textTransform: "uppercase",
+  },
+  journeyProgressBadge: {
+    backgroundColor: "#803600",
+    borderRadius: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  journeyProgressText: {
+    fontSize: 10.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
+  journeyModuleText: {
+    fontSize: 13.5,
+    fontWeight: "600",
+    color: "#6B4A33",
+    lineHeight: 18,
   },
 
   // Dynamic content styles
