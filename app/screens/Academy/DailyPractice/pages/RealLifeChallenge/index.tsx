@@ -552,14 +552,14 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.7)",
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   headerTitleContainer: {
     alignItems: "center",
@@ -569,8 +569,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: theme.colors.text.title,
-    fontWeight: "600",
-    letterSpacing: -0.5,
+    marginTop: 2,
   },
 
   // Scroll Area

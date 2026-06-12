@@ -575,7 +575,7 @@ const PackModuleScreen = () => {
           >
             <MaterialCommunityIcons
               name="chevron-left"
-              size={28}
+              size={24}
               color={theme.colors.text.title}
             />
           </TactileTouchableOpacity>
@@ -853,12 +853,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.6)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.05)",
   },
@@ -879,10 +879,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 15,
-    textAlign: "center",
     color: theme.colors.text.title,
-    fontWeight: "600",
+    marginTop: 2,
   },
   // Progress
   progressContainer: {
