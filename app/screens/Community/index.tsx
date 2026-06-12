@@ -188,7 +188,7 @@ const ToggleSwitch = ({ on }: { on: boolean }) => {
   const trackStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(v.value, [0, 1], [C.trackOff, C.orange500]),
   }));
-  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: v.value * 20 }] }));
+  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: v.value * 18 }] }));
   return (
     <Animated.View style={[styles.toggleTrack, trackStyle]}>
       <Animated.View style={[styles.toggleThumb, thumbStyle]} />
@@ -711,9 +711,10 @@ const Community = () => {
         <Animated.View entering={enter(3)}>
           <SectionHeading title="Manage" />
           <View style={styles.actionGroup}>
+            {/* Share Progress */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
-              <View style={[styles.actionIconCircle, { backgroundColor: "#F1F5F9" }]}>
-                <MaterialCommunityIcons name="chart-box" size={20} color="#64748B" />
+              <View style={[styles.actionIconSquare, { backgroundColor: C.peachSurface }]}>
+                <MaterialCommunityIcons name="chart-box" size={24} color={C.orange500} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text style={styles.actionTitle}>Share my progress</Text>
@@ -721,29 +722,34 @@ const Community = () => {
               </View>
               <ToggleSwitch on={iShare} />
             </PressableScale>
-          </View>
-        </Animated.View>
 
-        {/* Resources & Leave */}
-        <Animated.View entering={enter(4)}>
-          <PressableScale
-            style={styles.resourcesLink}
-            scaleTo={0.97}
-            haptic={false}
-            onPress={() => navigation.navigate("Resources")}
-            accessibilityLabel="Help and resources"
-          >
-            <MaterialCommunityIcons name="lifebuoy" size={15} color={C.orange700} />
-            <Text style={styles.resourcesLinkText}>Help & Resources</Text>
-          </PressableScale>
-          <PressableScale
-            style={styles.leaveLink}
-            scaleTo={0.96}
-            haptic={false}
-            onPress={handleLeave}
-          >
-            <Text style={styles.leaveLinkText}>Leave buddy</Text>
-          </PressableScale>
+            <View style={styles.actionDivider} />
+
+            {/* Help & Resources */}
+            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => navigation.navigate("Resources")}>
+              <View style={[styles.actionIconSquare, { backgroundColor: C.peachSurface }]}>
+                <MaterialCommunityIcons name="lifebuoy" size={24} color={C.orange500} />
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={styles.actionTitle}>Help & Resources</Text>
+                <Text style={styles.actionSub}>Learn more about community.</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#CBD5E1" />
+            </PressableScale>
+
+            <View style={styles.actionDivider} />
+
+            {/* Leave Buddy */}
+            <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleLeave}>
+              <View style={[styles.actionIconSquare, { backgroundColor: "#FEF2F2" }]}>
+                <MaterialCommunityIcons name="exit-run" size={24} color="#EF4444" />
+              </View>
+              <View style={styles.actionTextWrap}>
+                <Text style={[styles.actionTitle, { color: "#EF4444" }]}>Leave buddy</Text>
+                <Text style={styles.actionSub}>End this partnership.</Text>
+              </View>
+            </PressableScale>
+          </View>
         </Animated.View>
       </View>
     );
@@ -1258,12 +1264,12 @@ const styles = StyleSheet.create({
   actionDivider: {
     height: 1,
     backgroundColor: C.hairline,
-    marginLeft: 16 + 44 + 14, // align with text (paddingLeft + iconCircle + gap)
+    marginLeft: 16 + 52 + 14, // align with text (paddingLeft + iconSquare + gap)
   },
-  actionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  actionIconSquare: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1271,17 +1277,17 @@ const styles = StyleSheet.create({
   actionTitle: { fontSize: 15, fontWeight: "800", color: theme.colors.text.title },
   actionSub: { fontSize: 13, color: theme.colors.text.default, marginTop: 2, lineHeight: 18 },
   toggleTrack: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
+    width: 44,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: C.trackOff,
     padding: 2,
     justifyContent: "center",
   },
   toggleThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "#FFFFFF",
     ...parseShadowStyle(theme.shadow.elevation1),
   },
