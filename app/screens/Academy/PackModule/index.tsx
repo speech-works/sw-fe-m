@@ -1125,14 +1125,14 @@ const styles = StyleSheet.create({
   },
   skipModalPrimaryButton: {
     width: "100%",
-    borderRadius: 20,
+    borderRadius: 16,
     ...parseStyleShadow(theme.shadow.elevation2),
   },
   skipModalButtonGradient: {
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
   },
   skipModalPrimaryButtonText: {
@@ -1144,7 +1144,7 @@ const styles = StyleSheet.create({
   skipModalSecondaryButton: {
     width: "100%",
     paddingVertical: 14,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
