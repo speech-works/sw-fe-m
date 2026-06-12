@@ -33,13 +33,13 @@ const StrengthFace = (props: SvgIconProps) => (
 
         {/* === PINE TREES === */}
         {/* Far Left */}
-        <TreeGrow originY={16} delay={0}><Polygon points="-18,16 -10,16 -14,-2" fill="#2E7D32" /></TreeGrow>
+        <Polygon points="-18,16 -10,16 -14,4" fill="#2E7D32" />
         {/* Mid Left */}
-        <TreeGrow originY={18} delay={200}><Polygon points="-11,18 -3,18 -7,2" fill="#1B5E20" /></TreeGrow>
+        <Polygon points="-11,18 -3,18 -7,6" fill="#1B5E20" />
         {/* Right near main peak */}
-        <TreeGrow originY={18} delay={400}><Polygon points="4,18 12,18 8,2" fill="#2E7D32" /></TreeGrow>
+        <Polygon points="4,18 12,18 8,6" fill="#2E7D32" />
         {/* Far Right */}
-        <TreeGrow originY={16} delay={600}><Polygon points="12,16 20,16 16,-2" fill="#1B5E20" /></TreeGrow>
+        <Polygon points="12,16 20,16 16,4" fill="#1B5E20" />
       </G>
     </Float>
     </DayNightCycle>
