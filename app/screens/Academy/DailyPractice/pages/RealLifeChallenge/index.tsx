@@ -769,7 +769,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255, 255, 255, 0.9)",
     backgroundColor: "rgba(255, 255, 255, 0.6)", // Glass effect
-    minHeight: 200,
     marginBottom: 24,
     shadowColor: theme.colors.library.orange[200], // Subtle orange shadow
     shadowOffset: {
@@ -783,6 +782,8 @@ const styles = StyleSheet.create({
   instructionCardGradient: {
     padding: 24,
     justifyContent: "center",
+    minHeight: 200,
+    flex: 1,
   },
   instructionWatermarkContainer: {
     position: "absolute",
