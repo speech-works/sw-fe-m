@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    borderRadius: 24, // Consistent with Academy buttons
+    borderRadius: 16, // Consistent with Academy buttons
   },
   secondaryButton: {
     width: "100%",
