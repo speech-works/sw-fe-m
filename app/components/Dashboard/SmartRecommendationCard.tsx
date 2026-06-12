@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   },
   premiumButtonShadow: {
     width: "100%",
-    borderRadius: 30,
+    borderRadius: 16,
     shadowColor: theme.colors.actionPrimary.default,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 18,
-    borderRadius: 30,
+    borderRadius: 16,
   },
   premiumButtonTextPrimary: {
     ...parseTextStyle(theme.typography.Button),
@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 18,
-    borderRadius: 30,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.1)",
