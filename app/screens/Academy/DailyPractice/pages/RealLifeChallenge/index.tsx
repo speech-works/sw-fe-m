@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: "100%",
     height: 58,
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: "hidden",
   },
   buttonGradient: {
