@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/FontAwesome5";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   RouteProp,
@@ -573,9 +574,9 @@ const PackModuleScreen = () => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <MaterialCommunityIcons
+            <Icon
               name="chevron-left"
-              size={24}
+              size={16}
               color={theme.colors.text.title}
             />
           </TactileTouchableOpacity>
