@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,7 +48,7 @@ export const getSignalGradient = (signal?: Signal): readonly [string, string, ..
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
     if (!isSupport) return ["#FFE082", "#FFCD4B"];
   }
-  
+
   // System cards get vibrant gradients
   if (isCard(signal)) {
     switch (signal.cardKind) {
@@ -61,7 +61,7 @@ export const getSignalGradient = (signal?: Signal): readonly [string, string, ..
   }
 
   // User-generated cards (moments, beats/practice) are purely white
-  return ["#FFFFFF", "#FFFFFF"]; 
+  return ["#FFFFFF", "#FFFFFF"];
 };
 
 export const getSignalCardBg = (_signal?: Signal) => "#FFFFFF";
@@ -175,7 +175,7 @@ const SignalCard = ({
   const initials = (signal.author?.name ?? "?").substring(0, 1).toUpperCase();
   const interactive = variant === "feed" && !signal.authorIsMe;
   const relativeTime = formatRelativeTime(signal.createdAt);
-  
+
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerY, setPickerY] = useState(0);
   const cardRef = useRef<View>(null);
@@ -214,7 +214,7 @@ const SignalCard = ({
     watermarkIcon = "hand-heart";
     title = moment.text;
     subtitle = signal.authorIsMe ? "You shared a moment" : `${authorName} shared a moment`;
-    
+
     if (moment.sensitive) {
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
@@ -259,7 +259,7 @@ const SignalCard = ({
       title = signal.payload.title;
     }
     bodyText = signal.payload.body ?? "";
-    
+
     const isPrompt = signal.cardKind === "prompt";
     if (isPrompt && signal.replyOptions?.length) {
       dynamicContent = (
@@ -300,20 +300,23 @@ const SignalCard = ({
     const actLabel = template.label;
     subtitle = signal.authorIsMe ? `Practiced • ${actLabel}` : `${authorName} practiced • ${actLabel}`;
 
-    // Journey (pack/module) context — a compact inset block so nothing truncates:
-    // an uppercase journey eyebrow with a pinned "X of N" badge on top, and the
-    // module title wrapping below. Kept out of STAT_ORDER so it never double-renders.
+    // 1. Journey Context (Stacked layout to prevent truncation)
     const jp = p.journeyProgress;
     if (p.journeyTitle || p.moduleTitle || jp) {
       journeyRibbon = (
-        <View style={styles.journeyBox}>
+        <LinearGradient
+          colors={["#FFF7ED", "#FFEDD5"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.journeyBox}
+        >
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
               <View style={styles.journeyIconDot}>
-                <MaterialCommunityIcons name="map-marker-path" size={12} color="#9A4B16" />
+                <MaterialCommunityIcons name="map-marker-path" size={14} color="#9A4B16" />
               </View>
               {p.journeyTitle ? (
-                <Text style={styles.journeyEyebrow} numberOfLines={1}>
+                <Text style={styles.journeyEyebrow}>
                   {p.journeyTitle}
                 </Text>
               ) : (
@@ -329,11 +332,11 @@ const SignalCard = ({
             </View>
           ) : null}
           {p.moduleTitle ? (
-            <Text style={styles.journeyModuleText} numberOfLines={2}>
+            <Text style={styles.journeyModuleText}>
               {p.moduleTitle}
             </Text>
           ) : null}
-        </View>
+        </LinearGradient>
       );
     }
 
@@ -352,6 +355,7 @@ const SignalCard = ({
         : `${authorName} finished a module${where}`;
     }
 
+    // 2. Stats Chips (Wrap layout, no carousel)
     const emphasized = template.emphasizes || [];
     const orderedFields: PracticePayloadField[] = [
       ...emphasized,
@@ -366,11 +370,11 @@ const SignalCard = ({
       dynamicContent = (
         <View style={styles.statColumn}>
           {stats.map((s) => (
-            <View key={s.label} style={styles.statRowItem}>
-              <View style={[styles.statIconBox, { backgroundColor: chipColor + "15" }]}>
+            <View key={s.label} style={[styles.statRowItem, { backgroundColor: chipColor + "0A", borderColor: chipColor + "10" }]}>
+              <View style={styles.statIconBox}>
                 <MaterialCommunityIcons name={s.icon as any} size={14} color={chipColor} />
               </View>
-              <Text style={[styles.statListText, { color: chipColor }]} numberOfLines={2}>{s.label}</Text>
+              <Text style={[styles.statListText, { color: chipColor }]}>{s.label}</Text>
             </View>
           ))}
         </View>
@@ -432,7 +436,7 @@ const SignalCard = ({
 
   const cardBody = (
     <View ref={cardRef} collapsable={false} style={[styles.mainBodyShadow, { backgroundColor: cardGradient[0] }]}>
-      <LinearGradient 
+      <LinearGradient
         colors={cardGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -461,7 +465,7 @@ const SignalCard = ({
           <View style={{ marginTop: 12 }}>{dynamicContent}</View>
         ) : null}
       </LinearGradient>
-      
+
       {/* Mobile-native floating reaction badge */}
       {renderReactionBadge()}
     </View>
@@ -474,9 +478,9 @@ const SignalCard = ({
     <View style={styles.row}>
       {/* Timeline axis — avatar of who posted */}
       <View style={styles.axisCol}>
-        <LinearGradient 
-          colors={[prevColor + "40", iconBg + "40"]} 
-          style={[styles.axisLineTop, isFirst && { opacity: 0 }]} 
+        <LinearGradient
+          colors={[prevColor + "40", iconBg + "40"]}
+          style={[styles.axisLineTop, isFirst && { opacity: 0 }]}
         />
         <View style={[styles.timelineAvatarWrap, { shadowColor: iconBg }]}>
           {signal.author?.profilePictureUrl ? (
@@ -487,9 +491,9 @@ const SignalCard = ({
             </View>
           )}
         </View>
-        <LinearGradient 
-          colors={[iconBg + "40", nextColor + "40"]} 
-          style={[styles.axisLineBottom, isLast && { opacity: 0 }]} 
+        <LinearGradient
+          colors={[iconBg + "40", nextColor + "40"]}
+          style={[styles.axisLineBottom, isLast && { opacity: 0 }]}
         />
       </View>
 
@@ -567,12 +571,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-  
+
   cardCol: {
     flex: 1,
-    minWidth: 0, 
+    minWidth: 0,
   },
-  
+
   // Header
   headerRow: {
     flexDirection: "row",
@@ -581,10 +585,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statusLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800",
-    color: "#1E293B",
-    letterSpacing: 0.5,
+    color: "#475569",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   timeText: {
     color: "#94A3B8",
@@ -597,10 +602,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#FFFFFF",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   mainBody: {
     borderRadius: 20,
@@ -616,15 +621,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "800",
     color: "#0F172A",
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#475569",
+    color: "#64748B",
     lineHeight: 20,
   },
   bodyParagraph: {
@@ -692,11 +698,12 @@ const styles = StyleSheet.create({
   // Journey (pack/module) context — soft, evenly-rounded chip (no accent stripe)
   journeyRibbonWrap: { marginTop: 12 },
   journeyBox: {
-    borderRadius: 14,
-    backgroundColor: "rgba(128,54,0,0.05)",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,107,0,0.15)",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 8,
   },
   journeyTopRow: {
     flexDirection: "row",
@@ -740,10 +747,18 @@ const styles = StyleSheet.create({
   },
 
   // Dynamic content styles
-  statColumn: { gap: 8, marginTop: 4 },
-  statRowItem: { flexDirection: "row", alignItems: "center", gap: 10 },
-  statIconBox: { width: 26, height: 26, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  statListText: { fontSize: 13, fontWeight: "600", flex: 1 },
+  statColumn: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  statRowItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+  },
+  statIconBox: { alignItems: "center", justifyContent: "center" },
+  statListText: { fontSize: 12, fontWeight: "700" },
   replyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   replyChip: {
     backgroundColor: "#FFFFFF",
