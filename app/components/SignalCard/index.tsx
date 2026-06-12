@@ -313,7 +313,7 @@ const SignalCard = ({
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
               <View style={styles.journeyIconDot}>
-                <MaterialCommunityIcons name="map-marker-path" size={14} color="#9A4B16" />
+                <MaterialCommunityIcons name="layers-outline" size={14} color="#9A4B16" />
               </View>
               {p.journeyTitle ? (
                 <Text style={styles.journeyEyebrow}>
