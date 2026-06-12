@@ -61,6 +61,13 @@ export const candidateFieldsFor = (
   kind: ActivityKind,
 ): PracticePayloadField[] => {
   const base: PracticePayloadField[] = [
+    // Journey context first so it leads the "What to show" row when present.
+    // These self-gate: the composer only shows a toggle when the preview returns
+    // a value, so non-pack activities never surface them. (moduleCompleted /
+    // journeyCompleted are NOT here — they're server-emitted milestone facts, not toggles.)
+    "journeyTitle",
+    "moduleTitle",
+    "journeyProgress",
     "activityName",
     "durationSeconds",
     "timeOfDay",

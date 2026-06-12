@@ -81,6 +81,20 @@ export interface PracticePayload {
   levelStageTitle?: string;
   milestoneLabel?: string;
   growthDelta?: { axis: GrowthAxis; direction: "up" };
+  // ── Journey (pack/module) context ──────────────────────────────────────────
+  // Server-derived from the activity's pack/module link and SNAPSHOTTED into the
+  // stored signal at share time (so "X of N"/completion stay truthful as the user
+  // advances). Names + progress + completion ONLY — never clinical taxonomy
+  // (PackCategory/Philosophy/Intensity), vitals, scores, or toolsUsed. "Pack" is
+  // surfaced to the buddy as a "Journey".
+  journeyTitle?: string;
+  moduleTitle?: string;
+  /** 1-based position of this module within the journey, e.g. { moduleIndex: 4, moduleTotal: 8 } → "4 of 8". */
+  journeyProgress?: { moduleIndex: number; moduleTotal: number };
+  /** This activity's completion finished its module. Emitted SERVER-SIDE ungated (not a toggle). */
+  moduleCompleted?: boolean;
+  /** This activity's completion finished the whole journey. Emitted SERVER-SIDE ungated (not a toggle). */
+  journeyCompleted?: boolean;
 }
 
 /** Toggleable payload fields when composing a practice signal. */

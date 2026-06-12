@@ -12,6 +12,7 @@ import {
   isBeat,
   isCard,
   isMoment,
+  isPractice,
   PracticePayload,
   PracticePayloadField,
 } from "../../api/threads/types";
@@ -35,7 +36,13 @@ export const getSignalIconBg = (signal?: Signal) => {
 
 export const getSignalGradient = (signal?: Signal): readonly [string, string, ...string[]] => {
   if (!signal) return ["#FFFFFF", "#FFFFFF"];
-  
+
+  // Completing a whole JOURNEY is a milestone — give the practice card the golden treatment.
+  // (Computed here, up front, so isColored/text colors derive correctly.)
+  if (isPractice(signal) && signal.payload.journeyCompleted) {
+    return ["#FFE082", "#FFCD4B"];
+  }
+
   // Milestones (beats that are not support) get a golden gradient
   if (isBeat(signal)) {
     const isSupport = signal.beatKind === "support_note" || signal.beatKind === "support_lifeline";
@@ -197,6 +204,7 @@ const SignalCard = ({
   let bodyText = "";
   let captionText = "";
   let dynamicContent: React.ReactNode = null;
+  let journeyRibbon: React.ReactNode = null; // practice-only: pack/module context line
   let canReact = false; // only practice + non-sensitive moment
 
   if (isMoment(signal)) {
@@ -283,14 +291,49 @@ const SignalCard = ({
   } else {
     canReact = true;
     const template = getPostTemplate(signal.templateId);
+    const p = signal.payload;
     statusText = "Practice";
     mainIcon = template.icon;
     watermarkIcon = "dumbbell"; // always dumbbell for practice
-    title = signal.payload.activityName ?? "Practice Session";
+    title = p.activityName ?? "Practice Session";
     captionText = signal.caption ?? "";
     const actLabel = template.label;
     subtitle = signal.authorIsMe ? `Practiced • ${actLabel}` : `${authorName} practiced • ${actLabel}`;
-    
+
+    // Journey (pack/module) context ribbon — names + progress, rendered above the
+    // effort stats (kept out of STAT_ORDER so it never double-renders).
+    const journeyBits: string[] = [];
+    if (p.journeyTitle) journeyBits.push(p.journeyTitle);
+    if (p.moduleTitle) journeyBits.push(p.moduleTitle);
+    if (p.journeyProgress) {
+      journeyBits.push(`${p.journeyProgress.moduleIndex} of ${p.journeyProgress.moduleTotal}`);
+    }
+    if (journeyBits.length > 0) {
+      journeyRibbon = (
+        <View style={styles.journeyRibbon}>
+          <MaterialCommunityIcons name="map-marker-path" size={13} color="#803600" />
+          <Text style={styles.journeyRibbonText} numberOfLines={1}>
+            {journeyBits.join("  ·  ")}
+          </Text>
+        </View>
+      );
+    }
+
+    // Completion milestones override the header/subtitle. journeyCompleted also recolors
+    // the card (golden) via getSignalGradient; journeyTitle may be toggled off, so fall back.
+    if (p.journeyCompleted) {
+      statusText = "Journey milestone";
+      subtitle = signal.authorIsMe
+        ? `Completed the ${p.journeyTitle ?? "journey"} 🎉`
+        : `${authorName} completed the ${p.journeyTitle ?? "journey"} 🎉`;
+    } else if (p.moduleCompleted) {
+      statusText = "Journey milestone";
+      const where = p.journeyTitle ? ` in ${p.journeyTitle}` : "";
+      subtitle = signal.authorIsMe
+        ? `Finished a module${where}`
+        : `${authorName} finished a module${where}`;
+    }
+
     const emphasized = template.emphasizes || [];
     const orderedFields: PracticePayloadField[] = [
       ...emphasized,
@@ -390,6 +433,8 @@ const SignalCard = ({
             {subtitle ? <Text style={[styles.subtitle, secondaryText]}>{subtitle}</Text> : null}
           </View>
         </View>
+
+        {journeyRibbon ? <View style={styles.journeyRibbonWrap}>{journeyRibbon}</View> : null}
 
         {bodyText ? <Text style={[styles.bodyParagraph, primaryText]}>{bodyText}</Text> : null}
         {captionText ? <Text style={[styles.caption, secondaryText]}>{captionText}</Text> : null}
@@ -624,6 +669,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
+  },
+
+  // Journey (pack/module) context ribbon
+  journeyRibbonWrap: { marginTop: 10 },
+  journeyRibbon: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    maxWidth: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+    backgroundColor: "rgba(128,54,0,0.08)",
+  },
+  journeyRibbonText: {
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#803600",
+    letterSpacing: 0.2,
   },
 
   // Dynamic content styles

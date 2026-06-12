@@ -68,6 +68,13 @@ const FIELD_LABELS: Record<PracticePayloadField, string> = {
   levelStageTitle: "Level",
   milestoneLabel: "Milestone",
   growthDelta: "Growth",
+  journeyTitle: "Journey",
+  moduleTitle: "Focus",
+  journeyProgress: "Progress",
+  // moduleCompleted/journeyCompleted are server-emitted milestone facts, never user
+  // toggles (absent from candidateFieldsFor). Labels exist only to satisfy the Record type.
+  moduleCompleted: "Module done",
+  journeyCompleted: "Journey done",
 };
 
 const PracticeComposer = () => {
@@ -135,7 +142,11 @@ const PracticeComposer = () => {
   useEffect(() => {
     if (!resolved) return;
     setIncludedFields(allCandidates.filter((f) => f !== "activityName" && hasValue(resolved, f)));
-  }, [resolved, allCandidates]);
+    // Finishing a module/journey is a milestone — lead with the milestone template.
+    if ((resolved.moduleCompleted || resolved.journeyCompleted) && offeredTemplates.includes("milestone")) {
+      setTemplateId("milestone");
+    }
+  }, [resolved, allCandidates, offeredTemplates]);
 
   const availableFields = useMemo(
     () => (resolved ? allCandidates.filter((f) => f !== "activityName" && hasValue(resolved, f)) : []),
@@ -150,6 +161,11 @@ const PracticeComposer = () => {
         if (f === "activityName") return;
         if (hasValue(resolved, f)) (base as any)[f] = (resolved as any)[f];
       });
+      // Completion flags are server-emitted ungated (never in includedFields), so copy
+      // them in explicitly — otherwise the preview wouldn't show the milestone treatment
+      // the posted (BE-built) card will.
+      if (resolved.moduleCompleted) base.moduleCompleted = true;
+      if (resolved.journeyCompleted) base.journeyCompleted = true;
     }
     return base;
   }, [resolved, includedFields, activityName, activityKind]);
@@ -198,6 +214,9 @@ const PracticeComposer = () => {
         activityKind,
         hasCaption: !!caption.trim(),
         includedFields,
+        isJourneyActivity: !!resolved?.journeyTitle,
+        moduleCompleted: !!resolved?.moduleCompleted,
+        journeyCompleted: !!resolved?.journeyCompleted,
       });
       params.onShared?.();
       navigation.goBack();
