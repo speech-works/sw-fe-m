@@ -48,6 +48,7 @@ const ProgressDetail = () => {
   const achievementsY = useRef<number>(0);
   const screenWidth = Dimensions.get("window").width;
   const HEADER_HEIGHT = 60;
+  const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(HEADER_HEIGHT + 60);
 
   const initialTab = route.params?.scrollTo === "achievements"
     ? "lifetime"
@@ -286,35 +287,37 @@ const ProgressDetail = () => {
       <BlurView
         intensity={80}
         tint="light"
+        onLayout={(e) => setDynamicHeaderHeight(e.nativeEvent.layout.height)}
         style={[
           styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          { paddingTop: insets.top + 10, paddingBottom: 16 },
         ]}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Progress Report</Text>
-        <View style={{ width: 32 }} />
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Progress Report</Text>
+          <View style={{ width: 32 }} />
+        </View>
+
+        <View style={{ marginTop: 16 }}>
+          <SegmentedTabs
+            tabs={[
+              { key: "weekly", label: "This Week", icon: "calendar-week" },
+              { key: "lifetime", label: "Lifetime", icon: "infinity" },
+            ]}
+            active={activeTab}
+            onChange={(k) => setActiveTab(k as ReportTimeframe)}
+            activeColor={theme.colors.actionPrimary.default}
+          />
+        </View>
       </BlurView>
 
       <View style={styles.container}>
-        <View style={{ paddingHorizontal: 16, paddingTop: HEADER_HEIGHT + insets.top + 16, paddingBottom: 16 }}>
-          <View style={{ marginBottom: 4 }}>
-            <SegmentedTabs
-              tabs={[
-                { key: "weekly", label: "This Week", icon: "calendar-week" },
-                { key: "lifetime", label: "Lifetime", icon: "infinity" },
-              ]}
-              active={activeTab}
-              onChange={(k) => setActiveTab(k as ReportTimeframe)}
-              activeColor={theme.colors.actionPrimary.default}
-            />
-          </View>
-        </View>
 
         <ScrollView
           ref={horizontalScrollRef}
@@ -330,7 +333,7 @@ const ProgressDetail = () => {
         >
           <View style={{ width: screenWidth }}>
             <ScrollView
-              contentContainerStyle={[styles.scrollView, { paddingTop: 0 }]}
+              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130 }]}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
@@ -348,7 +351,7 @@ const ProgressDetail = () => {
           <View style={{ width: screenWidth }}>
             <ScrollView
               ref={scrollRef}
-              contentContainerStyle={[styles.scrollView, { paddingTop: 0 }]}
+              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130 }]}
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
@@ -383,10 +386,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+    paddingHorizontal: 16,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
   },
   backButton: {
     width: 32,
