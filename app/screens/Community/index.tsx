@@ -282,6 +282,7 @@ const Community = () => {
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
+  const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(HEADER_HEIGHT + 60);
 
   // Sync state -> scroll
   useEffect(() => {
@@ -422,7 +423,8 @@ const Community = () => {
       <BlurView
         intensity={80}
         tint="light"
-        style={[styles.header, { paddingTop: insets.top + 20, height: HEADER_HEIGHT + insets.top }]}
+        onLayout={(e) => setDynamicHeaderHeight(e.nativeEvent.layout.height)}
+        style={[styles.header, { paddingTop: insets.top + 20, paddingBottom: 16 }]}
       >
         <Text style={styles.title}>Community</Text>
         <Text style={styles.subtitle}>
@@ -430,6 +432,18 @@ const Community = () => {
             ? `You & ${buddyFirstName} — keep it up together.`
             : "Practice sticks when someone's in it with you."}
         </Text>
+        {isPaired && (
+          <View style={{ marginTop: 16 }}>
+            <SegmentedTabs
+              tabs={[
+                { key: "us", label: "Us", icon: "account-multiple-outline" },
+                { key: "timeline", label: "Timeline", badge: unreadCount, icon: "history" },
+              ]}
+              active={view}
+              onChange={(k) => setView(k as "us" | "timeline")}
+            />
+          </View>
+        )}
       </BlurView>
     );
   };
@@ -785,17 +799,7 @@ const Community = () => {
             </PressableScale>
           </View>
         ) : isPaired ? (
-          <View style={{ flex: 1, paddingTop: HEADER_HEIGHT + insets.top + 12 }}>
-            <View style={styles.segmentWrap}>
-              <SegmentedTabs
-                tabs={[
-                  { key: "us", label: "Us", icon: "account-multiple-outline" },
-                  { key: "timeline", label: "Timeline", badge: unreadCount, icon: "history" },
-                ]}
-                active={view}
-                onChange={(k) => setView(k as "us" | "timeline")}
-              />
-            </View>
+          <View style={{ flex: 1 }}>
             <ScrollView
               ref={scrollViewRef}
               horizontal
@@ -810,7 +814,7 @@ const Community = () => {
             >
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130, flexGrow: 1 }]}
                   refreshControl={
                     <RefreshControl
                       refreshing={refreshing}
@@ -826,7 +830,7 @@ const Community = () => {
               </View>
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingTop: 12, paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130, flexGrow: 1 }]}
                   onEndReached={() => timelineRef.current?.loadMore()}
                   refreshControl={
                     <RefreshControl
@@ -864,7 +868,7 @@ const Community = () => {
           <CustomScrollView
             contentContainerStyle={[
               styles.scrollView,
-              { paddingTop: HEADER_HEIGHT + insets.top + 28, paddingBottom: 130 },
+              { paddingTop: dynamicHeaderHeight + 28, paddingBottom: 130 },
               { flexGrow: 1 },
             ]}
             refreshControl={
