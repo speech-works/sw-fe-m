@@ -17,6 +17,7 @@ interface SegmentedTabsProps {
   tabs: SegmentTab[];
   active: string;
   onChange: (key: string) => void;
+  activeColor?: string;
 }
 
 const C = {
@@ -29,7 +30,7 @@ const C = {
 };
 
 /** A modern pill + circle segmented control for Community top tabs. */
-const SegmentedTabs = ({ tabs, active, onChange }: SegmentedTabsProps) => (
+const SegmentedTabs = ({ tabs, active, onChange, activeColor }: SegmentedTabsProps) => (
   <View style={styles.track}>
     {tabs.map((t) => {
       const isActive = t.key === active;
@@ -41,6 +42,7 @@ const SegmentedTabs = ({ tabs, active, onChange }: SegmentedTabsProps) => (
           <PressableScale
             style={[
               isActive ? styles.activePill : styles.inactiveCircle,
+              isActive && activeColor ? { backgroundColor: activeColor } : undefined,
             ]}
             scaleTo={0.95}
             haptic={false}

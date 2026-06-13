@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,6 +34,7 @@ import LifetimeGrowthJourneyCard from "./components/LifetimeGrowthJourneyCard";
 import LifetimeJourneyCard from "./components/LifetimeJourneyCard";
 import MoodSummary, { MoodSummarySkeleton } from "./components/MoodSummary";
 import WeeklyGrowthCard from "./components/WeeklyGrowthCard";
+import SegmentedTabs from "../../../components/SegmentedTabs";
 
 type ReportTimeframe = "weekly" | "lifetime";
 
@@ -42,7 +44,9 @@ const ProgressDetail = () => {
   const route = useRoute<ExploreStackRouteProp<"ProgressDetail">>();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const horizontalScrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
+  const screenWidth = Dimensions.get("window").width;
   const HEADER_HEIGHT = 60;
 
   const initialTab = route.params?.scrollTo === "achievements"
@@ -120,6 +124,14 @@ const ProgressDetail = () => {
       return () => clearTimeout(timer);
     }
   }, [activeTab, lifetimeReport, navigation, route.params?.scrollTo]);
+
+  React.useEffect(() => {
+    if (activeTab === "weekly") {
+      horizontalScrollRef.current?.scrollTo({ x: 0, animated: true });
+    } else {
+      horizontalScrollRef.current?.scrollTo({ x: screenWidth, animated: true });
+    }
+  }, [activeTab, screenWidth]);
 
   const onRefresh = async () => {
     if (!user?.id) {
@@ -290,60 +302,66 @@ const ProgressDetail = () => {
       </BlurView>
 
       <View style={styles.container}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={[
-            styles.scrollView,
-            { paddingTop: HEADER_HEIGHT + insets.top + 16 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.actionPrimary.default}
-              colors={[theme.colors.actionPrimary.default]}
+        <View style={{ paddingHorizontal: 16, paddingTop: HEADER_HEIGHT + insets.top + 16, paddingBottom: 16 }}>
+          <View style={{ marginBottom: 4 }}>
+            <SegmentedTabs
+              tabs={[
+                { key: "weekly", label: "This Week", icon: "calendar-week" },
+                { key: "lifetime", label: "Lifetime", icon: "infinity" },
+              ]}
+              active={activeTab}
+              onChange={(k) => setActiveTab(k as ReportTimeframe)}
+              activeColor={theme.colors.actionPrimary.default}
             />
-          }
+          </View>
+        </View>
+
+        <ScrollView
+          ref={horizontalScrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => {
+            const offsetX = e.nativeEvent.contentOffset.x;
+            const pageIndex = Math.round(offsetX / screenWidth);
+            setActiveTab(pageIndex === 0 ? "weekly" : "lifetime");
+          }}
+          style={{ flex: 1 }}
         >
-          <View style={styles.tabRail}>
-            <TouchableOpacity
-              onPress={() => setActiveTab("weekly")}
-              activeOpacity={0.9}
-              style={[
-                styles.tabButton,
-                activeTab === "weekly" && styles.tabButtonActive,
-              ]}
+          <View style={{ width: screenWidth }}>
+            <ScrollView
+              contentContainerStyle={[styles.scrollView, { paddingTop: 0 }]}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.colors.actionPrimary.default}
+                  colors={[theme.colors.actionPrimary.default]}
+                />
+              }
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "weekly" && styles.tabTextActive,
-                ]}
-              >
-                This Week
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab("lifetime")}
-              activeOpacity={0.9}
-              style={[
-                styles.tabButton,
-                activeTab === "lifetime" && styles.tabButtonActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "lifetime" && styles.tabTextActive,
-                ]}
-              >
-                Lifetime
-              </Text>
-            </TouchableOpacity>
+              {renderWeekly()}
+            </ScrollView>
           </View>
 
-          {activeTab === "weekly" ? renderWeekly() : renderLifetime()}
+          <View style={{ width: screenWidth }}>
+            <ScrollView
+              ref={scrollRef}
+              contentContainerStyle={[styles.scrollView, { paddingTop: 0 }]}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.colors.actionPrimary.default}
+                  colors={[theme.colors.actionPrimary.default]}
+                />
+              }
+            >
+              {renderLifetime()}
+            </ScrollView>
+          </View>
         </ScrollView>
       </View>
     </ScreenView>
@@ -389,33 +407,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
-  },
-  tabRail: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.7)",
-    borderRadius: 18,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    marginBottom: 4,
-  },
-  tabButton: {
-    flex: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabButtonActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  tabText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    fontWeight: "700",
-  },
-  tabTextActive: {
-    color: "#FFF",
   },
   loadingFallback: {
     backgroundColor: "rgba(255,255,255,0.8)",
