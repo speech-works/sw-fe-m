@@ -27,7 +27,9 @@
     "build:android:production": "eas build -p android --profile production",
     "build:ios:production": "eas build -p ios --profile production",
     "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
@@ -100,6 +102,9 @@
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/uuid": "^10.0.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "~9.2.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "fallow": "^2.88.2",
     "patch-package": "^8.0.0",
     "reactotron-react-native": "^5.1.18",
