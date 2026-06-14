@@ -1,10 +1,9 @@
 import React, { useRef, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { theme } from "../../Theme/tokens";
 
 import {
   ReactionType,
@@ -18,7 +17,7 @@ import {
 } from "../../api/threads/types";
 import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
-import { REACTIONS, getReaction } from "../../constants/reactions";
+import { getReaction } from "../../constants/reactions";
 
 import ReactionPicker from "../ReactionPicker";
 import { AnimatedReaction } from "../AnimatedReactions";

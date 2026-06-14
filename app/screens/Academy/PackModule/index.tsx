@@ -29,7 +29,7 @@ import {
   getPackProgress,
   startModule,
 } from "../../../api/packs";
-import { ContentBlockType, Pack, PackModule, PackStatus } from "../../../api/packs/types";
+import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import { TactileTouchableOpacity } from "../../../components/TactileTouchableOpacity";

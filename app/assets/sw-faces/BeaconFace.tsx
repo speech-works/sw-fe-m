@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Pan, Spin, Trek, Path, Circle, Ellipse, Polygon, G, Line, SvgIconProps, Glow, BeatRotate } from "./faceKit";
 const BeaconFace = (props: SvgIconProps) => (
   <FaceShell bg="url(#sunrise)" {...props}>
     <Glow cx={24} cy={24} from={0.45} to={0.95} sc0={0.95} sc1={1.12} dur={2600}><Circle cx="24" cy="24" r="16" fill="#FFE082" /></Glow>

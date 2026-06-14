@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Path, Circle, Ellipse, SvgIconProps, OscScaleY, BeatRotate } from "./faceKit";
 const DogFace = (props: SvgIconProps) => (
   <FaceShell bg="#EFEBE9" {...props}><Head><BeatRotate deg={6} cx={24} cy={40} rest={3000}>
     <Ellipse cx="6" cy="24" rx="6" ry="12" fill="#8D6E63" transform="rotate(-10 6 24)" />

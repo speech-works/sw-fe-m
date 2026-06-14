@@ -1,10 +1,6 @@
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import {
-  AndroidAudioEncoder,
-  AndroidOutputFormat,
-  IOSAudioQuality,
-  IOSOutputFormat,
-} from "expo-av/build/Audio";
+
+
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 

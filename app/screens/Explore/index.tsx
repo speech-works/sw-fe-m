@@ -3,14 +3,10 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import React, {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import {
-  ActivityIndicator,
-  InteractionManager,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,23 +14,18 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import {
-  SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
-import BgPattern_404 from "../../assets/sw-bg/BgPattern_404";
-import ErrorFace from "../../assets/sw-faces/ErrorFace";
-import BottomSheetModal from "../../components/BottomSheetModal";
 import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { useEventStore } from "../../stores/events"; // Added missing import
-import { EVENT_NAMES } from "../../stores/events/constants"; // Added missing import
+// Added missing import
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
 import { theme } from "../../Theme/tokens";
 import { parseTextStyle } from "../../util/functions/parseStyles";
-import BuyPro from "../Settings/components/BuyPro";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";

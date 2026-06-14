@@ -3,7 +3,6 @@ import {
   Animated,
   StyleSheet,
   TouchableOpacity,
-  View,
 } from "react-native";
 import { theme } from "../Theme/tokens";
 import { parseShadowStyle } from "../util/functions/parseStyles";

@@ -1,12 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-import BottomSheetModal from "../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../components/CustomScrollView";
 import ScreenView from "../../../../components/ScreenView";
 import { theme } from "../../../../Theme/tokens";
@@ -14,9 +13,6 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
-import ContactSupport from "./ContactSupport";
-import Feedback from "./Feedback";
-import ReportProblem from "./ReportProblem";
 
 type SettingType =
   | "Report Problem"

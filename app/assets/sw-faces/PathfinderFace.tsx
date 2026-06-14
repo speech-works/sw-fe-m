@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Pan, Twinkle, Path, Ellipse, Polygon, SvgIconProps, BeatRotate } from "./faceKit";
 const PathfinderFace = (props: SvgIconProps) => (
   <FaceShell bg="url(#dawn)" {...props}>
     <Pan dur={25000}>

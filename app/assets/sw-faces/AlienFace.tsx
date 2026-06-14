@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Plate, Path, Circle, Ellipse, SvgIconProps, Scan, OscRotate } from "./faceKit";
 const AlienFace = (props: SvgIconProps) => (
   <FaceShell bg="#E8F5E9" {...props}><Head>
     <OscRotate deg={5} cx={24} cy={8} dur={2400}><Path d="M16 8 Q14 0 18 -2" stroke="#66BB6A" strokeWidth="3" fill="none" strokeLinecap="round" />

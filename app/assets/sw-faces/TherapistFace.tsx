@@ -12,7 +12,6 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, {
   Circle,
-  ClipPath,
   Defs,
   G,
   Mask,

@@ -24,7 +24,6 @@ import {
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
 import { theme } from "../../../../../../Theme/tokens";
 import { useUserStore } from "../../../../../../stores/user";
-import HardModeToggle from "../../../components/HardModeToggle";
 import {
   parseShadowStyle,
   parseTextStyle,

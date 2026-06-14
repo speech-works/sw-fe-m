@@ -2,13 +2,11 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   ScrollView,
-  Animated,
   LayoutAnimation,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,7 +16,6 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import BottomSheetModal from "../../../components/BottomSheetModal";
 import ScreenView from "../../../components/ScreenView";
 import {
-  type Reminder as ReminderType,
   useReminderStore,
 } from "../../../stores/reminders";
 import { theme } from "../../../Theme/tokens";

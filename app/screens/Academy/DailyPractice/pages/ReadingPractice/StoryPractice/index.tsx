@@ -12,9 +12,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";

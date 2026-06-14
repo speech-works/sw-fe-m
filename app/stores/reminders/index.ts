@@ -5,7 +5,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { ASYNC_KEYS_NAME } from "../../constants/asyncStorageKeys";
 import type { ReminderCategory } from "../../constants/reminderTemplates";
 import {
-  cancelAllNotifications,
   cancelReminderNotifications,
   scheduleOneTime,
   scheduleRoutine,

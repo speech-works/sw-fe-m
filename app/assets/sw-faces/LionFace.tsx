@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Path, Circle, Ellipse, Polygon, SvgIconProps, BeatRotate } from "./faceKit";
 const LionFace = (props: SvgIconProps) => (
   <FaceShell bg="#FFF59D" {...props}><Head><BeatRotate deg={-5} cx={24} cy={42} rest={5000}>
     <Circle cx="12" cy="12" r="8" fill="#5D4037" /><Circle cx="24" cy="8" r="9" fill="#5D4037" />

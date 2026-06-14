@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView, {
@@ -28,7 +27,6 @@ import {
   completePracticeActivity,
 } from "../../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
-import { createSession } from "../../../../../../../api/practiceSessions";
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import AudioPlaybackButton from "../../../../../../../components/AudioPlaybackButton";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
@@ -43,7 +41,6 @@ import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivity
 import DonePractice from "../../../../components/DonePractice";
 
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
-import HardModeToggle from "../../../../components/HardModeToggle";
 
 const CVExercise = () => {
   const navigation =

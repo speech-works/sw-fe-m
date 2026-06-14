@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";

@@ -1,11 +1,10 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState, useRef, useEffect } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions, Pressable } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 
 import ScreenView from "../../components/ScreenView";
 import PromptBottomSheet from "../../components/PromptBottomSheet";
@@ -13,7 +12,7 @@ import PressableScale from "../../components/PressableScale";
 import SegmentedTabs from "../../components/SegmentedTabs";
 import { theme } from "../../Theme/tokens";
 import { parseShadowStyle, parseTextStyle } from "../../util/functions/parseStyles";
-import { createMomentSignal, MomentId, MomentValence, Signal } from "../../api/threads";
+import { createMomentSignal, MomentId, MomentValence } from "../../api/threads";
 import { getMoment, momentsByValence } from "../../constants/momentMessages";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { track } from "../../util/analytics/postHog";

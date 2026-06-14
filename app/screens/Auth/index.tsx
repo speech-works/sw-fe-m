@@ -4,7 +4,6 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
   Linking,
   Platform,
   StyleSheet,
@@ -27,7 +26,6 @@ import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { handleOAuthCallback, loginUser } from "../../api";
-import speechworksLogo from "../../assets/speechworks_logo.png";
 import Button from "../../components/Button";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -38,7 +36,6 @@ import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { parseTextStyle } from "../../util/functions/parseStyles";
 import LoginBackground from "./components/LoginBackground";
-import Butterfly2Face from "../../assets/sw-faces/Butterfly2Face";
 
 // Define the providers to display
 const ALL_PROVIDERS = ["google", "facebook", "apple"];

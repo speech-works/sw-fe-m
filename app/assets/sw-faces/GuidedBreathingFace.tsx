@@ -4,8 +4,6 @@ import Animated, {
   Easing,
   useAnimatedProps,
   useSharedValue,
-  withDelay,
-  withRepeat,
   withSequence,
   withTiming,
   cancelAnimation,

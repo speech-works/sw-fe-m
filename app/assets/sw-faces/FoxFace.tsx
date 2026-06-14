@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Path, Circle, Ellipse, Polygon, HEAD, SvgIconProps, OscRotate } from "./faceKit";
 const FoxFace = (props: SvgIconProps) => (
   <FaceShell bg="#80CBC4" {...props}><Head>
     <OscRotate deg={4} cx={24} cy={13} dur={2600}><Polygon points="13,14 9,4 20,11" fill="#E65100" />

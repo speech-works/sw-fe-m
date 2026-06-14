@@ -15,7 +15,7 @@ import { MirrorBehaviorSignal } from "../types";
 // instead of crashing. Becomes fully functional after a native rebuild.
 let DeviceMotion: any = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   DeviceMotion = require("expo-sensors/build/DeviceMotion").default;
 } catch {
   DeviceMotion = null;

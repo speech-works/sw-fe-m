@@ -12,12 +12,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import AuthorFace from "../../../../../assets/sw-faces/AuthorFace";
-import ExplorerFace from "../../../../../assets/sw-faces/ExplorerFace";
 import PoetFace from "../../../../../assets/sw-faces/PoetFace";
 import StorytellerFace from "../../../../../assets/sw-faces/StorytellerFace";
-import WiseFace from "../../../../../assets/sw-faces/WiseFace";
-import ScienceFace from "../../../../../assets/sw-faces/ScienceFace";
-import LetterLFace from "../../../../../assets/sw-faces/LetterLFace";
 import LetterOFace from "../../../../../assets/sw-faces/LetterOFace";
 import GliderFace from "../../../../../assets/sw-faces/GliderFace";
 import ScreenView from "../../../../../components/ScreenView";

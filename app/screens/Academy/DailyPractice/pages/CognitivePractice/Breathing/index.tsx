@@ -33,9 +33,8 @@ import {
   abortPracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import Button from "../../../../../../components/Button";
-import CustomScrollView, {
+import {
   SHADOW_BUFFER,
 } from "../../../../../../components/CustomScrollView";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";

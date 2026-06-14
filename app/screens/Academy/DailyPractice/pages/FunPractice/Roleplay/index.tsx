@@ -25,7 +25,6 @@ import {
   FunPracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import { useUserStore } from "../../../../../../stores/user";
-import HardModeToggle from "../../../components/HardModeToggle";
 
 const Roleplay = () => {
   const navigation =

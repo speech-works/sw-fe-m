@@ -6,8 +6,6 @@ import {
   Animated,
   Easing,
   Image,
-  Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -30,7 +28,6 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../util/functions/parseStyles";
-import BuyPro from "./components/BuyPro";
 import FullProfile from "./components/FullProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 

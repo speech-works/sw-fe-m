@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Path, Polygon, Line, SvgIconProps, OscRotate } from "./faceKit";
 const CatFace = (props: SvgIconProps) => (
   <FaceShell bg="#FFF3E0" {...props}><Head>
     <Polygon points="8,16 4,4 18,10" fill="#FFB74D" />

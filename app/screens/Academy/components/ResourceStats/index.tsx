@@ -14,8 +14,6 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import { theme } from "../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
-import { ROUTE_NAMES } from "../../../../constants/routes";
 
 // Animated Bar Component
 const AnimatedBar = ({

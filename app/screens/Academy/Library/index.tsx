@@ -21,7 +21,6 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../Theme/tokens";
 import { parseTextStyle } from "../../../util/functions/parseStyles";
-import { ROUTE_NAMES } from "../../../constants/routes";
 
 import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -40,7 +39,6 @@ import { useUserStore } from "../../../stores/user";
 import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
 import LibrarySection from "./components/LibrarySection";
 import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
-import SkeletonLoader from "../../../components/SkeletonLoader";
 import { ActivityIndicator } from "react-native";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";

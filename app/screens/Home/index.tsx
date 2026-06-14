@@ -10,9 +10,6 @@ import {
   Text,
   View,
   InteractionManager,
-  DeviceEventEmitter,
-  ActivityIndicator,
-  Modal,
 } from "react-native";
 import {
   getTodayImpactAssessmentQuestions,

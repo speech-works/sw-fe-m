@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { createRecording } from "../api";
 import { RecordingSourceType } from "../api/recordings/types";
-import { getFileFromUri } from "../util/functions/fileHandling";
 
 export function useRecordedVoice(userId?: string) {
   const [voiceRecordingUri, setVoiceRecordingUriState] = useState<string | null>(null);

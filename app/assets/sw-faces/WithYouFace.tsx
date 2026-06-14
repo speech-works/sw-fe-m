@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import Animated, { useSharedValue, useAnimatedProps, withDelay, withRepeat, withSequence, withTiming, Easing, cancelAnimation } from "react-native-reanimated";
+import { useSharedValue, useAnimatedProps, withDelay, withRepeat, withSequence, withTiming, Easing, cancelAnimation } from "react-native-reanimated";
 import { LinearGradient, Stop } from "react-native-svg";
 import { FaceShell, Glow, SvgIconProps, Path, G, Rect, Circle, Defs, ClipPath, AnimatedG } from "./faceKit";
 

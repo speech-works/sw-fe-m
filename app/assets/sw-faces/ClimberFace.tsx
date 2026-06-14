@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Path, Circle, Ellipse, SvgIconProps, BeatRotate } from "./faceKit";
 const ClimberFace = (props: SvgIconProps) => (
   <FaceShell bg="#FFCCBC" {...props}><Head><BeatRotate deg={4} cx={24} cy={42} rest={3500}>
     <Plate c="#FFAB91" />

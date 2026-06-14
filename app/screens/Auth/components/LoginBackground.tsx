@@ -2,10 +2,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
 import { theme } from "../../../Theme/tokens";
-import Butterfly2Face from "../../../assets/sw-faces/Butterfly2Face";
-import SeveredConnectionFace from "../../../assets/sw-faces/SeveredConnectionFace";
-import ListenerFace from "../../../assets/sw-faces/ListenerFace";
-import SearchingFace from "../../../assets/sw-faces/SearchingFace";
 import VoidFace from "../../../assets/sw-faces/VoidFace";
 
 const { width, height } = Dimensions.get("window");

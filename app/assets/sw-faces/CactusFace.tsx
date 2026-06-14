@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Sway, Path, Circle, SvgIconProps, BeatScale } from "./faceKit";
 const CactusFace = (props: SvgIconProps) => (
   <FaceShell bg="#FFB74D" {...props}><Head><Sway cx={24} cy={46}>
     <Plate c="#81C784" />

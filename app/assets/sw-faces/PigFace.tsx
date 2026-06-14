@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Ellipse, Polygon, SvgIconProps, BeatScaleY } from "./faceKit";
 const PigFace = (props: SvgIconProps) => (
   <FaceShell bg="#EEEEEE" {...props}><Head>
     <Polygon points="12,18 4,14 16,10" fill="#F48FB1" />

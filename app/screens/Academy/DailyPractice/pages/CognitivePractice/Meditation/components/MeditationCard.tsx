@@ -4,7 +4,6 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import { CognitivePractice } from "../../../../../../../api/dailyPractice/types";
 import { theme } from "../../../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
     parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 

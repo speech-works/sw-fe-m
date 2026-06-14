@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Blink, Plate, Eye, Path, Circle, Ellipse, Rect, SvgIconProps, Buzz, Hover } from "./faceKit";
 const BeeFace = (props: SvgIconProps) => (
   <FaceShell bg="#90CAF9" {...props}><Head><Hover>
     <Buzz px={11} py={20}><Ellipse cx="6" cy="20" rx="5" ry="8" fill="#fff" opacity="0.8" transform="rotate(-20 6 20)" /></Buzz>

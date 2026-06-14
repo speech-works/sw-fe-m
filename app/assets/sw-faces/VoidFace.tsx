@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedProps,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -19,7 +18,6 @@ import Svg, {
   G,
   Line,
   Path,
-  Rect,
   SvgProps,
 } from "react-native-svg";
 

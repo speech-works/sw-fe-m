@@ -1,12 +1,8 @@
 // AudioRecorderControls.tsx
 import type { AVPlaybackStatus } from "expo-av";
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import {
-    AndroidAudioEncoder,
-    AndroidOutputFormat,
-    IOSAudioQuality,
-    IOSOutputFormat,
-} from "expo-av/build/Audio";
+
+
 import React, { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 
@@ -245,7 +241,7 @@ const AudioRecorderControls: React.FC<AudioRecorderControlsProps> = ({
       return;
     stopPlaybackRef.current = stopPlaybackSignal;
     stopPlayback();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [stopPlaybackSignal]);
 
   return null;

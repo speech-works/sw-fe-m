@@ -13,8 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
-import { createSession } from "../../../../../../../api/practiceSessions";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
   SCEDPStackNavigationProp,

@@ -5,7 +5,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import FaIcon from "react-native-vector-icons/FontAwesome5";
 import TherapistFace from "../assets/sw-faces/TherapistFace";
-import { theme } from "../Theme/tokens";
 
 interface Props {
   onPress: () => void;

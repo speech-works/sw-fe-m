@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, FlameDance, Glow, SvgIconProps, Path, G, Circle, Ellipse } from "./faceKit";
+import { FaceShell, FlameDance, Glow, SvgIconProps, Path, G, Circle } from "./faceKit";
 
 const CourageFace = (props: SvgIconProps) => (
   <FaceShell bg="#1C1C1E" {...props}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Head, Blink, Plate, Eye, Pan, Wind, Twinkle, Flicker, Shimmer, Spin, Sway, Flutter, Trek, Path, Circle, Ellipse, Polygon, Rect, G, Line, HEAD, SvgIconProps, Buzz, Hover, Scan, Float, Glow, Glitch, OscRotate, OscScaleY, BeatRotate, BeatScale, BeatScaleY, BeatTranslate } from "./faceKit";
+import { FaceShell, Head, Plate, Path, Circle, Rect, SvgIconProps, Scan, Glow, Glitch } from "./faceKit";
 const RobotFace = (props: SvgIconProps) => (
   <FaceShell bg="#E0F7FA" {...props}><Head>
     <Path d="M24 6 L24 0" stroke="#78909C" strokeWidth="3" strokeLinecap="round" />

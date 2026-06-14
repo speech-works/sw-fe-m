@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
@@ -27,7 +26,6 @@ import {
   getThread,
   previewPracticeSignal,
 } from "../../api/threads";
-import { POST_TEMPLATES } from "../../constants/postTemplates";
 import {
   candidateFieldsFor,
   defaultActivityNameForKind,

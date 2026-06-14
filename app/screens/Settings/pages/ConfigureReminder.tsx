@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
-  Alert,
   TextInput,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -21,13 +20,10 @@ import { theme } from "../../../Theme/tokens";
 import { parseTextStyle, parseShadowStyle } from "../../../util/functions/parseStyles";
 import { 
   useReminderStore, 
-  Reminder, 
   ReminderType as StoreReminderType 
 } from "../../../stores/reminders";
 import { 
-  ReminderCategory, 
-  REMINDER_TEMPLATES, 
-  CUSTOM_CATEGORY 
+  ReminderCategory 
 } from "../../../constants/reminderTemplates";
 import { requestNotificationPermissionWithFallback } from "../../../util/functions/notifications";
 import ScreenView from "../../../components/ScreenView";

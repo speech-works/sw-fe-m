@@ -14,16 +14,11 @@ import Animated, {
 import Svg, {
   Circle,
   Defs,
-  Ellipse,
   G,
-  Line,
   LinearGradient,
   Mask,
   Path,
-  Polygon,
   RadialGradient,
-  Rect,
-  ClipPath,
   SvgProps,
   Stop,
 } from "react-native-svg";

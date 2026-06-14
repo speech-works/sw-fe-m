@@ -1,5 +1,5 @@
 import React from "react";
-import { FaceShell, Float, TreeGrow, DayNightCycle, SvgIconProps, Path, G, Polygon, Ellipse, Circle } from "./faceKit";
+import { FaceShell, Float, DayNightCycle, SvgIconProps, Path, G, Polygon, Ellipse } from "./faceKit";
 
 const StrengthFace = (props: SvgIconProps) => (
   <FaceShell bg="transparent" {...props}>

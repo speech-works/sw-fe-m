@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";

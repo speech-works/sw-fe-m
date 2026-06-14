@@ -1,7 +1,6 @@
 // Redesigned Roleplay Briefing
 // FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   ScrollView,
@@ -11,7 +10,6 @@ import {
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import TherapistFace from "../../../../../../../assets/sw-faces/TherapistFace";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../../../components/ScreenView";
@@ -24,10 +22,9 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
-import HardModeToggle from "../../../../components/HardModeToggle";
 
 import { getExposurePracticeById, getFunPracticeById } from "../../../../../../../api/dailyPractice";
-import { ExposurePractice, FunPractice, RolePlayData } from "../../../../../../../api/dailyPractice/types";
+import { RolePlayData } from "../../../../../../../api/dailyPractice/types";
 
 import { useUserStore } from "../../../../../../../stores/user";
 

@@ -41,7 +41,6 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import MeditationFace from "../../../../../../assets/sw-faces/MeditationFace";
-import TherapistFace from "../../../../../../assets/sw-faces/TherapistFace";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
 import { useUserStore } from "../../../../../../stores/user";

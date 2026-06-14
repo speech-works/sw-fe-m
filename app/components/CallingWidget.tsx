@@ -28,10 +28,8 @@ import DeviceInfo from "react-native-device-info";
 
 import * as SecureStore from "expo-secure-store";
 import * as Localization from "expo-localization";
-import {
-  GestureHandlerRootView,
-  PanGestureHandler,
-} from "react-native-gesture-handler";
+
+
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
 import { theme } from "../Theme/tokens";

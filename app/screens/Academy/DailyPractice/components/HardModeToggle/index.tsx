@@ -1,13 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View, ViewStyle, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
 import AnimatedToggle from "../../../../../components/AnimatedToggle";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 interface HardModeToggleProps {
   value: boolean;
