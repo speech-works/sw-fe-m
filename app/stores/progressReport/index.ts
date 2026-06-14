@@ -81,7 +81,10 @@ export const useProgressReportStore = create<ProgressReportState>()(
           });
         }
 
-        let request: Promise<void>;
+        // `!` definite-assignment assertion: `request` is referenced inside the
+        // async IIFE (for in-flight dedup) which tsc can't prove is assigned-first,
+        // but the reference only runs after an `await`, by when assignment is done.
+        let request!: Promise<void>;
         request = (async () => {
           set((state) => ({
             ownerUserId: userId,

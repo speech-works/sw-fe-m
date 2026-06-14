@@ -14,7 +14,6 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { theme } from "../Theme/tokens";
@@ -36,7 +35,6 @@ const CustomTabBar = ({
   const focusedDescriptor = descriptors[focusedRoute.key];
   const focusedOptions = focusedDescriptor.options;
 
-  // @ts-ignore
   if ((focusedOptions.tabBarStyle as any)?.display === "none") {
     return null;
   }

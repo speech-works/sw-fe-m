@@ -267,6 +267,12 @@ const styles = StyleSheet.create({
 
 const UpsellModal = () => {
   // Hidden while monetization is dormant — no upsell prompts until billing ships.
+  // NOTE: `PAYMENTS_ENABLED` is a compile-time constant `false`, so this guard
+  // ALWAYS returns before any hook below runs — hook order is trivially stable and
+  // there is no rules-of-hooks hazard (the lint warnings on the hooks below are
+  // benign for this dormant component). TODO(payments): when billing ships, move
+  // this guard BELOW all hooks (and add `if (!PAYMENTS_ENABLED) return;` inside each
+  // effect) so the hooks run unconditionally and rules-of-hooks is satisfied.
   if (!PAYMENTS_ENABLED) return null;
 
   const insets = useSafeAreaInsets();

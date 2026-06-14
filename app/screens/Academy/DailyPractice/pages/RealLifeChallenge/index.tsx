@@ -236,7 +236,7 @@ const RealLifeChallenge = () => {
         navigation.goBack();
       } else {
         // Fallback if we can't pop (shouldn't happen in normal flow but good safety)
-        // @ts-ignore
+        // @ts-expect-error — PackModule param list isn't propagated to this screen's nav prop
         navigation.navigate("PackModule", {
           packId: packContext.packId,
           moduleId: packContext.moduleId,

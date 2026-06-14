@@ -140,7 +140,7 @@ const MoodCheckPopup = () => {
   const handleSelectMood = (mood: MoodType) => {
     setVisible(false);
     setPopupShown();
-    // @ts-ignore
+    // @ts-expect-error — nested navigator param types aren't propagated to this screen's nav prop
     exploreNavigation.navigate("ExploreStack", {
       screen: "MoodCheckStack",
       params: {

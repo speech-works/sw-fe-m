@@ -9,11 +9,8 @@ import {
   ExploreStackParamList,
 } from "../../../navigators/stacks/ExploreStack/types";
 import { useMoodCheckStore } from "../../../stores/mood";
-import { theme } from "../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
+
+
 
 interface Props {
   style?: any;
@@ -31,7 +28,7 @@ const MoodCheckBanner = ({ style }: Props) => {
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => {
-          // @ts-ignore
+          // @ts-expect-error — nested navigator param types aren't propagated to this screen's nav prop
           exploreNavigation.navigate("ExploreStack", {
             screen: "MoodCheckStack",
             params: {

@@ -422,65 +422,6 @@ const FollowUp = () => {
             from: "MOOD_CHECK",
           },
         };
-      case "FUN_PRACTICE":
-        return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                { backgroundColor: theme.colors.library.pink[100] },
-              ]}
-            >
-              <Icon
-                solid
-                name="laugh-beam"
-                size={20}
-                color={theme.colors.library.pink[400]}
-              />
-            </View>
-          ),
-          action: "TwisterExercise",
-          colors: [
-            theme.colors.library.pink[400],
-            theme.colors.library.pink[600],
-          ] as const,
-          params: { id: rec.id, from: "MOOD_CHECK" },
-        };
-      case "READING_PRACTICE":
-        return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                { backgroundColor: theme.colors.library.blue[100] },
-              ]}
-            >
-              <Icon
-                solid
-                name={
-                  rec.activityType === "POEM"
-                    ? "feather-alt"
-                    : rec.activityType === "QUOTE"
-                    ? "quote-left"
-                    : "book-open"
-                }
-                size={20}
-                color={theme.colors.library.blue[400]}
-              />
-            </View>
-          ),
-          action:
-            rec.activityType === "POEM"
-              ? "PoemPractice"
-              : rec.activityType === "QUOTE"
-              ? "QuotePractice"
-              : "StoryPractice",
-          colors: [
-            theme.colors.library.blue[400],
-            theme.colors.library.blue[600],
-          ] as const,
-          params: { id: rec.id, from: "MOOD_CHECK" },
-        };
       default:
         return {
           icon: (
