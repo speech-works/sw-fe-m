@@ -228,7 +228,6 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
               style={styles.saveButtonGradient}
             >
               <Text style={styles.saveButtonText}>Save Changes</Text>
-              <Icon name="check" size={16} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
 
@@ -346,7 +345,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   saveButtonWrapper: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: "hidden",
     ...parseShadowStyle(theme.shadow.elevation2),
   },
@@ -354,7 +353,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    minHeight: 52,
     gap: 8,
   },
   saveButtonText: {
