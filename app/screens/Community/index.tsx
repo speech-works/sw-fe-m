@@ -300,6 +300,7 @@ const Community = () => {
       const data = await getMyBuddy();
       setSummary(data);
       if (data.link?.status === "active") {
+        useInboxStore.getState().setHasBuddy(true);
         try {
           const t = await getThread();
           setThread(t);
@@ -328,6 +329,7 @@ const Community = () => {
           setTeam(null);
         }
       } else {
+        useInboxStore.getState().setHasBuddy(false);
         setThread(null);
         setMyStage(null);
         setReport(null);

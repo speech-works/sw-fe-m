@@ -30,6 +30,7 @@ const CustomTabBar = ({
 }: BottomTabBarProps) => {
   const { isTabBarVisible } = useUIStore();
   const unreadCount = useInboxStore((s) => s.unreadCount);
+  const hasBuddy = useInboxStore((s) => s.hasBuddy);
 
   const focusedRoute = state.routes[state.index];
   const focusedDescriptor = descriptors[focusedRoute.key];
@@ -86,7 +87,7 @@ const CustomTabBar = ({
           else if (routeName === ROUTE_NAMES.EXPLORE)
             iconName = "view-grid-outline";
           else if (routeName === ROUTE_NAMES.COMMUNITY)
-            iconName = "account-group";
+            iconName = hasBuddy === false ? "account-plus" : "account-group";
           else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
 
           // Color mapping
@@ -94,7 +95,6 @@ const CustomTabBar = ({
           let activeContentColor = "#FFFFFF";
 
           const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
-
           return (
             <TabItem
               key={route.key}
