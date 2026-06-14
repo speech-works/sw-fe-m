@@ -12,6 +12,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TextInput,
   TextStyle,
   TouchableOpacity,
   View,
@@ -47,6 +48,7 @@ import {
   getMyBuddy,
   leaveBuddy,
   setReportConsent,
+  attachInviteCode,
 } from "../../api/buddies";
 import { Signal, Thread, getThread } from "../../api/threads";
 import { getLevelStage, LevelStage } from "../../api/users";
@@ -279,6 +281,8 @@ const Community = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
+  const [buddyCode, setBuddyCode] = useState("");
+  const [submittingCode, setSubmittingCode] = useState(false);
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -377,6 +381,19 @@ const Community = () => {
     const shared = await shareBuddyInvite(summary.referralCode);
     if (shared) {
       track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community" });
+    }
+  };
+
+  const handleSubmitCode = async () => {
+    if (!buddyCode.trim()) return;
+    setSubmittingCode(true);
+    try {
+      await attachInviteCode(buddyCode.trim().toUpperCase());
+      await load();
+    } catch (e: any) {
+      Alert.alert("Invalid Code", e.response?.data?.message || "Please check the code and try again.");
+    } finally {
+      setSubmittingCode(false);
     }
   };
 
@@ -523,6 +540,32 @@ const Community = () => {
           >
             <Text style={styles.sharePillText}>Invite my buddy</Text>
           </PressableScale>
+
+          <View style={styles.dividerBox}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.inputBox}>
+            <TextInput
+              style={styles.codeInput}
+              placeholder="Enter invite code"
+              placeholderTextColor="#94A3B8"
+              value={buddyCode}
+              onChangeText={setBuddyCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={10}
+            />
+            <PressableScale
+              onPress={handleSubmitCode}
+              disabled={submittingCode || !buddyCode.trim()}
+              style={[styles.submitCodeBtn, (!buddyCode.trim() || submittingCode) && { opacity: 0.5 }]}
+            >
+              {submittingCode ? <ActivityIndicator color="#FFF" size="small" /> : <MaterialCommunityIcons name="arrow-right-thick" size={20} color="#FFF" />}
+            </PressableScale>
+          </View>
         </View>
       </View>
     </View>
@@ -1499,4 +1542,52 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
+
+  dividerBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#F1F5F9",
+  },
+  dividerText: {
+    marginHorizontal: 14,
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#94A3B8",
+    letterSpacing: 1,
+  },
+  inputBox: {
+    flexDirection: "row",
+    width: "100%",
+    height: 58,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    paddingHorizontal: 6,
+    alignItems: "center",
+  },
+  codeInput: {
+    flex: 1,
+    height: "100%",
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontWeight: "800",
+    color: theme.colors.text.title,
+    letterSpacing: 1,
+  },
+  submitCodeBtn: {
+    height: 46,
+    width: 46,
+    backgroundColor: C.orange500,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
 });
