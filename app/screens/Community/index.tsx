@@ -389,6 +389,8 @@ const Community = () => {
     setSubmittingCode(true);
     try {
       await attachInviteCode(buddyCode.trim().toUpperCase());
+      setBuddyCode("");
+      track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community_redeem" });
       await load();
     } catch (e: any) {
       Alert.alert("Invalid Code", e.response?.data?.message || "Please check the code and try again.");
