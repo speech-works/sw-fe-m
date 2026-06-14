@@ -19,8 +19,7 @@ import {
 import { getAllSessionsOfUser } from "../../api";
 import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
-import { useEventStore } from "../../stores/events"; // Added missing import
-// Added missing import
+import { useEventStore } from "../../stores/events";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
