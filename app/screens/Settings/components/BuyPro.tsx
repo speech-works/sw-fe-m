@@ -14,12 +14,16 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
+import { PAYMENTS_ENABLED } from "../../../constants/features";
 
 interface BuyProProps {
   onLayoutCapture?: (event: any) => void;
 }
 
 const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
+  // Hidden while monetization is dormant (no in-app billing wired yet).
+  if (!PAYMENTS_ENABLED) return null;
+
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
   type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
   type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;

@@ -1,5 +1,10 @@
 import Constants from "expo-constants";
 
+// Dormant monetization switch. Kept false until billing is reconnected via
+// Apple In-App Purchase (StoreKit) + Google Play Billing — NOT a third-party web
+// processor (those are disallowed for digital goods on both stores). While
+// false, all premium UI (paywall CTA, BuyPro card, upsell modals) is hidden.
+// TODO(payments): wire IAP / Play Billing, then flip this on.
 export const PAYMENTS_ENABLED =
   String(Constants.expoConfig?.extra?.PAYMENTS_ENABLED ?? "false").toLowerCase() ===
   "true";

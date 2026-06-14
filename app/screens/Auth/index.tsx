@@ -220,23 +220,24 @@ const LoginScreen = () => {
     console.log("[OAuth 5] processAuthRedirect called with URL:", url);
 
     const queryString = url.split("?")[1] ?? "";
-    const fragmentString = url.includes("#") ? url.split("#")[1] : "";
-    console.log("[OAuth 5] Query string:", queryString);
-    console.log("[OAuth 5] Fragment:", fragmentString);
+
+    // Security: the query/fragment carry the OAuth authorization code — never
+    // log their raw values (and never embed them in thrown errors, which now
+    // flow to Sentry).
+    console.log("[OAuth 5] Received auth-callback redirect");
 
     const params = new URLSearchParams(queryString);
     let code = params.get("code");
-    console.log("[OAuth 5] code param:", code);
 
-    if (!code) throw new Error(`No 'code' in OAuth redirect. Full URL: ${url}`);
+    if (!code) throw new Error("No 'code' found in OAuth redirect.");
 
     // Strip any trailing '#' fragment captured by URLSearchParams
     code = code.replace(/#.*$/, "");
-    console.log("[OAuth 5] code (trimmed):", code);
+    console.log("[OAuth 5] Authorization code received");
 
     console.log("[OAuth 6] Calling handleOAuthCallback...");
     const { user, appJwt, refreshToken } = await handleOAuthCallback(code);
-    console.log("[OAuth 6] ✅ Got appJwt for user:", user?.email ?? user?.id);
+    console.log("[OAuth 6] ✅ Authenticated user:", user?.id ?? "(unknown)");
 
     await SecureStore.setItemAsync(SECURE_KEYS_NAME.SW_APP_JWT_KEY, appJwt);
     await SecureStore.setItemAsync(

@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -19,6 +20,8 @@ import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
 import { useUserStore } from "../../../stores/user";
+import { useAnalyticsConsentStore } from "../../../stores/analyticsConsent";
+import { applyAnalyticsConsent } from "../../../util/analytics/postHog";
 import { theme } from "../../../Theme/tokens";
 import {
   parseShadowStyle,
@@ -33,6 +36,8 @@ const Preferences = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<SettingsStackNavigationProp<"Preferences">>();
   const { user } = useUserStore();
+  const analyticsOn = useAnalyticsConsentStore((s) => s.enabled);
+  const setAnalyticsOn = useAnalyticsConsentStore((s) => s.setEnabled);
   const [targetMins, setTargetMins] = useState(15);
   const [taskCount, setTaskCount] = useState(3);
   const [selectedGoalType, setSelectedGoalType] = useState("");
@@ -172,6 +177,44 @@ const Preferences = () => {
                 {index < prefItems.length - 1 && <View style={styles.divider} />}
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Privacy */}
+          <View style={styles.listContainer}>
+            <View style={styles.listItem}>
+              <View
+                style={[
+                  styles.listIconContainer,
+                  { backgroundColor: "#F0FDF4" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="chart-line"
+                  size={22}
+                  color="#16A34A"
+                />
+              </View>
+              <View style={styles.listTextContainer}>
+                <Text style={styles.listItemText}>
+                  Share anonymous analytics
+                </Text>
+                <Text style={styles.listItemDesc}>
+                  Helps us improve the app. Never your voice or personal details.
+                </Text>
+              </View>
+              <Switch
+                value={analyticsOn}
+                onValueChange={(v) => {
+                  setAnalyticsOn(v);
+                  applyAnalyticsConsent(v);
+                }}
+                accessibilityLabel="Share anonymous analytics"
+                trackColor={{
+                  true: theme.colors.actionPrimary.default,
+                  false: "#CBD5E1",
+                }}
+              />
+            </View>
           </View>
         </CustomScrollView>
       </View>

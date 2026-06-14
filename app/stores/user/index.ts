@@ -247,8 +247,21 @@ export const useUserStore = create<UserState>()(
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_USER, // a unique name for the storage
       storage: createJSONStorage(() => AsyncStorage),
-      // To blacklist certain fields:
-      // partialize: (state) => ({ user: state.user }),
+      // Privacy: keep the most sensitive PII out of at-rest storage. These
+      // fields are re-hydrated from /users/me via fetchUser() on launch.
+      // name/email/avatar are kept for immediate (offline) UI and live in the
+      // app's private sandbox. (`undefined` values are dropped by JSON.stringify.)
+      partialize: (state) => ({
+        user: state.user
+          ? ({
+              ...state.user,
+              phoneNumber: undefined,
+              dob: undefined,
+              bio: undefined,
+              links: undefined,
+            } as User)
+          : null,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state && state.user) {
           state.user = reviveDatesInObject(state.user) as User | null;

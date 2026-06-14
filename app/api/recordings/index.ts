@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system";
 import axiosClient from "../axiosClient";
 import { generateUploadUrl } from "../file-handling";
 
@@ -67,7 +68,7 @@ export async function createRecording(
     const mimeType = "audio/mp4";
 
     console.log(`[createRecording] Requesting upload URL for: ${fileName}`);
-    const uploadUrl = await generateUploadUrl(
+    const { uploadUrl, objectKey } = await generateUploadUrl(
       fileName,
       mimeType,
       "sw-voice-recording",
@@ -87,7 +88,19 @@ export async function createRecording(
       "[createRecording] S3 upload successful. Creating DB record...",
     );
 
-    const audioUrlKey = fileName;
+    // Privacy/retention: remove the local temp recording once it is safely in
+    // cloud storage, so voice files don't linger in the device cache.
+    try {
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    } catch (cleanupError) {
+      console.warn(
+        "[createRecording] Failed to delete local temp recording:",
+        cleanupError,
+      );
+    }
+
+    // Use the backend-derived, user-scoped key (NOT the client filename).
+    const audioUrlKey = objectKey;
 
     const requestBody: CreateRecordingPayload = {
       userId,

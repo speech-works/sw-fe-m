@@ -26,6 +26,8 @@ import {
   PhoneCallEDPStackRouteProp,
 } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/ExposureStack/PhoneCallStack/types";
 import { useUserStore } from "../../../../../../stores/user";
+import { useAICallConsentStore } from "../../../../../../stores/aiCallConsent";
+import AICallConsentModal from "../../../../../../components/AICallConsentModal";
 import { theme } from "../../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
@@ -51,6 +53,21 @@ const PhoneCall = () => {
   const { user } = useUserStore();
   const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
+
+  // One-time disclosure before the first AI conversation (voice is streamed to
+  // a third-party AI partner). Hydration-guarded to avoid a flash for users who
+  // have already acknowledged it.
+  const aiConsented = useAICallConsentStore((s) => s.consented);
+  const markAICallConsented = useAICallConsentStore((s) => s.markConsented);
+  const [consentHydrated, setConsentHydrated] = useState(
+    useAICallConsentStore.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    const unsub = useAICallConsentStore.persist.onFinishHydration(() =>
+      setConsentHydrated(true),
+    );
+    return unsub;
+  }, []);
 
   // Extract packContext from route params (if available) - requires casting as it might not be in the type def yet
   const route = useRoute<PhoneCallEDPStackRouteProp<"PhoneCallScreen">>();
@@ -299,6 +316,8 @@ const PhoneCall = () => {
                 : navigation.goBack()
             }
             style={styles.backButtonGlass}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Icon name="chevron-left" size={14} color="#FFFFFF" />
           </TouchableOpacity>
@@ -428,6 +447,11 @@ const PhoneCall = () => {
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+      />
+
+      <AICallConsentModal
+        visible={consentHydrated && !aiConsented}
+        onAcknowledge={markAICallConsented}
       />
     </>
   );

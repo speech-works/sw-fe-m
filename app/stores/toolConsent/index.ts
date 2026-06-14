@@ -15,6 +15,8 @@ interface ToolConsentState {
   consented: Partial<Record<ToolType, boolean>>;
   hasConsented: (tool: ToolType) => boolean;
   markConsented: (tool: ToolType) => void;
+  /** Clears all tool consent (used when wiping user state on logout). */
+  reset: () => void;
 }
 
 export const useToolConsentStore = create<ToolConsentState>()(
@@ -26,6 +28,7 @@ export const useToolConsentStore = create<ToolConsentState>()(
         set((state) => ({
           consented: { ...state.consented, [tool]: true },
         })),
+      reset: () => set({ consented: {} }),
     }),
     {
       name: ASYNC_KEYS_NAME.SW_ZSTORE_TOOL_CONSENT,

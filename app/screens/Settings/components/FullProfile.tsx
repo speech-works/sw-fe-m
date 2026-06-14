@@ -19,6 +19,7 @@ import {
   parseTextStyle,
 } from "../../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
+import { toSafeExternalUrl } from "../../../util/functions/url";
 import EditProfile from "./EditProfile";
 import EditProfileFace from "../../../assets/sw-faces/EditProfileFace";
 
@@ -198,13 +199,15 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
                   <TouchableOpacity
                     style={styles.socialItem}
                     onPress={() => {
-                      const link = user?.links?.social.facebook;
-                      if (!link)
+                      const safe = toSafeExternalUrl(
+                        user?.links?.social.facebook,
+                      );
+                      if (!safe)
                         return showErrorBottomSheet(
                           "Can't open Facebook",
-                          "No link provided",
+                          "No valid link provided",
                         );
-                      Linking.openURL(link).catch(console.error);
+                      Linking.openURL(safe).catch(console.error);
                     }}
                   >
                     <View
@@ -222,13 +225,15 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
                   <TouchableOpacity
                     style={styles.socialItem}
                     onPress={() => {
-                      const link = user?.links?.social.instagram;
-                      if (!link)
+                      const safe = toSafeExternalUrl(
+                        user?.links?.social.instagram,
+                      );
+                      if (!safe)
                         return showErrorBottomSheet(
                           "Can't open Instagram",
-                          "No link provided",
+                          "No valid link provided",
                         );
-                      Linking.openURL(link).catch(console.error);
+                      Linking.openURL(safe).catch(console.error);
                     }}
                   >
                     <View
@@ -246,13 +251,15 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
                   <TouchableOpacity
                     style={styles.socialItem}
                     onPress={() => {
-                      const link = user?.links?.social.whatsapp;
-                      if (!link)
+                      const safe = toSafeExternalUrl(
+                        user?.links?.social.whatsapp,
+                      );
+                      if (!safe)
                         return showErrorBottomSheet(
                           "Can't open Whatsapp",
-                          "No link provided",
+                          "No valid link provided",
                         );
-                      Linking.openURL(link).catch(console.error);
+                      Linking.openURL(safe).catch(console.error);
                     }}
                   >
                     <View

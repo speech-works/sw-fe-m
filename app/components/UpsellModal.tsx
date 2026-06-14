@@ -13,6 +13,7 @@ import { EVENT_NAMES } from "../stores/events/constants";
 import { theme } from "../Theme/tokens";
 import { parseShadowStyle } from "../util/functions/parseStyles";
 import { navigationRef } from "../util/functions/navigation";
+import { PAYMENTS_ENABLED } from "../constants/features";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Animated, {
@@ -265,6 +266,9 @@ const styles = StyleSheet.create({
 });
 
 const UpsellModal = () => {
+  // Hidden while monetization is dormant — no upsell prompts until billing ships.
+  if (!PAYMENTS_ENABLED) return null;
+
   const insets = useSafeAreaInsets();
   const { events, clear } = useEventStore();
   const [modalVisible, setModalVisible] = useState(false);

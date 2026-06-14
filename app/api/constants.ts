@@ -65,7 +65,6 @@ const getApiBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-export const X_APP_SECRET = runtimeExtra.X_APP_SECRET;
 export const WS_BASE_URL = API_BASE_URL
   ? (() => {
       try {

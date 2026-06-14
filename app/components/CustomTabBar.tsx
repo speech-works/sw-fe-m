@@ -229,6 +229,9 @@ const TabItem = ({
         onLongPress={onLongPress}
         activeOpacity={0.7}
         style={styles.touchable}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isFocused }}
+        accessibilityLabel={badge > 0 ? `${label}, ${badge} unread` : label}
       >
         <Animated.View style={pillStyle}>
           <View

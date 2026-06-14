@@ -63,7 +63,11 @@ export function useSpeechDetection() {
   };
 
   const stopListening = () => {
-    ExpoSpeechRecognitionModule.stop();
+    try {
+      ExpoSpeechRecognitionModule.stop();
+    } catch (err) {
+      console.warn('[useSpeechDetection] stop failed:', err);
+    }
   };
 
   useEffect(() => {
@@ -71,8 +75,14 @@ export function useSpeechDetection() {
       setHasPermission(result.granted);
     });
 
+    // Always release the mic when the screen unmounts — even if the recognizer
+    // is mid-session or in an error state — so it never stays open.
     return () => {
-      ExpoSpeechRecognitionModule.abort();
+      try {
+        ExpoSpeechRecognitionModule.abort();
+      } catch (err) {
+        console.warn('[useSpeechDetection] abort failed:', err);
+      }
     };
   }, []);
 

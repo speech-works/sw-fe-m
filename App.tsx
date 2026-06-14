@@ -8,6 +8,7 @@ import UpsellModal from "./app/components/UpsellModal";
 import OutcomeModal from "./app/components/OutcomeModal";
 import StaminaVignetteOverlay from "./app/components/StaminaVignetteOverlay";
 import GlobalStaminaController from "./app/components/GlobalStaminaController";
+import ErrorFallback from "./app/components/ErrorFallback";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
@@ -27,11 +28,54 @@ import {
 } from "./app/util/functions/notifications";
 import { getThread } from "./app/api/threads";
 import { useInboxStore } from "./app/stores/inbox";
-import { initAnalytics, trackScreen } from "./app/util/analytics/postHog";
+import {
+  applyAnalyticsConsent,
+  initAnalytics,
+  trackScreen,
+} from "./app/util/analytics/postHog";
+import { useAnalyticsConsentStore } from "./app/stores/analyticsConsent";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ASYNC_KEYS_NAME } from "./app/constants/asyncStorageKeys";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn:
+    process.env.EXPO_PUBLIC_SENTRY_DSN ??
+    "https://a959449fa17ed277c31d96ebb9ad2523@o4511563148361728.ingest.de.sentry.io/4511563163959376",
+
+  // Only report from release builds — avoids dev noise and dev-machine data.
+  enabled: !__DEV__,
+
+  // Privacy: health-adjacent app — never attach IP / cookies / raw PII. We do
+  // not call Sentry.setUser, so events carry no user identity, voice, or
+  // transcripts.
+  sendDefaultPii: false,
+
+  // Structured logs.
+  enableLogs: true,
+
+  // Keep performance tracing light, and only inject tracing headers into our
+  // own API.
+  tracesSampleRate: 0.2,
+  tracePropagationTargets: [/api\.speechworks\.in/],
+
+  // Defense-in-depth: scrub auth/secret headers from HTTP breadcrumbs so a
+  // captured event can never carry the JWT.
+  beforeBreadcrumb(breadcrumb) {
+    const headers = (breadcrumb?.data as Record<string, any> | undefined)
+      ?.headers;
+    if (headers && typeof headers === "object") {
+      for (const key of Object.keys(headers)) {
+        if (/authorization|cookie|token/i.test(key)) {
+          headers[key] = "[redacted]";
+        }
+      }
+    }
+    return breadcrumb;
+  },
+});
 
 if (__DEV__) {
   require("./ReactotronConfig");
@@ -43,6 +87,15 @@ WebBrowser.maybeCompleteAuthSession();
 // Initialize PostHog once at module scope before any component renders.
 // Disabled automatically in __DEV__ mode (see initAnalytics).
 const posthogClient = initAnalytics();
+
+// Reflect the persisted analytics opt-out onto PostHog once the consent store
+// hydrates (and immediately if it already has).
+const applyAnalyticsConsentFromStore = () =>
+  applyAnalyticsConsent(useAnalyticsConsentStore.getState().enabled);
+if (useAnalyticsConsentStore.persist.hasHydrated()) {
+  applyAnalyticsConsentFromStore();
+}
+useAnalyticsConsentStore.persist.onFinishHydration(applyAnalyticsConsentFromStore);
 
 // Bug Fix #3: Debounce guard for AppState-triggered fetchUser() calls.
 // Android foregrounds apps more aggressively than iOS (screen-on events,
@@ -171,7 +224,10 @@ const App: React.FC = () => {
   // if (!ready) return <LoadingScreen />;
 
   return (
-    <PostHogProvider client={posthogClient} autocapture={false}>
+    <Sentry.ErrorBoundary
+      fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}
+    >
+      <PostHogProvider client={posthogClient} autocapture={false}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
           <SafeAreaProvider style={{ flex: 1 }}>
@@ -199,11 +255,12 @@ const App: React.FC = () => {
           </SafeAreaProvider>
         </AuthProvider>
       </GestureHandlerRootView>
-    </PostHogProvider>
+      </PostHogProvider>
+    </Sentry.ErrorBoundary>
   );
 };
 
-export default App;
+export default Sentry.wrap(App);
 
 const styles = StyleSheet.create({
   safeAreaView: {

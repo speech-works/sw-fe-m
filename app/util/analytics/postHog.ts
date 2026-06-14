@@ -1,5 +1,29 @@
 import PostHog from 'posthog-react-native';
 import type { PostHogEventProperties } from '@posthog/core';
+import { useAnalyticsConsentStore } from '../../stores/analyticsConsent';
+
+/** Whether the user currently allows analytics capture (Settings toggle). */
+function consented(): boolean {
+    return useAnalyticsConsentStore.getState().enabled;
+}
+
+/**
+ * Reflect the analytics preference onto the PostHog client itself (in addition
+ * to the per-call gating below), so any provider-level capture also stops.
+ */
+export function applyAnalyticsConsent(enabled: boolean): void {
+    const c = client as unknown as {
+        optIn?: () => void;
+        optOut?: () => void;
+    } | null;
+    if (!c) return;
+    try {
+        if (enabled) c.optIn?.();
+        else c.optOut?.();
+    } catch {
+        // optIn/optOut may not exist on every version — call gating still applies.
+    }
+}
 
 // Single shared instance — initialized once on app start.
 let client: PostHog | null = null;
@@ -36,6 +60,7 @@ export function getAnalytics(): PostHog | null {
  * Links all future events to their userId in PostHog.
  */
 export function identifyUser(userId: string, properties?: PostHogEventProperties) {
+    if (!consented()) return;
     client?.identify(userId, properties);
 }
 
@@ -54,6 +79,7 @@ export function resetAnalyticsIdentity() {
  * Use the ANALYTICS_EVENTS constants rather than raw strings.
  */
 export function track(event: string, properties?: PostHogEventProperties) {
+    if (!consented()) return;
     client?.capture(event, properties);
 }
 
@@ -63,5 +89,6 @@ export function track(event: string, properties?: PostHogEventProperties) {
  * Track a screen view. Call this in your navigation state change handler.
  */
 export function trackScreen(screenName: string, properties?: PostHogEventProperties) {
+    if (!consented()) return;
     client?.screen(screenName, properties);
 }

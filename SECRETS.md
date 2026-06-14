@@ -1,40 +1,44 @@
 # API Secrets & Environment Variables
 
-This document explains how sensitive internal keys (like `X-App-Secret`) are managed and injected into the SpeechWorks mobile app.
+This document explains how configuration values and keys are managed and injected into the SpeechWorks mobile app.
 
-## Summary
+> **Note:** The app no longer uses an `X-App-Secret` / `X_APP_SECRET` request header. That shared "app gate" was removed because it shipped inside the binary (extractable) and added nothing on top of per-user auth. **The real authentication boundary is the per-user JWT** (`Authorization` header), enforced by the backend's `authMiddleware`. Genuine client attestation (Play Integrity / Apple App Attest) is the intended future replacement.
 
-To protect our API from public visibility and bots, we use a custom identification header. To keep this key out of our version control (Git), we use **Build-time Injection**.
+## How injection works
 
-## Local Development
+`app.config.js` reads `process.env.*` at build time and exposes the non-secret subset to the running app via `expo-constants` (`Constants.expoConfig.extra`). Anything prefixed `EXPO_PUBLIC_` is inlined into the JS bundle by Expo automatically.
 
-1. **Environment File**: The secrets are stored in a local `.env` file at the root of the project.
-   ```
-   X_APP_SECRET=<YOUR_X_APP_SECRET>
-   ```
-2. **Exclusion**: The `.env` file is explicitly ignored in `.gitignore` and must never be committed.
-3. **Injection**: When you run `npx expo start`, the `app.config.js` script reads these variables and passes them to the app via `expo-constants`.
+There are two categories:
+
+| Category | Examples | Where it lives | Notes |
+|---|---|---|---|
+| **Runtime config / public keys** | `API_BASE_URL`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_POSTHOG_API_KEY`, `EXPO_PUBLIC_POSTHOG_HOST`, `ANDROID_CLIENT_ID`, `IOS_CLIENT_ID` | `extra` / inlined in bundle | Visible in the app bundle. These are *not* true secrets (DSNs and analytics write-keys are designed to be client-side). |
+| **Build-time-only secrets** | `SENTRY_AUTH_TOKEN` (source-map upload) | EAS secret, **never** `EXPO_PUBLIC_`, never in the bundle | Used by the build (e.g. the Sentry Expo plugin) and discarded; not shipped to devices. |
+
+## Local development
+
+1. Copy `.env.example` → `.env` (the `.env` file is gitignored and must never be committed).
+2. Fill in the values you need locally.
+3. `npx expo start` — `app.config.js` reads them and passes the non-secret subset through `expo-constants`.
 
 ## Production (EAS Build)
 
-Since the build servers do not have access to your local `.env` file, you must provide the secrets to Expo/EAS.
+Build servers don't have your local `.env`, so provide values to EAS as environment variables / secrets.
 
-### Method 1: CLI (Recommended)
-
-Run the following command to add a secret to your EAS project:
-
+### CLI
 ```bash
-eas secret:create --name X_APP_SECRET --value <YOUR_X_APP_SECRET>
+# Build-time-only secret (kept out of the bundle):
+eas env:create --name SENTRY_AUTH_TOKEN --value <token> --visibility secret --environment production
+
+# Public runtime value:
+eas env:create --name EXPO_PUBLIC_SENTRY_DSN --value <dsn> --environment production
 ```
 
-### Method 2: Expo Dashboard
+### Expo Dashboard
+[expo.dev](https://expo.dev) → your project → **Environment variables** → add per-environment values. Mark build-time secrets (like `SENTRY_AUTH_TOKEN`) as **Secret** visibility so they're never bundled.
 
-1. Go to your project on [expo.dev](https://expo.dev).
-2. Navigate to **Project Settings** > **Secrets**.
-3. Add a new secret with the name `X_APP_SECRET`.
+## Security considerations
 
-## Security Considerations
-
-- **Identity, not Auth**: These app-level secrets are used for identity/baseline protection. They prevent 99% of bots and casual browsing.
-- **In-Transit**: All requests are encrypted via HTTPS, so the header is safe from network-level sniffing.
-- **Decompilation**: Like any mobile app, a determined hacker can eventually decompile the JavaScript bundle to find the string. For extremely high-stakes data, use individual User Authentication and App Attestation (DeviceCheck/Play Integrity).
+- **JWT is the auth boundary.** All protected API routes require a valid per-user JWT; data access is scoped server-side by user id.
+- **In transit:** all requests use HTTPS (and `wss://` for the AI-call socket).
+- **Bundle visibility:** anything `EXPO_PUBLIC_*` or placed in `extra` is extractable from the app. Never put a true secret there. For high-stakes "is this really our app" guarantees, use App Attestation (Play Integrity / DeviceCheck), not a shipped string.

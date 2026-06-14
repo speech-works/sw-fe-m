@@ -16,17 +16,13 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import RazorpayCheckout, { CheckoutOptions } from "react-native-razorpay";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { createRazorpayOrder } from "../../api/payments";
 import BottomSheetModal from "../../components/BottomSheetModal";
 import { SUBSCRIPTION_PRICING } from "../../constants/pricing";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useUserStore } from "../../stores/user";
 import { PAYMENTS_ENABLED } from "../../constants/features";
 import { theme } from "../../Theme/tokens";
-import { showErrorBottomSheet, showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -36,18 +32,13 @@ export enum PAYMENT_PLAN_TYPE {
 }
 
 const SubscribeScreen = () => {
-  const { user } = useUserStore();
   const navigation = useNavigation();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [showTestModeModal, setShowTestModeModal] = useState(false);
-  const selectedPlan =
-    paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
-      ? SUBSCRIPTION_PRICING.plans.monthly
-      : SUBSCRIPTION_PRICING.plans.annual;
   const selectedPlanSummary =
     paymentPlan === PAYMENT_PLAN_TYPE.MONTHLY
       ? `${SUBSCRIPTION_PRICING.plans.monthly.headline}${SUBSCRIPTION_PRICING.plans.monthly.periodLabel}`
@@ -69,86 +60,11 @@ const SubscribeScreen = () => {
   }, []);
 
   const handlePayment = async () => {
-    if (!PAYMENTS_ENABLED) {
-      setShowTestModeModal(true);
-      return;
-    }
-
-    if (loading) return;
-
-    try {
-      setLoading(true);
-      if (!user?.id) {
-        showErrorBottomSheet("Error", "User not found. Please log in.");
-        setLoading(false);
-        return;
-      }
-
-      const response = await createRazorpayOrder({
-        userId: user.id,
-        amount: selectedPlan.amountMinor,
-        currency: SUBSCRIPTION_PRICING.currencyCode,
-      });
-
-      const order = response;
-      if (!order?.orderId) {
-        setLoading(false);
-        return;
-      }
-
-      const planId = paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY ? 'annual' : 'monthly';
-      const amountInr = selectedPlan.amountMinor / 100;
-
-      // Track payment start — user has seen the Razorpay sheet
-      track(ANALYTICS_EVENTS.PAYMENT_STARTED, { planId, amountInr });
-
-      const options: CheckoutOptions = {
-        description: "SpeechWorks Premium Subscription",
-        image: "https://ibb.co/YFgn6JkY",
-        currency: order.currency,
-        key: "rzp_test_R5etRTxWNFWDih",
-        name: "Speechworks",
-        order_id: order.id,
-        amount: order.amount,
-        prefill: {
-          email: user.email || "",
-          contact: "",
-          name: user.name || "User",
-        },
-        theme: {
-          color: theme.colors.actionPrimary.default || "#D4AF37",
-        },
-      };
-
-      RazorpayCheckout.open(options)
-        .then((paymentData: any) => {
-          setLoading(false);
-          track(ANALYTICS_EVENTS.PAYMENT_COMPLETED, { planId, amountInr });
-          showSuccessBottomSheet(
-            "Welcome to Premium!",
-            "Your subscription is now active.",
-          );
-          navigation.goBack();
-        })
-        .catch((error: any) => {
-          setLoading(false);
-          // Check if it's a user cancellation (error code 2)
-          console.log("Razorpay Error:", error.code, error.description);
-          if (error.code === 2 || String(error.code) === "2") {
-            // User cancelled, do nothing
-            return;
-          }
-
-          track(ANALYTICS_EVENTS.PAYMENT_FAILED, { planId, amountInr, reason: error.description ?? 'unknown' });
-          showErrorBottomSheet(
-            "Payment Failed",
-            "Please try again or contact support.",
-          );
-        });
-    } catch (err) {
-      setLoading(false);
-      showErrorBottomSheet("Payment Failed", "Something went wrong.");
-    }
+    // TODO(payments): reconnect billing via Apple In-App Purchase (StoreKit) +
+    // Google Play Billing — NOT a third-party web processor like Razorpay, which
+    // is disallowed for digital goods on the App Store / Play Store. This screen
+    // is dormant and unreachable while PAYMENTS_ENABLED is false.
+    setShowTestModeModal(true);
   };
 
   return (
@@ -198,6 +114,8 @@ const SubscribeScreen = () => {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
             >
               <Icon name="close" size={20} color={theme.colors.text.title} />
             </TouchableOpacity>
@@ -482,46 +400,56 @@ const SubscribeScreen = () => {
 
           {/* Persistent Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity
-              style={[
-                styles.upgradeBtnWrapper,
-                (loading || !PAYMENTS_ENABLED) && { opacity: 0.7 },
-              ]}
-              activeOpacity={0.85}
-              onPress={handlePayment}
-              disabled={loading}
-            >
-              <LinearGradient
-                colors={["#D4AF37", "#B8860B", "#996515"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.upgradeBtn}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.upgradeBtnText}>
-                    {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
-                      ? "Start 7-Day Free Trial"
-                      : "Unlock Full Access"}
+            {PAYMENTS_ENABLED ? (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.upgradeBtnWrapper,
+                    loading && { opacity: 0.7 },
+                  ]}
+                  activeOpacity={0.85}
+                  onPress={handlePayment}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Upgrade to Speechworks Premium"
+                >
+                  <LinearGradient
+                    colors={["#D4AF37", "#B8860B", "#996515"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.upgradeBtn}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.upgradeBtnText}>
+                        {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
+                          ? "Start 7-Day Free Trial"
+                          : "Unlock Full Access"}
+                      </Text>
+                    )}
+                    <LinearGradient
+                      colors={["rgba(255,255,255,0.15)", "transparent"]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+                <View style={styles.guaranteeRow}>
+                  <Icon
+                    name="shield-check"
+                    size={14}
+                    color="rgba(255,255,255,0.4)"
+                  />
+                  <Text style={styles.guaranteeText}>
+                    Secure Payment • No Questions Asked Refund
                   </Text>
-                )}
-                <LinearGradient
-                  colors={["rgba(255,255,255,0.15)", "transparent"]}
-                  style={StyleSheet.absoluteFill}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-            <View style={styles.guaranteeRow}>
-              <Icon
-                name="shield-check"
-                size={14}
-                color="rgba(255,255,255,0.4)"
-              />
-              <Text style={styles.guaranteeText}>
-                Secure Payment • No Questions Asked Refund
+                </View>
+              </>
+            ) : (
+              <Text style={[styles.guaranteeText, { textAlign: "center" }]}>
+                Premium is coming soon — there's nothing to purchase yet.
               </Text>
-            </View>
+            )}
           </View>
         </SafeAreaView>
       </Animated.View>

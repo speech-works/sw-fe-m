@@ -11,15 +11,13 @@
         "buildType": "apk"
       },
       "env": {
-        "API_BASE_URL": "https://api.speechworks.in",
-        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565"
+        "API_BASE_URL": "https://api.speechworks.in"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
         "API_BASE_URL": "https://api.speechworks.in",
-        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com"
       }
@@ -34,7 +32,8 @@
       "autoIncrement": true,
       "env": {
         "API_BASE_URL": "https://api.speechworks.in",
-        "X_APP_SECRET": "cfc3d74d2e0304adda60e341f3bcc64fbf8b136eafa84356fa1a304211b6f565"
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_wFqhyXAxiNUrLp6uMaLSSkVoLAEk6Rzf6awp8SPoEXKx",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.posthog.com"
       }
     }
   },

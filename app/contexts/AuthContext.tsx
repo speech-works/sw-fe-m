@@ -8,6 +8,7 @@ import { setUpdateTokenFn } from "../util/functions/authToken";
 import { resetAnalyticsIdentity, track } from "../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../util/analytics/analyticsEvents";
 import { unregisterPushToken } from "../util/functions/notifications";
+import { clearAllPersistedUserState } from "../util/functions/clearUserState";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -81,11 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       SECURE_KEYS_NAME.SW_APP_REFRESH_TOKEN_KEY,
     );
 
-    // Clear Zustand stores to prevent leaked state or erroneous fetches on re-login
-    import("../stores/user").then(m => m.useUserStore.getState().clearUser());
-    import("../stores/userBehaviorTrends").then(m => m.useUserBehaviorTrendsStore.getState().clearTrends());
-    import("../stores/progressReport").then(m => m.useProgressReportStore.getState().clearProgressReport());
-    import("../stores/practiceCategorySummary").then(m => m.usePracticeCategorySummaryStore.getState().clearSummary());
+    // Wipe ALL locally-persisted, user-scoped state (every AsyncStorage key +
+    // in-memory zustand stores) so nothing leaks across accounts on a shared
+    // device.
+    await clearAllPersistedUserState();
 
     // Reset PostHog identity so subsequent anonymous events don't link to this user
     resetAnalyticsIdentity();

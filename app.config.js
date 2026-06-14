@@ -20,7 +20,7 @@ const withCustomJvmArgs = (config) => {
 
 module.exports = {
   expo: {
-    name: "sw-fe-m",
+    name: "Speechworks",
     slug: "sw-fe-m",
     version: "1.0.0",
     sdkVersion: "53.0.0",
@@ -40,6 +40,80 @@ module.exports = {
       bundleIdentifier: "com.speechworks.app",
       supportsTablet: true,
       language: "objective-c",
+      // Apple Privacy Manifest — declares the data the app collects.
+      // (Expo auto-generates NSPrivacyAccessedAPITypes for linked modules;
+      // collected-data types must be declared explicitly here.)
+      // Keep aligned with the Play Data-Safety form + App Store nutrition label.
+      privacyManifests: {
+        NSPrivacyCollectedDataTypes: [
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeAudioData",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeEmailAddress",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeName",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypePhoneNumber",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeUserID",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypeProductInteraction",
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAnalytics",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: "NSPrivacyCollectedDataTypeCrashData",
+            NSPrivacyCollectedDataTypeLinked: false,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType:
+              "NSPrivacyCollectedDataTypePerformanceData",
+            NSPrivacyCollectedDataTypeLinked: false,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality",
+            ],
+          },
+        ],
+      },
       infoPlist: {
         NSPhotoLibraryUsageDescription:
           "Allow access to your photo library to upload images.",
@@ -68,14 +142,15 @@ module.exports = {
       usesCleartextTraffic: allowsInsecureNetworkTraffic,
       package: "com.speechworks.app",
       permissions: [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.POST_NOTIFICATIONS",
       ],
+      // React Native's debug manifest injects SYSTEM_ALERT_WINDOW; the app uses
+      // no draw-over-other-apps overlay, so strip it from the release manifest
+      // (avoids an unnecessary sensitive-permission flag on the stores).
+      blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW"],
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -141,10 +216,19 @@ module.exports = {
           },
         },
       ],
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG ?? "speechworks",
+          // TODO: confirm the exact Sentry project slug (org: speechworks).
+          project: process.env.SENTRY_PROJECT ?? "react-native",
+          // SENTRY_AUTH_TOKEN (build-time, for source-map upload) is read from
+          // the environment — set it as an EAS secret, never commit it.
+        },
+      ],
     ],
     extra: {
       API_BASE_URL: process.env.API_BASE_URL,
-      X_APP_SECRET: process.env.X_APP_SECRET,
       PAYMENTS_ENABLED: process.env.PAYMENTS_ENABLED ?? "false",
       ALLOW_SIMULATOR_HEADSET_BYPASS:
         process.env.ALLOW_SIMULATOR_HEADSET_BYPASS ?? "false",
