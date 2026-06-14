@@ -7,6 +7,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleProp,
@@ -283,6 +284,9 @@ const Community = () => {
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
   const [buddyCode, setBuddyCode] = useState("");
   const [submittingCode, setSubmittingCode] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
@@ -392,8 +396,12 @@ const Community = () => {
       setBuddyCode("");
       track(ANALYTICS_EVENTS.BUDDY_INVITE_SHARED, { source: "community_redeem" });
       await load();
+      // Show welcome if buddy link is now active
+      const fresh = useInboxStore.getState().hasBuddy;
+      if (fresh) setShowWelcome(true);
     } catch (e: any) {
-      Alert.alert("Invalid Code", e.response?.data?.message || "Please check the code and try again.");
+      setErrorMessage(e.response?.data?.message || "Please check the code and try again.");
+      setShowError(true);
     } finally {
       setSubmittingCode(false);
     }
@@ -932,6 +940,72 @@ const Community = () => {
           </CustomScrollView>
         )}
       </View>
+
+      {/* ── Buddy Welcome Modal ── */}
+      <Modal visible={showWelcome} transparent animationType="fade" onRequestClose={() => setShowWelcome(false)}>
+        <View style={wm.overlay}>
+          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={wm.card}>
+            {/* Watermark */}
+            <View style={wm.watermarkLayer} pointerEvents="none">
+              <MaterialCommunityIcons name="handshake" size={220} color={C.orange500} style={wm.watermarkIcon} />
+            </View>
+
+            {/* Close */}
+            <TouchableOpacity onPress={() => setShowWelcome(false)} style={wm.closeBtn} activeOpacity={0.7}>
+              <MaterialCommunityIcons name="close" size={20} color={C.faint} />
+            </TouchableOpacity>
+
+            {/* Tag */}
+            <Text style={wm.tag}>BUDDY CONNECTED</Text>
+
+            {/* Title */}
+            <Text style={wm.title}>You're now paired!</Text>
+
+            {/* Message */}
+            <Text style={wm.message}>
+              Share your journey, support each other, and grow together.
+            </Text>
+
+            {/* CTA */}
+            <TouchableOpacity style={wm.cta} activeOpacity={0.85} onPress={() => setShowWelcome(false)}>
+              <Text style={wm.ctaText}>Let's Go!</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* ── Invalid Code Error Modal ── */}
+      <Modal visible={showError} transparent animationType="fade" onRequestClose={() => setShowError(false)}>
+        <View style={wm.overlay}>
+          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={wm.card}>
+            {/* Watermark */}
+            <View style={wm.watermarkLayer} pointerEvents="none">
+              <MaterialCommunityIcons name="alert-circle" size={220} color="#EF4444" style={wm.watermarkIcon} />
+            </View>
+
+            {/* Close */}
+            <TouchableOpacity onPress={() => setShowError(false)} style={wm.closeBtn} activeOpacity={0.7}>
+              <MaterialCommunityIcons name="close" size={20} color={C.faint} />
+            </TouchableOpacity>
+
+            {/* Tag */}
+            <Text style={[wm.tag, wm.tagError]}>INVALID CODE</Text>
+
+            {/* Title */}
+            <Text style={wm.title}>Couldn't Connect</Text>
+
+            {/* Message */}
+            <Text style={wm.message}>
+              {errorMessage}
+            </Text>
+
+            {/* CTA */}
+            <TouchableOpacity style={[wm.cta, wm.ctaError]} activeOpacity={0.85} onPress={() => setShowError(false)}>
+              <Text style={wm.ctaText}>Try Again</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
 
       <BuddySupportSheet
         visible={!!supportSignal}
@@ -1592,4 +1666,106 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+});
+
+const wm = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 32,
+    paddingHorizontal: 32,
+    paddingTop: 48,
+    paddingBottom: 32,
+    width: "100%",
+    maxWidth: 380,
+    alignItems: "center",
+    ...parseShadowStyle(theme.shadow.elevation4),
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  iconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    ...parseShadowStyle(theme.shadow.elevation2),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.35,
+  },
+  watermarkLayer: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 32,
+    overflow: "hidden",
+    zIndex: 0,
+  },
+  watermarkIcon: {
+    position: "absolute",
+    right: -40,
+    bottom: -40,
+    opacity: 0.045,
+    transform: [{ rotate: "-15deg" }],
+  },
+  tag: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: C.orange500,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: 8,
+    zIndex: 1,
+  },
+  title: {
+    ...parseTextStyle(theme.typography.Heading3),
+    fontSize: 24,
+    fontWeight: "700",
+    color: C.title,
+    textAlign: "center",
+    marginBottom: 12,
+    zIndex: 1,
+  },
+  message: {
+    ...parseTextStyle(theme.typography.Body),
+    fontSize: 15,
+    color: C.textMuted,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 32,
+    zIndex: 1,
+  },
+  cta: {
+    width: "100%",
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: C.orange500,
+    alignItems: "center",
+    justifyContent: "center",
+    ...parseShadowStyle(theme.shadow.elevation1),
+    shadowColor: C.orange500,
+    shadowOpacity: 0.3,
+    zIndex: 1,
+  },
+  ctaText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  tagError: {
+    color: "#EF4444",
+  },
+  ctaError: {
+    backgroundColor: "#EF4444",
+    shadowColor: "#EF4444",
+  },
 });
