@@ -2,11 +2,11 @@ import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -14,8 +14,8 @@ import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
 import { theme } from "../../../../../Theme/tokens";
 import {
-    parseShadowStyle,
-    parseTextStyle,
+  parseShadowStyle,
+  parseTextStyle,
 } from "../../../../../util/functions/parseStyles";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
@@ -51,7 +51,7 @@ const DonePractice = ({
     if (isAborted) return;
     getMyBuddy()
       .then((s) => setHasBuddy(s.link?.status === "active"))
-      .catch(() => {}); // silently ignore — default is show the button
+      .catch(() => { }); // silently ignore — default is show the button
   }, [isAborted]);
 
   return (
@@ -83,10 +83,10 @@ const DonePractice = ({
             end={{ x: 1, y: 1 }}
             style={styles.checkmarkCircle}
           >
-            <Icon 
-              name={isAborted ? "leaf" : "check"} 
-              size={isAborted ? 50 : 60} 
-              color="#FFFFFF" 
+            <Icon
+              name={isAborted ? "leaf" : "check"}
+              size={isAborted ? 50 : 60}
+              color="#FFFFFF"
             />
           </LinearGradient>
         </View>
@@ -97,8 +97,8 @@ const DonePractice = ({
             {isAborted ? "That's okay." : "Great Job!"}
           </Text>
           <Text style={styles.descText}>
-            {isAborted 
-              ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.` 
+            {isAborted
+              ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`
               : `You've completed your daily ${practiceName}. Keep up the momentum!`}
           </Text>
         </View>
@@ -141,13 +141,13 @@ const DonePractice = ({
               }
             >
               <Text style={styles.secondaryButtonText}>
-                Invite a practice buddy
+                Invite a Practice Buddy
               </Text>
               <Icon
                 name="user-friends"
-                size={60}
+                size={90}
                 color={theme.colors.text.default}
-                style={styles.secondaryWatermark}
+                style={[styles.secondaryWatermark, { bottom: -25, right: -15 }]}
               />
             </TouchableOpacity>
           )}
@@ -345,6 +345,8 @@ const styles = StyleSheet.create({
     height: 56, // Fixed height for absolute positioning
     borderRadius: 16,
     overflow: "hidden", // Clip the watermark
+    borderWidth: 1,
+    borderColor: "transparent",
     ...parseShadowStyle(theme.shadow.elevation2),
   },
   exploreGradient: {
@@ -354,9 +356,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   exploreText: {
-    ...parseTextStyle(theme.typography.Heading3),
+    ...parseTextStyle(theme.typography.Button),
     color: "#FFF",
-    fontSize: 18,
     zIndex: 2, // Text above watermark
   },
   exploreWatermark: {
@@ -380,9 +381,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   secondaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
+    ...parseTextStyle(theme.typography.Button),
     color: theme.colors.text.default,
-    fontWeight: "600",
     zIndex: 2,
   },
   secondaryWatermark: {
