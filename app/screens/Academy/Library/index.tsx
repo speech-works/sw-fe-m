@@ -20,7 +20,7 @@ import ScreenView from "../../../components/ScreenView";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
+import { parseShadowStyle, parseTextStyle } from "../../../util/functions/parseStyles";
 
 import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -625,19 +625,13 @@ const Library = () => {
             >
               <LinearGradient
                 colors={[
-                  theme.colors.actionPrimary.default,
-                  theme.colors.actionPrimary.default,
-                ]} // Standard Primary
+                  theme.colors.library.orange[400],
+                  theme.colors.library.orange[500],
+                ]} // Match Start Practice gradient
                 style={styles.premiumButtonGradient}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
               >
-                <Icon
-                  name="play"
-                  color="#FFF"
-                  size={16}
-                  style={{ marginRight: 8 }}
-                />
                 <Text style={styles.premiumButtonTextPrimary}>
                   Watch Tutorial
                 </Text>
@@ -649,12 +643,6 @@ const Library = () => {
               activeOpacity={0.7}
               onPress={() => handleNavigate("EXERCISE")}
             >
-              <Icon
-                name="dumbbell"
-                color={theme.colors.text.default}
-                size={16}
-                style={{ marginRight: 8 }}
-              />
               <Text style={styles.premiumButtonTextSecondary}>
                 Start Exercise
               </Text>
@@ -845,49 +833,37 @@ const styles = StyleSheet.create({
   },
   premiumButtonShadow: {
     width: "100%",
-    borderRadius: 30, // Increased radius to match standard
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    borderRadius: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
+    marginBottom: 0,
   },
   premiumButtonGradient: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 18,
-    borderRadius: 30,
+    paddingVertical: 16,
+    borderRadius: 20,
+    gap: 10,
   },
   premiumButtonTextPrimary: {
-    ...parseTextStyle(theme.typography.Button),
+    ...parseTextStyle(theme.typography.Heading3),
     color: "#FFFFFF",
-    fontWeight: "700", // Standard weight
-    fontSize: 16,
-    letterSpacing: 0.5,
   },
   premiumButtonSecondary: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 18,
-    borderRadius: 30, // Match primary
+    paddingVertical: 16,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.1)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...parseShadowStyle(theme.shadow.elevation1),
   },
   premiumButtonTextSecondary: {
-    ...parseTextStyle(theme.typography.Button),
+    ...parseTextStyle(theme.typography.Heading3),
     color: "#374151",
-    fontWeight: "700", // Match strength
-    fontSize: 16,
-    letterSpacing: 0.5,
   },
   loadingContainer: {
     padding: 60,
