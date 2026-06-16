@@ -150,7 +150,7 @@ const TechniquePage = () => {
           />
         </View>
 
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: Math.max(insets.top + 10, 36) }]}>
           {/* Header */}
           <View style={styles.topNavigationContainer}>
             <TouchableOpacity
@@ -292,7 +292,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 36, // Adjust for header
     gap: 16,
   },
   // Header
