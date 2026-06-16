@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { format, isValid, parseISO } from "date-fns";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Animated,
   Dimensions,
@@ -41,6 +42,7 @@ import OnboardingResumeModal from "../../components/OnboardingResumeModal";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
+  const insets = useSafeAreaInsets();
   const { user, setUser, fetchUser } = useUserStore();
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
@@ -284,7 +286,7 @@ const Home = () => {
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
   return (
-    <ScreenView style={[styles.container, { paddingHorizontal: 0 }]}>
+    <ScreenView style={[styles.container, { paddingHorizontal: 0, paddingTop: insets.top + 16 }]}>
       {interactionsDone && <MoodCheckPopup />}
 
       <ScrollView
@@ -461,7 +463,7 @@ const Home = () => {
 };
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 16,
+    // paddingTop is set dynamically using insets.top + 16
   },
   scroll: {
     paddingBottom: 130, // Space for Custom Tab Bar

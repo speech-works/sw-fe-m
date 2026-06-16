@@ -233,7 +233,7 @@ const App: React.FC = () => {
           <SafeAreaProvider style={{ flex: 1 }}>
             <SafeAreaView
               style={styles.safeAreaView}
-              edges={["top", "left", "right"]}
+              edges={["left", "right"]}
             >
               <FontLoader />
               <NavigationContainer
