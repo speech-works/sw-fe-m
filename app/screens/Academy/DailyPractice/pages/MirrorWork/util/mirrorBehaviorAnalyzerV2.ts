@@ -82,6 +82,11 @@ const HOLD_MS: Record<string, number> = {
 // Extra hold time required during active speech to avoid phoneme false-positives.
 const SPEECH_HOLD_BONUS_MS = 100;
 
+// FACIAL_TENSION_COMPOSITE: how long the "≥2 Tier A/B signals" condition must
+// stay FALSE before we re-arm and count a fresh onset. Prevents one overlapping
+// episode (whose underlying count flickers around 2) from inflating the count.
+const COMPOSITE_FALLING_DEBOUNCE_MS = 500;
+
 // OPEN_MOUTH_HOLD: jaw must stay below this variance to qualify as "frozen".
 const JAW_FREEZE_VARIANCE = 0.002;
 // History window for OPEN_MOUTH_HOLD stillness guard (~700ms at 12fps = ~8.4 frames).
@@ -265,6 +270,10 @@ export class MirrorBehaviorAnalyzerV2 {
   // ── Head pose hold state (for GAZE_AVERSION) ──
   private headPoseAboveThresholdMs: number | null = null;
 
+  // ── Composite onset tracking (edge-debounced — see analyzeFrame §11) ──
+  private compositeActive = false;
+  private compositeBelowSinceMs: number | null = null;
+
   public setDebugEnabled(enabled: boolean) {
     this.debugEnabled = enabled;
   }
@@ -274,7 +283,32 @@ export class MirrorBehaviorAnalyzerV2 {
     this.deviceAngularSpeed = degPerSec;
   }
 
+  /**
+   * Clear all per-session detection state (EMAs, hold timers, history buffers,
+   * edge trackers) WITHOUT touching the calibrated baseline. The analyzer
+   * instance is created once and reused (useFaceDetectionV2), so a re-calibrated
+   * session would otherwise inherit stale state — including the composite latch.
+   */
+  public reset() {
+    this.ema = {};
+    this.jawOpenHistory = [];
+    Object.keys(this.states).forEach((k) => { this.states[k] = makeState(); });
+    this.recentBlinkTimes = [];
+    this.eyeWasAboveThreshold = false;
+    this.lastBlinkClusterTime = 0;
+    this.lastYaw = null;
+    this.lastPitch = null;
+    this.lastHeadPoseMs = null;
+    this.lastHeadJerkMs = 0;
+    this.headPoseAboveThresholdMs = null;
+    this.compositeActive = false;
+    this.compositeBelowSinceMs = null;
+  }
+
   public setBaseline(baseline: UserBaselineV2) {
+    // Clear stale per-session state BEFORE seeding the EMAs below, so the fresh
+    // baseline-seeded EMAs survive (reset() must not run after this point).
+    this.reset();
     this.baseline = baseline;
     // Seed EMAs with baseline means
     this.ema['mouthPucker']  = baseline.mouthPucker.mean;
@@ -579,12 +613,29 @@ export class MirrorBehaviorAnalyzerV2 {
     }
 
     // ── 11. FACIAL_TENSION_COMPOSITE — ≥2 Tier A/B signals ──────────────────
+    // Push to `active` every frame it holds (so downstream time/region accrual
+    // stays correct), but emit a NEW signal only on the RISING edge — matching
+    // the per-onset `emitted` dedup every other signal uses via updateSignal.
+    // Without this the composite was counted once per frame (~12×/s), inflating
+    // "Multiple cues" to dozens for a single overlapping moment. A short falling
+    // debounce keeps a one-frame dip below 2 from splitting one episode in two.
     const tierABCount = active.filter((s) =>
       SIGNAL_TIER[s] === 'A' || SIGNAL_TIER[s] === 'B'
     ).length;
     if (tierABCount >= 2) {
       active.push(MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE);
-      newSigs.push(MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE);
+      this.compositeBelowSinceMs = null;
+      if (!this.compositeActive) {
+        newSigs.push(MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE);
+        this.compositeActive = true;
+      }
+    } else if (this.compositeActive) {
+      if (this.compositeBelowSinceMs === null) {
+        this.compositeBelowSinceMs = timestampMs;
+      } else if (timestampMs - this.compositeBelowSinceMs >= COMPOSITE_FALLING_DEBOUNCE_MS) {
+        this.compositeActive = false;
+        this.compositeBelowSinceMs = null;
+      }
     }
 
     // Build tier map for active signals (UI confidence coloring)

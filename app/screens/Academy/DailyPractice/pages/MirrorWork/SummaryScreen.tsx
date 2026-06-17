@@ -1,47 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MirrorWorkFeedbackModal } from './components/MirrorWorkFeedbackModal';
-import { MirrorBehaviorSignal } from './types';
-import { completeMirrorWorkActivity } from '../../../../../api/practiceActivities';
+import { FaceRegion } from './types';
+import { completeMirrorWorkActivity, getMirrorWorkComparison } from '../../../../../api/practiceActivities';
 import { useUserStore } from '../../../../../stores/user';
 import DonePractice from '../../components/DonePractice';
 import { theme } from '../../../../../Theme/tokens';
 import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
+import {
+  buildReflection, ReflectionView, RenderedInsight, ReflectionTone, Tier,
+} from './util/mirrorReflection';
+import { loadRotationState, saveRotationState } from './util/mirrorReflection/rotationStorage';
 
-// Friendlier signal labels for the user
-const SIGNAL_LABELS: Partial<Record<MirrorBehaviorSignal, string>> = {
-  [MirrorBehaviorSignal.JAW_TENSION]:           'Jaw tension',
-  [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]:       'Open-mouth hold',
-  [MirrorBehaviorSignal.LIP_PURSING]:           'Lip pursing',
-  [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]: 'Eye blinking',
-  [MirrorBehaviorSignal.BROW_TENSION]:          'Brow tension',
-  [MirrorBehaviorSignal.GAZE_AVERSION]:         'Gaze aversion',
-  [MirrorBehaviorSignal.NOSTRIL_FLARE]:         'Nostril flare',
-  [MirrorBehaviorSignal.CHEEK_PUFFING]:         'Cheek puffing',
-  [MirrorBehaviorSignal.HEAD_JERKING]:          'Head movement',
-  [MirrorBehaviorSignal.FACIAL_GRIMACING]:      'Facial strain',
-  [MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE]: 'Multiple cues',
+// ── Hero tint per overall tone (no alarming red — deepest is a warm amber) ──
+const TONE_STYLE: Record<ReflectionTone, { tint: string; gradient: readonly [string, string] }> = {
+  calm: { tint: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] },
+  some: { tint: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] },
+  more: { tint: '#D97706', gradient: ['#FED7AA', '#FDBA74'] },
 };
 
-const SIGNAL_ICONS: Partial<Record<MirrorBehaviorSignal, string>> = {
-  [MirrorBehaviorSignal.JAW_TENSION]:           'happy-outline',
-  [MirrorBehaviorSignal.OPEN_MOUTH_HOLD]:       'happy-outline',
-  [MirrorBehaviorSignal.LIP_PURSING]:           'happy-outline',
-  [MirrorBehaviorSignal.EYE_BLINKING_STRUGGLE]: 'eye-outline',
-  [MirrorBehaviorSignal.BROW_TENSION]:          'eye-outline',
-  [MirrorBehaviorSignal.GAZE_AVERSION]:         'eye-outline',
-  [MirrorBehaviorSignal.NOSTRIL_FLARE]:         'happy-outline',
-  [MirrorBehaviorSignal.CHEEK_PUFFING]:         'happy-outline',
-  [MirrorBehaviorSignal.HEAD_JERKING]:          'sync-outline',
-  [MirrorBehaviorSignal.FACIAL_GRIMACING]:      'happy-outline',
-  [MirrorBehaviorSignal.FACIAL_TENSION_COMPOSITE]: 'sparkles-outline',
+// ── Confidence-tier tints for region observations (light theme) ──
+const TIER_TINT: Record<Tier, { bg: string; fg: string }> = {
+  A: { bg: '#FFEDD5', fg: '#EA580C' }, // firm / high confidence
+  B: { bg: '#FEF9C3', fg: '#CA8A04' }, // softer / lower confidence
+  C: { bg: '#EDE9FE', fg: '#7C3AED' }, // informational (head/gaze)
 };
+
+const REGION_ICON: Record<FaceRegion, string> = {
+  [FaceRegion.MOUTH]: 'happy-outline',
+  [FaceRegion.EYES]: 'eye-outline',
+  [FaceRegion.BROW]: 'contract-outline',
+  [FaceRegion.CHEEKS]: 'ellipse-outline',
+  [FaceRegion.NOSE]: 'ellipse-outline',
+  [FaceRegion.HEAD]: 'sync-outline',
+};
+
+const EMERALD = { bg: '#D1FAE5', fg: '#059669' };
+
+/** Icon + tint for an insight row. Region rows use the confidence tier; the
+ *  narrative rows use a warm/positive accent. */
+function insightVisual(insight: RenderedInsight): { icon: string; bg: string; fg: string } {
+  switch (insight.kind) {
+    case 'regionObservation': {
+      const tint = TIER_TINT[insight.tier];
+      return { icon: insight.region ? REGION_ICON[insight.region] : 'ellipse-outline', ...tint };
+    }
+    case 'milestone':
+      return { icon: 'trophy-outline', ...EMERALD };
+    case 'progress':
+      return { icon: 'trending-up-outline', ...EMERALD };
+    case 'arc':
+      return { icon: 'pulse-outline', bg: theme.colors.library.orange[100], fg: theme.colors.library.orange[500] };
+    case 'calm':
+      return { icon: 'leaf-outline', ...EMERALD };
+    case 'opening':
+    default:
+      return { icon: 'sparkles-outline', bg: theme.colors.library.orange[100], fg: theme.colors.library.orange[500] };
+  }
+}
+
+/** Colour for a within-session segment by its tension fraction (no red). */
+function arcSegmentColor(fraction: number, observedMs: number): string {
+  if (observedMs < 3000) return '#E5E7EB';   // insufficient data → neutral grey
+  if (fraction <= 0.1) return '#34D399';      // calm
+  if (fraction <= 0.3) return '#FBBF24';      // some
+  return '#FB923C';                           // more (warm amber)
+}
+
+const ARC_SEGMENT_LABELS = ['Start', 'Middle', 'End'];
 
 export const SummaryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -57,6 +89,56 @@ export const SummaryScreen: React.FC = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // The rendered reflection (built once after the cross-session comparison loads).
+  const [reflection, setReflection] = useState<ReflectionView | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [rotationState, comparison] = await Promise.all([
+        loadRotationState(),
+        user?.id && scores
+          ? getMirrorWorkComparison(
+              user.id,
+              { overallEaseScore: scores.overallEaseScore, regionEase: scores.regionEase },
+              sessionDurationSeconds || 0,
+            )
+          : Promise.resolve(null),
+      ]);
+      if (cancelled) return;
+      try {
+        const { view, rotation } = buildReflection(
+          {
+            regionEase: scores?.regionEase ?? {},
+            withinSession: scores?.withinSession,
+            signalCounts: signalCounts ?? {},
+            comparison,
+          },
+          rotationState,
+        );
+        setReflection(view);
+        saveRotationState(rotation).catch(() => {});
+      } catch (e) {
+        // The engine is defensive, but never leave the user stuck on the spinner.
+        console.warn('[SummaryScreen] reflection build failed:', e);
+        setReflection({
+          moodLabel: 'Session complete',
+          tone: 'calm',
+          insights: [{
+            kind: 'calm',
+            tier: 'A',
+            text: 'Your session is saved. Nothing else to flag this time.',
+          }],
+          encouragement: 'Noticing is the whole game — and you showed up today.',
+          caveat: "None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change.",
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+    // Route params are stable for this screen's lifetime — build once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleComplete = () => setShowFeedbackModal(true);
 
@@ -107,14 +189,13 @@ export const SummaryScreen: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const overallEase = scores?.overallEaseScore ?? 100;
-  const easeMood =
-    overallEase >= 80 ? { label: 'Mostly at ease', tint: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] as const }
-    : overallEase >= 60 ? { label: 'Some tension', tint: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] as const }
-    : { label: 'Quite a lot to notice', tint: '#EF4444', gradient: ['#FEE2E2', '#FECACA'] as const };
-
-  const signalEntries = Object.entries(signalCounts || {}) as Array<[MirrorBehaviorSignal, { eventCount: number }]>;
-  const sortedSignals = signalEntries.sort((a, b) => b[1].eventCount - a[1].eventCount);
+  const tone = reflection ? TONE_STYLE[reflection.tone] : TONE_STYLE.calm;
+  const arcThirds = scores?.withinSession?.thirds;
+  const showArc =
+    !!scores?.withinSession &&
+    scores.withinSession.arc !== 'insufficient' &&
+    Array.isArray(arcThirds) &&
+    arcThirds.length === 3;
 
   return (
     <View style={styles.screen}>
@@ -124,7 +205,7 @@ export const SummaryScreen: React.FC = () => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
-      
+
       {/* Background Watermark */}
       <View style={styles.watermarkContainer} pointerEvents="none">
         <Icon
@@ -148,23 +229,25 @@ export const SummaryScreen: React.FC = () => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero: overall ease mood */}
+        {/* Hero: overall mood (qualitative — no severity numbers) */}
         <View style={styles.heroCardShadow}>
-          <LinearGradient 
-            colors={easeMood.gradient} 
-            start={{ x: 0, y: 0 }} 
-            end={{ x: 1, y: 1 }} 
+          <LinearGradient
+            colors={tone.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.heroCard}
           >
             <View style={styles.heroLeft}>
-              <Text style={styles.heroEyebrow}>OVERALL EASE</Text>
-              <Text style={[styles.heroScore, { color: easeMood.tint }]}>
-                {overallEase}<Text style={styles.heroScoreUnit}>%</Text>
+              <Text style={styles.heroEyebrow}>HOW IT FELT</Text>
+              <Text style={[styles.heroTitle, { color: '#1F2937' }]}>
+                {reflection ? reflection.moodLabel : 'Reflecting…'}
               </Text>
-              <Text style={styles.heroLabel}>{easeMood.label}</Text>
+              {reflection ? (
+                <Text style={styles.heroSubtitle}>{reflection.encouragement}</Text>
+              ) : null}
             </View>
-            <View style={[styles.heroRingPlaceholder, { borderColor: easeMood.tint }]}>
-              <Icon name="happy-outline" size={42} color={easeMood.tint} />
+            <View style={[styles.heroRingPlaceholder, { borderColor: tone.tint }]}>
+              <Icon name="happy-outline" size={42} color={tone.tint} />
             </View>
           </LinearGradient>
         </View>
@@ -188,42 +271,45 @@ export const SummaryScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Body-region ease bars */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Where you held tension</Text>
-          <Text style={styles.cardSubtitle}>How relaxed each area was, on average.</Text>
-          <View style={styles.barsGroup}>
-            <EaseBar label="Jaw" score={scores?.jawEase ?? 100} />
-            <EaseBar label="Lips" score={scores?.lipEase ?? 100} />
-            <EaseBar label="Gaze" score={scores?.gazeMaintained ?? 100} />
+        {/* Within-session arc */}
+        {showArc ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>How the session flowed</Text>
+            <Text style={styles.cardSubtitle}>Tension across the start, middle, and end.</Text>
+            <View style={styles.arcRow}>
+              {arcThirds!.map((t, i) => (
+                <View key={i} style={styles.arcSegmentWrap}>
+                  <View
+                    style={[
+                      styles.arcSegment,
+                      { backgroundColor: arcSegmentColor(t.tensionFraction, t.observedMs) },
+                    ]}
+                  />
+                  <Text style={styles.arcSegmentLabel}>{ARC_SEGMENT_LABELS[i]}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : null}
 
-        {/* Observations */}
+        {/* Reflection (insights) */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>What we noticed</Text>
-          {sortedSignals.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconWrap}>
-                <Icon name="leaf-outline" size={32} color="#10B981" />
-              </View>
-              <Text style={styles.emptyTitle}>Nothing to note</Text>
-              <Text style={styles.emptyText}>
-                No tension patterns came up during this session.
-              </Text>
+          {!reflection ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={theme.colors.library.orange[500]} />
+              <Text style={styles.loadingText}>Putting your reflection together…</Text>
             </View>
           ) : (
             <View style={styles.signalList}>
-              {sortedSignals.map(([sig, info]) => {
-                const label = SIGNAL_LABELS[sig] ?? sig.replace(/_/g, ' ').toLowerCase();
-                const iconName = SIGNAL_ICONS[sig] ?? 'ellipse-outline';
+              {reflection.insights.map((insight, idx) => {
+                const v = insightVisual(insight);
                 return (
-                  <View key={sig} style={styles.signalRow}>
-                    <View style={styles.signalIconWrap}>
-                      <Icon name={iconName} size={18} color={theme.colors.library.orange[500]} />
+                  <View key={`${insight.kind}-${idx}`} style={styles.signalRow}>
+                    <View style={[styles.signalIconWrap, { backgroundColor: v.bg }]}>
+                      <Icon name={v.icon} size={18} color={v.fg} />
                     </View>
-                    <Text style={styles.signalLabel}>{label}</Text>
-                    <Text style={styles.signalCount}>{info.eventCount}</Text>
+                    <Text style={styles.signalLabel}>{insight.text}</Text>
                   </View>
                 );
               })}
@@ -231,9 +317,11 @@ export const SummaryScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Footnote */}
+        {/* Footnote (rotated caveat — always NSA-safe) */}
         <Text style={styles.footnote}>
-          None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change.
+          {reflection
+            ? reflection.caveat
+            : "None of this is a diagnosis. It's a mirror with a memory — and noticing is the start of change."}
         </Text>
 
         <TouchableOpacity
@@ -262,33 +350,6 @@ export const SummaryScreen: React.FC = () => {
           onClose={() => setShowFeedbackModal(false)}
         />
       </Modal>
-    </View>
-  );
-};
-
-const EaseBar: React.FC<{ label: string; score: number }> = ({ label, score }) => {
-  const gradient = score > 75 
-    ? ['#34D399', '#059669'] as const // Emerald
-    : score > 50 
-      ? ['#FBBF24', '#D97706'] as const // Amber
-      : ['#F87171', '#DC2626'] as const; // Red
-
-  const color = score > 75 ? '#10B981' : score > 50 ? '#F59E0B' : '#EF4444';
-
-  return (
-    <View style={barStyles.row}>
-      <View style={barStyles.labelRow}>
-        <Text style={barStyles.label}>{label}</Text>
-        <Text style={[barStyles.score, { color }]}>{score}%</Text>
-      </View>
-      <View style={barStyles.track}>
-        <LinearGradient
-          colors={gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[barStyles.fill, { width: `${score}%` }]}
-        />
-      </View>
     </View>
   );
 };
@@ -340,7 +401,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#FFFFFF',
     ...parseShadowStyle(theme.shadow.elevation1),
-    elevation: 2, // Explicit elevation
+    elevation: 2,
   },
   heroCard: {
     flexDirection: 'row',
@@ -352,29 +413,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
   },
-  heroLeft: { flex: 1 },
+  heroLeft: { flex: 1, paddingRight: 12 },
   heroEyebrow: {
     ...parseTextStyle(theme.typography.BodySmall),
     fontWeight: '700',
     color: '#6B7280',
     letterSpacing: 1.4,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  heroScore: {
-    fontSize: 56,
+  heroTitle: {
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -2,
-    lineHeight: 60,
+    letterSpacing: -0.6,
+    lineHeight: 32,
   },
-  heroScoreUnit: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  heroLabel: {
+  heroSubtitle: {
     ...parseTextStyle(theme.typography.Body),
-    fontWeight: '600',
     color: '#1F2937',
-    marginTop: 2,
+    marginTop: 8,
   },
   heroRingPlaceholder: {
     width: 84,
@@ -440,14 +496,35 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 20,
   },
-  barsGroup: { gap: 18 },
 
-  // ── Signal list ──
+  // ── Within-session arc ──
+  arcRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  arcSegmentWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  arcSegment: {
+    width: '100%',
+    height: 12,
+    borderRadius: 6,
+  },
+  arcSegmentLabel: {
+    ...parseTextStyle(theme.typography.BodySmall),
+    color: '#6B7280',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+
+  // ── Insight list ──
   signalList: { marginTop: 14 },
   signalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
@@ -464,35 +541,18 @@ const styles = StyleSheet.create({
     flex: 1,
     ...parseTextStyle(theme.typography.Body),
     color: '#1F2937',
-    fontWeight: '600',
+    fontWeight: '500',
+    lineHeight: 22,
   },
-  signalCount: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: '#0F172A',
-  },
-  emptyContainer: {
+
+  loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 28,
   },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: '#0F172A',
-    marginBottom: 6,
-  },
-  emptyText: {
-    ...parseTextStyle(theme.typography.Body),
+  loadingText: {
+    ...parseTextStyle(theme.typography.BodySmall),
     color: '#6B7280',
-    textAlign: 'center',
-    maxWidth: 260,
+    marginTop: 12,
   },
 
   footnote: {
@@ -521,33 +581,5 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     ...parseTextStyle(theme.typography.Heading3),
     color: "#FFFFFF",
-  },
-});
-
-const barStyles = StyleSheet.create({
-  row: {},
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    ...parseTextStyle(theme.typography.Body),
-    color: '#374151',
-    fontWeight: '600',
-  },
-  score: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: '700',
-  },
-  track: {
-    height: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 6,
   },
 });

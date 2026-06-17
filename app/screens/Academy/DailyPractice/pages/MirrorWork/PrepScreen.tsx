@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -8,6 +8,8 @@ import Button from '../../../../../components/Button';
 import { theme } from '../../../../../Theme/tokens';
 import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/parseStyles';
 import { MirrorWorkData } from './types';
+import { selectSessionPrompts } from './util/promptSelection';
+import { loadSeenOpeners, recordSeenOpener } from './util/promptSelectionStorage';
 
 export const PrepScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -33,11 +35,29 @@ export const PrepScreen: React.FC = () => {
   };
 
 
-  const handleStart = () => {
-    navigation.navigate('MirrorWorkSession', {
-      prompts: mirrorWorkData.cognitivePrompts,
-      practiceActivityId: practiceData.id
-    });
+  // Guards against a double-tap firing two navigations during the async load.
+  const startingRef = useRef(false);
+  const handleStart = async () => {
+    if (startingRef.current) return;
+    startingRef.current = true;
+    try {
+      // Pick a fresh opener + theme-varied prompts so the session isn't the same
+      // every time. Falls back to the raw list if selection yields nothing.
+      const seen = await loadSeenOpeners();
+      const { prompts, openerId } = selectSessionPrompts(
+        mirrorWorkData.cognitivePrompts,
+        seen,
+      );
+      recordSeenOpener(openerId).catch(() => {});
+      navigation.navigate('MirrorWorkSession', {
+        prompts: prompts.length ? prompts : mirrorWorkData.cognitivePrompts,
+        practiceActivityId: practiceData.id,
+      });
+    } finally {
+      // Re-enable after a beat so a failed navigation can be retried, while
+      // rapid double-taps during the await are dropped.
+      setTimeout(() => { startingRef.current = false; }, 1000);
+    }
   };
 
   return (

@@ -2,6 +2,7 @@ import axios from "axios";
 import axiosClient from "../axiosClient";
 import { PracticeActivity, PracticeActivityContentType } from "./types";
 import { ToolType } from "../tools/types";
+import type { MirrorWorkComparison } from "../../screens/Academy/DailyPractice/pages/MirrorWork/util/mirrorReflection/types";
 
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { dispatchCustomEvent } from "../../util/functions/events";
@@ -222,6 +223,12 @@ export interface MirrorWorkCompletionApiPayload {
     jawEase: number;
     lipEase: number;
     overallEaseScore: number;
+    // Additive (optional): per-region ease across ALL signals + within-session arc.
+    regionEase?: Partial<Record<string, number>>;
+    withinSession?: {
+      thirds: { tensionFraction: number; observedMs: number }[];
+      arc: string;
+    };
   };
   vitals: {
     effortScore: number;
@@ -232,6 +239,8 @@ export interface MirrorWorkCompletionApiPayload {
   promptsAttempted: number;
   nudgeMode: 'ON' | 'OFF';
   sessionDurationSeconds: number;
+  /** Version of the score weight table used (lets the backend re-derive later). */
+  weightTableVersion?: string;
 }
 
 /**
@@ -337,5 +346,40 @@ export async function getPhoneCallReport(
   } catch (error) {
     console.error("Error generating phone call report:", error);
     throw error;
+  }
+}
+
+/**
+ * Fetch the cross-session comparison for Mirror Work: this session's scores
+ * (sent in the body, since the session isn't persisted yet) vs the user's
+ * recent stored sessions. Used to render the "since last time" line on the
+ * summary. Returns null on any failure so the summary degrades gracefully.
+ */
+export async function getMirrorWorkComparison(
+  userId: string,
+  awarenessScores: { overallEaseScore: number; regionEase?: Partial<Record<string, number>> },
+  sessionDurationSeconds: number,
+): Promise<MirrorWorkComparison | null> {
+  try {
+    const response = await axiosClient.post(
+      `/practice-activities/mirror-work/comparison`,
+      { userId, awarenessScores, sessionDurationSeconds },
+    );
+    const data = response.data;
+    // Guard against a 204 / empty / malformed body — the reflection engine relies
+    // on `flags` + `vsLast.overall`, so anything else is treated as "no comparison".
+    if (
+      response.status === 204 ||
+      !data ||
+      !data.flags ||
+      !data.vsLast ||
+      !data.vsLast.overall
+    ) {
+      return null;
+    }
+    return data as MirrorWorkComparison;
+  } catch (error) {
+    console.warn("Could not fetch Mirror Work comparison (non-fatal):", error);
+    return null;
   }
 }

@@ -1,5 +1,15 @@
 import { useState, useCallback, useRef } from "react";
-import { MirrorBehaviorSignal, MirrorWorkCognitivePrompt, DetectedSignalCounts, AwarenessScores } from "../types";
+import {
+  MirrorBehaviorSignal,
+  MirrorWorkCognitivePrompt,
+  DetectedSignalCounts,
+  AwarenessScores,
+  FaceRegion,
+  WithinSessionSummary,
+  WithinSessionArc,
+  SIGNAL_REGION,
+  ALL_REGIONS,
+} from "../types";
 
 interface SessionConfig {
   prompts: MirrorWorkCognitivePrompt[];
@@ -28,6 +38,14 @@ const W_COMBINED: Partial<Record<MirrorBehaviorSignal, number>> = {
 
 const SCORED_SIGNALS = Object.keys(W_COMBINED) as MirrorBehaviorSignal[];
 
+// SIGNAL_REGION / ALL_REGIONS are imported from ../types (single source of truth).
+
+// ── Within-session arc tuning ────────────────────────────────────────────────
+const BUCKET_MS = 10000;              // accumulation granularity; folded into thirds at read time
+const THIRD_MIN_OBSERVED_MS = 3000;   // a third with less observed time can't anchor a comparison
+const ARC_DELTA = 0.15;               // first↔last tensionFraction change to call eased/tensed
+const ARC_MID_DELTA = 0.15;           // middle deviation from both endpoints to call mixed
+
 export function useMirrorSession(config: SessionConfig) {
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
@@ -40,17 +58,34 @@ export function useMirrorSession(config: SessionConfig) {
   const signalActiveTimeRef = useRef<Partial<Record<MirrorBehaviorSignal, number>>>({});
   const lastFrameTimeRef = useRef<number | null>(null);
 
+  // regionActiveTimeMs[region] = total ms ANY signal in that region was active
+  // (accrued at most once per frame per region, so two co-active signals in one
+  // region don't double-count). Covers all signals, not just the scored ones.
+  const regionActiveTimeRef = useRef<Partial<Record<FaceRegion, number>>>({});
+
+  // Within-session buckets (10s windows by elapsed time). active = ms with ANY
+  // region-mapped signal active; observed = ms actually seen (frames × dt).
+  const bucketActiveRef = useRef<Map<number, number>>(new Map());
+  const bucketObservedRef = useRef<Map<number, number>>(new Map());
+  // Mirror of sessionStartTime as a ref so recordActiveSignals stays stable.
+  const sessionStartRef = useRef<number | null>(null);
+
   const [lastTensionTime, setLastTensionTime] = useState<number | null>(null);
   const [hasToggledNudgeOff, setHasToggledNudgeOff] = useState(false);
 
   const startSession = useCallback(() => {
-    setSessionStartTime(Date.now());
+    const now = Date.now();
+    setSessionStartTime(now);
+    sessionStartRef.current = now;
     setIsSessionActive(true);
     setCurrentPromptIndex(0);
     setSignalCounts({});
     signalActiveTimeRef.current = {};
+    regionActiveTimeRef.current = {};
+    bucketActiveRef.current = new Map();
+    bucketObservedRef.current = new Map();
     lastFrameTimeRef.current = null;
-    setLastTensionTime(Date.now());
+    setLastTensionTime(now);
   }, []);
 
   const endSession = useCallback(() => {
@@ -103,12 +138,35 @@ export function useMirrorSession(config: SessionConfig) {
 
     if (dt <= 0 || dt > 1000) return;
 
+    // (1) Per-signal active time — drives the legacy/clinical score. Unchanged.
     signals.forEach((sig) => {
       if (W_COMBINED[sig] !== undefined) {
         signalActiveTimeRef.current[sig] =
           (signalActiveTimeRef.current[sig] || 0) + dt;
       }
     });
+
+    // (2) Per-region active time — covers ALL signals, dt added once per unique
+    // region this frame so two co-active signals in one region don't double-count.
+    const regionsThisFrame = new Set<FaceRegion>();
+    signals.forEach((sig) => {
+      const region = SIGNAL_REGION[sig];
+      if (region) regionsThisFrame.add(region);
+    });
+    regionsThisFrame.forEach((region) => {
+      regionActiveTimeRef.current[region] =
+        (regionActiveTimeRef.current[region] || 0) + dt;
+    });
+
+    // (3) Within-session buckets. observed always advances; active advances only
+    // when at least one region-mapped signal was active this frame.
+    if (sessionStartRef.current !== null) {
+      const bucket = Math.floor((now - sessionStartRef.current) / BUCKET_MS);
+      bucketObservedRef.current.set(bucket, (bucketObservedRef.current.get(bucket) || 0) + dt);
+      if (regionsThisFrame.size > 0) {
+        bucketActiveRef.current.set(bucket, (bucketActiveRef.current.get(bucket) || 0) + dt);
+      }
+    }
   }, [isSessionActive]);
 
   /**
@@ -146,11 +204,52 @@ export function useMirrorSession(config: SessionConfig) {
       return Math.round(Math.max(0, 100 - (activeMs / totalTimeMs) * 100));
     };
 
+    // ── Per-region ease (all signals, 0..100; 100 = no tension observed) ──
+    const regionEase: Partial<Record<FaceRegion, number>> = {};
+    ALL_REGIONS.forEach((region) => {
+      const activeMs = regionActiveTimeRef.current[region] || 0;
+      regionEase[region] = Math.round(Math.max(0, Math.min(100, 100 - (activeMs / totalTimeMs) * 100)));
+    });
+
+    // ── Within-session arc: fold 10s buckets into three equal time windows ──
+    const thirds = [
+      { active: 0, observed: 0 },
+      { active: 0, observed: 0 },
+      { active: 0, observed: 0 },
+    ];
+    bucketObservedRef.current.forEach((observed, bucket) => {
+      const third = Math.min(2, Math.floor((3 * (bucket * BUCKET_MS)) / totalTimeMs));
+      thirds[third].observed += observed;
+      thirds[third].active += bucketActiveRef.current.get(bucket) || 0;
+    });
+    const thirdSummaries = thirds.map((t) => ({
+      tensionFraction: t.observed > 0 ? t.active / t.observed : 0,
+      observedMs: t.observed,
+    }));
+
+    let arc: WithinSessionArc;
+    const [first, mid, last] = thirdSummaries;
+    if (first.observedMs < THIRD_MIN_OBSERVED_MS || last.observedMs < THIRD_MIN_OBSERVED_MS) {
+      arc = "insufficient";
+    } else {
+      const diff = last.tensionFraction - first.tensionFraction;
+      const hi = Math.max(first.tensionFraction, last.tensionFraction);
+      const lo = Math.min(first.tensionFraction, last.tensionFraction);
+      if (diff <= -ARC_DELTA) arc = "eased";
+      else if (diff >= ARC_DELTA) arc = "tensed";
+      else if (mid.tensionFraction >= hi + ARC_MID_DELTA || mid.tensionFraction <= lo - ARC_MID_DELTA) arc = "mixed";
+      else arc = "steady";
+    }
+
+    const withinSession: WithinSessionSummary = { thirds: thirdSummaries, arc };
+
     return {
       jawEase:       getEase(MirrorBehaviorSignal.JAW_TENSION),
       lipEase:       getEase(MirrorBehaviorSignal.LIP_PURSING),
       gazeMaintained:getEase(MirrorBehaviorSignal.GAZE_AVERSION),
       overallEaseScore,
+      regionEase,
+      withinSession,
     };
   }, [sessionStartTime]);
 
