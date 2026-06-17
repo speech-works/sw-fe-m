@@ -22,7 +22,7 @@
     "ios": "expo run:ios",
     "build:android:preview": "eas build -p android --profile preview-apk",
     "build:ios:preview": "eas build -p ios --profile preview",
-    "build:android:local:apk": "eas build -p android --local --profile preview-apk",
+    "build:android:local:apk": "watchman watch-del-all >/dev/null 2>&1 || true; (cd android 2>/dev/null && ./gradlew --stop >/dev/null 2>&1) || true; rm -rf .expo node_modules/.cache \"${TMPDIR:-/tmp}\"metro-* \"${TMPDIR:-/tmp}\"haste-map-* >/dev/null 2>&1 || true; mkdir -p dist; ANDROID_HOME=\"${ANDROID_HOME:-$HOME/Library/Android/sdk}\" ANDROID_SDK_ROOT=\"${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}\" eas build -p android --local --profile preview-apk --output ./dist/sw-fe-m.apk",
     "build:android:local": "watchman watch-del-all >/dev/null 2>&1 || true; (cd android 2>/dev/null && ./gradlew --stop >/dev/null 2>&1) || true; rm -rf .expo node_modules/.cache \"${TMPDIR:-/tmp}\"metro-* \"${TMPDIR:-/tmp}\"haste-map-* >/dev/null 2>&1 || true; mkdir -p dist; ANDROID_HOME=\"${ANDROID_HOME:-$HOME/Library/Android/sdk}\" ANDROID_SDK_ROOT=\"${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}\" eas build -p android --local --profile production --output ./dist/sw-fe-m.aab",
     "build:ios:local": "eas build -p ios --local --profile preview",
     "build:android:production": "eas build -p android --profile production",
