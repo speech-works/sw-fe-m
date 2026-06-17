@@ -150,7 +150,7 @@ module.exports = {
       // React Native's debug manifest injects SYSTEM_ALERT_WINDOW; the app uses
       // no draw-over-other-apps overlay, so strip it from the release manifest
       // (avoids an unnecessary sensitive-permission flag on the stores).
-      blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW"],
+      blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
