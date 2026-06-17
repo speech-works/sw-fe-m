@@ -180,10 +180,6 @@ function avgBs(result: FaceLandmarkerResult, ...names: string[]): number {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
-}
-
 function variance(arr: number[]): number {
   if (arr.length < 2) return 0;
   const m = arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -267,9 +263,6 @@ export class MirrorBehaviorAnalyzerV2 {
   private lastHeadPoseMs: number | null = null;
   private lastHeadJerkMs = 0;
 
-  // ── Head pose hold state (for GAZE_AVERSION) ──
-  private headPoseAboveThresholdMs: number | null = null;
-
   // ── Composite onset tracking (edge-debounced — see analyzeFrame §11) ──
   private compositeActive = false;
   private compositeBelowSinceMs: number | null = null;
@@ -300,7 +293,6 @@ export class MirrorBehaviorAnalyzerV2 {
     this.lastPitch = null;
     this.lastHeadPoseMs = null;
     this.lastHeadJerkMs = 0;
-    this.headPoseAboveThresholdMs = null;
     this.compositeActive = false;
     this.compositeBelowSinceMs = null;
   }

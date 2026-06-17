@@ -148,7 +148,7 @@ export const PrepScreen: React.FC = () => {
             <View style={styles.legendTextGroup}>
               <Text style={styles.legendLabel}>Firm observation</Text>
               <Text style={styles.legendDesc}>
-                High-confidence cues like lip pressing or jaw tension. We're quite sure we saw it.
+                High-confidence cues like lip pressing or jaw tension. We&apos;re quite sure we saw it.
               </Text>
             </View>
           </View>
@@ -158,7 +158,7 @@ export const PrepScreen: React.FC = () => {
             <View style={styles.legendTextGroup}>
               <Text style={styles.legendLabel}>Soft observation</Text>
               <Text style={styles.legendDesc}>
-                Subtler cues — brow tension, cheek puffing. We'll phrase these gently because they're harder to detect precisely.
+                Subtler cues — brow tension, cheek puffing. We&apos;ll phrase these gently because they&apos;re harder to detect precisely.
               </Text>
             </View>
           </View>
@@ -168,13 +168,13 @@ export const PrepScreen: React.FC = () => {
             <View style={styles.legendTextGroup}>
               <Text style={styles.legendLabel}>Head movement</Text>
               <Text style={styles.legendDesc}>
-                Gaze shifts and head movements. These are informational — they don't affect your overall score.
+                Gaze shifts and head movements. These are informational — they don&apos;t affect your overall score.
               </Text>
             </View>
           </View>
 
           <Text style={styles.legendFootnote}>
-            None of this is a diagnosis. It's just a mirror with a memory.
+            None of this is a diagnosis. It&apos;s just a mirror with a memory.
           </Text>
         </View>
       </ScrollView>
