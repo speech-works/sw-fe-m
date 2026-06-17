@@ -28,8 +28,12 @@ export type CDPStackParamList = {
         from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
       }
     | undefined;
-  MirrorWorkPrep: { practiceData?: any } | undefined;
-  MirrorWorkSession: { prompts: any; practiceActivityId?: string } | undefined;
+  MirrorWorkPrep:
+    | { practiceData?: any; packContext?: PackContext; practiceActivity?: any }
+    | undefined;
+  MirrorWorkSession:
+    | { prompts: any; practiceActivityId?: string; packContext?: PackContext }
+    | undefined;
   MirrorWorkReflection: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any } | undefined;
   MirrorWorkSummary: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; reflectionText: string } | undefined;
 };

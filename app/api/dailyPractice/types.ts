@@ -91,6 +91,7 @@ export enum CognitivePracticeType {
   GUIDED_MEDITATION = "GUIDED_MEDITATION",
   REFRAMING_THOUGHTS = "REFRAMING_THOUGHTS",
   REAL_LIFE_CHALLENGE = "REAL_LIFE_CHALLENGE",
+  MIRROR_WORK = "MIRROR_WORK",
 }
 
 export interface GuidedBreathingData {

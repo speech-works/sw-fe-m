@@ -72,6 +72,15 @@ const navigateToCognitive = (
     case CognitivePracticeType.REFRAMING_THOUGHTS:
       nav.navigate("Reframe", { practiceActivity: activity, packContext: ctx });
       break;
+    case CognitivePracticeType.MIRROR_WORK:
+      // Pack already created+started the activity (alreadyStarted), so PrepScreen
+      // reuses it via the double-start guard rather than creating a new one.
+      nav.navigate("MirrorWorkPrep", {
+        practiceData: { cognitivePractice },
+        practiceActivity: activity,
+        packContext: ctx,
+      });
+      break;
     case CognitivePracticeType.REAL_LIFE_CHALLENGE:
       nav.navigate("RealLifeChallenge", {
         practiceActivity: activity,

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
@@ -10,6 +10,10 @@ import { parseTextStyle, parseShadowStyle } from '../../../../../util/functions/
 import { MirrorWorkData } from './types';
 import { selectSessionPrompts } from './util/promptSelection';
 import { loadSeenOpeners, recordSeenOpener } from './util/promptSelectionStorage';
+import { useMarkActivityStart } from '../../../../../hooks/useMarkActivityStart';
+import { getCognitivePracticeByType } from '../../../../../api/dailyPractice';
+import { CognitivePracticeType } from '../../../../../api/dailyPractice/types';
+import { PracticeActivityContentType } from '../../../../../api/practiceActivities/types';
 
 export const PrepScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -35,12 +39,79 @@ export const PrepScreen: React.FC = () => {
   };
 
 
+  const packContext = route.params?.packContext;
+  const initialActivity = route.params?.practiceActivity;
+
+  // The MIRROR_WORK cognitive-practice content id — used ONLY as the activity's
+  // contentId for create/start. The prep copy + prompts above stay unchanged.
+  const [cognitivePracticeId, setCognitivePracticeId] = useState<string | null>(
+    initialActivity?.cognitivePractice?.id ??
+      practiceData?.cognitivePractice?.id ??
+      null,
+  );
+  const [currentActivityId, setCurrentActivityId] = useState<string | null>(
+    initialActivity?.id ?? null,
+  );
+
+  // Standalone: resolve the contentId from the server (single seeded row),
+  // honoring a recommendation override. Pack: the id already came in via the
+  // pre-started activity, so skip the fetch.
+  useEffect(() => {
+    if (packContext || cognitivePracticeId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await getCognitivePracticeByType(
+          CognitivePracticeType.MIRROR_WORK,
+        );
+        if (cancelled) return;
+        const recommendedId = (route.params as any)?.id;
+        const target =
+          (recommendedId && list.find((c) => c.id === recommendedId)) || list[0];
+        setCognitivePracticeId(target?.id ?? null);
+      } catch (e) {
+        // Non-fatal: Start gracefully degrades (session opens without XP).
+        console.warn('[MirrorWorkPrep] content fetch failed:', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const markActivityStart = useMarkActivityStart({
+    contentType: PracticeActivityContentType.COGNITIVE_PRACTICE,
+    contentId: cognitivePracticeId ?? undefined,
+    initialActivity,
+    packContext,
+    currentActivityId,
+    setActivityId: setCurrentActivityId,
+    navigation,
+    logTag: 'MirrorWorkPrep',
+    trackStart: true,
+    // Caller branches on the thrown error (stamina upsell); preserve throw.
+    rethrowErrors: true,
+  });
+
   // Guards against a double-tap firing two navigations during the async load.
   const startingRef = useRef(false);
   const handleStart = async () => {
     if (startingRef.current) return;
     startingRef.current = true;
     try {
+      // Reserve the activity (free-task/stamina) and get its id. On a stamina
+      // block we stop here (the API layer already showed the upsell). On ANY
+      // other failure we still open the session without gamification, so Mirror
+      // Work is never less functional than before this wiring existed.
+      let activityId: string | null = null;
+      try {
+        activityId = await markActivityStart();
+      } catch (e: any) {
+        if (e?.response?.data?.errorCode === 'INSUFFICIENT_STAMINA') return;
+        console.warn('[MirrorWorkPrep] start failed; opening session ungamified:', e);
+      }
+
       // Pick a fresh opener + theme-varied prompts so the session isn't the same
       // every time. Falls back to the raw list if selection yields nothing.
       const seen = await loadSeenOpeners();
@@ -51,7 +122,8 @@ export const PrepScreen: React.FC = () => {
       recordSeenOpener(openerId).catch(() => {});
       navigation.navigate('MirrorWorkSession', {
         prompts: prompts.length ? prompts : mirrorWorkData.cognitivePrompts,
-        practiceActivityId: practiceData.id,
+        practiceActivityId: activityId ?? undefined,
+        packContext,
       });
     } finally {
       // Re-enable after a beat so a failed navigation can be retried, while
