@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  // These packages ARE used, via config/native references that fallow's static
+  // analysis cannot see. They are not dead — do NOT remove them, and do not let
+  // `fallow fix` strip them.
+  "ignoreDependencies": [
+    // Expo config plugin, referenced by string in app.config.js `plugins`
+    // (sets android.minSdkVersion=26 and ios.deploymentTarget).
+    "expo-build-properties",
+    // Powers over-the-air updates: driven by app.config.js `updates`, linked as
+    // a native module, and loaded at runtime via Sentry's require('expo-updates').
+    // Removing it re-introduces the release-build startup crash.
+    "expo-updates"
+  ]
+}

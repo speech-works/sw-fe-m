@@ -24,6 +24,16 @@ module.exports = {
     slug: "sw-fe-m",
     version: "1.0.0",
     sdkVersion: "53.0.0",
+    // Over-the-air updates (EAS Update): lets us ship JS-only fixes without a
+    // Play Store rebuild + review. `runtimeVersion` uses the "appVersion"
+    // policy, so an OTA update only reaches builds whose `version` matches —
+    // bump `version` and do a full rebuild whenever native code/deps change.
+    updates: {
+      url: "https://u.expo.dev/da01d434-2a75-41bb-b7cc-19fd2f720aa5",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     orientation: "portrait",
     icon: "./app/assets/icon.png",
     userInterfaceStyle: "light",
