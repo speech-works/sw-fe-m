@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import sys
+
+content = """import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert,
 } from 'react-native';
@@ -149,25 +151,23 @@ export const SummaryScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero: overall ease mood */}
-        <View style={styles.heroCardShadow}>
-          <LinearGradient 
-            colors={easeMood.gradient} 
-            start={{ x: 0, y: 0 }} 
-            end={{ x: 1, y: 1 }} 
-            style={styles.heroCard}
-          >
-            <View style={styles.heroLeft}>
-              <Text style={styles.heroEyebrow}>OVERALL EASE</Text>
-              <Text style={[styles.heroScore, { color: easeMood.tint }]}>
-                {overallEase}<Text style={styles.heroScoreUnit}>%</Text>
-              </Text>
-              <Text style={styles.heroLabel}>{easeMood.label}</Text>
-            </View>
-            <View style={[styles.heroRingPlaceholder, { borderColor: easeMood.tint }]}>
-              <Icon name="happy-outline" size={42} color={easeMood.tint} />
-            </View>
-          </LinearGradient>
-        </View>
+        <LinearGradient 
+          colors={easeMood.gradient} 
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 1 }} 
+          style={styles.heroCard}
+        >
+          <View style={styles.heroLeft}>
+            <Text style={styles.heroEyebrow}>OVERALL EASE</Text>
+            <Text style={[styles.heroScore, { color: easeMood.tint }]}>
+              {overallEase}<Text style={styles.heroScoreUnit}>%</Text>
+            </Text>
+            <Text style={styles.heroLabel}>{easeMood.label}</Text>
+          </View>
+          <View style={[styles.heroRingPlaceholder, { borderColor: easeMood.tint }]}>
+            <Icon name="happy-outline" size={42} color={easeMood.tint} />
+          </View>
+        </LinearGradient>
 
         {/* Quick stats row */}
         <View style={styles.statsRow}>
@@ -335,20 +335,14 @@ const styles = StyleSheet.create({
   },
 
   // ── Hero ──
-  heroCardShadow: {
-    borderRadius: 28,
-    marginBottom: 20,
-    backgroundColor: '#FFFFFF',
-    ...parseShadowStyle(theme.shadow.elevation1),
-    elevation: 2, // Explicit elevation
-  },
   heroCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderRadius: 28,
     padding: 24,
-    overflow: 'hidden',
+    marginBottom: 20,
+    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
   },
@@ -395,15 +389,14 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 24,
     paddingVertical: 18,
     paddingHorizontal: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
+    borderColor: 'rgba(255,255,255,0.9)',
     ...parseShadowStyle(theme.shadow.elevation1),
-    elevation: 2,
   },
   statValue: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -421,14 +414,13 @@ const styles = StyleSheet.create({
 
   // ── Cards ──
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 28,
     padding: 24,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
+    borderColor: 'rgba(255,255,255,0.9)',
     ...parseShadowStyle(theme.shadow.elevation1),
-    elevation: 2,
   },
   cardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
@@ -507,9 +499,7 @@ const styles = StyleSheet.create({
   primaryButtonShadow: {
     width: "100%",
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
     ...parseShadowStyle(theme.shadow.elevation2),
-    elevation: 4,
   },
   primaryButtonGradient: {
     flexDirection: "row",
@@ -551,3 +541,9 @@ const barStyles = StyleSheet.create({
     borderRadius: 6,
   },
 });
+"""
+
+with open("/Users/mayankav/Documents/speechworks-2/sw-fe-m-2/app/screens/Academy/DailyPractice/pages/MirrorWork/SummaryScreen.tsx", "w") as f:
+    f.write(content)
+
+print("Done")
