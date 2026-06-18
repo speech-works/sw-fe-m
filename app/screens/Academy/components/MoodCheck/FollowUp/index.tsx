@@ -173,6 +173,18 @@ const FollowUp = () => {
   ];
 
   const navigateToHome = () => {
+    // Unwind the mood-check flow so this screen UNMOUNTS on exit. Otherwise it
+    // lingers in the Explore tab's stack and its window-level exit prompt (a
+    // BottomSheetModal) can paint over whatever screen is focused in any tab.
+    // Pop the MoodCheckStack off the parent (Explore) stack, then go Home.
+    // Degrades safely: if the parent can't go back, we just navigate Home and
+    // the focus-gate on the prompt still prevents any leak.
+    const exploreNav = navigation.getParent()?.getParent() as
+      | { canGoBack?: () => boolean; goBack?: () => void }
+      | undefined;
+    if (exploreNav?.canGoBack?.()) {
+      exploreNav.goBack?.();
+    }
     navigation.navigate("Root" as any);
   };
 
@@ -184,6 +196,13 @@ const FollowUp = () => {
 
     setShowExitPromptSheet(true);
   };
+
+  // Safety: never let the exit prompt render while this screen is backgrounded.
+  // (A BottomSheetModal renders at the window level, so a lingering FollowUp
+  // could otherwise paint its prompt over other screens.)
+  useEffect(() => {
+    if (!isFocused) setShowExitPromptSheet(false);
+  }, [isFocused]);
 
   const closeRecoverySheet = () => {
     setRecoverySheet({
@@ -680,7 +699,7 @@ const FollowUp = () => {
       />
 
       <BottomSheetModal
-        visible={showExitPromptSheet}
+        visible={showExitPromptSheet && isFocused}
         onClose={() => setShowExitPromptSheet(false)}
         fitContent
         showCloseButton={true}
