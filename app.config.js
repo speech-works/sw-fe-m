@@ -163,7 +163,7 @@ module.exports = {
       blockedPermissions: ["android.permission.SYSTEM_ALERT_WINDOW", "android.permission.ACTIVITY_RECOGNITION"],
       adaptiveIcon: {
         foregroundImage: "./app/assets/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#592D1C",
       },
       intentFilters: [
         {
