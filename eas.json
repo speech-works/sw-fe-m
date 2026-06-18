@@ -28,7 +28,7 @@
       "extends": "preview",
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
+        "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --no-parallel -Dorg.gradle.workers.max=2 -x lintVitalAnalyzeRelease"
       }
     },
     "production": {
