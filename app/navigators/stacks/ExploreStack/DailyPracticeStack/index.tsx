@@ -29,14 +29,17 @@ export default function DPStackNavigator() {
       <Stack.Screen
         name="ImpactAssessmentIntro"
         component={ImpactAssessmentIntro}
+        options={{ gestureEnabled: false }}
       />
       <Stack.Screen
         name="ImpactAssessmentQuestions"
         component={ImpactAssessmentQuestions}
+        options={{ gestureEnabled: false }}
       />
       <Stack.Screen
         name="ImpactAssessmentComplete"
         component={ImpactAssessmentComplete}
+        options={{ gestureEnabled: false }}
       />
     </Stack.Navigator>
   );

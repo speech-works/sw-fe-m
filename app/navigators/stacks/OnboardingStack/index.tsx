@@ -31,8 +31,14 @@ export default function OnboardingStackNavigator() {
         animation: "slide_from_right",
       }}
     >
-      <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcome} />
+      <Stack.Screen
+        name="OnboardingWelcome"
+        component={OnboardingWelcome}
+        options={{ gestureEnabled: false }}
+      />
 
+      {/* OnboardingQuestion intentionally keeps swipe enabled: it is the only
+          way to step back and revise a previous answer (steps are pushed). */}
       <Stack.Screen
         name="OnboardingQuestion"
         component={OnboardingQuestion}
@@ -40,8 +46,16 @@ export default function OnboardingStackNavigator() {
         initialParams={{ screenNumber: currentScreen }}
       />
 
-      <Stack.Screen name="OnboardingPhonemes" component={OnboardingPhonemes} />
-      <Stack.Screen name="OnboardingDone" component={OnboardingDone} />
+      <Stack.Screen
+        name="OnboardingPhonemes"
+        component={OnboardingPhonemes}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="OnboardingDone"
+        component={OnboardingDone}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
