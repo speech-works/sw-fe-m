@@ -4,15 +4,8 @@
 // PRESENTATION (which templates to offer, which fields a user may toggle, a friendly
 // stigma-safe default name) — they never derive the private facts themselves. The
 // server owns the real payload values and the fluency-exclusion guardrail.
-import {
-  PracticeActivity,
-  PracticeActivityContentType,
-} from "../../api/practiceActivities/types";
+import { PracticeActivityContentType } from "../../api/practiceActivities/types";
 import { ActivityKind, PracticePayloadField, TemplateId } from "../../api/threads/types";
-
-/** Map a completed activity to its share "kind". */
-export const activityKindFor = (activity: PracticeActivity): ActivityKind =>
-  activityKindFromContentType(activity.contentType);
 
 /**
  * Map a PracticeActivityContentType (what DonePractice holds) to a ActivityKind.

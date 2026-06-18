@@ -49,10 +49,6 @@ export function initAnalytics(): PostHog {
     return client;
 }
 
-export function getAnalytics(): PostHog | null {
-    return client;
-}
-
 // ─── Identity ──────────────────────────────────────────────────────────────
 
 /**

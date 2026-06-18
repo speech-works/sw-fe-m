@@ -208,11 +208,6 @@ export async function registerForNotifications(): Promise<boolean> {
   return true;
 }
 
-export async function hasNotificationPermission(): Promise<boolean> {
-  const settings = await Notifications.getPermissionsAsync();
-  return hasGrantedNotificationPermission(settings);
-}
-
 /**
  * Fetch this device's Expo push token and register it with the backend so it can deliver buddy
  * pushes ("Alex shared a moment", "Alex reacted…", crisis support). No-ops on simulators (Expo push
@@ -378,13 +373,4 @@ export async function cancelReminderNotifications(rem: Reminder) {
       // This can happen if the notification was already delivered or cleared by the OS/user.
     }
   }
-}
-
-/**
- * Cancel ALL scheduled notifications for this app.
- * Useful for re-scheduling or app cleanup.
- */
-export async function cancelAllNotifications(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  console.log("All scheduled notifications cancelled for this app.");
 }

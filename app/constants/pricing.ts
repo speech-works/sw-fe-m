@@ -20,13 +20,3 @@ export const SUBSCRIPTION_PRICING = {
     },
   },
 } as const;
-
-const currencyFormatter = new Intl.NumberFormat(SUBSCRIPTION_PRICING.locale, {
-  style: "currency",
-  currency: SUBSCRIPTION_PRICING.currencyCode,
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-export const formatSubscriptionCurrency = (amount: number) =>
-  currencyFormatter.format(amount);

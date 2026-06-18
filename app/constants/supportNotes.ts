@@ -17,6 +17,3 @@ export const SUPPORT_NOTES: SupportNote[] = [
   { id: "not_going_anywhere", emoji: "🫂", text: "Thank you for telling me. I'm not going anywhere." },
   { id: "you_matter", emoji: "🤍", text: "You matter to me. Can we talk?" },
 ];
-
-export const getSupportNote = (id: SupportNoteId): SupportNote =>
-  SUPPORT_NOTES.find((n) => n.id === id) ?? SUPPORT_NOTES[0];
