@@ -56,6 +56,7 @@ import {
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { RecordingSourceType } from "../../../../../../api/recordings/types";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../stores/session";
@@ -427,6 +428,17 @@ const PoemPractice = () => {
   };
 
   const bottomPadding = 32; // Ultra-compact clearance, allows slight overlap with dock for tight feel
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: practiceComplete,
+    onSave: onDonePress,
+    family: "Reading",
+    from,
+    packContext,
+  });
 
   // --- View: Done Practice ---
   if (practiceComplete) {
@@ -855,6 +867,8 @@ const PoemPractice = () => {
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

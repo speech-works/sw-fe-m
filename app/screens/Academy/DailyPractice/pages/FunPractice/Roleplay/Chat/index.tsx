@@ -23,6 +23,7 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
 
 import {
@@ -232,6 +233,17 @@ const Chat = () => {
   };
 
   // --- Render Helpers ---
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone,
+    onSave: onDonePress,
+    family: "Fun",
+    from,
+    packContext,
+  });
 
   if (isDone) {
     return (
@@ -506,6 +518,8 @@ const Chat = () => {
           }}
         />
       </View>
+
+      {exitSheet}
     </ScreenView>
   );
 };

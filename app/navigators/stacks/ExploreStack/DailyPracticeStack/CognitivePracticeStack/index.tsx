@@ -17,13 +17,37 @@ export default function CDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CognitivePractice" component={CognitivePractice} />
-      <Stack.Screen name="ReframePractice" component={Reframe} />
-      <Stack.Screen name="BreathingPractice" component={Breathing} />
-      <Stack.Screen name="MeditationPractice" component={Meditation} />
+      <Stack.Screen
+        name="ReframePractice"
+        component={Reframe}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="BreathingPractice"
+        component={Breathing}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="MeditationPractice"
+        component={Meditation}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="MirrorWorkPrep" component={MirrorWorkPrep} />
-      <Stack.Screen name="MirrorWorkSession" component={MirrorWorkSession} />
-      <Stack.Screen name="MirrorWorkReflection" component={MirrorWorkReflection} />
-      <Stack.Screen name="MirrorWorkSummary" component={MirrorWorkSummary} />
+      <Stack.Screen
+        name="MirrorWorkSession"
+        component={MirrorWorkSession}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="MirrorWorkReflection"
+        component={MirrorWorkReflection}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="MirrorWorkSummary"
+        component={MirrorWorkSummary}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

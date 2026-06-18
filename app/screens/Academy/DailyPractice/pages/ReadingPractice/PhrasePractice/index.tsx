@@ -41,6 +41,7 @@ import { usePhrasePractice } from "./usePhrasePractice";
 import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 import ToolConsentModal from "../../../../../../components/ToolConsentModal";
 import ToolNudge from "../../../../../../components/ToolNudge";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 
 const { width } = Dimensions.get("window");
 
@@ -102,6 +103,17 @@ const PhrasePractice = () => {
     [ToolType.DAF]: dafState.isDAFActive,
     [ToolType.METRONOME]: metronomeState.isPlaying,
     [ToolType.CHORUS]: vhIsPlaying,
+  });
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: practiceComplete,
+    onSave: actions.onDonePress,
+    family: "Reading",
+    from,
+    packContext,
   });
 
   // --- Rendering Helpers ---
@@ -659,6 +671,8 @@ const PhrasePractice = () => {
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

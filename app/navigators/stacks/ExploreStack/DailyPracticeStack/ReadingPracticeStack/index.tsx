@@ -15,11 +15,31 @@ export default function RDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ReadingPractice" component={ReadingPractice} />
-      <Stack.Screen name="StoryPractice" component={StoryPractice} />
-      <Stack.Screen name="QuotePractice" component={QuotePractice} />
-      <Stack.Screen name="PoemPractice" component={PoemPractice} />
-      <Stack.Screen name="WordPractice" component={WordPractice} />
-      <Stack.Screen name="PhrasePractice" component={PhrasePractice} />
+      <Stack.Screen
+        name="StoryPractice"
+        component={StoryPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="QuotePractice"
+        component={QuotePractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PoemPractice"
+        component={PoemPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="WordPractice"
+        component={WordPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PhrasePractice"
+        component={PhrasePractice}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

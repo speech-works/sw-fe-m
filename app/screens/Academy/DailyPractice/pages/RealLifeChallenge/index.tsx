@@ -28,6 +28,7 @@ import { useUserStore } from "../../../../../stores/user";
 import { theme } from "../../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { useMarkActivityStart } from "../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../components/VitalsFeedbackModal";
 import { SimpleMarkdown } from "../../../../../components/Pack/SimpleMarkdown";
@@ -141,11 +142,25 @@ const RealLifeChallenge = () => {
     }
   }, [isFetching, challengeData]);
 
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  // Save opens the existing vitals modal (the normal completion path). RLC has
+  // no family landing, so Discard returns to the Explore landing.
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: currentStep === ChallengeStep.SUMMARY || showVitalsModal,
+    onSave: () => setShowVitalsModal(true),
+    family: "Explore",
+    from,
+    packContext,
+  });
+
   if (!challengeData) {
     return (
       <View style={styles.contentContainerCentered}>
         <Text>Error: Missing challenge data.</Text>
         <Button text="Go Back" onPress={() => navigation.goBack()} />
+        {exitSheet}
       </View>
     );
   }
@@ -494,6 +509,8 @@ const RealLifeChallenge = () => {
         onClose={() => setShowIRLModal(false)}
         onConfirm={handleIRLConfirm}
       />
+
+      {exitSheet}
     </View>
   );
 };

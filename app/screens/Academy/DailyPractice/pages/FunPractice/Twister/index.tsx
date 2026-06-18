@@ -44,6 +44,7 @@ import {
   parseTextStyle,
 } from "../../../../../../util/functions/parseStyles";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 
 import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
@@ -437,6 +438,17 @@ const Twister = () => {
   };
 
   // --- Main Render ---
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: practiceComplete,
+    onSave: onDonePress,
+    family: "Fun",
+    from,
+    packContext,
+  });
 
   if (practiceComplete) {
     return (
@@ -847,6 +859,8 @@ const Twister = () => {
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

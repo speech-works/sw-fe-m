@@ -33,6 +33,7 @@ import DonePractice from "../../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
+import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -198,6 +199,17 @@ const Chat = () => {
     }
     setShowVitalsModal(true);
   };
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: practiceActivityId,
+    isCompleted: isDone || showVitalsModal,
+    onSave: onDonePress,
+    family: "Exposure",
+    from,
+    packContext,
+  });
 
   const handleVitalsSubmit = async (vitals?: {
     effortScore: number;
@@ -386,6 +398,8 @@ const Chat = () => {
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

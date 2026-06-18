@@ -26,6 +26,7 @@ import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import { CognitivePracticeType } from "../../../../../../api/dailyPractice/types";
 import {
@@ -90,6 +91,19 @@ const Breathing = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  // Save opens the existing vitals modal (the normal completion path). isCompleted
+  // includes showVitalsModal so an open vitals modal doesn't trigger a 2nd prompt.
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone || showVitalsModal,
+    onSave: () => setShowVitalsModal(true),
+    family: "Cognitive",
+    from,
+    packContext,
+  });
 
   const markActivityDone = async () => {
     // Get userId from session or user store
@@ -542,6 +556,8 @@ const Breathing = () => {
             </View>
           </LinearGradient>
         </BottomSheetModal>
+
+        {exitSheet}
       </View>
     );
   }
@@ -653,6 +669,8 @@ const Breathing = () => {
         onSkip={handleVitalsSkip}
         showAccuracy={showAccuracy}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

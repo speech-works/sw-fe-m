@@ -36,26 +36,59 @@ export default function MoodFUStackNavigator({
         component={FollowUp}
         initialParams={{ mood: initialMood }}
       />
-      <Stack.Screen name="BreathingPractice" component={Breathing} />
+      <Stack.Screen
+        name="BreathingPractice"
+        component={Breathing}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name="MeditationPractice"
         component={Meditation}
         initialParams={{ mood: initialMood }}
+        options={{ gestureEnabled: false }}
       />
-      <Stack.Screen name="ReframePractice" component={Reframe} />
+      <Stack.Screen
+        name="ReframePractice"
+        component={Reframe}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name="RoleplayPracticeStack"
         component={RoleplayFDPStackNavigator}
       />
-      <Stack.Screen name="StoryPractice" component={StoryPractice} />
-      <Stack.Screen name="QuotePractice" component={QuotePractice} />
-      <Stack.Screen name="PoemPractice" component={PoemPractice} />
-      <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
+      <Stack.Screen
+        name="StoryPractice"
+        component={StoryPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="QuotePractice"
+        component={QuotePractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PoemPractice"
+        component={PoemPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="RealLifeChallenge"
+        component={RealLifeChallenge}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="ExposurePractice" component={Exposure} />
       <Stack.Screen name="TwisterPracticeStack" component={FunPracticeStackNavigator} />
-      <Stack.Screen name="TwisterExercise" component={Twister} />
+      <Stack.Screen
+        name="TwisterExercise"
+        component={Twister}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="RoleplayBriefing" component={Briefing} />
-      <Stack.Screen name="CVExercise" component={CVExercise} />
+      <Stack.Screen
+        name="CVExercise"
+        component={CVExercise}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="TechniquePage" component={TechniquePage} />
       <Stack.Screen name="SummaryPage" component={SummaryPage} />
     </Stack.Navigator>

@@ -12,7 +12,11 @@ export default function CharacterVoiceFDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CVHome" component={CharacterVoice} />
-      <Stack.Screen name="CVExercise" component={CVExercise} />
+      <Stack.Screen
+        name="CVExercise"
+        component={CVExercise}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

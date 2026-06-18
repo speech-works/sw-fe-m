@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -17,6 +17,9 @@ import {
   buildReflection, ReflectionView, RenderedInsight, ReflectionTone, Tier,
 } from './util/mirrorReflection';
 import { loadRotationState, saveRotationState } from './util/mirrorReflection/rotationStorage';
+import { useConfirmOnExit } from '../../../../../hooks/useConfirmOnExit';
+import { markMirrorWorkCompleted, wasMirrorWorkCompleted } from './util/mirrorCompletionGuard';
+import { showErrorBottomSheet } from '../../../../../util/functions/bottomSheet';
 
 // ── Hero tint per overall tone (no alarming red — deepest is a warm amber) ──
 const TONE_STYLE: Record<ReflectionTone, { tint: string; gradient: readonly [string, string] }> = {
@@ -82,7 +85,7 @@ export const SummaryScreen: React.FC = () => {
 
   const {
     scores, promptsAttempted, nudgeMode, sessionDurationSeconds,
-    signalCounts, reflectionText, practiceActivityId, weightTableVersion,
+    signalCounts, reflectionText, practiceActivityId, weightTableVersion, packContext,
   } = route.params || {};
 
   const { user, fetchUser } = useUserStore();
@@ -145,6 +148,9 @@ export const SummaryScreen: React.FC = () => {
   const submitFinalData = async (feedback: { effortScore: number; autonomyScore: number; detectionAccuracyRating: number }) => {
     setShowFeedbackModal(false);
     setIsSubmitting(true);
+    // Mark completed synchronously (before the await) so the post-completion
+    // stack-unwind doesn't re-trigger the confirm-on-exit prompt on Session/Reflection.
+    if (practiceActivityId) markMirrorWorkCompleted(practiceActivityId);
 
     const mirrorWorkPayload = {
       detectedSignals: signalCounts || {},
@@ -167,10 +173,9 @@ export const SummaryScreen: React.FC = () => {
         fetchUser?.().catch((e: Error) => console.warn('[SummaryScreen] fetchUser failed:', e));
       } catch (err) {
         console.error('[SummaryScreen] completeMirrorWorkActivity failed:', err);
-        Alert.alert(
+        showErrorBottomSheet(
           'Could not save your session',
           "Your session has ended. We'll try to sync your data next time.",
-          [{ text: 'OK' }],
         );
       }
     }
@@ -178,6 +183,18 @@ export const SummaryScreen: React.FC = () => {
     setIsSubmitting(false);
     setIsDone(true);
   };
+
+  // Confirm-on-exit: leaving before submitting feedback prompts to save (opens
+  // the feedback modal → completes) or discard. Skips once completed.
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: practiceActivityId,
+    isCompleted: () =>
+      isDone || showFeedbackModal || wasMirrorWorkCompleted(practiceActivityId),
+    onSave: handleComplete,
+    family: 'Cognitive',
+    packContext,
+  });
 
   if (isDone) {
     return <DonePractice practiceName="Mirror Work" />;
@@ -350,6 +367,8 @@ export const SummaryScreen: React.FC = () => {
           onClose={() => setShowFeedbackModal(false)}
         />
       </Modal>
+
+      {exitSheet}
     </View>
   );
 };

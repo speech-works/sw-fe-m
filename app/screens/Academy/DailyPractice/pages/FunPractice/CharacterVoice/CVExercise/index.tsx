@@ -38,6 +38,7 @@ import {
   parseTextStyle,
 } from "../../../../../../../util/functions/parseStyles";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
 
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -192,6 +193,17 @@ const CVExercise = () => {
   // --- Render Helpers ---
 
   const bottomPadding = 400; // Space for the dock
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone,
+    onSave: onDonePress,
+    family: "Fun",
+    from,
+    packContext,
+  });
 
   if (isDone) {
     return (
@@ -465,6 +477,8 @@ const CVExercise = () => {
           }}
         />
       </View>
+
+      {exitSheet}
     </ScreenView>
   );
 };

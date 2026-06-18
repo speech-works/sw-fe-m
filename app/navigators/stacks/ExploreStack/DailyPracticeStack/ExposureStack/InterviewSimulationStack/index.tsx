@@ -13,7 +13,11 @@ export default function InterviewEDPStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="InterviewList" component={Interview} />
       <Stack.Screen name="InterviewBriefing" component={Briefing} />
-      <Stack.Screen name="InterviewChat" component={Chat} />
+      <Stack.Screen
+        name="InterviewChat"
+        component={Chat}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

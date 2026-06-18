@@ -34,8 +34,8 @@ export type CDPStackParamList = {
   MirrorWorkSession:
     | { prompts: any; practiceActivityId?: string; packContext?: PackContext }
     | undefined;
-  MirrorWorkReflection: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any } | undefined;
-  MirrorWorkSummary: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; reflectionText: string } | undefined;
+  MirrorWorkReflection: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; practiceActivityId?: string; weightTableVersion?: number; packContext?: PackContext } | undefined;
+  MirrorWorkSummary: { scores: any; promptsAttempted: number; nudgeMode: string; sessionDurationSeconds: number; signalCounts: any; reflectionText: string; practiceActivityId?: string; weightTableVersion?: number; packContext?: PackContext } | undefined;
 };
 export type CDPStackNavigationProp<T extends keyof CDPStackParamList> =
   CompositeNavigationProp<

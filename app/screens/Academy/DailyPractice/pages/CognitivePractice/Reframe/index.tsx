@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
   CognitivePracticeType,
@@ -117,6 +118,19 @@ const Reframe = () => {
         "Session Error",
         "We couldn't initialize your practice session. Please try again.",
       ),
+  });
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  // Save opens the existing vitals modal (the normal completion path). isCompleted
+  // includes showVitalsModal so an open vitals modal doesn't trigger a 2nd prompt.
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone || showVitalsModal,
+    onSave: () => setShowVitalsModal(true),
+    family: "Cognitive",
+    from,
+    packContext,
   });
 
   const markActivityDone = async (vitals?: {
@@ -432,6 +446,8 @@ const Reframe = () => {
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
       />
+
+      {exitSheet}
     </ScreenView>
   );
 };

@@ -13,7 +13,11 @@ export default function SCEDPStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SCList" component={SocialChallenge} />
       <Stack.Screen name="SCBriefing" component={Briefing} />
-      <Stack.Screen name="SCChat" component={Chat} />
+      <Stack.Screen
+        name="SCChat"
+        component={Chat}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

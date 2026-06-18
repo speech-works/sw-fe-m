@@ -42,6 +42,7 @@ import { PracticeActivityContentType } from "../../../../../../api/practiceActiv
 import { useActivityStore } from "../../../../../../stores/activity";
 
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../components/DonePractice";
 import PhoneCallReport from "./Report";
 
@@ -258,6 +259,22 @@ const PhoneCall = () => {
     fetchScenarios();
   }, []);
 
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  // During a live call, "Save & Finish" completes directly (which flips isDone
+  // and unmounts CallingWidget, ending the call) — we deliberately do NOT open
+  // the vitals modal over a live call. Discard navigates away (no refund).
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone || showVitalsModal,
+    onSave: () => {
+      markActivityComplete();
+    },
+    family: "Exposure",
+    from,
+    packContext,
+  });
+
   if (isDone) {
     if (reportActivityId && !reportDismissed) {
       return (
@@ -453,6 +470,8 @@ const PhoneCall = () => {
         visible={consentHydrated && !aiConsented}
         onAcknowledge={markAICallConsented}
       />
+
+      {exitSheet}
     </>
   );
 };

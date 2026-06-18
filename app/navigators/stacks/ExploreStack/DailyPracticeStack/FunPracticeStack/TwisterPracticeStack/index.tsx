@@ -10,7 +10,11 @@ const Stack = createNativeStackNavigator<TwisterFDPStackParamList>();
 export default function TwisterFDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="TwisterExercise" component={Twister} />
+      <Stack.Screen
+        name="TwisterExercise"
+        component={Twister}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

@@ -39,26 +39,78 @@ export default function ExploreStackNavigator() {
       <Stack.Screen name="MoodCheckStack" component={MoodCheckStackNavigator} />
       <Stack.Screen name="PackModule" component={PackModuleScreen} />
       <Stack.Screen name="PackForm" component={PackFormScreen} />
-      <Stack.Screen name="Breathing" component={Breathing} />
-      <Stack.Screen name="Meditation" component={Meditation} />
-      <Stack.Screen name="Reframe" component={Reframe} />
-      <Stack.Screen name="RealLifeChallenge" component={RealLifeChallenge} />
+      <Stack.Screen
+        name="Breathing"
+        component={Breathing}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Meditation"
+        component={Meditation}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Reframe"
+        component={Reframe}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="RealLifeChallenge"
+        component={RealLifeChallenge}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="SCBriefing" component={SCBriefing} />
-      <Stack.Screen name="SCChat" component={SCChat} />
+      <Stack.Screen
+        name="SCChat"
+        component={SCChat}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="InterviewBriefing" component={InterviewBriefing} />
-      <Stack.Screen name="InterviewChat" component={InterviewChat} />
-      <Stack.Screen name="PhoneCall" component={PhoneCall} />
-      <Stack.Screen name="TongueTwister" component={TongueTwister} />
+      <Stack.Screen
+        name="InterviewChat"
+        component={InterviewChat}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PhoneCall"
+        component={PhoneCall}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="TongueTwister"
+        component={TongueTwister}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="RoleplayBriefing" component={RoleplayBriefing} />
       <Stack.Screen
         name="RoleplayPackBriefing"
         component={PackBriefingWrapper}
       />
-      <Stack.Screen name="RoleplayChat" component={RoleplayChat} />
-      <Stack.Screen name="CVExercise" component={CVExercise} />
-      <Stack.Screen name="Poem" component={PoemPractice} />
-      <Stack.Screen name="Story" component={StoryPractice} />
-      <Stack.Screen name="Quote" component={QuotePractice} />
+      <Stack.Screen
+        name="RoleplayChat"
+        component={RoleplayChat}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="CVExercise"
+        component={CVExercise}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Poem"
+        component={PoemPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Story"
+        component={StoryPractice}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Quote"
+        component={QuotePractice}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="PaymentStack" component={PaymentStackNavigator} />
     </Stack.Navigator>
   );

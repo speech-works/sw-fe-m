@@ -6,6 +6,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useConfirmOnExit } from '../../../../../hooks/useConfirmOnExit';
+import { wasMirrorWorkCompleted } from './util/mirrorCompletionGuard';
 
 export const ReflectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -14,7 +16,7 @@ export const ReflectionScreen: React.FC = () => {
 
   const {
     scores, promptsAttempted, nudgeMode, sessionDurationSeconds,
-    signalCounts, practiceActivityId, weightTableVersion,
+    signalCounts, practiceActivityId, weightTableVersion, packContext,
   } = route.params || {};
 
   const [reflectionText, setReflectionText] = useState('');
@@ -29,8 +31,21 @@ export const ReflectionScreen: React.FC = () => {
       reflectionText,
       practiceActivityId,
       weightTableVersion,
+      packContext,
     });
   };
+
+  // Confirm-on-exit: leaving here without finishing prompts to save (continue to
+  // the summary) or discard. Skips once the activity has been completed (read
+  // live via the getter — the module flag does not re-render this screen).
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: practiceActivityId,
+    isCompleted: () => wasMirrorWorkCompleted(practiceActivityId),
+    onSave: handleContinue,
+    family: 'Cognitive',
+    packContext,
+  });
 
   return (
     <View style={styles.screen}>
@@ -87,6 +102,8 @@ export const ReflectionScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {exitSheet}
     </View>
   );
 };

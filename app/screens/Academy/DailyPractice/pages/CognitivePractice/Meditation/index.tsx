@@ -47,6 +47,7 @@ import { useUserStore } from "../../../../../../stores/user";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
+import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { track } from "../../../../../../util/analytics/postHog";
@@ -107,6 +108,20 @@ const Meditation = () => {
   const [isStarted, setIsStarted] = useState(packContext?.alreadyStarted || false);
 
   const TOTAL_SESSION_SECONDS = 5 * 60; // 5 minutes in seconds
+
+  // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
+  // Save opens the existing vitals modal (the normal completion path). isCompleted
+  // includes showVitalsModal so the 5-min auto-complete window (which opens the
+  // vitals modal) doesn't trigger a second prompt.
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: currentActivityId,
+    isCompleted: isDone || showVitalsModal,
+    onSave: () => setShowVitalsModal(true),
+    family: "Cognitive",
+    from,
+    packContext,
+  });
 
   // Hook for background audio (looping)
   const { loadBackground, toggleBackground, stopBackground } =
@@ -715,6 +730,8 @@ const Meditation = () => {
             </View>
           </LinearGradient>
         </BottomSheetModal>
+
+        {exitSheet}
       </View>
     );
   }
@@ -929,7 +946,7 @@ const Meditation = () => {
         onSubmit={handleVitalsSubmit}
       />
 
-
+      {exitSheet}
     </>
   );
 };

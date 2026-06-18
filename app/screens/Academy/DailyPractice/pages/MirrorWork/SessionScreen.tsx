@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  Platform, StatusBar, Alert,
+  Platform, StatusBar,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
@@ -20,6 +20,9 @@ import { CognitivePromptCard } from './components/CognitivePromptCard';
 import { CalibrationOverlay } from './components/CalibrationOverlay';
 import { DetectionHUD } from './components/DetectionHUD';
 import { MirrorWorkCognitivePrompt } from './types';
+import { useConfirmOnExit } from '../../../../../hooks/useConfirmOnExit';
+import { wasMirrorWorkCompleted } from './util/mirrorCompletionGuard';
+import PromptBottomSheet from '../../../../../components/PromptBottomSheet';
 
 const CALIBRATION_DURATION_S = 15;
 
@@ -32,6 +35,7 @@ export const SessionScreen: React.FC = () => {
     { id: '1', category: 'Testing', text: 'If you could talk to your younger self, what would you say?' }
   ];
   const practiceActivityId: string | undefined = route.params?.practiceActivityId;
+  const packContext = route.params?.packContext;
 
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -41,6 +45,8 @@ export const SessionScreen: React.FC = () => {
   const [calibrationStarted, setCalibrationStarted] = useState(false);
   // Dev-only detection HUD (live blendshape values vs thresholds).
   const [showHUD, setShowHUD] = useState(false);
+  // In-app "End session?" confirmation (replaces the native Alert).
+  const [showEndPrompt, setShowEndPrompt] = useState(false);
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,35 +89,37 @@ export const SessionScreen: React.FC = () => {
     });
   }, [speech]);
 
-  const handleEndSession = useCallback(() => {
-    Alert.alert(
-      'End Session?',
-      'Your progress so far will be saved.',
-      [
-        { text: 'Keep Going', style: 'cancel' },
-        {
-          text: 'End Session',
-          style: 'destructive',
-          onPress: () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setIsCameraActive(false);
-            speech.stopListening();
-            session.endSession();
-            const scores = session.getAwarenessScores();
-            navigation.navigate('MirrorWorkReflection', {
-              scores,
-              promptsAttempted: session.currentPromptIndex + 1,
-              nudgeMode: session.nudgeMode,
-              sessionDurationSeconds: elapsedSeconds,
-              signalCounts: session.signalCounts,
-              practiceActivityId,
-              weightTableVersion: session.weightTableVersion,
-            });
-          },
-        },
-      ]
-    );
-  }, [elapsedSeconds, session, speech, navigation, practiceActivityId]);
+  const goToReflection = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsCameraActive(false);
+    speech.stopListening();
+    session.endSession();
+    const scores = session.getAwarenessScores();
+    navigation.navigate('MirrorWorkReflection', {
+      scores,
+      promptsAttempted: session.currentPromptIndex + 1,
+      nudgeMode: session.nudgeMode,
+      sessionDurationSeconds: elapsedSeconds,
+      signalCounts: session.signalCounts,
+      practiceActivityId,
+      weightTableVersion: session.weightTableVersion,
+      packContext,
+    });
+  }, [elapsedSeconds, session, speech, navigation, practiceActivityId, packContext]);
+
+  const handleEndSession = useCallback(() => setShowEndPrompt(true), []);
+
+  // Confirm-on-exit: backing out mid-session prompts to save (continue to the
+  // reflection/summary) or discard. Skips once the activity has been completed
+  // (read live via the getter — the module flag does not re-render this screen).
+  const { exitSheet } = useConfirmOnExit({
+    navigation,
+    activityId: practiceActivityId,
+    isCompleted: () => wasMirrorWorkCompleted(practiceActivityId),
+    onSave: goToReflection,
+    family: 'Cognitive',
+    packContext,
+  });
 
   // ── Permissions ──
   useEffect(() => {
@@ -171,6 +179,7 @@ export const SessionScreen: React.FC = () => {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.permissionText}>Camera permission is required.</Text>
+        {exitSheet}
       </View>
     );
   }
@@ -179,6 +188,7 @@ export const SessionScreen: React.FC = () => {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.permissionText}>No front camera found.</Text>
+        {exitSheet}
       </View>
     );
   }
@@ -192,6 +202,7 @@ export const SessionScreen: React.FC = () => {
           Face detection is not available on this build.{'\n'}
           Run `expo run:ios` on a physical device to enable it.
         </Text>
+        {exitSheet}
       </View>
     );
   }
@@ -433,6 +444,18 @@ export const SessionScreen: React.FC = () => {
         )}
 
       </SafeAreaView>
+
+      {exitSheet}
+
+      <PromptBottomSheet
+        visible={showEndPrompt}
+        onClose={() => setShowEndPrompt(false)}
+        title="End session?"
+        message="Your progress so far will be saved."
+        icon="stop-circle-outline"
+        primaryButton={{ label: 'End Session', onPress: goToReflection }}
+        secondaryButton={{ label: 'Keep Going', onPress: () => {} }}
+      />
     </View>
   );
 };

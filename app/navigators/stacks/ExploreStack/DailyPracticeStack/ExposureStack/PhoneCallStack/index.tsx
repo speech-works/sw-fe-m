@@ -9,7 +9,11 @@ const Stack = createNativeStackNavigator<PhoneCallEDPStackParamList>();
 export default function PhoneCallEDPStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="PhoneCallScreen" component={PhoneCall} />
+      <Stack.Screen
+        name="PhoneCallScreen"
+        component={PhoneCall}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }

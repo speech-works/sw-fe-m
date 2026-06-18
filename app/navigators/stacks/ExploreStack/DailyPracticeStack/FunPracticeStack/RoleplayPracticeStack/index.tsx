@@ -13,7 +13,11 @@ export default function RoleplayFDPStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="RoleplayList" component={Roleplay} />
       <Stack.Screen name="RoleplayBriefing" component={Briefing} />
-      <Stack.Screen name="RoleplayChat" component={Chat} />
+      <Stack.Screen
+        name="RoleplayChat"
+        component={Chat}
+        options={{ gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
