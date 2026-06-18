@@ -9,7 +9,7 @@ import { useActivityStore } from "../stores/activity";
  * from stack ancestry (some practice screens are registered twice: in their
  * family sub-stack AND directly in ExploreStack, so ancestry is unreliable).
  */
-export type ExitFamily =
+type ExitFamily =
   | "Reading"
   | "Fun"
   | "Exposure"

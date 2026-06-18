@@ -4,7 +4,7 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type RecorderState = "idle" | "recording" | "playback";
+type RecorderState = "idle" | "recording" | "playback";
 
 interface UseAudioRecorderReturn {
   startRecording: () => Promise<void>;

@@ -7,7 +7,7 @@ import {
     parseTextStyle
 } from "../../../../../util/functions/parseStyles";
 
-export interface ListCardProps {
+interface ListCardProps {
   title: string;
   description: string;
   level: string;

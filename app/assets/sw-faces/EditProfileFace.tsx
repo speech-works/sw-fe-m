@@ -18,7 +18,7 @@ const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse) as any;
 const FACE_BLOB =
   "M8.075 10.075c0-2.767 33.199-2.767 33.199 0 2.767 0 2.767 38.736 0 38.736 0 2.766-33.2 2.766-33.2 0-2.766 0-2.766-38.736 0-38.736";
 
-export interface EditProfileFaceProps extends SvgProps {
+interface EditProfileFaceProps extends SvgProps {
   shouldAnimate?: boolean;
   size?: number | string;
   transparentBg?: boolean;

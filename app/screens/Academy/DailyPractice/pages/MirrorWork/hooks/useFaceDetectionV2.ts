@@ -30,7 +30,7 @@ const NO_FACE_DEBOUNCE_MS = 3000;
 // catch the "face never appeared" case, not to enforce a sample size.
 const MIN_CALIBRATION_FRAMES = 20;
 
-export interface FaceDetectionStateV2 {
+interface FaceDetectionStateV2 {
   isCalibrating: boolean;
   faceInFrame: boolean;
   activeSignals: MirrorBehaviorSignal[];

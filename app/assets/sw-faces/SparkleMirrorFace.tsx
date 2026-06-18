@@ -37,7 +37,7 @@ const THEME = {
     mGlass: "#EAF1FE", // Soft Blue Glass Reflection
 };
 
-export interface SparkleMirrorFaceProps extends SvgProps {
+interface SparkleMirrorFaceProps extends SvgProps {
     size?: number | string;
     shouldAnimate?: boolean;
 }

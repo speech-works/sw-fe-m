@@ -15,7 +15,7 @@ import { parseTextStyle } from "../../../../../util/functions/parseStyles";
 import { useEventStore } from "../../../../../stores/events";
 import { EVENT_NAMES } from "../../../../../stores/events/constants";
 
-export interface TechniqueCardProps {
+interface TechniqueCardProps {
   title: string;
   description: string;
   level: string; // "Foundation", "Build", "Deep Practice"

@@ -20,7 +20,7 @@ import ErrorFace from "../../assets/sw-faces/ErrorFace";
 
 export type ErrorStateVariant = "light" | "dark";
 
-export interface ErrorStateCardProps {
+interface ErrorStateCardProps {
   title?: string;
   message?: string;
   onRetry: () => void;

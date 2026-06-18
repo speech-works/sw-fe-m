@@ -13,7 +13,7 @@ export type RecorderStatus =
   | "playing"
   | "paused";
 
-export interface AudioRecorderControlsProps {
+interface AudioRecorderControlsProps {
   onMeter?: (db: number) => void; // called frequently during recording with dB (approx)
   onRecordingReady?: (uri: string) => void; // when a recording file is ready (on stop)
   onPlaybackStatus?: (status: AVPlaybackStatus) => void;

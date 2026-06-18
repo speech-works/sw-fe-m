@@ -5,7 +5,7 @@ import Animated, { LinearTransition } from "react-native-reanimated";
 import PressableScale from "../PressableScale";
 import { theme } from "../../Theme/tokens";
 
-export interface SegmentTab {
+interface SegmentTab {
   key: string;
   label: string;
   /** Optional unread/notification count shown as a small badge. */

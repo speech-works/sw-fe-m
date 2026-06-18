@@ -27,7 +27,7 @@ export interface Reminder {
   messageIndex?: number; // Index into the template message pool (for rotation)
 }
 
-export type NewReminderInput = Omit<
+type NewReminderInput = Omit<
   Reminder,
   "id" | "notificationIds" | "createdAt"
 >;
