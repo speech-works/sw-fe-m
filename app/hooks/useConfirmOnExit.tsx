@@ -20,6 +20,7 @@ type ExitFamily =
 interface MinimalNavigation {
   addListener: (type: "beforeRemove", cb: (e: any) => void) => () => void;
   navigate: (...args: any[]) => void;
+  dispatch: (action: any) => void;
 }
 
 interface UseConfirmOnExitParams {
@@ -134,6 +135,9 @@ export function useConfirmOnExit({
   const [visible, setVisible] = useState(false);
   // Latch so the Save/Discard navigation isn't re-intercepted by the listener.
   const allowLeave = useRef(false);
+  // The intercepted back action, replayed on Discard so the active screen is
+  // actually popped (instead of navigating over it and leaking it on the stack).
+  const pendingActionRef = useRef<any>(null);
 
   // Keep the latest isCompleted + activityId in refs so the beforeRemove listener
   // reads the CURRENT value at back-press time. Required for completion tracked
@@ -166,6 +170,7 @@ export function useConfirmOnExit({
     const unsub = navigation.addListener("beforeRemove", (e: any) => {
       // Guards: not started / already saved / leave already authorized → let it go.
       if (!isActive || resolveCompleted() || allowLeave.current) return;
+      pendingActionRef.current = e.data?.action ?? null;
       e.preventDefault();
       setVisible(true);
     });
@@ -186,7 +191,20 @@ export function useConfirmOnExit({
 
   const handleDiscard = useCallback(() => {
     allowLeave.current = true;
-    navigateToExit(navigation, { family, from, packContext });
+    // Pack- and mood-launched practices have an explicit cross-stack destination
+    // (PackModule / Home), so keep navigating there.
+    if (packContext?.packId || from === "MOOD_CHECK") {
+      navigateToExit(navigation, { family, from, packContext });
+      return;
+    }
+    // Otherwise replay the genuine back the user requested. This POPS the active
+    // practice screen (landing on its natural parent — the family hub on the
+    // normal entry path) with a clean stack, instead of navigating over it and
+    // leaving it behind. Fall back to the explicit family landing if the
+    // intercepted action is unavailable.
+    const action = pendingActionRef.current;
+    if (action) navigation.dispatch(action);
+    else navigateToExit(navigation, { family, from, packContext });
   }, [navigation, family, from, packContext]);
 
   const exitSheet = (
