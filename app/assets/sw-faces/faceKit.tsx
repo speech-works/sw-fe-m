@@ -9,7 +9,6 @@ import Animated, {
   withDelay,
   cancelAnimation,
   Easing,
-  withSpring,
 } from "react-native-reanimated";
 import Svg, {
   Circle,
@@ -248,171 +247,6 @@ export const BeatTranslate: React.FC<any> = ({ dx = 0, dy = 0, rest = 4000, up =
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
 };
 
-/* ── complex genuine animations ─────────────────────────────────────── */
-
-function useFoldSV(sa: boolean) {
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(withDelay(1200, withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) })), withDelay(1500, withTiming(0, { duration: 300, easing: io }))), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  return g;
-}
-
-export const FoldFingers: React.FC<any> = ({ cx, cy, children }) => {
-  const sa = useAnim();
-  const g = useFoldSV(sa);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: cx }, { translateY: cy }, { scaleY: 1 - 2 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const FoldThumb: React.FC<any> = ({ cx, cy, children }) => {
-  const sa = useAnim();
-  const g = useFoldSV(sa);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: cx }, { translateY: cy }, { scaleX: 1 - 2 * g.value }, { rotate: `${25 * g.value}deg` }, { translateX: -cx }, { translateY: -cy }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const PowerPunch: React.FC<any> = ({ children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
-      withTiming(0, { duration: 1500 }),
-      withTiming(-0.2, { duration: 300, easing: Easing.in(Easing.quad) }),
-      withTiming(1, { duration: 150, easing: Easing.out(Easing.back(1.5)) }),
-      withTiming(1, { duration: 800 }),
-      withTiming(0, { duration: 600, easing: io })
-    ), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateY: 10 - 15 * g.value }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const RepLift: React.FC<any> = ({ children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
-      withTiming(0, { duration: 1000 }),
-      withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 400 }),
-      withTiming(0, { duration: 600, easing: io })
-    ), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateY: 10 - 20 * g.value }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const Heartbeat: React.FC<any> = ({ cx, cy, children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
-      withTiming(0, { duration: 800 }),
-      // Lub (small, fast)
-      withTiming(0.4, { duration: 80, easing: Easing.out(Easing.cubic) }),
-      withTiming(0, { duration: 120, easing: Easing.in(Easing.cubic) }),
-      // Dub (large, fast expansion)
-      withTiming(1, { duration: 120, easing: Easing.out(Easing.cubic) }),
-      // Elastic recoil back to rest
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.back(1.5)) })
-    ), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: cx }, { translateY: cy }, { scale: 1 + 0.3 * g.value }, { translateX: -cx }, { translateY: -cy }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const ZoomSpring: React.FC<any> = ({ cx, cy, children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
-      withTiming(0, { duration: 1500 }),
-      withSpring(1, { damping: 6, stiffness: 120 }),
-      withDelay(2000, withTiming(0, { duration: 400 }))
-    ), -1, false));
-    else g.value = 1;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: cx }, { translateY: cy }, { scale: g.value }, { translateX: -cx }, { translateY: -cy }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const ConfettiBlast: React.FC<any> = ({ tx, ty, rot, delay = 0, children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(delay, withRepeat(withSequence(
-      withTiming(0, { duration: 1500 }),
-      withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 1000 })
-    ), -1, false));
-    else g.value = 1;
-    return () => cancelAnimation(g);
-  }, [sa, delay]);
-  const p = useAnimatedProps(() => ({
-    opacity: g.value < 0.1 ? 0 : (g.value > 0.8 ? 1 - (g.value - 0.8) * 5 : 1),
-    transform: [{ translateX: tx * g.value }, { translateY: ty * g.value }, { rotate: `${rot * g.value}deg` }, { scale: g.value < 0.2 ? 5 * g.value : 1 }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const ShineSweep: React.FC<any> = ({ children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 1000, withRepeat(withSequence(
-      withTiming(0, { duration: 2500 }),
-      withTiming(1, { duration: 500, easing: lin })
-    ), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: -48 + 96 * g.value }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const PopLid: React.FC<any> = ({ children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) g.value = withDelay(Math.random() * 500, withRepeat(withSequence(
-      withTiming(0, { duration: 1200 }),
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 1000 }),
-      withTiming(0, { duration: 400, easing: Easing.in(Easing.cubic) })
-    ), -1, false));
-    else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa]);
-  const p = useAnimatedProps(() => ({
-    transform: [{ translateX: 24 }, { translateY: 20 }, { translateY: -20 * g.value }, { rotate: `${15 * g.value}deg` }, { translateX: -24 }, { translateY: -20 }] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
 /* ── realistic custom animations ─────────────────────────────────────── */
 
 function useFlameSV(sa: boolean) {
@@ -444,35 +278,6 @@ function useFlameSV(sa: boolean) {
   }));
 }
 export const FlameDance: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useFlameSV(useAnim())}>{children}</AnimatedG>;
-
-function useClinkSV(sa: boolean, isRight: boolean) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    if (sa) {
-      t.value = withDelay(500, withRepeat(
-        withSequence(
-          withTiming(0, { duration: 2000 }),
-          withTiming(-0.3, { duration: 600, easing: Easing.inOut(Easing.quad) }),
-          withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) }),
-          withTiming(0, { duration: 500, easing: Easing.out(Easing.back(1.5)) })
-        ),
-        -1,
-        false
-      ));
-    } else t.value = 0;
-    return () => cancelAnimation(t);
-  }, [sa]);
-  const dir = isRight ? -1 : 1;
-  return useAnimatedProps(() => ({
-    transform: [
-      { rotate: `${dir * 10 * t.value}deg` },
-      { translateX: dir * 6 * t.value },
-      { translateY: -2 * t.value }
-    ] as any
-  }));
-}
-export const MugClinkLeft: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useClinkSV(useAnim(), false)}>{children}</AnimatedG>;
-export const MugClinkRight: React.FC<K> = ({ children }) => <AnimatedG animatedProps={useClinkSV(useAnim(), true)}>{children}</AnimatedG>;
 
 function useCorkPopSV(sa: boolean) {
   const pop = useSharedValue(0);
@@ -540,33 +345,6 @@ export const SprayShoot: React.FC<K & { tx: number; ty: number; delay?: number }
       { translateX: tx * g.value },
       { translateY: ty * g.value },
       { scale: 0.5 + 1.5 * g.value }
-    ] as any
-  }));
-  return <AnimatedG animatedProps={p}>{children}</AnimatedG>;
-};
-
-export const TreeGrow: React.FC<K & { originY: number; delay?: number }> = ({ originY, delay = 0, children }) => {
-  const sa = useAnim();
-  const g = useSharedValue(0);
-  useEffect(() => {
-    if (sa) {
-      g.value = withDelay(delay, withRepeat(
-        withSequence(
-          withTiming(0, { duration: 500 }),
-          withTiming(1, { duration: 1200, easing: Easing.out(Easing.back(1.5)) }),
-          withTiming(1, { duration: 3000 }),
-          withTiming(0, { duration: 0 })
-        ), -1, false));
-    } else g.value = 0;
-    return () => cancelAnimation(g);
-  }, [sa, delay]);
-
-  const p = useAnimatedProps(() => ({
-    opacity: 1,
-    transform: [
-      { translateY: originY },
-      { scaleY: 0.8 + 0.6 * g.value },
-      { translateY: -originY }
     ] as any
   }));
   return <AnimatedG animatedProps={p}>{children}</AnimatedG>;

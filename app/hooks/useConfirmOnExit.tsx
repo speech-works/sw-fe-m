@@ -16,8 +16,6 @@ type ExitFamily =
   | "Cognitive"
   | "Explore"; // Real-Life Challenge has no family landing → Explore
 
-export type ActivityOrigin = "HOME" | "EXPLORE" | "MOOD_CHECK";
-
 /** Minimal navigation surface we need (screens pass their useNavigation()). */
 interface MinimalNavigation {
   addListener: (type: "beforeRemove", cb: (e: any) => void) => () => void;

@@ -111,22 +111,3 @@ export interface AwarenessScores {
   /** How tension evolved across the session (opening → final stretch). */
   withinSession?: WithinSessionSummary;
 }
-
-export interface MirrorWorkCompletionPayload {
-  practiceActivityId: string;
-  detectedSignals: DetectedSignalCounts;
-  awarenessScores: AwarenessScores;
-  vitals: {
-    effortScore: number;
-    autonomyScore: number;
-  };
-  detectionAccuracyRating: number;
-  reflectionText: string;
-  promptsAttempted: number;
-  nudgeMode: "ON" | "OFF";
-  sessionDurationSeconds: number;
-  /** Per-signal mean confidence values from the detection session. */
-  signalConfidence?: Partial<Record<MirrorBehaviorSignal, number>>;
-  /** Version of the w_detection × w_clinical weight table used to compute overallEaseScore. */
-  weightTableVersion?: string;
-}

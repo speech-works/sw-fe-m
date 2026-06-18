@@ -122,18 +122,6 @@ export async function getReadingPracticeByType(
   }
 }
 
-export async function getReadingPracticeById(
-  id: string,
-): Promise<ReadingPractice> {
-  try {
-    const response = await axiosClient.get(`/reading-practice/${id}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error getting reading practice by ID:", error);
-    throw error;
-  }
-}
-
 export async function getPhoneCallScenarios(): Promise<PhoneCallScenario[]> {
   try {
     const response = await axiosClient.get(

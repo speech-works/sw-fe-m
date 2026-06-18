@@ -55,21 +55,6 @@ export async function getMyBuddy(): Promise<BuddySummary> {
   }
 }
 
-// Validate a code before submitting (optional UX helper)
-export async function validateInviteCode(
-  code: string,
-): Promise<{ valid: boolean; reason?: string }> {
-  try {
-    const response = await axiosClient.get("/buddies/validate", {
-      params: { code },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error validating invite code:", error);
-    throw error;
-  }
-}
-
 // Attach an invite code (new sign-ups only) — forms the pending buddy link.
 // Server enforces "new sign-ups only" and same-device/email anti-fraud.
 export async function attachInviteCode(code: string): Promise<BuddyLink> {
@@ -127,17 +112,6 @@ export async function getBuddyTeam(): Promise<BuddyTeam> {
     return response.data;
   } catch (error) {
     console.error("Error fetching buddy team:", error);
-    throw error;
-  }
-}
-
-// Non-ranked, whole-community effort this week (belonging, not competition).
-export async function getCommunityPulse(): Promise<CommunityPulse> {
-  try {
-    const response = await axiosClient.get("/buddies/community-pulse");
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching community pulse:", error);
     throw error;
   }
 }

@@ -21,14 +21,6 @@ export const getPackProgress = async (
   }
 };
 
-export const startPack = async (packId: string): Promise<void> => {
-  try {
-    await axiosClient.post(`/packs/${packId}/start`);
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const startModule = async (
   packId: string,
   moduleId: string

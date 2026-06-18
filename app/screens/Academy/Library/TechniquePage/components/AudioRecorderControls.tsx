@@ -6,13 +6,6 @@ import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import React, { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 
-export type RecorderStatus =
-  | "idle"
-  | "recording"
-  | "stopped"
-  | "playing"
-  | "paused";
-
 interface AudioRecorderControlsProps {
   onMeter?: (db: number) => void; // called frequently during recording with dB (approx)
   onRecordingReady?: (uri: string) => void; // when a recording file is ready (on stop)

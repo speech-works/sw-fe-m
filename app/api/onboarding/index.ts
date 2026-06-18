@@ -28,24 +28,6 @@ export async function getActiveOnboardingFlow(): Promise<OnboardingFlow> {
   }
 }
 
-/**
- * Fetch flow by version (rarely needed on app).
- */
-export async function getOnboardingFlowByVersion(
-  version: string,
-): Promise<OnboardingFlow> {
-  try {
-    const response = await axiosClient.get(
-      `/onboarding/flows/version/${version}`,
-    );
-
-    return normalizeOnboardingFlow(response.data);
-  } catch (error) {
-    console.error("Error fetching flow by version:", error);
-    throw error;
-  }
-}
-
 // -----------------------------------------------------
 // USER ANSWERS
 // -----------------------------------------------------
@@ -81,20 +63,6 @@ export async function getUserOnboardingAnswers(
   }
 }
 
-/**
- * Delete all onboarding answers for a user.
- */
-export async function deleteUserOnboardingAnswers(
-  userId: string,
-): Promise<void> {
-  try {
-    await axiosClient.delete(`/onboarding/answers/${userId}`);
-  } catch (error) {
-    console.error("Error deleting onboarding answers:", error);
-    throw error;
-  }
-}
-
 // -----------------------------------------------------
 // ONBOARDING STATUS
 // -----------------------------------------------------
@@ -104,34 +72,4 @@ export interface OnboardingStatus {
   completedFlowVersion?: string;
   latestFlowVersion: string;
   answers?: Record<string, any>;
-}
-
-/**
- * Determines whether the user has completed the latest onboarding flow.
- */
-export async function getLatestUserOnboardingStatus(
-  userId: string,
-): Promise<OnboardingStatus> {
-  const activeFlow = await getActiveOnboardingFlow();
-  const latestFlowVersion = activeFlow.version;
-
-  const records = await getUserOnboardingAnswers(userId);
-
-  // No onboarding done yet
-  if (!records || records.length === 0) {
-    return {
-      hasCompleted: false,
-      latestFlowVersion,
-    };
-  }
-
-  // The newest onboarding answer entry
-  const latest = records[0];
-
-  return {
-    hasCompleted: true,
-    latestFlowVersion,
-    completedFlowVersion: latest.flow.version,
-    answers: latest.answers,
-  };
 }
