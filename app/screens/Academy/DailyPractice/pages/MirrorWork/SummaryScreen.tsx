@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MirrorWorkFeedbackModal } from './components/MirrorWorkFeedbackModal';
@@ -26,6 +27,15 @@ const TONE_STYLE: Record<ReflectionTone, { tint: string; gradient: readonly [str
   calm: { tint: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] },
   some: { tint: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] },
   more: { tint: '#D97706', gradient: ['#FED7AA', '#FDBA74'] },
+};
+
+// ── Hero face per tone — a gentle gradient that attunes to the session without
+// judging. Deliberately stops at a calm/neutral face for the heaviest tone; a
+// frown or sad face would read as the app grading the user (not NSA-safe). ──
+const TONE_FACE: Record<ReflectionTone, string> = {
+  calm: 'emoticon-happy-outline',   // clear, warm smile
+  some: 'emoticon-outline',          // soft smile
+  more: 'emoticon-neutral-outline',  // calm + present, acknowledging the tension
 };
 
 // ── Confidence-tier tints for region observations (light theme) ──
@@ -67,16 +77,6 @@ function insightVisual(insight: RenderedInsight): { icon: string; bg: string; fg
       return { icon: 'sparkles-outline', bg: theme.colors.library.orange[100], fg: theme.colors.library.orange[500] };
   }
 }
-
-/** Colour for a within-session segment by its tension fraction (no red). */
-function arcSegmentColor(fraction: number, observedMs: number): string {
-  if (observedMs < 3000) return '#E5E7EB';   // insufficient data → neutral grey
-  if (fraction <= 0.1) return '#34D399';      // calm
-  if (fraction <= 0.3) return '#FBBF24';      // some
-  return '#FB923C';                           // more (warm amber)
-}
-
-const ARC_SEGMENT_LABELS = ['Start', 'Middle', 'End'];
 
 export const SummaryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -207,12 +207,6 @@ export const SummaryScreen: React.FC = () => {
   };
 
   const tone = reflection ? TONE_STYLE[reflection.tone] : TONE_STYLE.calm;
-  const arcThirds = scores?.withinSession?.thirds;
-  const showArc =
-    !!scores?.withinSession &&
-    scores.withinSession.arc !== 'insufficient' &&
-    Array.isArray(arcThirds) &&
-    arcThirds.length === 3;
 
   return (
     <View style={styles.screen}>
@@ -264,50 +258,22 @@ export const SummaryScreen: React.FC = () => {
               ) : null}
             </View>
             <View style={[styles.heroRingPlaceholder, { borderColor: tone.tint }]}>
-              <Icon name="happy-outline" size={42} color={tone.tint} />
+              <MaterialCommunityIcons
+                name={reflection ? TONE_FACE[reflection.tone] : TONE_FACE.calm}
+                size={44}
+                color={tone.tint}
+              />
             </View>
           </LinearGradient>
         </View>
 
-        {/* Quick stats row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Icon name="time-outline" size={22} color={theme.colors.actionPrimary.default} />
-            <Text style={styles.statValue}>{formatDuration(sessionDurationSeconds || 0)}</Text>
-            <Text style={styles.statLabel}>Duration</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Icon name="chatbubbles-outline" size={22} color={theme.colors.actionPrimary.default} />
-            <Text style={styles.statValue}>{promptsAttempted || 0}</Text>
-            <Text style={styles.statLabel}>Prompts</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Icon name={nudgeMode === 'OFF' ? 'volume-mute-outline' : 'bulb-outline'} size={22} color={theme.colors.actionPrimary.default} />
-            <Text style={styles.statValue}>{nudgeMode === 'OFF' ? 'Quiet' : 'Notes'}</Text>
-            <Text style={styles.statLabel}>Mode</Text>
-          </View>
+        {/* Session line — a quiet, non-clinical anchor. Progress lives in the
+            reflection below, where the engine owns the (reviewed) wording. */}
+        <View style={styles.metaRow}>
+          <Icon name="time-outline" size={18} color={theme.colors.actionPrimary.default} />
+          <Text style={styles.metaValue}>{formatDuration(sessionDurationSeconds || 0)}</Text>
+          <Text style={styles.metaCaption}>in the mirror</Text>
         </View>
-
-        {/* Within-session arc */}
-        {showArc ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>How the session flowed</Text>
-            <Text style={styles.cardSubtitle}>Tension across the start, middle, and end.</Text>
-            <View style={styles.arcRow}>
-              {arcThirds!.map((t, i) => (
-                <View key={i} style={styles.arcSegmentWrap}>
-                  <View
-                    style={[
-                      styles.arcSegment,
-                      { backgroundColor: arcSegmentColor(t.tensionFraction, t.observedMs) },
-                    ]}
-                  />
-                  <Text style={styles.arcSegmentLabel}>{ARC_SEGMENT_LABELS[i]}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
 
         {/* Reflection (insights) */}
         <View style={styles.card}>
@@ -461,37 +427,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.6)',
   },
 
-  // ── Stats row ──
-  statsRow: {
+  // ── Session line ──
+  metaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 12,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    paddingVertical: 18,
-    paddingHorizontal: 10,
     alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.02)',
     ...parseShadowStyle(theme.shadow.elevation1),
     elevation: 2,
   },
-  statValue: {
-    ...parseTextStyle(theme.typography.Heading3),
+  metaValue: {
+    ...parseTextStyle(theme.typography.Body),
     color: '#0F172A',
-    marginTop: 8,
-    marginBottom: 2,
+    fontWeight: '700',
   },
-  statLabel: {
+  metaCaption: {
     ...parseTextStyle(theme.typography.BodySmall),
     color: '#6B7280',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
 
   // ── Cards ──
@@ -508,34 +466,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...parseTextStyle(theme.typography.Heading3),
     color: '#0F172A',
-  },
-  cardSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#6B7280',
-    marginTop: 6,
-    marginBottom: 20,
-  },
-
-  // ── Within-session arc ──
-  arcRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-  },
-  arcSegmentWrap: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  arcSegment: {
-    width: '100%',
-    height: 12,
-    borderRadius: 6,
-  },
-  arcSegmentLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: '#6B7280',
-    fontWeight: '600',
-    marginTop: 8,
   },
 
   // ── Insight list ──
