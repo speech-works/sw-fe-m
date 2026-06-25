@@ -159,6 +159,16 @@ const AudioPlaybackButton: React.FC<AudioPlaybackButtonProps> = ({
       setIsBuffering(false);
 
       try {
+        // A recording/DAF screen may have left the global audio session in
+        // record mode (allowsRecordingIOS: true / PlayAndRecord). Playing in
+        // that mode opens an input+output route and fails to start on iOS
+        // ("Prime failed -66680 / no device with given ID", loudest on the
+        // Simulator where there's no mic). Force plain playback so we only ever
+        // open an output route.
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        });
         console.log(`[AudioPlaybackButton] Loading URI: ${audioUrl}`);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
