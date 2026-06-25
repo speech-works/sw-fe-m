@@ -2,7 +2,6 @@ import React, { useCallback, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   ActivityIndicator,
-  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -21,6 +20,7 @@ import {
 } from "../../../../util/voice";
 import type { AccentGroup } from "../../../../util/voice/types";
 import { theme } from "../../../../Theme/tokens";
+import { PopCard } from "../../../../components/PopCard";
 
 const PREVIEW_LINE = "This is how your reading guide will sound.";
 
@@ -192,42 +192,33 @@ function IosVoiceGuideSheet({
   onOpenSettings: () => void;
 }) {
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Add a natural voice</Text>
-          <Text style={styles.modalSubtitle}>
-            iOS downloads natural voices in Settings. It only takes a minute:
-          </Text>
+    <PopCard visible={visible} onClose={onClose}>
+      <Text style={styles.modalTitle}>Add a natural voice</Text>
+      <Text style={styles.modalSubtitle}>
+        iOS downloads natural voices in Settings. It only takes a minute:
+      </Text>
 
-          <View style={styles.stepsBox}>
-            {IOS_VOICE_DOWNLOAD_STEPS.map((step, i) => (
-              <View key={i} style={styles.stepRow}>
-                <View style={styles.stepNum}>
-                  <Text style={styles.stepNumText}>{i + 1}</Text>
-                </View>
-                <Text style={styles.stepText}>{step}</Text>
-              </View>
-            ))}
+      <View style={styles.stepsBox}>
+        {IOS_VOICE_DOWNLOAD_STEPS.map((step, i) => (
+          <View key={i} style={styles.stepRow}>
+            <View style={styles.stepNum}>
+              <Text style={styles.stepNumText}>{i + 1}</Text>
+            </View>
+            <Text style={styles.stepText}>{step}</Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.modalPrimaryBtn}
-            onPress={onOpenSettings}
-          >
-            <Text style={styles.modalPrimaryText}>Open Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.modalSecondaryBtn} onPress={onClose}>
-            <Text style={styles.modalSecondaryText}>Done</Text>
-          </TouchableOpacity>
-        </View>
+        ))}
       </View>
-    </Modal>
+
+      <TouchableOpacity
+        style={styles.modalPrimaryBtn}
+        onPress={onOpenSettings}
+      >
+        <Text style={styles.modalPrimaryText}>Open Settings</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.modalSecondaryBtn} onPress={onClose}>
+        <Text style={styles.modalSecondaryText}>Done</Text>
+      </TouchableOpacity>
+    </PopCard>
   );
 }
 
@@ -316,25 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
   },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalCard: {
-    width: "100%",
-    backgroundColor: DARK_UNSELECTED,
-    borderRadius: 36,
-    padding: 32,
-    gap: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 30,
-    elevation: 10,
-  },
+
   modalTitle: {
     fontSize: 24,
     fontWeight: "800",
