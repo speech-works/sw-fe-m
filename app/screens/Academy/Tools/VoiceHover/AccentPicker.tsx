@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   ActivityIndicator,
@@ -62,6 +62,22 @@ export function AccentPicker() {
       setIosSheetVisible(true);
     }
   }, [refresh]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (!iosSheetVisible) {
+        return;
+      }
+
+      // Prevent default behavior of leaving the screen
+      e.preventDefault();
+
+      // Close the modal instead
+      setIosSheetVisible(false);
+    });
+
+    return unsubscribe;
+  }, [navigation, iosSheetVisible]);
 
   if (loading) {
     return (
