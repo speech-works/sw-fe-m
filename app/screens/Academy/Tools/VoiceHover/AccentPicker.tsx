@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Modal,
@@ -33,6 +34,7 @@ export function AccentPicker() {
   const { groups, loading, preference, selectAccent, refresh } =
     useVoicePreference();
   const [iosSheetVisible, setIosSheetVisible] = useState(false);
+  const navigation = useNavigation();
 
   const selectAndPreview = useCallback(
     (group: AccentGroup) => {
@@ -97,9 +99,15 @@ export function AccentPicker() {
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={styles.continueBtn} activeOpacity={0.8}>
-        <Text style={styles.continueText}>Continue</Text>
-      </TouchableOpacity>
+      {preference?.accent && (
+        <TouchableOpacity
+          style={styles.continueBtn}
+          activeOpacity={0.8}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.continueText}>Continue</Text>
+        </TouchableOpacity>
+      )}
 
       <IosVoiceGuideSheet
         visible={iosSheetVisible}
