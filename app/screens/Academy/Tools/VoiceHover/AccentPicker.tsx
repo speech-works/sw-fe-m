@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   continueBtn: {
     marginTop: 4,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 36,
     backgroundColor: DARK_SELECTED,
     alignItems: "center",
     justifyContent: "center",
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     gap: 20,
     backgroundColor: "rgba(0,0,0,0.15)",
     padding: 24,
-    borderRadius: 28,
+    borderRadius: 36,
   },
   stepRow: {
     flexDirection: "row",
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   modalPrimaryBtn: {
     height: 60,
-    borderRadius: 30,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#C6F533",
