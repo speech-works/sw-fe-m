@@ -15,8 +15,8 @@ import Svg, { Path } from "react-native-svg";
 
 import { getPhonemes } from "../../../api/phonemes";
 import { Phoneme } from "../../../api/phonemes/types";
+import { Audio } from "expo-av";
 import { getMyUser, updateMyUser } from "../../../api/users";
-import AudioPlaybackButton from "../../../components/AudioPlaybackButton";
 import ScreenView from "../../../components/ScreenView";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
@@ -66,10 +66,27 @@ const FearedSounds = () => {
     fetchData();
   }, []);
 
-  const handleToggleSound = (code: string) => {
+  const handleToggleSound = async (item: Phoneme) => {
+    const { code, audioUrl } = item;
     setSelectedSounds((prev) =>
       prev.includes(code) ? prev.filter((s) => s !== code) : [...prev, code],
     );
+
+    if (audioUrl) {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: true }
+        );
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            sound.unloadAsync();
+          }
+        });
+      } catch (error) {
+        console.error("Error playing sound:", error);
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -97,7 +114,7 @@ const FearedSounds = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => handleToggleSound(item.code)}
+        onPress={() => handleToggleSound(item)}
         style={styles.row}
       >
         <View style={[styles.bridgeContainer, { zIndex: 1 }]}>
@@ -118,13 +135,6 @@ const FearedSounds = () => {
                 {item.examples.join(", ")}
               </Text>
             )}
-          </View>
-          <View style={styles.audioContainer}>
-            <AudioPlaybackButton
-              audioUrl={item.audioUrl}
-              activeColor={isSelected ? "#FFFFFF" : theme.colors.actionPrimary.default}
-              iconSize={14}
-            />
           </View>
         </View>
       </TouchableOpacity>
@@ -167,8 +177,7 @@ const FearedSounds = () => {
           <FlatList
             ListHeaderComponent={
               <View style={styles.intro}>
-                <Text style={styles.introTitle}>Difficult</Text>
-                <Text style={styles.introTitle}>Sounds</Text>
+                <Text style={styles.introTitle}>Difficult Sounds</Text>
                 <Text style={styles.introDesc}>
                   Select the phonetic sounds you find challenging. We'll prioritize these in your practice sessions.
                 </Text>
@@ -315,12 +324,6 @@ const styles = StyleSheet.create({
   examplesText: {
     fontSize: 13,
     fontWeight: "500",
-  },
-  audioContainer: {
-    width: 40,
-    height: 40,
-    alignItems: "flex-end",
-    justifyContent: "center",
   },
   footer: {
     position: "absolute",

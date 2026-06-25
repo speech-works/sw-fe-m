@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { useVoicePreference } from "../../../../hooks/useVoicePreference";
 import {
   IOS_VOICE_DOWNLOAD_STEPS,
@@ -119,8 +120,11 @@ export function AccentPicker() {
 }
 
 const BridgeSVG = ({ color }: { color: string }) => (
-  <Svg width={48} height={64} viewBox="0 0 48 64">
-    <Path d="M 0 7 Q 24 33, 48 7 L 48 57 Q 24 31, 0 57 Z" fill={color} />
+  <Svg width={48} height={72} viewBox="0 0 48 72">
+    <Path
+      d="M 0 8 Q 24 36, 48 8 L 48 64 Q 24 36, 0 64 Z"
+      fill={color}
+    />
   </Svg>
 );
 
@@ -144,10 +148,12 @@ function AccentRow({
       ? "Natural voice"
       : "Basic voice";
   const subColor = isSelected
-    ? "rgba(255,255,255,0.9)"
+    ? "rgba(255,255,255,0.7)"
     : hasNatural
       ? NATURAL_GREEN
-      : MUTED;
+      : "rgba(255,255,255,0.5)";
+
+  const playIconColor = isSelected ? "#FFFFFF" : theme.colors.actionPrimary.default;
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.row}>
@@ -162,12 +168,14 @@ function AccentRow({
       </View>
 
       <View style={[styles.pill, { backgroundColor: bgColor, zIndex: 2 }]}>
-        <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
-          {group.label}
-        </Text>
-        <Text style={[styles.sub, { color: subColor }]} numberOfLines={1}>
-          {subText}
-        </Text>
+        <View style={styles.pillContent}>
+          <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
+            {group.label}
+          </Text>
+          <Text style={[styles.sub, { color: subColor }]} numberOfLines={1}>
+            {subText}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -237,25 +245,26 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    height: 64,
+    height: 72,
+    marginBottom: 4,
   },
   bridgeContainer: {
     position: "absolute",
-    left: 44,
+    left: 52,
     width: 48,
-    height: 64,
+    height: 72,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -266,20 +275,26 @@ const styles = StyleSheet.create({
   },
   pill: {
     flex: 1,
-    height: 64,
-    borderRadius: 32,
+    height: 72,
+    borderRadius: 36,
     marginLeft: 8,
-    paddingHorizontal: 24,
+    paddingLeft: 24,
+    paddingRight: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pillContent: {
+    flex: 1,
     justifyContent: "center",
     gap: 2,
   },
   name: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
   },
   sub: {
-    fontSize: 12.5,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "500",
   },
   addNaturalText: {
     alignSelf: "center",
@@ -297,71 +312,87 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   continueText: {
-    fontSize: 18,
+    color: "#FFFFFF",
+    fontSize: 17,
     fontWeight: "700",
-    color: "#000000",
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
   modalCard: {
     width: "100%",
-    backgroundColor: "#1C1C1E",
-    borderRadius: 24,
-    padding: 22,
-    gap: 14,
+    backgroundColor: DARK_UNSELECTED,
+    borderRadius: 36,
+    padding: 32,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 10,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
+    textAlign: "center",
+    marginBottom: 4,
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: MUTED,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 8,
   },
   stepsBox: {
-    gap: 12,
+    gap: 16,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    padding: 20,
+    borderRadius: 24,
   },
   stepRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-start",
+    gap: 14,
   },
   stepNum: {
-    width: 24,
-    height: 24,
-    borderRadius: 999,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: DARK_SELECTED,
   },
   stepNumText: {
-    fontSize: 12,
-    color: "#FFFFFF",
-    fontWeight: "700",
+    fontSize: 13,
+    color: TEXT_SELECTED,
+    fontWeight: "800",
   },
   stepText: {
-    fontSize: 14,
-    color: "#E5E7EB",
+    fontSize: 15,
+    color: "#FFFFFF",
     flexShrink: 1,
+    lineHeight: 22,
+    fontWeight: "500",
+    paddingTop: 3,
   },
   modalPrimaryBtn: {
-    minHeight: 50,
-    borderRadius: 16,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: DARK_SELECTED,
-    marginTop: 4,
+    marginTop: 8,
   },
   modalPrimaryText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#000000",
+    color: TEXT_SELECTED,
   },
   modalSecondaryBtn: {
     minHeight: 44,
@@ -369,8 +400,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalSecondaryText: {
-    fontSize: 14,
-    color: MUTED,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.5)",
     fontWeight: "600",
   },
 });

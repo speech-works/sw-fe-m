@@ -47,8 +47,7 @@ const ReadingVoice = () => {
           ]}
         >
           <View style={styles.intro}>
-            <Text style={styles.introTitle}>What accent do</Text>
-            <Text style={styles.introTitle}>you want to hear?</Text>
+            <Text style={styles.introTitle}>What accent do you want to hear?</Text>
           </View>
 
           <AccentPicker />
