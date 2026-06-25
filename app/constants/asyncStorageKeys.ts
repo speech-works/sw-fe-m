@@ -19,6 +19,8 @@ export const ASYNC_KEYS_NAME = {
     "SW_ZSTORE_FREE_ACTIVITY_NOTIFICATION",
   SW_ZSTORE_TOOL_CONSENT: "SW_ZSTORE_TOOL_CONSENT",
   SW_ZSTORE_AI_CALL_CONSENT: "SW_ZSTORE_AI_CALL_CONSENT",
+  // User's chosen reading-guide voice/accent for the Voice Hover tool.
+  SW_ZSTORE_VOICE_PREFERENCE: "SW_ZSTORE_VOICE_PREFERENCE",
   // Mirror Work reflection wording-rotation cursor (per-category last-used index).
   SW_MIRROR_REFLECTION_ROTATION: "@mirrorReflection:lastUsedIndices",
   // Mirror Work prompts already used to OPEN a session (for fresh-opener rotation).

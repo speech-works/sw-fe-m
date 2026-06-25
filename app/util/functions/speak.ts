@@ -1,69 +1,38 @@
-import * as Speech from "expo-speech";
-import { Platform } from "react-native";
+import { useVoicePreferenceStore } from "../../stores/voicePreference";
+import {
+  getAccentGroups,
+  resolveVoiceForPreference,
+  speakWithProfile,
+  stopSpeaking,
+} from "../voice";
 
 /**
- * Speaks the given text using an available English voice,
- * prioritizing enhanced/premium voices on iOS and female voices on Android.
+ * Speaks the given text using the user's chosen accent (the app-wide Voice
+ * Hover preference), resolved against the voices actually installed on this
+ * device. Falls back gracefully — a natural voice in another accent, then the
+ * engine default — so it never dead-ends or stays silent.
+ *
+ * Voice selection lives in one place now (app/util/voice); this wrapper just
+ * reads the saved preference imperatively (no React context needed) so any
+ * caller — including non-component code like the Library technique demos —
+ * inherits the same voice.
  *
  * @param text The text string to be spoken.
- * @returns A Promise that resolves when the speech is done or rejects on error.
+ * @returns A Promise that resolves when speech is done or rejects on error.
  */
 export async function speakText(text: string): Promise<void> {
-  let voiceId: string | undefined = undefined;
-
   try {
-    const allVoices = await Speech.getAvailableVoicesAsync();
+    const [groups, preference] = [
+      await getAccentGroups(),
+      useVoicePreferenceStore.getState().preference,
+    ];
+    const { voice } = resolveVoiceForPreference(preference, groups);
 
-    if (Platform.OS === "ios") {
-      voiceId = allVoices.find(
-        (v) =>
-          v.language?.startsWith("en") &&
-          v.name?.toLowerCase().includes("enhanced") &&
-          v.identifier
-      )?.identifier;
-      if (!voiceId) {
-        voiceId = allVoices.find(
-          (v) =>
-            v.language?.startsWith("en") &&
-            v.name?.toLowerCase().includes("premium") &&
-            v.identifier
-        )?.identifier;
-      }
-    }
-    if (!voiceId && Platform.OS === "android") {
-      voiceId = allVoices.find(
-        (v) =>
-          v.language === "en-US" &&
-          v.name?.toLowerCase().includes("female") &&
-          v.identifier
-      )?.identifier;
-      if (!voiceId) {
-        voiceId = allVoices.find(
-          (v) => v.language === "en-US" && v.identifier
-        )?.identifier;
-      }
-    }
-    if (!voiceId) {
-      // Fallback to any English voice if specific preferences aren't met
-      voiceId = allVoices.find(
-        (v) => v.language?.startsWith("en") && v.identifier
-      )?.identifier;
-    }
-
-    if (!voiceId) {
-      console.warn("No suitable English voice found for speech.");
-      return Promise.reject("No suitable voice found.");
-    }
-
-    // You can customize rate and pitch if needed, but for a general function,
-    // we'll use defaults or a slight random pitch variation for naturalness.
-    const pitch = 1 + (Math.random() * 0.06 - 0.03);
-
-    return new Promise<void>((resolve, reject) => {
-      Speech.speak(text, {
-        voice: voiceId,
-        rate: 1.0, // Default rate
-        pitch,
+    return await new Promise<void>((resolve, reject) => {
+      speakWithProfile(text, {
+        voice,
+        language: preference?.accent,
+        rate: 1.0,
         onDone: () => resolve(),
         onError: (e) => {
           console.error("Speech error:", e);
@@ -75,4 +44,9 @@ export async function speakText(text: string): Promise<void> {
     console.warn("Failed to load voices or speak:", err);
     return Promise.reject(err);
   }
+}
+
+/** Stop any in-progress speech started via speakText. */
+export function stopSpeakText(): void {
+  stopSpeaking();
 }

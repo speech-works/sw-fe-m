@@ -1,10 +1,8 @@
 // VoiceHover.tsx
 import Slider from "@react-native-community/slider"; // Import Slider
-import * as Speech from "expo-speech";
 import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -12,6 +10,8 @@ import {
 } from "react-native";
 import { theme } from "../../../../Theme/tokens";
 import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import { useVoicePreference } from "../../../../hooks/useVoicePreference";
+import { speakWithProfile, stopSpeaking } from "../../../../util/voice";
 
 type VoiceHoverProps = {
   text: string;
@@ -36,8 +36,17 @@ export function VoiceHover({
   isPlaying: externalIsPlaying, // Optional external control
   onComplete,
 }: VoiceHoverProps) {
-  const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
-  const [loadingVoices, setLoadingVoices] = useState(true);
+  // App-wide accent preference, resolved to a concrete on-device voice. Voice
+  // selection lives in one place now (app/util/voice) and is shared with every
+  // surface, so the guide always speaks in the user's chosen accent.
+  const { resolved, preference, loading: loadingVoices } = useVoicePreference();
+
+  // Keep the latest resolved voice in refs so the async chunk loop always reads
+  // the current value even if it was started from an earlier render's closure.
+  const resolvedRef = useRef(resolved);
+  resolvedRef.current = resolved;
+  const preferenceRef = useRef(preference);
+  preferenceRef.current = preference;
 
   // Internal State (used if external props are not provided)
   const [internalIsSpeaking, setInternalIsSpeaking] = useState(false);
@@ -60,59 +69,10 @@ export function VoiceHover({
   const highlightTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const allVoices = await Speech.getAvailableVoicesAsync();
-        let chosen: string | undefined = undefined;
-
-        if (Platform.OS === "ios") {
-          chosen = allVoices.find(
-            (v) =>
-              v.language?.startsWith("en") &&
-              v.name?.toLowerCase().includes("enhanced") &&
-              v.identifier
-          )?.identifier;
-          if (!chosen) {
-            chosen = allVoices.find(
-              (v) =>
-                v.language?.startsWith("en") &&
-                v.name?.toLowerCase().includes("premium") &&
-                v.identifier
-            )?.identifier;
-          }
-        }
-        if (!chosen && Platform.OS === "android") {
-          chosen = allVoices.find(
-            (v) =>
-              v.language === "en-US" &&
-              v.name?.toLowerCase().includes("female") &&
-              v.identifier
-          )?.identifier;
-          if (!chosen) {
-            chosen = allVoices.find(
-              (v) => v.language === "en-US" && v.identifier
-            )?.identifier;
-          }
-        }
-        if (!chosen) {
-          chosen = allVoices.find(
-            (v) => v.language?.startsWith("en") && v.identifier
-          )?.identifier;
-        }
-        setVoiceId(chosen);
-      } catch (err) {
-        console.warn("VoiceHover: failed to load voices:", err);
-      } finally {
-        setLoadingVoices(false);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
     // This effect runs on unmount.
     return () => {
       playTokenRef.current++;
-      Speech.stop();
+      stopSpeaking();
       clearAllHighlightTimeouts();
       if (onHighlightChange) onHighlightChange(-1, 0);
     };
@@ -121,7 +81,7 @@ export function VoiceHover({
   useEffect(() => {
     // This effect handles changes to the 'text' prop.
     playTokenRef.current++;
-    Speech.stop();
+    stopSpeaking();
     clearAllHighlightTimeouts();
     if (!isControlled) setInternalIsSpeaking(false);
 
@@ -146,7 +106,7 @@ export function VoiceHover({
       } else {
         // STOP
         playTokenRef.current++;
-        Speech.stop();
+        stopSpeaking();
         clearAllHighlightTimeouts();
         if (onHighlightChange) onHighlightChange(-1, 0);
       }
@@ -198,13 +158,11 @@ export function VoiceHover({
           onHighlightChange(chunkStartIdx, chunkText.length);
         }
 
-        const pitch = 1 + (Math.random() * 0.06 - 0.03);
-
         await new Promise<void>((resolve) => {
-          Speech.speak(stripped, {
-            voice: voiceId,
+          speakWithProfile(stripped, {
+            voice: resolvedRef.current.voice,
+            language: preferenceRef.current?.accent,
             rate: baseRate,
-            pitch,
             onDone: () => resolve(),
             onError: (e) => {
               console.error("Speech error:", e);
@@ -231,7 +189,7 @@ export function VoiceHover({
   const restartFromCurrent = () => {
     if (!isSpeaking) return;
     playTokenRef.current++;
-    Speech.stop();
+    stopSpeaking();
     clearAllHighlightTimeouts();
     const token = playTokenRef.current;
     setTimeout(() => {
@@ -252,7 +210,7 @@ export function VoiceHover({
     if (loadingVoices) return;
     if (internalIsSpeaking) {
       playTokenRef.current++;
-      Speech.stop();
+      stopSpeaking();
       clearAllHighlightTimeouts();
       setInternalIsSpeaking(false);
       if (onHighlightChange) onHighlightChange(-1, 0);

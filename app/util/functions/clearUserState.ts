@@ -37,6 +37,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       { usePracticeCategorySummaryStore },
       { useStaminaNotificationStore },
       { useFreeActivityNotificationStore },
+      { useVoicePreferenceStore },
     ] = await Promise.all([
       import("../../stores/user"),
       import("../../stores/toolConsent"),
@@ -46,6 +47,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
       import("../../stores/practiceCategorySummary"),
       import("../../stores/staminaNotification"),
       import("../../stores/freeActivityNotification"),
+      import("../../stores/voicePreference"),
     ]);
     useUserStore.getState().clearUser();
     useToolConsentStore.getState().reset();
@@ -55,6 +57,7 @@ export async function clearAllPersistedUserState(): Promise<void> {
     usePracticeCategorySummaryStore.getState().clearSummary();
     useStaminaNotificationStore.getState().resetAll();
     useFreeActivityNotificationStore.getState().resetAll();
+    useVoicePreferenceStore.getState().reset();
   } catch (e) {
     console.warn("[clearUserState] in-memory reset failed:", e);
   }
