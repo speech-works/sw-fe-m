@@ -2,6 +2,7 @@ import React from "react";
 import {
   Dimensions,
   Modal,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -11,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import FAIcon from "react-native-vector-icons/FontAwesome5";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export interface PopCardProps {
   /** Controls visibility of the modal */
@@ -91,18 +92,23 @@ export function PopCard({
           </View>
 
           {/* Main content area */}
-          <View
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
             style={[
               styles.content,
               {
                 backgroundColor: color,
-                paddingBottom: Math.max(insets.bottom + 20, 40),
+                maxHeight: SCREEN_HEIGHT * 0.8,
               },
               contentStyle,
             ]}
+            contentContainerStyle={{
+              paddingBottom: Math.max(insets.bottom + 20, 40),
+            }}
           >
             {children}
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
