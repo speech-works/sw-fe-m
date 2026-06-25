@@ -19,6 +19,8 @@ import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
+import { useVoicePreferenceStore } from "../../../stores/voicePreference";
+import { ACCENT_META_BY_LOCALE } from "../../../util/voice";
 import { useUserStore } from "../../../stores/user";
 import { useAnalyticsConsentStore } from "../../../stores/analyticsConsent";
 import { applyAnalyticsConsent } from "../../../util/analytics/postHog";
@@ -101,6 +103,11 @@ const Preferences = () => {
     fetchPreferences();
   }, [user]);
 
+  const voicePref = useVoicePreferenceStore((s) => s.preference);
+  const voiceDesc = voicePref
+    ? `${ACCENT_META_BY_LOCALE[voicePref.accent]?.label ?? "Selected"} accent`
+    : "Choose an accent";
+
   const prefItems = [
     {
       id: "difficult-sounds",
@@ -110,7 +117,16 @@ const Preferences = () => {
       iconColor: "#2563EB",
       bgColor: "#EFF6FF",
       onPress: () => navigation.navigate("FearedSounds" as any),
-    }
+    },
+    {
+      id: "reading-voice",
+      title: "Reading voice",
+      desc: voiceDesc,
+      icon: "account-voice",
+      iconColor: "#EA580C",
+      bgColor: "#FFF7ED",
+      onPress: () => navigation.navigate("ReadingVoice"),
+    },
   ];
 
   return (
