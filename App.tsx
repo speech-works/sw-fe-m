@@ -127,14 +127,19 @@ const App: React.FC = () => {
   );
 
   useEffect(() => {
-    const checkForUpdates = async () => {
+    const initAudioMode = async () => {
+      // Default the whole app to playback-only. Recording screens (StoryPractice /
+      // TechniquePage recorders, DAF) set allowsRecordingIOS:true themselves before
+      // capturing and reset it on stop/unmount. Launching globally in PlayAndRecord
+      // forced an input+output route app-wide, which fails on the iOS Simulator
+      // (no mic device) with -66680 and breaks unrelated playback (AVPlayer -11800).
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
+        allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
       });
     };
 
-    checkForUpdates();
+    initAudioMode();
   }, []);
 
   useEffect(() => {
