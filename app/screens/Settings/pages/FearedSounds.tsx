@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingTop: 24,
-    backgroundColor: "#121212",
+    backgroundColor: "transparent",
   },
   saveButton: {
     height: 56,
