@@ -89,11 +89,11 @@ export function AccentPicker() {
 
       {anyBasicOnly && (
         <TouchableOpacity
-          style={styles.addNaturalBtn}
-          activeOpacity={0.8}
+          style={styles.addNaturalLink}
+          activeOpacity={0.6}
+          hitSlop={8}
           onPress={handleInstall}
         >
-          <Text style={styles.addNaturalSpark}>✨</Text>
           <Text style={styles.addNaturalText}>Add a natural voice</Text>
         </TouchableOpacity>
       )}
@@ -274,24 +274,15 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: "600",
   },
-  addNaturalBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#1E2A24",
-    borderWidth: 1,
-    borderColor: "rgba(91, 217, 138, 0.35)",
-  },
-  addNaturalSpark: {
-    fontSize: 14,
+  addNaturalLink: {
+    alignSelf: "center",
+    paddingVertical: 4,
   },
   addNaturalText: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: NATURAL_GREEN,
+    textDecorationLine: "underline",
   },
   continueBtn: {
     marginTop: 16,
