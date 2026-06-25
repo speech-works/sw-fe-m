@@ -33,7 +33,7 @@ export function PopCard({
   visible,
   onClose,
   children,
-  color = "#6E45E2", // Default purple matching inspiration
+  color = "#1C1C1E", // Elevated dark mode surface
   contentStyle,
 }: PopCardProps) {
   const insets = useSafeAreaInsets();
