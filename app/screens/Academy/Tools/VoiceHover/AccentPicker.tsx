@@ -208,7 +208,7 @@ function IosVoiceGuideSheet({
   onOpenSettings: () => void;
 }) {
   return (
-    <PopCard visible={visible} onClose={onClose} color={DARK_SELECTED}>
+    <PopCard visible={visible} onClose={onClose} color={NATURAL_GREEN}>
       <Text style={styles.modalTitle}>Add a natural voice</Text>
       <Text style={styles.modalSubtitle}>
         iOS downloads natural voices in Settings. It only takes a minute:
@@ -327,13 +327,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#121212",
     textAlign: "center",
     marginBottom: 6,
   },
   modalSubtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(0,0,0,0.65)",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 16,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: "#121212",
     flexShrink: 1,
     lineHeight: 24,
     fontWeight: "600",
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   },
   modalSecondaryText: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
+    color: DARK_UNSELECTED,
     fontWeight: "700",
   },
 });
