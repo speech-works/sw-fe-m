@@ -94,6 +94,9 @@ export function AccentPicker() {
           hitSlop={8}
           onPress={handleInstall}
         >
+          <View style={styles.addNaturalIcon}>
+            <Text style={styles.addNaturalPlus}>+</Text>
+          </View>
           <Text style={styles.addNaturalText}>Add a natural voice</Text>
         </TouchableOpacity>
       )}
@@ -275,14 +278,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   addNaturalLink: {
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "center",
-    paddingVertical: 4,
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  addNaturalIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(91, 217, 138, 0.16)",
+  },
+  addNaturalPlus: {
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: "700",
+    color: NATURAL_GREEN,
   },
   addNaturalText: {
     fontSize: 14,
     fontWeight: "600",
     color: NATURAL_GREEN,
-    textDecorationLine: "underline",
+    letterSpacing: 0.2,
   },
   continueBtn: {
     marginTop: 16,
