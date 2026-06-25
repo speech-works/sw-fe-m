@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
+
 import { getPhonemes } from "../../../api/phonemes";
 import { Phoneme } from "../../../api/phonemes/types";
 import { getMyUser, updateMyUser } from "../../../api/users";
@@ -18,14 +20,16 @@ import AudioPlaybackButton from "../../../components/AudioPlaybackButton";
 import ScreenView from "../../../components/ScreenView";
 import { useUserStore } from "../../../stores/user";
 import { theme } from "../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import { LinearGradient } from "expo-linear-gradient";
-import CheckBox from "../../../components/CheckBox";
-
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
+
+const BridgeSVG = ({ color }: { color: string }) => (
+  <Svg width={48} height={72} viewBox="0 0 48 72">
+    <Path
+      d="M 0 8 Q 24 36, 48 8 L 48 64 Q 24 36, 0 64 Z"
+      fill={color}
+    />
+  </Svg>
+);
 
 const FearedSounds = () => {
   const insets = useSafeAreaInsets();
@@ -35,7 +39,6 @@ const FearedSounds = () => {
   const [selectedSounds, setSelectedSounds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const HEADER_HEIGHT = 60;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,36 +90,42 @@ const FearedSounds = () => {
 
   const renderPhonemeItem = ({ item }: { item: Phoneme }) => {
     const isSelected = selectedSounds.includes(item.code);
+    const bgColor = isSelected ? theme.colors.actionPrimary.default : "#2A2A2A";
+    const textColor = isSelected ? "#FFFFFF" : "#FFFFFF";
+    const subTextColor = isSelected ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.5)";
+
     return (
       <TouchableOpacity
-        activeOpacity={0.8}
+        activeOpacity={0.9}
         onPress={() => handleToggleSound(item.code)}
-        style={[styles.card, isSelected && styles.selectedCard]}
+        style={styles.row}
       >
-        <View style={styles.cardLeft}>
-          <CheckBox
-            checked={isSelected}
-            onToggle={() => handleToggleSound(item.code)}
-          />
-          <View style={styles.infoContainer}>
-            <View style={styles.labelRow}>
-              <Text style={styles.ipaText}>{item.ipaSymbol}</Text>
-              <Text style={styles.dot}>·</Text>
-              <Text style={styles.phonemeLabel}>{item.displayLabel}</Text>
-            </View>
+        <View style={[styles.bridgeContainer, { zIndex: 1 }]}>
+          <BridgeSVG color={bgColor} />
+        </View>
+
+        <View style={[styles.avatar, { backgroundColor: bgColor, zIndex: 2 }]}>
+          <View style={styles.avatarInner}>
+            <Text style={styles.ipaText}>{item.ipaSymbol}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.pill, { backgroundColor: bgColor, zIndex: 2 }]}>
+          <View style={styles.pillContent}>
+            <Text style={[styles.phonemeLabel, { color: textColor }]}>{item.displayLabel}</Text>
             {Array.isArray(item.examples) && item.examples.length > 0 && (
-              <Text style={styles.examplesText} numberOfLines={1}>
+              <Text style={[styles.examplesText, { color: subTextColor }]} numberOfLines={1}>
                 {item.examples.join(", ")}
               </Text>
             )}
           </View>
-        </View>
-        <View style={styles.audioContainer}>
-          <AudioPlaybackButton
-            audioUrl={item.audioUrl}
-            activeColor={theme.colors.actionPrimary.default}
-            iconSize={12}
-          />
+          <View style={styles.audioContainer}>
+            <AudioPlaybackButton
+              audioUrl={item.audioUrl}
+              activeColor={isSelected ? "#FFFFFF" : theme.colors.actionPrimary.default}
+              iconSize={14}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -124,32 +133,27 @@ const FearedSounds = () => {
 
   return (
     <ScreenView style={styles.screenView}>
-      {/* Aurora Background */}
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
-          colors={["#FFF7ED", "#FFF", "#FFF"] as const}
+          colors={["#121212", "#121212", "#121212"]}
           locations={[0, 0.4, 1]}
           style={{ flex: 1 }}
         />
       </View>
 
-      <BlurView
-        intensity={80}
-        tint="light"
+      <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          { paddingTop: insets.top + 10, height: 60 + insets.top },
         ]}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          <Icon name="arrow-left" size={16} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Difficult Sounds</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+      </View>
 
       <View style={styles.container}>
         {isLoading ? (
@@ -162,11 +166,11 @@ const FearedSounds = () => {
         ) : (
           <FlatList
             ListHeaderComponent={
-              <View style={styles.listHeader}>
-                <View style={styles.bgBubble} pointerEvents="none" />
-                <Text style={styles.description}>
-                  Select the phonetic sounds you find challenging. We&apos;ll prioritize
-                  these in your practice sessions.
+              <View style={styles.intro}>
+                <Text style={styles.introTitle}>Difficult</Text>
+                <Text style={styles.introTitle}>Sounds</Text>
+                <Text style={styles.introDesc}>
+                  Select the phonetic sounds you find challenging. We'll prioritize these in your practice sessions.
                 </Text>
               </View>
             }
@@ -175,7 +179,7 @@ const FearedSounds = () => {
             renderItem={renderPhonemeItem}
             contentContainerStyle={[
               styles.listContent,
-              { paddingTop: HEADER_HEIGHT + insets.top + 20 }
+              { paddingTop: 60 + insets.top + 20 }
             ]}
             showsVerticalScrollIndicator={false}
           />
@@ -194,23 +198,11 @@ const FearedSounds = () => {
           disabled={isSaving}
           activeOpacity={0.9}
         >
-          <LinearGradient
-            colors={[
-              "#fb923c",
-              "#ea580c",
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.saveGradient}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <View style={styles.saveButtonContent}>
-                <Text style={styles.saveButtonText}>Apply Practice Focus</Text>
-              </View>
-            )}
-          </LinearGradient>
+          {isSaving ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.saveButtonText}>Apply Practice Focus</Text>
+          )}
         </TouchableOpacity>
       </View>
     </ScreenView>
@@ -219,9 +211,8 @@ const FearedSounds = () => {
 
 const styles = StyleSheet.create({
   screenView: {
-    paddingBottom: 0,
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#121212",
   },
   header: {
     position: "absolute",
@@ -233,49 +224,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    backgroundColor: "transparent",
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
+    backgroundColor: "#2C2C2E",
   },
   container: {
     flex: 1,
   },
-  listHeader: {
-    paddingBottom: 24,
-    gap: 8,
+  intro: {
+    gap: 4,
+    marginBottom: 32,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#94A3B8",
-    letterSpacing: 1,
+  introTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
-  description: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#64748B",
-    lineHeight: 22,
+  introDesc: {
     fontSize: 15,
-  },
-  bgBubble: {
-    position: "absolute",
-    top: -40,
-    right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(251, 146, 60, 0.05)",
+    color: "#9CA3AF",
+    lineHeight: 22,
+    marginTop: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -283,70 +258,69 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listContent: {
-    paddingBottom: 140,
     paddingHorizontal: 20,
+    paddingBottom: 120,
   },
-  card: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    height: 72,
+    marginBottom: 16,
+  },
+  bridgeContainer: {
+    position: "absolute",
+    left: 52,
+    width: 48,
+    height: 72,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 24,
-    marginBottom: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  selectedCard: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "#FFEDD5",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  cardLeft: {
-    flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    gap: 16,
-  },
-  infoContainer: {
-    flex: 1,
-    gap: 4,
-  },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
   },
   ipaText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "800",
-    color: theme.colors.text.title,
+    color: "#000000",
   },
-  dot: {
-    fontSize: 16,
-    color: "#CBD5E1",
-    fontWeight: "800",
+  pill: {
+    flex: 1,
+    height: 72,
+    borderRadius: 36,
+    marginLeft: 8,
+    paddingLeft: 24,
+    paddingRight: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pillContent: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 2,
   },
   phonemeLabel: {
     fontSize: 17,
     fontWeight: "700",
-    color: theme.colors.text.title,
   },
   examplesText: {
-    fontSize: 14,
-    color: "#64748B",
+    fontSize: 13,
     fontWeight: "500",
   },
   audioContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    backgroundColor: "#F8FAFC",
-    alignItems: "center",
+    width: 40,
+    height: 40,
+    alignItems: "flex-end",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
   },
   footer: {
     position: "absolute",
@@ -355,30 +329,20 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingTop: 24,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "#121212",
   },
   saveButton: {
-    borderRadius: 20,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  saveGradient: {
-    paddingVertical: 18,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.actionPrimary.default,
     alignItems: "center",
     justifyContent: "center",
-  },
-  saveButtonContent: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
   },
   saveButtonText: {
-    color: "#FFF",
+    color: "#FFFFFF",
     fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontWeight: "700",
   },
 });
 

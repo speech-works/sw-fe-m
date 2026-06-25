@@ -3,13 +3,10 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { AccentPicker } from "../../Academy/Tools/VoiceHover/AccentPicker";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 
@@ -22,15 +19,13 @@ const ReadingVoice = () => {
     <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
       <View style={StyleSheet.absoluteFillObject}>
         <LinearGradient
-          colors={["#FFF7ED", "#FFF", "#FFF"]}
+          colors={["#121212", "#121212", "#121212"]}
           locations={[0, 0.4, 1]}
           style={{ flex: 1 }}
         />
       </View>
 
-      <BlurView
-        intensity={80}
-        tint="light"
+      <View
         style={[
           styles.header,
           { paddingTop: insets.top + 10, height: 60 + insets.top },
@@ -40,11 +35,9 @@ const ReadingVoice = () => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          <Icon name="arrow-left" size={16} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reading voice</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+      </View>
 
       <View style={styles.container}>
         <CustomScrollView
@@ -54,11 +47,8 @@ const ReadingVoice = () => {
           ]}
         >
           <View style={styles.intro}>
-            <Text style={styles.introTitle}>Choose your accent</Text>
-            <Text style={styles.introDesc}>
-              Tap an accent to hear it and set it as your reading guide. It
-              applies everywhere the Voice Hover tool is used.
-            </Text>
+            <Text style={styles.introTitle}>What accent do</Text>
+            <Text style={styles.introTitle}>you want to hear?</Text>
           </View>
 
           <AccentPicker />
@@ -73,7 +63,7 @@ export default ReadingVoice;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#121212",
   },
   container: {
     flex: 1,
@@ -88,21 +78,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
+    backgroundColor: "transparent",
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
+    backgroundColor: "#2C2C2E",
   },
   scrollView: {
     gap: 20,
@@ -110,16 +94,12 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   intro: {
-    gap: 6,
+    gap: 4,
+    marginBottom: 10,
   },
   introTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: theme.colors.text.title,
-  },
-  introDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#64748B",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });
