@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,17 +15,17 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from "react-native-reanimated";
-import { theme } from "../Theme/tokens";
+import { useTheme } from "../design-system";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
-const { width } = Dimensions.get("window");
 
 const CustomTabBar = ({
   state,
   descriptors,
   navigation,
 }: BottomTabBarProps) => {
+  const { colors } = useTheme();
   const { isTabBarVisible } = useUIStore();
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const hasBuddy = useInboxStore((s) => s.hasBuddy);
@@ -43,7 +42,7 @@ const CustomTabBar = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow }]}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -88,10 +87,6 @@ const CustomTabBar = ({
             iconName = hasBuddy === false ? "account-plus" : "account-group";
           else if (routeName === ROUTE_NAMES.SETTINGS) iconName = "cog";
 
-          // Color mapping
-          let activeColor = theme.colors.library.orange[400];
-          let activeContentColor = "#FFFFFF";
-
           const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
           return (
             <TabItem
@@ -99,11 +94,8 @@ const CustomTabBar = ({
               isFocused={isFocused}
               label={(options.tabBarLabel as string) || route.name}
               iconName={iconName}
-              activeColor={activeColor}
-              activeContentColor={activeContentColor}
               onPress={onPress}
               onLongPress={onLongPress}
-              routeName={routeName}
               badge={badge}
             />
           );
@@ -119,11 +111,17 @@ const TabItem = ({
   iconName,
   onPress,
   onLongPress,
-  activeColor,
-  activeContentColor,
-  routeName,
   badge = 0,
 }: any) => {
+  const { colors } = useTheme();
+  // Re-theme to nav tokens (colors only — animation/layout unchanged).
+  const activeColor = colors.nav.activePill; // orange pill
+  const activeContentColor = colors.nav.onActive; // dark-on-orange (AA)
+  const inactiveColor = colors.nav.inactive; // muted icon when not selected
+  const capsuleColor = colors.surface.elevated; // the bar behind the badge
+  const badgeBg = colors.nav.badge;
+  const badgeText = colors.accentOn.danger;
+
   const focusedValue = useDerivedValue(() => {
     return withTiming(isFocused ? 1 : 0, {
       duration: 100,
@@ -175,12 +173,6 @@ const TabItem = ({
     };
   });
 
-  const gradientStyle = useAnimatedStyle(() => {
-    return {
-      opacity: focusedValue.value,
-    };
-  });
-
   const textWrapperStyle = useAnimatedStyle(() => {
     return {
       width: interpolate(focusedValue.value, [0, 1], [0, labelWidth]),
@@ -213,7 +205,7 @@ const TabItem = ({
     const borderColor = interpolateColor(
       focusedValue.value,
       [0, 1],
-      ["#FFFFFF", activeColor]
+      [capsuleColor, activeColor]
     );
     return {
       borderColor,
@@ -244,7 +236,7 @@ const TabItem = ({
               <MaterialCommunityIcons
                 name={iconName}
                 size={24}
-                color="#94A3B8"
+                color={inactiveColor}
               />
             </Animated.View>
             <Animated.View style={[activeIconStyle, { position: "absolute" }]}>
@@ -255,8 +247,8 @@ const TabItem = ({
               />
             </Animated.View>
             {badge > 0 ? (
-              <Animated.View style={[styles.badge, badgeAnimatedStyle]}>
-                <Text style={styles.badgeText} numberOfLines={1}>
+              <Animated.View style={[styles.badge, { backgroundColor: badgeBg }, badgeAnimatedStyle]}>
+                <Text style={[styles.badgeText, { color: badgeText }]} numberOfLines={1}>
                   {badge > 9 ? "9+" : badge}
                 </Text>
               </Animated.View>
@@ -286,15 +278,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabBar: {
+    // backgroundColor + shadowColor are themed inline (surface.elevated / shadow).
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
     borderRadius: 35,
     height: 70,
     padding: 8,
     width: "100%",
-    shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.35,
     shadowRadius: 20,
     elevation: 10,
     justifyContent: "space-between",
@@ -312,12 +303,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
+    // color themed inline (nav.onActive)
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
     textAlign: "center",
   },
   badge: {
+    // backgroundColor + borderColor themed inline (nav.badge / capsule→pill)
     position: "absolute",
     top: -5,
     right: -8,
@@ -325,7 +317,6 @@ const styles = StyleSheet.create({
     height: 18,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: "#FF3B30",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -335,7 +326,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
-  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
+  badgeText: { fontSize: 10, fontWeight: "800" },
 });
 
 export default CustomTabBar;

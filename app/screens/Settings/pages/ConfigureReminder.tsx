@@ -1,74 +1,34 @@
 import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-  TextInput,
-} from "react-native";
+import { StyleSheet, View, TouchableOpacity, Platform } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle, parseShadowStyle } from "../../../util/functions/parseStyles";
-import { 
-  useReminderStore, 
-  ReminderType as StoreReminderType 
+import {
+  useReminderStore,
+  ReminderType as StoreReminderType,
 } from "../../../stores/reminders";
-import { 
-  ReminderCategory 
-} from "../../../constants/reminderTemplates";
+import { ReminderCategory } from "../../../constants/reminderTemplates";
 import { requestNotificationPermissionWithFallback } from "../../../util/functions/notifications";
-import ScreenView from "../../../components/ScreenView";
-import PromptBottomSheet from "../../../components/PromptBottomSheet";
+import {
+  useTheme,
+  spacing,
+  radius,
+  hitTarget,
+  Page,
+  Segmented,
+  TextField,
+  Button,
+  Dialog,
+  Text,
+} from "../../../design-system";
 
-const CATEGORY_META: Record<
-  ReminderCategory,
-  { label: string; icon: string; color: string; desc: string }
-> = {
-  DAILY_PRACTICE: {
-    label: "Daily Practice",
-    icon: "bullseye-arrow",
-    color: "#F59E0B",
-    desc: "Stay consistent with your core exercises",
-  },
-  BREATHING: {
-    label: "Breathing",
-    icon: "lungs",
-    color: "#06B6D4",
-    desc: "Regulate your rhythm and airflow",
-  },
-  READING: {
-    label: "Reading",
-    icon: "book-open-variant",
-    color: "#8B5CF6",
-    desc: "Practice reading aloud fluently",
-  },
-  CHALLENGE: {
-    label: "Challenge",
-    icon: "trophy-outline",
-    color: "#EC4899",
-    desc: "Push your limits with daily goals",
-  },
-  MOOD_CHECKIN: {
-    label: "Mood Check-in",
-    icon: "emoticon-outline",
-    color: "#10B981",
-    desc: "Log how speaking felt today",
-  },
-  CUSTOM: {
-    label: "Custom Reminder",
-    icon: "pencil-outline",
-    color: "#64748B",
-    desc: "Set a unique reminder for your needs",
-  },
+const CATEGORY_LABELS: Record<ReminderCategory, string> = {
+  DAILY_PRACTICE: "Daily Practice",
+  BREATHING: "Breathing",
+  READING: "Reading",
+  CHALLENGE: "Challenge",
+  MOOD_CHECKIN: "Mood Check-in",
+  CUSTOM: "Custom Reminder",
 };
 
 const DEFAULT_REMINDER_TITLES: Record<ReminderCategory, string> = {
@@ -90,13 +50,13 @@ const getFormattedDate = (date: Date) => {
 };
 
 export default function ConfigureReminder() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { colors } = useTheme();
 
   const reminderId = route.params?.reminderId;
   const initialCategory = (route.params?.category as ReminderCategory) || "DAILY_PRACTICE";
-  
+
   const { reminders, addReminder, updateReminder, removeReminder } = useReminderStore();
 
   // Form state
@@ -111,13 +71,11 @@ export default function ConfigureReminder() {
   const [showAndroidTimePicker, setShowAndroidTimePicker] = useState(false);
   const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
 
-  // Alert State
+  // Alert / confirm state
   const [promptVisible, setPromptVisible] = useState(false);
   const [promptConfig, setPromptConfig] = useState<{
     title: string;
     message: string;
-    icon?: string;
-    iconColor?: string;
     primaryLabel: string;
     primaryAction: () => void;
     secondaryLabel?: string;
@@ -136,7 +94,7 @@ export default function ConfigureReminder() {
         setSelectedCategory(existing.category);
         setReminderTitle(existing.title);
         setReminderType(existing.type);
-        
+
         const [h, m] = existing.time.split(":").map(Number);
         const t = new Date();
         t.setHours(h, m, 0, 0);
@@ -171,7 +129,6 @@ export default function ConfigureReminder() {
       setPromptConfig({
         title: "Invalid Routine",
         message: "Please select at least one day for your routine.",
-        icon: "calendar-alert",
         primaryLabel: "Got it",
         primaryAction: () => {},
       });
@@ -202,8 +159,6 @@ export default function ConfigureReminder() {
       setPromptConfig({
         title: "Error",
         message: error.message || "Failed to save reminder",
-        icon: "alert-circle",
-        iconColor: "#EF4444",
         primaryLabel: "OK",
         primaryAction: () => {},
       });
@@ -215,8 +170,6 @@ export default function ConfigureReminder() {
     setPromptConfig({
       title: "Delete Reminder",
       message: "Are you sure you want to delete this reminder?",
-      icon: "trash-can-outline",
-      iconColor: "#EF4444",
       primaryLabel: "Delete",
       isDestructive: true,
       primaryAction: async () => {
@@ -228,390 +181,210 @@ export default function ConfigureReminder() {
     setPromptVisible(true);
   };
 
-  const renderConfigureForm = () => (
-    <View style={styles.content}>
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, reminderType === "ONE_TIME" && styles.toggleButtonActive]}
-          onPress={() => setReminderType("ONE_TIME")}
-        >
-          <Text style={[styles.toggleButtonText, reminderType === "ONE_TIME" && styles.toggleButtonTextActive]}>
-            One Time
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, reminderType === "ROUTINE" && styles.toggleButtonActive]}
-          onPress={() => setReminderType("ROUTINE")}
-        >
-          <Text style={[styles.toggleButtonText, reminderType === "ROUTINE" && styles.toggleButtonTextActive]}>
-            Routine
-          </Text>
-        </TouchableOpacity>
-      </View>
+  const isConfirm = !!promptConfig.secondaryLabel;
 
-      <Text style={styles.inputLabel}>TITLE</Text>
-      <TextInput
-        style={styles.titleInput}
-        value={reminderTitle}
-        onChangeText={setReminderTitle}
-        placeholder="Reminder title..."
-        placeholderTextColor="#94A3B8"
-      />
+  return (
+    <>
+      <Page
+        title={CATEGORY_LABELS[selectedCategory]}
+        onBack={() => navigation.goBack()}
+        keyboardAvoiding
+        footer={<Button label="Save Reminder" onPress={handleSave} />}
+      >
+        {/* One-time vs routine */}
+        <Segmented
+          options={["One Time", "Routine"]}
+          value={reminderType === "ONE_TIME" ? "One Time" : "Routine"}
+          onChange={(v) => setReminderType(v === "One Time" ? "ONE_TIME" : "ROUTINE")}
+        />
 
-      {reminderType === "ONE_TIME" && (
-        <>
-          <Text style={styles.inputLabel}>DATE</Text>
-          <View style={styles.pickerWrapper}>
+        {/* Title */}
+        <View style={styles.field}>
+          <Text variant="label" color="tertiary" style={styles.label}>
+            TITLE
+          </Text>
+          <TextField
+            value={reminderTitle}
+            onChangeText={setReminderTitle}
+            placeholder="Reminder title..."
+          />
+        </View>
+
+        {/* Date (one-time only) */}
+        {reminderType === "ONE_TIME" ? (
+          <View style={styles.field}>
+            <Text variant="label" color="tertiary" style={styles.label}>
+              DATE
+            </Text>
+            <View style={[styles.pickerCard, { backgroundColor: colors.surface.default }]}>
+              {Platform.OS === "ios" ? (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="default"
+                  themeVariant="dark"
+                  onChange={(_, d) => d && setSelectedDate(d)}
+                  minimumDate={new Date()}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={[styles.androidPickerButton, { backgroundColor: colors.surface.control }]}
+                  onPress={() => setShowAndroidDatePicker(true)}
+                >
+                  <Text variant="body">{selectedDate.toLocaleDateString()}</Text>
+                </TouchableOpacity>
+              )}
+              {Platform.OS === "android" && showAndroidDatePicker ? (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(_, d) => {
+                    setShowAndroidDatePicker(false);
+                    if (d) setSelectedDate(d);
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Time */}
+        <View style={styles.field}>
+          <Text variant="label" color="tertiary" style={styles.label}>
+            TIME
+          </Text>
+          <View style={[styles.pickerCard, { backgroundColor: colors.surface.default }]}>
             {Platform.OS === "ios" ? (
               <DateTimePicker
-                value={selectedDate}
-                mode="date"
-                display="default"
-                onChange={(e, d) => d && setSelectedDate(d)}
-                minimumDate={new Date()}
+                value={selectedTime}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                onChange={(_, d) => d && setSelectedTime(d)}
+                style={styles.iosTimeSpinner}
               />
             ) : (
               <TouchableOpacity
-                style={styles.androidPickerButton}
-                onPress={() => setShowAndroidDatePicker(true)}
+                style={[styles.androidPickerButton, { backgroundColor: colors.surface.control }]}
+                onPress={() => setShowAndroidTimePicker(true)}
               >
-                <Text style={styles.androidPickerText}>
-                  {selectedDate.toLocaleDateString()}
+                <Text variant="body">
+                  {selectedTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </Text>
               </TouchableOpacity>
             )}
-            {Platform.OS === "android" && showAndroidDatePicker && (
+            {Platform.OS === "android" && showAndroidTimePicker ? (
               <DateTimePicker
-                value={selectedDate}
-                mode="date"
+                value={selectedTime}
+                mode="time"
                 display="default"
-                minimumDate={new Date()}
-                onChange={(e, d) => {
-                  setShowAndroidDatePicker(false);
-                  if (d) setSelectedDate(d);
+                onChange={(_, d) => {
+                  setShowAndroidTimePicker(false);
+                  if (d) setSelectedTime(d);
                 }}
               />
-            )}
-          </View>
-        </>
-      )}
-
-      <Text style={styles.inputLabel}>TIME</Text>
-      <View style={styles.pickerWrapper}>
-        {Platform.OS === "ios" ? (
-          <DateTimePicker
-            value={selectedTime}
-            mode="time"
-            display="spinner"
-            onChange={(e, d) => d && setSelectedTime(d)}
-            style={{ height: 160 }}
-          />
-        ) : (
-          <TouchableOpacity
-            style={styles.androidPickerButton}
-            onPress={() => setShowAndroidTimePicker(true)}
-          >
-            <Text style={styles.androidPickerText}>
-              {selectedTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </Text>
-          </TouchableOpacity>
-        )}
-        {Platform.OS === "android" && showAndroidTimePicker && (
-          <DateTimePicker
-            value={selectedTime}
-            mode="time"
-            display="default"
-            onChange={(e, d) => {
-              setShowAndroidTimePicker(false);
-              if (d) setSelectedTime(d);
-            }}
-          />
-        )}
-      </View>
-
-      {reminderType === "ROUTINE" && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.inputLabel}>REPEAT ON</Text>
-          <View style={styles.daysRow}>
-            {DAYS_OF_WEEK.map((day, i) => {
-              const isActive = selectedWeekDays.includes(i);
-              return (
-                <TouchableOpacity
-                  key={i}
-                  style={[styles.dayButton, isActive && styles.dayButtonActive]}
-                  onPress={() => toggleDay(i)}
-                >
-                  <Text style={[styles.dayButtonText, isActive && styles.dayButtonTextActive]}>
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            ) : null}
           </View>
         </View>
-      )}
 
-      <View style={styles.saveContainer}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
-          <Text style={styles.saveButtonText}>Save Reminder</Text>
-        </TouchableOpacity>
+        {/* Repeat (routine only) */}
+        {reminderType === "ROUTINE" ? (
+          <View style={styles.field}>
+            <Text variant="label" color="tertiary" style={styles.label}>
+              REPEAT ON
+            </Text>
+            <View style={styles.daysRow}>
+              {DAYS_OF_WEEK.map((day, i) => {
+                const isActive = selectedWeekDays.includes(i);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.dayButton,
+                      { backgroundColor: isActive ? colors.action.primary : colors.surface.control },
+                    ]}
+                    onPress={() => toggleDay(i)}
+                  >
+                    <Text
+                      variant="bodySm"
+                      color={isActive ? colors.action.onPrimary : "secondary"}
+                    >
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
-        {reminderId && (
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={handleDelete} 
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#EF4444" />
-            <Text style={styles.deleteButtonText}>Delete Reminder</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
+        {/* Delete (edit mode only) */}
+        {reminderId ? (
+          <Button
+            label="Delete Reminder"
+            variant="danger"
+            leftIcon="trash-2"
+            onPress={handleDelete}
+          />
+        ) : null}
+      </Page>
 
-  return (
-    <ScreenView style={styles.container}>
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient colors={["#F8FAFC", "#FFFFFF"]} style={{ flex: 1 }} />
-      </View>
-
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{CATEGORY_META[selectedCategory].label}</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 80, paddingBottom: Math.max(insets.bottom, 40) }]}
-      >
-        {renderConfigureForm()}
-      </ScrollView>
-
-      <PromptBottomSheet
+      {/* Alert / confirm */}
+      <Dialog
         visible={promptVisible}
         onClose={() => setPromptVisible(false)}
         title={promptConfig.title}
         message={promptConfig.message}
-        icon={promptConfig.icon}
-        iconColor={promptConfig.iconColor}
-        primaryButton={{
-          label: promptConfig.primaryLabel,
-          onPress: promptConfig.primaryAction,
-          destructive: promptConfig.isDestructive,
-        }}
-        secondaryButton={promptConfig.secondaryLabel ? {
-          label: promptConfig.secondaryLabel,
-          onPress: () => {},
-        } : undefined}
+        cancelLabel={isConfirm ? promptConfig.secondaryLabel : promptConfig.primaryLabel}
+        confirmLabel={isConfirm ? promptConfig.primaryLabel : undefined}
+        destructive={promptConfig.isDestructive}
+        onConfirm={
+          isConfirm
+            ? () => {
+                promptConfig.primaryAction();
+                setPromptVisible(false);
+              }
+            : undefined
+        }
       />
-    </ScreenView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  field: {
+    width: "100%",
   },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
+  label: {
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
+  },
+  pickerCard: {
+    borderRadius: radius.card,
+    padding: spacing.lg,
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  categoryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 24,
-    gap: 16,
-    marginBottom: 32,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  categoryIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  categoryHeaderLabel: {
-    fontSize: 16,
-    color: theme.colors.text.title,
-    fontWeight: "700",
-  },
-  categoryHeaderDesc: {
-    fontSize: 13,
-    color: "#64748B",
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  toggleContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 20,
-    padding: 4,
-    height: 52,
-    marginBottom: 32,
-  },
-  toggleButton: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 16,
-  },
-  toggleButtonActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  toggleButtonText: {
-    color: "#64748B",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  toggleButtonTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  inputLabel: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "800",
-    letterSpacing: 1,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  titleInput: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    height: 56,
-    fontSize: 16,
-    color: theme.colors.text.title,
-    fontWeight: "600",
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  pickerWrapper: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 32,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
   androidPickerButton: {
     width: "100%",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.input,
     alignItems: "center",
   },
-  androidPickerText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.text.title,
+  iosTimeSpinner: {
+    height: 160,
   },
   daysRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 8,
   },
   dayButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+    width: hitTarget.min,
+    height: hitTarget.min,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dayButtonActive: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  dayButtonText: {
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  dayButtonTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  saveContainer: {
-    marginTop: 48,
-  },
-  saveButton: {
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: theme.colors.actionPrimary.default,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  saveButtonText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 20,
-    paddingVertical: 12,
-  },
-  deleteButtonText: {
-    color: "#EF4444",
-    fontWeight: "700",
   },
 });

@@ -12,6 +12,12 @@ import ErrorFallback from "./app/components/ErrorFallback";
 import { AuthProvider } from "./app/contexts/AuthContext";
 import MainNavigator from "./app/navigators/MainNavigator";
 import FontLoader from "./app/util/components/FontLoader";
+import { ThemeProvider } from "./app/design-system";
+import { DevPreview } from "./app/design-system/_DevPreview";
+
+// TEMP (Phase B visual review only): renders the design-system preview overlay.
+// Revert to false / remove before shipping.
+const SHOW_DS_PREVIEW = false;
 // import Toast from "react-native-toast-message";
 // import toastConfig from "./app/util/config/toastConfig";
 import * as SecureStore from "expo-secure-store";
@@ -228,6 +234,17 @@ const App: React.FC = () => {
 
   // if (!ready) return <LoadingScreen />;
 
+  // TEMP (Phase B): show only the design-system preview for visual review.
+  if (__DEV__ && SHOW_DS_PREVIEW) {
+    return (
+      <SafeAreaProvider style={{ flex: 1 }}>
+        <ThemeProvider>
+          <DevPreview />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <Sentry.ErrorBoundary
       fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}
@@ -241,21 +258,23 @@ const App: React.FC = () => {
               edges={["left", "right"]}
             >
               <FontLoader />
-              <NavigationContainer
-                ref={navigationRef}
-                onStateChange={() => {
-                  const currentRoute = navigationRef.getCurrentRoute();
-                  if (currentRoute?.name) {
-                    trackScreen(currentRoute.name, currentRoute.params ? { params: currentRoute.params as Record<string, any> } : undefined);
-                  }
-                }}
-              >
-                <MainNavigator />
-                <UpsellModal />
-                <OutcomeModal />
-                <StaminaVignetteOverlay />
-                <GlobalStaminaController />
-              </NavigationContainer>
+              <ThemeProvider>
+                <NavigationContainer
+                  ref={navigationRef}
+                  onStateChange={() => {
+                    const currentRoute = navigationRef.getCurrentRoute();
+                    if (currentRoute?.name) {
+                      trackScreen(currentRoute.name, currentRoute.params ? { params: currentRoute.params as Record<string, any> } : undefined);
+                    }
+                  }}
+                >
+                  <MainNavigator />
+                  <UpsellModal />
+                  <OutcomeModal />
+                  <StaminaVignetteOverlay />
+                  <GlobalStaminaController />
+                </NavigationContainer>
+              </ThemeProvider>
             </SafeAreaView>
           </SafeAreaProvider>
         </AuthProvider>

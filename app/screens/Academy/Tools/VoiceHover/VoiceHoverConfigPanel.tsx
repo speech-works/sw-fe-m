@@ -7,6 +7,7 @@ import {
   parseShadowStyle,
   parseTextStyle,
 } from "../../../../util/functions/parseStyles";
+import { AccentPicker } from "./AccentPicker";
 
 interface VoiceHoverConfigProps {
   baseRate: number;
@@ -69,6 +70,9 @@ export function VoiceHoverConfigPanel({
           the reading support to begin.
         </Text>
       </View>
+
+      {/* Accent selection — same control here and in Settings; saved app-wide. */}
+      <AccentPicker />
 
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>

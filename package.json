@@ -30,7 +30,9 @@
     "logs:android": "adb logcat '*:S' 'ReactNative:V' 'ReactNativeJS:V'",
     "postinstall": "patch-package",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "check": "tsc -p tsconfig.check.json --noEmit",
+    "check:store-compliance": "bash scripts/check-store-compliance.sh"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.4",
