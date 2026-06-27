@@ -1,15 +1,12 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getUserPreferences,
   updateUserPreferences,
 } from "../../../api/settings/userPreference";
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 
-import CustomScrollView from "../../../components/CustomScrollView";
-import ScreenView from "../../../components/ScreenView";
 import { useVoicePreferenceStore } from "../../../stores/voicePreference";
 import { ACCENT_META_BY_LOCALE } from "../../../util/voice";
 import { useUserStore } from "../../../stores/user";
@@ -18,18 +15,14 @@ import { applyAnalyticsConsent } from "../../../util/analytics/postHog";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
   useTheme,
-  spacing,
   radius,
-  size,
-  Text,
   ListItem,
   Toggle,
-  IconButton,
+  Page,
 } from "../../../design-system";
 
 const Preferences = () => {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<SettingsStackNavigationProp<"Preferences">>();
   const { user } = useUserStore();
   const analyticsOn = useAnalyticsConsentStore((s) => s.enabled);
@@ -103,30 +96,8 @@ const Preferences = () => {
     : "Choose an accent";
 
   return (
-    <ScreenView style={[styles.screenView, { paddingHorizontal: 0, backgroundColor: colors.background.canvas }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 10,
-            height: 60 + insets.top,
-            backgroundColor: colors.background.canvas,
-          },
-        ]}
-      >
-        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
-        <Text variant="h3">Preferences</Text>
-        <View style={{ width: size.backBtn }} />
-      </View>
-
-      <View style={styles.container}>
-        <CustomScrollView
-          contentContainerStyle={[
-            styles.scrollView,
-            { paddingTop: 60 + insets.top + 20 },
-          ]}
-        >
-          <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+    <Page title="Preferences" onBack={() => navigation.goBack()}>
+      <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
             <ListItem
               leftIcon="mic"
               label="Difficult Sounds"
@@ -159,38 +130,14 @@ const Preferences = () => {
                 />
               }
             />
-          </View>
-        </CustomScrollView>
       </View>
-    </ScreenView>
+    </Page>
   );
 };
 
 export default Preferences;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-  },
-  container: {
-    flex: 1,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
-  },
-  scrollView: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing["4xl"],
-  },
   group: {
     borderRadius: radius.card,
     overflow: "hidden",

@@ -1,28 +1,24 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, FlatList } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 
 import { getPhonemes } from "../../../api/phonemes";
 import { Phoneme } from "../../../api/phonemes/types";
 import { Audio } from "expo-av";
 import { getMyUser, updateMyUser } from "../../../api/users";
-import ScreenView from "../../../components/ScreenView";
 import { useUserStore } from "../../../stores/user";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
 import {
   useTheme,
   spacing,
-  Text,
   Button,
-  IconButton,
   Spinner,
   ConnectedAvatarRow,
+  Page,
 } from "../../../design-system";
 
 const FearedSounds = () => {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<SettingsStackNavigationProp<"FearedSounds">>();
   const { user, setUser } = useUserStore();
   const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
@@ -116,101 +112,40 @@ const FearedSounds = () => {
   };
 
   return (
-    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
-        ]}
-      >
-        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
-      </View>
-
-      <View style={styles.container}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Spinner size="large" />
-          </View>
-        ) : (
-          <FlatList
-            ListHeaderComponent={
-              <View style={styles.intro}>
-                <Text variant="h1">Difficult Sounds</Text>
-                <Text variant="body" color="secondary" style={{ marginTop: 8 }}>
-                  Select the phonetic sounds you find challenging. We'll prioritize these in your practice sessions.
-                </Text>
-              </View>
-            }
-            data={phonemes}
-            keyExtractor={(item) => item.code}
-            renderItem={renderPhonemeItem}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingTop: 60 + insets.top + 20 }
-            ]}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom + 12, 32) },
-        ]}
-      >
+    <Page
+      title="Difficult Sounds"
+      description="Select the phonetic sounds you find challenging. We'll prioritize these in your practice sessions."
+      onBack={() => navigation.goBack()}
+      footer={
         <Button
           label="Apply Practice Focus"
           onPress={handleSave}
           loading={isSaving}
         />
-      </View>
-    </ScreenView>
+      }
+      list={{
+        data: phonemes,
+        keyExtractor: (item) => item.code,
+        renderItem: renderPhonemeItem,
+        ListEmptyComponent: isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Spinner size="large" />
+          </View>
+        ) : undefined,
+      }}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
-    backgroundColor: "transparent",
-  },
-  container: {
-    flex: 1,
-  },
-  intro: {
-    marginBottom: spacing["3xl"],
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  listContent: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: 120,
+    paddingVertical: spacing["5xl"],
   },
   rowSpacer: {
     marginBottom: spacing.lg,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing["2xl"],
-    backgroundColor: "transparent",
   },
 });
 

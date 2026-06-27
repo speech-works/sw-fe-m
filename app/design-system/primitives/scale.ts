@@ -25,6 +25,8 @@ export const spacing = {
 export const space = {
   screenX: 20,
   sectionGap: 24,
+  groupGap: 16, // gap between rounded groups/cards within a screen body
+  titleGap: 28, // back-bar → screen title, and title block → first content
   cardPad: 16,
   rowGap: 12,
   inlineGap: 8,
@@ -51,6 +53,8 @@ export const size = {
   avatar: 64,
   avatarCompact: 52,
   control: 56,
+  row: 72, // standard settings/list row height (matches ConnectedAvatarRow)
+  avatarChip: 48, // leading icon chip inside a ListItem row
   backBtn: 44,
   tabIcon: 24,
   iconLg: 28,

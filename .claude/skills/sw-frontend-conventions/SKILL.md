@@ -36,6 +36,35 @@ import {
 Reach for an existing component before hand-rolling markup. The full library
 already covers actions, inputs, data display, overlays, feedback, and layout.
 
+**Never hand-roll shared chrome — it drifts.** The big ones:
+- **Whole screens**: always render `<Page title="…" onBack={…}>…</Page>` — never
+  hand-assemble `ScreenView` + header + `ScrollView` + padding. `Page` owns the
+  dark canvas, the large-title header, the screen gutter, the title→content gap,
+  and scroll. Body modes: scrolling children (default), a `FlatList` via the
+  `list` prop, or fixed (`scroll={false}`). Forms pass `keyboardAvoiding`; a
+  pinned bottom action goes in `footer`; an intro line goes in `description`.
+- **Settings/list rows**: always `<ListItem leftIcon … label … sublabel …
+  showChevron divider />` inside a rounded group (`radius.card` on
+  `surface.default`, `overflow:"hidden"`). Don't re-create the icon-chip +
+  title/subtitle + chevron row by hand.
+
+## Layout constitution (consistency rules — `Page` enforces most automatically)
+1. **One title pattern:** large left-aligned `h1` screen title (via `Page`), with
+   a compact back bar above and `space.titleGap` (28) before content. No centered
+   `h3` nav titles on product screens. `screenTitle` (38) = Home/hero only.
+2. **One gutter:** `space.screenX` (20) horizontal everywhere (Page applies it).
+3. **Vertical rhythm (tokens, no magic numbers):** title→content = `space.titleGap`
+   (28); between groups/cards = `space.groupGap` (16) default / `space.sectionGap`
+   (24) for form sections; title→subtitle = `space.titleSub` (3); icon→text =
+   `space.iconText` (12).
+4. **One row scale:** standard row = `size.row` (72). `ListItem` and
+   `ConnectedAvatarRow` are both 72; use the compact 56 variant only where dense.
+5. **Type roles:** `screenTitle`=Home/hero · `h1`=screen title · `h2`=major section
+   · `h3`=card/section header · `title`=row/control · `body`/`bodySm`=text ·
+   `label`=ALL-CAPS section/form label (tertiary) · `caption`=meta.
+6. **Surfaces & radius:** cards/groups `radius.card` (24); inputs `radius.input`
+   (16); chips `radius.chip` (20); buttons `radius.pill` (36).
+
 ## Colors — tokens only, AA always
 
 - **No color literals outside `app/design-system/primitives/palette.ts`.** No

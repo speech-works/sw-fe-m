@@ -71,3 +71,5 @@ export { Screen } from "./Screen";
 export type { ScreenProps } from "./Screen";
 export { Header } from "./Header";
 export type { HeaderProps } from "./Header";
+export { Page } from "./Page";
+export type { PageProps, PageListConfig } from "./Page";

@@ -2,12 +2,12 @@ import React from "react";
 import { View, ViewStyle } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
-import { radius, space, borderWidth } from "../primitives/scale";
+import { radius, space, size, borderWidth } from "../primitives/scale";
 import { Icon, IconName } from "./Icon";
 import { Text } from "./Text";
 
-const CHIP = 40; // leading icon-chip diameter
-const PAD_H = 16;
+const CHIP = size.avatarChip; // leading icon-chip diameter (48)
+const PAD_H = space.cardPad; // 16
 
 export interface ListItemProps {
   label: string;
@@ -41,9 +41,9 @@ export const ListItem: React.FC<ListItemProps> = ({
     flexDirection: "row",
     alignItems: "center",
     gap: space.iconText,
-    minHeight: 64,
+    minHeight: size.row,
     paddingHorizontal: PAD_H,
-    paddingVertical: 14,
+    paddingVertical: space.cardPad,
     backgroundColor: colors.surface.default,
   };
   const textInset = leftIcon ? PAD_H + CHIP + space.iconText : PAD_H;
@@ -61,7 +61,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             backgroundColor: colors.surface.control,
           }}
         >
-          <Icon name={leftIcon} size={20} color={colors.text.primary} />
+          <Icon name={leftIcon} size={22} color={colors.text.primary} />
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
