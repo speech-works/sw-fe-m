@@ -124,29 +124,19 @@ const WeeklyGrowthCard = ({
         </View>
       </View>
 
-      {/* Comparison numbers */}
-      <View>
-        <View style={styles.eyebrowRow}>
-          <Text variant="caption" color="tertiary" style={[styles.eyebrow, styles.flex1]}>Current profile</Text>
-          <View style={styles.connectorSpacer} />
-          <Text variant="caption" color="tertiary" style={[styles.eyebrow, styles.flex1]}>Previous week</Text>
-        </View>
-        <View style={styles.numbersRow}>
-          <Text variant="display" style={styles.flex1}>{currentScore}</Text>
-          <View style={[styles.connector, { backgroundColor: colors.surface.control }]}>
-            <Icon name="long-arrow-alt-right" size={14} color={colors.text.secondary} />
-          </View>
-          <Text variant="display" style={styles.flex1}>{previousScore ?? "—"}</Text>
-        </View>
+      {/* This week's overall profile score (avg of the 5 dimensions) */}
+      <View style={styles.hero}>
+        <Text variant="label" color="tertiary" style={styles.eyebrow}>Profile score · this week</Text>
+        <Text variant="display">{currentScore}</Text>
       </View>
 
-      {/* Overall change + Momentum — same stat-card style as the weekly card */}
+      {/* vs last week + Momentum */}
       <View style={styles.metaRow}>
         <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
           <Text variant="h1" color={deltaColor(overallDelta)} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
             {overallDelta === null ? "—" : formatSignedDelta(overallDelta)}
           </Text>
-          <Text variant="bodySm" color="secondary" style={styles.bold}>Overall change</Text>
+          <Text variant="bodySm" color="secondary" style={styles.bold}>vs last week</Text>
         </View>
         <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
           <Text variant="h1" style={styles.capitalize} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
@@ -156,9 +146,10 @@ const WeeklyGrowthCard = ({
         </View>
       </View>
 
-      {/* Changed axes */}
+      {/* Per-dimension breakdown (last week -> this week) */}
       {changedAxisComparisons.length > 0 ? (
         <View style={styles.axisPanel}>
+          <Text variant="label" color="tertiary" style={styles.eyebrow}>By dimension · last week → this week</Text>
           {changedAxisComparisons.map((axis) => (
             <View key={axis.axis} style={styles.axisRow}>
               <View style={styles.axisRowHeader}>
@@ -226,26 +217,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerErrorIcon: { marginRight: spacing.sm },
-  eyebrowRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  connectorSpacer: {
-    width: 28,
-  },
-  numbersRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  connector: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  hero: {
+    gap: spacing.xs,
   },
   metaRow: {
     flexDirection: "row",
