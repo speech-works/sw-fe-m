@@ -126,28 +126,29 @@ const WeeklyGrowthCard = ({
 
       {/* Hero comparison */}
       <View style={[styles.panel, { backgroundColor: colors.surface.default }]}>
-        <View style={styles.scoresRow}>
-          <View style={styles.scoreBlock}>
-            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Current profile</Text>
-            <Text variant="display">{currentScore}</Text>
-          </View>
+        <View style={styles.eyebrowRow}>
+          <Text variant="caption" color="tertiary" style={[styles.eyebrow, styles.flex1]}>Current profile</Text>
+          <View style={styles.connectorSpacer} />
+          <Text variant="caption" color="tertiary" style={[styles.eyebrow, styles.flex1]}>Previous week</Text>
+        </View>
+        <View style={styles.numbersRow}>
+          <Text variant="display" style={styles.flex1}>{currentScore}</Text>
           <View style={[styles.connector, { backgroundColor: colors.surface.control }]}>
             <Icon name="long-arrow-alt-right" size={14} color={colors.text.secondary} />
           </View>
-          <View style={styles.scoreBlock}>
-            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Previous week</Text>
-            <Text variant="display">{previousScore ?? "—"}</Text>
-          </View>
+          <Text variant="display" style={styles.flex1}>{previousScore ?? "—"}</Text>
         </View>
+
         <View style={styles.metaRow}>
           <View style={[styles.deltaChip, { backgroundColor: colors.surface.control }]}>
+            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Overall change</Text>
             <Text variant="h3" color={deltaColor(overallDelta)}>
               {overallDelta === null ? "—" : formatSignedDelta(overallDelta)}
             </Text>
-            <Text variant="caption" color="tertiary" style={styles.eyebrow}>combined</Text>
           </View>
           <View style={[styles.momentumChip, { backgroundColor: colors.surface.control }]}>
-            <Text variant="label" color="secondary" style={styles.upper}>
+            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Momentum</Text>
+            <Text variant="body" color="secondary" style={[styles.bold, styles.capitalize]}>
               {growth.meta.momentumState.toLowerCase()}
             </Text>
           </View>
@@ -231,7 +232,6 @@ const styles = StyleSheet.create({
   },
   flex1: { flex: 1 },
   bold: { fontFamily: fonts.bold },
-  upper: { textTransform: "uppercase" },
   eyebrow: { letterSpacing: 0.8, textTransform: "uppercase" },
   headerRow: {
     flexDirection: "row",
@@ -246,16 +246,21 @@ const styles = StyleSheet.create({
   panel: {
     borderRadius: radius.card,
     padding: spacing.lg,
-    gap: spacing.lg,
   },
-  scoresRow: {
+  eyebrowRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  connectorSpacer: {
+    width: 28,
+  },
+  numbersRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  scoreBlock: {
-    flex: 1,
-    gap: spacing.xs,
+    marginBottom: spacing.lg,
   },
   connector: {
     width: 28,
@@ -277,10 +282,12 @@ const styles = StyleSheet.create({
   },
   momentumChip: {
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderRadius: radius.md,
-    alignItems: "center",
     justifyContent: "center",
+    gap: spacing.xxs,
   },
+  capitalize: { textTransform: "capitalize" },
   axisPanel: {
     gap: spacing.lg,
   },
