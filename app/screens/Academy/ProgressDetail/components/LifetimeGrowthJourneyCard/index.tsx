@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import Svg, { Circle, Line, Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { LifetimeGrowthJourneyResponse } from "../../../../../api/progressReport/types";
 import {
   useTheme,
@@ -19,11 +19,10 @@ type LifetimeGrowthJourneyCardProps = {
   hasError?: boolean;
 };
 
-const VIEWBOX_WIDTH = 320;
-const VIEWBOX_HEIGHT = 100;
-const PADDING_X = 14;
-const PADDING_Y = 14;
-const CHART_HEIGHT = VIEWBOX_HEIGHT - PADDING_Y * 2;
+// Same construction as the weekly RhythmLine (DetailedWeeklySummary).
+const CHART_W = 320;
+const CHART_H = 88;
+const CHART_PAD_Y = 14;
 
 const AXIS_LABELS = {
   mastery: "Mastery",
@@ -62,16 +61,14 @@ const LifetimeGrowthJourneyCard = ({
 
   const chart = useMemo(() => {
     if (!growthJourney || growthJourney.history.length === 0) return null;
-    const step =
-      growthJourney.history.length > 1
-        ? (VIEWBOX_WIDTH - PADDING_X * 2) / (growthJourney.history.length - 1)
-        : 0;
+    const n = growthJourney.history.length;
+    const innerH = CHART_H - CHART_PAD_Y * 2;
     const points = growthJourney.history.map((point, index) => ({
       ...point,
-      x: growthJourney.history.length > 1 ? PADDING_X + step * index : VIEWBOX_WIDTH / 2,
+      x: (CHART_W / n) * (index + 0.5),
       y:
-        PADDING_Y +
-        (1 - Math.max(0, Math.min(100, point.overallProgressScore)) / 100) * CHART_HEIGHT,
+        CHART_PAD_Y +
+        (1 - Math.max(0, Math.min(100, point.overallProgressScore)) / 100) * innerH,
     }));
     return { points, linePath: buildSmoothPath(points) };
   }, [growthJourney]);
@@ -117,19 +114,7 @@ const LifetimeGrowthJourneyCard = ({
 
       {chart ? (
         <View>
-          <Svg width="100%" height={VIEWBOX_HEIGHT} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
-            {[0.25, 0.5, 0.75].map((level, index) => (
-              <Line
-                key={index}
-                x1={PADDING_X}
-                x2={VIEWBOX_WIDTH - PADDING_X}
-                y1={PADDING_Y + CHART_HEIGHT * level}
-                y2={PADDING_Y + CHART_HEIGHT * level}
-                stroke={colors.text.primary}
-                strokeOpacity={0.08}
-                strokeWidth={1}
-              />
-            ))}
+          <Svg width="100%" height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
             {chart.linePath ? (
               <Path
                 d={chart.linePath}
