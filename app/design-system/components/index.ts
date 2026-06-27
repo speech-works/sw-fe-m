@@ -15,6 +15,8 @@ export { Surface, Card } from "./Surface";
 export type { SurfaceProps } from "./Surface";
 export { ListItem } from "./ListItem";
 export type { ListItemProps } from "./ListItem";
+export { SectionHeader } from "./SectionHeader";
+export type { SectionHeaderProps } from "./SectionHeader";
 export { ConnectedAvatarRow } from "./ConnectedAvatarRow";
 export type { ConnectedAvatarRowProps } from "./ConnectedAvatarRow";
 export { ProgressRing } from "./ProgressRing";

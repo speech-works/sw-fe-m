@@ -1,43 +1,28 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, View } from "react-native";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { updateUserById } from "../../../api";
-import CustomScrollView from "../../../components/CustomScrollView";
 import { useUserStore } from "../../../stores/user";
-import { theme } from "../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-import { showErrorBottomSheet, showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
+  showErrorBottomSheet,
+  showSuccessBottomSheet,
+} from "../../../util/functions/bottomSheet";
+import {
+  useTheme,
+  spacing,
+  radius,
+  Text,
+  TextField,
+  Button,
+  SectionHeader,
+} from "../../../design-system";
 
 interface EditProfileProps {
   onSave: () => void;
 }
 
-// Helper component for lively icons
-const LivelyIcon = ({
-  name,
-  color,
-  bg,
-}: {
-  name: string;
-  color: string;
-  bg: string;
-}) => (
-  <View style={[styles.iconContainer, { backgroundColor: bg }]}>
-    <Icon solid name={name} size={16} color={color} />
-  </View>
-);
-
 const EditProfile = ({ onSave }: EditProfileProps) => {
+  const { colors } = useTheme();
   const { user, setUser } = useUserStore();
 
   const [name, setName] = useState(user?.name || "");
@@ -88,154 +73,82 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
     }
   };
 
+  const socialRow = (
+    icon: string,
+    value: string,
+    placeholder: string,
+    onChangeText: (t: string) => void,
+  ) => (
+    <View style={styles.socialRow}>
+      <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
+        <FAIcon name={icon} size={16} color={colors.text.primary} />
+      </View>
+      <View style={styles.flex1}>
+        <TextField
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          autoCapitalize="none"
+        />
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.root}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>Edit Profile</Text>
+      <Text variant="h3" center style={styles.headerText}>
+        Edit Profile
+      </Text>
+
+      {/* Personal Details */}
+      <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
+        <SectionHeader icon="user" title="Personal Details" />
+        <View style={styles.inputGroup}>
+          <TextField
+            label="Full Name"
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter your name"
+          />
+          <TextField
+            label="Bio"
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell us a bit about yourself..."
+            multiline
+            numberOfLines={4}
+          />
+          <TextField
+            label="Phone Number"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="+91-XXXXXX"
+            keyboardType="phone-pad"
+          />
+        </View>
       </View>
-      <CustomScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Personal Info Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.sectionHeader}>
-            <LivelyIcon name="user-edit" color="#EA580C" bg="#FFF7ED" />
-            <Text style={styles.sectionTitle}>Personal Details</Text>
-          </View>
 
-          <View style={styles.inputGroup}>
-            <View>
-              <Text style={styles.label}>Full Name</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter your name"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.input}
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text style={styles.label}>Bio</Text>
-              <View style={[styles.inputWrapper, styles.bioInputWrapper]}>
-                <TextInput
-                  value={bio}
-                  onChangeText={setBio}
-                  placeholder="Tell us a bit about yourself..."
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                  numberOfLines={4}
-                  style={[styles.input, styles.bioInput]}
-                  textAlignVertical="top"
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text style={styles.label}>Phone Number</Text>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="+91-XXXXXX"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                />
-              </View>
-            </View>
-          </View>
+      {/* Social Links */}
+      <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
+        <SectionHeader icon="share-2" title="Social Links" />
+        <View style={styles.inputGroup}>
+          {socialRow("facebook-f", socialLinks.facebook, "Facebook Profile URL", (t) =>
+            setSocialLinks((prev) => ({ ...prev, facebook: t })),
+          )}
+          {socialRow("instagram", socialLinks.instagram, "Instagram Profile URL", (t) =>
+            setSocialLinks((prev) => ({ ...prev, instagram: t })),
+          )}
+          {socialRow("whatsapp", socialLinks.whatsapp, "WhatsApp Number / URL", (t) =>
+            setSocialLinks((prev) => ({ ...prev, whatsapp: t })),
+          )}
         </View>
+      </View>
 
-        {/* Social Links Card */}
-        <View style={styles.cardContainer}>
-          <View style={styles.sectionHeader}>
-            <LivelyIcon name="share-alt" color="#10B981" bg="#ECFDF5" />
-            <Text style={styles.sectionTitle}>Social Links</Text>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.socialRow}>
-              <View style={[styles.socialIcon, { backgroundColor: "#EFF6FF" }]}>
-                <Icon name="facebook-f" size={16} color="#2563EB" />
-              </View>
-              <View style={[styles.inputWrapper, styles.flex1]}>
-                <TextInput
-                  value={socialLinks.facebook}
-                  onChangeText={(text) =>
-                    setSocialLinks((prev) => ({ ...prev, facebook: text }))
-                  }
-                  placeholder="Facebook Profile URL"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-
-            <View style={styles.socialRow}>
-              <View style={[styles.socialIcon, { backgroundColor: "#FDF2F8" }]}>
-                <Icon name="instagram" size={16} color="#DB2777" />
-              </View>
-              <View style={[styles.inputWrapper, styles.flex1]}>
-                <TextInput
-                  value={socialLinks.instagram}
-                  onChangeText={(text) =>
-                    setSocialLinks((prev) => ({ ...prev, instagram: text }))
-                  }
-                  placeholder="Instagram Profile URL"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-
-            <View style={styles.socialRow}>
-              <View style={[styles.socialIcon, { backgroundColor: "#F0FDF4" }]}>
-                <Icon name="whatsapp" size={16} color="#16A34A" />
-              </View>
-              <View style={[styles.inputWrapper, styles.flex1]}>
-                <TextInput
-                  value={socialLinks.whatsapp}
-                  onChangeText={(text) =>
-                    setSocialLinks((prev) => ({ ...prev, whatsapp: text }))
-                  }
-                  placeholder="WhatsApp Number / URL"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.input}
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Save Button */}
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleSave}
-            style={styles.saveButtonWrapper}
-          >
-            <LinearGradient
-              colors={["#fb923c", "#ea580c"]} // Orange gradient
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.saveButtonGradient}
-            >
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={onSave} style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </CustomScrollView>
+      {/* Actions */}
+      <View style={styles.actionContainer}>
+        <Button label="Save Changes" onPress={handleSave} />
+        <Button label="Cancel" variant="ghost" onPress={onSave} />
+      </View>
     </View>
   );
 };
@@ -244,94 +157,24 @@ export default EditProfile;
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
-  },
-  container: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 40,
-    gap: 20,
-  },
-  headerContainer: {
-    paddingTop: 32, // More padding for bottom sheet context
-    paddingBottom: 20,
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-    zIndex: 10, // Ensure it stays on top of scrolling content
+    width: "100%",
+    gap: spacing.xl,
   },
   headerText: {
-    color: theme.colors.text.title,
-    ...parseTextStyle(theme.typography.Heading3),
+    marginBottom: spacing.xs,
   },
-  cardContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-    gap: 12,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1E293B",
+  card: {
+    borderRadius: radius.card,
+    padding: spacing.xl,
+    gap: spacing.xl,
   },
   inputGroup: {
-    gap: 16,
-  },
-  label: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  inputWrapper: {
-    backgroundColor: "#FFFFFF", // Changed from #F8FAFC
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    paddingHorizontal: 16,
-    height: 48,
-    justifyContent: "center",
-  },
-  flex1: {
-    flex: 1,
-  },
-  bioInputWrapper: {
-    height: 120,
-    paddingVertical: 12,
-    justifyContent: "flex-start",
-  },
-  input: {
-    color: "#1E293B",
-    fontSize: 16,
-    fontWeight: "500",
-    height: "100%",
-  },
-  bioInput: {
-    textAlignVertical: "top", // Android fix
+    gap: spacing.lg,
   },
   socialRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   socialIcon: {
     width: 40,
@@ -340,34 +183,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  flex1: {
+    flex: 1,
+  },
   actionContainer: {
-    marginTop: 12,
-    gap: 16,
-  },
-  saveButtonWrapper: {
-    borderRadius: 16,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  saveButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 52,
-    gap: 8,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  cancelButton: {
-    alignItems: "center",
-    padding: 12,
-  },
-  cancelButtonText: {
-    color: "#64748B",
-    fontSize: 16,
-    fontWeight: "600",
+    gap: spacing.md,
   },
 });

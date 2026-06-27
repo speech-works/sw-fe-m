@@ -16,23 +16,12 @@ import {
   Text,
   Icon,
   IconName,
+  SectionHeader,
 } from "../../../design-system";
 
 interface FullProfileProps {
   levelStage?: LevelStage | null;
 }
-
-const SectionHeader = ({ icon, title }: { icon: IconName; title: string }) => {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={[styles.iconContainer, { backgroundColor: colors.surface.control }]}>
-        <Icon name={icon} size={16} color={colors.text.primary} />
-      </View>
-      <Text variant="title">{title}</Text>
-    </View>
-  );
-};
 
 const FullProfile = ({ levelStage }: FullProfileProps) => {
   const { colors } = useTheme();
@@ -256,18 +245,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.xl,
     gap: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
   },
   fieldGroup: {
     gap: spacing.lg,
