@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useVoicePreference } from "../../../../hooks/useVoicePreference";
 import {
   IOS_VOICE_DOWNLOAD_STEPS,
@@ -10,15 +10,19 @@ import {
   stopSpeaking,
 } from "../../../../util/voice";
 import type { AccentGroup } from "../../../../util/voice/types";
-import { PopCard } from "../../../../components/PopCard";
-import { useTheme, spacing, ConnectedAvatarRow, Button, Spinner } from "../../../../design-system";
+import {
+  useTheme,
+  spacing,
+  radius,
+  size,
+  ConnectedAvatarRow,
+  Button,
+  Sheet,
+  Text,
+  Spinner,
+} from "../../../../design-system";
 
 const PREVIEW_LINE = "This is how your reading guide will sound.";
-
-// iOS guide sheet only — a green accent surface on PopCard. PopCard + this sheet
-// are a separate (deferred) migration; these two literals stay scoped to it.
-const GUIDE_GREEN = "#5BD98A";
-const GUIDE_DARK = "#2A2A2A";
 
 export function AccentPicker() {
   const { colors } = useTheme();
@@ -117,8 +121,9 @@ export function AccentPicker() {
           activeOpacity={0.6}
           hitSlop={8}
           onPress={handleInstall}
+          style={styles.addNatural}
         >
-          <Text style={[styles.addNaturalText, { color: colors.feedback.successText }]}>
+          <Text variant="bodySm" color={colors.feedback.successText}>
             Add a natural voice
           </Text>
         </TouchableOpacity>
@@ -147,34 +152,48 @@ function IosVoiceGuideSheet({
   onClose: () => void;
   onOpenSettings: () => void;
 }) {
+  const { colors } = useTheme();
   return (
-    <PopCard visible={visible} onClose={onClose} color={GUIDE_GREEN}>
-      <Text style={styles.modalTitle}>Add a natural voice</Text>
-      <Text style={styles.modalSubtitle}>
+    <Sheet visible={visible} onClose={onClose} color={colors.accent.success}>
+      <Text variant="h2" center color={colors.accentOn.success} style={styles.modalTitle}>
+        Add a natural voice
+      </Text>
+      <Text
+        variant="body"
+        center
+        color={colors.accentOn.success}
+        style={styles.modalSubtitle}
+      >
         iOS downloads natural voices in Settings. It only takes a minute:
       </Text>
 
-      <View style={styles.stepsBox}>
+      <View style={[styles.stepsBox, { backgroundColor: colors.surface.elevated }]}>
         {IOS_VOICE_DOWNLOAD_STEPS.map((step, i) => (
           <View key={i} style={styles.stepRow}>
-            <View style={styles.stepNum}>
-              <Text style={styles.stepNumText}>{i + 1}</Text>
+            <View style={[styles.stepNum, { backgroundColor: colors.surface.control }]}>
+              <Text variant="caption" color={colors.text.primary}>
+                {i + 1}
+              </Text>
             </View>
-            <Text style={styles.stepText}>{step}</Text>
+            <Text variant="body" color={colors.text.primary} style={styles.stepText}>
+              {step}
+            </Text>
           </View>
         ))}
       </View>
 
-      <TouchableOpacity
-        style={styles.modalPrimaryBtn}
+      <Button
+        label="Open Settings"
+        variant="secondary"
         onPress={onOpenSettings}
-      >
-        <Text style={styles.modalPrimaryText}>Open Settings</Text>
-      </TouchableOpacity>
+        style={styles.modalPrimaryBtn}
+      />
       <TouchableOpacity style={styles.modalSecondaryBtn} onPress={onClose}>
-        <Text style={styles.modalSecondaryText}>Done</Text>
+        <Text variant="body" color={colors.accentOn.success}>
+          Done
+        </Text>
       </TouchableOpacity>
-    </PopCard>
+    </Sheet>
   );
 }
 
@@ -189,81 +208,45 @@ const styles = StyleSheet.create({
   list: {
     gap: spacing.lg,
   },
-  addNaturalText: {
+  addNatural: {
     alignSelf: "center",
-    paddingVertical: 6,
-    fontSize: 14,
-    fontWeight: "600",
+    paddingVertical: spacing.xs,
   },
 
-  // --- iOS guide sheet (deferred migration; green accent surface) ---
+  // --- iOS guide sheet (green accent surface) ---
   modalTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#121212",
-    textAlign: "center",
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   modalSubtitle: {
-    fontSize: 16,
-    color: "rgba(0,0,0,0.65)",
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   stepsBox: {
-    gap: 20,
-    backgroundColor: "rgba(0,0,0,0.15)",
-    padding: 24,
-    borderRadius: 36,
+    gap: spacing.xl,
+    padding: spacing["2xl"],
+    borderRadius: radius.card,
   },
   stepRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 16,
+    gap: spacing.lg,
   },
   stepNum: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: size.iconLg,
+    height: size.iconLg,
+    borderRadius: size.iconLg / 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: GUIDE_DARK,
-  },
-  stepNumText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    fontWeight: "700",
   },
   stepText: {
-    fontSize: 16,
-    color: "#121212",
     flexShrink: 1,
-    lineHeight: 24,
-    fontWeight: "600",
     paddingTop: 2,
   },
   modalPrimaryBtn: {
-    height: 56,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: GUIDE_DARK,
-    marginTop: 16,
-  },
-  modalPrimaryText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    marginTop: spacing.lg,
   },
   modalSecondaryBtn: {
     minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
-  },
-  modalSecondaryText: {
-    fontSize: 16,
-    color: GUIDE_DARK,
-    fontWeight: "700",
   },
 });

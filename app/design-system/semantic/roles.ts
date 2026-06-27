@@ -58,6 +58,8 @@ export type SemanticColors = {
   category: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
   categoryOn: { reading: string; breathing: string; mirror: string; exposure: string; fun: string; realLife: string };
   gamification: { xp: string; streak: string; stamina: string; gold: string };
+  // Premium tier (gold-on-slate) accents — scoped to the BuyPro upsell card.
+  premium: { gold: string; goldTint: string; goldBorder: string; orbCyan: string; orbPurple: string };
   // shadow color lives in the scheme so light mode can tune it (Phase F).
   shadow: string;
 };

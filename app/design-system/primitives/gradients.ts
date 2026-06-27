@@ -40,6 +40,10 @@ export const gradients = {
 
   // Glossy top highlight for elevated chrome.
   sheen: { colors: [p.whiteA(0.1), p.whiteA(0)], ...vertical },
+
+  // Premium tier (BuyPro) — slate container + metallic-gold CTA.
+  premiumSlate: { colors: [p.premium.slate, p.premium.slateMid, p.premium.slate], ...diagonal },
+  premiumGold: { colors: [p.premium.gold, p.premium.goldDeep], ...diagonal },
 } as const satisfies Record<string, GradientToken>;
 
 export type GradientName = keyof typeof gradients;

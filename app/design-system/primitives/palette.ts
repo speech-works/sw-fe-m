@@ -54,6 +54,19 @@ export const palette = {
   inputBg: "#201E1A",
   inputBorder: "#423D37",
 
+  // Premium tier — a deliberately distinct gold-on-slate identity (NOT the orange
+  // system). Scoped to the BuyPro upsell card.
+  premium: {
+    slate: "#0F172A",
+    slateMid: "#1E293B",
+    gold: "#D4AF37",
+    goldDeep: "#996515",
+    goldTint: "rgba(212,175,55,0.15)",
+    goldBorder: "rgba(212,175,55,0.3)",
+    cyan: "#22D3EE",
+    purple: "#8B5CF6",
+  },
+
   white: "#FFFFFF",
   black: "#000000",
   whiteA: (a: number) => `rgba(255,255,255,${a})`,

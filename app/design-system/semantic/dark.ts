@@ -105,5 +105,12 @@ export const darkColors: SemanticColors = {
     realLife: p.category.realLife.on,
   },
   gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.info.base, gold: p.warning.base },
+  premium: {
+    gold: p.premium.gold,
+    goldTint: p.premium.goldTint,
+    goldBorder: p.premium.goldBorder,
+    orbCyan: p.premium.cyan,
+    orbPurple: p.premium.purple,
+  },
   shadow: p.black,
 };
