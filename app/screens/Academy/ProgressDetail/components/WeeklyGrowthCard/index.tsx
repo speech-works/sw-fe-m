@@ -124,8 +124,8 @@ const WeeklyGrowthCard = ({
         </View>
       </View>
 
-      {/* Hero comparison */}
-      <View style={[styles.panel, { backgroundColor: colors.surface.default }]}>
+      {/* Comparison numbers */}
+      <View>
         <View style={styles.eyebrowRow}>
           <Text variant="caption" color="tertiary" style={[styles.eyebrow, styles.flex1]}>Current profile</Text>
           <View style={styles.connectorSpacer} />
@@ -138,20 +138,21 @@ const WeeklyGrowthCard = ({
           </View>
           <Text variant="display" style={styles.flex1}>{previousScore ?? "—"}</Text>
         </View>
+      </View>
 
-        <View style={styles.metaRow}>
-          <View style={[styles.deltaChip, { backgroundColor: colors.surface.control }]}>
-            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Overall change</Text>
-            <Text variant="h3" color={deltaColor(overallDelta)}>
-              {overallDelta === null ? "—" : formatSignedDelta(overallDelta)}
-            </Text>
-          </View>
-          <View style={[styles.momentumChip, { backgroundColor: colors.surface.control }]}>
-            <Text variant="caption" color="tertiary" style={styles.eyebrow}>Momentum</Text>
-            <Text variant="body" color="secondary" style={[styles.bold, styles.capitalize]}>
-              {growth.meta.momentumState.toLowerCase()}
-            </Text>
-          </View>
+      {/* Overall change + Momentum — same stat-card style as the weekly card */}
+      <View style={styles.metaRow}>
+        <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
+          <Text variant="h1" color={deltaColor(overallDelta)} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {overallDelta === null ? "—" : formatSignedDelta(overallDelta)}
+          </Text>
+          <Text variant="bodySm" color="secondary" style={styles.bold}>Overall change</Text>
+        </View>
+        <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
+          <Text variant="h1" style={styles.capitalize} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {growth.meta.momentumState.toLowerCase()}
+          </Text>
+          <Text variant="bodySm" color="secondary" style={styles.bold}>Momentum</Text>
         </View>
       </View>
 
@@ -243,10 +244,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerErrorIcon: { marginRight: spacing.sm },
-  panel: {
-    borderRadius: radius.card,
-    padding: spacing.lg,
-  },
   eyebrowRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -260,7 +257,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.lg,
   },
   connector: {
     width: 28,
@@ -271,21 +267,12 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  deltaChip: {
+  statChip: {
     flex: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.xxs,
-  },
-  momentumChip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    justifyContent: "center",
-    gap: spacing.xxs,
+    borderRadius: radius.card,
+    padding: spacing.lg,
   },
   capitalize: { textTransform: "capitalize" },
   axisPanel: {
