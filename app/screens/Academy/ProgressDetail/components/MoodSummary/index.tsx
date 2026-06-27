@@ -159,8 +159,8 @@ const GAUGE_HEIGHT = 132;
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    padding: spacing.xl,
-    gap: spacing.xl,
+    padding: spacing["2xl"],
+    gap: spacing["2xl"],
   },
   flex1: { flex: 1 },
   eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },

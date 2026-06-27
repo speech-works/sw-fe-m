@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   scrollView: {
-    gap: spacing.lg,
+    gap: spacing["2xl"],
     paddingHorizontal: spacing.lg,
     paddingBottom: 130,
   },

@@ -199,8 +199,8 @@ export default DPSummary;
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    padding: spacing.xl,
-    gap: spacing.xl,
+    padding: spacing["2xl"],
+    gap: spacing["2xl"],
   },
   headerRow: {
     flexDirection: "row",

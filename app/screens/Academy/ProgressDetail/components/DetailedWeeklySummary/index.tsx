@@ -305,8 +305,8 @@ export default DetailedWeeklySummary;
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    padding: spacing.xl,
-    gap: spacing.xl,
+    padding: spacing["2xl"],
+    gap: spacing["2xl"],
   },
   flex1: { flex: 1 },
   bold: { fontFamily: fonts.bold },
