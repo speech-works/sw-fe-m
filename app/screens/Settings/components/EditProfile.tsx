@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { updateUserById } from "../../../api";
@@ -12,141 +12,156 @@ import {
   spacing,
   radius,
   TextField,
-  Button,
   SectionHeader,
 } from "../../../design-system";
+
+/** Imperative handle so the Sheet header's Save button can commit the form. */
+export interface EditProfileHandle {
+  save: () => void;
+}
 
 interface EditProfileProps {
   onSave: () => void;
 }
 
-const EditProfile = ({ onSave }: EditProfileProps) => {
-  const { colors } = useTheme();
-  const { user, setUser } = useUserStore();
+const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
+  ({ onSave }, ref) => {
+    const { colors } = useTheme();
+    const { user, setUser } = useUserStore();
 
-  const [name, setName] = useState(user?.name || "");
-  const [bio, setBio] = useState(user?.bio || "");
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
-  const [socialLinks, setSocialLinks] = useState({
-    facebook: user?.links?.social?.facebook || "",
-    instagram: user?.links?.social?.instagram || "",
-    whatsapp: user?.links?.social?.whatsapp || "",
-  });
+    const [name, setName] = useState(user?.name || "");
+    const [bio, setBio] = useState(user?.bio || "");
+    const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
+    const [socialLinks, setSocialLinks] = useState({
+      facebook: user?.links?.social?.facebook || "",
+      instagram: user?.links?.social?.instagram || "",
+      whatsapp: user?.links?.social?.whatsapp || "",
+    });
+    const [saving, setSaving] = useState(false);
 
-  const handleSave = async () => {
-    if (!user) return;
-    try {
-      await updateUserById(user.id, {
-        name,
-        bio,
-        phoneNumber,
-        links: {
-          social: {
-            facebook: socialLinks.facebook,
-            instagram: socialLinks.instagram,
-            whatsapp: socialLinks.whatsapp,
+    const handleSave = async () => {
+      if (!user || saving) return;
+      setSaving(true);
+      try {
+        await updateUserById(user.id, {
+          name,
+          bio,
+          phoneNumber,
+          links: {
+            social: {
+              facebook: socialLinks.facebook,
+              instagram: socialLinks.instagram,
+              whatsapp: socialLinks.whatsapp,
+            },
           },
-        },
-      });
-      showSuccessBottomSheet(
-        "Profile Updated",
-        "Your changes have been saved successfully.",
-      );
-      setUser({
-        ...user,
-        name,
-        bio,
-        phoneNumber,
-        links: {
-          social: {
-            facebook: socialLinks.facebook,
-            instagram: socialLinks.instagram,
-            whatsapp: socialLinks.whatsapp,
+        });
+        showSuccessBottomSheet(
+          "Profile Updated",
+          "Your changes have been saved successfully.",
+        );
+        setUser({
+          ...user,
+          name,
+          bio,
+          phoneNumber,
+          links: {
+            social: {
+              facebook: socialLinks.facebook,
+              instagram: socialLinks.instagram,
+              whatsapp: socialLinks.whatsapp,
+            },
           },
-        },
-      });
-      onSave();
-    } catch (error) {
-      showErrorBottomSheet("Update Failed", "Could not update profile.");
-      console.error(error);
-    }
-  };
+        });
+        onSave();
+      } catch (error) {
+        showErrorBottomSheet("Update Failed", "Could not update profile.");
+        console.error(error);
+      } finally {
+        setSaving(false);
+      }
+    };
 
-  const socialRow = (
-    icon: string,
-    value: string,
-    placeholder: string,
-    onChangeText: (t: string) => void,
-  ) => (
-    <View style={styles.socialRow}>
-      <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-        <FAIcon name={icon} size={16} color={colors.text.primary} />
-      </View>
-      <View style={styles.flex1}>
-        <TextField
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          autoCapitalize="none"
-        />
-      </View>
-    </View>
-  );
+    useImperativeHandle(ref, () => ({ save: handleSave }), [
+      name,
+      bio,
+      phoneNumber,
+      socialLinks,
+      user,
+      saving,
+    ]);
 
-  return (
-    <View style={styles.root}>
-      {/* Personal Details */}
-      <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
-        <SectionHeader icon="user" title="Personal Details" />
-        <View style={styles.inputGroup}>
+    const socialRow = (
+      icon: string,
+      value: string,
+      placeholder: string,
+      onChangeText: (t: string) => void,
+    ) => (
+      <View style={styles.socialRow}>
+        <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
+          <FAIcon name={icon} size={16} color={colors.text.primary} />
+        </View>
+        <View style={styles.flex1}>
           <TextField
-            label="Full Name"
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your name"
-          />
-          <TextField
-            label="Bio"
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Tell us a bit about yourself..."
-            multiline
-            numberOfLines={4}
-          />
-          <TextField
-            label="Phone Number"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="+91-XXXXXX"
-            keyboardType="phone-pad"
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            autoCapitalize="none"
           />
         </View>
       </View>
+    );
 
-      {/* Social Links */}
-      <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
-        <SectionHeader icon="share-2" title="Social Links" />
-        <View style={styles.inputGroup}>
-          {socialRow("facebook-f", socialLinks.facebook, "Facebook Profile URL", (t) =>
-            setSocialLinks((prev) => ({ ...prev, facebook: t })),
-          )}
-          {socialRow("instagram", socialLinks.instagram, "Instagram Profile URL", (t) =>
-            setSocialLinks((prev) => ({ ...prev, instagram: t })),
-          )}
-          {socialRow("whatsapp", socialLinks.whatsapp, "WhatsApp Number / URL", (t) =>
-            setSocialLinks((prev) => ({ ...prev, whatsapp: t })),
-          )}
+    return (
+      <View style={styles.root}>
+        {/* Personal Details */}
+        <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
+          <SectionHeader icon="user" title="Personal Details" />
+          <View style={styles.inputGroup}>
+            <TextField
+              label="Full Name"
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+            />
+            <TextField
+              label="Bio"
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Tell us a bit about yourself..."
+              multiline
+              numberOfLines={4}
+            />
+            <TextField
+              label="Phone Number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="+91-XXXXXX"
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        {/* Social Links */}
+        <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
+          <SectionHeader icon="share-2" title="Social Links" />
+          <View style={styles.inputGroup}>
+            {socialRow("facebook-f", socialLinks.facebook, "Facebook Profile URL", (t) =>
+              setSocialLinks((prev) => ({ ...prev, facebook: t })),
+            )}
+            {socialRow("instagram", socialLinks.instagram, "Instagram Profile URL", (t) =>
+              setSocialLinks((prev) => ({ ...prev, instagram: t })),
+            )}
+            {socialRow("whatsapp", socialLinks.whatsapp, "WhatsApp Number / URL", (t) =>
+              setSocialLinks((prev) => ({ ...prev, whatsapp: t })),
+            )}
+          </View>
         </View>
       </View>
+    );
+  },
+);
 
-      {/* Actions */}
-      <View style={styles.actionContainer}>
-        <Button label="Save Changes" onPress={handleSave} />
-        <Button label="Cancel" variant="ghost" onPress={onSave} />
-      </View>
-    </View>
-  );
-};
+EditProfile.displayName = "EditProfile";
 
 export default EditProfile;
 
@@ -177,8 +192,5 @@ const styles = StyleSheet.create({
   },
   flex1: {
     flex: 1,
-  },
-  actionContainer: {
-    gap: spacing.md,
   },
 });

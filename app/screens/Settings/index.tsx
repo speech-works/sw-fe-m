@@ -22,7 +22,7 @@ import {
   IconName,
 } from "../../design-system";
 import FullProfile from "./components/FullProfile";
-import EditProfile from "./components/EditProfile";
+import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 
 const Settings = () => {
@@ -36,6 +36,7 @@ const Settings = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
+  const editRef = useRef<EditProfileHandle>(null);
 
   const floatAnim = useRef(new Animated.Value(0)).current;
 
@@ -227,18 +228,28 @@ const Settings = () => {
         onClose={closeModal}
         title={profileMode === "view" ? "My Profile" : "Edit Profile"}
         right={
-          <>
-            {profileMode === "view" ? (
+          profileMode === "view" ? (
+            <>
               <IconButton name="edit-2" onPress={() => setProfileMode("edit")} />
-            ) : null}
-            <IconButton name="x" onPress={closeModal} />
-          </>
+              <IconButton name="x" onPress={closeModal} />
+            </>
+          ) : (
+            <>
+              <Button
+                label="Save"
+                size="sm"
+                fullWidth={false}
+                onPress={() => editRef.current?.save()}
+              />
+              <IconButton name="x" onPress={closeModal} />
+            </>
+          )
         }
       >
         {profileMode === "view" ? (
           <FullProfile levelStage={levelStage} />
         ) : (
-          <EditProfile onSave={() => setProfileMode("view")} />
+          <EditProfile ref={editRef} onSave={() => setProfileMode("view")} />
         )}
       </Sheet>
 
