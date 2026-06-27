@@ -5,13 +5,11 @@ import { useUserStore } from "../../../stores/user";
 import { LevelStage } from "../../../api/users";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { toSafeExternalUrl } from "../../../util/functions/url";
-import EditProfileFace from "../../../assets/sw-faces/EditProfileFace";
 import {
   useTheme,
   spacing,
   radius,
   borderWidth,
-  elevation,
   Text,
   Icon,
   IconName,
@@ -49,12 +47,11 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
 
   return (
     <View style={styles.root}>
-      {/* Identity card — dark + orange accents */}
+      {/* Identity card — clean flat fill, no outline, no elevation */}
       <View
         style={[
           styles.profileSection,
-          { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
-          elevation.e2,
+          { backgroundColor: colors.surface.elevated },
         ]}
       >
         <View style={styles.profileInfo}>
@@ -82,10 +79,6 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
               </View>
             ) : null}
           </View>
-        </View>
-
-        <View style={styles.cardFaceContainer}>
-          <EditProfileFace size={96} transparentBg />
         </View>
       </View>
 
@@ -152,18 +145,13 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     borderRadius: radius.card,
-    borderWidth: borderWidth.thin,
-    paddingTop: spacing["2xl"],
-    paddingBottom: spacing.xl,
-    overflow: "hidden",
-    position: "relative",
+    paddingVertical: spacing.xl,
   },
   profileInfo: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.lg,
     paddingHorizontal: spacing.lg,
-    zIndex: 1,
   },
   profileImageWrapper: {
     position: "relative",
@@ -239,12 +227,5 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-  },
-  cardFaceContainer: {
-    position: "absolute",
-    right: -15,
-    bottom: -15,
-    zIndex: 0,
-    opacity: 0.8,
   },
 });
