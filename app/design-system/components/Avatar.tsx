@@ -1,19 +1,41 @@
 import React from "react";
-import { View, Text as RNText, TextStyle } from "react-native";
+import { View, Image, Text as RNText, TextStyle } from "react-native";
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
 
 export interface AvatarProps {
-  /** A letter, IPA symbol, or flag emoji. */
+  /** A letter, IPA symbol, or flag emoji (glyph mode). */
   glyph?: string;
+  /** A photo URI — takes precedence over `glyph` (photo mode). */
+  image?: string;
   size?: number;
-  /** Background of the disc (default the white `surface.inverse`). */
+  /** `circle` (default) or `rounded` square. */
+  shape?: "circle" | "rounded";
+  /** Background of the disc in glyph mode (default the white `surface.inverse`). */
   bg?: string;
 }
 
-/** Standalone circular avatar: a bright disc with a centered glyph. */
-export const Avatar: React.FC<AvatarProps> = ({ glyph, size = 48, bg }) => {
+/** Avatar primitive — a bright disc with a centered glyph, OR a photo. Either
+ * shape (`circle` | `rounded` square). */
+export const Avatar: React.FC<AvatarProps> = ({
+  glyph,
+  image,
+  size = 48,
+  shape = "circle",
+  bg,
+}) => {
   const { colors } = useTheme();
+  const borderRadius = shape === "circle" ? size / 2 : Math.round(size * 0.28);
+
+  if (image) {
+    return (
+      <Image
+        source={{ uri: image }}
+        style={{ width: size, height: size, borderRadius, backgroundColor: colors.surface.control }}
+      />
+    );
+  }
+
   const glyphStyle: TextStyle = {
     fontFamily: fonts.bold,
     fontSize: size * 0.52,
@@ -25,7 +47,7 @@ export const Avatar: React.FC<AvatarProps> = ({ glyph, size = 48, bg }) => {
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius,
         backgroundColor: bg ?? colors.surface.inverse,
         alignItems: "center",
         justifyContent: "center",

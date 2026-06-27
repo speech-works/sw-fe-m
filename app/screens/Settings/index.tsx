@@ -1,7 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Animated, Easing, StyleSheet, TouchableOpacity, View } from "react-native";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -17,11 +17,14 @@ import {
   Sheet,
   ListItem,
   Button,
+  IconButton,
+  Avatar,
   Text,
   Icon,
   IconName,
 } from "../../design-system";
 import FullProfile from "./components/FullProfile";
+import EditProfile from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 
 const Settings = () => {
@@ -34,6 +37,7 @@ const Settings = () => {
   const [levelStage, setLevelStage] = useState<LevelStage | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
 
   const floatAnim = useRef(new Animated.Value(0)).current;
 
@@ -77,6 +81,7 @@ const Settings = () => {
 
   const closeModal = () => {
     setIsVisible(false);
+    setProfileMode("view");
   };
 
   const menuItems: { icon: IconName; text: string; desc: string; onClick: () => void }[] = [
@@ -153,12 +158,13 @@ const Settings = () => {
             elevation.e2,
           ]}
         >
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: user?.profilePictureUrl }}
-              style={[styles.profileImage, { borderColor: colors.action.primary }]}
-            />
-            <View style={[styles.onlineBadge, { backgroundColor: colors.accent.success, borderColor: colors.surface.elevated }]} />
+          <View style={styles.profileImageWrapper}>
+            <Avatar image={user?.profilePictureUrl} shape="rounded" size={88} />
+            <View style={[styles.levelBadge, { backgroundColor: colors.action.primary, borderColor: colors.surface.elevated }]}>
+              <Text variant="caption" color={colors.action.onPrimary}>
+                {levelStage?.level || user?.level || 1}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.nameRow}>
@@ -224,8 +230,24 @@ const Settings = () => {
         </View>
       </Page>
 
-      <Sheet visible={isVisible} onClose={closeModal}>
-        <FullProfile levelStage={levelStage} />
+      <Sheet
+        visible={isVisible}
+        onClose={closeModal}
+        title={profileMode === "view" ? "My Profile" : "Edit Profile"}
+        right={
+          <>
+            {profileMode === "view" ? (
+              <IconButton name="edit-2" onPress={() => setProfileMode("edit")} />
+            ) : null}
+            <IconButton name="x" onPress={closeModal} />
+          </>
+        }
+      >
+        {profileMode === "view" ? (
+          <FullProfile levelStage={levelStage} />
+        ) : (
+          <EditProfile onSave={() => setProfileMode("view")} />
+        )}
       </Sheet>
 
       <DeleteAccountModal
@@ -246,24 +268,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
-  imageContainer: {
+  profileImageWrapper: {
     position: "relative",
-    marginBottom: spacing.xs,
-  },
-  profileImage: {
     width: 88,
     height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
+    marginBottom: spacing.xs,
   },
-  onlineBadge: {
+  levelBadge: {
     position: "absolute",
-    bottom: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 3,
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
   },
   nameRow: {
     flexDirection: "row",

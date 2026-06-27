@@ -1,11 +1,10 @@
 import React from "react";
-import { Image, Linking, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
 import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { useUserStore } from "../../../stores/user";
 import { LevelStage } from "../../../api/users";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
 import { toSafeExternalUrl } from "../../../util/functions/url";
-import EditProfile from "./EditProfile";
 import EditProfileFace from "../../../assets/sw-faces/EditProfileFace";
 import {
   useTheme,
@@ -16,6 +15,7 @@ import {
   Text,
   Icon,
   IconName,
+  Avatar,
   SectionHeader,
 } from "../../../design-system";
 
@@ -26,13 +26,6 @@ interface FullProfileProps {
 const FullProfile = ({ levelStage }: FullProfileProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
-  const [mode, setMode] = React.useState<"view" | "edit">("view");
-  const onProfileEdit = () => {
-    setMode("edit");
-  };
-  const onProfileSave = () => {
-    setMode("view");
-  };
 
   const openSocial = (url: string | undefined, name: string) => {
     const safe = toSafeExternalUrl(url);
@@ -54,16 +47,8 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
     </View>
   );
 
-  if (mode === "edit") {
-    return <EditProfile onSave={onProfileSave} />;
-  }
-
   return (
     <View style={styles.root}>
-      <Text variant="h3" center style={styles.headerText}>
-        My Profile
-      </Text>
-
       {/* Identity card — dark + orange accents */}
       <View
         style={[
@@ -74,10 +59,7 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
       >
         <View style={styles.profileInfo}>
           <View style={styles.profileImageWrapper}>
-            <Image
-              source={{ uri: user?.profilePictureUrl }}
-              style={[styles.profileImage, { borderColor: colors.action.primary }]}
-            />
+            <Avatar image={user?.profilePictureUrl} shape="rounded" size={80} />
             <View style={[styles.levelBadge, { backgroundColor: colors.action.primary, borderColor: colors.surface.elevated }]}>
               <Text variant="caption" color={colors.action.onPrimary}>
                 {levelStage?.level || user?.level || 1}
@@ -100,15 +82,6 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
               </View>
             ) : null}
           </View>
-          <TouchableOpacity
-            onPress={onProfileEdit}
-            style={[styles.editButton, { backgroundColor: colors.action.primary }]}
-          >
-            <Icon name="edit-2" size={12} color={colors.action.onPrimary} />
-            <Text variant="label" color={colors.action.onPrimary}>
-              Edit
-            </Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.cardFaceContainer}>
@@ -177,9 +150,6 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: spacing.xl,
   },
-  headerText: {
-    marginBottom: spacing.xs,
-  },
   profileSection: {
     borderRadius: radius.card,
     borderWidth: borderWidth.thin,
@@ -199,12 +169,6 @@ const styles = StyleSheet.create({
     position: "relative",
     width: 80,
     height: 80,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
   },
   levelBadge: {
     position: "absolute",
@@ -228,15 +192,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     alignSelf: "flex-start",
     marginTop: spacing.xs,
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    alignSelf: "flex-start",
   },
   infoContainer: {
     gap: spacing.lg,

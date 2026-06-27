@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
 import { useTheme } from "../useTheme";
-import { spacing, space, size } from "../primitives/scale";
+import { spacing, space, size, zIndex } from "../primitives/scale";
 import { Text } from "./Text";
 import { IconButton } from "./IconButton";
 
@@ -162,6 +162,21 @@ export const Page: React.FC<PageProps> = ({
   return (
     <ScreenView style={{ backgroundColor: colors.background.canvas }}>
       {body}
+      {/* Opaque status-bar cap — hides scrolled content behind the system clock/
+       * battery instead of letting the title collide with them. */}
+      {insets.top > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: colors.background.canvas,
+            zIndex: zIndex.sticky,
+          }}
+        />
+      ) : null}
       {footer ? (
         <View
           style={{

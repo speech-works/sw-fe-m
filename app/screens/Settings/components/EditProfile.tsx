@@ -11,7 +11,6 @@ import {
   useTheme,
   spacing,
   radius,
-  Text,
   TextField,
   Button,
   SectionHeader,
@@ -96,10 +95,6 @@ const EditProfile = ({ onSave }: EditProfileProps) => {
 
   return (
     <View style={styles.root}>
-      <Text variant="h3" center style={styles.headerText}>
-        Edit Profile
-      </Text>
-
       {/* Personal Details */}
       <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
         <SectionHeader icon="user" title="Personal Details" />
@@ -159,9 +154,6 @@ const styles = StyleSheet.create({
   root: {
     width: "100%",
     gap: spacing.xl,
-  },
-  headerText: {
-    marginBottom: spacing.xs,
   },
   card: {
     borderRadius: radius.card,

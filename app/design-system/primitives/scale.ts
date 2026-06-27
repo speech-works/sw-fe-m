@@ -23,7 +23,7 @@ export const spacing = {
 // Semantic spacing aliases (intent-named). `iconText` + `titleSub` keep the
 // "leading icon/avatar + title/subtitle" rhythm identical across every component.
 export const space = {
-  screenX: 20,
+  screenX: 16, // screen gutter — matches the rest of the app (Home, etc.)
   sectionGap: 24,
   groupGap: 16, // gap between rounded groups/cards within a screen body
   titleGap: 28, // back-bar → screen title, and title block → first content
