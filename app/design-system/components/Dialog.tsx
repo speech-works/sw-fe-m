@@ -37,7 +37,7 @@ export const Dialog: React.FC<DialogProps> = ({
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.overlay.scrim,
+          backgroundColor: colors.background.sunken,
           paddingHorizontal: spacing["2xl"],
         }}
       >

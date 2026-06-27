@@ -104,7 +104,7 @@ const PracticeGoal = () => {
                     styles.goalCard,
                     {
                       backgroundColor: selected
-                        ? colors.action.primary + "14"
+                        ? colors.action.primaryTint
                         : colors.surface.default,
                       borderColor: selected
                         ? colors.action.primary

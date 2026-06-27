@@ -27,6 +27,8 @@ export type SemanticColors = {
   action: {
     primary: string;
     primaryPressed: string;
+    /** Faint orange wash for soft chips/badges on a dark surface (not a fill). */
+    primaryTint: string;
     onPrimary: string;
     secondary: string;
     onSecondary: string;
@@ -37,6 +39,8 @@ export type SemanticColors = {
   // dark text/icon that sits ON an accent fill (the AA-correct foreground) —
   // mirrors `categoryOn`. Use this instead of white on any bright accent.
   accentOn: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
+  // 12% accent wash for soft chips / icon-backgrounds on a dark surface (not a fill).
+  accentTint: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
   // feedback fills (= accent base) + text variants (lighter, for messages on dark)
   feedback: {
     success: string;

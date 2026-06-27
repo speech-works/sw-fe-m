@@ -25,7 +25,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
           width: 56,
           height: 56,
           borderRadius: 28,
-          backgroundColor: colors.accent.danger + "22",
+          backgroundColor: colors.accentTint.danger,
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 16,

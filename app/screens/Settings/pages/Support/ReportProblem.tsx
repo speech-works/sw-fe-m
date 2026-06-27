@@ -141,7 +141,7 @@ const ReportProblem = () => {
             <View
               style={[
                 styles.successIconBox,
-                { backgroundColor: colors.accent.success + "22" },
+                { backgroundColor: colors.accentTint.success },
               ]}
             >
               <View

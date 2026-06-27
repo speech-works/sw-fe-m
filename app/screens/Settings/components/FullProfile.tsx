@@ -47,38 +47,29 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
 
   return (
     <View style={styles.root}>
-      {/* Identity card — clean flat fill, no outline, no elevation */}
-      <View
-        style={[
-          styles.profileSection,
-          { backgroundColor: colors.surface.elevated },
-        ]}
-      >
-        <View style={styles.profileInfo}>
-          <View style={styles.profileImageWrapper}>
-            <Avatar image={user?.profilePictureUrl} shape="rounded" size={80} />
-            <View style={[styles.levelBadge, { backgroundColor: colors.action.primary, borderColor: colors.surface.elevated }]}>
-              <Text variant="caption" color={colors.action.onPrimary}>
-                {levelStage?.level || user?.level || 1}
+      {/* Identity header — free-floating on the sheet, no card wrapper */}
+      <View style={styles.profileInfo}>
+        <Avatar
+          image={user?.profilePictureUrl}
+          shape="rounded"
+          size={80}
+          level={levelStage?.level || user?.level || 1}
+        />
+        <View style={styles.profileDetails}>
+          <Text variant="h3">{user?.name}</Text>
+          <Text variant="bodySm" color="secondary">
+            Member since{" "}
+            {user?.createdAt
+              ? new Date(user.createdAt).getFullYear()
+              : new Date().getFullYear()}
+          </Text>
+          {levelStage ? (
+            <View style={[styles.levelTitle, { backgroundColor: colors.action.primaryTint }]}>
+              <Text variant="caption" color={colors.action.primary}>
+                {levelStage.fullTitle}
               </Text>
             </View>
-          </View>
-          <View style={styles.profileDetails}>
-            <Text variant="h3">{user?.name}</Text>
-            <Text variant="bodySm" color="secondary">
-              Member since{" "}
-              {user?.createdAt
-                ? new Date(user.createdAt).getFullYear()
-                : new Date().getFullYear()}
-            </Text>
-            {levelStage ? (
-              <View style={[styles.levelTitle, { backgroundColor: colors.action.primary + "1F" }]}>
-                <Text variant="caption" color={colors.action.primary}>
-                  {levelStage.fullTitle}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          ) : null}
         </View>
       </View>
 
@@ -143,31 +134,10 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: spacing.xl,
   },
-  profileSection: {
-    borderRadius: radius.card,
-    paddingVertical: spacing.xl,
-  },
   profileInfo: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  profileImageWrapper: {
-    position: "relative",
-    width: 80,
-    height: 80,
-  },
-  levelBadge: {
-    position: "absolute",
-    top: -4,
-    left: -4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
   },
   profileDetails: {
     flex: 1,

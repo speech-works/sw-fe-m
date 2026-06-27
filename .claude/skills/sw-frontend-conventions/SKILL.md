@@ -52,7 +52,8 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
 1. **One title pattern:** large left-aligned `h1` screen title (via `Page`), with
    a compact back bar above and `space.titleGap` (28) before content. No centered
    `h3` nav titles on product screens. `screenTitle` (38) = Home/hero only.
-2. **One gutter:** `space.screenX` (20) horizontal everywhere (Page applies it).
+2. **One gutter:** `space.screenX` (16) horizontal everywhere (Page applies it) —
+   matches the rest of the app (Home, etc.).
 3. **Vertical rhythm (tokens, no magic numbers):** title→content = `space.titleGap`
    (28); between groups/cards = `space.groupGap` (16) default / `space.sectionGap`
    (24) for form sections; title→subtitle = `space.titleSub` (3); icon→text =
@@ -64,12 +65,17 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
    `label`=ALL-CAPS section/form label (tertiary) · `caption`=meta.
 6. **Surfaces & radius:** cards/groups `radius.card` (24); inputs `radius.input`
    (16); chips `radius.chip` (20); buttons `radius.pill` (36).
-7. **Hero / identity cards = dark surface + orange accents, NOT an orange flood.**
-   Prefer a dark `surface.elevated` card (hairline border + `elevation.e2`) with
-   the brand expressed through accents — an orange avatar ring, an orange-tint
-   chip, and an **orange (`primary`) CTA button** — over a fully orange-filled
-   card with dark content. The app is dark-with-orange-accents; flooded-orange
-   cards fight that language.
+7. **Hero / identity surfaces = dark + orange accents, NOT an orange flood.**
+   The brand shows through accents — the orange level badge (`<Avatar level>`),
+   an orange-tint chip (`action.primaryTint`), and an **orange (`primary`) CTA
+   button** — never a fully orange-filled card with dark content (that fights the
+   dark-with-orange language). Two cases:
+   - **Entry hero on a screen** (e.g. the Settings hub profile card): a flat
+     `surface.elevated` card (no border, no elevation — those read as redundant
+     chrome) with an orange CTA.
+   - **Identity inside a Sheet/detail** (e.g. View Profile): **free-floating** —
+     avatar + name directly on the sheet surface, no nested card wrapper (a card
+     on a card just doubles the surface).
 8. **Floating tab bar clearance.** The `CustomTabBar` floats over content and
    shows ONLY on tab-ROOT screens (Home/Explore/Community/Settings hub) — it's
    hidden on every pushed screen (`getTabBarVisibility`). On a tab-root screen,

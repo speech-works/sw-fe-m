@@ -31,13 +31,14 @@ export const palette = {
     on: "#2A1505", // dark text on an orange fill (AA)
   },
 
-  // Energy accents. base = fill · on = dark text on fill · textOnDark = hue used AS text on a dark surface.
-  lime: { base: "#C8F750", on: "#20300A", textOnDark: "#C8F750" },
-  purple: { base: "#8B7BF0", on: "#18123A", textOnDark: "#B5A8F5" },
-  success: { base: "#5BD98A", on: "#08351F", textOnDark: "#7DE6A3" },
-  warning: { base: "#FFC53D", on: "#3A2A00", textOnDark: "#FFD66B" },
-  danger: { base: "#FF5A5F", on: "#3A0608", textOnDark: "#FF9296" },
-  info: { base: "#5B9DF9", on: "#06203F", textOnDark: "#8FBEFF" },
+  // Energy accents. base = fill · on = dark text on fill · textOnDark = hue used AS
+  // text on a dark surface · tint = 12% wash for soft chips/icon-bgs on a dark surface.
+  lime: { base: "#C8F750", on: "#20300A", textOnDark: "#C8F750", tint: "rgba(200,247,80,0.12)" },
+  purple: { base: "#8B7BF0", on: "#18123A", textOnDark: "#B5A8F5", tint: "rgba(139,123,240,0.12)" },
+  success: { base: "#5BD98A", on: "#08351F", textOnDark: "#7DE6A3", tint: "rgba(91,217,138,0.12)" },
+  warning: { base: "#FFC53D", on: "#3A2A00", textOnDark: "#FFD66B", tint: "rgba(255,197,61,0.12)" },
+  danger: { base: "#FF5A5F", on: "#3A0608", textOnDark: "#FF9296", tint: "rgba(255,90,95,0.12)" },
+  info: { base: "#5B9DF9", on: "#06203F", textOnDark: "#8FBEFF", tint: "rgba(91,157,249,0.12)" },
 
   // Category hues (muted; legible as icon-tint on the card surface). on = dark text on a full fill.
   category: {

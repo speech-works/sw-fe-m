@@ -32,6 +32,7 @@ export const darkColors: SemanticColors = {
   action: {
     primary: p.orange[400],
     primaryPressed: p.orange[500],
+    primaryTint: p.orangeA(0.12),
     onPrimary: p.orange.on,
     secondary: p.ink.row,
     onSecondary: p.white,
@@ -53,6 +54,14 @@ export const darkColors: SemanticColors = {
     warning: p.warning.on,
     danger: p.danger.on,
     info: p.info.on,
+  },
+  accentTint: {
+    lime: p.lime.tint,
+    purple: p.purple.tint,
+    success: p.success.tint,
+    warning: p.warning.tint,
+    danger: p.danger.tint,
+    info: p.info.tint,
   },
   feedback: {
     success: p.success.base,

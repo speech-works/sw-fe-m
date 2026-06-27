@@ -11,8 +11,6 @@ import {
   useTheme,
   spacing,
   radius,
-  borderWidth,
-  elevation,
   Page,
   Sheet,
   ListItem,
@@ -150,26 +148,20 @@ const Settings = () => {
   return (
     <>
       <Page title="Settings" description="Manage your profile and preferences." tabBarSafe>
-        {/* Identity hero — dark card, orange accents */}
-        <View
-          style={[
-            styles.profileSection,
-            { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
-            elevation.e2,
-          ]}
-        >
-          <View style={styles.profileImageWrapper}>
-            <Avatar image={user?.profilePictureUrl} shape="rounded" size={88} />
-            <View style={[styles.levelBadge, { backgroundColor: colors.action.primary, borderColor: colors.surface.elevated }]}>
-              <Text variant="caption" color={colors.action.onPrimary}>
-                {levelStage?.level || user?.level || 1}
-              </Text>
-            </View>
+        {/* Identity hero — flat surface, orange accents (no redundant chrome) */}
+        <View style={[styles.profileSection, { backgroundColor: colors.surface.elevated }]}>
+          <View style={styles.avatarWrap}>
+            <Avatar
+              image={user?.profilePictureUrl}
+              shape="rounded"
+              size={88}
+              level={levelStage?.level || user?.level || 1}
+            />
           </View>
 
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>
-            <View style={[styles.proBadge, { backgroundColor: colors.action.primary + "1F" }]}>
+            <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
               <Text variant="label" color={colors.action.primary}>
                 FREE
               </Text>
@@ -262,28 +254,13 @@ const Settings = () => {
 const styles = StyleSheet.create({
   profileSection: {
     borderRadius: radius.card,
-    borderWidth: borderWidth.thin,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing["3xl"],
     alignItems: "center",
     gap: spacing.md,
   },
-  profileImageWrapper: {
-    position: "relative",
-    width: 88,
-    height: 88,
+  avatarWrap: {
     marginBottom: spacing.xs,
-  },
-  levelBadge: {
-    position: "absolute",
-    top: -4,
-    left: -4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
   },
   nameRow: {
     flexDirection: "row",
