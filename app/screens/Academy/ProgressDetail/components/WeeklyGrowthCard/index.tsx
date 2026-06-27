@@ -193,24 +193,6 @@ const WeeklyGrowthCard = ({
             </View>
           ))}
         </View>
-      ) : null}
-
-      {/* Biggest gains */}
-      {growth.topBreakthroughs.length > 0 ? (
-        <View style={styles.gainsSection}>
-          <Text variant="label" color="tertiary" style={styles.eyebrow}>Biggest gains</Text>
-          <View style={styles.gainsList}>
-            {growth.topBreakthroughs.map((item) => (
-              <View key={item.axis} style={[styles.gainPill, { backgroundColor: colors.surface.default }]}>
-                <Text variant="body" style={styles.bold}>{item.label}</Text>
-                <Text variant="bodySm" color={colors.feedback.successText}>
-                  +{item.absoluteDelta} pts
-                  {item.percentDelta !== null ? ` • ${item.percentDelta}%` : ""}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
       ) : (
         <View style={[styles.steadyState, { backgroundColor: colors.surface.default }]}>
           <Icon name="wind" size={12} color={colors.text.tertiary} />
@@ -319,17 +301,6 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-  },
-  gainsSection: {
-    gap: spacing.md,
-  },
-  gainsList: {
-    gap: spacing.sm,
-  },
-  gainPill: {
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.xxs,
   },
   steadyState: {
     flexDirection: "row",

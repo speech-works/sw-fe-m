@@ -185,13 +185,6 @@ const DetailedWeeklySummary = ({
   const hasStats =
     weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0;
 
-  const trendColor =
-    daysBenchmark.primary === "Matched last week"
-      ? colors.text.tertiary
-      : daysBenchmark.isAhead
-        ? colors.feedback.successText
-        : colors.feedback.dangerText;
-
   return (
     <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
       {/* Header */}
@@ -256,21 +249,6 @@ const DetailedWeeklySummary = ({
 
               {/* Clean smooth line — one thin stroke, current point dotted */}
               <RhythmLine days={historicalActiveDays} accent={accent} />
-
-              <View style={styles.trendRow}>
-                <Icon
-                  name={
-                    daysBenchmark.primary === "Matched last week"
-                      ? "minus"
-                      : daysBenchmark.isAhead
-                        ? "arrow-up"
-                        : "arrow-down"
-                  }
-                  size={9}
-                  color={trendColor}
-                />
-                <Text variant="caption" color={trendColor}>{daysBenchmark.primary}</Text>
-              </View>
             </View>
           ) : (
             <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default }]}>
@@ -347,11 +325,6 @@ const styles = StyleSheet.create({
   lineLabel: {
     flex: 1,
     textAlign: "center",
-  },
-  trendRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
   },
   // ── Welcome / empty ─────────────────────────────────────────────────────
   welcomeRow: {
