@@ -1,41 +1,31 @@
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Easing,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Animated, Easing, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import BottomSheetModal from "../../components/BottomSheetModal";
-import { ScrollView } from "react-native";
-import ScreenView from "../../components/ScreenView";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
-import { BlurView } from "expo-blur";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
-import { theme } from "../../Theme/tokens";
 import { getLevelStage, LevelStage } from "../../api/users";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
+  useTheme,
+  spacing,
+  radius,
+  Page,
+  Gradient,
+  ListItem,
+  Button,
+  Text,
+  Icon,
+  IconName,
+} from "../../design-system";
 import FullProfile from "./components/FullProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
 
-const HEADER_HEIGHT = 100;
-
 const Settings = () => {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
-  const insets = useSafeAreaInsets();
   const { logout, deleteAccount } = useContext(AuthContext);
   const { user } = useUserStore();
 
@@ -88,56 +78,36 @@ const Settings = () => {
     setIsVisible(false);
   };
 
-  const menuItems = [
+  const menuItems: { icon: IconName; text: string; desc: string; onClick: () => void }[] = [
     {
-      icon: "tune",
-      iconColor: "#3B82F6",
-      bgColor: "#EFF6FF",
+      icon: "sliders",
       text: "Preferences",
       desc: "Manage goals and difficult sounds",
-      onClick: () => {
-        navigation.navigate("Preferences");
-      },
+      onClick: () => navigation.navigate("Preferences"),
     },
     {
-      icon: "chart-line",
-      iconColor: "#7C3AED",
-      bgColor: "#F5F3FF",
+      icon: "bar-chart-2",
       text: "Progress Report",
       desc: "Check your speaking progress and trends",
-      onClick: () => {
-        navigation.navigate("ProgressDetail");
-      },
+      onClick: () => navigation.navigate("ProgressDetail"),
     },
     {
-      icon: "shield-check",
-      iconColor: "#059669",
-      bgColor: "#ECFDF5",
+      icon: "help-circle",
       text: "Help & Support",
       desc: "Get assistance and app guidance",
-      onClick: () => {
-        navigation.navigate("HelpSupport");
-      },
+      onClick: () => navigation.navigate("HelpSupport"),
     },
     {
       icon: "bell",
-      iconColor: "#D97706",
-      bgColor: "#FFFBEB",
       text: "Reminders",
       desc: "Manage your practice notifications",
-      onClick: () => {
-        navigation.navigate("Reminders");
-      },
+      onClick: () => navigation.navigate("Reminders"),
     },
     {
-      icon: "lifebuoy",
-      iconColor: "#FF6B00",
-      bgColor: "#FFF0E5",
+      icon: "life-buoy",
       text: "Help & Resources",
       desc: "Stuttering organizations & crisis support",
-      onClick: () => {
-        navigation.navigate("Resources");
-      },
+      onClick: () => navigation.navigate("Resources"),
     },
   ];
 
@@ -173,170 +143,81 @@ const Settings = () => {
 
   return (
     <>
-      <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-        {/* Unified Background Mesh Gradient */}
-        <View style={StyleSheet.absoluteFillObject}>
-          <LinearGradient
-            colors={["#FFF7ED", "#FFF", "#FFF"]}
-            locations={[0, 0.4, 1]}
-            style={{ flex: 1 }}
+      <Page title="Settings" description="Manage your profile and preferences.">
+        {/* Brand identity hero */}
+        <Gradient token="brand" style={styles.profileSection}>
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: user?.profilePictureUrl }}
+              style={[styles.profileImage, { borderColor: colors.surface.inverse }]}
+            />
+            <View style={[styles.onlineBadge, { backgroundColor: colors.accent.success, borderColor: colors.action.primary }]} />
+          </View>
+
+          <View style={styles.nameRow}>
+            <Text variant="h2" color={colors.text.inverse}>
+              {user?.name}
+            </Text>
+            <View style={[styles.proBadge, { backgroundColor: colors.background.canvas }]}>
+              <Text variant="label" color={colors.action.primary}>
+                FREE
+              </Text>
+            </View>
+          </View>
+          <Text variant="bodySm" color={colors.text.inverse}>
+            Member since{" "}
+            {user?.createdAt
+              ? new Date(user.createdAt).getFullYear()
+              : new Date().getFullYear()}
+          </Text>
+
+          <Button
+            label="View Profile"
+            variant="secondary"
+            rightIcon="chevron-right"
+            onPress={onViewProfile}
+            style={styles.viewProfileButton}
           />
+        </Gradient>
+
+        {/* Menu */}
+        <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+          {menuItems.map((item, index) => (
+            <ListItem
+              key={item.text}
+              leftIcon={item.icon}
+              label={item.text}
+              sublabel={item.desc}
+              showChevron
+              divider={index < menuItems.length - 1}
+              onPress={item.onClick}
+            />
+          ))}
         </View>
 
-        {/* Floating Premium Header */}
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 20,
-              height: HEADER_HEIGHT + insets.top,
-            },
-          ]}
-        >
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>
-            Manage your profile and preferences.
-          </Text>
-        </BlurView>
-
-        <ScrollView
-          style={styles.screenContainer}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingBottom: 130,
-            paddingTop: HEADER_HEIGHT + insets.top + 28,
-          }}
-        >
-          {/* Aurora Glass Identity Card */}
-          <LinearGradient
-            colors={["#0EA5E9", "#2563EB", "#312E81"]} // Sky -> Royal -> Deep Indigo
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.profileSection}
+        {/* Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
+            <Text variant="bodySm" color={colors.feedback.dangerText}>
+              Log Out
+            </Text>
+            <Icon name="log-out" size={14} color={colors.feedback.dangerText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteAccountButton}
+            onPress={() => setShowDeleteModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
           >
-            {/* Mesh Glow Blobs */}
-            <View style={styles.bubbleTopRight} />
-            <View style={styles.bubbleBottomLeft} />
-
-            {/* Subtle Watermark */}
-            <View style={styles.profileWatermark}>
-              <MaterialCommunityIcons
-                name="shield-star-outline"
-                size={140}
-                color="rgba(255, 255, 255, 0.06)"
-              />
-            </View>
-
-            <View style={styles.profileContent}>
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: user?.profilePictureUrl }}
-                  style={styles.profileImage}
-                />
-                <View style={styles.onlineBadge} />
-              </View>
-
-              <View style={styles.centerInfo}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.profileName}>{user?.name}</Text>
-                  {/* Pro Badge */}
-                  <View style={styles.proBadge}>
-                    <Text style={styles.proBadgeText}>FREE</Text>
-                  </View>
-                </View>
-                <Text style={styles.memberSince}>
-                  Member since{" "}
-                  {user?.createdAt
-                    ? new Date(user.createdAt).getFullYear()
-                    : new Date().getFullYear()}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.viewProfileButton}
-                onPress={onViewProfile}
-              >
-                <Text style={styles.viewProfileText}>View Profile</Text>
-                <Icon name="chevron-right" size={12} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-
-          <View style={{ height: 28 }} />
-
-          {/* Professional List Menu */}
-          <View style={styles.listContainer}>
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.listItem}
-                onPress={item.onClick}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
-                  <MaterialCommunityIcons
-                    name={item.icon as any}
-                    size={22}
-                    color={item.iconColor}
-                  />
-                </View>
-                <View style={styles.listTextContainer}>
-                  <Text style={styles.listItemText}>{item.text}</Text>
-                  <Text style={styles.listItemDesc}>{item.desc}</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
-                {index < menuItems.length - 1 && <View style={styles.divider} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={{ height: 28 }} />
-
-          {/* Minimal Footer */}
-          <View style={styles.footer}>
-            {/* Floating WaveFace watermark */}
-            <Animated.View
-              style={[
-                styles.voidFaceContainer, // Reusing existing style name for consistency, or we could rename to waveFaceContainer
-                {
-                  transform: [
-                    {
-                      translateY: floatAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 10],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              {/* <EditProfileFace
-                size={220}
-                transparentBg={true}
-              /> */}
-            </Animated.View>
-
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleLogout}
-            >
-              <Text style={styles.signOutText}>Log Out</Text>
-              <Icon name="sign-out-alt" size={14} color="#EF4444" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.deleteAccountButton}
-              onPress={() => setShowDeleteModal(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Delete account"
-            >
-              <Text style={styles.deleteAccountText}>Delete Account</Text>
-            </TouchableOpacity>
-            <Text style={styles.versionText}>v2.4.0 (Build 302)</Text>
-          </View>
-        </ScrollView>
-      </ScreenView>
+            <Text variant="caption" color={colors.feedback.dangerText} style={styles.deleteAccountText}>
+              Delete Account
+            </Text>
+          </TouchableOpacity>
+          <Text variant="caption" color="tertiary">
+            v2.4.0 (Build 302)
+          </Text>
+        </View>
+      </Page>
 
       <BottomSheetModal
         visible={isVisible}
@@ -358,83 +239,23 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-  },
-  screenContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    paddingHorizontal: 16,
-    gap: 4,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
   profileSection: {
-    marginTop: 10,
-    marginBottom: 24,
-    borderRadius: 24,
-    overflow: "hidden", // Clip internal layout-bubbles
-    ...parseShadowStyle(theme.shadow.elevation3),
-    shadowColor: "#2563EB",
-    shadowOpacity: 0.25,
-  },
-  profileWatermark: {
-    position: "absolute",
-    left: -20,
-    bottom: -30,
-    transform: [{ rotate: "15deg" }],
-  },
-  // Mesh Glow Blobs
-  bubbleTopRight: {
-    position: "absolute",
-    top: -40,
-    right: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -50,
-    left: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(0, 0, 0, 0.1)",
-  },
-  profileContent: {
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 32,
-    alignItems: "center", // Center everything
-    gap: 16,
-    zIndex: 1,
+    borderRadius: radius.card,
+    overflow: "hidden",
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing["3xl"],
+    alignItems: "center",
+    gap: spacing.md,
   },
   imageContainer: {
     position: "relative",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   profileImage: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: "#E2E8F0",
     borderWidth: 4,
-    borderColor: "rgba(255,255,255,0.25)", // Glassy halo
   },
   onlineBadge: {
     position: "absolute",
@@ -443,164 +264,43 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#10B981", // Green
     borderWidth: 3,
-    borderColor: "#2563EB", // Match Sapphire Blue (Royal)
-  },
-  centerInfo: {
-    alignItems: "center",
-    gap: 6,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: -0.6,
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    gap: spacing.sm,
   },
   proBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)", // Glassy
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  proBadgeText: {
-    fontSize: 10,
-    color: "#FFF",
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  memberSince: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
+    borderRadius: radius.full,
   },
   viewProfileButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: "rgba(255,255,255,0.15)", // Glassy button
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    gap: 8,
-    marginTop: 8,
     width: "100%",
+    marginTop: spacing.sm,
   },
-  viewProfileText: {
-    fontSize: 15,
-    color: "#FFF",
-    fontWeight: "600",
-  },
-
-  // Action Menu Tiles
-  menuSection: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  menuTile: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    height: 90,
-    gap: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowOpacity: 0.05,
+  group: {
+    borderRadius: radius.card,
     overflow: "hidden",
   },
-  listContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    position: "relative",
-  },
-  listIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  listTextContainer: {
-    flex: 1,
-  },
-  listItemText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    marginBottom: 2,
-  },
-  listItemDesc: {
-    fontSize: 13,
-    color: "#64748B",
-  },
-  divider: {
-    position: "absolute",
-    bottom: 0,
-    left: 76,
-    right: 16,
-    height: 1,
-    backgroundColor: "#F1F5F9",
-  },
-
-  // Footer
   footer: {
     alignItems: "center",
-    gap: 16,
-    marginTop: 12,
-    position: "relative", // Ensure children can be absolute relative to this
-  },
-  voidFaceContainer: {
-    position: "absolute",
-    bottom: -40,
-    right: -50,
-    zIndex: -1,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    padding: 12,
-  },
-  signOutText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#EF4444", // Red
-    fontWeight: "600",
+    gap: spacing.sm,
+    padding: spacing.md,
   },
   deleteAccountButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
   },
   deleteAccountText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#DC2626",
-    fontWeight: "600",
     textDecorationLine: "underline",
-  },
-  versionText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#94A3B8",
   },
 });
 
