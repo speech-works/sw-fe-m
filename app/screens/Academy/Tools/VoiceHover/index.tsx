@@ -1,17 +1,9 @@
 // VoiceHover.tsx
-import Slider from "@react-native-community/slider"; // Import Slider
 import React, { useEffect, useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { theme } from "../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import { StyleSheet, View } from "react-native";
 import { useVoicePreference } from "../../../../hooks/useVoicePreference";
 import { speakWithProfile, stopSpeaking } from "../../../../util/voice";
+import { spacing, radius, Text, Slider, Button, Spinner } from "../../../../design-system";
 
 type VoiceHoverProps = {
   text: string;
@@ -236,104 +228,75 @@ export function VoiceHover({
   return (
     <View style={[styles.container, style]}>
       {loadingVoices ? (
-        <ActivityIndicator size="small" color="#007AFF" />
+        <Spinner size="small" />
       ) : (
         <>
           <View style={styles.controls}>
             {/* Rate controls */}
-            <View style={styles.controlSection}>
-              <View style={styles.rowContainer}>
-                <Text style={styles.infoText}>Speech Rate</Text>
-                <Text style={styles.speedText}>
-                  {internalBaseRate.toFixed(1)}×
-                </Text>
-              </View>
-              <View style={styles.sliderWrapper}>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0.5} // Minimum rate
-                  maximumValue={2.0} // Maximum rate
-                  step={0.1} // Step value
-                  value={internalBaseRate}
-                  onValueChange={(value) => {
-                    setInternalBaseRate(value);
-                  }}
-                  minimumTrackTintColor={theme.colors.library.orange[400]}
-                  maximumTrackTintColor={theme.colors.surface.default}
-                  thumbTintColor={theme.colors.library.orange[400]}
-                />
-              </View>
-              <View style={styles.rowContainer}>
-                <Text style={styles.paceText}>Slow</Text>
-                <Text style={styles.paceText}>Fast</Text>
+            <View style={styles.section}>
+              <Slider
+                label="Speech Rate"
+                showValue
+                haptic={false}
+                minimumValue={0.5}
+                maximumValue={2.0}
+                step={0.1}
+                value={internalBaseRate}
+                onValueChange={setInternalBaseRate}
+                formatValue={(v) => `${v.toFixed(1)}×`}
+              />
+              <View style={styles.captionRow}>
+                <Text variant="caption" color="tertiary">Slow</Text>
+                <Text variant="caption" color="tertiary">Fast</Text>
               </View>
             </View>
 
             {/* PrePause controls */}
-            <View style={styles.controlSection}>
-              <View style={styles.rowContainer}>
-                <Text style={styles.infoText}>Pre-Pause</Text>
-                <Text style={styles.speedText}>{internalPrePause}ms</Text>
-              </View>
-              <View style={styles.sliderWrapper}>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0} // Minimum pre-pause
-                  maximumValue={1000} // Maximum pre-pause
-                  step={50} // Step value
-                  value={internalPrePause}
-                  onValueChange={(value) => {
-                    setInternalPrePause(value);
-                  }}
-                  minimumTrackTintColor={theme.colors.library.orange[400]}
-                  maximumTrackTintColor={theme.colors.surface.default}
-                  thumbTintColor={theme.colors.library.orange[400]}
-                />
-              </View>
-              <View style={styles.rowContainer}>
-                <Text style={styles.paceText}>Short</Text>
-                <Text style={styles.paceText}>Long</Text>
+            <View style={styles.section}>
+              <Slider
+                label="Pre-Pause"
+                showValue
+                haptic={false}
+                minimumValue={0}
+                maximumValue={1000}
+                step={50}
+                value={internalPrePause}
+                onValueChange={setInternalPrePause}
+                formatValue={(v) => `${Math.round(v)}ms`}
+              />
+              <View style={styles.captionRow}>
+                <Text variant="caption" color="tertiary">Short</Text>
+                <Text variant="caption" color="tertiary">Long</Text>
               </View>
             </View>
 
             {/* GapBetween controls */}
-            <View style={styles.controlSection}>
-              <View style={styles.rowContainer}>
-                <Text style={styles.infoText}>Gap Between Chunks</Text>
-                <Text style={styles.speedText}>{internalGap}ms</Text>
-              </View>
-              <View style={styles.sliderWrapper}>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0} // Minimum gap
-                  maximumValue={1000} // Maximum gap
-                  step={50} // Step value
-                  value={internalGap}
-                  onValueChange={(value) => {
-                    setInternalGap(value);
-                  }}
-                  minimumTrackTintColor={theme.colors.library.orange[400]}
-                  maximumTrackTintColor={theme.colors.surface.default}
-                  thumbTintColor={theme.colors.library.orange[400]}
-                />
-              </View>
-              <View style={styles.rowContainer}>
-                <Text style={styles.paceText}>Short</Text>
-                <Text style={styles.paceText}>Long</Text>
+            <View style={styles.section}>
+              <Slider
+                label="Gap Between Chunks"
+                showValue
+                haptic={false}
+                minimumValue={0}
+                maximumValue={1000}
+                step={50}
+                value={internalGap}
+                onValueChange={setInternalGap}
+                formatValue={(v) => `${Math.round(v)}ms`}
+              />
+              <View style={styles.captionRow}>
+                <Text variant="caption" color="tertiary">Short</Text>
+                <Text variant="caption" color="tertiary">Long</Text>
               </View>
             </View>
           </View>
 
           {/* Speak/Stop button */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
+            <Button
+              label={internalIsSpeaking ? "Stop" : "Speak"}
+              variant={internalIsSpeaking ? "danger" : "primary"}
               onPress={onPlayInternal}
-              style={[styles.button, internalIsSpeaking && styles.buttonStop]}
-            >
-              <Text style={styles.buttonText}>
-                {internalIsSpeaking ? "Stop" : "Speak"}
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </>
       )}
@@ -343,65 +306,23 @@ export function VoiceHover({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
-    padding: 12,
-    borderRadius: 12,
+    marginVertical: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
     flexDirection: "column",
   },
   controls: {
     flexDirection: "column",
-    gap: 16, // Increased gap between control sections
+    gap: spacing.lg,
   },
-  controlSection: {
-    width: "100%",
-    alignItems: "center",
-    gap: 4,
+  section: {
+    gap: spacing.xs,
   },
-  rowContainer: {
-    width: "100%",
+  captionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
-  infoText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  speedText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.actionPrimary.default,
-  },
-  sliderWrapper: {
-    width: "100%",
-    justifyContent: "center",
-    overflow: "visible", // Ensures thumb is not clipped
-  },
-  slider: {
-    width: "100%",
-    height: 12,
-  },
-  paceText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
   },
   buttonContainer: {
-    paddingVertical: 8,
-    marginTop: 8, // Added some margin to separate from sliders
-  },
-  button: {
-    paddingVertical: 10, // Increased padding for better touch target
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginVertical: 2,
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  buttonStop: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
+    marginTop: spacing.sm,
   },
 });

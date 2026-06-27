@@ -1,15 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
-import {
-  ActivityIndicator,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Svg, { Path } from "react-native-svg";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useVoicePreference } from "../../../../hooks/useVoicePreference";
 import {
   IOS_VOICE_DOWNLOAD_STEPS,
@@ -19,19 +10,18 @@ import {
   stopSpeaking,
 } from "../../../../util/voice";
 import type { AccentGroup } from "../../../../util/voice/types";
-import { theme } from "../../../../Theme/tokens";
 import { PopCard } from "../../../../components/PopCard";
+import { useTheme, spacing, ConnectedAvatarRow, Button, Spinner } from "../../../../design-system";
 
 const PREVIEW_LINE = "This is how your reading guide will sound.";
 
-const DARK_UNSELECTED = "#2A2A2A";
-const DARK_SELECTED = theme.colors.actionPrimary.default;
-const TEXT_SELECTED = "#FFFFFF"; // Changed to white as it usually looks better on orange
-const TEXT_UNSELECTED = "#FFFFFF";
-const NATURAL_GREEN = "#5BD98A";
-const MUTED = "#9CA3AF";
+// iOS guide sheet only — a green accent surface on PopCard. PopCard + this sheet
+// are a separate (deferred) migration; these two literals stay scoped to it.
+const GUIDE_GREEN = "#5BD98A";
+const GUIDE_DARK = "#2A2A2A";
 
 export function AccentPicker() {
+  const { colors } = useTheme();
   const { groups, loading, preference, selectAccent, refresh } =
     useVoicePreference();
   const [iosSheetVisible, setIosSheetVisible] = useState(false);
@@ -82,7 +72,7 @@ export function AccentPicker() {
   if (loading) {
     return (
       <View style={styles.loadingBox}>
-        <ActivityIndicator size="small" color={DARK_SELECTED} />
+        <Spinner size="small" />
       </View>
     );
   }
@@ -94,16 +84,32 @@ export function AccentPicker() {
   return (
     <View style={styles.container}>
       <View style={styles.list}>
-        {groups.map((group) => (
-          <AccentRow
-            key={group.locale}
-            group={group}
-            isSelected={preference?.accent === group.locale}
-            onPress={() =>
-              group.isAvailable ? selectAndPreview(group) : handleInstall()
-            }
-          />
-        ))}
+        {groups.map((group) => {
+          const subText = !group.isAvailable
+            ? "Not installed · tap to add"
+            : group.hasNatural
+              ? "Natural voice"
+              : "Basic voice";
+          // Natural voices get the green "non-robotic" cue (legible on the dark
+          // row); selected rows render their own dark-on-orange subtitle.
+          const subtitleColor =
+            group.isAvailable && group.hasNatural
+              ? colors.feedback.successText
+              : colors.text.tertiary;
+          return (
+            <ConnectedAvatarRow
+              key={group.locale}
+              glyph={group.flag}
+              title={group.label}
+              subtitle={subText}
+              subtitleColor={subtitleColor}
+              selected={preference?.accent === group.locale}
+              onPress={() =>
+                group.isAvailable ? selectAndPreview(group) : handleInstall()
+              }
+            />
+          );
+        })}
       </View>
 
       {anyBasicOnly && (
@@ -112,18 +118,14 @@ export function AccentPicker() {
           hitSlop={8}
           onPress={handleInstall}
         >
-          <Text style={styles.addNaturalText}>Add a natural voice</Text>
+          <Text style={[styles.addNaturalText, { color: colors.feedback.successText }]}>
+            Add a natural voice
+          </Text>
         </TouchableOpacity>
       )}
 
       {preference?.accent && (
-        <TouchableOpacity
-          style={styles.continueBtn}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.continueText}>Continue</Text>
-        </TouchableOpacity>
+        <Button label="Continue" onPress={() => navigation.goBack()} />
       )}
 
       <IosVoiceGuideSheet
@@ -135,69 +137,7 @@ export function AccentPicker() {
   );
 }
 
-const BridgeSVG = ({ color }: { color: string }) => (
-  <Svg width={48} height={72} viewBox="0 0 48 72">
-    <Path
-      d="M 0 8 Q 24 36, 48 8 L 48 64 Q 24 36, 0 64 Z"
-      fill={color}
-    />
-  </Svg>
-);
-
-function AccentRow({
-  group,
-  isSelected,
-  onPress,
-}: {
-  group: AccentGroup;
-  isSelected: boolean;
-  onPress: () => void;
-}) {
-  const { isAvailable, hasNatural } = group;
-  const bgColor = isSelected ? DARK_SELECTED : DARK_UNSELECTED;
-  const textColor = isSelected ? TEXT_SELECTED : TEXT_UNSELECTED;
-
-  // Quality / availability signal — the "non-robotic" cue.
-  const subText = !isAvailable
-    ? "Not installed · tap to add"
-    : hasNatural
-      ? "Natural voice"
-      : "Basic voice";
-  const subColor = isSelected
-    ? "rgba(255,255,255,0.7)"
-    : hasNatural
-      ? NATURAL_GREEN
-      : "rgba(255,255,255,0.5)";
-
-  const playIconColor = isSelected ? "#FFFFFF" : theme.colors.actionPrimary.default;
-
-  return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.row}>
-      <View style={[styles.bridgeContainer, { zIndex: 1 }]}>
-        <BridgeSVG color={bgColor} />
-      </View>
-
-      <View style={[styles.avatar, { backgroundColor: bgColor, zIndex: 2 }]}>
-        <View style={styles.avatarInner}>
-          <Text style={styles.flag}>{group.flag}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.pill, { backgroundColor: bgColor, zIndex: 2 }]}>
-        <View style={styles.pillContent}>
-          <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
-            {group.label}
-          </Text>
-          <Text style={[styles.sub, { color: subColor }]} numberOfLines={1}>
-            {subText}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-/** iOS-only guided walkthrough for downloading a natural voice (dark themed). */
+/** iOS-only guided walkthrough for downloading a natural voice (green sheet). */
 function IosVoiceGuideSheet({
   visible,
   onClose,
@@ -208,7 +148,7 @@ function IosVoiceGuideSheet({
   onOpenSettings: () => void;
 }) {
   return (
-    <PopCard visible={visible} onClose={onClose} color={NATURAL_GREEN}>
+    <PopCard visible={visible} onClose={onClose} color={GUIDE_GREEN}>
       <Text style={styles.modalTitle}>Add a natural voice</Text>
       <Text style={styles.modalSubtitle}>
         iOS downloads natural voices in Settings. It only takes a minute:
@@ -240,90 +180,23 @@ function IosVoiceGuideSheet({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: spacing.lg,
   },
   loadingBox: {
-    paddingVertical: 32,
+    paddingVertical: spacing["3xl"],
     alignItems: "center",
   },
   list: {
-    gap: 12,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 72,
-    marginBottom: 4,
-  },
-  bridgeContainer: {
-    position: "absolute",
-    left: 52,
-    width: 48,
-    height: 72,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flag: {
-    fontSize: 32,
-    lineHeight: 38,
-  },
-  pill: {
-    flex: 1,
-    height: 72,
-    borderRadius: 36,
-    marginLeft: 8,
-    paddingLeft: 24,
-    paddingRight: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  pillContent: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 2,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 13,
-    fontWeight: "500",
+    gap: spacing.lg,
   },
   addNaturalText: {
     alignSelf: "center",
     paddingVertical: 6,
     fontSize: 14,
     fontWeight: "600",
-    color: NATURAL_GREEN,
-  },
-  continueBtn: {
-    marginTop: 4,
-    height: 56,
-    borderRadius: 36,
-    backgroundColor: DARK_SELECTED,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  continueText: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "700",
   },
 
+  // --- iOS guide sheet (deferred migration; green accent surface) ---
   modalTitle: {
     fontSize: 26,
     fontWeight: "700",
@@ -355,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: DARK_UNSELECTED,
+    backgroundColor: GUIDE_DARK,
   },
   stepNumText: {
     fontSize: 14,
@@ -375,7 +248,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: DARK_UNSELECTED,
+    backgroundColor: GUIDE_DARK,
     marginTop: 16,
   },
   modalPrimaryText: {
@@ -390,7 +263,7 @@ const styles = StyleSheet.create({
   },
   modalSecondaryText: {
     fontSize: 16,
-    color: DARK_UNSELECTED,
+    color: GUIDE_DARK,
     fontWeight: "700",
   },
 });
