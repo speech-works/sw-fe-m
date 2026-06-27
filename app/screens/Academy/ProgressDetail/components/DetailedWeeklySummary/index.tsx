@@ -2,6 +2,7 @@ import { addDays, format, startOfWeek } from "date-fns";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import Svg, { Circle, Path } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
 import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
 import {
@@ -16,12 +17,77 @@ import {
 import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
 
 const MAX_ACTIVE_DAYS_PER_WEEK = 7;
-const BAR_TRACK_HEIGHT = 72;
+const CHART_W = 320;
+const CHART_H = 88;
+const CHART_PAD_Y = 14;
 
 const toLocalChartDate = (value: string | Date) => {
   if (value instanceof Date) return value;
   const normalized = value.includes("T") ? value.split("T")[0] : value;
   return new Date(`${normalized}T00:00:00`);
+};
+
+/** Catmull-Rom → cubic-bezier smoothing for a clean curved line. */
+const buildSmoothPath = (pts: Array<{ x: number; y: number }>) => {
+  if (pts.length === 0) return "";
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+};
+
+/** Minimal smooth line — one thin stroke + a small current-point dot. */
+const RhythmLine: React.FC<{
+  days: { weekStart: string; daysActive: number }[];
+  accent: string;
+}> = ({ days, accent }) => {
+  const n = days.length;
+  const innerH = CHART_H - CHART_PAD_Y * 2;
+  const points = days.map((week, i) => {
+    const d = Math.max(0, Math.min(MAX_ACTIVE_DAYS_PER_WEEK, week.daysActive));
+    return {
+      x: (CHART_W / n) * (i + 0.5),
+      y: CHART_PAD_Y + innerH - (d / MAX_ACTIVE_DAYS_PER_WEEK) * innerH,
+    };
+  });
+  const last = points[n - 1];
+  return (
+    <View>
+      <Svg width="100%" height={CHART_H} viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+        <Path
+          d={buildSmoothPath(points)}
+          fill="none"
+          stroke={accent}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {last ? <Circle cx={last.x} cy={last.y} r={4} fill={accent} /> : null}
+      </Svg>
+      <View style={styles.lineLabels}>
+        {days.map((week, i) => (
+          <Text
+            key={week.weekStart}
+            variant="caption"
+            color={i === n - 1 ? accent : "tertiary"}
+            style={styles.lineLabel}
+          >
+            {i === n - 1 ? "Now" : format(toLocalChartDate(week.weekStart), "MMM d")}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
 };
 
 export const WeeklySummarySkeleton = () => {
@@ -188,32 +254,8 @@ const DetailedWeeklySummary = ({
                 </View>
               </View>
 
-              {/* Clean bar chart — one bar per week, current highlighted */}
-              <View style={styles.bars}>
-                {historicalActiveDays.map((week, index) => {
-                  const isCurrent = index === historicalActiveDays.length - 1;
-                  const days = Math.max(0, Math.min(MAX_ACTIVE_DAYS_PER_WEEK, week.daysActive));
-                  const pct = Math.max(6, (days / MAX_ACTIVE_DAYS_PER_WEEK) * 100);
-                  return (
-                    <View key={week.weekStart} style={styles.barCol}>
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              height: `${pct}%`,
-                              backgroundColor: isCurrent ? accent : colors.surface.control,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text variant="caption" color={isCurrent ? accent : "tertiary"}>
-                        {isCurrent ? "Now" : format(toLocalChartDate(week.weekStart), "MMM d")}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+              {/* Clean smooth line — one thin stroke, current point dotted */}
+              <RhythmLine days={historicalActiveDays} accent={accent} />
 
               <View style={styles.trendRow}>
                 <Icon
@@ -298,23 +340,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   rhythmNow: { alignItems: "flex-end" },
-  bars: {
+  lineLabels: {
     flexDirection: "row",
-    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  barCol: {
+  lineLabel: {
     flex: 1,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  barTrack: {
-    width: 24,
-    height: BAR_TRACK_HEIGHT,
-    justifyContent: "flex-end",
-  },
-  barFill: {
-    width: "100%",
-    borderRadius: radius.sm,
+    textAlign: "center",
   },
   trendRow: {
     flexDirection: "row",
