@@ -18,7 +18,6 @@ import {
   Radio,
   Avatar,
   Badge,
-  Divider,
   ProgressBar,
   ProgressRing,
   Gradient,
@@ -325,9 +324,8 @@ export const DevPreview: React.FC = () => {
               </Text>
             </Card>
             <View style={{ marginTop: 12, backgroundColor: colors.surface.default, borderRadius: radius.card, overflow: "hidden" }}>
-              <ListItem label="Reading guide voice" value="American" showChevron onPress={() => {}} />
-              <Divider inset={18} />
-              <ListItem label="Haptics" right={<Toggle value={toggleOn} onChange={setToggleOn} />} />
+              <ListItem leftIcon="volume-2" iconTint={colors.action.primary} label="Reading guide voice" sublabel="Indian accent" showChevron divider onPress={() => {}} />
+              <ListItem leftIcon="zap" iconTint={colors.accent.success} label="Haptics" sublabel="Vibrate on key actions" right={<Toggle value={toggleOn} onChange={setToggleOn} />} />
             </View>
           </Sub>
           <Sub label="Connected avatar row (signature)">
