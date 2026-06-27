@@ -6,11 +6,13 @@ import {
   spacing,
   radius,
   size,
-  fonts,
   Text,
   Skeleton,
 } from "../../../../../design-system";
 import { getMoodRemark } from "./helper";
+
+const SEGMENTS = 8;
+const MOOD_ORDER = ["HAPPY", "CALM", "SAD", "ANGRY"] as const;
 
 /** Mood → semantic accent (happy=warm, calm=green, sad=blue, angry=red). */
 const MOOD_COLOR = {
@@ -20,8 +22,7 @@ const MOOD_COLOR = {
   ANGRY: "danger",
 } as const;
 
-const moodName = (mood: string) =>
-  mood.charAt(0) + mood.slice(1).toLowerCase();
+const moodName = (mood: string) => mood.charAt(0) + mood.slice(1).toLowerCase();
 
 export const MoodSummarySkeleton = () => {
   const { colors } = useTheme();
@@ -34,11 +35,12 @@ export const MoodSummarySkeleton = () => {
         </View>
         <Skeleton width={20} height={20} />
       </View>
-      <View style={styles.moodList}>
-        {[1, 2].map((i) => (
-          <View key={i} style={styles.moodRow}>
-            <Skeleton width={80} height={14} />
-            <Skeleton width={"100%"} height={8} radius={4} />
+      <View style={styles.gaugeRow}>
+        {MOOD_ORDER.map((m) => (
+          <View key={m} style={styles.gaugeCol}>
+            <Skeleton width={28} height={20} />
+            <Skeleton width={38} height={GAUGE_HEIGHT} radius={radius.chip} />
+            <Skeleton width={44} height={12} />
           </View>
         ))}
       </View>
@@ -71,9 +73,7 @@ const MoodSummary = ({
     return key ? colors.accent[key] : colors.text.tertiary;
   };
 
-  const nonZeroMoods = (Object.entries(moodStats) as [string, number][])
-    .filter(([, percentage]) => percentage > 0)
-    .sort((a, b) => b[1] - a[1]);
+  const total = Object.values(moodStats).reduce((sum, v) => sum + v, 0);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
@@ -93,22 +93,42 @@ const MoodSummary = ({
         </View>
       </View>
 
-      {nonZeroMoods.length > 0 ? (
-        <View style={styles.moodList}>
-          {nonZeroMoods.map(([mood, pct]) => (
-            <View key={mood} style={styles.moodRow}>
-              <View style={styles.moodRowHeader}>
-                <View style={styles.moodLabel}>
-                  <View style={[styles.dot, { backgroundColor: moodColor(mood) }]} />
-                  <Text variant="body" style={styles.bold}>{moodName(mood)}</Text>
+      {total > 0 ? (
+        <View style={styles.gaugeRow}>
+          {MOOD_ORDER.map((mood) => {
+            const pct = moodStats[mood] ?? 0;
+            const filled = pct > 0 ? Math.max(1, Math.round((pct / 100) * SEGMENTS)) : 0;
+            const tint = moodColor(mood);
+            return (
+              <View key={mood} style={styles.gaugeCol}>
+                <Text variant="h2" color={pct > 0 ? "primary" : "tertiary"}>
+                  {String(Math.round(pct)).padStart(2, "0")}
+                </Text>
+                <View style={styles.gauge}>
+                  {Array.from({ length: SEGMENTS }).map((_, i) => {
+                    const fromBottom = SEGMENTS - 1 - i; // 0 = bottom-most
+                    const isFilled = fromBottom < filled;
+                    const ratio = filled > 1 ? fromBottom / (filled - 1) : 0;
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.segment,
+                          {
+                            backgroundColor: isFilled ? tint : colors.surface.control,
+                            opacity: isFilled ? 1 - ratio * 0.5 : 1,
+                          },
+                        ]}
+                      />
+                    );
+                  })}
                 </View>
-                <Text variant="body" color="secondary">{pct.toFixed(1)}%</Text>
+                <Text variant="caption" color={pct > 0 ? "secondary" : "tertiary"}>
+                  {moodName(mood)}
+                </Text>
               </View>
-              <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
-                <View style={[styles.fill, { width: `${pct}%`, backgroundColor: moodColor(mood) }]} />
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View style={styles.emptyMood}>
@@ -135,14 +155,15 @@ const MoodSummary = ({
 
 export default MoodSummary;
 
+const GAUGE_HEIGHT = 132;
+
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
     padding: spacing.xl,
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   flex1: { flex: 1 },
-  bold: { fontFamily: fonts.bold },
   eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
@@ -155,35 +176,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerErrorIcon: { marginRight: spacing.sm },
-  moodList: {
-    gap: spacing.lg,
-  },
-  moodRow: {
-    gap: spacing.sm,
-  },
-  moodRowHeader: {
+  gaugeRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
   },
-  moodLabel: {
-    flexDirection: "row",
+  gaugeCol: {
+    flex: 1,
     alignItems: "center",
     gap: spacing.sm,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  gauge: {
+    width: 38,
+    height: GAUGE_HEIGHT,
+    flexDirection: "column",
+    gap: spacing.xs,
   },
-  track: {
-    height: 8,
-    borderRadius: radius.full,
-    overflow: "hidden",
-  },
-  fill: {
-    height: "100%",
+  segment: {
+    flex: 1,
+    width: "100%",
     borderRadius: radius.full,
   },
   emptyMood: {
