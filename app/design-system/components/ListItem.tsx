@@ -19,6 +19,7 @@ export interface ListItemProps {
   /** Render an inset hairline at the bottom (aligned to the text, not the chip). */
   divider?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 /**
@@ -35,6 +36,7 @@ export const ListItem: React.FC<ListItemProps> = ({
   showChevron,
   divider,
   onPress,
+  onLongPress,
 }) => {
   const { colors } = useTheme();
   const rowStyle: ViewStyle = {
@@ -94,9 +96,9 @@ export const ListItem: React.FC<ListItemProps> = ({
     </>
   );
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
-      <PressableScale onPress={onPress} style={rowStyle}>
+      <PressableScale onPress={onPress} onLongPress={onLongPress} style={rowStyle}>
         {content}
       </PressableScale>
     );
