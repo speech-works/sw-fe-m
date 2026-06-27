@@ -1,6 +1,4 @@
 import * as ImagePicker from "expo-image-picker";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -8,16 +6,17 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  Text,
+  Icon,
+} from "../design-system";
 
 type UploaderState = "ready" | "uploading" | "complete";
 
@@ -34,6 +33,7 @@ const UniversalImageUploader = ({
   maxImages = 5,
   label = "screenshots",
 }: UniversalImageUploaderProps) => {
+  const { colors } = useTheme();
   const [state, setState] = useState<UploaderState>("ready");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [lastUploadedUri, setLastUploadedUri] = useState<string | null>(null);
@@ -129,12 +129,13 @@ const UniversalImageUploader = ({
   };
 
   const renderReadyState = () => (
-    <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-      <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={["#FFFFFF", "#FFFFFF"]}
-        style={styles.cardGradient}
-      >
+    <Animated.View
+      style={[
+        styles.card,
+        { backgroundColor: colors.input.bg, borderColor: colors.input.border, transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      <View style={styles.cardGradient}>
         <TouchableOpacity
           style={styles.dropZone}
           activeOpacity={1}
@@ -142,62 +143,53 @@ const UniversalImageUploader = ({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
-          <View style={styles.iconCircle}>
-            <Icon
-              name="cloud-upload-alt"
-              size={24}
-              color={theme.colors.actionPrimary.default}
-            />
+          <View style={[styles.iconCircle, { backgroundColor: colors.action.primary + "1F" }]}>
+            <Icon name="upload-cloud" size={24} color={colors.action.primary} />
           </View>
-          <Text style={styles.stateTitle}>Tap to upload photo</Text>
-          <Text style={styles.stateSub}>
+          <Text variant="title" color={colors.action.primary}>
+            Tap to upload photo
+          </Text>
+          <Text variant="caption" color="tertiary">
             PNG or JPG (max. {maxImages} files)
           </Text>
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>
-          <View style={styles.line} />
-          <Text style={styles.dividerText}>OR</Text>
-          <View style={styles.line} />
+          <View style={[styles.line, { backgroundColor: colors.border.default }]} />
+          <Text variant="caption" color="tertiary">
+            OR
+          </Text>
+          <View style={[styles.line, { backgroundColor: colors.border.default }]} />
         </View>
 
         <TouchableOpacity
-          style={styles.cameraButton}
+          style={[styles.cameraButton, { backgroundColor: colors.surface.control }]}
           onPress={() => handlePickImage(true)}
           activeOpacity={0.7}
         >
-          <Icon
-            name="camera"
-            size={14}
-            color={theme.colors.actionPrimary.default}
-          />
-          <Text style={styles.cameraButtonText}>Open camera</Text>
+          <Icon name="camera" size={16} color={colors.action.primary} />
+          <Text variant="title" color={colors.action.primary}>
+            Open camera
+          </Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 
   const renderUploadingState = () => (
-    <View style={styles.card}>
-      <BlurView intensity={10} tint="light" style={StyleSheet.absoluteFill} />
+    <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
         <View style={styles.fileIconBox}>
-          <Icon
-            name="file-image"
-            size={32}
-            color={theme.colors.actionPrimary.default}
-          />
-          <View style={styles.fileLabel}>
-            <Text style={styles.fileLabelText}>JPG</Text>
-          </View>
+          <Icon name="image" size={32} color={colors.action.primary} />
         </View>
-        <Text style={styles.percentageText}>{Math.round(uploadProgress)}%</Text>
+        <Text variant="h3">{Math.round(uploadProgress)}%</Text>
         <View style={styles.progressContainer}>
-          <View style={styles.progressBg}>
+          <View style={[styles.progressBg, { backgroundColor: colors.surface.row }]}>
             <Animated.View
               style={[
                 styles.progressFill,
                 {
+                  backgroundColor: colors.action.primary,
                   width: progressAnim.interpolate({
                     inputRange: [0, 100],
                     outputRange: ["0%", "100%"],
@@ -207,8 +199,8 @@ const UniversalImageUploader = ({
             />
           </View>
         </View>
-        <Text style={styles.uploadingTitle}>Uploading {label}...</Text>
-        <Text style={styles.fileNameText} numberOfLines={1}>
+        <Text variant="title">Uploading {label}...</Text>
+        <Text variant="caption" color="tertiary" numberOfLines={1}>
           {lastUploadedUri?.split("/").pop()}
         </Text>
       </View>
@@ -216,20 +208,21 @@ const UniversalImageUploader = ({
   );
 
   const renderCompleteState = () => (
-    <View style={styles.card}>
-      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFill} />
+    <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
-        <View style={styles.successCircle}>
-          <Icon name="check" size={20} color="white" />
+        <View style={[styles.successCircle, { backgroundColor: colors.accent.success }]}>
+          <Icon name="check" size={20} color={colors.accentOn.success} />
         </View>
-        <Text style={styles.completeTitle}>Upload Complete</Text>
-        <Text style={styles.fileNameText} numberOfLines={1}>
+        <Text variant="h3">Upload Complete</Text>
+        <Text variant="caption" color="tertiary" numberOfLines={1}>
           {lastUploadedUri?.split("/").pop()}
         </Text>
 
         <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
-          <Icon name="trash-alt" size={14} color={theme.colors.text.default} />
-          <Text style={styles.clearButtonText}>Clear Upload</Text>
+          <Icon name="trash-2" size={14} color={colors.text.secondary} />
+          <Text variant="bodySm" color="secondary">
+            Clear Upload
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -252,10 +245,13 @@ const UniversalImageUploader = ({
             <View key={idx} style={styles.previewItem}>
               <Image source={{ uri }} style={styles.previewImage} />
               <TouchableOpacity
-                style={styles.removePreview}
+                style={[
+                  styles.removePreview,
+                  { backgroundColor: colors.accent.danger, borderColor: colors.background.canvas },
+                ]}
                 onPress={() => onChange(images.filter((_, i) => i !== idx))}
               >
-                <Icon name="times" size={10} color="white" />
+                <Icon name="x" size={10} color={colors.accentOn.danger} />
               </TouchableOpacity>
             </View>
           ))}
@@ -270,184 +266,110 @@ export default UniversalImageUploader;
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
-    gap: 16,
+    gap: spacing.lg,
   },
   card: {
     width: "100%",
     minHeight: 180,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF", // Changed from rgba(255,255,255,0.4)
+    borderRadius: radius.card,
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.6)",
     borderStyle: "dashed",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
   cardGradient: {
     flex: 1,
-    padding: 24,
+    padding: spacing["2xl"],
     alignItems: "center",
     justifyContent: "center",
   },
   cardContent: {
     flex: 1,
-    padding: 24,
+    padding: spacing["2xl"],
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   dropZone: {
     alignItems: "center",
-    gap: 8,
+    gap: spacing.sm,
   },
   iconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
-  },
-  stateTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: theme.colors.actionPrimary.default,
-  },
-  stateSub: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-    fontSize: 12,
+    marginBottom: spacing.xs,
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
     width: "80%",
-    marginVertical: 16,
-    gap: 12,
+    marginVertical: spacing.lg,
+    gap: spacing.md,
   },
   line: {
     flex: 1,
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
-  },
-  dividerText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.text.disabled,
+    height: borderWidth.thin,
   },
   cameraButton: {
-    backgroundColor: "white",
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    gap: spacing.sm,
   },
-  cameraButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.actionPrimary.default,
-  },
-  // Uploading
   fileIconBox: {
     width: 64,
     height: 64,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
-  },
-  fileLabel: {
-    position: "absolute",
-    bottom: 12,
-    backgroundColor: "#1E3A8A",
-    paddingHorizontal: 4,
-    borderRadius: 2,
-  },
-  fileLabelText: {
-    color: "white",
-    fontSize: 8,
-    fontWeight: "900",
-  },
-  percentageText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: theme.colors.text.title,
+    marginBottom: spacing.sm,
   },
   progressContainer: {
     width: "100%",
-    paddingHorizontal: 20,
-    marginTop: 4,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.xs,
   },
   progressBg: {
     height: 6,
-    backgroundColor: "#EFF6FF",
     borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: theme.colors.actionPrimary.default,
     borderRadius: 3,
   },
-  uploadingTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    marginTop: 8,
-  },
-  fileNameText: {
-    fontSize: 12,
-    color: theme.colors.text.disabled,
-    fontWeight: "500",
-  },
-  // Complete
   successCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.library.green[500],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
-  },
-  completeTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.text.title,
+    marginBottom: spacing.sm,
   },
   clearButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 12,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.text.default,
-  },
-  // Preview
   previewStrip: {
     flexDirection: "row",
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
   },
   previewItem: {
     width: 70,
     height: 70,
-    borderRadius: 12,
-    marginRight: 10,
+    borderRadius: radius.md,
+    marginRight: spacing.sm,
     position: "relative",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
   previewImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
   removePreview: {
     position: "absolute",
@@ -456,10 +378,8 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: theme.colors.library.red[500],
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "white",
   },
 });
