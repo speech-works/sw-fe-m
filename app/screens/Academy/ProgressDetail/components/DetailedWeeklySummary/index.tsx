@@ -17,7 +17,6 @@ import {
   useTheme,
   spacing,
   radius,
-  borderWidth,
   size,
   fonts,
   Text,
@@ -28,7 +27,7 @@ import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
 export const WeeklySummarySkeleton = () => {
   const { colors } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default }]}>
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
       <View style={styles.skeletonBody}>
         <View style={styles.headerRow}>
           <View style={styles.skeletonHeaderText}>
@@ -113,7 +112,8 @@ const DaysActiveSparkline: React.FC<{
   isAhead: boolean;
 }> = ({ historicalActiveDays, benchmarkText, isAhead }) => {
   const { colors } = useTheme();
-  const accent = colors.accent.purple;
+  // Activity/streak orange — the brand accent that carries the data-viz.
+  const accent = colors.gamification.streak;
 
   const chartData = React.useMemo(() => {
     const innerWidth = TREND_VIEWBOX_WIDTH - TREND_PADDING_X * 2;
@@ -405,15 +405,12 @@ const DetailedWeeklySummary = ({
     weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0;
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default }]}>
-      {/* Purple identity glow */}
-      <View style={[styles.glow, { backgroundColor: colors.accentTint.purple }]} />
-
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
       <View style={styles.contentLayer}>
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.flex1}>
-            <Text variant="label" color={colors.accent.purple} style={styles.eyebrow}>
+            <Text variant="label" color="tertiary" style={styles.eyebrow}>
               {levelStage?.title || "WEEKLY SUMMARY"}
             </Text>
             <Text variant="h3">{getWeekRangeLabel()}</Text>
@@ -422,7 +419,7 @@ const DetailedWeeklySummary = ({
             {hasError && (
               <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
             )}
-            <Icon name="chart-line" size={size.icon} color={colors.accent.purple} />
+            <Icon name="chart-line" size={size.icon} color={colors.text.tertiary} />
           </View>
         </View>
 
@@ -506,20 +503,11 @@ export default DetailedWeeklySummary;
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
-    borderWidth: borderWidth.thin,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     minHeight: 180,
     position: "relative",
     overflow: "hidden",
-  },
-  glow: {
-    position: "absolute",
-    top: -80,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
   },
   contentLayer: {
     flex: 1,
