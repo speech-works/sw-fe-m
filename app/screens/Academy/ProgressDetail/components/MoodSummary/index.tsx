@@ -34,10 +34,12 @@ export const MoodSummarySkeleton = () => {
         </View>
         <Skeleton width={20} height={20} />
       </View>
-      <Skeleton width={"100%"} height={12} radius={6} />
-      <View style={styles.legend}>
+      <View style={styles.moodList}>
         {[1, 2].map((i) => (
-          <Skeleton key={i} width={"100%"} height={20} />
+          <View key={i} style={styles.moodRow}>
+            <Skeleton width={80} height={14} />
+            <Skeleton width={"100%"} height={8} radius={4} />
+          </View>
         ))}
       </View>
     </View>
