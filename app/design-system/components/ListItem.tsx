@@ -14,8 +14,6 @@ export interface ListItemProps {
   sublabel?: string;
   value?: string;
   leftIcon?: IconName;
-  /** Optional accent for the icon chip (chip = tint @ 14%, icon = tint). Defaults to neutral. */
-  iconTint?: string;
   right?: React.ReactNode;
   showChevron?: boolean;
   /** Render an inset hairline at the bottom (aligned to the text, not the chip). */
@@ -33,7 +31,6 @@ export const ListItem: React.FC<ListItemProps> = ({
   sublabel,
   value,
   leftIcon,
-  iconTint,
   right,
   showChevron,
   divider,
@@ -61,10 +58,10 @@ export const ListItem: React.FC<ListItemProps> = ({
             borderRadius: radius.md,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: iconTint ? iconTint + "24" : colors.surface.control,
+            backgroundColor: colors.surface.control,
           }}
         >
-          <Icon name={leftIcon} size={20} color={iconTint ?? colors.text.secondary} />
+          <Icon name={leftIcon} size={20} color={colors.text.primary} />
         </View>
       ) : null}
       <View style={{ flex: 1 }}>

@@ -129,7 +129,6 @@ const Preferences = () => {
           <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
             <ListItem
               leftIcon="mic"
-              iconTint={colors.accent.info}
               label="Difficult Sounds"
               sublabel={`${user?.fearedSounds?.length || 0} sounds selected`}
               showChevron
@@ -138,7 +137,6 @@ const Preferences = () => {
             />
             <ListItem
               leftIcon="volume-2"
-              iconTint={colors.action.primary}
               label="Reading voice"
               sublabel={voiceDesc}
               showChevron
@@ -149,7 +147,6 @@ const Preferences = () => {
           <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
             <ListItem
               leftIcon="bar-chart-2"
-              iconTint={colors.accent.success}
               label="Share anonymous analytics"
               sublabel="Helps us improve the app. Never your voice or personal details."
               right={
