@@ -1,42 +1,29 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { LinearGradient } from "expo-linear-gradient";
 
 import CustomScrollView from "../../../components/CustomScrollView";
 import ScreenView from "../../../components/ScreenView";
 import { AccentPicker } from "../../Academy/Tools/VoiceHover/AccentPicker";
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
+import { useTheme, spacing, Text, IconButton } from "../../../design-system";
 
 const ReadingVoice = () => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<SettingsStackNavigationProp<"ReadingVoice">>();
 
   return (
-    <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#121212", "#121212", "#121212"]}
-          locations={[0, 0.4, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
+    <ScreenView style={[styles.screenView, { paddingHorizontal: 0, backgroundColor: colors.background.canvas }]}>
       <View
         style={[
           styles.header,
           { paddingTop: insets.top + 10, height: 60 + insets.top },
         ]}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-left" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
       </View>
 
       <View style={styles.container}>
@@ -47,7 +34,7 @@ const ReadingVoice = () => {
           ]}
         >
           <View style={styles.intro}>
-            <Text style={styles.introTitle}>What accent do you want to hear?</Text>
+            <Text variant="h1">What accent do you want to hear?</Text>
           </View>
 
           <AccentPicker />
@@ -62,7 +49,6 @@ export default ReadingVoice;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#121212",
   },
   container: {
     flex: 1,
@@ -76,29 +62,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     backgroundColor: "transparent",
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2C2C2E",
-  },
   scrollView: {
-    gap: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 60,
+    gap: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing["5xl"],
   },
   intro: {
-    gap: 4,
-    marginBottom: 10,
-  },
-  introTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    marginBottom: spacing.sm,
   },
 });

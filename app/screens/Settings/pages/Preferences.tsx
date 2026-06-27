@@ -1,16 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import {
   getUserPreferences,
   updateUserPreferences,
@@ -24,17 +15,21 @@ import { ACCENT_META_BY_LOCALE } from "../../../util/voice";
 import { useUserStore } from "../../../stores/user";
 import { useAnalyticsConsentStore } from "../../../stores/analyticsConsent";
 import { applyAnalyticsConsent } from "../../../util/analytics/postHog";
-import { theme } from "../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
-
-import { LinearGradient } from "expo-linear-gradient";
-
 import { SettingsStackNavigationProp } from "../../../navigators/stacks/SettingsStack/types";
+import {
+  useTheme,
+  spacing,
+  radius,
+  size,
+  Text,
+  ListItem,
+  Toggle,
+  IconButton,
+  Divider,
+} from "../../../design-system";
 
 const Preferences = () => {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<SettingsStackNavigationProp<"Preferences">>();
   const { user } = useUserStore();
@@ -108,59 +103,22 @@ const Preferences = () => {
     ? `${ACCENT_META_BY_LOCALE[voicePref.accent]?.label ?? "Selected"} accent`
     : "Choose an accent";
 
-  const prefItems = [
-    {
-      id: "difficult-sounds",
-      title: "Difficult Sounds",
-      desc: `${user?.fearedSounds?.length || 0} sounds selected`,
-      icon: "bullhorn",
-      iconColor: "#2563EB",
-      bgColor: "#EFF6FF",
-      onPress: () => navigation.navigate("FearedSounds" as any),
-    },
-    {
-      id: "reading-voice",
-      title: "Reading voice",
-      desc: voiceDesc,
-      icon: "account-voice",
-      iconColor: "#EA580C",
-      bgColor: "#FFF7ED",
-      onPress: () => navigation.navigate("ReadingVoice"),
-    },
-  ];
-
   return (
-    <ScreenView style={[styles.screenView, { paddingHorizontal: 0 }]}>
-      {/* Background Gradient */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FFF", "#FFF"]}
-          locations={[0, 0.4, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
-      <BlurView
-        intensity={80}
-        tint="light"
+    <ScreenView style={[styles.screenView, { paddingHorizontal: 0, backgroundColor: colors.background.canvas }]}>
+      <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
+          {
+            paddingTop: insets.top + 10,
+            height: 60 + insets.top,
+            backgroundColor: colors.background.canvas,
+          },
         ]}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon
-            name="chevron-left"
-            size={16}
-            color={theme.colors.text.title}
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Preferences</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+        <Text variant="h3">Preferences</Text>
+        <View style={{ width: size.backBtn }} />
+      </View>
 
       <View style={styles.container}>
         <CustomScrollView
@@ -169,68 +127,39 @@ const Preferences = () => {
             { paddingTop: 60 + insets.top + 20 },
           ]}
         >
-          {/* Professional List Menu */}
-          <View style={styles.listContainer}>
-            {prefItems.map((item, index) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.listItem}
-                onPress={item.onPress}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.listIconContainer, { backgroundColor: item.bgColor }]}>
-                  <MaterialCommunityIcons
-                    name={item.icon as any}
-                    size={22}
-                    color={item.iconColor}
-                  />
-                </View>
-                <View style={styles.listTextContainer}>
-                  <Text style={styles.listItemText}>{item.title}</Text>
-                  <Text style={styles.listItemDesc}>{item.desc}</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#94A3B8" />
-                {index < prefItems.length - 1 && <View style={styles.divider} />}
-              </TouchableOpacity>
-            ))}
+          <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+            <ListItem
+              leftIcon="mic"
+              label="Difficult Sounds"
+              sublabel={`${user?.fearedSounds?.length || 0} sounds selected`}
+              showChevron
+              onPress={() => navigation.navigate("FearedSounds" as any)}
+            />
+            <Divider inset={spacing.lg} />
+            <ListItem
+              leftIcon="volume-2"
+              label="Reading voice"
+              sublabel={voiceDesc}
+              showChevron
+              onPress={() => navigation.navigate("ReadingVoice")}
+            />
           </View>
 
-          {/* Privacy */}
-          <View style={styles.listContainer}>
-            <View style={styles.listItem}>
-              <View
-                style={[
-                  styles.listIconContainer,
-                  { backgroundColor: "#F0FDF4" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name="chart-line"
-                  size={22}
-                  color="#16A34A"
+          <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+            <ListItem
+              leftIcon="bar-chart-2"
+              label="Share anonymous analytics"
+              sublabel="Helps us improve the app. Never your voice or personal details."
+              right={
+                <Toggle
+                  value={analyticsOn}
+                  onChange={(v) => {
+                    setAnalyticsOn(v);
+                    applyAnalyticsConsent(v);
+                  }}
                 />
-              </View>
-              <View style={styles.listTextContainer}>
-                <Text style={styles.listItemText}>
-                  Share anonymous analytics
-                </Text>
-                <Text style={styles.listItemDesc}>
-                  Helps us improve the app. Never your voice or personal details.
-                </Text>
-              </View>
-              <Switch
-                value={analyticsOn}
-                onValueChange={(v) => {
-                  setAnalyticsOn(v);
-                  applyAnalyticsConsent(v);
-                }}
-                accessibilityLabel="Share anonymous analytics"
-                trackColor={{
-                  true: theme.colors.actionPrimary.default,
-                  false: "#CBD5E1",
-                }}
-              />
-            </View>
+              }
+            />
           </View>
         </CustomScrollView>
       </View>
@@ -243,7 +172,6 @@ export default Preferences;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#F8FAFC",
   },
   container: {
     flex: 1,
@@ -257,117 +185,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
+    paddingHorizontal: spacing.xl,
   },
   scrollView: {
-    gap: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing["4xl"],
   },
-  listContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 8,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    position: "relative",
-  },
-  listIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  listTextContainer: {
-    flex: 1,
-  },
-  listItemText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    marginBottom: 2,
-  },
-  listItemDesc: {
-    fontSize: 13,
-    color: "#64748B",
-  },
-  divider: {
-    position: "absolute",
-    bottom: 0,
-    left: 76,
-    right: 16,
-    height: 1,
-    backgroundColor: "#F1F5F9",
-  },
-  limitCardContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    gap: 20,
-  },
-  limitCardHeader: {
-    gap: 4,
-  },
-  limitCardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
-  limitCardDesc: {
-    fontSize: 14,
-    color: "#64748B",
-    lineHeight: 20,
-  },
-  controlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#F8FAFC",
-    padding: 8,
-    borderRadius: 16,
-  },
-  controlButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  valueDisplay: {
-    flex: 1,
-    alignItems: "center",
-  },
-  valueText: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: theme.colors.text.title,
+  group: {
+    borderRadius: radius.card,
+    overflow: "hidden",
   },
 });
