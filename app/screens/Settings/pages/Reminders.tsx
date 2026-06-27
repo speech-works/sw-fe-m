@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import { LayoutAnimation, StyleSheet, View } from "react-native";
+import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from "react-native";
 import { useReminderStore } from "../../../stores/reminders";
 import { ReminderCategory } from "../../../constants/reminderTemplates";
 import {
@@ -17,6 +17,14 @@ import {
   Text,
   IconName,
 } from "../../../design-system";
+
+// Android needs LayoutAnimation explicitly enabled for the delete animation.
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const CATEGORY_META: Record<
   ReminderCategory,
