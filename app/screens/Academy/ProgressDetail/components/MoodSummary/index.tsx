@@ -1,26 +1,27 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import Angry1 from "../../../../../assets/mood-check/Angry1";
-import Calm1 from "../../../../../assets/mood-check/Calm1";
-import Happy1 from "../../../../../assets/mood-check/Happy1";
-import Sad1 from "../../../../../assets/mood-check/Sad1";
 import {
   useTheme,
   spacing,
   radius,
   size,
+  fonts,
   Text,
   Skeleton,
 } from "../../../../../design-system";
 import { getMoodRemark } from "./helper";
 
-const MOOD_FACES = {
-  ANGRY: Angry1,
-  CALM: Calm1,
-  HAPPY: Happy1,
-  SAD: Sad1,
-};
+/** Mood → semantic accent (happy=warm, calm=green, sad=blue, angry=red). */
+const MOOD_COLOR = {
+  HAPPY: "warning",
+  CALM: "success",
+  SAD: "info",
+  ANGRY: "danger",
+} as const;
+
+const moodName = (mood: string) =>
+  mood.charAt(0) + mood.slice(1).toLowerCase();
 
 export const MoodSummarySkeleton = () => {
   const { colors } = useTheme();
@@ -33,13 +34,10 @@ export const MoodSummarySkeleton = () => {
         </View>
         <Skeleton width={20} height={20} />
       </View>
-      <View style={styles.moodGrid}>
-        {[1, 2, 3].map((i) => (
-          <View key={i} style={[styles.moodCard, { backgroundColor: colors.surface.default }]}>
-            <Skeleton width={48} height={48} radius={24} />
-            <Skeleton width={40} height={10} />
-            <Skeleton width={32} height={18} />
-          </View>
+      <Skeleton width={"100%"} height={12} radius={6} />
+      <View style={styles.legend}>
+        {[1, 2].map((i) => (
+          <Skeleton key={i} width={"100%"} height={20} />
         ))}
       </View>
     </View>
@@ -66,9 +64,14 @@ const MoodSummary = ({
     return null;
   }
 
-  const nonZeroMoods = (Object.entries(moodStats) as [string, number][]).filter(
-    ([, percentage]) => percentage > 0,
-  );
+  const moodColor = (mood: string) => {
+    const key = MOOD_COLOR[mood as keyof typeof MOOD_COLOR];
+    return key ? colors.accent[key] : colors.text.tertiary;
+  };
+
+  const nonZeroMoods = (Object.entries(moodStats) as [string, number][])
+    .filter(([, percentage]) => percentage > 0)
+    .sort((a, b) => b[1] - a[1]);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface.elevated }]}>
@@ -88,25 +91,29 @@ const MoodSummary = ({
         </View>
       </View>
 
-      {/* Mood tiles or empty */}
       {nonZeroMoods.length > 0 ? (
-        <View style={styles.moodGrid}>
-          {nonZeroMoods.map(([mood, percentage]) => {
-            const MoodFace = MOOD_FACES[mood as keyof typeof MOOD_FACES];
-            if (!MoodFace) return null;
-            return (
-              <View key={mood} style={[styles.moodCard, { backgroundColor: colors.surface.default }]}>
-                <View style={[styles.moodFace, { backgroundColor: colors.surface.control }]}>
-                  <MoodFace width={40} height={40} />
-                </View>
-                <Text variant="h3">{percentage.toFixed(1)}%</Text>
-                <Text variant="caption" color="secondary">
-                  {mood.charAt(0) + mood.slice(1).toLowerCase()}
-                </Text>
+        <>
+          {/* Stacked proportion bar */}
+          <View style={[styles.bar, { backgroundColor: colors.surface.control }]}>
+            {nonZeroMoods.map(([mood, pct]) => (
+              <View
+                key={mood}
+                style={{ width: `${pct}%`, backgroundColor: moodColor(mood) }}
+              />
+            ))}
+          </View>
+
+          {/* Legend — dot · name · % */}
+          <View style={styles.legend}>
+            {nonZeroMoods.map(([mood, pct]) => (
+              <View key={mood} style={styles.legendRow}>
+                <View style={[styles.dot, { backgroundColor: moodColor(mood) }]} />
+                <Text variant="body" style={styles.legendName}>{moodName(mood)}</Text>
+                <Text variant="body" style={styles.bold}>{pct.toFixed(1)}%</Text>
               </View>
-            );
-          })}
-        </View>
+            ))}
+          </View>
+        </>
       ) : (
         <View style={styles.emptyMood}>
           <View style={[styles.emptyMoodIcon, { backgroundColor: colors.surface.control }]}>
@@ -136,9 +143,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.card,
     padding: spacing.xl,
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
   flex1: { flex: 1 },
+  bold: { fontFamily: fonts.bold },
   eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
@@ -151,27 +159,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerErrorIcon: { marginRight: spacing.sm },
-  moodGrid: {
+  bar: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    height: 12,
+    borderRadius: radius.full,
+    overflow: "hidden",
+  },
+  legend: {
     gap: spacing.md,
   },
-  moodCard: {
-    flex: 1,
-    minWidth: 96,
-    maxWidth: 130,
-    borderRadius: radius.input,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
+  legendRow: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  moodFace: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendName: {
+    flex: 1,
   },
   emptyMood: {
     alignItems: "center",
