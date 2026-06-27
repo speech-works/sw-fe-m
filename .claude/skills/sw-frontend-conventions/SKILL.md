@@ -64,6 +64,18 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
    `label`=ALL-CAPS section/form label (tertiary) · `caption`=meta.
 6. **Surfaces & radius:** cards/groups `radius.card` (24); inputs `radius.input`
    (16); chips `radius.chip` (20); buttons `radius.pill` (36).
+7. **Hero / identity cards = dark surface + orange accents, NOT an orange flood.**
+   Prefer a dark `surface.elevated` card (hairline border + `elevation.e2`) with
+   the brand expressed through accents — an orange avatar ring, an orange-tint
+   chip, and an **orange (`primary`) CTA button** — over a fully orange-filled
+   card with dark content. The app is dark-with-orange-accents; flooded-orange
+   cards fight that language.
+8. **Floating tab bar clearance.** The `CustomTabBar` floats over content and
+   shows ONLY on tab-ROOT screens (Home/Explore/Community/Settings hub) — it's
+   hidden on every pushed screen (`getTabBarVisibility`). On a tab-root screen,
+   pass **`tabBarSafe`** to `<Page>` so the scroll body reserves `size.tabBarSafe`
+   and bottom content (log out, footers, last rows) stays reachable above the
+   dock. Do NOT set it on pushed screens (they'd get dead bottom whitespace).
 
 ## Colors — tokens only, AA always
 

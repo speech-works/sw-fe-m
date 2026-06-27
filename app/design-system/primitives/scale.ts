@@ -55,6 +55,9 @@ export const size = {
   control: 56,
   row: 72, // standard settings/list row height (matches ConnectedAvatarRow)
   avatarChip: 48, // leading icon chip inside a ListItem row
+  // Clearance a scroll body must keep below it on tab-ROOT screens so content
+  // isn't hidden behind the floating CustomTabBar (bottom:30 + height:70 + gap).
+  tabBarSafe: 120,
   backBtn: 44,
   tabIcon: 24,
   iconLg: 28,

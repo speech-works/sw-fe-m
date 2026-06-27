@@ -3,7 +3,6 @@ import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
-import BottomSheetModal from "../../components/BottomSheetModal";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUserStore } from "../../stores/user";
@@ -12,8 +11,10 @@ import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
+  elevation,
   Page,
-  Gradient,
+  Sheet,
   ListItem,
   Button,
   Text,
@@ -143,28 +144,32 @@ const Settings = () => {
 
   return (
     <>
-      <Page title="Settings" description="Manage your profile and preferences.">
-        {/* Brand identity hero */}
-        <Gradient token="brand" style={styles.profileSection}>
+      <Page title="Settings" description="Manage your profile and preferences." tabBarSafe>
+        {/* Identity hero — dark card, orange accents */}
+        <View
+          style={[
+            styles.profileSection,
+            { backgroundColor: colors.surface.elevated, borderColor: colors.border.default },
+            elevation.e2,
+          ]}
+        >
           <View style={styles.imageContainer}>
             <Image
               source={{ uri: user?.profilePictureUrl }}
-              style={[styles.profileImage, { borderColor: colors.surface.inverse }]}
+              style={[styles.profileImage, { borderColor: colors.action.primary }]}
             />
-            <View style={[styles.onlineBadge, { backgroundColor: colors.accent.success, borderColor: colors.action.primary }]} />
+            <View style={[styles.onlineBadge, { backgroundColor: colors.accent.success, borderColor: colors.surface.elevated }]} />
           </View>
 
           <View style={styles.nameRow}>
-            <Text variant="h2" color={colors.text.inverse}>
-              {user?.name}
-            </Text>
-            <View style={[styles.proBadge, { backgroundColor: colors.background.canvas }]}>
+            <Text variant="h2">{user?.name}</Text>
+            <View style={[styles.proBadge, { backgroundColor: colors.action.primary + "1F" }]}>
               <Text variant="label" color={colors.action.primary}>
                 FREE
               </Text>
             </View>
           </View>
-          <Text variant="bodySm" color={colors.text.inverse}>
+          <Text variant="bodySm" color="secondary">
             Member since{" "}
             {user?.createdAt
               ? new Date(user.createdAt).getFullYear()
@@ -173,12 +178,12 @@ const Settings = () => {
 
           <Button
             label="View Profile"
-            variant="secondary"
+            variant="primary"
             rightIcon="chevron-right"
             onPress={onViewProfile}
             style={styles.viewProfileButton}
           />
-        </Gradient>
+        </View>
 
         {/* Menu */}
         <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
@@ -219,15 +224,9 @@ const Settings = () => {
         </View>
       </Page>
 
-      <BottomSheetModal
-        visible={isVisible}
-        onClose={closeModal}
-        maxHeight="80%"
-        showHandle={true}
-        showCloseButton={true}
-      >
+      <Sheet visible={isVisible} onClose={closeModal}>
         <FullProfile levelStage={levelStage} />
-      </BottomSheetModal>
+      </Sheet>
 
       <DeleteAccountModal
         visible={showDeleteModal}
@@ -241,7 +240,7 @@ const Settings = () => {
 const styles = StyleSheet.create({
   profileSection: {
     borderRadius: radius.card,
-    overflow: "hidden",
+    borderWidth: borderWidth.thin,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing["3xl"],
     alignItems: "center",

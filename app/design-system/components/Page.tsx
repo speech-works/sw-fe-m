@@ -42,6 +42,9 @@ export interface PageProps {
   contentGap?: number;
   /** Render the body as a FlatList instead of children (title becomes the list header). */
   list?: PageListConfig;
+  /** Tab-ROOT screens (where the floating CustomTabBar shows) set this so the
+   * scroll body clears the dock and bottom content stays reachable. */
+  tabBarSafe?: boolean;
   children?: React.ReactNode;
 }
 
@@ -64,24 +67,32 @@ export const Page: React.FC<PageProps> = ({
   scroll = true,
   contentGap,
   list,
+  tabBarSafe,
   children,
 }) => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
-  const bottomPad = footer ? FOOTER_RESERVE + insets.bottom : insets.bottom + space.screenX;
+  const tabPad = tabBarSafe ? size.tabBarSafe : 0;
+  const bottomPad =
+    (footer ? FOOTER_RESERVE + insets.bottom : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
 
   // No own horizontal padding — the container applies space.screenX so the title
-  // and the content (and list rows) all share one gutter.
+  // and the content (and list rows) all share one gutter. The back bar only
+  // renders when there's a back button or a right action — otherwise (tab-root
+  // screens) the title sits near the top instead of below a phantom 44px bar.
+  const hasBar = !!(onBack || right);
   const titleBlock = (
     <View>
-      <View style={styles.backBar}>
-        {onBack ? <IconButton name="arrow-left" onPress={onBack} /> : <View style={{ width: size.backBtn }} />}
-        {right ? right : null}
-      </View>
-      <Text variant="h1" style={{ marginTop: space.titleGap }}>
+      {hasBar ? (
+        <View style={styles.backBar}>
+          {onBack ? <IconButton name="arrow-left" onPress={onBack} /> : <View style={{ width: size.backBtn }} />}
+          {right ? right : null}
+        </View>
+      ) : null}
+      <Text variant="h1" style={{ marginTop: hasBar ? space.titleGap : spacing.lg }}>
         {title}
       </Text>
       {description ? (
