@@ -144,8 +144,7 @@ const MoodSummary = ({
 
       {/* Remark */}
       <View style={[styles.remark, { backgroundColor: colors.surface.default }]}>
-        <Icon name="lightbulb" size={14} color={colors.accent.warning} />
-        <Text variant="bodySm" color="secondary" style={styles.flex1}>
+        <Text variant="bodySm" color="secondary">
           {getMoodRemark(moodStats)}
         </Text>
       </View>
@@ -211,9 +210,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   remark: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
     borderRadius: radius.md,
     padding: spacing.lg,
   },
