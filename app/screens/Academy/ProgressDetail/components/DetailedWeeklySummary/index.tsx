@@ -23,6 +23,8 @@ import {
   spacing,
   radius,
   borderWidth,
+  size,
+  fonts,
   Text,
   Skeleton,
 } from "../../../../../design-system";
@@ -441,7 +443,7 @@ const DetailedWeeklySummary = ({
             {hasError && (
               <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
             )}
-            <Icon name="chart-line" size={20} color={colors.accent.purple} />
+            <Icon name="chart-line" size={size.icon} color={colors.accent.purple} />
           </View>
         </View>
 
@@ -493,7 +495,7 @@ const DetailedWeeklySummary = ({
               />
             ) : (
               <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default }]}>
-                <Text style={styles.welcomeEmoji}>🎉</Text>
+                <Text variant="h2">🎉</Text>
                 <View style={styles.flex1}>
                   <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
                   <Text variant="caption" color="secondary">
@@ -554,8 +556,8 @@ const styles = StyleSheet.create({
     gap: spacing["2xl"],
   },
   flex1: { flex: 1 },
-  bold: { fontWeight: "700" },
-  eyebrow: { letterSpacing: 1, marginBottom: spacing.xxs },
+  bold: { fontFamily: fonts.bold },
+  eyebrow: { letterSpacing: 1, textTransform: "uppercase", marginBottom: spacing.xxs },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -653,9 +655,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-  },
-  welcomeEmoji: {
-    fontSize: 22,
   },
   emptyContainer: {
     gap: spacing.sm,

@@ -23,6 +23,7 @@ import {
   spacing,
   radius,
   borderWidth,
+  size,
   Segmented,
   Text,
   IconButton,
@@ -324,7 +325,7 @@ const ProgressDetail = () => {
         >
           <View style={{ width: screenWidth }}>
             <ScrollView
-              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12 }]}
+              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + spacing.md }]}
               showsVerticalScrollIndicator={false}
               refreshControl={refreshControl}
             >
@@ -335,7 +336,7 @@ const ProgressDetail = () => {
           <View style={{ width: screenWidth }}>
             <ScrollView
               ref={scrollRef}
-              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12 }]}
+              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + spacing.md }]}
               showsVerticalScrollIndicator={false}
               refreshControl={refreshControl}
             >
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   headerSpacer: {
-    width: 44,
+    width: size.backBtn,
   },
   tabs: {
     marginTop: spacing.lg,
