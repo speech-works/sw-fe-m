@@ -5,6 +5,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   ViewStyle,
   ListRenderItem,
 } from "react-native";
@@ -161,6 +162,9 @@ export const Page: React.FC<PageProps> = ({
 
   return (
     <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+      {/* Dark scaffold → light status-bar glyphs (white clock/battery), drawn
+       * edge-to-edge over the app canvas. Overrides BgWrapper's dark-content. */}
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       {body}
       {/* Opaque status-bar cap — hides scrolled content behind the system clock/
        * battery instead of letting the title collide with them. */}

@@ -276,8 +276,8 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
+    top: -4,
+    left: -4,
     width: 32,
     height: 32,
     borderRadius: 16,
