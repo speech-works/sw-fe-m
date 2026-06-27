@@ -12,11 +12,6 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
-import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
-import PathfinderFace from "../../../../../assets/sw-faces/PathfinderFace";
-import VanguardFace from "../../../../../assets/sw-faces/VanguardFace";
-import CatalystFace from "../../../../../assets/sw-faces/CatalystFace";
-import BeaconFace from "../../../../../assets/sw-faces/BeaconFace";
 import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
 import {
   useTheme,
@@ -29,15 +24,6 @@ import {
   Skeleton,
 } from "../../../../../design-system";
 import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
-
-/** Speaker's Journey stage → animated camel face (keyed by the stage title). */
-const LEVEL_FACES: Record<string, React.ComponentType<{ size?: number; shouldAnimate?: boolean; transparentBg?: boolean }>> = {
-  seeker: SeekerFace,
-  pathfinder: PathfinderFace,
-  vanguard: VanguardFace,
-  catalyst: CatalystFace,
-  beacon: BeaconFace,
-};
 
 export const WeeklySummarySkeleton = () => {
   const { colors } = useTheme();
@@ -415,20 +401,13 @@ const DetailedWeeklySummary = ({
     return null;
   }
 
-  const key = levelStage?.title?.toLowerCase().split(" ")[0] ?? "";
-  const LevelFace = LEVEL_FACES[key];
   const hasStats =
     weeklyData.totalPracticeMinutes > 0 || weeklyData.totalDaysActive > 0;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.default }]}>
-      {/* Purple identity glow + level-stage character watermark */}
+      {/* Purple identity glow */}
       <View style={[styles.glow, { backgroundColor: colors.accentTint.purple }]} />
-      {LevelFace ? (
-        <View style={styles.levelFaceWatermark} pointerEvents="none">
-          <LevelFace size={150} shouldAnimate transparentBg />
-        </View>
-      ) : null}
 
       <View style={styles.contentLayer}>
         {/* Header */}
@@ -541,13 +520,6 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-  },
-  levelFaceWatermark: {
-    position: "absolute",
-    right: -16,
-    bottom: -22,
-    zIndex: 0,
-    opacity: 0.16,
   },
   contentLayer: {
     flex: 1,
