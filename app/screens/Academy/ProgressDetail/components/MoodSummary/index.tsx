@@ -92,28 +92,22 @@ const MoodSummary = ({
       </View>
 
       {nonZeroMoods.length > 0 ? (
-        <>
-          {/* Stacked proportion bar */}
-          <View style={[styles.bar, { backgroundColor: colors.surface.control }]}>
-            {nonZeroMoods.map(([mood, pct]) => (
-              <View
-                key={mood}
-                style={{ width: `${pct}%`, backgroundColor: moodColor(mood) }}
-              />
-            ))}
-          </View>
-
-          {/* Legend — dot · name · % */}
-          <View style={styles.legend}>
-            {nonZeroMoods.map(([mood, pct]) => (
-              <View key={mood} style={styles.legendRow}>
-                <View style={[styles.dot, { backgroundColor: moodColor(mood) }]} />
-                <Text variant="body" style={styles.legendName}>{moodName(mood)}</Text>
-                <Text variant="body" style={styles.bold}>{pct.toFixed(1)}%</Text>
+        <View style={styles.moodList}>
+          {nonZeroMoods.map(([mood, pct]) => (
+            <View key={mood} style={styles.moodRow}>
+              <View style={styles.moodRowHeader}>
+                <View style={styles.moodLabel}>
+                  <View style={[styles.dot, { backgroundColor: moodColor(mood) }]} />
+                  <Text variant="body" style={styles.bold}>{moodName(mood)}</Text>
+                </View>
+                <Text variant="body" color="secondary">{pct.toFixed(1)}%</Text>
               </View>
-            ))}
-          </View>
-        </>
+              <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
+                <View style={[styles.fill, { width: `${pct}%`, backgroundColor: moodColor(mood) }]} />
+              </View>
+            </View>
+          ))}
+        </View>
       ) : (
         <View style={styles.emptyMood}>
           <View style={[styles.emptyMoodIcon, { backgroundColor: colors.surface.control }]}>
@@ -159,27 +153,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerErrorIcon: { marginRight: spacing.sm },
-  bar: {
-    flexDirection: "row",
-    height: 12,
-    borderRadius: radius.full,
-    overflow: "hidden",
+  moodList: {
+    gap: spacing.lg,
   },
-  legend: {
-    gap: spacing.md,
+  moodRow: {
+    gap: spacing.sm,
   },
-  legendRow: {
+  moodRowHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  moodLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  legendName: {
-    flex: 1,
+  track: {
+    height: 8,
+    borderRadius: radius.full,
+    overflow: "hidden",
+  },
+  fill: {
+    height: "100%",
+    borderRadius: radius.full,
   },
   emptyMood: {
     alignItems: "center",
