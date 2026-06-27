@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   ScrollView,
@@ -74,10 +74,14 @@ export const Page: React.FC<PageProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // Measured at runtime so the scroll body reserves the footer's REAL height
+  // (varies by content) and the last element always clears the pinned footer.
+  const [footerH, setFooterH] = useState(FOOTER_RESERVE);
+
   const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
   const tabPad = tabBarSafe ? size.tabBarSafe : 0;
   const bottomPad =
-    (footer ? FOOTER_RESERVE + insets.bottom : insets.bottom + space.screenX) + tabPad;
+    (footer ? footerH + space.groupGap : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
 
   // No own horizontal padding — the container applies space.screenX so the title
@@ -183,6 +187,7 @@ export const Page: React.FC<PageProps> = ({
       ) : null}
       {footer ? (
         <View
+          onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
           style={{
             position: "absolute",
             left: 0,
