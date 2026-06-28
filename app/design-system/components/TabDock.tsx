@@ -30,6 +30,8 @@ export interface TabDockProps {
   onLongPress?: (key: string) => void;
   /** Hug the tabs instead of filling the width (for in-page docks). */
   fitContent?: boolean;
+  /** Render in normal flow (e.g. inside a header) instead of floating at the bottom. */
+  inline?: boolean;
 }
 
 /**
@@ -44,10 +46,11 @@ export const TabDock: React.FC<TabDockProps> = ({
   onSelect,
   onLongPress,
   fitContent = false,
+  inline = false,
 }) => {
   const { colors } = useTheme();
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View style={inline ? styles.containerInline : styles.container} pointerEvents="box-none">
       <View
         style={[
           styles.bar,
@@ -190,6 +193,9 @@ const styles = StyleSheet.create({
     right: 20,
     alignItems: "center",
   },
+  containerInline: {
+    alignItems: "flex-start",
+  },
   bar: {
     flexDirection: "row",
     borderRadius: 35,
@@ -205,7 +211,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   barFit: {
-    alignSelf: "center",
     justifyContent: "center",
     gap: 8,
   },
