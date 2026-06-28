@@ -192,41 +192,35 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                     !isUnlocked && styles.lockedCard,
                   ]}
                 >
-                  {StageFace ? (
-                    <View style={[styles.stageFace, { opacity: isUnlocked ? 1 : 0.35 }]} pointerEvents="none">
-                      <StageFace size={84} shouldAnimate={isUnlocked} />
-                    </View>
-                  ) : null}
-
                   {isCurrent ? (
-                    <View style={[styles.currentBadge, { backgroundColor: colors.action.primary }]}>
-                      <Text variant="caption" color={colors.action.onPrimary} style={styles.currentBadgeText}>
+                    <View style={[styles.hereChip, { backgroundColor: colors.action.primary }]}>
+                      <Text variant="caption" color={colors.action.onPrimary} style={styles.bold}>
                         You're here
                       </Text>
                     </View>
                   ) : null}
 
-                  <View style={styles.cardHeaderRow}>
-                    <View style={[styles.stageBadge, { backgroundColor: colors.surface.control }]}>
-                      <Icon
-                        name={isUnlocked ? "medal" : "lock"}
-                        size={isUnlocked ? 22 : 16}
-                        color={isUnlocked ? colors.gamification.gold : colors.text.tertiary}
-                      />
-                    </View>
-                    <View style={styles.stageInfo}>
+                  <View style={styles.stageHeader}>
+                    {StageFace && isUnlocked ? (
+                      <StageFace size={60} shouldAnimate />
+                    ) : (
+                      <View style={[styles.lockCircle, { backgroundColor: colors.surface.control }]}>
+                        <Icon name="lock" size={20} color={colors.text.tertiary} />
+                      </View>
+                    )}
+                    <View style={styles.flex1}>
+                      <Text variant="h3" style={!isUnlocked ? styles.locked : undefined}>{s.title}</Text>
                       <Text variant="caption" color="tertiary" style={[styles.stageBounds, !isUnlocked && styles.locked]}>
                         {isCurrent
-                          ? `CURRENT STAGE • LEVEL ${stage.level}`
+                          ? `Current · Level ${stage.level}`
                           : isUnlocked
-                            ? `COMPLETED • LVLS ${s.minLevel}-${s.maxLevel}`
-                            : `LOCKED • LVLS ${s.minLevel}-${s.maxLevel || "50+"}`}
+                            ? `Completed · Levels ${s.minLevel}–${s.maxLevel}`
+                            : `Levels ${s.minLevel}–${s.maxLevel || "50+"}`}
                       </Text>
-                      <Text variant="body" style={[styles.bold, !isUnlocked && styles.locked]}>{s.title}</Text>
                     </View>
                   </View>
 
-                  <Text variant="bodySm" color="secondary" style={[styles.stageDesc, !isUnlocked && styles.locked]}>
+                  <Text variant="bodySm" color="secondary" style={!isUnlocked ? styles.locked : undefined}>
                     {isUnlocked
                       ? s.progressReportCopy || s.shortDescription
                       : `Reach Level ${s.minLevel} to unlock.`}
@@ -308,61 +302,41 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   stageCard: {
-    borderRadius: radius.input,
-    padding: spacing.lg,
-    alignItems: "flex-start",
+    borderRadius: radius.card,
+    padding: spacing.xl,
     borderWidth: 1,
+    gap: spacing.lg,
+    minHeight: 210,
     position: "relative",
-    overflow: "visible",
   },
   lockedCard: {
     borderStyle: "dashed",
-    opacity: 0.85,
+    opacity: 0.9,
   },
-  stageFace: {
-    position: "absolute",
-    right: spacing.md,
-    bottom: spacing.md,
-    zIndex: 0,
+  flex1: { flex: 1 },
+  stageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
-  currentBadge: {
+  lockCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stageBounds: {
+    marginTop: spacing.xxs,
+  },
+  hereChip: {
     position: "absolute",
     top: -10,
-    right: -4,
+    right: spacing.lg,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.sm,
     zIndex: 2,
-  },
-  currentBadgeText: {
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontFamily: fonts.bold,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  stageBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stageInfo: {
-    flex: 1,
-    gap: spacing.xxs,
-    justifyContent: "center",
-  },
-  stageBounds: {
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  stageDesc: {
-    paddingRight: 92, // gutter so text wraps clear of the face
   },
   locked: { opacity: 0.5 },
   dotsContainer: {
