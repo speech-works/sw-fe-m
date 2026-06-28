@@ -202,6 +202,15 @@ const ProgressDetail = () => {
     );
   };
 
+  const renderHeader = () => (
+    <View>
+      <View style={styles.backBar}>
+        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+      </View>
+      <Text variant="h1" style={styles.title}>Progress Report</Text>
+    </View>
+  );
+
   const refreshControl = (
     <RefreshControl
       refreshing={refreshing}
@@ -215,48 +224,45 @@ const ProgressDetail = () => {
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Page-style header (opaque, large left-aligned title) */}
-      <View style={[styles.header, { paddingTop: insets.top + space.inlineGap }]}>
-        <View style={styles.backBar}>
-          <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
+      {/* Paged content — the whole page (title + cards) scrolls */}
+      <ScrollView
+        ref={horizontalScrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e) => {
+          const pageIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+          setActiveTab(pageIndex === 0 ? "weekly" : "lifetime");
+        }}
+        style={styles.flex}
+      >
+        <View style={{ width: screenWidth }}>
+          <ScrollView
+            contentContainerStyle={[styles.scrollView, { paddingTop: insets.top + space.inlineGap }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={refreshControl}
+          >
+            {renderHeader()}
+            {renderWeekly()}
+          </ScrollView>
         </View>
-        <Text variant="h1" style={styles.title}>Progress Report</Text>
-      </View>
+        <View style={{ width: screenWidth }}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[styles.scrollView, { paddingTop: insets.top + space.inlineGap }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={refreshControl}
+          >
+            {renderHeader()}
+            {renderLifetime()}
+          </ScrollView>
+        </View>
+      </ScrollView>
 
-      {/* Paged content */}
-      <View style={styles.flex}>
-        <ScrollView
-          ref={horizontalScrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(e) => {
-            const pageIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-            setActiveTab(pageIndex === 0 ? "weekly" : "lifetime");
-          }}
-          style={styles.flex}
-        >
-          <View style={{ width: screenWidth }}>
-            <ScrollView
-              contentContainerStyle={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              refreshControl={refreshControl}
-            >
-              {renderWeekly()}
-            </ScrollView>
-          </View>
-          <View style={{ width: screenWidth }}>
-            <ScrollView
-              ref={scrollRef}
-              contentContainerStyle={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              refreshControl={refreshControl}
-            >
-              {renderLifetime()}
-            </ScrollView>
-          </View>
-        </ScrollView>
-      </View>
+      {/* Opaque status-bar cap — title tucks behind the clock when scrolled */}
+      {insets.top > 0 ? (
+        <View style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
+      ) : null}
 
       {/* Internal menu dock — mirrors CustomTabBar */}
       <View style={styles.dockContainer} pointerEvents="box-none">
@@ -302,9 +308,12 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: space.screenX,
-    paddingBottom: spacing.lg,
+  statusCap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   backBar: {
     minHeight: size.backBtn,
@@ -313,11 +322,11 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: space.titleGap,
+    marginBottom: spacing.xs,
   },
   scrollView: {
     gap: spacing["2xl"],
     paddingHorizontal: space.screenX,
-    paddingTop: spacing.lg,
     paddingBottom: 140,
   },
   skeletonStack: {
