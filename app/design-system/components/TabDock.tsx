@@ -28,19 +28,33 @@ export interface TabDockProps {
   activeKey: string;
   onSelect: (key: string) => void;
   onLongPress?: (key: string) => void;
+  /** Hug the tabs instead of filling the width (for in-page docks). */
+  fitContent?: boolean;
 }
 
 /**
  * The floating menu dock — a `surface.elevated` capsule whose active tab is an
  * orange pill (icon + label); inactive tabs are icon-only. This is the single
  * source for the app's bottom nav AND any in-page tab dock, so they never drift.
- * Re-themes via `nav.*` tokens; the expanding-pill animation is intrinsic.
+ * `fitContent` hugs the tabs (in-page) vs. filling the width (bottom nav).
  */
-export const TabDock: React.FC<TabDockProps> = ({ items, activeKey, onSelect, onLongPress }) => {
+export const TabDock: React.FC<TabDockProps> = ({
+  items,
+  activeKey,
+  onSelect,
+  onLongPress,
+  fitContent = false,
+}) => {
   const { colors } = useTheme();
   return (
     <View style={styles.container} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow }]}>
+      <View
+        style={[
+          styles.bar,
+          fitContent ? styles.barFit : styles.barFull,
+          { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+        ]}
+      >
         {items.map((item) => (
           <DockItem
             key={item.key}
@@ -48,6 +62,7 @@ export const TabDock: React.FC<TabDockProps> = ({ items, activeKey, onSelect, on
             label={item.label}
             iconName={item.icon}
             badge={item.badge ?? 0}
+            fitContent={fitContent}
             onPress={() => onSelect(item.key)}
             onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
           />
@@ -62,11 +77,20 @@ interface DockItemProps {
   label: string;
   iconName: string;
   badge: number;
+  fitContent: boolean;
   onPress: () => void;
   onLongPress?: () => void;
 }
 
-const DockItem: React.FC<DockItemProps> = ({ isFocused, label, iconName, badge, onPress, onLongPress }) => {
+const DockItem: React.FC<DockItemProps> = ({
+  isFocused,
+  label,
+  iconName,
+  badge,
+  fitContent,
+  onPress,
+  onLongPress,
+}) => {
   const { colors } = useTheme();
   const activeColor = colors.nav.activePill;
   const activeContentColor = colors.nav.onActive;
@@ -82,9 +106,10 @@ const DockItem: React.FC<DockItemProps> = ({ isFocused, label, iconName, badge, 
     [isFocused],
   );
 
-  const containerStyle = useAnimatedStyle(() => ({
-    flex: interpolate(v.value, [0, 1], [1, 2.5]),
-  }));
+  // Full-width nav distributes space via flex; an in-page dock sizes to content.
+  const containerStyle = useAnimatedStyle(() =>
+    fitContent ? {} : { flex: interpolate(v.value, [0, 1], [1, 2.5]) },
+  );
   const pillStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(v.value, [0, 1], ["transparent", activeColor]),
     paddingHorizontal: interpolate(v.value, [0, 1], [0, 18]),
@@ -109,7 +134,7 @@ const DockItem: React.FC<DockItemProps> = ({ isFocused, label, iconName, badge, 
         onPress={onPress}
         onLongPress={onLongPress}
         activeOpacity={0.7}
-        style={styles.touchable}
+        style={fitContent ? styles.touchableFit : styles.touchable}
         accessibilityRole="tab"
         accessibilityState={{ selected: isFocused }}
         accessibilityLabel={badge > 0 ? `${label}, ${badge} unread` : label}
@@ -170,12 +195,19 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     height: 70,
     padding: 8,
-    width: "100%",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
     elevation: 10,
+  },
+  barFull: {
+    width: "100%",
     justifyContent: "space-between",
+  },
+  barFit: {
+    alignSelf: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   itemContainer: {
     height: "100%",
@@ -189,12 +221,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  touchableFit: {
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   pill: {
     borderRadius: 100,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     height: 48,
+    minWidth: 48,
     alignSelf: "center",
   },
   iconBox: {

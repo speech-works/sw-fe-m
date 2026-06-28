@@ -267,6 +267,7 @@ const ProgressDetail = () => {
         items={TABS}
         activeKey={activeTab}
         onSelect={(key) => setActiveTab(key as ReportTimeframe)}
+        fitContent
       />
     </ScreenView>
   );
