@@ -3,11 +3,13 @@ import React, { useMemo, useRef, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
+  TouchableOpacity,
   View,
   Dimensions,
 } from "react-native";
-import { BlurView } from "expo-blur";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
 import ScreenView from "../../../components/ScreenView";
@@ -21,12 +23,12 @@ import { useUserStore } from "../../../stores/user";
 import {
   useTheme,
   spacing,
+  space,
   radius,
-  borderWidth,
   size,
-  Segmented,
-  Text,
+  fonts,
   IconButton,
+  Text,
   Spinner,
 } from "../../../design-system";
 import Achievements from "./components/Achievements";
@@ -41,6 +43,11 @@ import WeeklyGrowthCard from "./components/WeeklyGrowthCard";
 
 type ReportTimeframe = "weekly" | "lifetime";
 
+const TABS: { key: ReportTimeframe; label: string; icon: string }[] = [
+  { key: "weekly", label: "This Week", icon: "calendar-week" },
+  { key: "lifetime", label: "Lifetime", icon: "infinity" },
+];
+
 const ProgressDetail = () => {
   const { colors } = useTheme();
   const navigation =
@@ -51,58 +58,34 @@ const ProgressDetail = () => {
   const horizontalScrollRef = useRef<ScrollView>(null);
   const achievementsY = useRef<number>(0);
   const screenWidth = Dimensions.get("window").width;
-  const HEADER_HEIGHT = 60;
-  const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(HEADER_HEIGHT + 60);
 
-  const initialTab = route.params?.scrollTo === "achievements"
-    ? "lifetime"
-    : "weekly";
+  const initialTab = route.params?.scrollTo === "achievements" ? "lifetime" : "weekly";
   const [activeTab, setActiveTab] = useState<ReportTimeframe>(initialTab);
   const [refreshing, setRefreshing] = useState(false);
 
   const { user } = useUserStore();
-  const {
-    weeklyReport,
-    lifetimeReport,
-    loading,
-    errors,
-    fetchReport,
-  } = useProgressReportStore();
+  const { weeklyReport, lifetimeReport, loading, errors, fetchReport } =
+    useProgressReportStore();
 
   const loadActiveReport = React.useCallback(
     async (timeframe: ReportTimeframe, isRefresh = false) => {
-      if (!user?.id) {
-        return;
-      }
+      if (!user?.id) return;
       await fetchReport(user.id, timeframe, isRefresh);
     },
     [fetchReport, user?.id],
   );
 
   React.useEffect(() => {
-    if (!user?.id) {
-      return;
-    }
-
+    if (!user?.id) return;
     const reportForTab = activeTab === "weekly" ? weeklyReport : lifetimeReport;
     if (!reportForTab && !loading[activeTab]) {
       void loadActiveReport(activeTab);
     }
-  }, [
-    activeTab,
-    lifetimeReport,
-    loadActiveReport,
-    loading,
-    user?.id,
-    weeklyReport,
-  ]);
+  }, [activeTab, lifetimeReport, loadActiveReport, loading, user?.id, weeklyReport]);
 
   useFocusEffect(
     React.useCallback(() => {
-      if (!user?.id) {
-        return;
-      }
-
+      if (!user?.id) return;
       void loadActiveReport(activeTab, true);
     }, [activeTab, loadActiveReport, user?.id]),
   );
@@ -112,37 +95,28 @@ const ProgressDetail = () => {
       setActiveTab("lifetime");
       return;
     }
-
     if (
       route.params?.scrollTo === "achievements" &&
       activeTab === "lifetime" &&
       lifetimeReport
     ) {
       const timer = setTimeout(() => {
-        scrollRef.current?.scrollTo({
-          y: achievementsY.current,
-          animated: true,
-        });
+        scrollRef.current?.scrollTo({ y: achievementsY.current, animated: true });
         navigation.setParams({ scrollTo: undefined });
       }, 450);
-
       return () => clearTimeout(timer);
     }
   }, [activeTab, lifetimeReport, navigation, route.params?.scrollTo]);
 
   React.useEffect(() => {
-    if (activeTab === "weekly") {
-      horizontalScrollRef.current?.scrollTo({ x: 0, animated: true });
-    } else {
-      horizontalScrollRef.current?.scrollTo({ x: screenWidth, animated: true });
-    }
+    horizontalScrollRef.current?.scrollTo({
+      x: activeTab === "weekly" ? 0 : screenWidth,
+      animated: true,
+    });
   }, [activeTab, screenWidth]);
 
   const onRefresh = async () => {
-    if (!user?.id) {
-      return;
-    }
-
+    if (!user?.id) return;
     setRefreshing(true);
     await loadActiveReport(activeTab, true);
     setRefreshing(false);
@@ -156,7 +130,6 @@ const ProgressDetail = () => {
           "We couldn't load your weekly progress right now. Try again in a moment.",
       };
     }
-
     return {
       title: "Lifetime Report Unavailable",
       message:
@@ -174,7 +147,6 @@ const ProgressDetail = () => {
         </View>
       );
     }
-
     if (!weeklyReport && errors.weekly) {
       return (
         <ErrorStateCard
@@ -186,34 +158,13 @@ const ProgressDetail = () => {
         />
       );
     }
-
-    if (!weeklyReport) {
-      return null;
-    }
-
+    if (!weeklyReport) return null;
     return (
       <>
-        <DetailedWeeklySummary
-          summary={weeklyReport.summary}
-          loading={loading.weekly}
-          hasError={Boolean(errors.weekly)}
-        />
-        <WeeklyGrowthCard
-          growth={weeklyReport.growth}
-          loading={loading.weekly}
-          hasError={Boolean(errors.weekly)}
-        />
-        <DPSummary
-          distribution={weeklyReport.distribution}
-          timeframe="weekly"
-          loading={loading.weekly}
-          hasError={Boolean(errors.weekly)}
-        />
-        <MoodSummary
-          moodStats={weeklyReport.mood}
-          loading={loading.weekly}
-          hasError={Boolean(errors.weekly)}
-        />
+        <DetailedWeeklySummary summary={weeklyReport.summary} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
+        <WeeklyGrowthCard growth={weeklyReport.growth} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
+        <DPSummary distribution={weeklyReport.distribution} timeframe="weekly" loading={loading.weekly} hasError={Boolean(errors.weekly)} />
+        <MoodSummary moodStats={weeklyReport.mood} loading={loading.weekly} hasError={Boolean(errors.weekly)} />
       </>
     );
   };
@@ -223,13 +174,10 @@ const ProgressDetail = () => {
       return (
         <View style={[styles.loadingFallback, { backgroundColor: colors.surface.default }]}>
           <Spinner size="small" />
-          <Text variant="bodySm" color="secondary">
-            Building your lifetime report...
-          </Text>
+          <Text variant="bodySm" color="secondary">Building your lifetime report...</Text>
         </View>
       );
     }
-
     if (!lifetimeReport && errors.lifetime) {
       return (
         <ErrorStateCard
@@ -241,34 +189,13 @@ const ProgressDetail = () => {
         />
       );
     }
-
-    if (!lifetimeReport) {
-      return null;
-    }
-
+    if (!lifetimeReport) return null;
     return (
       <>
-        <LifetimeJourneyCard
-          journey={lifetimeReport.journey}
-          loading={loading.lifetime}
-          hasError={Boolean(errors.lifetime)}
-        />
-        <LifetimeGrowthJourneyCard
-          growthJourney={lifetimeReport.growthJourney}
-          loading={loading.lifetime}
-          hasError={Boolean(errors.lifetime)}
-        />
-        <DPSummary
-          distribution={lifetimeReport.distribution}
-          timeframe="lifetime"
-          loading={loading.lifetime}
-          hasError={Boolean(errors.lifetime)}
-        />
-        <View
-          onLayout={(event) => {
-            achievementsY.current = event.nativeEvent.layout.y;
-          }}
-        >
+        <LifetimeJourneyCard journey={lifetimeReport.journey} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
+        <LifetimeGrowthJourneyCard growthJourney={lifetimeReport.growthJourney} loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
+        <DPSummary distribution={lifetimeReport.distribution} timeframe="lifetime" loading={loading.lifetime} hasError={Boolean(errors.lifetime)} />
+        <View onLayout={(event) => { achievementsY.current = event.nativeEvent.layout.y; }}>
           <Achievements stageData={lifetimeReport.achievements} />
         </View>
       </>
@@ -286,57 +213,42 @@ const ProgressDetail = () => {
 
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <BlurView
-        intensity={40}
-        tint="dark"
-        onLayout={(e) => setDynamicHeaderHeight(e.nativeEvent.layout.height)}
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, borderBottomColor: colors.border.hairline },
-        ]}
-      >
-        <View style={styles.headerRow}>
-          <IconButton name="chevron-left" onPress={() => navigation.goBack()} />
-          <Text variant="h3">Progress Report</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-        <View style={styles.tabs}>
-          <Segmented
-            options={["This Week", "Lifetime"]}
-            value={activeTab === "weekly" ? "This Week" : "Lifetime"}
-            onChange={(v) => setActiveTab(v === "This Week" ? "weekly" : "lifetime")}
-          />
+      {/* Page-style header (opaque, large left-aligned title) */}
+      <View style={[styles.header, { paddingTop: insets.top + space.inlineGap }]}>
+        <View style={styles.backBar}>
+          <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
         </View>
-      </BlurView>
+        <Text variant="h1" style={styles.title}>Progress Report</Text>
+      </View>
 
-      <View style={styles.container}>
+      {/* Paged content */}
+      <View style={styles.flex}>
         <ScrollView
           ref={horizontalScrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(e) => {
-            const offsetX = e.nativeEvent.contentOffset.x;
-            const pageIndex = Math.round(offsetX / screenWidth);
+            const pageIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
             setActiveTab(pageIndex === 0 ? "weekly" : "lifetime");
           }}
           style={styles.flex}
         >
           <View style={{ width: screenWidth }}>
             <ScrollView
-              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + spacing.md }]}
+              contentContainerStyle={styles.scrollView}
               showsVerticalScrollIndicator={false}
               refreshControl={refreshControl}
             >
               {renderWeekly()}
             </ScrollView>
           </View>
-
           <View style={{ width: screenWidth }}>
             <ScrollView
               ref={scrollRef}
-              contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + spacing.md }]}
+              contentContainerStyle={styles.scrollView}
               showsVerticalScrollIndicator={false}
               refreshControl={refreshControl}
             >
@@ -344,6 +256,38 @@ const ProgressDetail = () => {
             </ScrollView>
           </View>
         </ScrollView>
+      </View>
+
+      {/* Internal menu dock — mirrors CustomTabBar */}
+      <View style={styles.dockContainer} pointerEvents="box-none">
+        <View style={[styles.dock, { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow }]}>
+          {TABS.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.dockTab, active && { backgroundColor: colors.nav.activePill }]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <MaterialCommunityIcons
+                  name={tab.icon as any}
+                  size={20}
+                  color={active ? colors.nav.onActive : colors.nav.inactive}
+                />
+                <Text
+                  variant="bodySm"
+                  color={active ? colors.nav.onActive : colors.nav.inactive}
+                  style={styles.dockLabel}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </ScreenView>
   );
@@ -358,37 +302,26 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  container: {
-    flex: 1,
-  },
   header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: space.screenX,
     paddingBottom: spacing.lg,
-    borderBottomWidth: borderWidth.hairline,
   },
-  headerRow: {
+  backBar: {
+    minHeight: size.backBtn,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
-  headerSpacer: {
-    width: size.backBtn,
-  },
-  tabs: {
-    marginTop: spacing.lg,
+  title: {
+    marginTop: space.titleGap,
   },
   scrollView: {
     gap: spacing["2xl"],
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 130,
+    paddingHorizontal: space.screenX,
+    paddingTop: spacing.lg,
+    paddingBottom: 140,
   },
   skeletonStack: {
-    gap: spacing.lg,
+    gap: spacing["2xl"],
   },
   errorCard: {
     marginVertical: 0,
@@ -399,5 +332,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.md,
+  },
+  // ── Internal dock (mirrors CustomTabBar) ────────────────────────────────
+  dockContainer: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    alignItems: "center",
+  },
+  dock: {
+    flexDirection: "row",
+    borderRadius: 35,
+    height: 70,
+    padding: 8,
+    width: "100%",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  dockTab: {
+    flex: 1,
+    height: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    borderRadius: 100,
+  },
+  dockLabel: {
+    fontFamily: fonts.bold,
   },
 });
