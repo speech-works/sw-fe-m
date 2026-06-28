@@ -53,6 +53,8 @@ export { Sheet } from "./Sheet";
 export type { SheetProps } from "./Sheet";
 export { Dialog } from "./Dialog";
 export type { DialogProps } from "./Dialog";
+export { TabDock } from "./TabDock";
+export type { TabDockProps, TabDockItem } from "./TabDock";
 
 // Feedback & status
 export { Toast, Snackbar, Banner } from "./Feedback";

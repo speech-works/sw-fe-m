@@ -5,11 +5,9 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   View,
   Dimensions,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
 import ScreenView from "../../../components/ScreenView";
@@ -26,10 +24,10 @@ import {
   space,
   radius,
   size,
-  fonts,
   IconButton,
   Text,
   Spinner,
+  TabDock,
 } from "../../../design-system";
 import Achievements from "./components/Achievements";
 import DetailedWeeklySummary, {
@@ -264,37 +262,12 @@ const ProgressDetail = () => {
         <View style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
       ) : null}
 
-      {/* Internal menu dock — mirrors CustomTabBar */}
-      <View style={styles.dockContainer} pointerEvents="box-none">
-        <View style={[styles.dock, { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow }]}>
-          {TABS.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.dockTab, active && { backgroundColor: colors.nav.activePill }]}
-                onPress={() => setActiveTab(tab.key)}
-                activeOpacity={0.8}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <MaterialCommunityIcons
-                  name={tab.icon as any}
-                  size={20}
-                  color={active ? colors.nav.onActive : colors.nav.inactive}
-                />
-                <Text
-                  variant="bodySm"
-                  color={active ? colors.nav.onActive : colors.nav.inactive}
-                  style={styles.dockLabel}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+      {/* Internal menu dock — the same component as the app's bottom nav */}
+      <TabDock
+        items={TABS}
+        activeKey={activeTab}
+        onSelect={(key) => setActiveTab(key as ReportTimeframe)}
+      />
     </ScreenView>
   );
 };
@@ -341,38 +314,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.md,
-  },
-  // ── Internal dock (mirrors CustomTabBar) ────────────────────────────────
-  dockContainer: {
-    position: "absolute",
-    bottom: 30,
-    left: 20,
-    right: 20,
-    alignItems: "center",
-  },
-  dock: {
-    flexDirection: "row",
-    borderRadius: 35,
-    height: 70,
-    padding: 8,
-    width: "100%",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 10,
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  dockTab: {
-    flex: 1,
-    height: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    borderRadius: 100,
-  },
-  dockLabel: {
-    fontFamily: fonts.bold,
   },
 });
