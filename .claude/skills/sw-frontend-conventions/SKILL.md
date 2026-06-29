@@ -100,6 +100,23 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   (e.g. `feedback.successText`), NOT the bright `accent.*` fill.
 - A selected/bright row must flip its subtitle/secondary text to a dark
   foreground too — don't let an accent override survive onto a bright fill.
+- **Tinted chips need real contrast.** A 12% `accentTint.*` wash over a dark card
+  is nearly the card color — never put accent-colored text on `accentTint.*`
+  (e.g. orange text on `action.primaryTint` ≈ 1.5:1). For a "selected" chip on a
+  bright/dark card, use a SOLID fill (`action.primary`) + its `onPrimary` text.
+- **When the background is dynamic/computed** (not a known accent→accentOn pair),
+  pick the foreground with the contrast helpers, never by eye:
+  - `onColor(bg, colors)` → the legible ink (light vs dark) for any fill.
+  - `bestForeground(bg, [a, b, …])` → highest-contrast option from a set.
+  - `meetsAA(fg, bg)` / `contrastRatio(fg, bg)` → assert/measure (AA = 4.5:1, or
+    3:1 for large/bold ≥18.66px). `assertContrast(fg, bg, label)` warns in `__DEV__`.
+  - All exported from `app/design-system` (impl in `utils/contrast.ts`).
+- **`text.tertiary` clears AA only on the card surfaces** (`surface.default`/
+  `elevated`/`canvas`), NOT reliably on the lighter `surface.control`. Put tertiary
+  text on cards; on `control` chips use `text.secondary` or brighter.
+- New color pairings should be checked with `contrastRatio` (a quick node script
+  over the token hexes works) before shipping — treat <4.5:1 informational text as
+  a bug, not a style choice.
 
 ## Typography, spacing, shape
 

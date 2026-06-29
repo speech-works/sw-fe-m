@@ -20,6 +20,18 @@ export type { ElevationLevel } from "./elevation";
 export { duration, easing, press } from "./motion";
 export { haptics } from "./haptics";
 
+// Contrast/legibility helpers — pick & verify legible text on any fill (WCAG AA).
+export {
+  onColor,
+  bestForeground,
+  contrastRatio,
+  relativeLuminance,
+  meetsAA,
+  assertContrast,
+  AA_NORMAL,
+  AA_LARGE,
+} from "./utils/contrast";
+
 // Types + scheme metadata.
 export type { SemanticColors } from "./semantic/roles";
 export type { Scheme, StaticTokens } from "./theme";

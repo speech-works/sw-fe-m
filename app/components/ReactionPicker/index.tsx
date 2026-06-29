@@ -3,16 +3,16 @@ import {
   Animated,
   Modal,
   StyleSheet,
-  Text,
   View,
   Dimensions,
   TouchableWithoutFeedback,
 } from "react-native";
 import { REACTIONS } from "../../constants/reactions";
 import { ReactionType } from "../../api/threads/types";
+import { useTheme, radius, fonts, Text } from "../../design-system";
 import { AnimatedReaction } from "../AnimatedReactions";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface ReactionPickerProps {
   visible: boolean;
@@ -22,6 +22,7 @@ interface ReactionPickerProps {
 }
 
 const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT / 2 }: ReactionPickerProps) => {
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const emojiAnims = useRef(REACTIONS.map(() => new Animated.Value(0))).current;
 
@@ -55,11 +56,12 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onDismiss}>
       <TouchableWithoutFeedback onPress={onDismiss}>
-        <View style={styles.backdrop}>
+        <View style={[styles.backdrop, { backgroundColor: colors.overlay.scrim }]}>
           <TouchableWithoutFeedback>
             <Animated.View
               style={[
                 styles.container,
+                { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
                 {
                   top: Math.max(50, anchorY - 85), // Appear above the button, adjusted for taller pill
                   transform: [
@@ -93,7 +95,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
                     }}
                   >
                     <AnimatedReaction type={r.type} selected={false} isPicker={true} size={54} />
-                    <Text style={styles.reactionLabel}>{r.label}</Text>
+                    <Text variant="caption" color="secondary" style={styles.reactionLabel}>{r.label}</Text>
                   </Animated.View>
                 </View>
               ))}
@@ -108,19 +110,16 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.15)",
     alignItems: "center",
   },
   container: {
     position: "absolute",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderRadius: radius.card,
     flexDirection: "row",
     paddingHorizontal: 8,
     paddingVertical: 12,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.35,
     shadowRadius: 15,
     elevation: 10,
     alignItems: "center",
@@ -131,9 +130,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   reactionLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#6B7280",
+    fontFamily: fonts.bold,
     marginTop: 6,
     textAlign: "center",
   },

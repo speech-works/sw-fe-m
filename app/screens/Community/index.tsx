@@ -40,6 +40,7 @@ import {
   spacing,
   radius,
   fonts,
+  typography,
   elevation,
   Text,
   TabDock,
@@ -726,8 +727,8 @@ const Community = () => {
           <View style={[styles.actionGroup, { backgroundColor: colors.surface.elevated }, elevation.e1]}>
             {/* Share Progress */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
-              <View style={[styles.actionIconSquare, { backgroundColor: colors.action.primaryTint }]}>
-                <MaterialCommunityIcons name="chart-box" size={24} color={colors.action.primary} />
+              <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
+                <MaterialCommunityIcons name="chart-box" size={24} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Share my progress</Text>
@@ -740,8 +741,8 @@ const Community = () => {
 
             {/* Help & Resources */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => navigation.navigate("Resources")}>
-              <View style={[styles.actionIconSquare, { backgroundColor: colors.action.primaryTint }]}>
-                <MaterialCommunityIcons name="lifebuoy" size={24} color={colors.action.primary} />
+              <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
+                <MaterialCommunityIcons name="lifebuoy" size={24} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Help & Resources</Text>
@@ -1315,7 +1316,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     paddingHorizontal: 14,
-    fontSize: 16,
+    ...typography.body,
     fontFamily: fonts.bold,
     letterSpacing: 1,
   },

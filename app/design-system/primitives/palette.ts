@@ -14,7 +14,7 @@ export const palette = {
     sunken: "#0E0D0B",
     textPrimary: "#FFFFFF",
     textSecondary: "#ADA7A0",
-    textTertiary: "#8A857C",
+    textTertiary: "#9E988F", // AA on card surfaces (≥4.5:1), still dimmer than secondary
     textDisabled: "#5C574F",
   },
 
