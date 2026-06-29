@@ -12,7 +12,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenView from "../../components/ScreenView";
-import PressableScale from "../../components/PressableScale";
 import {
   useTheme,
   spacing,
@@ -143,9 +142,20 @@ const ShareMomentScreen = () => {
     );
   };
 
-  // ── The confirm sheet — simple for wins/mild struggles, support-first for sensitive ones. ──
+  // ── The confirm sheet — simple for wins/mild struggles, support-first for sensitive ones.
+  //    The sheet wears the moment's full valence colour (gold win / blue struggle), so every
+  //    foreground here is the AA-correct on-fill ink; CTAs are dark "islands" on the bright fill. ──
   const sheetMoment = sheetMomentId ? getMoment(sheetMomentId) : null;
+  const sheetFill = sheetMoment
+    ? sheetMoment.valence === "win"
+      ? colors.gamification.gold
+      : colors.accent.info
+    : undefined;
+  // Dark ink paired with each fill (gold⇄accentOn.warning, blue⇄accentOn.info).
+  const onFill =
+    sheetMoment?.valence === "win" ? colors.accentOn.warning : colors.accentOn.info;
 
+  // The shared moment, shown as a dark chip that grounds the bright sheet.
   const renderPreview = (icon: IconName, text: string) => (
     <View style={[styles.previewCard, { backgroundColor: colors.surface.control }]}>
       <Icon name={icon} size={18} color={colors.text.primary} />
@@ -157,34 +167,32 @@ const ShareMomentScreen = () => {
     if (!sheetMoment) return null;
     const isStruggle = sheetMoment.valence === "struggle";
 
-    // Sensitive struggle → lead with care, then help (988), then the share.
+    // Sensitive struggle → lead with care, then help (988, the loudest CTA), then the share.
     if (sheetMoment.sensitive) {
       return (
         <View style={styles.sheetBody}>
-          <View style={[styles.sheetIcon, { backgroundColor: colors.action.primaryTint }]}>
-            <MaterialCommunityIcons name="lifebuoy" size={28} color={colors.action.primary} />
+          <View style={[styles.sheetIcon, { backgroundColor: colors.surface.row }]}>
+            <MaterialCommunityIcons name="lifebuoy" size={28} color={colors.text.primary} />
           </View>
-          <Text variant="h2" style={styles.sheetCenter}>You don't have to carry this alone</Text>
+          <Text variant="h2" color={onFill} style={styles.sheetCenter}>You don't have to carry this alone</Text>
           {renderPreview(sheetMoment.icon, sheetMoment.text)}
 
-          {/* Help, surfaced first */}
-          <View style={[styles.supportPanel, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
-            <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
-              If things feel heavy right now, support is here — free and confidential, 24/7.
-            </Text>
-            <Button label="Call or text 988" variant="primary" onPress={call988} />
-            <PressableScale haptic={false} scaleTo={0.98} onPress={openResources} style={styles.linkBtn}>
-              <Text variant="caption" color="tertiary" style={styles.bold}>More resources</Text>
-            </PressableScale>
+          {/* Help, surfaced first — the dark solid button is the loudest thing on the sheet. */}
+          <Text variant="bodySm" color={onFill} style={styles.sheetCenter}>
+            If things feel heavy right now, support is here — free and confidential, 24/7.
+          </Text>
+          <View style={styles.sheetActions}>
+            <Button label="Call or text 988" variant="secondary" onPress={call988} />
+            <Button label="More resources" variant="ghost" size="sm" onColor={onFill} onPress={openResources} />
           </View>
 
-          {/* Then the share — framed as letting the buddy show up, not a transaction */}
-          <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
+          {/* Then the share — framed as letting the buddy show up, not a transaction. */}
+          <Text variant="bodySm" color={onFill} style={[styles.sheetCenter, styles.shareLead]}>
             When you're ready, sharing this lets {buddyFirstName} be there for you too.
           </Text>
           <View style={styles.sheetActions}>
-            <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
-            <Button label="Not now" variant="ghost" onPress={closeConfirm} />
+            <Button label={`Share with ${buddyFirstName}`} variant="outline" onColor={onFill} loading={posting} onPress={confirmShare} />
+            <Button label="Not now" variant="ghost" size="sm" onColor={onFill} onPress={closeConfirm} />
           </View>
         </View>
       );
@@ -193,23 +201,21 @@ const ShareMomentScreen = () => {
     // Win or mild struggle → a warm, simple confirm.
     return (
       <View style={styles.sheetBody}>
-        <Text variant="h2" style={styles.sheetCenter}>
+        <Text variant="h2" color={onFill} style={styles.sheetCenter}>
           {isStruggle ? "Share how you're doing?" : "Share your win?"}
         </Text>
         {renderPreview(sheetMoment.icon, sheetMoment.text)}
-        <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
+        <Text variant="bodySm" color={onFill} style={styles.sheetCenter}>
           {isStruggle
             ? `Showing up honestly is the brave part — ${buddyFirstName} will see this and can be there for you.`
             : `${buddyFirstName} will see this and can cheer you on.`}
         </Text>
         <View style={styles.sheetActions}>
-          <Button label={`Share with ${buddyFirstName}`} variant="primary" loading={posting} onPress={confirmShare} />
-          <Button label="Not now" variant="ghost" onPress={closeConfirm} />
+          <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
+          <Button label="Not now" variant="ghost" size="sm" onColor={onFill} onPress={closeConfirm} />
         </View>
         {isStruggle ? (
-          <PressableScale haptic={false} scaleTo={0.98} onPress={openResources} style={styles.linkBtn}>
-            <Text variant="caption" color="tertiary" style={styles.bold}>Need support? More resources</Text>
-          </PressableScale>
+          <Button label="Need support? More resources" variant="ghost" size="sm" onColor={onFill} onPress={openResources} />
         ) : null}
       </View>
     );
@@ -278,7 +284,7 @@ const ShareMomentScreen = () => {
       />
 
       {/* Confirm-to-share sheet */}
-      <Sheet visible={confirmVisible} onClose={closeConfirm}>
+      <Sheet visible={confirmVisible} onClose={closeConfirm} color={sheetFill}>
         {renderConfirmContent()}
       </Sheet>
     </ScreenView>
@@ -333,21 +339,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignSelf: "center",
   },
-  supportPanel: {
-    width: "100%",
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    gap: spacing.md,
-    alignItems: "center",
-  },
   sheetActions: {
     width: "100%",
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
-  linkBtn: {
-    alignSelf: "center",
-    paddingVertical: spacing.sm,
+  shareLead: {
+    marginTop: spacing.sm,
   },
 });

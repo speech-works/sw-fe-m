@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../useTheme";
 import { radius, space, size, spacing } from "../primitives/scale";
 import { duration } from "../motion";
+import { relativeLuminance } from "../utils/contrast";
 import { Text } from "./Text";
 
 const { height: SCREEN_H } = Dimensions.get("window");
@@ -47,6 +48,12 @@ export const Sheet: React.FC<SheetProps> = ({
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
   const hasHeader = !!(title || right);
+
+  // The grab handle must read on whatever surface the sheet uses: a bright
+  // accent fill needs a dark handle, the default dark card a light one.
+  const surface = color ?? colors.surface.elevated;
+  const handleColor =
+    relativeLuminance(surface) > 0.18 ? colors.text.onInverse : colors.border.strong;
 
   const [mounted, setMounted] = useState(visible);
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
@@ -133,7 +140,7 @@ export const Sheet: React.FC<SheetProps> = ({
                   width: GRAB_HANDLE.w,
                   height: GRAB_HANDLE.h,
                   borderRadius: radius.full,
-                  backgroundColor: colors.border.strong,
+                  backgroundColor: handleColor,
                   alignSelf: "center",
                   marginBottom: spacing.lg,
                 }}

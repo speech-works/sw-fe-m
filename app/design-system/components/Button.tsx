@@ -6,7 +6,7 @@ import { radius, hitTarget } from "../primitives/scale";
 import { Icon, IconName } from "./Icon";
 import { Text } from "./Text";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 type ButtonSize = "sm" | "md" | "lg";
 
 const HEIGHT: Record<ButtonSize, number> = { sm: 40, md: 48, lg: 56 };
@@ -23,6 +23,10 @@ export interface ButtonProps {
   rightIcon?: IconName;
   /** Stretch to container width (default) or hug content. */
   fullWidth?: boolean;
+  /** Ink for the `ghost`/`outline` text + border when the button sits on a
+   *  bright/custom fill (e.g. an accent-coloured Sheet) — pass the AA-correct
+   *  on-fill colour (`accentOn.*`). Solid variants stay dark and ignore this. */
+  onColor?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -40,6 +44,7 @@ export const Button: React.FC<ButtonProps> = ({
   leftIcon,
   rightIcon,
   fullWidth = true,
+  onColor,
   style,
 }) => {
   const { colors } = useTheme();
@@ -54,7 +59,11 @@ export const Button: React.FC<ButtonProps> = ({
     fg = colors.action.onSecondary;
   } else if (variant === "ghost") {
     bg = "transparent";
-    fg = colors.action.primary;
+    fg = onColor ?? colors.action.primary;
+  } else if (variant === "outline") {
+    bg = "transparent";
+    fg = onColor ?? colors.action.primary;
+    borderColor = onColor ?? colors.action.primary;
   } else if (variant === "danger") {
     bg = "transparent";
     fg = colors.feedback.dangerText;
