@@ -1,6 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
   Dimensions,
@@ -38,12 +39,14 @@ import PressableScale from "../../components/PressableScale";
 import {
   useTheme,
   spacing,
+  space,
   radius,
   fonts,
   typography,
   elevation,
   Text,
   TabDock,
+  PageHeader,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -59,12 +62,12 @@ import { Signal, Thread, getThread } from "../../api/threads";
 import { getLevelStage, LevelStage } from "../../api/users";
 import { useUserStore } from "../../stores/user";
 import { useInboxStore } from "../../stores/inbox";
+import { useCommunityDock } from "../../stores/communityDock";
 import { shareBuddyInvite } from "../../util/functions/share";
 import { ROUTE_NAMES } from "../../constants/routes";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
-const HEADER_HEIGHT = 100;
 const screenWidth = Dimensions.get("window").width;
 
 /** Buddy's shared progress (from GET /buddies/report; null when they don't share). */
@@ -254,7 +257,14 @@ const Community = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
-  const [view, setView] = useState<"us" | "timeline">("us");
+  // The morphing dock state lives in a shared store so the global CustomTabBar
+  // (the single dock owner) can render the Us/Timeline switcher while focused.
+  const view = useCommunityDock((s) => s.view);
+  const setView = useCommunityDock((s) => s.setView);
+  const setDockMode = useCommunityDock((s) => s.setMode);
+  const setDockEnabled = useCommunityDock((s) => s.setEnabled);
+  const enterDock = useCommunityDock((s) => s.enter);
+  const leaveDock = useCommunityDock((s) => s.leave);
   const scrollViewRef = useRef<ScrollView>(null);
   const timelineRef = useRef<TimelineHandle>(null);
   const [supportSignal, setSupportSignal] = useState<Signal | null>(null);
@@ -266,7 +276,12 @@ const Community = () => {
   const user = useUserStore((s) => s.user);
   const unreadCount = useInboxStore((s) => s.unreadCount);
   const reduceMotion = useReducedMotion();
-  const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(HEADER_HEIGHT + 60);
+  // Scroll-cue anchor: the content offset past which the in-page Us/Timeline
+  // switcher has scrolled off the top (hands the switcher to the bottom dock).
+  const [cueAnchor, setCueAnchor] = useState(0);
+  const screenReaderRef = useRef(false);
+  // Previous scroll offset — the cue is edge-triggered (fires only on crossing).
+  const lastScrollYRef = useRef(0);
 
   // Sync state -> scroll
   useEffect(() => {
@@ -332,16 +347,54 @@ const Community = () => {
     setRefreshing(false);
   }, [load]);
 
+  // Screen-reader state — the scroll cue is suppressed while it's on (AT users
+  // don't "scroll past" spatially; they morph the dock via the explicit controls).
+  useEffect(() => {
+    AccessibilityInfo.isScreenReaderEnabled().then((v) => {
+      screenReaderRef.current = v;
+    });
+    const sub = AccessibilityInfo.addEventListener("screenReaderChanged", (v) => {
+      screenReaderRef.current = v;
+    });
+    return () => sub.remove();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
+      lastScrollYRef.current = 0; // reset the cue baseline so re-entry crosses cleanly
+      enterDock(); // claim the bottom dock, land on Us in nav mode
       track(ANALYTICS_EVENTS.BUDDY_INVITE_VIEWED, { source: "community" });
       load();
-    }, [load]),
+      return () => leaveDock(); // release the dock back to global nav on blur
+    }, [load, enterDock, leaveDock]),
+  );
+
+  // Scroll cue: morph the dock to TABS once the in-page switcher scrolls off the
+  // top, and back to NAV when it returns. EDGE-triggered (fires only on crossing
+  // the threshold) so a manual Menu/pill tap is never re-asserted while still
+  // scrolled past the anchor; hysteresis bands; off for screen readers.
+  const handleScrollY = useCallback(
+    (y: number) => {
+      const prev = lastScrollYRef.current;
+      lastScrollYRef.current = y;
+      if (!cueAnchor || screenReaderRef.current) return;
+      const enterAt = cueAnchor; // scrolling down past this → tabs
+      const exitAt = cueAnchor - 48; // scrolling back up past this → nav
+      const mode = useCommunityDock.getState().mode;
+      if (mode === "nav" && prev <= enterAt && y > enterAt) setDockMode("tabs");
+      else if (mode === "tabs" && prev >= exitAt && y < exitAt) setDockMode("nav");
+    },
+    [cueAnchor, setDockMode],
   );
 
   const link = summary?.link ?? null;
   const isPaired = link?.status === "active";
   const isPending = link?.status === "pending";
+
+  // The morph is only available once paired (the invite screen has no Us/Timeline).
+  useEffect(() => {
+    setDockEnabled(isPaired);
+  }, [isPaired, setDockEnabled]);
 
   const handleStartPractice = () => {
     navigation.navigate("Root", { screen: ROUTE_NAMES.EXPLORE });
@@ -423,26 +476,32 @@ const Community = () => {
   const buddyName = link?.buddy?.name ?? "Your Buddy";
   const buddyFirstName = buddyName.split(" ")[0];
 
+  // In-flow header — title + subtitle + the in-page Us/Timeline switcher all
+  // scroll away like every other page. The switcher's bottom feeds the scroll cue.
   const renderHeader = () => {
     return (
-      <View
-        onLayout={(e) => setDynamicHeaderHeight(e.nativeEvent.layout.height)}
-        style={[
-          styles.header,
-          { backgroundColor: colors.background.canvas, paddingTop: insets.top + 20, paddingBottom: 16 },
-        ]}
-      >
-        <Text variant="h1">Community</Text>
-        <Text variant="bodySm" color="secondary">
-          {isPaired
-            ? `You & ${buddyFirstName} — keep it up together.`
-            : "Practice sticks when someone's in it with you."}
-        </Text>
+      <View>
+        <PageHeader
+          title="Community"
+          description={
+            isPaired
+              ? `You & ${buddyFirstName} — keep it up together.`
+              : "Practice sticks when someone's in it with you."
+          }
+          standalone
+        />
         {isPaired && (
-          <View style={styles.headerTabs}>
+          <View
+            style={styles.headerTabs}
+            onLayout={(e) => {
+              const { y, height } = e.nativeEvent.layout;
+              setCueAnchor(y + height);
+            }}
+          >
             <TabDock
               inline
               fitContent
+              accessibilityLabel="Community page tabs"
               items={[
                 { key: "us", label: "Us", icon: "account-multiple-outline" },
                 { key: "timeline", label: "Timeline", icon: "history", badge: unreadCount },
@@ -775,11 +834,9 @@ const Community = () => {
       {/* Dark canvas behind everything */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 
-      {renderHeader()}
-
       <View style={styles.container}>
         {loading ? (
-          <CommunitySkeleton topPad={HEADER_HEIGHT + insets.top + 20} />
+          <CommunitySkeleton topPad={insets.top + 20} />
         ) : error ? (
           <View style={styles.center}>
             <MaterialCommunityIcons
@@ -809,23 +866,26 @@ const Community = () => {
             >
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  onScrollY={handleScrollY}
                   refreshControl={
                     <RefreshControl
                       refreshing={refreshing}
                       onRefresh={onRefresh}
                       tintColor={colors.action.primary}
                       colors={[colors.action.primary]}
-                      progressViewOffset={8}
+                      progressViewOffset={insets.top + 8}
                     />
                   }
                 >
+                  {renderHeader()}
                   {renderPaired()}
                 </CustomScrollView>
               </View>
               <View style={{ width: screenWidth }}>
                 <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingTop: dynamicHeaderHeight + 12, paddingBottom: 130, flexGrow: 1 }]}
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  onScrollY={handleScrollY}
                   onEndReached={() => timelineRef.current?.loadMore()}
                   refreshControl={
                     <RefreshControl
@@ -833,10 +893,11 @@ const Community = () => {
                       onRefresh={onRefresh}
                       tintColor={colors.action.primary}
                       colors={[colors.action.primary]}
-                      progressViewOffset={8}
+                      progressViewOffset={insets.top + 8}
                     />
                   }
                 >
+                  {renderHeader()}
                   {thread ? (
                     <Timeline
                       ref={timelineRef}
@@ -863,7 +924,7 @@ const Community = () => {
           <CustomScrollView
             contentContainerStyle={[
               styles.scrollView,
-              { paddingTop: dynamicHeaderHeight + 28, paddingBottom: 130 },
+              { paddingBottom: 130 },
               { flexGrow: 1 },
             ]}
             refreshControl={
@@ -872,14 +933,23 @@ const Community = () => {
                 onRefresh={onRefresh}
                 tintColor={colors.action.primary}
                 colors={[colors.action.primary]}
-                progressViewOffset={HEADER_HEIGHT + insets.top}
+                progressViewOffset={insets.top + 8}
               />
             }
           >
+            {renderHeader()}
             {renderInvite()}
           </CustomScrollView>
         )}
       </View>
+
+      {/* Opaque status-bar cap — content scrolls under the clock cleanly. */}
+      {insets.top > 0 ? (
+        <View
+          style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]}
+          pointerEvents="none"
+        />
+      ) : null}
 
       {/* ── Buddy Welcome Modal ── */}
       <Modal visible={showWelcome} transparent animationType="fade" onRequestClose={() => setShowWelcome(false)}>
@@ -977,16 +1047,14 @@ const styles = StyleSheet.create({
   skelDock: { height: 76, marginHorizontal: spacing.lg, borderRadius: radius.card },
 
   // Header
-  header: {
+  statusCap: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 100,
-    paddingHorizontal: spacing.lg,
-    gap: 4,
+    zIndex: 10,
   },
-  headerTabs: { marginTop: spacing.lg },
+  headerTabs: { paddingHorizontal: space.screenX, marginTop: space.titleGap, alignSelf: "flex-start" },
 
   center: {
     flex: 1,

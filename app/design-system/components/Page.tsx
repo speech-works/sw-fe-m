@@ -6,15 +6,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  ViewStyle,
   ListRenderItem,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
 import { useTheme } from "../useTheme";
 import { spacing, space, size, zIndex } from "../primitives/scale";
-import { Text } from "./Text";
-import { IconButton } from "./IconButton";
+import { PageHeader } from "./PageHeader";
 
 /** FlatList body config — forwarded to a single FlatList that owns the page body. */
 export interface PageListConfig {
@@ -88,24 +86,9 @@ export const Page: React.FC<PageProps> = ({
   // and the content (and list rows) all share one gutter. The back bar only
   // renders when there's a back button or a right action — otherwise (tab-root
   // screens) the title sits near the top instead of below a phantom 44px bar.
-  const hasBar = !!(onBack || right);
+  // One source of truth for the header — shared with custom-layout screens.
   const titleBlock = (
-    <View>
-      {hasBar ? (
-        <View style={styles.backBar}>
-          {onBack ? <IconButton name="arrow-left" onPress={onBack} /> : <View style={{ width: size.backBtn }} />}
-          {right ? right : null}
-        </View>
-      ) : null}
-      <Text variant="h1" style={{ marginTop: hasBar ? space.titleGap : spacing.lg }}>
-        {title}
-      </Text>
-      {description ? (
-        <Text variant="body" color="secondary" style={{ marginTop: space.titleSub }}>
-          {description}
-        </Text>
-      ) : null}
-    </View>
+    <PageHeader title={title} description={description} onBack={onBack} right={right} />
   );
 
   let body: React.ReactNode;
@@ -204,13 +187,4 @@ export const Page: React.FC<PageProps> = ({
       ) : null}
     </ScreenView>
   );
-};
-
-const styles: { backBar: ViewStyle } = {
-  backBar: {
-    minHeight: size.backBtn,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
 };

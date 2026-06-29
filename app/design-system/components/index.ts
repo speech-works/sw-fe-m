@@ -77,3 +77,5 @@ export { Header } from "./Header";
 export type { HeaderProps } from "./Header";
 export { Page } from "./Page";
 export type { PageProps, PageListConfig } from "./Page";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps } from "./PageHeader";

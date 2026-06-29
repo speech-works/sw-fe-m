@@ -2,15 +2,22 @@ import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, {
-  Easing,
+  FadeIn,
+  LinearTransition,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
-  withTiming,
+  useReducedMotion,
+  withSpring,
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
+
+// One spring drives BOTH the active pill's growth (per item) AND the capsule's
+// hug/resize (LinearTransition on the bar), so the pill and the dock move together
+// — never the pill overflowing first and the dock catching up.
+const DOCK_SPRING = { damping: 20, stiffness: 220, mass: 0.7 } as const;
 import { Text } from "./Text";
 
 export interface TabDockItem {
@@ -32,6 +39,9 @@ export interface TabDockProps {
   fitContent?: boolean;
   /** Render in normal flow (e.g. inside a header) instead of floating at the bottom. */
   inline?: boolean;
+  /** Screen-reader label for the whole dock (e.g. "Main navigation" /
+   *  "Community page tabs"). Announced politely when it changes. */
+  accessibilityLabel?: string;
 }
 
 /**
@@ -47,16 +57,31 @@ export const TabDock: React.FC<TabDockProps> = ({
   onLongPress,
   fitContent = false,
   inline = false,
+  accessibilityLabel,
 }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   return (
     <View style={inline ? styles.containerInline : styles.container} pointerEvents="box-none">
-      <View
+      <Animated.View
+        // The capsule resizes (hug content / nav↔tabs morph) on the SAME spring as
+        // the active pill, so they stay locked together.
+        layout={
+          reduceMotion
+            ? undefined
+            : LinearTransition.springify()
+                .damping(DOCK_SPRING.damping)
+                .stiffness(DOCK_SPRING.stiffness)
+                .mass(DOCK_SPRING.mass)
+        }
         style={[
           styles.bar,
           fitContent ? styles.barFit : styles.barFull,
           { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
         ]}
+        accessibilityRole="tablist"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityLiveRegion="polite"
       >
         {items.map((item) => (
           <DockItem
@@ -66,11 +91,12 @@ export const TabDock: React.FC<TabDockProps> = ({
             iconName={item.icon}
             badge={item.badge ?? 0}
             fitContent={fitContent}
+            reduceMotion={reduceMotion}
             onPress={() => onSelect(item.key)}
             onLongPress={onLongPress ? () => onLongPress(item.key) : undefined}
           />
         ))}
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -81,6 +107,7 @@ interface DockItemProps {
   iconName: string;
   badge: number;
   fitContent: boolean;
+  reduceMotion: boolean;
   onPress: () => void;
   onLongPress?: () => void;
 }
@@ -91,6 +118,7 @@ const DockItem: React.FC<DockItemProps> = ({
   iconName,
   badge,
   fitContent,
+  reduceMotion,
   onPress,
   onLongPress,
 }) => {
@@ -105,8 +133,8 @@ const DockItem: React.FC<DockItemProps> = ({
   const targetWidth = labelWidth || Math.round(label.length * 8.2);
 
   const v = useDerivedValue(
-    () => withTiming(isFocused ? 1 : 0, { duration: 100, easing: Easing.out(Easing.quad) }),
-    [isFocused],
+    () => (reduceMotion ? (isFocused ? 1 : 0) : withSpring(isFocused ? 1 : 0, DOCK_SPRING)),
+    [isFocused, reduceMotion],
   );
 
   // Full-width nav distributes space via flex; an in-page dock sizes to content.
@@ -114,13 +142,15 @@ const DockItem: React.FC<DockItemProps> = ({
     fitContent ? {} : { flex: interpolate(v.value, [0, 1], [1, 2.5]) },
   );
   const pillStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(v.value, [0, 1], ["transparent", activeColor]),
-    paddingHorizontal: interpolate(v.value, [0, 1], [0, 18]),
+    // Clamp the colour input so spring overshoot can't push it past the fill.
+    backgroundColor: interpolateColor(Math.min(1, Math.max(0, v.value)), [0, 1], ["transparent", activeColor]),
+    paddingHorizontal: Math.max(0, interpolate(v.value, [0, 1], [0, 18])),
   }));
   const textWrapperStyle = useAnimatedStyle(() => ({
-    width: interpolate(v.value, [0, 1], [0, targetWidth]),
-    marginLeft: interpolate(v.value, [0, 1], [0, 8]),
-    opacity: v.value,
+    // max(0, …) absorbs spring undershoot so width/margin never go negative.
+    width: Math.max(0, interpolate(v.value, [0, 1], [0, targetWidth])),
+    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 8])),
+    opacity: Math.max(0, Math.min(1, v.value)),
   }));
   const textStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(v.value, [0, 1], [0.85, 1]) }],
@@ -132,7 +162,10 @@ const DockItem: React.FC<DockItemProps> = ({
   }));
 
   return (
-    <Animated.View style={[styles.itemContainer, containerStyle]}>
+    <Animated.View
+      style={[styles.itemContainer, containerStyle]}
+      entering={reduceMotion ? undefined : FadeIn.duration(180)}
+    >
       <TouchableOpacity
         onPress={onPress}
         onLongPress={onLongPress}

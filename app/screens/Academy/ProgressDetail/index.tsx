@@ -23,11 +23,10 @@ import {
   spacing,
   space,
   radius,
-  size,
-  IconButton,
   Text,
   Spinner,
   TabDock,
+  PageHeader,
 } from "../../../design-system";
 import Achievements from "./components/Achievements";
 import DetailedWeeklySummary, {
@@ -201,12 +200,7 @@ const ProgressDetail = () => {
   };
 
   const renderHeader = () => (
-    <View>
-      <View style={styles.backBar}>
-        <IconButton name="arrow-left" onPress={() => navigation.goBack()} />
-      </View>
-      <Text variant="h1" style={styles.title}>Progress Report</Text>
-    </View>
+    <PageHeader title="Progress Report" onBack={() => navigation.goBack()} />
   );
 
   const refreshControl = (
@@ -288,15 +282,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-  },
-  backBar: {
-    minHeight: size.backBtn,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  title: {
-    marginTop: space.titleGap,
-    marginBottom: spacing.xs,
   },
   scrollView: {
     gap: spacing["2xl"],

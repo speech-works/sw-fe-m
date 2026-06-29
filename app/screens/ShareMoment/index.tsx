@@ -1,52 +1,57 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState, useRef, useEffect } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View, Dimensions } from "react-native";
+import {
+  Alert,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  View,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 
 import ScreenView from "../../components/ScreenView";
-import PromptBottomSheet from "../../components/PromptBottomSheet";
 import PressableScale from "../../components/PressableScale";
-import SegmentedTabs from "../../components/SegmentedTabs";
-import { theme } from "../../Theme/tokens";
-import { parseShadowStyle, parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  useTheme,
+  spacing,
+  radius,
+  fonts,
+  space,
+  Text,
+  PageHeader,
+  TabDock,
+  Button,
+  Sheet,
+  ConnectedAvatarRow,
+} from "../../design-system";
 import { createMomentSignal, MomentId, MomentValence } from "../../api/threads";
 import { getMoment, momentsByValence } from "../../constants/momentMessages";
 import { handleLinkPress } from "../../util/functions/externalLinks";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
-const C = {
-  orange500: theme.colors.library.orange[500],
-  orange600: theme.colors.library.orange[600],
-  orange700: theme.colors.library.orange[700],
-  title: theme.colors.text.title,
-  textMuted: theme.colors.text.default,
-  peachSurface: theme.colors.library.orange[100],
-  warmBorder: theme.colors.library.orange[200],
-  faint: theme.colors.library.gray[300],
-};
+const screenWidth = Dimensions.get("window").width;
 
 const ShareMomentScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  
+  const { colors } = useTheme();
+
   const threadId = route.params?.threadId ?? "";
   const buddyName = route.params?.buddyName ?? "your buddy";
   const onCreated = route.params?.onCreated;
 
   const buddyFirstName = buddyName.split(" ")[0];
 
-  const [selected, setSelected] = useState<MomentId | null>(null);
+  const [selected, setSelected] = useState<MomentId | null>(null); // chip highlight
+  const [sheetMomentId, setSheetMomentId] = useState<MomentId | null>(null); // sheet content (persists through close anim)
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"win" | "struggle">("win");
   const [posting, setPosting] = useState(false);
-  const [crisisVisible, setCrisisVisible] = useState(false);
-  const [acknowledgedCrisis, setAcknowledgedCrisis] = useState(false);
 
-  const screenWidth = Dimensions.get("window").width;
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -56,11 +61,23 @@ const ShareMomentScreen = () => {
         animated: true,
       });
     }
-  }, [activeTab, screenWidth]);
+  }, [activeTab]);
 
+  // Selecting a moment opens the confirm sheet (there is no separate Share button).
   const handleSelect = (id: MomentId) => {
+    const m = getMoment(id);
     setSelected(id);
-    track(ANALYTICS_EVENTS.MOMENT_SELECTED, { momentId: id, valence: getMoment(id).valence });
+    setSheetMomentId(id);
+    setConfirmVisible(true);
+    track(ANALYTICS_EVENTS.MOMENT_SELECTED, { momentId: id, valence: m.valence });
+    if (m.sensitive) {
+      track(ANALYTICS_EVENTS.MOMENT_CRISIS_PROMPT_SHOWN, { momentId: id });
+    }
+  };
+
+  const closeConfirm = () => {
+    setConfirmVisible(false);
+    setSelected(null); // drop the chip highlight; keep sheetMomentId for the slide-out
   };
 
   const doShare = async (momentId: MomentId) => {
@@ -83,20 +100,11 @@ const ShareMomentScreen = () => {
     }
   };
 
-  const handleShare = () => {
-    if (!selected || posting) return;
-    const m = getMoment(selected);
-    // Heavy disclosure → surface help first (once), but never block the share.
-    if (m.sensitive && !acknowledgedCrisis) {
-      setAcknowledgedCrisis(true);
-      setCrisisVisible(true);
-      track(ANALYTICS_EVENTS.MOMENT_CRISIS_PROMPT_SHOWN, { momentId: selected });
-      return;
-    }
-    void doShare(selected);
+  const confirmShare = () => {
+    if (sheetMomentId) void doShare(sheetMomentId);
   };
 
-  // Dismiss without posting
+  // Leave the composer entirely (header back).
   const handleDismiss = () => {
     track(ANALYTICS_EVENTS.MOMENT_CANCELLED, { hadSelection: !!selected });
     navigation.goBack();
@@ -112,148 +120,161 @@ const ShareMomentScreen = () => {
     navigation.navigate("Resources");
   };
 
-  const renderGroup = (label: string, valence: MomentValence) => {
+  const renderGroup = (valence: MomentValence) => {
     const items = momentsByValence(valence);
-
     return (
-      <View style={styles.group}>
-        {label ? <Text style={styles.groupLabel}>{label}</Text> : null}
-        <View style={styles.actionList}>
-          {items.map((m) => {
-            const isSel = selected === m.id;
-            
-            return (
-              <PressableScale
-                key={m.id}
-                style={[styles.actionChip, isSel && styles.actionChipSelected]}
-                scaleTo={0.96}
-                onPress={() => handleSelect(m.id)}
-                accessibilityLabel={`Share: ${m.text}`}
-              >
-                <Text style={styles.actionEmoji}>{m.emoji}</Text>
-                <Text style={[styles.actionTitle, isSel && styles.actionTitleSelected]}>{m.text}</Text>
-              </PressableScale>
-            );
-          })}
+      <View style={styles.actionList}>
+        {items.map((m) => (
+          <ConnectedAvatarRow
+            key={m.id}
+            glyph={m.emoji}
+            title={m.text}
+            selected={selected === m.id}
+            onPress={() => handleSelect(m.id)}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  // ── The confirm sheet — simple for wins/mild struggles, support-first for sensitive ones. ──
+  const sheetMoment = sheetMomentId ? getMoment(sheetMomentId) : null;
+
+  const renderPreview = (emoji: string, text: string) => (
+    <View style={[styles.previewCard, { backgroundColor: colors.surface.control }]}>
+      <Text variant="body" style={styles.previewEmoji}>{emoji}</Text>
+      <Text variant="bodySm" color="primary" style={styles.bold}>{text}</Text>
+    </View>
+  );
+
+  const renderConfirmContent = () => {
+    if (!sheetMoment) return null;
+    const isStruggle = sheetMoment.valence === "struggle";
+
+    // Sensitive struggle → lead with care, then help (988), then the share.
+    if (sheetMoment.sensitive) {
+      return (
+        <View style={styles.sheetBody}>
+          <View style={[styles.sheetIcon, { backgroundColor: colors.action.primaryTint }]}>
+            <MaterialCommunityIcons name="lifebuoy" size={28} color={colors.action.primary} />
+          </View>
+          <Text variant="h2" style={styles.sheetCenter}>You don't have to carry this alone</Text>
+          {renderPreview(sheetMoment.emoji, sheetMoment.text)}
+
+          {/* Help, surfaced first */}
+          <View style={[styles.supportPanel, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
+            <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
+              If things feel heavy right now, support is here — free and confidential, 24/7.
+            </Text>
+            <Button label="Call or text 988" variant="primary" onPress={call988} />
+            <PressableScale haptic={false} scaleTo={0.98} onPress={openResources} style={styles.linkBtn}>
+              <Text variant="caption" color="tertiary" style={styles.bold}>More resources</Text>
+            </PressableScale>
+          </View>
+
+          {/* Then the share — framed as letting the buddy show up, not a transaction */}
+          <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
+            When you're ready, sharing this lets {buddyFirstName} be there for you too.
+          </Text>
+          <View style={styles.sheetActions}>
+            <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
+            <Button label="Not now" variant="ghost" onPress={closeConfirm} />
+          </View>
         </View>
+      );
+    }
+
+    // Win or mild struggle → a warm, simple confirm.
+    return (
+      <View style={styles.sheetBody}>
+        <Text variant="h2" style={styles.sheetCenter}>
+          {isStruggle ? "Share how you're doing?" : "Share your win?"}
+        </Text>
+        {renderPreview(sheetMoment.emoji, sheetMoment.text)}
+        <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
+          {isStruggle
+            ? `Showing up honestly is the brave part — ${buddyFirstName} will see this and can be there for you.`
+            : `${buddyFirstName} will see this and can cheer you on.`}
+        </Text>
+        <View style={styles.sheetActions}>
+          <Button label={`Share with ${buddyFirstName}`} variant="primary" loading={posting} onPress={confirmShare} />
+          <Button label="Not now" variant="ghost" onPress={closeConfirm} />
+        </View>
+        {isStruggle ? (
+          <PressableScale haptic={false} scaleTo={0.98} onPress={openResources} style={styles.linkBtn}>
+            <Text variant="caption" color="tertiary" style={styles.bold}>Need support? More resources</Text>
+          </PressableScale>
+        ) : null}
       </View>
     );
   };
 
   return (
-    <ScreenView style={styles.screen}>
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
-        ]}
-      >
-        <PressableScale
-          style={styles.backBtn}
-          scaleTo={0.92}
-          haptic={false}
-          onPress={handleDismiss}
-          hitSlop={12}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </PressableScale>
-        <Text style={styles.screenHeaderTitle}>Share Moment</Text>
-        <View style={{ width: 36 }} />
-      </BlurView>
+    <ScreenView style={[styles.screen, { backgroundColor: colors.background.canvas }]}>
+      <StatusBar barStyle="light-content" />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 
-      <View style={[styles.container, { paddingTop: 60 + insets.top + 20 }]}>
-        <View style={{ paddingHorizontal: 20 }}>
-          <Text style={styles.title}>Share a moment</Text>
-          <Text style={styles.subtitle}>
-            Let {buddyFirstName} know how it's really going — the hard ones count too.
-          </Text>
-
-          <View style={{ marginBottom: 24 }}>
-            <SegmentedTabs
-              tabs={[
-                { key: "win", label: "Wins", icon: "star-outline" },
-                { key: "struggle", label: "Struggles", icon: "cloud-outline" },
-              ]}
-              active={activeTab}
-              onChange={(k) => setActiveTab(k as "win" | "struggle")}
-            />
-          </View>
-        </View>
-
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(e) => {
-            const offsetX = e.nativeEvent.contentOffset.x;
-            const pageIndex = Math.round(offsetX / screenWidth);
-            setActiveTab(pageIndex === 0 ? "win" : "struggle");
-          }}
-          style={styles.scroll}
-        >
-          <ScrollView
-            style={{ width: screenWidth }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 32, paddingHorizontal: 20 }]}
-            showsVerticalScrollIndicator={false}
-          >
-            {renderGroup("", "win")}
-          </ScrollView>
-
-          <ScrollView
-            style={{ width: screenWidth }}
-            contentContainerStyle={[styles.scrollContent, { paddingBottom: 32, paddingHorizontal: 20 }]}
-            showsVerticalScrollIndicator={false}
-          >
-            {renderGroup("", "struggle")}
-          </ScrollView>
-        </ScrollView>
-      </View>
-
-      <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 24 }]}>
-        <View style={styles.footerRowWrap}>
-          <PressableScale
-            style={styles.footerRow}
-            haptic={false}
-            scaleTo={0.98}
-            onPress={call988}
-            accessibilityLabel="In crisis, call or text 988"
-          >
-            <MaterialCommunityIcons name="lifebuoy" size={15} color={C.orange700} />
-            <Text style={styles.footerText}>In crisis? Call or text 988</Text>
-          </PressableScale>
-          <PressableScale haptic={false} scaleTo={0.98} onPress={openResources}>
-            <Text style={styles.footerLink}>More resources</Text>
-          </PressableScale>
-        </View>
-
-        <PressableScale
-          style={[styles.shareBtnWrap, (!selected || posting) && styles.shareBtnDisabled]}
-          scaleTo={0.97}
-          disabled={!selected || posting}
-          onPress={handleShare}
-        >
-          <View style={styles.shareBtn}>
-            {posting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.shareBtnText}>Share with {buddyFirstName}</Text>
-            )}
-          </View>
-        </PressableScale>
-      </View>
-
-      <PromptBottomSheet
-        visible={crisisVisible}
-        onClose={() => setCrisisVisible(false)}
-        icon="lifebuoy"
-        title="You don't have to go through this alone"
-        message="If you're in crisis, help is available right now — free and confidential."
-        primaryButton={{ label: "Call or text 988", onPress: call988 }}
-        secondaryButton={{ label: "Share anyway", onPress: () => selected && doShare(selected) }}
+      {/* Canonical header (shared with every page) */}
+      <PageHeader
+        title="Share a moment"
+        description={`Let ${buddyFirstName} know how it's really going — the hard ones count too.`}
+        onBack={handleDismiss}
+        standalone
       />
+
+      {/* Chips — horizontal pager (Wins / Struggles), each vertically scrollable */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e) => {
+          const offsetX = e.nativeEvent.contentOffset.x;
+          const pageIndex = Math.round(offsetX / screenWidth);
+          setActiveTab(pageIndex === 0 ? "win" : "struggle");
+        }}
+        style={styles.pager}
+      >
+        <ScrollView
+          style={{ width: screenWidth }}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderGroup("win")}
+        </ScrollView>
+        <ScrollView
+          style={{ width: screenWidth }}
+          contentContainerStyle={styles.pageContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderGroup("struggle")}
+        </ScrollView>
+      </ScrollView>
+
+      {/* Opaque status-bar cap */}
+      {insets.top > 0 ? (
+        <View
+          style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]}
+          pointerEvents="none"
+        />
+      ) : null}
+
+      {/* Internal menu dock — Wins / Struggles, floating at the bottom (same as Progress Report) */}
+      <TabDock
+        fitContent
+        accessibilityLabel="Moment type"
+        items={[
+          { key: "win", label: "Wins", icon: "star-outline" },
+          { key: "struggle", label: "Struggles", icon: "cloud-outline" },
+        ]}
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k as "win" | "struggle")}
+      />
+
+      {/* Confirm-to-share sheet */}
+      <Sheet visible={confirmVisible} onClose={closeConfirm}>
+        {renderConfirmContent()}
+      </Sheet>
     </ScreenView>
   );
 };
@@ -263,118 +284,65 @@ export default ShareMomentScreen;
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 0,
   },
-  header: {
+  bold: { fontFamily: fonts.bold },
+  statusCap: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  screenHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  container: {
-    flex: 1,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: C.title,
-    fontWeight: "800",
-    fontSize: 24,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: C.textMuted,
-    marginTop: 6,
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 32 },
-
-  group: { marginTop: 4 },
-  groupLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: theme.colors.library.gray[400],
-    textTransform: "uppercase",
-    marginBottom: 12,
-    marginLeft: 4,
+  pager: { flex: 1 },
+  pageContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: space.sectionGap,
+    paddingBottom: 130, // clears the floating dock
   },
   actionList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    gap: spacing.lg,
   },
-  actionChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: "#F1F5F9",
-    gap: 8,
-  },
-  actionChipSelected: {
-    backgroundColor: C.title,
-  },
-  actionEmoji: { fontSize: 16 },
-  actionTitle: { fontSize: 15, fontWeight: "600", color: "#334155" },
-  actionTitleSelected: { color: "#FFFFFF" },
 
-  stickyFooter: {
-    paddingTop: 24,
-    paddingHorizontal: 20,
-    backgroundColor: "#FAFAFA",
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.library.gray[100],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.03,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  footerRowWrap: {
-    flexDirection: "row",
+  // Confirm sheet
+  sheetBody: {
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
-  footerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  footerText: { fontSize: 13, fontWeight: "700", color: C.orange700 },
-  footerLink: { fontSize: 13, fontWeight: "700", color: C.faint },
-
-  shareBtnWrap: {
-    borderRadius: 16,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    overflow: "hidden",
-  },
-  shareBtn: {
-    flexDirection: "row",
+  sheetIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    backgroundColor: C.title, // Match title text color
   },
-  shareBtnDisabled: { opacity: 0.4, shadowOpacity: 0 },
-  shareBtnText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  sheetCenter: { textAlign: "center" },
+  previewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.full,
+    alignSelf: "center",
+  },
+  previewEmoji: {},
+  supportPanel: {
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  sheetActions: {
+    width: "100%",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  linkBtn: {
+    alignSelf: "center",
+    paddingVertical: spacing.sm,
+  },
 });
