@@ -13,6 +13,8 @@ export { spacing, space, radius, size, hitTarget, zIndex, borderWidth, opacity }
 export { typography } from "./primitives/typography";
 export type { TypographyVariant } from "./primitives/typography";
 export { fonts } from "./primitives/fonts";
+export { icons } from "./icons";
+export type { IconKey } from "./icons";
 export { gradients } from "./primitives/gradients";
 export type { GradientName, GradientToken } from "./primitives/gradients";
 export { elevation } from "./elevation";

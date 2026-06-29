@@ -143,9 +143,17 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   Material/blur via `expo-blur` applied identically (or a token fallback).
 - Press feedback: reuse `PressableScale` (scale 0.97, reduced-motion aware) and
   honor `useReducedMotion` for non-essential motion.
-- Icons: the design-system set is Feather (`<Icon name=…>`). Legacy screens may
-  still use FontAwesome5/MaterialCommunity until their wave — don't do a risky
-  global icon swap.
+- Icons: the design-system set is **Lucide** via `<Icon name=… strokeWidth?=…>`
+  (the SVG successor of Feather — same look, but stroke-adjustable; names stay
+  kebab-case, any Lucide-missing name falls back to the Feather font). `strokeWidth`
+  defaults to 2; bump it (e.g. 2.75) for bold/avatar icons. Legacy screens may still
+  use FontAwesome5/MaterialCommunity until their wave — don't do a risky global swap.
+- **One icon per concept — use the `icons` registry** (`app/design-system/icons.ts`).
+  It maps semantic keys (`icons.win`, `icons.courage`, …) to a single Feather glyph.
+  Reference the key, don't inline a raw glyph name in a screen. Add a key to the
+  registry BEFORE using a new icon, so a concept always renders the same icon and
+  no glyph is overloaded for two meanings. Prefer **icons over emoji** for content
+  (e.g. `ConnectedAvatarRow` takes an `icon` prop; moment data carries `icon`).
 
 ## Migrations are behavior-frozen
 

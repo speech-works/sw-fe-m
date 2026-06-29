@@ -20,6 +20,8 @@ import {
   fonts,
   space,
   Text,
+  Icon,
+  IconName,
   PageHeader,
   TabDock,
   Button,
@@ -127,7 +129,7 @@ const ShareMomentScreen = () => {
         {items.map((m) => (
           <ConnectedAvatarRow
             key={m.id}
-            glyph={m.emoji}
+            icon={m.icon}
             title={m.text}
             selected={selected === m.id}
             onPress={() => handleSelect(m.id)}
@@ -140,9 +142,9 @@ const ShareMomentScreen = () => {
   // ── The confirm sheet — simple for wins/mild struggles, support-first for sensitive ones. ──
   const sheetMoment = sheetMomentId ? getMoment(sheetMomentId) : null;
 
-  const renderPreview = (emoji: string, text: string) => (
+  const renderPreview = (icon: IconName, text: string) => (
     <View style={[styles.previewCard, { backgroundColor: colors.surface.control }]}>
-      <Text variant="body" style={styles.previewEmoji}>{emoji}</Text>
+      <Icon name={icon} size={18} color={colors.text.primary} />
       <Text variant="bodySm" color="primary" style={styles.bold}>{text}</Text>
     </View>
   );
@@ -159,7 +161,7 @@ const ShareMomentScreen = () => {
             <MaterialCommunityIcons name="lifebuoy" size={28} color={colors.action.primary} />
           </View>
           <Text variant="h2" style={styles.sheetCenter}>You don't have to carry this alone</Text>
-          {renderPreview(sheetMoment.emoji, sheetMoment.text)}
+          {renderPreview(sheetMoment.icon, sheetMoment.text)}
 
           {/* Help, surfaced first */}
           <View style={[styles.supportPanel, { backgroundColor: colors.surface.default, borderColor: colors.border.default }]}>
@@ -190,7 +192,7 @@ const ShareMomentScreen = () => {
         <Text variant="h2" style={styles.sheetCenter}>
           {isStruggle ? "Share how you're doing?" : "Share your win?"}
         </Text>
-        {renderPreview(sheetMoment.emoji, sheetMoment.text)}
+        {renderPreview(sheetMoment.icon, sheetMoment.text)}
         <Text variant="bodySm" color="secondary" style={styles.sheetCenter}>
           {isStruggle
             ? `Showing up honestly is the brave part — ${buddyFirstName} will see this and can be there for you.`
@@ -264,7 +266,7 @@ const ShareMomentScreen = () => {
         fitContent
         accessibilityLabel="Moment type"
         items={[
-          { key: "win", label: "Wins", icon: "star-outline" },
+          { key: "win", label: "Wins", icon: "trophy-variant-outline" },
           { key: "struggle", label: "Struggles", icon: "cloud-outline" },
         ]}
         activeKey={activeTab}
@@ -327,7 +329,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignSelf: "center",
   },
-  previewEmoji: {},
   supportPanel: {
     width: "100%",
     borderWidth: 1,

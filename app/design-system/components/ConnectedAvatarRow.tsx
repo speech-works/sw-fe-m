@@ -5,13 +5,15 @@ import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
 import { space } from "../primitives/scale";
-import { Icon } from "./Icon";
+import { Icon, IconName } from "./Icon";
 
 type Trailing = "none" | "check" | "plus" | "audio";
 
 export interface ConnectedAvatarRowProps {
-  /** IPA symbol, letter, or flag emoji shown in the avatar. */
-  glyph: string;
+  /** A Feather icon shown in the avatar — preferred (from the `icons` registry). */
+  icon?: IconName;
+  /** IPA symbol, letter, or flag emoji shown in the avatar (when no `icon`). */
+  glyph?: string;
   title: string;
   subtitle?: string;
   selected?: boolean;
@@ -30,6 +32,7 @@ export interface ConnectedAvatarRowProps {
  * Selected = orange + dark text + check.
  */
 export const ConnectedAvatarRow: React.FC<ConnectedAvatarRowProps> = ({
+  icon,
   glyph,
   title,
   subtitle,
@@ -129,7 +132,11 @@ export const ConnectedAvatarRow: React.FC<ConnectedAvatarRowProps> = ({
             justifyContent: "center",
           }}
         >
-          <RNText style={glyphStyle}>{glyph}</RNText>
+          {icon ? (
+            <Icon name={icon} size={Math.round(inner * 0.52)} color={colors.text.onInverse} strokeWidth={2.75} />
+          ) : (
+            <RNText style={glyphStyle}>{glyph}</RNText>
+          )}
         </View>
       </View>
 
