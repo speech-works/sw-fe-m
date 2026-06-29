@@ -124,6 +124,9 @@ const ShareMomentScreen = () => {
 
   const renderGroup = (valence: MomentValence) => {
     const items = momentsByValence(valence);
+    // Warm disc for wins (gold), cool disc for struggles (blue) — the icon stays
+    // dark (text.onInverse), which clears AA on both fills.
+    const avatarColor = valence === "win" ? colors.gamification.gold : colors.accent.info;
     return (
       <View style={styles.actionList}>
         {items.map((m) => (
@@ -131,6 +134,7 @@ const ShareMomentScreen = () => {
             key={m.id}
             icon={m.icon}
             title={m.text}
+            avatarColor={avatarColor}
             selected={selected === m.id}
             onPress={() => handleSelect(m.id)}
           />

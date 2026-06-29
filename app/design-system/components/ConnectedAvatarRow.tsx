@@ -21,6 +21,10 @@ export interface ConnectedAvatarRowProps {
   trailing?: Trailing;
   /** Override the subtitle color (e.g. accent.success for "Natural voice"). */
   subtitleColor?: string;
+  /** Tint the inner avatar disc (default white `surface.inverse`). Use a BRIGHT
+   *  fill — the glyph/icon stays dark (`text.onInverse`), which clears AA on
+   *  bright fills (e.g. gold/blue) but NOT on dark ones. */
+  avatarColor?: string;
   onPress?: () => void;
 }
 
@@ -40,6 +44,7 @@ export const ConnectedAvatarRow: React.FC<ConnectedAvatarRowProps> = ({
   compact = false,
   trailing = "none",
   subtitleColor,
+  avatarColor,
   onPress,
 }) => {
   const { colors } = useTheme();
@@ -127,7 +132,7 @@ export const ConnectedAvatarRow: React.FC<ConnectedAvatarRowProps> = ({
             width: inner,
             height: inner,
             borderRadius: inner / 2,
-            backgroundColor: colors.surface.inverse,
+            backgroundColor: avatarColor ?? colors.surface.inverse,
             alignItems: "center",
             justifyContent: "center",
           }}
