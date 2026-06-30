@@ -494,7 +494,9 @@ export default SignalCard;
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    marginBottom: spacing.xl,
+    // NB: the inter-card gap lives on `cardCol` (not here) so the axis column
+    // stretches THROUGH it — that's what keeps the timeline line continuous
+    // between avatars instead of breaking into a stub per card.
   },
   bold: { fontFamily: fonts.bold },
   flex1: { flex: 1 },
@@ -537,6 +539,9 @@ const styles = StyleSheet.create({
   cardCol: {
     flex: 1,
     minWidth: 0,
+    // Inter-card spacing lives here (not on `row`) so the axis column grows to
+    // include it and the timeline line bridges the gap to the next avatar.
+    marginBottom: spacing.xl,
   },
 
   // Header
