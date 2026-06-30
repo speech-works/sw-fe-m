@@ -14,13 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Exception: the bond-stage glyph is SERVER-DRIVEN as a MaterialCommunityIcons name,
 // so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
@@ -40,8 +34,6 @@ import {
   fonts,
   typography,
   elevation,
-  easing,
-  duration,
   Text,
   TabDock,
   PageHeader,
@@ -52,6 +44,7 @@ import {
   PulseDot,
   AnimatedModal,
   Skeleton,
+  Toggle,
   staggerEntering,
 } from "../../design-system";
 import {
@@ -115,29 +108,6 @@ const daysBetween = (d?: string | Date | null): number => {
   const t = new Date(d).getTime();
   if (Number.isNaN(t)) return 0;
   return Math.max(0, Math.floor((Date.now() - t) / 86400000));
-};
-
-/** Visual half of the share toggle — thumb slides + track crossfades on `on`. */
-const ToggleSwitch = ({ on }: { on: boolean }) => {
-  const { colors } = useTheme();
-  const reduceMotion = useReducedMotion();
-  const v = useSharedValue(on ? 1 : 0);
-  useEffect(() => {
-    v.value = reduceMotion
-      ? on
-        ? 1
-        : 0
-      : withTiming(on ? 1 : 0, { duration: duration.base, easing: easing.out });
-  }, [on, reduceMotion]);
-  const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(v.value, [0, 1], [colors.surface.control, colors.action.primary]),
-  }));
-  const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: v.value * 18 }] }));
-  return (
-    <Animated.View style={[styles.toggleTrack, trackStyle]}>
-      <Animated.View style={[styles.toggleThumb, { backgroundColor: colors.surface.inverse }, thumbStyle]} />
-    </Animated.View>
-  );
 };
 
 /** Section header with an optional right-side hint. */
@@ -772,7 +742,7 @@ const Community = () => {
                 <Text variant="title">Share my progress</Text>
                 <Text variant="bodySm" color="secondary">Let {buddyFirstName} see your XP and level.</Text>
               </View>
-              <ToggleSwitch on={iShare} />
+              <Toggle value={iShare} />
             </PressableScale>
 
             <View style={[styles.actionDivider, { backgroundColor: colors.border.default }]} />
@@ -1172,18 +1142,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionTextWrap: { flex: 1, paddingRight: spacing.sm },
-  toggleTrack: {
-    width: 44,
-    height: 26,
-    borderRadius: radius.full,
-    padding: spacing.xxs,
-    justifyContent: "center",
-  },
-  toggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.full,
-  },
 
   // Invite Referral Card
   inviteCardWrapper: {
