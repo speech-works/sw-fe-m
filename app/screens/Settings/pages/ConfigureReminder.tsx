@@ -9,6 +9,7 @@ import {
 } from "../../../stores/reminders";
 import { ReminderCategory } from "../../../constants/reminderTemplates";
 import { requestNotificationPermissionWithFallback } from "../../../util/functions/notifications";
+import { showSuccessBottomSheet } from "../../../util/functions/bottomSheet";
 import {
   useTheme,
   spacing,
@@ -154,7 +155,16 @@ export default function ConfigureReminder() {
       } else {
         await addReminder(payload);
       }
+      // Back to the list, then a success moment over it (the global OutcomeModal,
+      // with its disc pop). ConfigureReminder is a screen, not a sheet, so there's
+      // no stacked-native-modal concern here.
       navigation.goBack();
+      showSuccessBottomSheet(
+        reminderId ? "Reminder Updated" : "Reminder Set",
+        reminderId
+          ? "Your changes have been saved."
+          : "We'll remind you at the time you picked.",
+      );
     } catch (error: any) {
       setPromptConfig({
         title: "Error",
