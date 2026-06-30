@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import ScreenView from "../../components/ScreenView";
 import {
@@ -20,7 +21,7 @@ import {
   PageHeader,
   TabDock,
   Button,
-  Divider,
+  TextLink,
   Sheet,
   ConnectedAvatarRow,
 } from "../../design-system";
@@ -49,8 +50,14 @@ const ShareMomentScreen = () => {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"win" | "struggle">("win");
   const [posting, setPosting] = useState(false);
+  // Sensitive moments use a two-step sheet: care first, sharing is the second beat.
+  const [sensitiveStep, setSensitiveStep] = useState<"support" | "share">("support");
 
   const scrollViewRef = useRef<ScrollView>(null);
+  // A navigation action to run AFTER the confirm sheet has fully dismissed — the
+  // Sheet is a native Modal, so navigating while it's open leaves it on top of
+  // (or lingering over) the destination screen.
+  const afterSheetClose = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -66,6 +73,7 @@ const ShareMomentScreen = () => {
     const m = getMoment(id);
     setSelected(id);
     setSheetMomentId(id);
+    setSensitiveStep("support"); // a sensitive sheet always opens on the care step
     setConfirmVisible(true);
     track(ANALYTICS_EVENTS.MOMENT_SELECTED, { momentId: id, valence: m.valence });
     if (m.sensitive) {
@@ -73,9 +81,17 @@ const ShareMomentScreen = () => {
     }
   };
 
-  const closeConfirm = () => {
+  // Close the confirm sheet; optionally queue a navigation to run once it's gone.
+  const dismissSheet = (then?: () => void) => {
+    afterSheetClose.current = then ?? null;
     setConfirmVisible(false);
     setSelected(null); // drop the chip highlight; keep sheetMomentId for the slide-out
+  };
+  const closeConfirm = () => dismissSheet();
+  const handleSheetDismissed = () => {
+    const next = afterSheetClose.current;
+    afterSheetClose.current = null;
+    next?.();
   };
 
   const doShare = async (momentId: MomentId) => {
@@ -90,7 +106,7 @@ const ShareMomentScreen = () => {
         sensitive: !!m.sensitive,
       });
       onCreated?.(signal);
-      navigation.goBack();
+      dismissSheet(() => navigation.goBack()); // close the sheet, THEN leave the composer
     } catch (e) {
       Alert.alert("Couldn't share", "Please try again.");
     } finally {
@@ -115,7 +131,7 @@ const ShareMomentScreen = () => {
 
   const openResources = () => {
     track(ANALYTICS_EVENTS.MOMENT_CRISIS_RESOURCE_TAPPED, { resource: "resources" });
-    navigation.navigate("Resources");
+    dismissSheet(() => navigation.navigate("Resources")); // close the sheet, THEN navigate
   };
 
   const renderGroup = (valence: MomentValence) => {
@@ -156,43 +172,60 @@ const ShareMomentScreen = () => {
     if (!sheetMoment) return null;
     const isStruggle = sheetMoment.valence === "struggle";
 
-    // Sensitive struggle → care leads. A calm support block (988 is the one solid island),
-    // a visible section rule, then the share — kept quieter (outline) than the help above.
+    // Sensitive struggle → a two-step CARE-GATE so the sheet is never a wall of buttons:
+    //   Step 1 (support): 988 is the one loud island; sharing is a quiet "when you're ready" link.
+    //   Step 2 (share):   one Share island, with 988 re-anchored one tap away + a way back.
+    // 988 stays an ENCLOSED button (never a mere link) on BOTH steps — crisis access stays obvious.
     if (sheetMoment.sensitive) {
+      if (sensitiveStep === "support") {
+        return (
+          <Animated.View key="support" entering={FadeIn.duration(200)} style={styles.sheetBody}>
+            {/* Content: bare lifeline glyph, care headline, the moment as a quiet quote. */}
+            <Icon name="life-buoy" size={32} color={onFill} />
+            <Text variant="h2" color={onFill} center>You don&apos;t have to carry this alone</Text>
+            <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
+            <Text variant="bodySm" color={onFill} center>
+              Support is here — free and confidential, 24/7.
+            </Text>
+
+            {/* Care actions only: 988 the single solid island, resources an outline pill. */}
+            <View style={[styles.actionGroup, styles.actionGroupTop]}>
+              <Button label="Call or text 988" variant="secondary" leftIcon="phone" onPress={call988} />
+              <Button label="More resources" variant="outline" size="md" onColor={onFill} onPress={openResources} />
+            </View>
+
+            {/* Sharing is the second beat — a quiet, non-pushy invitation (a link, not a button). */}
+            <TextLink
+              label={`When you're ready, share with ${buddyFirstName}`}
+              color={onFill}
+              onPress={() => setSensitiveStep("share")}
+            />
+          </Animated.View>
+        );
+      }
+      // Step 2 — share, with the lifeline still one tap away.
       return (
-        <View style={styles.sheetBody}>
-          {/* Content: a bare lifeline glyph, the care headline, the moment as a quiet quote. */}
-          <Icon name="life-buoy" size={32} color={onFill} />
-          <Text variant="h2" color={onFill} center>You don&apos;t have to carry this alone</Text>
+        <Animated.View key="share" entering={FadeIn.duration(200)} style={styles.sheetBody}>
+          <Icon name={sheetMoment.icon} size={28} color={onFill} />
+          <Text variant="h2" color={onFill} center>Share this with {buddyFirstName}?</Text>
           <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
           <Text variant="bodySm" color={onFill} center>
-            Support is here — free and confidential, 24/7.
+            Sharing this lets {buddyFirstName} be there for you too.
           </Text>
 
-          {/* Support actions: 988 the single solid island, resources an outline pill. */}
+          {/* One Share island; 988 stays a tap away as a still-here outline. */}
           <View style={[styles.actionGroup, styles.actionGroupTop]}>
-            <Button label="Call or text 988" variant="secondary" leftIcon="phone" onPress={call988} />
-            <Button label="More resources" variant="outline" size="md" onColor={onFill} onPress={openResources} />
+            <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
+            <Button label="Still here — call or text 988" variant="outline" size="md" leftIcon="phone" onColor={onFill} onPress={call988} />
           </View>
 
-          {/* A real, visible rule between getting help and sharing. */}
-          <View style={styles.dividerWrap}>
-            <Divider color={onFill} />
-          </View>
-
-          {/* Share: content lead, then an outline — never louder than the help. */}
-          <Text variant="bodySm" color={onFill} center>
-            When you&apos;re ready, sharing this lets {buddyFirstName} be there for you too.
-          </Text>
-          <View style={styles.actionGroup}>
-            <Button label={`Share with ${buddyFirstName}`} variant="outline" onColor={onFill} loading={posting} onPress={confirmShare} />
-            <Button label="Not now" variant="outline" size="md" onColor={onFill} onPress={closeConfirm} />
-          </View>
-        </View>
+          <TextLink label="← Back to support" color={onFill} onPress={() => setSensitiveStep("support")} />
+        </Animated.View>
       );
     }
 
     // Win or mild struggle → the moment IS the headline; one solid island to share.
+    // (Dismiss is the sheet's own swipe-down / tap-outside — no "Not now" button.)
     return (
       <View style={styles.sheetBody}>
         {/* Content: a bare valence glyph, a quiet eyebrow, the moment as the hero quote. */}
@@ -207,10 +240,9 @@ const ShareMomentScreen = () => {
             : `${buddyFirstName} will see this and can cheer you on.`}
         </Text>
 
-        {/* Actions: one solid island to share, an outline to dismiss (+ support for mild). */}
+        {/* One solid island to share (+ a quiet support outline for mild struggles). */}
         <View style={[styles.actionGroup, styles.actionGroupTop]}>
           <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
-          <Button label="Not now" variant="outline" size="md" onColor={onFill} onPress={closeConfirm} />
           {isStruggle ? (
             <Button label="Need support? More resources" variant="outline" size="md" leftIcon="life-buoy" onColor={onFill} onPress={openResources} />
           ) : null}
@@ -282,7 +314,12 @@ const ShareMomentScreen = () => {
       />
 
       {/* Confirm-to-share sheet */}
-      <Sheet visible={confirmVisible} onClose={closeConfirm} color={sheetFill}>
+      <Sheet
+        visible={confirmVisible}
+        onClose={closeConfirm}
+        onDismissed={handleSheetDismissed}
+        color={sheetFill}
+      >
         {renderConfirmContent()}
       </Sheet>
     </ScreenView>
@@ -327,10 +364,5 @@ const styles = StyleSheet.create({
   },
   actionGroupTop: {
     marginTop: spacing.sm,
-  },
-  // Wrapper that gives the section rule clear breathing room on both sides.
-  dividerWrap: {
-    width: "100%",
-    marginVertical: spacing.sm,
   },
 });

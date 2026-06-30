@@ -31,6 +31,10 @@ export interface SheetProps {
   right?: React.ReactNode;
   /** Override the sheet surface color (e.g. an accent for a themed guide). */
   color?: string;
+  /** Fires once the sheet has FULLY animated out and unmounted. Use this to run
+   *  navigation after a close — the sheet is a native Modal, so navigating while
+   *  it is still visible leaves it on top of (or lingering over) the new screen. */
+  onDismissed?: () => void;
   contentStyle?: ViewStyle;
 }
 
@@ -43,11 +47,17 @@ export const Sheet: React.FC<SheetProps> = ({
   title,
   right,
   color,
+  onDismissed,
   contentStyle,
 }) => {
   const { colors, elevation } = useTheme();
   const insets = useSafeAreaInsets();
   const hasHeader = !!(title || right);
+
+  // Keep the latest callback in a ref so the exit-animation effect never needs it
+  // in its deps (an inline closure would otherwise re-run the animation each render).
+  const onDismissedRef = useRef(onDismissed);
+  onDismissedRef.current = onDismissed;
 
   // The grab handle must read on whatever surface the sheet uses: a bright
   // accent fill needs a dark handle, the default dark card a light one.
@@ -91,7 +101,10 @@ export const Sheet: React.FC<SheetProps> = ({
           useNativeDriver: true,
         }),
       ]).start(({ finished }) => {
-        if (finished) setMounted(false);
+        if (finished) {
+          setMounted(false);
+          onDismissedRef.current?.();
+        }
       });
     }
   }, [visible, backdrop, translateY]);

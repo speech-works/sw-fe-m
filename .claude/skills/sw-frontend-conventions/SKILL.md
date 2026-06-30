@@ -128,8 +128,13 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
     (`Button variant="secondary"`) for the one loud CTA, and `variant="outline"`
     with `onColor={accentOn…}` for secondary actions (a real hairline boundary).
   - **No `ghost` buttons on a bright fill** — a borderless inked button is visually
-    identical to content copy. Pass `onColor` so outline/ghost ink is `accentOn.*`,
+    identical to content copy. Pass `onColor` so outline ink is `accentOn.*`,
     never the orange `action.primary` (which dies on gold/blue).
+  - **Tertiary / navigation actions = `TextLink` (underlined), not a ghost button.**
+    The underline is the third affordance tier — legible as a link, distinct from
+    both bare content and pill buttons. Use it only for low-priority/navigational
+    actions (step transitions, "back", "more"); a primary or crisis action stays an
+    enclosed Button (solid island / outline pill), never a link.
   - A `Divider` on a bright fill needs `color={accentOn…}` — the default
     `border.default` (faint white) renders ~1.3:1 and is invisible.
   - Reference: `app/screens/ShareMoment/index.tsx` confirm sheets.

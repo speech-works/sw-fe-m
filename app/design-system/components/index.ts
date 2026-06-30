@@ -31,6 +31,8 @@ export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
 export { Chip } from "./Chip";
 export type { ChipProps } from "./Chip";
+export { TextLink } from "./TextLink";
+export type { TextLinkProps } from "./TextLink";
 
 // Inputs
 export { TextField } from "./TextField";
