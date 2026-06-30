@@ -117,6 +117,22 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
 - New color pairings should be checked with `contrastRatio` (a quick node script
   over the token hexes works) before shipping — treat <4.5:1 informational text as
   a bug, not a style choice.
+- **On a bright accent surface (a `Sheet color={accent…}`, accent card, etc.),
+  separate content from actions by SHAPE, not just tone.** The only AA-legible
+  high-contrast island on a bright fill is dark — so if both content and buttons
+  go dark, they collide into look-alike pills. The rule:
+  - **Content = the only borderless things** — the moment/label/copy as bare
+    `accentOn.*` type printed straight on the fill (no card, no pill, no border),
+    plus at most a bare `Icon` in `accentOn.*` (NO disc).
+  - **Actions = the only enclosed shapes** — a solid dark island
+    (`Button variant="secondary"`) for the one loud CTA, and `variant="outline"`
+    with `onColor={accentOn…}` for secondary actions (a real hairline boundary).
+  - **No `ghost` buttons on a bright fill** — a borderless inked button is visually
+    identical to content copy. Pass `onColor` so outline/ghost ink is `accentOn.*`,
+    never the orange `action.primary` (which dies on gold/blue).
+  - A `Divider` on a bright fill needs `color={accentOn…}` — the default
+    `border.default` (faint white) renders ~1.3:1 and is invisible.
+  - Reference: `app/screens/ShareMoment/index.tsx` confirm sheets.
 
 ## Typography, spacing, shape
 

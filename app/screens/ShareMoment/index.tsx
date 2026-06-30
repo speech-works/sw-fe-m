@@ -8,22 +8,19 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenView from "../../components/ScreenView";
 import {
   useTheme,
   spacing,
-  radius,
-  fonts,
   space,
   Text,
   Icon,
-  IconName,
   PageHeader,
   TabDock,
   Button,
+  Divider,
   Sheet,
   ConnectedAvatarRow,
 } from "../../design-system";
@@ -142,81 +139,82 @@ const ShareMomentScreen = () => {
     );
   };
 
-  // ── The confirm sheet — simple for wins/mild struggles, support-first for sensitive ones.
-  //    The sheet wears the moment's full valence colour (gold win / blue struggle), so every
-  //    foreground here is the AA-correct on-fill ink; CTAs are dark "islands" on the bright fill. ──
+  // ── The confirm sheet. The sheet wears the moment's full valence colour (gold win / blue
+  //    struggle); the interior obeys ONE rule so content never reads as a control:
+  //      • CONTENT is the only BORDERLESS thing — bare on-fill type + a bare glyph (no disc,
+  //        no pill, no border), printed in the AA-correct on-fill ink.
+  //      • ACTIONS are the only ENCLOSED shapes — a solid dark "island" (the one loud CTA) or
+  //        a hairline outline pill. No ghost buttons: a borderless inked button would look
+  //        exactly like content. So "has a boundary ⇒ tappable" holds end-to-end. ──
   const sheetMoment = sheetMomentId ? getMoment(sheetMomentId) : null;
-  const sheetFill = sheetMoment
-    ? sheetMoment.valence === "win"
-      ? colors.gamification.gold
-      : colors.accent.info
-    : undefined;
-  // Dark ink paired with each fill (gold⇄accentOn.warning, blue⇄accentOn.info).
-  const onFill =
-    sheetMoment?.valence === "win" ? colors.accentOn.warning : colors.accentOn.info;
-
-  // The shared moment, shown as a dark chip that grounds the bright sheet.
-  const renderPreview = (icon: IconName, text: string) => (
-    <View style={[styles.previewCard, { backgroundColor: colors.surface.control }]}>
-      <Icon name={icon} size={18} color={colors.text.primary} />
-      <Text variant="bodySm" color="primary" style={styles.bold}>{text}</Text>
-    </View>
-  );
+  const isWin = sheetMoment?.valence === "win";
+  const sheetFill = sheetMoment ? (isWin ? colors.gamification.gold : colors.accent.info) : undefined;
+  // The AA-correct dark ink for the active fill (gold⇄accentOn.warning, blue⇄accentOn.info).
+  const onFill = isWin ? colors.accentOn.warning : colors.accentOn.info;
 
   const renderConfirmContent = () => {
     if (!sheetMoment) return null;
     const isStruggle = sheetMoment.valence === "struggle";
 
-    // Sensitive struggle → lead with care, then help (988, the loudest CTA), then the share.
+    // Sensitive struggle → care leads. A calm support block (988 is the one solid island),
+    // a visible section rule, then the share — kept quieter (outline) than the help above.
     if (sheetMoment.sensitive) {
       return (
         <View style={styles.sheetBody}>
-          <View style={[styles.sheetIcon, { backgroundColor: colors.surface.row }]}>
-            <MaterialCommunityIcons name="lifebuoy" size={28} color={colors.text.primary} />
-          </View>
-          <Text variant="h2" color={onFill} style={styles.sheetCenter}>You don't have to carry this alone</Text>
-          {renderPreview(sheetMoment.icon, sheetMoment.text)}
-
-          {/* Help, surfaced first — the dark solid button is the loudest thing on the sheet. */}
-          <Text variant="bodySm" color={onFill} style={styles.sheetCenter}>
-            If things feel heavy right now, support is here — free and confidential, 24/7.
+          {/* Content: a bare lifeline glyph, the care headline, the moment as a quiet quote. */}
+          <Icon name="life-buoy" size={32} color={onFill} />
+          <Text variant="h2" color={onFill} center>You don&apos;t have to carry this alone</Text>
+          <Text variant="title" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
+          <Text variant="bodySm" color={onFill} center>
+            Support is here — free and confidential, 24/7.
           </Text>
-          <View style={styles.sheetActions}>
-            <Button label="Call or text 988" variant="secondary" onPress={call988} />
-            <Button label="More resources" variant="ghost" size="sm" onColor={onFill} onPress={openResources} />
+
+          {/* Support actions: 988 the single solid island, resources an outline pill. */}
+          <View style={[styles.actionGroup, styles.actionGroupTop]}>
+            <Button label="Call or text 988" variant="secondary" leftIcon="phone" onPress={call988} />
+            <Button label="More resources" variant="outline" size="md" onColor={onFill} onPress={openResources} />
           </View>
 
-          {/* Then the share — framed as letting the buddy show up, not a transaction. */}
-          <Text variant="bodySm" color={onFill} style={[styles.sheetCenter, styles.shareLead]}>
-            When you're ready, sharing this lets {buddyFirstName} be there for you too.
+          {/* A real, visible rule between getting help and sharing. */}
+          <View style={styles.dividerWrap}>
+            <Divider color={onFill} />
+          </View>
+
+          {/* Share: content lead, then an outline — never louder than the help. */}
+          <Text variant="bodySm" color={onFill} center>
+            When you&apos;re ready, sharing this lets {buddyFirstName} be there for you too.
           </Text>
-          <View style={styles.sheetActions}>
+          <View style={styles.actionGroup}>
             <Button label={`Share with ${buddyFirstName}`} variant="outline" onColor={onFill} loading={posting} onPress={confirmShare} />
-            <Button label="Not now" variant="ghost" size="sm" onColor={onFill} onPress={closeConfirm} />
+            <Button label="Not now" variant="outline" size="md" onColor={onFill} onPress={closeConfirm} />
           </View>
         </View>
       );
     }
 
-    // Win or mild struggle → a warm, simple confirm.
+    // Win or mild struggle → the moment IS the headline; one solid island to share.
     return (
       <View style={styles.sheetBody}>
-        <Text variant="h2" color={onFill} style={styles.sheetCenter}>
-          {isStruggle ? "Share how you're doing?" : "Share your win?"}
+        {/* Content: a bare valence glyph, a quiet eyebrow, the moment as the hero quote. */}
+        <Icon name={sheetMoment.icon} size={28} color={onFill} />
+        <Text variant="caption" color={onFill} center style={styles.eyebrow}>
+          {isStruggle ? "HOW YOU'RE DOING" : "A WIN TO SHARE"}
         </Text>
-        {renderPreview(sheetMoment.icon, sheetMoment.text)}
-        <Text variant="bodySm" color={onFill} style={styles.sheetCenter}>
+        <Text variant="h1" color={onFill} center numberOfLines={3}>{`“${sheetMoment.text}”`}</Text>
+        <Text variant="bodySm" color={onFill} center>
           {isStruggle
-            ? `Showing up honestly is the brave part — ${buddyFirstName} will see this and can be there for you.`
+            ? `Showing up honestly is the brave part — ${buddyFirstName} can be there for you.`
             : `${buddyFirstName} will see this and can cheer you on.`}
         </Text>
-        <View style={styles.sheetActions}>
+
+        {/* Actions: one solid island to share, an outline to dismiss (+ support for mild). */}
+        <View style={[styles.actionGroup, styles.actionGroupTop]}>
           <Button label={`Share with ${buddyFirstName}`} variant="secondary" loading={posting} onPress={confirmShare} />
-          <Button label="Not now" variant="ghost" size="sm" onColor={onFill} onPress={closeConfirm} />
+          <Button label="Not now" variant="outline" size="md" onColor={onFill} onPress={closeConfirm} />
+          {isStruggle ? (
+            <Button label="Need support? More resources" variant="outline" size="md" leftIcon="life-buoy" onColor={onFill} onPress={openResources} />
+          ) : null}
         </View>
-        {isStruggle ? (
-          <Button label="Need support? More resources" variant="ghost" size="sm" onColor={onFill} onPress={openResources} />
-        ) : null}
       </View>
     );
   };
@@ -298,7 +296,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 0,
   },
-  bold: { fontFamily: fonts.bold },
   statusCap: {
     position: "absolute",
     top: 0,
@@ -316,35 +313,24 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
 
-  // Confirm sheet
+  // Confirm sheet — content is bare centred type; actions are enclosed pills.
   sheetBody: {
     alignItems: "center",
     paddingTop: spacing.sm,
     gap: spacing.md,
   },
-  sheetIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetCenter: { textAlign: "center" },
-  previewCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.full,
-    alignSelf: "center",
-  },
-  sheetActions: {
+  eyebrow: { letterSpacing: 1 },
+  // A full-width column of action pills; the extra top gap separates them from content.
+  actionGroup: {
     width: "100%",
     gap: spacing.sm,
-    marginTop: spacing.xs,
   },
-  shareLead: {
+  actionGroupTop: {
     marginTop: spacing.sm,
+  },
+  // Wrapper that gives the section rule clear breathing room on both sides.
+  dividerWrap: {
+    width: "100%",
+    marginVertical: spacing.sm,
   },
 });
