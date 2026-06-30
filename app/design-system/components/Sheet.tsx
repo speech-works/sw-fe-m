@@ -73,6 +73,11 @@ export const Sheet: React.FC<SheetProps> = ({
   // in place). Emil's rule — keep opacity, remove transform/position.
   const reduced = useReducedMotion();
 
+  // NOTE: this sheet runs on the RN `Animated` engine (not Reanimated), so it can't
+  // consume the Reanimated `easing.*` bezier worklets. Durations ARE tokenized
+  // (`duration.fast`/`sheetIn`/`sheetOut`); the curves use RN's native out/in-cubic as
+  // the engine-local analog of `easing.out`/`easing.in`. This is the one motion
+  // engine-boundary exception (cf. the count-up rAF in AnimatedNumber).
   useEffect(() => {
     if (visible) {
       setMounted(true);

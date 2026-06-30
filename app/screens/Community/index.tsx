@@ -17,7 +17,6 @@ import {
   ViewStyle,
 } from "react-native";
 import Animated, {
-  Easing,
   interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
@@ -45,6 +44,7 @@ import {
   typography,
   elevation,
   easing,
+  duration,
   Text,
   TabDock,
   PageHeader,
@@ -128,7 +128,7 @@ const ToggleSwitch = ({ on }: { on: boolean }) => {
       ? on
         ? 1
         : 0
-      : withTiming(on ? 1 : 0, { duration: 180, easing: easing.out });
+      : withTiming(on ? 1 : 0, { duration: duration.base, easing: easing.out });
   }, [on, reduceMotion]);
   const trackStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(v.value, [0, 1], [colors.surface.control, colors.action.primary]),
@@ -169,7 +169,7 @@ const SkeletonBlock = ({ style }: { style?: StyleProp<ViewStyle> }) => {
   useEffect(() => {
     o.value = reduceMotion
       ? 0.6
-      : withRepeat(withTiming(1, { duration: 850, easing: Easing.inOut(Easing.ease) }), -1, true);
+      : withRepeat(withTiming(1, { duration: duration.shimmer, easing: easing.loop }), -1, true);
   }, [reduceMotion]);
   const s = useAnimatedStyle(() => ({ opacity: o.value }));
   return <Animated.View style={[styles.skelBlock, { backgroundColor: colors.surface.elevated }, style, s]} />;

@@ -1,7 +1,6 @@
 import React from "react";
 import { Pressable } from "react-native";
 import Animated, {
-  Easing,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
@@ -10,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { opacity } from "../primitives/scale";
+import { duration, easing } from "../motion";
 
 export interface ToggleProps {
   value: boolean;
@@ -21,7 +21,7 @@ export interface ToggleProps {
 export const Toggle: React.FC<ToggleProps> = ({ value, onChange, disabled }) => {
   const { colors } = useTheme();
   const v = useDerivedValue(
-    () => withTiming(value ? 1 : 0, { duration: 160, easing: Easing.out(Easing.quad) }),
+    () => withTiming(value ? 1 : 0, { duration: duration.base, easing: easing.out }),
     [value],
   );
   const trackStyle = useAnimatedStyle(() => ({

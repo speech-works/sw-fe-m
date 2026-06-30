@@ -13,7 +13,7 @@ import Animated, {
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
 import { size } from "../primitives/scale";
-import { spring } from "../motion";
+import { spring, duration } from "../motion";
 import { Icon, IconName } from "./Icon";
 
 // One spring drives BOTH the active pill's growth (per item) AND the capsule's
@@ -167,7 +167,7 @@ const DockItem: React.FC<DockItemProps> = ({
   return (
     <Animated.View
       style={[styles.itemContainer, containerStyle]}
-      entering={reduceMotion ? undefined : FadeIn.duration(180)}
+      entering={reduceMotion ? undefined : FadeIn.duration(duration.base)}
     >
       <TouchableOpacity
         onPress={onPress}

@@ -25,8 +25,9 @@ export const duration = {
  */
 export const easing = {
   out: Easing.bezier(0.23, 1, 0.32, 1), // enters, feedback, reveals (the default)
-  inOut: Easing.bezier(0.77, 0, 0.175, 1), // morph / on-screen movement
+  inOut: Easing.bezier(0.77, 0, 0.175, 1), // morph / on-screen movement (UI, one-shot)
   in: Easing.bezier(0.32, 0, 0.67, 0), // EXITS only
+  loop: Easing.inOut(Easing.ease), // gentle symmetric breathing for ambient/loading LOOPS (shimmer, pulse, float)
   linear: Easing.linear,
 } as const;
 

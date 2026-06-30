@@ -193,10 +193,13 @@ touch). NEVER hardcode a spring/curve/duration in a screen — reference the tok
 
 - **Tokens** (`design-system/motion.ts`): `duration` (`fast 120` · `base 200` ·
   `reveal 240` · `sheetIn 300` / `sheetOut 200` — exit faster than enter · `count 700` ·
-  `shimmer 1000`); `easing` (`out` for enters/feedback/reveals · `inOut` for on-screen
-  movement · `in` for EXITS only — never enters · `linear`); `spring` (`press` snappy
-  no-overshoot · `gentle` soft settle for sheets/layout · `bouncy` warm overshoot —
-  **celebration only**); `stagger {step 45, max 6}`.
+  `shimmer 1000`); `easing` (`out` for enters/feedback/reveals · `inOut` for one-shot
+  on-screen movement · `in` for EXITS only — never enters · `loop` gentle symmetric
+  breathing for ambient/loading **loops** (shimmer, pulse, float) · `linear`); `spring`
+  (`press` snappy no-overshoot · `gentle` soft settle for sheets/layout · `bouncy` warm
+  overshoot — **celebration only**, never on an error/neutral surface); `stagger {step 45,
+  max 6}`. NEVER hardcode a number — the only raw values are bespoke ambient loop periods
+  kept as named consts (`PULSE_PERIOD`, `FLOAT_PERIOD`).
 - **Reduced-motion gate is mandatory.** Use `useMotion()` / the helpers in `useMotion.ts`
   so everything degrades the same way: reduced = keep opacity, drop transform/position
   (gentler, not zero); ambient loops (e.g. avatar float) go fully quiet. Any `withRepeat`
@@ -222,11 +225,16 @@ touch). NEVER hardcode a spring/curve/duration in a screen — reference the tok
 | Dock / tab morph | shared spring resize | `spring.gentle` | instant |
 | Toggle | thumb slide + track color | `base` + `easing.out` | instant |
 | Value change (XP/days) | count-up | `AnimatedNumber` (`count`) | instant final |
-| Loading | shimmer | `Skeleton` (`shimmer`) | static |
-| Success (save/share/reach-out) | check/disc pop | `useSuccessPop` (`bouncy`) | fade only |
-| Live/fresh indicator | pulse ring loop | `PulseDot` | hidden (solid dot) |
+| Loading | shimmer | `Skeleton` (`shimmer` + `easing.loop`) | static |
+| Success (save/share/reach-out) | check/disc pop | `useSuccessPop` (`bouncy`; `{celebrate:false}`→`gentle` for non-celebratory) | fade only |
+| Live/fresh indicator | pulse ring loop | `PulseDot` (`easing.loop`) | hidden (solid dot) |
 | List item remove | layout collapse + fade-out | `layoutPreset` + `FadeOut` | fade only |
-| Ambient (avatar float) | slow translateY loop | `easing.inOut` | **disabled** |
+| Ambient (avatar float) | slow translateY loop | `easing.loop` | **disabled** |
+
+**Engine-boundary exception:** `Sheet` runs on the RN `Animated` engine, so it can't use
+the Reanimated `easing.*` worklets — its durations are tokenized but its curves use RN's
+native out/in-cubic (the analog of `easing.out`/`easing.in`). Don't "fix" it by sprinkling
+`easing.*` in — it would throw. Everything else is Reanimated.
 
 ## Migrations are behavior-frozen
 

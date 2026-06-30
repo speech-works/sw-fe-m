@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -9,7 +8,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { radius } from "../primitives/scale";
+import { easing } from "../motion";
 import { useTheme } from "../useTheme";
+
+/** Pulse-ring breathing period (ms) — an ambient loop, deliberately slower than UI motion. */
+const PULSE_PERIOD = 1100;
 
 export interface PulseDotProps {
   /** Dot + ring colour (default `action.primary`). */
@@ -31,7 +34,7 @@ export const PulseDot: React.FC<PulseDotProps> = ({ color, size = 8 }) => {
   useEffect(() => {
     if (reduceMotion) return;
     // Ambient breathing loop (intentionally slow, separate from UI motion).
-    s.value = withRepeat(withTiming(2, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, false);
+    s.value = withRepeat(withTiming(2, { duration: PULSE_PERIOD, easing: easing.loop }), -1, false);
   }, [reduceMotion, s]);
 
   const ring = useAnimatedStyle(() => ({

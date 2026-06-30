@@ -64,8 +64,9 @@ const OutcomeModal = () => {
   // Bright valence disc with the AA-correct dark glyph (same pattern as ShareMoment).
   const accent = success ? colors.accent.success : colors.accent.danger;
   const accentOn = success ? colors.accentOn.success : colors.accentOn.danger;
-  // Disc scales in each time the sheet opens — a small moment of arrival.
-  const discStyle = useSuccessPop(visible);
+  // Disc scales in each time the sheet opens — celebratory bounce for success,
+  // a calm settle for errors (bounce stays reserved for celebration).
+  const discStyle = useSuccessPop(visible, { celebrate: success });
 
   return (
     <Sheet visible={visible} onClose={() => setVisible(false)}>

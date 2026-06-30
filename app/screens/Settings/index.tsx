@@ -1,8 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, TouchableOpacity, View } from "react-native";
-import Reanimated from "react-native-reanimated";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Reanimated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -11,6 +17,7 @@ import { getLevelStage, LevelStage } from "../../api/users";
 import {
   useTheme,
   useMotion,
+  easing,
   spacing,
   radius,
   Page,
@@ -46,39 +53,27 @@ const Settings = () => {
   const [pendingSuccess, setPendingSuccess] = useState(false);
   const editRef = useRef<EditProfileHandle>(null);
 
-  // Ambient avatar float — a slow, gentle rise/fall. Disabled entirely under
-  // reduced motion (ambient loops are the first thing that should go quiet).
-  const floatAnim = useRef(new Animated.Value(0)).current;
+  // Ambient avatar float — a slow, gentle rise/fall (8s round trip). Disabled entirely
+  // under reduced motion (ambient loops are the first thing that should go quiet).
+  const FLOAT_PERIOD = 4000; // half-cycle (ms); bespoke ambient period, separate from UI motion
+  const floatY = useSharedValue(0);
 
   useEffect(() => {
     if (m.reduced) {
-      floatAnim.setValue(0);
+      floatY.value = 0;
       return;
     }
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: 4000,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ]),
+    floatY.value = withRepeat(
+      withTiming(-6, { duration: FLOAT_PERIOD, easing: easing.loop }),
+      -1,
+      true, // yoyo: 0 → -6 → 0
     );
-    animation.start();
-    return () => animation.stop();
-  }, [floatAnim, m.reduced]);
+    return () => cancelAnimation(floatY);
+  }, [m.reduced, floatY]);
 
-  const avatarFloat = floatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -6],
-  });
+  const avatarFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
@@ -173,14 +168,14 @@ const Settings = () => {
           entering={m.stagger(0)}
           style={[styles.profileSection, { backgroundColor: colors.surface.elevated }]}
         >
-          <Animated.View style={[styles.avatarWrap, { transform: [{ translateY: avatarFloat }] }]}>
+          <Reanimated.View style={[styles.avatarWrap, avatarFloatStyle]}>
             <Avatar
               image={user?.profilePictureUrl}
               shape="rounded"
               size={88}
               level={levelStage?.level || user?.level || 1}
             />
-          </Animated.View>
+          </Reanimated.View>
 
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>

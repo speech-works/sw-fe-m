@@ -9,6 +9,7 @@ import Animated, {
   useReducedMotion,
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
+import { duration, easing } from "../motion";
 
 export interface SkeletonProps {
   width?: DimensionValue;
@@ -27,7 +28,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ width = "100%", height = 16,
       opacity.value = 0.6;
       return;
     }
-    opacity.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
+    opacity.value = withRepeat(withTiming(1, { duration: duration.shimmer, easing: easing.loop }), -1, true);
     return () => cancelAnimation(opacity);
   }, [reduced, opacity]);
 
