@@ -1,6 +1,6 @@
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { TabDock, TabDockItem, haptics } from "../design-system";
+import { TabDock, TabDockItem, icons, type IconName, haptics } from "../design-system";
 import { ROUTE_NAMES } from "../constants/routes";
 import { useUIStore } from "../stores/ui";
 import { useInboxStore } from "../stores/inbox";
@@ -34,9 +34,9 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
   // ── TABS mode: the same capsule, now the Us/Timeline switcher. ──
   if (communityOwnsDock && dockMode === "tabs") {
     const tabItems: TabDockItem[] = [
-      { key: "menu", label: "Menu", icon: "menu" },
-      { key: "us", label: "Us", icon: "account-multiple-outline" },
-      { key: "timeline", label: "Timeline", icon: "history", badge: unreadCount },
+      { key: "menu", label: "Menu", icon: icons.menu },
+      { key: "us", label: "Us", icon: icons.community },
+      { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
     ];
     const onSelectTab = (key: string) => {
       haptics.selection();
@@ -66,12 +66,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
     const { options } = descriptors[route.key];
     const routeName = route.name;
 
-    let icon = "circle";
-    if (routeName === ROUTE_NAMES.HOME || routeName === "Stats") icon = "home-variant";
-    else if (routeName === ROUTE_NAMES.EXPLORE) icon = "view-grid-outline";
+    let icon: IconName = "circle";
+    if (routeName === ROUTE_NAMES.HOME || routeName === "Stats") icon = icons.home;
+    else if (routeName === ROUTE_NAMES.EXPLORE) icon = icons.explore;
     else if (routeName === ROUTE_NAMES.COMMUNITY)
-      icon = hasBuddy === false ? "account-plus" : "account-group";
-    else if (routeName === ROUTE_NAMES.SETTINGS) icon = "cog";
+      icon = hasBuddy === false ? icons.addPerson : icons.community;
+    else if (routeName === ROUTE_NAMES.SETTINGS) icon = icons.settings;
 
     const badge = routeName === ROUTE_NAMES.COMMUNITY ? unreadCount : 0;
 

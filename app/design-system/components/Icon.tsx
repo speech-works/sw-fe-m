@@ -1,42 +1,71 @@
 import React from "react";
-import { Feather } from "@expo/vector-icons";
-import * as LucideIcons from "lucide-react-native";
+import { StyleProp, TextStyle, ViewStyle } from "react-native";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../useTheme";
+import { FLUENT } from "./fluentPaths";
 
 /**
- * The design-system icon set is **Lucide** (the SVG successor of Feather — same
- * line-icon look, but stroke-adjustable). We keep the kebab-case `name` API
- * (Feather/Lucide share names); any name Lucide lacks/renamed falls back to the
- * Feather icon font, so nothing can render blank. Use the `icons` registry for
- * semantic names; bump `strokeWidth` for bold/avatar icons.
+ * The design-system icon set is **Fluent (Microsoft Fluent UI System Icons, filled)**.
+ * We keep the kebab-case `name` API (Feather/registry vocabulary) and translate it to a
+ * glyph PATH in ONE place — the generated `FLUENT` map — rendered as an SVG via
+ * `react-native-svg`. Screens never import an icon library; they use the `icons` registry.
+ * Fluent has no brand logos, so the three social marks render via FontAwesome5 (a scoped
+ * brand exception). Any unmapped name falls back to the Feather font (and warns in dev).
  */
-export type IconName = React.ComponentProps<typeof Feather>["name"];
+type FeatherName = React.ComponentProps<typeof Feather>["name"];
+
+/** Canonical names we use that aren't Feather glyphs (they render via the `FLUENT`
+ *  map / brand exception). */
+export type ExtraIconName =
+  | "crown" | "infinity" | "bot" | "rocket" | "calendar-heart" | "heart-handshake"
+  | "flame" | "chart-column" | "circle-alert" | "handshake" | "circle-check"
+  | "ear" | "stethoscope" | "triangle-alert" | "sparkles" | "trophy"
+  | "circle-arrow-up" | "message-circle-question-mark" | "lightbulb" | "sprout"
+  | "route" | "chart-pie" | "square-check" | "party-popper" | "hand-helping"
+  | "hourglass" | "medal" | "mic-vocal" | "layout-grid" | "history" | "whatsapp";
+
+export type IconName = FeatherName | ExtraIconName;
 
 export interface IconProps {
   name: IconName;
   size?: number; // use scale.size.icon (20) / iconSm (16) / tabIcon (24)
   color?: string;
-  /** Line thickness — Lucide default is 2; bump (e.g. 2.75) for bold/avatar icons. */
+  /** @deprecated Line-icon stroke width; ignored by the filled Fluent set (kept only so
+   *  legacy call sites still type-check). */
   strokeWidth?: number;
+  /** Layout-only style (margin/opacity/alignment). Not for color — use `color`. */
+  style?: StyleProp<ViewStyle>;
 }
 
-// Feather/registry glyph names are kebab-case; Lucide components are PascalCase.
-const toPascal = (name: string): string =>
-  name
-    .split("-")
-    .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
-    .join("");
+// Fluent has no brand logos → these three render via FontAwesome5 brands.
+const BRAND: Record<string, string> = { facebook: "facebook", instagram: "instagram", whatsapp: "whatsapp" };
 
-type LucideComp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-const LUCIDE = LucideIcons as unknown as Record<string, LucideComp | undefined>;
-
-export const Icon: React.FC<IconProps> = ({ name, size = 20, color, strokeWidth }) => {
+export const Icon: React.FC<IconProps> = ({ name, size = 20, color, style }) => {
   const { colors } = useTheme();
   const resolved = color ?? colors.text.primary;
-  const Glyph = LUCIDE[toPascal(name)];
-  if (Glyph) {
-    return <Glyph size={size} color={resolved} strokeWidth={strokeWidth ?? 2} />;
+
+  const brand = BRAND[name];
+  if (brand) {
+    return <FontAwesome5 name={brand as any} size={size} color={resolved} brand style={style} />;
   }
-  // Fallback: a Feather name Lucide renamed/lacks — render the font glyph (no stroke control).
-  return <Feather name={name} size={size} color={resolved} />;
+
+  const paths = FLUENT[name];
+  if (paths) {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 24 24" style={style}>
+        {paths.map((p, i) => (
+          <Path key={i} d={p.d} fill={resolved} fillRule={p.e ? "evenodd" : undefined} />
+        ))}
+      </Svg>
+    );
+  }
+
+  // Fallback: a name with no Fluent mapping — render the Feather font glyph so it never
+  // blanks, and flag it in dev so the mapping gets added.
+  if (typeof __DEV__ !== "undefined" && __DEV__) {
+    // eslint-disable-next-line no-console
+    console.warn(`[Icon] "${name}" has no Fluent mapping — add it to fluentPaths.ts.`);
+  }
+  return <Feather name={name as FeatherName} size={size} color={resolved} style={style as StyleProp<TextStyle>} />;
 };

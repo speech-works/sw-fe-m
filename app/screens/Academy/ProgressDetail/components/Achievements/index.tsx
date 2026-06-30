@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { StyleSheet, View, Animated, Dimensions, ScrollView } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useUserStore } from "../../../../../stores/user";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
 import SeekerFace from "../../../../../assets/sw-faces/SeekerFace";
@@ -12,9 +11,12 @@ import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
   size,
   fonts,
   Text,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 
 const { width: windowWidth } = Dimensions.get("window");
@@ -134,11 +136,11 @@ const Achievements = ({ stageData }: AchievementsProps) => {
       <View style={styles.headerSection}>
         <View style={styles.headerRow}>
           <Text variant="label" color="tertiary" style={styles.eyebrow}>ACHIEVEMENTS</Text>
-          <Icon name="award" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.win} size={size.icon} color={colors.text.tertiary} />
         </View>
 
         <View style={[styles.xpBadge, { backgroundColor: colors.surface.default }]}>
-          <Icon name="star" size={14} color={colors.gamification.gold} />
+          <Icon name={icons.proud} size={14} color={colors.gamification.gold} />
           <Text variant="bodySm" style={styles.bold}>{isLoading ? "..." : activeTotalXp} XP</Text>
         </View>
 
@@ -205,7 +207,7 @@ const Achievements = ({ stageData }: AchievementsProps) => {
                       <StageFace size={60} shouldAnimate />
                     ) : (
                       <View style={[styles.lockCircle, { backgroundColor: colors.surface.control }]}>
-                        <Icon name="lock" size={20} color={colors.text.tertiary} />
+                        <Icon name={icons.locked} size={20} color={colors.text.tertiary} />
                       </View>
                     )}
                     <View style={styles.flex1}>
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
   stageCard: {
     borderRadius: radius.card,
     padding: spacing.xl,
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
     gap: spacing.lg,
     minHeight: 210,
     position: "relative",
@@ -322,7 +324,7 @@ const styles = StyleSheet.create({
   lockCircle: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -334,7 +336,7 @@ const styles = StyleSheet.create({
     top: -10,
     right: spacing.lg,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     borderRadius: radius.sm,
     zIndex: 2,
   },
@@ -348,7 +350,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   activeDot: {
     width: 16,

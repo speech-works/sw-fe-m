@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Modal, StyleSheet, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ToolType } from "../api/tools/types";
 import {
   useTheme,
@@ -10,10 +9,13 @@ import {
   elevation,
   Text,
   Button,
+  Icon,
+  icons,
+  type IconName,
 } from "../design-system";
 
 interface ToolConsentCopy {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: IconName;
   title: string;
   body: string;
 }
@@ -25,7 +27,7 @@ interface ToolConsentCopy {
  */
 const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
   [ToolType.DAF]: {
-    icon: "headphones",
+    icon: icons.headphones,
     title: "About Delayed Auditory Feedback (DAF)",
     body:
       "DAF can make speech feel smoother by playing back your voice with a slight delay. Many people find it helpful in practice sessions.\n\n" +
@@ -33,7 +35,7 @@ const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
       "It's always okay to practice without it. Your voice is enough.",
   },
   [ToolType.CHORUS]: {
-    icon: "account-voice",
+    icon: icons.voiceTool,
     title: "About the Guide",
     body:
       "The Guide plays a gentle second voice alongside yours, which can make speech feel smoother. Many people find it helpful in practice.\n\n" +
@@ -106,7 +108,7 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
           ]}
         >
           <View style={[styles.iconContainer, { backgroundColor: colors.accent.success }]}>
-            <MaterialCommunityIcons name={copy.icon} size={32} color={colors.accentOn.success} />
+            <Icon name={copy.icon} size={32} color={colors.accentOn.success} />
           </View>
 
           <Text variant="h3" center style={styles.title}>

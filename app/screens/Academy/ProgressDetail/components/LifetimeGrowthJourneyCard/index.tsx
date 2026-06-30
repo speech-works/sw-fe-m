@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import Svg, { Circle, Path } from "react-native-svg";
 import { LifetimeGrowthJourneyResponse } from "../../../../../api/progressReport/types";
 import {
@@ -11,6 +10,8 @@ import {
   size,
   fonts,
   Text,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 
 type LifetimeGrowthJourneyCardProps = {
@@ -106,9 +107,9 @@ const LifetimeGrowthJourneyCard = ({
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
-          <Icon name="seedling" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.growthSeed} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 

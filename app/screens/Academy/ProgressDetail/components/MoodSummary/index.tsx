@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import {
   useTheme,
   spacing,
@@ -8,6 +7,8 @@ import {
   size,
   Text,
   Skeleton,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 import { getMoodRemark } from "./helper";
 
@@ -87,9 +88,9 @@ const MoodSummary = ({
         </View>
         <View style={styles.headerRight}>
           {hasError && (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           )}
-          <Icon name="smile" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.mood} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 
@@ -133,7 +134,7 @@ const MoodSummary = ({
       ) : (
         <View style={styles.emptyMood}>
           <View style={[styles.emptyMoodIcon, { backgroundColor: colors.surface.control }]}>
-            <Icon name="chart-bar" size={28} color={colors.text.tertiary} />
+            <Icon name={icons.stats} size={28} color={colors.text.tertiary} />
           </View>
           <Text variant="h3" center>Track Your Flow</Text>
           <Text variant="bodySm" color="secondary" center>

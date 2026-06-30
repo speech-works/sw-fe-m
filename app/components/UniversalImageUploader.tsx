@@ -143,7 +143,7 @@ const UniversalImageUploader = ({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
         >
-          <View style={[styles.iconCircle, { backgroundColor: colors.action.primary + "1F" }]}>
+          <View style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}>
             <Icon name="upload-cloud" size={24} color={colors.action.primary} />
           </View>
           <Text variant="title" color={colors.action.primary}>
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 180,
     borderRadius: radius.card,
-    borderWidth: 1.5,
+    borderWidth: borderWidth.thin,
     borderStyle: "dashed",
     overflow: "hidden",
   },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.xs,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   successCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.sm,
@@ -377,9 +377,9 @@ const styles = StyleSheet.create({
     right: -4,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: borderWidth.thin,
   },
 });

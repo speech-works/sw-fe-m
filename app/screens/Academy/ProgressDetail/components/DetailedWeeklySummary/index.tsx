@@ -1,7 +1,6 @@
 import { addDays, format, startOfWeek } from "date-fns";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import Svg, { Circle, Path } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../../api/users";
 import { WeeklyReportResponse } from "../../../../../api/progressReport/types";
@@ -13,6 +12,8 @@ import {
   fonts,
   Text,
   Skeleton,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 import { getFlowBenchmarkCopy } from "../../../../../util/flowBenchmark";
 
@@ -197,9 +198,9 @@ const DetailedWeeklySummary = ({
         </View>
         <View style={styles.headerRight}>
           {hasError && (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           )}
-          <Icon name="chart-line" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.trend} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 
@@ -252,7 +253,7 @@ const DetailedWeeklySummary = ({
             </View>
           ) : (
             <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default }]}>
-              <Text variant="h2">🎉</Text>
+              <Icon name={icons.celebrate} size={24} color={colors.text.primary} />
               <View style={styles.flex1}>
                 <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
                 <Text variant="caption" color="secondary">
@@ -269,7 +270,7 @@ const DetailedWeeklySummary = ({
             Start practicing to track your stats.
           </Text>
           <View style={[styles.tipPill, { backgroundColor: colors.surface.default }]}>
-            <Icon name="lightbulb" size={12} color={colors.accent.warning} />
+            <Icon name={icons.tip} size={12} color={colors.accent.warning} />
             <Text variant="caption" color="secondary">Tip: Consistency is king.</Text>
           </View>
         </View>

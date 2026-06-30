@@ -1,6 +1,5 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { LifetimeJourneySummary } from "../../../../../api/progressReport/types";
 import {
   useTheme,
@@ -8,6 +7,8 @@ import {
   radius,
   size,
   Text,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 
 type LifetimeJourneyCardProps = {
@@ -56,9 +57,9 @@ const LifetimeJourneyCard = ({
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
-          <Icon name="route" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.journeyRoute} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 

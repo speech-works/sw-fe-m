@@ -27,6 +27,93 @@ export const icons = {
   anxious: "wind", // anxious / unsettled
   struggling: "cloud-lightning", // really struggling (most intense)
   heavy: "anchor", // everything feels heavy / weighed down
+  struggleTab: "cloud", // the "Struggles" category/tab
+
+  // ── UI / navigation ──
+  chevronRight: "chevron-right",
+  chevronUp: "chevron-up",
+  chevronDown: "chevron-down",
+  close: "x",
+  add: "plus",
+  forward: "arrow-right", // "go to" / next
+  leave: "log-out", // leave / unpair
+  copy: "copy",
+  send: "send",
+  launch: "rocket", // open / launch a feature
+  soon: "hourglass", // "coming soon"
+  success: "circle-check", // confirmed / done
+  warning: "circle-alert", // caution / error state
+  danger: "triangle-alert", // severe warning
+  seen: "eye", // seen / viewed
+
+  // ── Community · buddy · support ──
+  share: "share-2",
+  addPerson: "user-plus", // invite / add a buddy
+  gift: "gift", // referral / reward
+  pairing: "handshake", // pairing / connect
+  bond: "heart-handshake", // the buddy bond
+  daysTogether: "calendar-heart", // days paired
+  energy: "zap", // streak energy / momentum
+  streak: "flame", // day streak
+  stats: "chart-column", // stats / metrics
+  support: "life-buoy", // get support / lifeline
+  care: "hand-helping", // reach out / care
+  call: "phone-call", // call a hotline
+  listen: "ear", // listen
+  heart: "heart",
+  professionalHelp: "stethoscope", // professional / clinical help
+  celebrate: "party-popper", // celebration (replaces 🎉)
+
+  // ── Academy · progress · gamification ──
+  journey: "layers", // a pack/journey
+  journeyRoute: "route", // journey path
+  duration: "clock", // time spent
+  timeOfDay: "sunset", // time of day
+  xp: "sparkles", // XP earned
+  levelUp: "arrow-up", // leveled up
+  growth: "circle-arrow-up", // growth delta
+  rank: "medal", // level stage / rank
+  milestone: "trophy", // milestone reached
+  tip: "lightbulb", // a tip
+  affirmation: "sun", // an affirmation
+  prompt: "message-circle-question-mark", // a shared question/prompt
+  challenge: "target", // a shared challenge
+  mood: "smile", // mood
+  trend: "trending-up", // trend
+  chartPie: "chart-pie", // pie/breakdown chart
+  growthSeed: "sprout", // growth (seedling)
+  locked: "lock", // locked achievement
+  weekly: "calendar", // "This week" scope
+  lifetime: "infinity", // "Lifetime" scope
+
+  // ── Tools · media ──
+  play: "play",
+  stop: "square",
+  volume: "volume-2",
+  voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
+  headphones: "headphones",
+
+  // ── Settings · profile · premium ──
+  email: "mail",
+  phone: "smartphone",
+  pro: "crown", // premium tier
+  unlimited: "infinity", // unlimited (premium)
+  ai: "bot", // AI feature
+  roadmap: "map", // roadmap / what's next
+  checklist: "square-check",
+
+  // ── Global navigation (the floating tab dock) ──
+  home: "home",
+  explore: "layout-grid",
+  community: "users", // the Community tab / "Us" buddy pair
+  settings: "settings",
+  menu: "menu",
+  timeline: "history", // the Timeline view
+
+  // ── Brand marks (Phosphor ships proper brand logos). ──
+  socialFacebook: "facebook",
+  socialInstagram: "instagram",
+  socialWhatsapp: "whatsapp",
 } as const satisfies Record<string, IconName>;
 
 export type IconKey = keyof typeof icons;

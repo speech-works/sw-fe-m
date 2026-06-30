@@ -1,6 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { updateUserById } from "../../../api";
 import { useUserStore } from "../../../stores/user";
 import {
@@ -11,6 +10,8 @@ import {
   useTheme,
   spacing,
   radius,
+  Icon,
+  icons,
   TextField,
   SectionHeader,
 } from "../../../design-system";
@@ -91,14 +92,14 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
     ]);
 
     const socialRow = (
-      icon: string,
+      icon: React.ReactNode,
       value: string,
       placeholder: string,
       onChangeText: (t: string) => void,
     ) => (
       <View style={styles.socialRow}>
         <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-          <FAIcon name={icon} size={16} color={colors.text.primary} />
+          {icon}
         </View>
         <View style={styles.flex1}>
           <TextField
@@ -145,14 +146,24 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
         <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
           <SectionHeader icon="share-2" title="Social Links" />
           <View style={styles.inputGroup}>
-            {socialRow("facebook-f", socialLinks.facebook, "Facebook Profile URL", (t) =>
-              setSocialLinks((prev) => ({ ...prev, facebook: t })),
+            {socialRow(
+              <Icon name={icons.socialFacebook} size={16} color={colors.text.primary} />,
+              socialLinks.facebook,
+              "Facebook Profile URL",
+              (t) => setSocialLinks((prev) => ({ ...prev, facebook: t })),
             )}
-            {socialRow("instagram", socialLinks.instagram, "Instagram Profile URL", (t) =>
-              setSocialLinks((prev) => ({ ...prev, instagram: t })),
+            {socialRow(
+              <Icon name={icons.socialInstagram} size={16} color={colors.text.primary} />,
+              socialLinks.instagram,
+              "Instagram Profile URL",
+              (t) => setSocialLinks((prev) => ({ ...prev, instagram: t })),
             )}
-            {socialRow("whatsapp", socialLinks.whatsapp, "WhatsApp Number / URL", (t) =>
-              setSocialLinks((prev) => ({ ...prev, whatsapp: t })),
+            {socialRow(
+              // brand-exception: WhatsApp has no DS/Lucide glyph
+              <Icon name={icons.socialWhatsapp} size={16} color={colors.text.primary} />,
+              socialLinks.whatsapp,
+              "WhatsApp Number / URL",
+              (t) => setSocialLinks((prev) => ({ ...prev, whatsapp: t })),
             )}
           </View>
         </View>
@@ -186,7 +197,7 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

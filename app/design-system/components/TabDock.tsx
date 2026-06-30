@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, {
   FadeIn,
   LinearTransition,
@@ -13,6 +12,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
+import { size } from "../primitives/scale";
+import { Icon, IconName } from "./Icon";
 
 // One spring drives BOTH the active pill's growth (per item) AND the capsule's
 // hug/resize (LinearTransition on the bar), so the pill and the dock move together
@@ -24,8 +25,8 @@ export interface TabDockItem {
   key: string;
   /** Shown only when this tab is active (the expanding pill). */
   label: string;
-  /** A MaterialCommunityIcons glyph (matches the app nav). */
-  icon: string;
+  /** A DS icon name — prefer an `icons` registry key (e.g. `icons.home`). */
+  icon: IconName;
   /** Optional unread/count badge. */
   badge?: number;
 }
@@ -104,7 +105,7 @@ export const TabDock: React.FC<TabDockProps> = ({
 interface DockItemProps {
   isFocused: boolean;
   label: string;
-  iconName: string;
+  iconName: IconName;
   badge: number;
   fitContent: boolean;
   reduceMotion: boolean;
@@ -178,10 +179,10 @@ const DockItem: React.FC<DockItemProps> = ({
         <Animated.View style={[styles.pill, pillStyle]}>
           <View style={styles.iconBox}>
             <Animated.View style={inactiveIconStyle}>
-              <MaterialCommunityIcons name={iconName as any} size={24} color={inactiveColor} />
+              <Icon name={iconName} size={size.tabIcon} color={inactiveColor} />
             </Animated.View>
             <Animated.View style={activeIconStyle}>
-              <MaterialCommunityIcons name={iconName as any} size={24} color={activeContentColor} />
+              <Icon name={iconName} size={size.tabIcon} color={activeContentColor} />
             </Animated.View>
             {badge > 0 ? (
               <Animated.View style={[styles.badge, { backgroundColor: colors.nav.badge }, badgeBorderStyle]}>

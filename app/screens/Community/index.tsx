@@ -29,6 +29,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// Exception: the bond-stage glyph is SERVER-DRIVEN as a MaterialCommunityIcons name,
+// so it must render via MCI until the backend emits DS/Lucide names (see bondStageIcon).
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import CustomScrollView from "../../components/CustomScrollView";
@@ -41,12 +43,15 @@ import {
   spacing,
   space,
   radius,
+  borderWidth,
   fonts,
   typography,
   elevation,
   Text,
   TabDock,
   PageHeader,
+  Icon,
+  icons,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -503,8 +508,8 @@ const Community = () => {
               fitContent
               accessibilityLabel="Community page tabs"
               items={[
-                { key: "us", label: "Us", icon: "account-multiple-outline" },
-                { key: "timeline", label: "Timeline", icon: "history", badge: unreadCount },
+                { key: "us", label: "Us", icon: icons.community },
+                { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
               ]}
               activeKey={view}
               onSelect={(k) => setView(k as "us" | "timeline")}
@@ -520,7 +525,7 @@ const Community = () => {
       <View style={styles.howItWorksSection}>
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <MaterialCommunityIcons name="share-variant" size={24} color={colors.action.primary} />
+            <Icon name={icons.share} size={24} color={colors.action.primary} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">Share your code</Text>
@@ -530,7 +535,7 @@ const Community = () => {
 
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <MaterialCommunityIcons name="account-plus" size={24} color={colors.action.primary} />
+            <Icon name={icons.addPerson} size={24} color={colors.action.primary} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">They sign up</Text>
@@ -540,7 +545,7 @@ const Community = () => {
 
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <MaterialCommunityIcons name="rocket-launch" size={24} color={colors.action.primary} />
+            <Icon name={icons.launch} size={24} color={colors.action.primary} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">Grow together</Text>
@@ -549,12 +554,12 @@ const Community = () => {
         </View>
       </View>
 
-      <View style={{ flexGrow: 1, minHeight: 40 }} />
+      <View style={{ flexGrow: 1, minHeight: spacing["4xl"] }} />
 
       <View style={[styles.inviteCard, { backgroundColor: colors.surface.elevated }, elevation.e2]}>
         {/* Watermark Layer */}
         <View style={styles.watermarkLayer} pointerEvents="none">
-          <MaterialCommunityIcons name="gift" size={260} color={colors.action.primary} style={styles.watermarkIcon} />
+          <Icon name={icons.gift} size={260} color={colors.action.primary} style={styles.watermarkIcon} />
         </View>
 
         <View style={styles.inviteTextContainer}>
@@ -565,18 +570,18 @@ const Community = () => {
         </View>
 
         {/* Fixed spacer for consistent breathing room */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: spacing["2xl"] }} />
 
         <View style={styles.bottomBlock}>
           {isPending && (
             <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint }]}>
-              <MaterialCommunityIcons name="clock-fast" size={14} color={colors.action.primary} />
+              <Icon name={icons.soon} size={14} color={colors.action.primary} />
               <Text variant="caption" color={colors.action.primary} style={styles.bold}>Waiting for them to join…</Text>
             </View>
           )}
           <View style={[styles.codeBox, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
             <View style={styles.codeRow}>
-              <MaterialCommunityIcons name="content-copy" size={20} color={colors.action.primary} style={{ marginRight: 12 }} />
+              <Icon name={icons.copy} size={20} color={colors.action.primary} style={{ marginRight: space.iconText }} />
               <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
             </View>
           </View>
@@ -613,7 +618,7 @@ const Community = () => {
               {submittingCode ? (
                 <ActivityIndicator color={colors.action.onPrimary} size="small" />
               ) : (
-                <MaterialCommunityIcons name="arrow-right-thick" size={20} color={colors.action.onPrimary} />
+                <Icon name={icons.forward} size={20} color={colors.action.onPrimary} />
               )}
             </PressableScale>
           </View>
@@ -675,14 +680,14 @@ const Community = () => {
               <View style={[styles.avatarWrapper, { zIndex: 2, borderColor: colors.action.primary }]}>
                 {renderAvatar(user?.profilePictureUrl, myInitials)}
               </View>
-              <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -20, borderColor: colors.action.primary }]}>
+              <View style={[styles.avatarWrapper, { zIndex: 1, marginLeft: -spacing.xl, borderColor: colors.action.primary }]}>
                 {renderAvatar(buddy?.profilePictureUrl, buddyInitials)}
               </View>
             </View>
             <Text variant="h2" color={colors.action.onPrimary}>You & {buddyFirstName}</Text>
             {since ? (
               <View style={styles.partnerMeta}>
-                <MaterialCommunityIcons name="calendar-heart" size={14} color={colors.action.onPrimary} />
+                <Icon name={icons.daysTogether} size={14} color={colors.action.onPrimary} />
                 <Text variant="caption" color={colors.action.onPrimary}>Practice partners since {since}</Text>
               </View>
             ) : null}
@@ -711,8 +716,9 @@ const Community = () => {
             <View style={[styles.bondCard, { backgroundColor: colors.accent.warning }]}>
               <View style={styles.tierRow}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default, marginBottom: 0 }]}>
+                  {/* Server-driven MCI glyph — behavior-frozen passthrough (see import note). */}
                   <MaterialCommunityIcons
-                    name={(team?.bondStageIcon ?? "account-heart") as any}
+                    name={(team?.bondStageIcon as any) ?? "account-heart"}
                     size={20}
                     color={colors.accent.warning}
                   />
@@ -743,14 +749,14 @@ const Community = () => {
             <View style={styles.statsRow}>
               <View style={[styles.statTile, { backgroundColor: colors.accent.purple }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
-                  <MaterialCommunityIcons name="lightning-bolt" size={20} color={colors.accent.purple} />
+                  <Icon name={icons.energy} size={20} color={colors.accent.purple} />
                 </View>
                 <AnimatedNumber value={team?.combinedXpThisWeek ?? 0} color={colors.accentOn.purple} />
                 <Text variant="caption" color={colors.accentOn.purple} style={[styles.statTileLabel]}>XP THIS WEEK</Text>
               </View>
               <View style={[styles.statTile, { backgroundColor: colors.accent.info }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
-                  <MaterialCommunityIcons name="calendar-heart" size={20} color={colors.accent.info} />
+                  <Icon name={icons.daysTogether} size={20} color={colors.accent.info} />
                 </View>
                 <AnimatedNumber value={daysTogether} color={colors.accentOn.info} />
                 <Text variant="caption" color={colors.accentOn.info} style={[styles.statTileLabel]}>DAYS TOGETHER</Text>
@@ -767,12 +773,12 @@ const Community = () => {
               </View>
               {team && team.weeklyCombinedDays >= team.weeklyQuestTarget ? (
                 <View style={[styles.liveRow, { borderTopColor: colors.accentOn.danger }]}>
-                  <Text variant="body">🎉</Text>
+                  <Icon name={icons.celebrate} size={16} color={colors.accentOn.danger} />
                   <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You hit this week's goal together!</Text>
                 </View>
               ) : team?.bothActiveThisWeek ? (
                 <View style={[styles.liveRow, { borderTopColor: colors.accentOn.danger }]}>
-                  <MaterialCommunityIcons name="fire" size={16} color={colors.accentOn.danger} />
+                  <Icon name={icons.streak} size={16} color={colors.accentOn.danger} />
                   <Text variant="caption" color={colors.accentOn.danger} style={styles.liveText}>You hit this week's goal together!</Text>
                 </View>
               ) : null}
@@ -787,7 +793,7 @@ const Community = () => {
             {/* Share Progress */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => handleConsent(!iShare)}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
-                <MaterialCommunityIcons name="chart-box" size={24} color={colors.text.primary} />
+                <Icon name={icons.stats} size={24} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Share my progress</Text>
@@ -801,13 +807,13 @@ const Community = () => {
             {/* Help & Resources */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={() => navigation.navigate("Resources")}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.surface.control }]}>
-                <MaterialCommunityIcons name="lifebuoy" size={24} color={colors.text.primary} />
+                <Icon name={icons.support} size={24} color={colors.text.primary} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title">Help & Resources</Text>
                 <Text variant="bodySm" color="secondary">Learn more about community.</Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={colors.text.tertiary} />
+              <Icon name={icons.chevronRight} size={24} color={colors.text.tertiary} />
             </PressableScale>
 
             <View style={[styles.actionDivider, { backgroundColor: colors.border.default }]} />
@@ -815,7 +821,7 @@ const Community = () => {
             {/* Leave Buddy */}
             <PressableScale style={styles.actionRow} scaleTo={0.98} onPress={handleLeave}>
               <View style={[styles.actionIconSquare, { backgroundColor: colors.accentTint.danger }]}>
-                <MaterialCommunityIcons name="exit-run" size={24} color={colors.feedback.dangerText} />
+                <Icon name={icons.leave} size={24} color={colors.feedback.dangerText} />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text variant="title" color={colors.feedback.dangerText}>Leave buddy</Text>
@@ -839,13 +845,13 @@ const Community = () => {
           <CommunitySkeleton topPad={insets.top + 20} />
         ) : error ? (
           <View style={styles.center}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
+            <Icon
+              name={icons.warning}
               size={48}
               color={colors.text.tertiary}
-              style={{ marginBottom: 12 }}
+              style={{ marginBottom: spacing.md }}
             />
-            <Text variant="body" color="secondary" style={{ marginBottom: 20 }}>Couldn't load Community.</Text>
+            <Text variant="body" color="secondary" style={{ marginBottom: spacing.xl }}>Couldn't load Community.</Text>
             <PressableScale onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }]}>
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
             </PressableScale>
@@ -915,7 +921,7 @@ const Community = () => {
                   activeOpacity={0.85}
                   onPress={handleOpenMoment}
                 >
-                  <MaterialCommunityIcons name="plus" size={24} color={colors.action.onPrimary} />
+                  <Icon name={icons.add} size={24} color={colors.action.onPrimary} />
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -957,12 +963,12 @@ const Community = () => {
           <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={[wm.card, { backgroundColor: colors.surface.elevated }, elevation.e3]}>
             {/* Watermark */}
             <View style={wm.watermarkLayer} pointerEvents="none">
-              <MaterialCommunityIcons name="handshake" size={220} color={colors.action.primary} style={wm.watermarkIcon} />
+              <Icon name={icons.pairing} size={220} color={colors.action.primary} style={wm.watermarkIcon} />
             </View>
 
             {/* Close */}
             <TouchableOpacity onPress={() => setShowWelcome(false)} style={wm.closeBtn} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="close" size={20} color={colors.text.tertiary} />
+              <Icon name={icons.close} size={20} color={colors.text.tertiary} />
             </TouchableOpacity>
 
             {/* Tag */}
@@ -990,12 +996,12 @@ const Community = () => {
           <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={[wm.card, { backgroundColor: colors.surface.elevated }, elevation.e3]}>
             {/* Watermark */}
             <View style={wm.watermarkLayer} pointerEvents="none">
-              <MaterialCommunityIcons name="alert-circle" size={220} color={colors.feedback.danger} style={wm.watermarkIcon} />
+              <Icon name={icons.warning} size={220} color={colors.feedback.danger} style={wm.watermarkIcon} />
             </View>
 
             {/* Close */}
             <TouchableOpacity onPress={() => setShowError(false)} style={wm.closeBtn} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="close" size={20} color={colors.text.tertiary} />
+              <Icon name={icons.close} size={20} color={colors.text.tertiary} />
             </TouchableOpacity>
 
             {/* Tag */}
@@ -1039,12 +1045,12 @@ const styles = StyleSheet.create({
 
   // Loading skeleton
   skelBlock: {},
-  skelBanner: { height: 196, marginHorizontal: spacing.lg, borderRadius: radius.card, marginBottom: 28 },
-  skelLabel: { height: 16, width: 130, marginHorizontal: spacing.lg, borderRadius: radius.sm, marginBottom: 14 },
-  skelCard: { height: 184, marginHorizontal: spacing.lg, borderRadius: radius.card, marginBottom: 28 },
-  skelToggle: { height: 72, marginHorizontal: spacing.lg, borderRadius: radius.card, marginBottom: 28 },
-  skelLabelSm: { height: 16, width: 104, marginHorizontal: spacing.lg, borderRadius: radius.sm, marginBottom: 14 },
-  skelDock: { height: 76, marginHorizontal: spacing.lg, borderRadius: radius.card },
+  skelBanner: { height: 196, marginHorizontal: space.screenX, borderRadius: radius.card, marginBottom: space.titleGap },
+  skelLabel: { height: 16, width: 130, marginHorizontal: space.screenX, borderRadius: radius.sm, marginBottom: 14 },
+  skelCard: { height: 184, marginHorizontal: space.screenX, borderRadius: radius.card, marginBottom: space.titleGap },
+  skelToggle: { height: 72, marginHorizontal: space.screenX, borderRadius: radius.card, marginBottom: space.titleGap },
+  skelLabelSm: { height: 16, width: 104, marginHorizontal: space.screenX, borderRadius: radius.sm, marginBottom: 14 },
+  skelDock: { height: 76, marginHorizontal: space.screenX, borderRadius: radius.card },
 
   // Header
   statusCap: {
@@ -1060,7 +1066,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: space.screenX,
   },
   retryBtn: {
     paddingHorizontal: spacing["2xl"],
@@ -1071,14 +1077,14 @@ const styles = StyleSheet.create({
 
   // Paired — partnership layout
   pairedWrapper: {
-    paddingTop: 4,
+    paddingTop: spacing.xs,
     paddingBottom: spacing["2xl"],
   },
 
   // Partnership banner (equal, together)
   partnerCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: 28,
+    marginHorizontal: space.screenX,
+    marginBottom: space.titleGap,
     borderRadius: radius.card,
   },
   partnerInner: {
@@ -1095,18 +1101,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   avatarWrapper: {
-    borderRadius: 36,
+    borderRadius: radius.full,
     borderWidth: 4,
   },
   pAvatarImg: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: radius.full,
   },
   pAvatarFallback: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1135,7 +1141,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
-    marginHorizontal: spacing.lg,
+    marginHorizontal: space.screenX,
     marginBottom: spacing.md,
   },
 
@@ -1144,7 +1150,7 @@ const styles = StyleSheet.create({
 
   // Bond Level — hero tile
   bondCard: {
-    marginHorizontal: spacing.lg,
+    marginHorizontal: space.screenX,
     marginBottom: spacing.md,
     borderRadius: radius.card,
     paddingHorizontal: spacing.xl,
@@ -1154,7 +1160,7 @@ const styles = StyleSheet.create({
   statIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -1172,7 +1178,7 @@ const styles = StyleSheet.create({
     gap: 9,
     marginTop: 14,
     paddingTop: 14,
-    borderTopWidth: 1,
+    borderTopWidth: borderWidth.thin,
   },
   liveText: { flexShrink: 1 },
   liveDotWrap: { width: 8, height: 8, alignItems: "center", justifyContent: "center" },
@@ -1180,28 +1186,28 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
-  liveDot: { width: 8, height: 8, borderRadius: 4 },
+  liveDot: { width: 8, height: 8, borderRadius: radius.full },
 
   // Two stat tiles
-  statsRow: { flexDirection: "row", gap: spacing.md, marginHorizontal: spacing.lg, marginBottom: spacing.md },
+  statsRow: { flexDirection: "row", gap: spacing.md, marginHorizontal: space.screenX, marginBottom: spacing.md },
   statTile: {
     flex: 1,
-    borderRadius: radius.chip,
+    borderRadius: radius.card,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
   },
   statTileLabel: {
-    marginTop: 4,
+    marginTop: spacing.xs,
     letterSpacing: 0.5,
   },
 
   // Weekly shared quest tile
   questCard: {
-    marginHorizontal: spacing.lg,
+    marginHorizontal: space.screenX,
     marginBottom: spacing.md,
-    borderRadius: radius.chip,
+    borderRadius: radius.card,
     paddingHorizontal: 18,
     paddingVertical: spacing.lg,
   },
@@ -1214,8 +1220,8 @@ const styles = StyleSheet.create({
 
   // Unified Action Group
   actionGroup: {
-    marginHorizontal: spacing.lg,
-    marginBottom: 28,
+    marginHorizontal: space.screenX,
+    marginBottom: space.titleGap,
     borderRadius: radius.card,
     overflow: "hidden",
   },
@@ -1227,7 +1233,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   actionDivider: {
-    height: 1,
+    height: borderWidth.thin,
     marginLeft: 16 + 52 + 14, // align with text (paddingLeft + iconSquare + gap)
   },
   actionIconSquare: {
@@ -1241,19 +1247,19 @@ const styles = StyleSheet.create({
   toggleTrack: {
     width: 44,
     height: 26,
-    borderRadius: 13,
-    padding: 2,
+    borderRadius: radius.full,
+    padding: spacing.xxs,
     justifyContent: "center",
   },
   toggleThumb: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.full,
   },
 
   // Invite Referral Card
   inviteCardWrapper: {
-    marginHorizontal: spacing["2xl"],
+    marginHorizontal: space.screenX,
     flexGrow: 1,
   },
   inviteCard: {
@@ -1289,7 +1295,7 @@ const styles = StyleSheet.create({
   },
   bottomBlock: { alignItems: "center", width: "100%", gap: spacing.lg },
   howItWorksSection: {
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
     paddingTop: spacing.md,
   },
   stepItem: {
@@ -1307,11 +1313,11 @@ const styles = StyleSheet.create({
   },
   stepTextContent: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xxs,
   },
   codeBox: {
     width: "100%",
-    borderWidth: 2,
+    borderWidth: borderWidth.thick,
     borderStyle: "dashed",
     borderRadius: radius.input,
     paddingVertical: 14,
@@ -1365,7 +1371,7 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 1,
+    height: borderWidth.thin,
   },
   dividerText: {
     marginHorizontal: 14,
@@ -1376,7 +1382,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 58,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
     paddingHorizontal: 6,
     alignItems: "center",
   },

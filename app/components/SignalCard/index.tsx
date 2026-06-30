@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import {
@@ -16,7 +15,7 @@ import {
 import { getMoment } from "../../constants/momentMessages";
 import { getPostTemplate } from "../../constants/postTemplates";
 import { getReaction } from "../../constants/reactions";
-import { useTheme, spacing, radius, fonts, Text } from "../../design-system";
+import { useTheme, spacing, radius, fonts, borderWidth, Text, Icon, icons, type IconName } from "../../design-system";
 import type { SemanticColors } from "../../design-system/semantic/roles";
 
 import ReactionPicker from "../ReactionPicker";
@@ -77,29 +76,29 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const statForField = (
   field: PracticePayloadField,
   payload: PracticePayload,
-): { icon: string; label: string } | null => {
+): { icon: IconName; label: string } | null => {
   switch (field) {
     case "durationSeconds":
       return payload.durationSeconds
-        ? { icon: "clock-outline", label: `${Math.max(1, Math.round(payload.durationSeconds / 60))} min` }
+        ? { icon: icons.duration, label: `${Math.max(1, Math.round(payload.durationSeconds / 60))} min` }
         : null;
     case "timeOfDay":
-      return payload.timeOfDay ? { icon: "weather-sunset", label: capitalize(payload.timeOfDay) } : null;
+      return payload.timeOfDay ? { icon: icons.timeOfDay, label: capitalize(payload.timeOfDay) } : null;
     case "showedUp":
-      return payload.showedUp ? { icon: "check-circle-outline", label: "Showed up" } : null;
+      return payload.showedUp ? { icon: icons.success, label: "Showed up" } : null;
     case "streakDays":
-      return payload.streakDays ? { icon: "fire", label: `${payload.streakDays}-day streak` } : null;
+      return payload.streakDays ? { icon: icons.streak, label: `${payload.streakDays}-day streak` } : null;
     case "xpEarned":
-      return payload.xpEarned ? { icon: "star-four-points", label: `+${payload.xpEarned} XP` } : null;
+      return payload.xpEarned ? { icon: icons.xp, label: `+${payload.xpEarned} XP` } : null;
     case "leveledUp":
-      return payload.leveledUp ? { icon: "arrow-up-bold", label: "Leveled up" } : null;
+      return payload.leveledUp ? { icon: icons.levelUp, label: "Leveled up" } : null;
     case "levelStageTitle":
-      return payload.levelStageTitle ? { icon: "shield-outline", label: payload.levelStageTitle } : null;
+      return payload.levelStageTitle ? { icon: icons.rank, label: payload.levelStageTitle } : null;
     case "milestoneLabel":
-      return payload.milestoneLabel ? { icon: "trophy-variant", label: payload.milestoneLabel } : null;
+      return payload.milestoneLabel ? { icon: icons.milestone, label: payload.milestoneLabel } : null;
     case "growthDelta":
       return payload.growthDelta
-        ? { icon: "arrow-up-bold-circle", label: `+${capitalize(payload.growthDelta.axis)}` }
+        ? { icon: icons.growth, label: `+${capitalize(payload.growthDelta.axis)}` }
         : null;
     case "activityName":
     default:
@@ -135,11 +134,11 @@ const formatRelativeTime = (input: Date | string | number | null | undefined): s
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
-const CARD_KIND_META: Record<string, { label: string; icon: string }> = {
-  prompt: { label: "A question for you both", icon: "chat-question-outline" },
-  affirmation: { label: "A reminder", icon: "white-balance-sunny" },
-  tip: { label: "Tip", icon: "lightbulb-on-outline" },
-  challenge: { label: "Shared challenge", icon: "target" },
+const CARD_KIND_META: Record<string, { label: string; icon: IconName }> = {
+  prompt: { label: "A question for you both", icon: icons.prompt },
+  affirmation: { label: "A reminder", icon: icons.affirmation },
+  tip: { label: "Tip", icon: icons.tip },
+  challenge: { label: "Shared challenge", icon: icons.challenge },
 };
 
 const SignalCard = ({
@@ -201,7 +200,7 @@ const SignalCard = ({
       if (interactive) {
         dynamicContent = signal.iReachedOut ? (
           <View style={styles.seenRow}>
-            <MaterialCommunityIcons name="check-circle" size={14} color={tone.accent} />
+            <Icon name={icons.success} size={14} color={tone.accent} />
             <Text variant="caption" color={tone.accent} style={styles.bold}>You reached out</Text>
           </View>
         ) : (
@@ -210,7 +209,7 @@ const SignalCard = ({
             activeOpacity={0.85}
             onPress={onReachOut}
           >
-            <MaterialCommunityIcons name="hand-heart" size={16} color={tone.on} />
+            <Icon name={icons.care} size={16} color={tone.on} />
             <Text variant="bodySm" color={tone.on} style={styles.bold}>Reach out to {authorName.split(" ")[0]}</Text>
           </TouchableOpacity>
         );
@@ -264,7 +263,7 @@ const SignalCard = ({
     } else if (!isPrompt && signal.seenByBuddy) {
       dynamicContent = (
         <View style={styles.seenRow}>
-          <MaterialCommunityIcons name="eye-check-outline" size={14} color={onTertiary} />
+          <Icon name={icons.seen} size={14} color={onTertiary} />
           <Text variant="caption" color={onTertiary}>{buddyName ?? "Your buddy"} saw this</Text>
         </View>
       );
@@ -287,7 +286,7 @@ const SignalCard = ({
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
               <View style={[styles.journeyIconDot, { backgroundColor: colors.action.primaryTint }]}>
-                <MaterialCommunityIcons name="layers-outline" size={14} color={colors.action.primary} />
+                <Icon name={icons.journey} size={14} color={colors.action.primary} />
               </View>
               {p.journeyTitle ? (
                 <Text variant="caption" color={tone.vibrant ? colors.action.primary : "secondary"} style={[styles.flex1, styles.journeyEyebrow]}>
@@ -337,7 +336,7 @@ const SignalCard = ({
     ];
     const stats = orderedFields
       .map((f) => statForField(f, signal.payload))
-      .filter((s): s is { icon: string; label: string } => s !== null);
+      .filter((s): s is { icon: IconName; label: string } => s !== null);
 
     if (stats.length > 0) {
       dynamicContent = (
@@ -345,7 +344,7 @@ const SignalCard = ({
           {stats.map((s) => (
             <View key={s.label} style={[styles.statRowItem, { backgroundColor: insetBg, borderColor: colors.border.default }]}>
               <View style={styles.statIconBox}>
-                <MaterialCommunityIcons name={s.icon as any} size={14} color={insetText} />
+                <Icon name={s.icon} size={14} color={insetText} />
               </View>
               <Text variant="caption" color={insetText} style={styles.bold}>{s.label}</Text>
             </View>
@@ -399,7 +398,7 @@ const SignalCard = ({
           onPress={openPicker}
           style={[styles.reactionCueFloating, { backgroundColor: colors.surface.control, borderColor: colors.border.default }]}
         >
-          <MaterialCommunityIcons name="heart-outline" size={13} color={colors.text.tertiary} />
+          <Icon name={icons.heart} size={13} color={colors.text.tertiary} />
         </TouchableOpacity>
       );
     }
@@ -414,7 +413,7 @@ const SignalCard = ({
       style={[
         styles.mainBodyShadow,
         { backgroundColor: cardBg },
-        !tone.vibrant && { borderWidth: 1, borderColor: colors.border.default },
+        !tone.vibrant && { borderWidth: borderWidth.thin, borderColor: colors.border.default },
       ]}
     >
       <View style={styles.mainBody}>
@@ -526,7 +525,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    borderWidth: 2,
+    borderWidth: borderWidth.thick,
   },
   timelineAvatarFallback: {
     width: 32,
@@ -558,10 +557,10 @@ const styles = StyleSheet.create({
 
   // Main Card Body
   mainBodyShadow: {
-    borderRadius: radius.chip,
+    borderRadius: radius.card,
   },
   mainBody: {
-    borderRadius: radius.chip,
+    borderRadius: radius.card,
     padding: spacing.lg,
     overflow: "hidden",
   },
@@ -596,7 +595,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -615,7 +614,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
   },
 
   // Journey (pack/module) context chip
@@ -658,12 +657,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.full,
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
   },
   statIconBox: { alignItems: "center", justifyContent: "center" },
   replyRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   replyChip: {
-    borderWidth: 1,
+    borderWidth: borderWidth.thin,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,

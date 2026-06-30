@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import { PieChart } from "react-native-chart-kit";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { WeeklyDistribution } from "../../../../../api/progressReport/types";
 import {
   useTheme,
@@ -11,6 +10,8 @@ import {
   fonts,
   Text,
   Skeleton,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -133,9 +134,9 @@ const DPSummary = ({
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
-          <Icon name="chart-pie" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.chartPie} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 
@@ -186,7 +187,7 @@ const DPSummary = ({
         </>
       ) : (
         <View style={styles.emptyState}>
-          <Icon name="chart-pie" size={40} color={colors.text.tertiary} />
+          <Icon name={icons.chartPie} size={40} color={colors.text.tertiary} />
           <Text variant="bodySm" color="secondary">No practice data found</Text>
         </View>
       )}
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
   },
   legendName: {
     flex: 1,

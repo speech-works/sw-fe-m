@@ -1,7 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   ReactionType,
@@ -17,7 +16,7 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { useTheme, spacing, radius, fonts, Text } from "../../design-system";
+import { useTheme, spacing, space, radius, fonts, Text, Icon, icons } from "../../design-system";
 import SignalCard from "../SignalCard";
 
 interface TimelineProps {
@@ -162,7 +161,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   if (error) {
     return (
       <View style={styles.center}>
-        <MaterialCommunityIcons name="alert-circle-outline" size={36} color={colors.text.tertiary} />
+        <Icon name={icons.warning} size={36} color={colors.text.tertiary} />
         <Text variant="bodySm" color="secondary" style={styles.muted}>Couldn't load the timeline.</Text>
         <TouchableOpacity onPress={load} style={[styles.retryBtn, { backgroundColor: colors.action.primary }]}>
           <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Retry</Text>
@@ -177,7 +176,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       <View style={styles.emptyWrap}>
         <View style={styles.emptyHero}>
           <View style={[styles.emptyIconCircle, { backgroundColor: colors.action.primaryTint }]}>
-            <MaterialCommunityIcons name="hand-heart" size={28} color={colors.action.primary} />
+            <Icon name={icons.care} size={28} color={colors.action.primary} />
           </View>
           <Text variant="h3" style={styles.emptyTitle}>Your wins and moments live here</Text>
           <Text variant="bodySm" color="secondary" style={styles.muted}>
@@ -187,7 +186,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
           </Text>
           {onStartPractice ? (
             <TouchableOpacity onPress={onStartPractice} style={[styles.emptyCta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="play" size={16} color={colors.action.onPrimary} />
+              <Icon name={icons.play} size={16} color={colors.action.onPrimary} />
               <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Start a practice</Text>
             </TouchableOpacity>
           ) : null}
@@ -238,12 +237,12 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
 export default Timeline;
 
 const styles = StyleSheet.create({
-  list: { paddingTop: spacing.sm, paddingHorizontal: spacing.lg },
+  list: { paddingTop: spacing.sm, paddingHorizontal: space.screenX },
   center: { alignItems: "center", justifyContent: "center", paddingVertical: spacing["5xl"], paddingHorizontal: 30, gap: spacing.sm },
   bold: { fontFamily: fonts.bold },
-  emptyTitle: { marginTop: 4 },
+  emptyTitle: { marginTop: spacing.xs },
   muted: { textAlign: "center" },
-  emptyWrap: { paddingHorizontal: spacing.lg, paddingTop: 4 },
+  emptyWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
   emptyHero: { alignItems: "center", paddingVertical: spacing.xl, paddingHorizontal: spacing.md, gap: spacing.sm },
   emptyIconCircle: {
     width: 56,
@@ -251,15 +250,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 14,
+    gap: spacing.xs,
+    marginTop: spacing.lg,
     paddingHorizontal: spacing.xl,
-    paddingVertical: 11,
+    paddingVertical: spacing.md,
     borderRadius: radius.full,
   },
   retryBtn: { marginTop: spacing.md, paddingHorizontal: spacing["2xl"], paddingVertical: spacing.md, borderRadius: radius.full },
@@ -268,7 +267,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: spacing.lg,
-    marginTop: 4,
+    marginTop: spacing.xs,
     marginBottom: spacing.sm,
   },
 });

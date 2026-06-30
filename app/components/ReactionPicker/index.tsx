@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { REACTIONS } from "../../constants/reactions";
 import { ReactionType } from "../../api/threads/types";
-import { useTheme, radius, fonts, Text } from "../../design-system";
+import { useTheme, radius, fonts, space, Text } from "../../design-system";
 import { AnimatedReaction } from "../AnimatedReactions";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: radius.card,
     flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: space.inlineGap,
+    paddingVertical: space.rowGap,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 15,

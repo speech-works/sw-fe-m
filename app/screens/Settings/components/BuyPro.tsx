@@ -6,7 +6,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/types";
 import { SettingsStackParamList } from "../../../navigators/stacks/SettingsStack/types";
 import { PAYMENTS_ENABLED } from "../../../constants/features";
@@ -18,6 +17,9 @@ import {
   elevation,
   gradients,
   Text,
+  Icon,
+  icons,
+  type IconName,
 } from "../../../design-system";
 
 interface BuyProProps {
@@ -43,10 +45,10 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
     cta: "Explore Premium",
   };
 
-  const benefits = [
-    { text: "No Daily Caps", icon: "infinity" },
-    { text: "AI Calls", icon: "robot" },
-    { text: "Personal Roadmap", icon: "map-check" },
+  const benefits: { text: string; icon: IconName }[] = [
+    { text: "No Daily Caps", icon: icons.unlimited },
+    { text: "AI Calls", icon: icons.ai },
+    { text: "Personal Roadmap", icon: icons.roadmap },
   ];
 
   return (
@@ -78,7 +80,7 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
           { backgroundColor: colors.premium.goldTint, borderColor: colors.premium.goldBorder },
         ]}
       >
-        <Icon name="crown" size={12} color={colors.premium.gold} />
+        <Icon name={icons.pro} size={12} color={colors.premium.gold} />
         <Text variant="label" color={colors.premium.gold}>
           {copy.badge}
         </Text>
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: radius.full,
   },
   badgeContainer: {
     flexDirection: "row",

@@ -6,10 +6,8 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import PressableScale from "../PressableScale";
-import { useTheme, spacing, radius, fonts, Sheet, Text } from "../../design-system";
+import { useTheme, spacing, radius, borderWidth, fonts, Sheet, Text, Icon, icons, type IconName } from "../../design-system";
 import { Signal, SupportNoteId, sendSupport } from "../../api/threads";
 import { SUPPORT_NOTES } from "../../constants/supportNotes";
 import { handleLinkPress } from "../../util/functions/externalLinks";
@@ -26,11 +24,11 @@ interface BuddySupportSheetProps {
 }
 
 /** A small do/don't line in the crisis-support guide. */
-const GuideLine = ({ icon, text }: { icon: string; text: string }) => {
+const GuideLine = ({ icon, text }: { icon: IconName; text: string }) => {
   const { colors } = useTheme();
   return (
     <View style={styles.guideLine}>
-      <MaterialCommunityIcons name={icon as any} size={16} color={colors.action.primary} style={styles.guideLineIcon} />
+      <Icon name={icon} size={16} color={colors.action.primary} style={styles.guideLineIcon} />
       <Text variant="bodySm" color="secondary" style={styles.flex1}>{text}</Text>
     </View>
   );
@@ -153,9 +151,9 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
               {isSending ? (
                 <ActivityIndicator size="small" color={colors.action.primary} />
               ) : isSent ? (
-                <MaterialCommunityIcons name="check-circle" size={22} color={colors.accent.success} />
+                <Icon name={icons.success} size={22} color={colors.accent.success} />
               ) : (
-                <MaterialCommunityIcons name="send" size={18} color={colors.action.primary} />
+                <Icon name={icons.send} size={18} color={colors.action.primary} />
               )}
             </PressableScale>
           );
@@ -173,8 +171,8 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
           disabled={lifelineSent || busy}
           onPress={sendLifeline}
         >
-          <MaterialCommunityIcons
-            name={lifelineSent ? "check-circle" : "lifebuoy"}
+          <Icon
+            name={lifelineSent ? icons.success : icons.support}
             size={20}
             color={lifelineSent ? colors.accent.success : colors.action.primary}
           />
@@ -189,22 +187,22 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
 
         {/* How to support a friend in crisis (collapsible) */}
         <PressableScale style={styles.guideHeader} haptic={false} scaleTo={0.99} onPress={toggleGuide}>
-          <MaterialCommunityIcons name="hand-heart-outline" size={16} color={colors.action.primary} />
+          <Icon name={icons.care} size={16} color={colors.action.primary} />
           <Text variant="bodySm" color={colors.action.primary} style={[styles.flex1, styles.bold]}>How to support a friend in crisis</Text>
-          <MaterialCommunityIcons
-            name={guideOpen ? "chevron-up" : "chevron-down"}
+          <Icon
+            name={guideOpen ? icons.chevronUp : icons.chevronDown}
             size={20}
             color={colors.text.tertiary}
           />
         </PressableScale>
         {guideOpen ? (
           <View style={styles.guideBody}>
-            <GuideLine icon="ear-hearing" text="Listen — you don't have to fix it. Just stay with them." />
-            <GuideLine icon="heart-outline" text="Take it seriously. Don't minimise or rush to reassure." />
-            <GuideLine icon="medical-bag" text="Gently encourage talking to a professional, together if it helps." />
-            <GuideLine icon="alert-outline" text={`If ${name} may be in immediate danger, call your local emergency number.`} />
+            <GuideLine icon={icons.listen} text="Listen — you don't have to fix it. Just stay with them." />
+            <GuideLine icon={icons.heart} text="Take it seriously. Don't minimise or rush to reassure." />
+            <GuideLine icon={icons.professionalHelp} text="Gently encourage talking to a professional, together if it helps." />
+            <GuideLine icon={icons.danger} text={`If ${name} may be in immediate danger, call your local emergency number.`} />
             <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={self988}>
-              <MaterialCommunityIcons name="phone-in-talk" size={15} color={colors.action.primary} />
+              <Icon name={icons.call} size={15} color={colors.action.primary} />
               <Text variant="caption" color={colors.action.primary} style={[styles.flex1, styles.bold]}>This is heavy for you too — 988 is there for you</Text>
             </PressableScale>
           </View>
@@ -212,7 +210,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
 
         {anySent ? (
           <View style={styles.sentBanner}>
-            <MaterialCommunityIcons name="check-circle" size={16} color={colors.accent.success} />
+            <Icon name={icons.success} size={16} color={colors.accent.success} />
             <Text variant="bodySm" color="primary" style={styles.bold}>{name} will know you're here. 💛</Text>
           </View>
         ) : null}
@@ -237,7 +235,7 @@ const styles = StyleSheet.create({
   bold: { fontFamily: fonts.bold },
   flex1: { flex: 1 },
   subtitle: {
-    marginTop: 6,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
 
@@ -246,17 +244,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: spacing.sm,
   },
-  groupLabelSpaced: { marginTop: 18 },
+  groupLabelSpaced: { marginTop: spacing.xl },
 
   noteCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     borderRadius: radius.input,
-    paddingVertical: 14,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
-    borderWidth: 1.5,
+    borderWidth: borderWidth.thin,
   },
   noteEmoji: {},
 
@@ -265,9 +263,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     borderRadius: radius.input,
-    paddingVertical: 15,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
-    borderWidth: 1.5,
+    borderWidth: borderWidth.thin,
   },
 
   guideHeader: {
@@ -275,11 +273,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     paddingVertical: spacing.lg,
-    marginTop: 6,
+    marginTop: spacing.sm,
   },
   guideBody: {
     gap: spacing.md,
-    paddingBottom: 6,
+    paddingBottom: spacing.sm,
   },
   guideLine: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
   guideLineIcon: { marginTop: 1 },
@@ -289,8 +287,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: 14,
-    marginTop: 4,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
   },
 
   sentBanner: {
@@ -306,9 +304,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6,
+    marginTop: spacing.sm,
     paddingTop: spacing.md,
-    borderTopWidth: 1,
+    borderTopWidth: borderWidth.thin,
   },
   doneBtn: {
     paddingVertical: spacing.md,

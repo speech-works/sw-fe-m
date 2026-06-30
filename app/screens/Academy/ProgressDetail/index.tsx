@@ -27,6 +27,8 @@ import {
   Spinner,
   TabDock,
   PageHeader,
+  icons,
+  type IconName,
 } from "../../../design-system";
 import Achievements from "./components/Achievements";
 import DetailedWeeklySummary, {
@@ -40,9 +42,9 @@ import WeeklyGrowthCard from "./components/WeeklyGrowthCard";
 
 type ReportTimeframe = "weekly" | "lifetime";
 
-const TABS: { key: ReportTimeframe; label: string; icon: string }[] = [
-  { key: "weekly", label: "This Week", icon: "calendar-week" },
-  { key: "lifetime", label: "Lifetime", icon: "infinity" },
+const TABS: { key: ReportTimeframe; label: string; icon: IconName }[] = [
+  { key: "weekly", label: "This Week", icon: icons.weekly },
+  { key: "lifetime", label: "Lifetime", icon: icons.lifetime },
 ];
 
 const ProgressDetail = () => {

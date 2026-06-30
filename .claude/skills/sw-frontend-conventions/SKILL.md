@@ -164,11 +164,20 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   Material/blur via `expo-blur` applied identically (or a token fallback).
 - Press feedback: reuse `PressableScale` (scale 0.97, reduced-motion aware) and
   honor `useReducedMotion` for non-essential motion.
-- Icons: the design-system set is **Lucide** via `<Icon name=… strokeWidth?=…>`
-  (the SVG successor of Feather — same look, but stroke-adjustable; names stay
-  kebab-case, any Lucide-missing name falls back to the Feather font). `strokeWidth`
-  defaults to 2; bump it (e.g. 2.75) for bold/avatar icons. Legacy screens may still
-  use FontAwesome5/MaterialCommunity until their wave — don't do a risky global swap.
+- Icons: the design-system set is **Fluent (Microsoft Fluent UI System Icons, filled)**, via
+  `<Icon name=… />`. Names stay kebab-case (Feather/registry vocabulary) and translate to glyph
+  PATHS in ONE place — the generated `FLUENT` map in `components/fluentPaths.ts` — rendered as an
+  SVG (`react-native-svg`, viewBox `0 0 24 24`). Swapping the icon family is a single-file change
+  (the whole set lives on Iconify); screens never import an icon library. A name with no mapping
+  falls back to the Feather font (and warns in `__DEV__`). To add an icon: map the canonical name
+  → a Fluent glyph (`<base>-24-filled`, from `@iconify-json/fluent`) in the generator and
+  regenerate the path map (+ add the name to `ExtraIconName` if it isn't a Feather glyph), then a
+  registry key. Fluent has NO brand logos, so `facebook`/`instagram`/`whatsapp` render via
+  FontAwesome5 (a scoped brand exception inside `Icon.tsx`).
+  Legacy (un-migrated) screens may still use FontAwesome5/MaterialCommunity until their wave —
+  don't do a risky global swap. ONE further exception: a server-driven glyph whose value is a
+  vendor icon name (e.g. Community `bondStageIcon` = MCI) renders via that vendor until the
+  backend emits registry names.
 - **One icon per concept — use the `icons` registry** (`app/design-system/icons.ts`).
   It maps semantic keys (`icons.win`, `icons.courage`, …) to a single Feather glyph.
   Reference the key, don't inline a raw glyph name in a screen. Add a key to the

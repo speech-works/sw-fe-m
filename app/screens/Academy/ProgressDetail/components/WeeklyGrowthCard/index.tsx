@@ -1,14 +1,16 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { WeeklyGrowthReport } from "../../../../../api/progressReport/types";
 import {
   useTheme,
   spacing,
   radius,
+  borderWidth,
   size,
   fonts,
   Text,
+  Icon,
+  icons,
 } from "../../../../../design-system";
 
 type WeeklyGrowthCardProps = {
@@ -118,9 +120,9 @@ const WeeklyGrowthCard = ({
         </View>
         <View style={styles.headerRight}>
           {hasError ? (
-            <Icon name="exclamation-circle" size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
+            <Icon name={icons.warning} size={14} color={colors.feedback.dangerText} style={styles.headerErrorIcon} />
           ) : null}
-          <Icon name="seedling" size={size.icon} color={colors.text.tertiary} />
+          <Icon name={icons.growthSeed} size={size.icon} color={colors.text.tertiary} />
         </View>
       </View>
 
@@ -156,7 +158,7 @@ const WeeklyGrowthCard = ({
                 <Text variant="body" style={styles.bold}>{axis.label}</Text>
                 <View style={styles.axisValuesRow}>
                   <Text variant="bodySm" color="tertiary">{axis.previous ?? "—"}</Text>
-                  <Icon name="long-arrow-alt-right" size={12} color={colors.text.tertiary} />
+                  <Icon name={icons.forward} size={12} color={colors.text.tertiary} />
                   <Text variant="body" style={styles.bold}>{axis.current}</Text>
                   <View style={[styles.deltaPill, { backgroundColor: colors.surface.control }]}>
                     <Text variant="caption" color={deltaColor(axis.deltaValue)} style={styles.bold}>
@@ -186,7 +188,7 @@ const WeeklyGrowthCard = ({
         </View>
       ) : (
         <View style={[styles.steadyState, { backgroundColor: colors.surface.default }]}>
-          <Icon name="wind" size={12} color={colors.text.tertiary} />
+          <Icon name={icons.anxious} size={12} color={colors.text.tertiary} />
           <Text variant="bodySm" color="secondary" style={styles.flex1}>
             No major changes yet.
           </Text>
@@ -272,8 +274,8 @@ const styles = StyleSheet.create({
     marginLeft: -5,
     width: 10,
     height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thick,
   },
   steadyState: {
     flexDirection: "row",

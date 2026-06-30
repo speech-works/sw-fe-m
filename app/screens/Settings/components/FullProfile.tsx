@@ -1,6 +1,5 @@
 import React from "react";
 import { Linking, StyleSheet, TouchableOpacity, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { useUserStore } from "../../../stores/user";
 import { LevelStage } from "../../../api/users";
 import { showErrorBottomSheet } from "../../../util/functions/bottomSheet";
@@ -12,6 +11,7 @@ import {
   borderWidth,
   Text,
   Icon,
+  icons,
   IconName,
   Avatar,
   SectionHeader,
@@ -104,19 +104,19 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
           <View style={styles.socialGrid}>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.facebook, "Facebook")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <FAIcon name="facebook-f" size={20} color={colors.text.primary} />
+                <Icon name={icons.socialFacebook} size={20} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Facebook</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.instagram, "Instagram")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <FAIcon name="instagram" size={20} color={colors.text.primary} />
+                <Icon name={icons.socialInstagram} size={20} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Instagram</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialItem} onPress={() => openSocial(user?.links?.social.whatsapp, "Whatsapp")}>
               <View style={[styles.socialIcon, { backgroundColor: colors.surface.control }]}>
-                <FAIcon name="whatsapp" size={20} color={colors.text.primary} />
+                <Icon name={icons.socialWhatsapp} size={20} color={colors.text.primary} />
               </View>
               <Text variant="caption" color="secondary">Whatsapp</Text>
             </TouchableOpacity>
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

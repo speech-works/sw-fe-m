@@ -18,6 +18,7 @@ import {
   space,
   Text,
   Icon,
+  icons,
   PageHeader,
   TabDock,
   Button,
@@ -306,8 +307,8 @@ const ShareMomentScreen = () => {
         fitContent
         accessibilityLabel="Moment type"
         items={[
-          { key: "win", label: "Wins", icon: "trophy-variant-outline" },
-          { key: "struggle", label: "Struggles", icon: "cloud-outline" },
+          { key: "win", label: "Wins", icon: icons.milestone },
+          { key: "struggle", label: "Struggles", icon: icons.struggleTab },
         ]}
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k as "win" | "struggle")}
