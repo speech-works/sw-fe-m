@@ -231,6 +231,14 @@ touch). NEVER hardcode a spring/curve/duration in a screen — reference the tok
 | List item remove | layout collapse + fade-out | `layoutPreset` + `FadeOut` | fade only |
 | Ambient (avatar float) | slow translateY loop | `easing.loop` | **disabled** |
 
+**Cross-platform (iOS + Android) — load-bearing:** NEVER put Reanimated `entering`/
+`exiting`/`layout` (layout animations) **inside a native `<Modal>`** — they're unreliable on
+Android (the Modal is a separate native window the layout-anim manager doesn't track). Drive
+in-Modal motion from a shared value via `useAnimatedStyle` (`AnimatedModal`/`ReactionPicker`
+do this). `entering`/stagger in normal ScrollView/Page trees is fine. Full-screen modals set
+`statusBarTranslucent` (Android scrim + anchor coords). Android shadow = the `elevation.*`
+tokens, never iOS-only `shadow*`.
+
 **Engine-boundary exception:** `Sheet` runs on the RN `Animated` engine, so it can't use
 the Reanimated `easing.*` worklets — its durations are tokenized but its curves use RN's
 native out/in-cubic (the analog of `easing.out`/`easing.in`). Don't "fix" it by sprinkling

@@ -7,8 +7,10 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import Animated, {
+  Extrapolation,
   interpolate,
   runOnJS,
+  SharedValue,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -17,20 +19,16 @@ import Animated, {
 } from "react-native-reanimated";
 import { REACTIONS } from "../../constants/reactions";
 import { ReactionType } from "../../api/threads/types";
-import {
-  useTheme,
-  radius,
-  fonts,
-  space,
-  Text,
-  staggerEntering,
-  duration,
-  easing,
-  spring,
-} from "../../design-system";
+import { useTheme, radius, fonts, space, Text, duration, easing, spring } from "../../design-system";
 import { AnimatedReaction } from "../AnimatedReactions";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+// Emoji stagger expressed in PROGRESS space (0..1), not via Reanimated `entering`
+// layout animations — those are unreliable inside a native <Modal> on Android, so
+// every emoji instead derives its reveal from the shared `progress` on the UI thread.
+const EMOJI_STAGGER = 0.06; // phase offset per emoji
+const EMOJI_RISE = 0.55; // fraction of progress over which each emoji reveals
 
 interface ReactionPickerProps {
   visible: boolean;
@@ -38,6 +36,45 @@ interface ReactionPickerProps {
   onDismiss: () => void;
   anchorY?: number; // Screen Y coordinate of the button
 }
+
+interface ReactionEmojiProps {
+  reaction: (typeof REACTIONS)[number];
+  index: number;
+  progress: SharedValue<number>;
+  reduced: boolean;
+  onSelect: (type: ReactionType) => void;
+  onDismiss: () => void;
+}
+
+/** A single staggered emoji, revealed off the shared `progress` (no layout animation). */
+const ReactionEmoji = ({ reaction, index, progress, reduced, onSelect, onDismiss }: ReactionEmojiProps) => {
+  const style = useAnimatedStyle(() => {
+    if (reduced) return { opacity: 1, transform: [] };
+    const start = index * EMOJI_STAGGER;
+    const local = interpolate(progress.value, [start, start + EMOJI_RISE], [0, 1], Extrapolation.CLAMP);
+    return {
+      opacity: local,
+      transform: [
+        { translateY: interpolate(local, [0, 1], [14, 0]) },
+        { scale: interpolate(local, [0, 1], [0.5, 1]) },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      style={[styles.emojiContainer, style]}
+      onTouchStart={() => {
+        onSelect(reaction.type);
+        onDismiss();
+      }}
+    >
+      <View style={styles.emojiInner}>
+        <AnimatedReaction type={reaction.type} selected={false} isPicker={true} size={54} />
+        <Text variant="caption" color="secondary" style={styles.reactionLabel}>{reaction.label}</Text>
+      </View>
+    </Animated.View>
+  );
+};
 
 const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT / 2 }: ReactionPickerProps) => {
   const { colors } = useTheme();
@@ -64,9 +101,9 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
     }
   }, [visible, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, progress.value) }));
   const containerStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
+    opacity: Math.min(1, progress.value),
     transform: [
       { scale: reduced ? 1 : interpolate(progress.value, [0, 1], [0.85, 1]) },
       { translateY: reduced ? 0 : interpolate(progress.value, [0, 1], [16, 0]) },
@@ -76,7 +113,7 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
   if (!mounted) return null;
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onDismiss}>
       <TouchableWithoutFeedback onPress={onDismiss}>
         <Animated.View style={[styles.backdrop, { backgroundColor: colors.overlay.scrim }, scrimStyle]}>
           <TouchableWithoutFeedback>
@@ -92,20 +129,15 @@ const ReactionPicker = ({ visible, onSelect, onDismiss, anchorY = SCREEN_HEIGHT 
               ]}
             >
               {REACTIONS.map((r, i) => (
-                <Animated.View
+                <ReactionEmoji
                   key={r.type}
-                  entering={staggerEntering(i, reduced)}
-                  style={styles.emojiContainer}
-                  onTouchStart={() => {
-                    onSelect(r.type);
-                    onDismiss();
-                  }}
-                >
-                  <View style={styles.emojiInner}>
-                    <AnimatedReaction type={r.type} selected={false} isPicker={true} size={54} />
-                    <Text variant="caption" color="secondary" style={styles.reactionLabel}>{r.label}</Text>
-                  </View>
-                </Animated.View>
+                  reaction={r}
+                  index={i}
+                  progress={progress}
+                  reduced={reduced}
+                  onSelect={onSelect}
+                  onDismiss={onDismiss}
+                />
               ))}
             </Animated.View>
           </TouchableWithoutFeedback>

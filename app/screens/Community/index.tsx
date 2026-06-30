@@ -9,19 +9,16 @@ import {
   RefreshControl,
   ScrollView,
   StatusBar,
-  StyleProp,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
-  ViewStyle,
 } from "react-native";
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,10 +46,12 @@ import {
   TabDock,
   PageHeader,
   Icon,
+  IconName,
   icons,
   AnimatedNumber,
   PulseDot,
   AnimatedModal,
+  Skeleton,
   staggerEntering,
 } from "../../design-system";
 import {
@@ -161,31 +160,65 @@ const SectionHeading = ({
   </View>
 );
 
-/** A pulsing placeholder block for the loading skeleton. */
-const SkeletonBlock = ({ style }: { style?: StyleProp<ViewStyle> }) => {
-  const { colors } = useTheme();
-  const reduceMotion = useReducedMotion();
-  const o = useSharedValue(0.5);
-  useEffect(() => {
-    o.value = reduceMotion
-      ? 0.6
-      : withRepeat(withTiming(1, { duration: duration.shimmer, easing: easing.loop }), -1, true);
-  }, [reduceMotion]);
-  const s = useAnimatedStyle(() => ({ opacity: o.value }));
-  return <Animated.View style={[styles.skelBlock, { backgroundColor: colors.surface.elevated }, style, s]} />;
-};
-
-/** Shimmer skeleton that mirrors the paired layout while data loads. */
+/** Shimmer skeleton that mirrors the paired layout while data loads (DS `Skeleton`). */
 const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
   <View style={{ paddingTop: topPad }}>
-    <SkeletonBlock style={styles.skelBanner} />
-    <SkeletonBlock style={styles.skelLabel} />
-    <SkeletonBlock style={styles.skelCard} />
-    <SkeletonBlock style={styles.skelToggle} />
-    <SkeletonBlock style={styles.skelLabelSm} />
-    <SkeletonBlock style={styles.skelDock} />
+    <Skeleton style={styles.skelBanner} />
+    <Skeleton style={styles.skelLabel} />
+    <Skeleton style={styles.skelCard} />
+    <Skeleton style={styles.skelToggle} />
+    <Skeleton style={styles.skelLabelSm} />
+    <Skeleton style={styles.skelDock} />
   </View>
 );
+
+interface WatermarkModalProps {
+  visible: boolean;
+  onClose: () => void;
+  watermarkIcon: IconName;
+  watermarkColor: string;
+  tag: string;
+  tagColor: string;
+  title: string;
+  message: string;
+  ctaLabel: string;
+  ctaColor: string;
+  ctaTextColor: string;
+}
+
+/** Shared celebratory/alert card (welcome, invalid-code, …): an oversized corner
+ *  watermark, a tag, title, message and one CTA — over the standard `AnimatedModal`. */
+const WatermarkModal = ({
+  visible,
+  onClose,
+  watermarkIcon,
+  watermarkColor,
+  tag,
+  tagColor,
+  title,
+  message,
+  ctaLabel,
+  ctaColor,
+  ctaTextColor,
+}: WatermarkModalProps) => {
+  const { colors } = useTheme();
+  return (
+    <AnimatedModal visible={visible} onClose={onClose} dismissOnBackdrop={false} maxWidth={380} contentStyle={wm.card}>
+      <View style={wm.watermarkLayer} pointerEvents="none">
+        <Icon name={watermarkIcon} size={220} color={watermarkColor} style={wm.watermarkIcon} />
+      </View>
+      <TouchableOpacity onPress={onClose} style={wm.closeBtn} activeOpacity={0.7}>
+        <Icon name={icons.close} size={20} color={colors.text.tertiary} />
+      </TouchableOpacity>
+      <Text variant="caption" color={tagColor} style={wm.tag}>{tag}</Text>
+      <Text variant="h2" style={wm.title}>{title}</Text>
+      <Text variant="bodySm" color="secondary" style={wm.message}>{message}</Text>
+      <TouchableOpacity style={[wm.cta, { backgroundColor: ctaColor }]} activeOpacity={0.85} onPress={onClose}>
+        <Text variant="body" color={ctaTextColor} style={styles.bold}>{ctaLabel}</Text>
+      </TouchableOpacity>
+    </AnimatedModal>
+  );
+};
 
 
 const Community = () => {
@@ -898,74 +931,34 @@ const Community = () => {
       ) : null}
 
       {/* ── Buddy Welcome Modal ── */}
-      <AnimatedModal
+      <WatermarkModal
         visible={showWelcome}
         onClose={() => setShowWelcome(false)}
-        dismissOnBackdrop={false}
-        maxWidth={380}
-        contentStyle={wm.card}
-      >
-        {/* Watermark */}
-        <View style={wm.watermarkLayer} pointerEvents="none">
-          <Icon name={icons.pairing} size={220} color={colors.action.primary} style={wm.watermarkIcon} />
-        </View>
-
-        {/* Close */}
-        <TouchableOpacity onPress={() => setShowWelcome(false)} style={wm.closeBtn} activeOpacity={0.7}>
-          <Icon name={icons.close} size={20} color={colors.text.tertiary} />
-        </TouchableOpacity>
-
-        {/* Tag */}
-        <Text variant="caption" color={colors.action.primary} style={wm.tag}>BUDDY CONNECTED</Text>
-
-        {/* Title */}
-        <Text variant="h2" style={wm.title}>You're now paired!</Text>
-
-        {/* Message */}
-        <Text variant="bodySm" color="secondary" style={wm.message}>
-          Share your journey, support each other, and grow together.
-        </Text>
-
-        {/* CTA */}
-        <TouchableOpacity style={[wm.cta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85} onPress={() => setShowWelcome(false)}>
-          <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Let's Go!</Text>
-        </TouchableOpacity>
-      </AnimatedModal>
+        watermarkIcon={icons.pairing}
+        watermarkColor={colors.action.primary}
+        tag="BUDDY CONNECTED"
+        tagColor={colors.action.primary}
+        title="You're now paired!"
+        message="Share your journey, support each other, and grow together."
+        ctaLabel="Let's Go!"
+        ctaColor={colors.action.primary}
+        ctaTextColor={colors.action.onPrimary}
+      />
 
       {/* ── Invalid Code Error Modal ── */}
-      <AnimatedModal
+      <WatermarkModal
         visible={showError}
         onClose={() => setShowError(false)}
-        dismissOnBackdrop={false}
-        maxWidth={380}
-        contentStyle={wm.card}
-      >
-        {/* Watermark */}
-        <View style={wm.watermarkLayer} pointerEvents="none">
-          <Icon name={icons.warning} size={220} color={colors.feedback.danger} style={wm.watermarkIcon} />
-        </View>
-
-        {/* Close */}
-        <TouchableOpacity onPress={() => setShowError(false)} style={wm.closeBtn} activeOpacity={0.7}>
-          <Icon name={icons.close} size={20} color={colors.text.tertiary} />
-        </TouchableOpacity>
-
-        {/* Tag */}
-        <Text variant="caption" color={colors.feedback.dangerText} style={wm.tag}>INVALID CODE</Text>
-
-        {/* Title */}
-        <Text variant="h2" style={wm.title}>Couldn't Connect</Text>
-
-        {/* Message */}
-        <Text variant="bodySm" color="secondary" style={wm.message}>
-          {errorMessage}
-        </Text>
-
-        {/* CTA */}
-        <TouchableOpacity style={[wm.cta, { backgroundColor: colors.feedback.danger }]} activeOpacity={0.85} onPress={() => setShowError(false)}>
-          <Text variant="body" color={colors.accentOn.danger} style={styles.bold}>Try Again</Text>
-        </TouchableOpacity>
-      </AnimatedModal>
+        watermarkIcon={icons.warning}
+        watermarkColor={colors.feedback.danger}
+        tag="INVALID CODE"
+        tagColor={colors.feedback.dangerText}
+        title="Couldn't Connect"
+        message={errorMessage}
+        ctaLabel="Try Again"
+        ctaColor={colors.feedback.danger}
+        ctaTextColor={colors.accentOn.danger}
+      />
 
       <BuddySupportSheet
         visible={!!supportSignal}
@@ -988,7 +981,6 @@ const styles = StyleSheet.create({
   bold: { fontFamily: fonts.bold },
 
   // Loading skeleton
-  skelBlock: {},
   skelBanner: { height: 196, marginHorizontal: space.screenX, borderRadius: radius.card, marginBottom: space.titleGap },
   skelLabel: { height: 16, width: 130, marginHorizontal: space.screenX, borderRadius: radius.sm, marginBottom: 14 },
   skelCard: { height: 184, marginHorizontal: space.screenX, borderRadius: radius.card, marginBottom: space.titleGap },

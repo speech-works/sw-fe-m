@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { DimensionValue } from "react-native";
+import { DimensionValue, StyleProp, ViewStyle } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,10 +15,12 @@ export interface SkeletonProps {
   width?: DimensionValue;
   height?: number;
   radius?: number;
+  /** Extra layout (margins, overrides) — applied over the base size/shape. */
+  style?: StyleProp<ViewStyle>;
 }
 
 /** Loading placeholder with a gentle pulse (respects reduced motion). */
-export const Skeleton: React.FC<SkeletonProps> = ({ width = "100%", height = 16, radius = 8 }) => {
+export const Skeleton: React.FC<SkeletonProps> = ({ width = "100%", height = 16, radius = 8, style }) => {
   const { colors } = useTheme();
   const opacity = useSharedValue(0.6);
   const reduced = useReducedMotion();
@@ -32,11 +34,11 @@ export const Skeleton: React.FC<SkeletonProps> = ({ width = "100%", height = 16,
     return () => cancelAnimation(opacity);
   }, [reduced, opacity]);
 
-  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const pulse = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
     <Animated.View
-      style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface.row }, style]}
+      style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface.row }, style, pulse]}
     />
   );
 };
