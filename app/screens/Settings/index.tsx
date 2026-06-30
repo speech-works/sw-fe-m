@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, TouchableOpacity, View } from "react-native";
+import Reanimated from "react-native-reanimated";
 import { getAllSessionsOfUser, logoutUser } from "../../api";
 import { SECURE_KEYS_NAME } from "../../constants/secureStorageKeys";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -9,6 +10,7 @@ import { useUserStore } from "../../stores/user";
 import { getLevelStage, LevelStage } from "../../api/users";
 import {
   useTheme,
+  useMotion,
   spacing,
   radius,
   Page,
@@ -24,9 +26,11 @@ import {
 import FullProfile from "./components/FullProfile";
 import EditProfile, { EditProfileHandle } from "./components/EditProfile";
 import DeleteAccountModal from "./components/DeleteAccountModal";
+import { showSuccessBottomSheet } from "../../util/functions/bottomSheet";
 
 const Settings = () => {
   const { colors } = useTheme();
+  const m = useMotion();
   const navigation = useNavigation<any>();
   const { logout, deleteAccount } = useContext(AuthContext);
   const { user } = useUserStore();
@@ -36,11 +40,21 @@ const Settings = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [profileMode, setProfileMode] = useState<"view" | "edit">("view");
+  // Set when a save succeeds: the success confirmation is itself a native Modal,
+  // so we defer it until the sheet's own Modal has fully dismissed (see onDismissed).
+  // Stacking two native modals freezes touch handling app-wide on iOS.
+  const [pendingSuccess, setPendingSuccess] = useState(false);
   const editRef = useRef<EditProfileHandle>(null);
 
+  // Ambient avatar float — a slow, gentle rise/fall. Disabled entirely under
+  // reduced motion (ambient loops are the first thing that should go quiet).
   const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (m.reduced) {
+      floatAnim.setValue(0);
+      return;
+    }
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
@@ -59,7 +73,12 @@ const Settings = () => {
     );
     animation.start();
     return () => animation.stop();
-  }, [floatAnim]);
+  }, [floatAnim, m.reduced]);
+
+  const avatarFloat = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -6],
+  });
 
   const handleLogout = async () => {
     const accessToken = await SecureStore.getItemAsync(
@@ -150,15 +169,18 @@ const Settings = () => {
     <>
       <Page title="Settings" description="Manage your profile and preferences." tabBarSafe>
         {/* Identity hero — flat surface, orange accents (no redundant chrome) */}
-        <View style={[styles.profileSection, { backgroundColor: colors.surface.elevated }]}>
-          <View style={styles.avatarWrap}>
+        <Reanimated.View
+          entering={m.stagger(0)}
+          style={[styles.profileSection, { backgroundColor: colors.surface.elevated }]}
+        >
+          <Animated.View style={[styles.avatarWrap, { transform: [{ translateY: avatarFloat }] }]}>
             <Avatar
               image={user?.profilePictureUrl}
               shape="rounded"
               size={88}
               level={levelStage?.level || user?.level || 1}
             />
-          </View>
+          </Animated.View>
 
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>
@@ -182,10 +204,13 @@ const Settings = () => {
             onPress={onViewProfile}
             style={styles.viewProfileButton}
           />
-        </View>
+        </Reanimated.View>
 
         {/* Menu */}
-        <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
+        <Reanimated.View
+          entering={m.stagger(1)}
+          style={[styles.group, { backgroundColor: colors.surface.default }]}
+        >
           {menuItems.map((item, index) => (
             <ListItem
               key={item.text}
@@ -197,10 +222,10 @@ const Settings = () => {
               onPress={item.onClick}
             />
           ))}
-        </View>
+        </Reanimated.View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <Reanimated.View entering={m.stagger(2)} style={styles.footer}>
           <TouchableOpacity style={styles.signOutButton} onPress={handleLogout}>
             <Text variant="bodySm" color={colors.feedback.dangerText}>
               Log Out
@@ -220,12 +245,21 @@ const Settings = () => {
           <Text variant="caption" color="tertiary">
             v2.4.0 (Build 302)
           </Text>
-        </View>
+        </Reanimated.View>
       </Page>
 
       <Sheet
         visible={isVisible}
         onClose={closeModal}
+        onDismissed={() => {
+          if (pendingSuccess) {
+            setPendingSuccess(false);
+            showSuccessBottomSheet(
+              "Profile Updated",
+              "Your changes have been saved successfully.",
+            );
+          }
+        }}
         title={profileMode === "view" ? "My Profile" : "Edit Profile"}
         right={
           profileMode === "view" ? (
@@ -249,7 +283,16 @@ const Settings = () => {
         {profileMode === "view" ? (
           <FullProfile levelStage={levelStage} />
         ) : (
-          <EditProfile ref={editRef} onSave={() => setProfileMode("view")} />
+          <EditProfile
+            ref={editRef}
+            onSave={() => {
+              // Close the sheet first; the success toast fires from onDismissed
+              // once this sheet's native Modal is gone (never two modals at once).
+              setProfileMode("view");
+              setPendingSuccess(true);
+              setIsVisible(false);
+            }}
+          />
         )}
       </Sheet>
 

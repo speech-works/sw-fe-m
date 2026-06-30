@@ -3,10 +3,6 @@ import { StyleSheet, View } from "react-native";
 import { updateUserById } from "../../../api";
 import { useUserStore } from "../../../stores/user";
 import {
-  showErrorBottomSheet,
-  showSuccessBottomSheet,
-} from "../../../util/functions/bottomSheet";
-import {
   useTheme,
   spacing,
   radius,
@@ -14,6 +10,7 @@ import {
   icons,
   TextField,
   SectionHeader,
+  Text,
 } from "../../../design-system";
 
 /** Imperative handle so the Sheet header's Save button can commit the form. */
@@ -39,10 +36,16 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
       whatsapp: user?.links?.social?.whatsapp || "",
     });
     const [saving, setSaving] = useState(false);
+    // Surfaced inline (not via the global OutcomeModal): the success toast is a
+    // second native Modal, and showing it while this sheet's Modal is still open
+    // stacks two native modals on iOS — which wedges all touch handling app-wide.
+    // Success is reported up to the parent, which closes the sheet THEN shows it.
+    const [error, setError] = useState<string | null>(null);
 
     const handleSave = async () => {
       if (!user || saving) return;
       setSaving(true);
+      setError(null);
       try {
         await updateUserById(user.id, {
           name,
@@ -56,10 +59,6 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
             },
           },
         });
-        showSuccessBottomSheet(
-          "Profile Updated",
-          "Your changes have been saved successfully.",
-        );
         setUser({
           ...user,
           name,
@@ -74,9 +73,9 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
           },
         });
         onSave();
-      } catch (error) {
-        showErrorBottomSheet("Update Failed", "Could not update profile.");
-        console.error(error);
+      } catch (err) {
+        setError("Could not update profile. Please try again.");
+        console.error(err);
       } finally {
         setSaving(false);
       }
@@ -114,6 +113,12 @@ const EditProfile = forwardRef<EditProfileHandle, EditProfileProps>(
 
     return (
       <View style={styles.root}>
+        {error ? (
+          <Text variant="bodySm" color={colors.feedback.dangerText}>
+            {error}
+          </Text>
+        ) : null}
+
         {/* Personal Details */}
         <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
           <SectionHeader icon="user" title="Personal Details" />

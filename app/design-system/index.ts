@@ -19,7 +19,8 @@ export { gradients } from "./primitives/gradients";
 export type { GradientName, GradientToken } from "./primitives/gradients";
 export { elevation } from "./elevation";
 export type { ElevationLevel } from "./elevation";
-export { duration, easing, press } from "./motion";
+export { duration, easing, spring, stagger, press } from "./motion";
+export { useMotion, staggerEntering, fadeStaggerEntering, enterPreset, layoutPreset } from "./useMotion";
 export { haptics } from "./haptics";
 
 // Contrast/legibility helpers — pick & verify legible text on any fill (WCAG AA).

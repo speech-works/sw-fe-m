@@ -1,6 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React, { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 
 import {
   ReactionType,
@@ -16,7 +17,7 @@ import { useInboxStore } from "../../stores/inbox";
 import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { useTheme, spacing, space, radius, fonts, Text, Icon, icons } from "../../design-system";
+import { useTheme, spacing, space, radius, fonts, Text, Icon, icons, fadeStaggerEntering } from "../../design-system";
 import SignalCard from "../SignalCard";
 
 interface TimelineProps {
@@ -43,6 +44,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const myId = useUserStore((s) => s.user?.id);
   const { colors } = useTheme();
+  const reduced = useReducedMotion();
 
   const load = useCallback(async () => {
     try {
@@ -198,25 +200,28 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
   return (
     <View style={styles.list}>
       {signals.map((signal, index) => (
-        <SignalCard
-          key={signal.id}
-          isFirst={index === 0}
-          isLast={index === signals.length - 1}
-          signal={signal}
-          prevSignal={index > 0 ? signals[index - 1] : undefined}
-          nextSignal={index < signals.length - 1 ? signals[index + 1] : undefined}
-          variant="feed"
-          buddyName={buddyName}
-          onReact={(type) => handleReact(signal.id, type)}
-          onUnreact={() => handleUnreact(signal.id)}
-          onDelete={() => handleDelete(signal.id)}
-          onReplyPrompt={(replyId) => handleReplyPrompt(signal.id, replyId)}
-          replyPending={replyingId === signal.id}
-          onReachOut={() => {
-            track(ANALYTICS_EVENTS.BUDDY_SUPPORT_OPENED, { postId: signal.id });
-            onReachOut?.(signal);
-          }}
-        />
+        // Opacity-only stagger: the thread "draws in" top-to-bottom without any
+        // transform, so the continuous rail never shifts. Fires once per card mount.
+        <Animated.View key={signal.id} entering={fadeStaggerEntering(index, reduced)}>
+          <SignalCard
+            isFirst={index === 0}
+            isLast={index === signals.length - 1}
+            signal={signal}
+            prevSignal={index > 0 ? signals[index - 1] : undefined}
+            nextSignal={index < signals.length - 1 ? signals[index + 1] : undefined}
+            variant="feed"
+            buddyName={buddyName}
+            onReact={(type) => handleReact(signal.id, type)}
+            onUnreact={() => handleUnreact(signal.id)}
+            onDelete={() => handleDelete(signal.id)}
+            onReplyPrompt={(replyId) => handleReplyPrompt(signal.id, replyId)}
+            replyPending={replyingId === signal.id}
+            onReachOut={() => {
+              track(ANALYTICS_EVENTS.BUDDY_SUPPORT_OPENED, { postId: signal.id });
+              onReachOut?.(signal);
+            }}
+          />
+        </Animated.View>
       ))}
 
       {loadingMore ? (

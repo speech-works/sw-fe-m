@@ -21,6 +21,10 @@ export { ConnectedAvatarRow } from "./ConnectedAvatarRow";
 export type { ConnectedAvatarRowProps } from "./ConnectedAvatarRow";
 export { ProgressRing } from "./ProgressRing";
 export type { ProgressRingProps } from "./ProgressRing";
+export { AnimatedNumber } from "./AnimatedNumber";
+export type { AnimatedNumberProps } from "./AnimatedNumber";
+export { PulseDot } from "./PulseDot";
+export type { PulseDotProps } from "./PulseDot";
 export { Gradient } from "./Gradient";
 export type { GradientProps } from "./Gradient";
 
@@ -55,6 +59,8 @@ export { Sheet } from "./Sheet";
 export type { SheetProps } from "./Sheet";
 export { Dialog } from "./Dialog";
 export type { DialogProps } from "./Dialog";
+export { AnimatedModal } from "./AnimatedModal";
+export type { AnimatedModalProps } from "./AnimatedModal";
 export { TabDock } from "./TabDock";
 export type { TabDockProps, TabDockItem } from "./TabDock";
 
@@ -63,6 +69,8 @@ export { Toast, Snackbar, Banner } from "./Feedback";
 export type { ToastProps, SnackbarProps, BannerProps } from "./Feedback";
 export { Skeleton } from "./Skeleton";
 export type { SkeletonProps } from "./Skeleton";
+export { SuccessCheck, useSuccessPop } from "./SuccessCheck";
+export type { SuccessCheckProps } from "./SuccessCheck";
 export { Spinner } from "./Spinner";
 export type { SpinnerProps } from "./Spinner";
 export { PageControl } from "./PageControl";

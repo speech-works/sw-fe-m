@@ -11,6 +11,7 @@ import {
   Easing,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReducedMotion } from "react-native-reanimated";
 import { useTheme } from "../useTheme";
 import { radius, space, size, spacing } from "../primitives/scale";
 import { duration } from "../motion";
@@ -68,10 +69,14 @@ export const Sheet: React.FC<SheetProps> = ({
   const [mounted, setMounted] = useState(visible);
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
+  // Reduced motion: keep the backdrop opacity fade, drop the slide (the sheet appears
+  // in place). Emil's rule — keep opacity, remove transform/position.
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
+      if (reduced) translateY.setValue(0);
       Animated.parallel([
         Animated.timing(backdrop, {
           toValue: 1,
@@ -79,12 +84,16 @@ export const Sheet: React.FC<SheetProps> = ({
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: duration.sheetIn,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
+        ...(reduced
+          ? []
+          : [
+              Animated.timing(translateY, {
+                toValue: 0,
+                duration: duration.sheetIn,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+              }),
+            ]),
       ]).start();
     } else {
       Animated.parallel([
@@ -94,20 +103,25 @@ export const Sheet: React.FC<SheetProps> = ({
           easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(translateY, {
-          toValue: SCREEN_H,
-          duration: duration.sheetOut,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }),
+        ...(reduced
+          ? []
+          : [
+              Animated.timing(translateY, {
+                toValue: SCREEN_H,
+                duration: duration.sheetOut,
+                easing: Easing.in(Easing.cubic),
+                useNativeDriver: true,
+              }),
+            ]),
       ]).start(({ finished }) => {
         if (finished) {
+          if (reduced) translateY.setValue(SCREEN_H);
           setMounted(false);
           onDismissedRef.current?.();
         }
       });
     }
-  }, [visible, backdrop, translateY]);
+  }, [visible, backdrop, translateY, reduced]);
 
   if (!mounted) return null;
 

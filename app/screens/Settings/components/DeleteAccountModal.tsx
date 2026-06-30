@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   useTheme,
   spacing,
-  radius,
-  elevation,
+  AnimatedModal,
   Text,
   TextField,
   Button,
@@ -66,90 +65,67 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   };
 
   return (
-    <Modal
+    <AnimatedModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={isDeleting ? () => {} : onClose}
+      onClose={isDeleting ? () => {} : onClose}
+      dismissOnBackdrop={false}
+      maxWidth={360}
+      contentStyle={styles.card}
     >
-      <View style={[styles.scrim, { backgroundColor: colors.overlay.scrim }]}>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.surface.elevated },
-            elevation.e3,
-          ]}
-        >
-          <View style={styles.watermark} pointerEvents="none">
-            <Icon name="alert-octagon" size={160} color={colors.accent.danger} />
-          </View>
-
-          <Text variant="h2" center>
-            Delete your account?
-          </Text>
-          <Text variant="bodySm" color="secondary" center style={styles.body}>
-            This permanently deletes your account and all of your data, including
-            your practice recordings, progress, assessments, and history. This
-            cannot be undone.
-          </Text>
-
-          <View style={styles.confirmBlock}>
-            <Text variant="label" color="secondary" style={styles.confirmLabel}>
-              Type{" "}
-              <Text variant="label" color={colors.feedback.dangerText}>
-                {CONFIRM_WORD}
-              </Text>{" "}
-              to confirm
-            </Text>
-            <TextField
-              value={confirmText}
-              onChangeText={setConfirmText}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!isDeleting}
-              placeholder={CONFIRM_WORD}
-            />
-          </View>
-
-          {error ? (
-            <Text variant="bodySm" color={colors.feedback.dangerText} center style={styles.error}>
-              {error}
-            </Text>
-          ) : null}
-
-          <View style={styles.buttonContainer}>
-            <Button
-              label="Delete my account"
-              onPress={handleDelete}
-              variant="danger"
-              disabled={!canDelete}
-              loading={isDeleting}
-            />
-            <Button
-              label="Cancel"
-              onPress={onClose}
-              variant="ghost"
-              disabled={isDeleting}
-            />
-          </View>
-        </View>
+      <View style={styles.watermark} pointerEvents="none">
+        <Icon name="alert-octagon" size={160} color={colors.accent.danger} />
       </View>
-    </Modal>
+
+      <Text variant="h2" center>
+        Delete your account?
+      </Text>
+      <Text variant="bodySm" color="secondary" center style={styles.body}>
+        This permanently deletes your account and all of your data, including your
+        practice recordings, progress, assessments, and history. This cannot be undone.
+      </Text>
+
+      <View style={styles.confirmBlock}>
+        <Text variant="label" color="secondary" style={styles.confirmLabel}>
+          Type{" "}
+          <Text variant="label" color={colors.feedback.dangerText}>
+            {CONFIRM_WORD}
+          </Text>{" "}
+          to confirm
+        </Text>
+        <TextField
+          value={confirmText}
+          onChangeText={setConfirmText}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          editable={!isDeleting}
+          placeholder={CONFIRM_WORD}
+        />
+      </View>
+
+      {error ? (
+        <Text variant="bodySm" color={colors.feedback.dangerText} center style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
+
+      <View style={styles.buttonContainer}>
+        <Button
+          label="Delete my account"
+          onPress={handleDelete}
+          variant="danger"
+          disabled={!canDelete}
+          loading={isDeleting}
+        />
+        <Button label="Cancel" onPress={onClose} variant="ghost" disabled={isDeleting} />
+      </View>
+    </AnimatedModal>
   );
 };
 
 const styles = StyleSheet.create({
-  scrim: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing["2xl"],
-  },
+  // The card chrome (size, radius, padding, bg, elevation) comes from AnimatedModal;
+  // we only add clipping so the oversized danger watermark stays inside the corners.
   card: {
-    width: "100%",
-    maxWidth: 360,
-    borderRadius: radius.sheet,
-    padding: spacing["2xl"],
     overflow: "hidden",
   },
   watermark: {

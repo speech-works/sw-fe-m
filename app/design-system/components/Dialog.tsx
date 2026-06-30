@@ -1,7 +1,6 @@
 import React from "react";
-import { Modal, View } from "react-native";
-import { useTheme } from "../useTheme";
-import { radius, spacing } from "../primitives/scale";
+import { View } from "react-native";
+import { AnimatedModal } from "./AnimatedModal";
 import { Button } from "./Button";
 import { Text } from "./Text";
 
@@ -28,54 +27,29 @@ export const Dialog: React.FC<DialogProps> = ({
   destructive,
   cancelLabel = "Cancel",
 }) => {
-  const { colors, elevation } = useTheme();
-
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: colors.background.sunken,
-          paddingHorizontal: spacing["2xl"],
-        }}
-      >
-        <View
-          style={[
-            {
-              width: "100%",
-              maxWidth: 340,
-              backgroundColor: colors.surface.elevated,
-              borderRadius: radius.sheet,
-              padding: spacing["2xl"],
-            },
-            elevation.e3,
-          ]}
-        >
-          <Text variant="h2">{title}</Text>
-          {message ? (
-            <Text variant="bodySm" color="secondary" style={{ marginTop: 8, lineHeight: 21 }}>
-              {message}
-            </Text>
-          ) : null}
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
-            <View style={{ flex: 1 }}>
-              <Button label={cancelLabel} variant="secondary" size="md" onPress={onClose} />
-            </View>
-            {onConfirm ? (
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={confirmLabel}
-                  variant={destructive ? "danger" : "primary"}
-                  size="md"
-                  onPress={onConfirm}
-                />
-              </View>
-            ) : null}
-          </View>
+    <AnimatedModal visible={visible} onClose={onClose}>
+      <Text variant="h2">{title}</Text>
+      {message ? (
+        <Text variant="bodySm" color="secondary" style={{ marginTop: 8, lineHeight: 21 }}>
+          {message}
+        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
+        <View style={{ flex: 1 }}>
+          <Button label={cancelLabel} variant="secondary" size="md" onPress={onClose} />
         </View>
+        {onConfirm ? (
+          <View style={{ flex: 1 }}>
+            <Button
+              label={confirmLabel}
+              variant={destructive ? "danger" : "primary"}
+              size="md"
+              onPress={onConfirm}
+            />
+          </View>
+        ) : null}
       </View>
-    </Modal>
+    </AnimatedModal>
   );
 };

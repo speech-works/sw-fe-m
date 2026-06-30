@@ -6,7 +6,6 @@ import {
   Alert,
   Dimensions,
   Image,
-  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -19,8 +18,6 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
-  FadeIn,
-  FadeInDown,
   interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
@@ -47,11 +44,16 @@ import {
   fonts,
   typography,
   elevation,
+  easing,
   Text,
   TabDock,
   PageHeader,
   Icon,
   icons,
+  AnimatedNumber,
+  PulseDot,
+  AnimatedModal,
+  staggerEntering,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -109,47 +111,11 @@ const stageTitleForLevel = (stage: LevelStage | null, level?: number): string =>
   return found?.title ?? stage.title;
 };
 
-/** Strong ease-out — the built-in curves are too weak for UI motion. */
-const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
-
 const daysBetween = (d?: string | Date | null): number => {
   if (!d) return 0;
   const t = new Date(d).getTime();
   if (Number.isNaN(t)) return 0;
   return Math.max(0, Math.floor((Date.now() - t) / 86400000));
-};
-
-/** Counts up 0 → value on mount (easeOutCubic); instant under reduced motion. */
-const AnimatedNumber = ({
-  value,
-  variant = "h1",
-  color,
-  duration = 700,
-}: {
-  value: number;
-  variant?: "h1" | "display" | "h2";
-  color?: string;
-  duration?: number;
-}) => {
-  const reduceMotion = useReducedMotion();
-  const [display, setDisplay] = useState(reduceMotion ? value : 0);
-  useEffect(() => {
-    if (reduceMotion || value <= 0) {
-      setDisplay(value);
-      return;
-    }
-    let raf = 0;
-    const start = Date.now();
-    const tick = () => {
-      const p = Math.min(1, (Date.now() - start) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setDisplay(Math.round(value * eased));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value, duration, reduceMotion]);
-  return <Text variant={variant} color={color}>{display.toLocaleString()}</Text>;
 };
 
 /** Visual half of the share toggle — thumb slides + track crossfades on `on`. */
@@ -162,7 +128,7 @@ const ToggleSwitch = ({ on }: { on: boolean }) => {
       ? on
         ? 1
         : 0
-      : withTiming(on ? 1 : 0, { duration: 180, easing: EASE_OUT });
+      : withTiming(on ? 1 : 0, { duration: 180, easing: easing.out });
   }, [on, reduceMotion]);
   const trackStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(v.value, [0, 1], [colors.surface.control, colors.action.primary]),
@@ -221,31 +187,6 @@ const CommunitySkeleton = ({ topPad }: { topPad: number }) => (
   </View>
 );
 
-/** A small pulsing "live" dot for the buddy-freshness row. */
-const PulseDot = ({ color }: { color?: string }) => {
-  const { colors } = useTheme();
-  const c = color ?? colors.action.primary;
-  const reduceMotion = useReducedMotion();
-  const s = useSharedValue(1);
-  useEffect(() => {
-    if (reduceMotion) return;
-    s.value = withRepeat(
-      withTiming(2, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false,
-    );
-  }, [reduceMotion]);
-  const ring = useAnimatedStyle(() => ({
-    transform: [{ scale: s.value }],
-    opacity: 0.5 * (2 - s.value),
-  }));
-  return (
-    <View style={styles.liveDotWrap}>
-      {!reduceMotion ? <Animated.View style={[styles.liveDotPulse, ring, { backgroundColor: c }]} /> : null}
-      <View style={[styles.liveDot, { backgroundColor: c }]} />
-    </View>
-  );
-};
 
 const Community = () => {
   const insets = useSafeAreaInsets();
@@ -668,8 +609,7 @@ const Community = () => {
       ? `${buddyFirstName} practiced ${relativeAgo(team.buddyLastPracticeAt)}`
       : null;
 
-    const enter = (i: number) =>
-      reduceMotion ? FadeIn.duration(220) : FadeInDown.duration(280).delay(i * 60);
+    const enter = (i: number) => staggerEntering(i, reduceMotion);
 
     return (
       <View style={styles.pairedWrapper}>
@@ -958,70 +898,74 @@ const Community = () => {
       ) : null}
 
       {/* ── Buddy Welcome Modal ── */}
-      <Modal visible={showWelcome} transparent animationType="fade" onRequestClose={() => setShowWelcome(false)}>
-        <View style={[wm.overlay, { backgroundColor: colors.overlay.scrim }]}>
-          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={[wm.card, { backgroundColor: colors.surface.elevated }, elevation.e3]}>
-            {/* Watermark */}
-            <View style={wm.watermarkLayer} pointerEvents="none">
-              <Icon name={icons.pairing} size={220} color={colors.action.primary} style={wm.watermarkIcon} />
-            </View>
-
-            {/* Close */}
-            <TouchableOpacity onPress={() => setShowWelcome(false)} style={wm.closeBtn} activeOpacity={0.7}>
-              <Icon name={icons.close} size={20} color={colors.text.tertiary} />
-            </TouchableOpacity>
-
-            {/* Tag */}
-            <Text variant="caption" color={colors.action.primary} style={wm.tag}>BUDDY CONNECTED</Text>
-
-            {/* Title */}
-            <Text variant="h2" style={wm.title}>You're now paired!</Text>
-
-            {/* Message */}
-            <Text variant="bodySm" color="secondary" style={wm.message}>
-              Share your journey, support each other, and grow together.
-            </Text>
-
-            {/* CTA */}
-            <TouchableOpacity style={[wm.cta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85} onPress={() => setShowWelcome(false)}>
-              <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Let's Go!</Text>
-            </TouchableOpacity>
-          </Animated.View>
+      <AnimatedModal
+        visible={showWelcome}
+        onClose={() => setShowWelcome(false)}
+        dismissOnBackdrop={false}
+        maxWidth={380}
+        contentStyle={wm.card}
+      >
+        {/* Watermark */}
+        <View style={wm.watermarkLayer} pointerEvents="none">
+          <Icon name={icons.pairing} size={220} color={colors.action.primary} style={wm.watermarkIcon} />
         </View>
-      </Modal>
+
+        {/* Close */}
+        <TouchableOpacity onPress={() => setShowWelcome(false)} style={wm.closeBtn} activeOpacity={0.7}>
+          <Icon name={icons.close} size={20} color={colors.text.tertiary} />
+        </TouchableOpacity>
+
+        {/* Tag */}
+        <Text variant="caption" color={colors.action.primary} style={wm.tag}>BUDDY CONNECTED</Text>
+
+        {/* Title */}
+        <Text variant="h2" style={wm.title}>You're now paired!</Text>
+
+        {/* Message */}
+        <Text variant="bodySm" color="secondary" style={wm.message}>
+          Share your journey, support each other, and grow together.
+        </Text>
+
+        {/* CTA */}
+        <TouchableOpacity style={[wm.cta, { backgroundColor: colors.action.primary }]} activeOpacity={0.85} onPress={() => setShowWelcome(false)}>
+          <Text variant="body" color={colors.action.onPrimary} style={styles.bold}>Let's Go!</Text>
+        </TouchableOpacity>
+      </AnimatedModal>
 
       {/* ── Invalid Code Error Modal ── */}
-      <Modal visible={showError} transparent animationType="fade" onRequestClose={() => setShowError(false)}>
-        <View style={[wm.overlay, { backgroundColor: colors.overlay.scrim }]}>
-          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(140)} style={[wm.card, { backgroundColor: colors.surface.elevated }, elevation.e3]}>
-            {/* Watermark */}
-            <View style={wm.watermarkLayer} pointerEvents="none">
-              <Icon name={icons.warning} size={220} color={colors.feedback.danger} style={wm.watermarkIcon} />
-            </View>
-
-            {/* Close */}
-            <TouchableOpacity onPress={() => setShowError(false)} style={wm.closeBtn} activeOpacity={0.7}>
-              <Icon name={icons.close} size={20} color={colors.text.tertiary} />
-            </TouchableOpacity>
-
-            {/* Tag */}
-            <Text variant="caption" color={colors.feedback.dangerText} style={wm.tag}>INVALID CODE</Text>
-
-            {/* Title */}
-            <Text variant="h2" style={wm.title}>Couldn't Connect</Text>
-
-            {/* Message */}
-            <Text variant="bodySm" color="secondary" style={wm.message}>
-              {errorMessage}
-            </Text>
-
-            {/* CTA */}
-            <TouchableOpacity style={[wm.cta, { backgroundColor: colors.feedback.danger }]} activeOpacity={0.85} onPress={() => setShowError(false)}>
-              <Text variant="body" color={colors.accentOn.danger} style={styles.bold}>Try Again</Text>
-            </TouchableOpacity>
-          </Animated.View>
+      <AnimatedModal
+        visible={showError}
+        onClose={() => setShowError(false)}
+        dismissOnBackdrop={false}
+        maxWidth={380}
+        contentStyle={wm.card}
+      >
+        {/* Watermark */}
+        <View style={wm.watermarkLayer} pointerEvents="none">
+          <Icon name={icons.warning} size={220} color={colors.feedback.danger} style={wm.watermarkIcon} />
         </View>
-      </Modal>
+
+        {/* Close */}
+        <TouchableOpacity onPress={() => setShowError(false)} style={wm.closeBtn} activeOpacity={0.7}>
+          <Icon name={icons.close} size={20} color={colors.text.tertiary} />
+        </TouchableOpacity>
+
+        {/* Tag */}
+        <Text variant="caption" color={colors.feedback.dangerText} style={wm.tag}>INVALID CODE</Text>
+
+        {/* Title */}
+        <Text variant="h2" style={wm.title}>Couldn't Connect</Text>
+
+        {/* Message */}
+        <Text variant="bodySm" color="secondary" style={wm.message}>
+          {errorMessage}
+        </Text>
+
+        {/* CTA */}
+        <TouchableOpacity style={[wm.cta, { backgroundColor: colors.feedback.danger }]} activeOpacity={0.85} onPress={() => setShowError(false)}>
+          <Text variant="body" color={colors.accentOn.danger} style={styles.bold}>Try Again</Text>
+        </TouchableOpacity>
+      </AnimatedModal>
 
       <BuddySupportSheet
         visible={!!supportSignal}
@@ -1181,14 +1125,6 @@ const styles = StyleSheet.create({
     borderTopWidth: borderWidth.thin,
   },
   liveText: { flexShrink: 1 },
-  liveDotWrap: { width: 8, height: 8, alignItems: "center", justifyContent: "center" },
-  liveDotPulse: {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: radius.full,
-  },
-  liveDot: { width: 8, height: 8, borderRadius: radius.full },
 
   // Two stat tiles
   statsRow: { flexDirection: "row", gap: spacing.md, marginHorizontal: space.screenX, marginBottom: spacing.md },
@@ -1404,12 +1340,6 @@ const styles = StyleSheet.create({
 });
 
 const wm = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: spacing["2xl"],
-  },
   card: {
     borderRadius: radius.sheet,
     paddingHorizontal: spacing["3xl"],

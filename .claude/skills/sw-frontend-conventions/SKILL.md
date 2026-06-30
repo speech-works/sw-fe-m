@@ -163,7 +163,8 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
 - One branded look on both platforms; only uncontrolled system chrome differs.
   Material/blur via `expo-blur` applied identically (or a token fallback).
 - Press feedback: reuse `PressableScale` (scale 0.97, reduced-motion aware) and
-  honor `useReducedMotion` for non-essential motion.
+  honor `useReducedMotion` for non-essential motion. Motion is a first-class part of
+  the DS — see **Motion** below before adding any animation.
 - Icons: the design-system set is **Fluent (Microsoft Fluent UI System Icons, filled)**, via
   `<Icon name=… />`. Names stay kebab-case (Feather/registry vocabulary) and translate to glyph
   PATHS in ONE place — the generated `FLUENT` map in `components/fluentPaths.ts` — rendered as an
@@ -184,6 +185,48 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   registry BEFORE using a new icon, so a concept always renders the same icon and
   no glyph is overloaded for two meanings. Prefer **icons over emoji** for content
   (e.g. `ConnectedAvatarRow` takes an `icon` prop; moment data carries `icon`).
+
+## Motion — one vocabulary (`design-system/motion.ts` + `useMotion.ts`)
+
+All motion uses `react-native-reanimated` (migrate legacy RN `Animated` holdouts on
+touch). NEVER hardcode a spring/curve/duration in a screen — reference the tokens:
+
+- **Tokens** (`design-system/motion.ts`): `duration` (`fast 120` · `base 200` ·
+  `reveal 240` · `sheetIn 300` / `sheetOut 200` — exit faster than enter · `count 700` ·
+  `shimmer 1000`); `easing` (`out` for enters/feedback/reveals · `inOut` for on-screen
+  movement · `in` for EXITS only — never enters · `linear`); `spring` (`press` snappy
+  no-overshoot · `gentle` soft settle for sheets/layout · `bouncy` warm overshoot —
+  **celebration only**); `stagger {step 45, max 6}`.
+- **Reduced-motion gate is mandatory.** Use `useMotion()` / the helpers in `useMotion.ts`
+  so everything degrades the same way: reduced = keep opacity, drop transform/position
+  (gentler, not zero); ambient loops (e.g. avatar float) go fully quiet. Any `withRepeat`
+  or transform-bearing entrance MUST branch on `useReducedMotion`.
+- **Helpers:** `staggerEntering(i, reduced)` (fade-up, capped delay) for section/list
+  reveals; `fadeStaggerEntering(i, reduced)` (opacity-only — use where geometry must NOT
+  shift, e.g. the Timeline rail "draws in"); `enterPreset` / `layoutPreset`.
+- **Primitives — reuse, don't re-roll:** `PressableScale` (canonical press),
+  `AnimatedNumber` (count-up), `PulseDot` (live dot), `Skeleton` (shimmer), `AnimatedModal`
+  (the ONE centered-modal motion — scale 0.96→1 + scrim fade; `Dialog` routes through it),
+  `SuccessCheck` / `useSuccessPop` (delight pop — an inline `Animated.View`, NEVER a second
+  native Modal over a Sheet; see the stacked-native-modal memory).
+
+**Event taxonomy** (one motion per event — reference it, never re-invent):
+
+| Event | Motion | Tokens | Reduced |
+|---|---|---|---|
+| Press (any pressable) | scale 0.97 | `spring.press` | no scale |
+| Section/list reveal (once) | fade + 8px up, staggered | `staggerEntering` | fade only |
+| Connected-rail reveal | opacity-only stagger | `fadeStaggerEntering` | fade only |
+| Sheet / drawer | slide-up + backdrop fade | `Sheet` (`sheetIn/out` + `gentle`) | backdrop only |
+| Centered modal | scale 0.96→1 + fade | `AnimatedModal` (`gentle`) | fade only |
+| Dock / tab morph | shared spring resize | `spring.gentle` | instant |
+| Toggle | thumb slide + track color | `base` + `easing.out` | instant |
+| Value change (XP/days) | count-up | `AnimatedNumber` (`count`) | instant final |
+| Loading | shimmer | `Skeleton` (`shimmer`) | static |
+| Success (save/share/reach-out) | check/disc pop | `useSuccessPop` (`bouncy`) | fade only |
+| Live/fresh indicator | pulse ring loop | `PulseDot` | hidden (solid dot) |
+| List item remove | layout collapse + fade-out | `layoutPreset` + `FadeOut` | fade only |
+| Ambient (avatar float) | slow translateY loop | `easing.inOut` | **disabled** |
 
 ## Migrations are behavior-frozen
 

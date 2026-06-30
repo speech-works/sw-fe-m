@@ -13,12 +13,14 @@ import Animated, {
 import { useTheme } from "../useTheme";
 import { fonts } from "../primitives/fonts";
 import { size } from "../primitives/scale";
+import { spring } from "../motion";
 import { Icon, IconName } from "./Icon";
 
 // One spring drives BOTH the active pill's growth (per item) AND the capsule's
 // hug/resize (LinearTransition on the bar), so the pill and the dock move together
 // — never the pill overflowing first and the dock catching up.
-const DOCK_SPRING = { damping: 20, stiffness: 220, mass: 0.7 } as const;
+// The dock morph (pill grow + capsule resize) rides the shared `gentle` spring.
+const DOCK_SPRING = spring.gentle;
 import { Text } from "./Text";
 
 export interface TabDockItem {

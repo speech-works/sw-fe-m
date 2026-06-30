@@ -1,10 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Reanimated, { FadeOut } from "react-native-reanimated";
 import { useReminderStore } from "../../../stores/reminders";
 import { ReminderCategory } from "../../../constants/reminderTemplates";
 import {
   useTheme,
+  useMotion,
+  duration,
   spacing,
   radius,
   Page,
@@ -17,14 +20,6 @@ import {
   Text,
   IconName,
 } from "../../../design-system";
-
-// Android needs LayoutAnimation explicitly enabled for the delete animation.
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const CATEGORY_META: Record<
   ReminderCategory,
@@ -41,6 +36,7 @@ const CATEGORY_META: Record<
 const Reminders = () => {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const m = useMotion();
   const { reminders, toggleActive, removeReminder, setAllActive } = useReminderStore();
   const [isCategorySheetVisible, setIsCategorySheetVisible] = useState(false);
 
@@ -78,10 +74,8 @@ const Reminders = () => {
       message: `Are you sure you want to delete "${title}"?`,
       primaryLabel: "Delete",
       isDestructive: true,
-      primaryAction: () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        removeReminder(id);
-      },
+      // The row's exit + the list's layout spring animate the removal (see below).
+      primaryAction: () => removeReminder(id),
       secondaryLabel: "Cancel",
     });
     setPromptVisible(true);
@@ -146,16 +140,21 @@ const Reminders = () => {
             ) : null}
             <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
               {sorted.map((rem, index, arr) => (
-                <ListItem
+                <Reanimated.View
                   key={rem.id}
-                  leftIcon={CATEGORY_META[rem.category]?.icon ?? "bell"}
-                  label={rem.title}
-                  sublabel={`${rem.type === "ROUTINE" ? "Every day at" : "Once at"} ${rem.time}`}
-                  right={<Toggle value={rem.active} onChange={() => handleToggleIndividual(rem.id)} />}
-                  divider={index < arr.length - 1}
-                  onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
-                  onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
-                />
+                  layout={m.layout()}
+                  exiting={FadeOut.duration(duration.sheetOut)}
+                >
+                  <ListItem
+                    leftIcon={CATEGORY_META[rem.category]?.icon ?? "bell"}
+                    label={rem.title}
+                    sublabel={`${rem.type === "ROUTINE" ? "Every day at" : "Once at"} ${rem.time}`}
+                    right={<Toggle value={rem.active} onChange={() => handleToggleIndividual(rem.id)} />}
+                    divider={index < arr.length - 1}
+                    onPress={() => navigation.navigate("ConfigureReminder", { reminderId: rem.id })}
+                    onLongPress={() => handleDeleteReminder(rem.id, rem.title)}
+                  />
+                </Reanimated.View>
               ))}
             </View>
           </View>
