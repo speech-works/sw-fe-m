@@ -133,23 +133,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     weeklySummary?.totalDaysActive ??
     weeklyData.filter((d) => d.totalTime > 0).length;
 
-  const minutesBenchmark = getFlowBenchmarkCopy(
-    minutesComparison,
-    "minutes",
-    { compact: true },
-  );
-  const minutesBenchmarkSummary = useMemo(() => {
-    if (!minutesBenchmark.secondary) {
-      return minutesBenchmark.primary;
-    }
-
-    const compactSecondary = minutesBenchmark.secondary
-      .replace(" of last week", "")
-      .replace(" of last week's total", "");
-
-    return `${minutesBenchmark.primary} • ${compactSecondary}`;
-  }, [minutesBenchmark.primary, minutesBenchmark.secondary]);
-
   const totalPracticeSummary =
     totalWeeklyMinutes < 60
       ? Number.isInteger(totalWeeklyMinutes)
@@ -209,18 +192,26 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     DAILY_TARGET_MINUTES * 1.3,
   );
 
+  // Plain, full-referent last-week comparison for the header line — e.g. "0.7 min
+  // to match last week" / "0.7 min ahead of last week" / "Matched last week". The
+  // compact copy ("0.7m to match • 50%") was cryptic on a glanceable card, so the
+  // stat card is labelled simply ("this week") and the comparison lives here in words.
+  const benchmarkLine = minutesComparison?.hasBenchmark
+    ? getFlowBenchmarkCopy(minutesComparison, "minutes").primary
+    : comparisonSubtitle;
+
   // --- Header readout ---
   // Tapping a day relabels the (already single-line, truncating) subtitle to
-  // "Wednesday · 12 min"; deselecting reverts to the benchmark copy. Reusing that
+  // "Wednesday · 12 min"; deselecting reverts to the benchmark line. Reusing that
   // slot makes collision / clipping / wrapping structurally impossible.
   const selectedRhythm = selectedDay == null ? null : rhythmData[selectedDay];
   const headerLine = selectedRhythm
     ? `${selectedRhythm.dayName} · ${formatDayMinutes(selectedRhythm.minutes)}`
-    : comparisonSubtitle;
+    : benchmarkLine;
 
   const reduceMotion = useReducedMotion();
   const captionOpacity = useSharedValue(1);
-  const [shownCaption, setShownCaption] = useState(comparisonSubtitle);
+  const [shownCaption, setShownCaption] = useState(benchmarkLine);
 
   // Crossfade the caption on change: fade out (fast/in), swap the string at the
   // trough, fade in (reveal/out). Reassigning captionOpacity cancels an in-flight
@@ -362,7 +353,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           <View style={styles.statLabelRow}>
             <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
             <Text variant="caption" color="secondary" numberOfLines={1} style={styles.statLabel}>
-              {minutesBenchmarkSummary}
+              this week
             </Text>
           </View>
         </View>
