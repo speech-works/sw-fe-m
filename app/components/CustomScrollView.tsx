@@ -51,6 +51,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       showScrollButtons = false,
       onEndReached,
       onEndReachedThreshold = 320,
+      onScrollY,
       ...rest
     },
     ref,
@@ -62,6 +63,8 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     const scrollY = useSharedValue(0);
     const contentHeight = useSharedValue(0);
     const layoutHeight = useSharedValue(0);
+    // Last vertical offset reported to JS via onScrollY (px-bucketed to throttle).
+    const lastReportedY = useSharedValue(0);
     // Guards onEndReached so it fires once per entry into the bottom zone,
     // re-arming only after the user scrolls back out of it.
     const canFireEndReached = useSharedValue(true);
@@ -73,6 +76,12 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
           scrollY.value = event.contentOffset.y;
           contentHeight.value = event.contentSize.height;
           layoutHeight.value = event.layoutMeasurement.height;
+
+          // Report vertical offset to JS, bucketed to ~6px so we don't spam the bridge.
+          if (onScrollY && Math.abs(event.contentOffset.y - lastReportedY.value) > 6) {
+            lastReportedY.value = event.contentOffset.y;
+            runOnJS(onScrollY)(event.contentOffset.y);
+          }
 
           if (onEndReached) {
             const distanceFromBottom =
@@ -89,7 +98,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
           }
         },
       },
-      [onEndReached, onEndReachedThreshold],
+      [onEndReached, onEndReachedThreshold, onScrollY],
     );
 
     // Helper to sync external ref if provided (optional/advanced, avoiding for simplicity unless needed)

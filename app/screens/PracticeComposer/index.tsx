@@ -251,7 +251,7 @@ const PracticeComposer = () => {
               <ActivityIndicator color="#FF6B00" />
             </View>
           ) : (
-            <SignalCard signal={draftSignal} variant="preview" />
+            <SignalCard signal={draftSignal} variant="preview" isFirst isLast />
           )}
 
           {availableFields.length > 0 ? (

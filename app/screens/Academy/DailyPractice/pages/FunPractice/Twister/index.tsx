@@ -1,22 +1,19 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
   LayoutAnimation,
+  ScrollView,
   StyleSheet,
-  Text,
+  Text as RNText,
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CustomScrollView from "../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartRecorder";
 import HardModeToggle from "../../../components/HardModeToggle";
@@ -38,15 +35,19 @@ import { useUserStore } from "../../../../../../stores/user";
 import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 import ToolConsentModal from "../../../../../../components/ToolConsentModal";
 import ToolNudge from "../../../../../../components/ToolNudge";
-import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+  Page,
+  Button,
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+} from "../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 
-import { ScrollView } from "react-native";
 import { ToolType } from "../../../../../../api/tools/types";
 import Metronome, {
   useMetronome,
@@ -54,13 +55,6 @@ import Metronome, {
 import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
-
-// Tool Types (Simplified for Twister if needed, or reuse generic)
-// enum ToolType {
-//   DAF = "DAF",
-// }
-
-const { width } = Dimensions.get("window");
 
 import {
   TwisterFDPStackNavigationProp,
@@ -71,6 +65,7 @@ const Twister = () => {
   const navigation =
     useNavigation<TwisterFDPStackNavigationProp<"TwisterExercise">>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const HEADER_HEIGHT = 60;
   const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
   const { packContext, from } = route.params || {};
@@ -274,7 +269,7 @@ const Twister = () => {
         setIsLoading(true);
         const ts = await getFunPracticeByType(FunPracticeType.TONGUE_TWISTER, hardMode);
         setTwisters(ts);
-        
+
         const targetId = route.params?.id;
         if (targetId && !hardMode) {
           const foundIndex = ts.findIndex((t) => t.id === targetId);
@@ -415,23 +410,27 @@ const Twister = () => {
     const text = twisters[currentIndex]?.tongueTwisterData?.text || "";
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
-      return <Text style={styles.readingText}>{text}</Text>;
+      return (
+        <Text variant="h2" color="primary" style={styles.readingText}>
+          {text}
+        </Text>
+      );
     }
     const before = text.slice(0, start);
     const word = text.slice(start, start + length);
     const after = text.slice(start + length);
 
     return (
-      <Text style={styles.readingText}>
+      <Text variant="h2" color="primary" style={styles.readingText}>
         {before}
-        <Text
+        <RNText
           style={{
-            backgroundColor: theme.colors.library.orange[200],
-            color: theme.colors.text.title,
+            backgroundColor: colors.action.primaryTint,
+            color: colors.text.primary,
           }}
         >
           {word}
-        </Text>
+        </RNText>
         {after}
       </Text>
     );
@@ -476,7 +475,7 @@ const Twister = () => {
     );
   }
 
-  // 1. Pre-Practice (Tips) View
+  // 1. Pre-Practice (Tips) View — DETAIL recipe on the dark canvas.
   if (!currentActivityId) {
     const tipsArray = twisters[currentIndex]?.tongueTwisterData?.hints || [
       "Start slowly and focus on clarity.",
@@ -485,142 +484,84 @@ const Twister = () => {
     ];
 
     return (
-      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
-
-        <ScrollView
-          key="tips-scroll"
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-            paddingBottom: 120,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Tongue Twisters</Text>
-            <Text style={styles.heroDescription}>
-              Challenge your articulation and speed with playful phonetic puzzles.
-            </Text>
-          </View>
-
-          {nudgeVisible && toolNudge && (
-            <ToolNudge
-              directive={toolNudge}
-              onTryWithout={() => handleNudgeTryWithout(runStart)}
-              onDismiss={handleNudgeDismiss}
-              style={{ marginBottom: 32 }}
-            />
-          )}
-
-          <HardModeToggle
-            value={hardMode}
-            onValueChange={setHardMode}
-            canUseHardMode={canUseHardMode}
-            style={{ marginBottom: 32 }}
-          />
-
-          <View style={styles.timelineSection}>
-            <Text style={styles.sectionHeader}>Tips</Text>
-            <View style={styles.timelineContainer}>
-              {tipsArray.map((tip, index, arr) => (
-                <View key={index} style={styles.timelineItem}>
-                  <View style={styles.timelineTrack}>
-                    <View style={styles.timelineDot} />
-                    {index !== arr.length - 1 && (
-                      <View style={styles.timelineLine} />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineText}>{tip}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Fixed Start Button at bottom */}
-        <View
-          style={[
-            styles.bottomActionContainer,
-            { paddingBottom: insets.bottom || 24 },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.9}
+      <Page
+        title="Tongue Twisters"
+        description="Challenge your articulation and speed with playful phonetic puzzles."
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={
+          <Button
+            label={hasHydrated ? "Start Practice" : "Loading..."}
             onPress={() => runStart()}
+            loading={isStarting || !hasHydrated}
             disabled={isStarting || !hasHydrated}
-            style={styles.startButton}
-          >
-            <LinearGradient
-              colors={
-                !hasHydrated
-                  ? ["#94A3B8", "#64748B"]
-                  : [
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>
-                {!hasHydrated ? "Loading..." : "Start Practice"}
+          />
+        }
+      >
+        {nudgeVisible && toolNudge && (
+          <ToolNudge
+            directive={toolNudge}
+            onTryWithout={() => handleNudgeTryWithout(runStart)}
+            onDismiss={handleNudgeDismiss}
+          />
+        )}
+
+        <HardModeToggle
+          value={hardMode}
+          onValueChange={setHardMode}
+          canUseHardMode={canUseHardMode}
+        />
+
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <Text variant="h3" color="primary" style={styles.tipsHeading}>
+            Tips
+          </Text>
+          {tipsArray.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View
+                  style={[
+                    styles.tipDot,
+                    { backgroundColor: colors.action.primary },
+                  ]}
+                />
+                {index !== arr.length - 1 && (
+                  <View
+                    style={[
+                      styles.tipLine,
+                      { backgroundColor: colors.border.default },
+                    ]}
+                  />
+                )}
+              </View>
+              <Text variant="body" color="secondary" style={styles.tipText}>
+                {tip}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
+          ))}
         </View>
-      </ScreenView>
+      </Page>
     );
   }
 
   const bottomPadding = 400; // Space for the dock
 
-  // 2. Active Practice View
+  // 2. Active Practice View — re-themed to the dark canvas (exercise logic intact).
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Background */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
-          locations={[0, 0.6, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
+    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       {/* Header */}
-      <BlurView
-        intensity={80}
-        tint="light"
+      <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          {
+            paddingTop: insets.top + 10,
+            height: HEADER_HEIGHT + insets.top,
+            backgroundColor: colors.background.canvas,
+          },
         ]}
       >
         <TouchableOpacity
@@ -629,30 +570,48 @@ const Twister = () => {
               ? navigation.navigate("Root" as any, { screen: "HOME" })
               : navigation.goBack()
           }
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.surface.control }]}
         >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
+          <Icon name="chevron-left" size={16} color={colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Tongue Twister</Text>
-        
+        <Text variant="h3" color="primary">
+          Tongue Twister
+        </Text>
+
         {/* Hard Mode Toggle in Header */}
         <View style={styles.headerRight}>
           {(user?.fearedSounds?.length ?? 0) > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setHardMode(!hardMode)}
-              style={[styles.headerHardModeButton, hardMode && styles.headerHardModeActive]}
+              style={[
+                styles.headerHardModeButton,
+                {
+                  backgroundColor: hardMode
+                    ? colors.action.primaryTint
+                    : colors.surface.control,
+                },
+              ]}
             >
-              <Icon 
-                name="fire" 
-                size={14} 
-                color={hardMode ? "#EA580C" : theme.colors.text.title} 
-                solid={hardMode}
+              <Icon
+                name={icons.streak}
+                size={14}
+                color={hardMode ? colors.action.primary : colors.text.secondary}
               />
-              {hardMode && <View style={styles.activeDot} />}
+              {hardMode && (
+                <View
+                  style={[
+                    styles.activeDot,
+                    {
+                      backgroundColor: colors.action.primary,
+                      borderColor: colors.background.canvas,
+                    },
+                  ]}
+                />
+              )}
             </TouchableOpacity>
           )}
         </View>
-      </BlurView>
+      </View>
 
       {/* Reading Content */}
       <View style={{ flex: 1 }}>
@@ -667,51 +626,66 @@ const Twister = () => {
             },
           ]}
         >
-          <View style={styles.cardContainer}>
-            {/* 1. Warm Gradient Header */}
-            <LinearGradient
-              colors={["#F59E0B", "#D97706"]} // Amber
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cardHeaderGradient}
+          <View
+            style={[
+              styles.cardContainer,
+              { backgroundColor: colors.surface.default },
+            ]}
+          >
+            {/* 1. Accent Header (solid) */}
+            <View
+              style={[
+                styles.cardHeader,
+                { backgroundColor: colors.accent.warning },
+              ]}
             >
               <View style={styles.headerTopRow}>
-                <View style={styles.categoryPill}>
-                  <Icon name="wind" size={12} color="#92400E" />
-                  <Text style={styles.categoryPillText}>TWISTER</Text>
+                <View
+                  style={[
+                    styles.categoryPill,
+                    { backgroundColor: colors.surface.default },
+                  ]}
+                >
+                  <Icon name={icons.anxious} size={12} color={colors.text.primary} />
+                  <Text variant="label" color="primary">
+                    TWISTER
+                  </Text>
                 </View>
 
-                {/* Glassy Next Button */}
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <TouchableOpacity
-                    onPress={toggleIndex}
-                    style={styles.glassButton}
-                  >
-                    <Text style={styles.glassButtonText}>Next</Text>
-                    <Icon name="chevron-right" size={12} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
+                {/* Next Button */}
+                <TouchableOpacity
+                  onPress={toggleIndex}
+                  style={[
+                    styles.nextButton,
+                    { backgroundColor: colors.surface.default },
+                  ]}
+                >
+                  <Text variant="label" color="primary">
+                    Next
+                  </Text>
+                  <Icon
+                    name={icons.chevronRight}
+                    size={12}
+                    color={colors.text.primary}
+                  />
+                </TouchableOpacity>
               </View>
 
               {/* Watermark */}
-              <View style={styles.headerWatermark}>
-                <Icon name="wind" size={96} color="rgba(255,255,255,0.15)" />
+              <View style={styles.headerWatermark} pointerEvents="none">
+                <Icon name={icons.anxious} size={96} color={colors.accentOn.warning} />
               </View>
-            </LinearGradient>
+            </View>
 
-            {/* 2. White Sheet Content */}
-            <View style={styles.cardBodySheet}>
-              {/* Internal Watermark */}
-              <View style={styles.sheetWatermarkContainer}>
-                <Icon
-                  name="wind"
-                  size={120}
-                  color={theme.colors.library.orange[100]}
-                />
-              </View>
-
+            {/* 2. Sheet Content */}
+            <View
+              style={[
+                styles.cardBodySheet,
+                { backgroundColor: colors.surface.default },
+              ]}
+            >
               <View style={styles.textArea}>
-                <Text style={styles.titleText}>
+                <Text variant="h2" color="primary" style={styles.titleText}>
                   {twisters[currentIndex]?.name}
                 </Text>
                 {selectedPracticeTool === ToolType.CHORUS && (
@@ -756,15 +730,10 @@ const Twister = () => {
           renderTools={() =>
             focusMode && !toolsExpanded ? (
               <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: 16,
-                  backgroundColor: "rgba(148,163,184,0.12)",
-                }}
+                style={[
+                  styles.toolsCollapsed,
+                  { backgroundColor: colors.surface.control },
+                ]}
                 onPress={() => {
                   LayoutAnimation.configureNext(
                     LayoutAnimation.Presets.easeInEaseOut,
@@ -773,56 +742,67 @@ const Twister = () => {
                 }}
                 activeOpacity={0.8}
               >
-                <Icon name="sliders-h" size={14} color="#94A3B8" />
-                <Text
-                  style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}
-                >
+                <Icon name="sliders" size={14} color={colors.text.secondary} />
+                <Text variant="label" color="secondary">
                   Tools
                 </Text>
               </TouchableOpacity>
             ) : (
-            <View style={styles.dockTools}>
-              {[
-                { id: ToolType.DAF, icon: "headphones", label: "DAF" },
-                { id: ToolType.CHORUS, icon: "highlighter", label: "Guide" },
-                { id: ToolType.METRONOME, icon: "clock", label: "Tempo" },
-              ].map((tool) => {
-                const isActive =
-                  (tool.id === ToolType.DAF &&
-                    selectedPracticeTool === tool.id &&
-                    dafState.isDAFActive) ||
-                  (tool.id === ToolType.CHORUS &&
-                    selectedPracticeTool === tool.id &&
-                    vhIsPlaying) ||
-                  (tool.id === ToolType.METRONOME &&
-                    selectedPracticeTool === tool.id &&
-                    metronomeState.isPlaying);
-                return (
-                  <TouchableOpacity
-                    key={tool.id}
-                    style={[styles.dockItem, isActive && styles.dockItemActive]}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      handleToolSelect(tool.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Icon
-                      name={tool.icon}
-                      size={20}
-                      color={isActive ? "#FFF" : "#94A3B8"}
-                    />
-                    {isActive && (
-                      <Text style={styles.dockItemLabel} numberOfLines={1}>
-                        {tool.label}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+              <View style={styles.dockTools}>
+                {[
+                  { id: ToolType.DAF, icon: icons.headphones, label: "DAF" },
+                  { id: ToolType.CHORUS, icon: icons.voiceTool, label: "Guide" },
+                  { id: ToolType.METRONOME, icon: icons.duration, label: "Tempo" },
+                ].map((tool) => {
+                  const isActive =
+                    (tool.id === ToolType.DAF &&
+                      selectedPracticeTool === tool.id &&
+                      dafState.isDAFActive) ||
+                    (tool.id === ToolType.CHORUS &&
+                      selectedPracticeTool === tool.id &&
+                      vhIsPlaying) ||
+                    (tool.id === ToolType.METRONOME &&
+                      selectedPracticeTool === tool.id &&
+                      metronomeState.isPlaying);
+                  return (
+                    <TouchableOpacity
+                      key={tool.id}
+                      style={[
+                        styles.dockItem,
+                        isActive && [
+                          styles.dockItemActive,
+                          { backgroundColor: colors.action.primary },
+                        ],
+                      ]}
+                      onPress={() => {
+                        LayoutAnimation.configureNext(
+                          LayoutAnimation.Presets.easeInEaseOut,
+                        );
+                        handleToolSelect(tool.id);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Icon
+                        name={tool.icon}
+                        size={20}
+                        color={
+                          isActive ? colors.action.onPrimary : colors.text.secondary
+                        }
+                      />
+                      {isActive && (
+                        <Text
+                          variant="label"
+                          color={colors.action.onPrimary}
+                          numberOfLines={1}
+                          style={styles.dockItemLabel}
+                        >
+                          {tool.label}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )
           }
         />
@@ -843,7 +823,7 @@ const Twister = () => {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.sheetTitle}>
+          <Text variant="h3" color="primary" center style={styles.sheetTitle}>
             {activeToolSheet === ToolType.CHORUS
               ? "Guide Settings"
               : activeToolSheet === ToolType.DAF
@@ -871,17 +851,6 @@ const styles = StyleSheet.create({
   screenView: {
     flex: 1,
   },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
   header: {
     position: "absolute",
     top: 0,
@@ -899,17 +868,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  screenHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
   },
   headerRight: {
     width: 36,
@@ -923,13 +881,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerHardModeActive: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "rgba(234, 88, 12, 0.3)",
   },
   activeDot: {
     position: "absolute",
@@ -938,80 +889,53 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#EA580C",
     borderWidth: 1.5,
-    borderColor: "#FFF",
   },
-  // Tips Styles
-  scrollContent: {
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
-  startButton: {
-    marginTop: 20,
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-  },
-
   // Reading Mode Styles
   readingScrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing["2xl"],
     paddingTop: 10,
   },
   textArea: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     alignItems: "center",
-    gap: 16,
+    gap: spacing.lg,
   },
   titleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    fontWeight: "700",
-    fontSize: 22,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     textAlign: "center",
   },
   readingText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.default,
     lineHeight: 36,
-    fontSize: 24,
     textAlign: "center",
   },
 
   // Action Dock
   actionDockWrapper: {},
+  toolsCollapsed: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.input,
+  },
   dockTools: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
   },
 
   // Card UI
   cardContainer: {
     borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
     overflow: "hidden",
     minHeight: 450,
   },
-  cardHeaderGradient: {
-    padding: 24,
+  cardHeader: {
+    padding: spacing["2xl"],
     paddingBottom: 48, // Space for overlap
     position: "relative",
     height: 180,
@@ -1024,34 +948,18 @@ const styles = StyleSheet.create({
   categoryPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    gap: spacing.xs,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: radius.chip,
   },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#92400E",
-    letterSpacing: 1,
-  },
-  glassButton: {
+  nextButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "600",
+    borderRadius: radius.chip,
   },
   headerWatermark: {
     position: "absolute",
@@ -1061,34 +969,14 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
   },
   cardBodySheet: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -40, // Overlap
-    padding: 24,
-    paddingBottom: 40,
+    padding: spacing["2xl"],
+    paddingBottom: spacing["4xl"],
     minHeight: 300,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sheetWatermarkContainer: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.6,
-    zIndex: 0,
-  },
-  // Tools Sheet
-  sheetContent: {
-    padding: 24,
-  },
-  sheetTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    marginBottom: 20,
-    textAlign: "center",
   },
   // Dock Items
   dockItem: {
@@ -1100,81 +988,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dockItemActive: {
-    backgroundColor: theme.colors.library.orange[400],
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     flex: 2.5,
   },
   dockItemLabel: {
     marginLeft: 6,
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 13,
   },
-  bottomActionContainer: {
-    paddingHorizontal: 24,
+  // Tools Sheet (renders on the shared BottomSheetModal's dark surface)
+  sheetContent: {
+    padding: spacing["2xl"],
   },
-  // Timeline & Hero Styles
-  heroSection: {
-    marginBottom: 32,
+  sheetTitle: {
+    marginBottom: spacing.xl,
   },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 40,
-    color: '#111827',
-    marginBottom: 12,
-    letterSpacing: -1,
-    lineHeight: 48,
+  // Pre-practice tips (dark)
+  tipsHeading: {
+    marginBottom: spacing.lg,
   },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#4B5563',
-    lineHeight: 24,
+  tipRow: {
+    flexDirection: "row",
   },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
+  tipTrack: {
+    alignItems: "center",
     width: 20,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
-  timelineDot: {
+  tipDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.library.blue[500],
     marginTop: 7,
-    zIndex: 2,
   },
-  timelineLine: {
+  tipLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
     marginTop: 4,
     marginBottom: -4,
-    zIndex: 1,
   },
-  timelineContent: {
+  tipText: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
+    paddingBottom: spacing["2xl"],
     lineHeight: 24,
   },
 });

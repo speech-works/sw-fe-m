@@ -4,14 +4,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
 import { triggerHeartbeatHaptic } from "../util/functions/haptics";
+import { useTheme } from "../design-system";
 
 const PULSE_COUNT = 3;
 const PULSE_IN = 850;
 const PULSE_OUT = 850;
 
-const GLOW_COLOR = "rgba(251, 113, 36, 0.85)"; // Stronger orange
-
 const StaminaVignetteOverlay: React.FC = () => {
+  const { colors } = useTheme();
   const { events, clear } = useEventStore();
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const isAnimating = useRef(false);
@@ -61,7 +61,12 @@ const StaminaVignetteOverlay: React.FC = () => {
       style={[styles.container, { opacity: opacityAnim }]}
       pointerEvents="none"
     >
-      <View style={[styles.borderRing, { borderRadius: CORNER_RADIUS }]} />
+      <View
+        style={[
+          styles.borderRing,
+          { borderRadius: CORNER_RADIUS, borderColor: colors.action.primary, shadowColor: colors.action.primary },
+        ]}
+      />
     </Animated.View>
   );
 };
@@ -73,9 +78,7 @@ const styles = StyleSheet.create({
   },
   borderRing: {
     ...StyleSheet.absoluteFillObject,
-    borderWidth: 4, // Stronger boundary
-    borderColor: GLOW_COLOR,
-    shadowColor: "#F97316",
+    borderWidth: 4, // Stronger boundary (colour applied inline from the theme)
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 15, // Maximize glowing effect

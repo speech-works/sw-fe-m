@@ -1,31 +1,22 @@
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect } from "react";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import {
-    LayoutAnimation,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    UIManager,
-    View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
-
-// Enable LayoutAnimation on Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+  IconName,
+  Text,
+  Icon,
+  useTheme,
+  spacing,
+  radius,
+  size,
+} from "../../../../../design-system";
 
 interface BentoPathSelectorProps {
   steps: Array<{
     label: string;
     icon: string;
     disabled?: boolean;
+    // Legacy accent hints — retained for prop stability; no longer rendered
+    // (the dark tab bar uses token roles + an action-primary indicator).
     colorStart?: string;
     colorEnd?: string;
   }>;
@@ -33,74 +24,55 @@ interface BentoPathSelectorProps {
   onStepChange: (index: number) => void;
 }
 
+/** Dark tab bar for the Technique detail: selected tab = primary text + an
+ *  action-primary underline; unselected = secondary; disabled = lock. */
 const BentoPathSelector = ({
   steps,
   currentStepIndex,
   onStepChange,
 }: BentoPathSelectorProps) => {
-  // Trigger animation when index changes
-  useEffect(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-  }, [currentStepIndex]);
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface.default }]}>
       {steps.map((step, index) => {
         const isActive = index === currentStepIndex;
         const isDisabled = step.disabled;
-
-        // Dynamic Colors based on active state
-        const activeGradient = [
-          step.colorStart || theme.colors.library.orange[400],
-          step.colorEnd || theme.colors.library.orange[500],
-        ] as const;
+        const fg = isDisabled
+          ? colors.text.disabled
+          : isActive
+            ? colors.text.primary
+            : colors.text.secondary;
 
         return (
           <TouchableOpacity
             key={index}
-            style={[
-              styles.tabItem,
-              isActive && styles.tabItemActive,
-              isDisabled && styles.tabItemDisabled,
-            ]}
+            style={styles.tabItem}
             onPress={() => !isDisabled && onStepChange(index)}
             activeOpacity={0.7}
             disabled={isDisabled || isActive}
           >
-            {isActive ? (
-              // Active State: Gradient Card
-              <LinearGradient
-                colors={activeGradient}
-                style={styles.activeGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Icon
-                  name={step.icon}
-                  size={16}
-                  color="#FFF"
-                  style={styles.icon}
-                />
-                <Text style={styles.activeLabel} numberOfLines={1}>
-                  {step.label}
-                </Text>
-              </LinearGradient>
-            ) : (
-              // Inactive State: Glass/Ghost
-              <View style={styles.inactiveContainer}>
-                <Icon
-                  name={isDisabled ? "lock" : step.icon}
-                  size={16}
-                  color={
-                    isDisabled
-                      ? theme.colors.text.disabled
-                      : theme.colors.text.default
-                  }
-                />
-              </View>
-            )}
-
-            {/* Connector Line (Virtual) - handled by gap in container */}
+            <View style={styles.tabContent}>
+              <Icon
+                name={(isDisabled ? "lock" : step.icon) as IconName}
+                size={size.iconSm}
+                color={fg}
+              />
+              <Text variant="label" color={fg} numberOfLines={1}>
+                {step.label}
+              </Text>
+            </View>
+            {/* Selected indicator — an action-primary underline. */}
+            <View
+              style={[
+                styles.indicator,
+                {
+                  backgroundColor: isActive
+                    ? colors.action.primary
+                    : "transparent",
+                },
+              ]}
+            />
           </TouchableOpacity>
         );
       })}
@@ -113,64 +85,25 @@ export default BentoPathSelector;
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8, // Tighter gap
-    paddingHorizontal: 4,
-    height: 48, // Compact height (was 56)
+    alignItems: "stretch",
+    borderRadius: radius.card,
+    padding: spacing.xs,
   },
   tabItem: {
     flex: 1,
-    height: "100%",
-    borderRadius: 12, // Smaller radius (was 16)
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    paddingTop: spacing.md,
+    gap: spacing.sm,
   },
-  tabItemActive: {
-    flex: 2, // Slight reduction in expansion ratio (was 2.5)
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  tabItemDisabled: {
-    backgroundColor: "rgba(0,0,0,0.03)", // Darker glass for disabled
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  // Active Inner
-  activeGradient: {
-    flex: 1,
-    width: "100%",
+  tabContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    gap: 8,
+    gap: spacing.sm,
   },
-  activeLabel: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFFFFF",
-    marginTop: -2, // Optical alignment
-    fontWeight: "700",
-  },
-  icon: {
-    // shadowColor: "rgba(0,0,0,0.2)",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 1,
-    // shadowRadius: 2,
-  },
-  // Inactive Inner
-  inactiveContainer: {
-    flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+  indicator: {
+    height: 3,
+    width: "60%",
+    borderRadius: radius.xs,
   },
 });

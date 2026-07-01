@@ -1,18 +1,19 @@
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { Alert, StatusBar, StyleSheet, View } from "react-native";
 import {
     getTodayImpactAssessmentQuestions,
     startImpactAssessmentCollection,
 } from "../../../api/impactAssessment";
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
-import { theme } from "../../../Theme/tokens";
+import { Spinner, useTheme } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
 const ImpactAssessmentIntro = () => {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const setDailyBatch = useImpactAssessmentStore((state) => state.setDailyBatch);
@@ -106,18 +107,33 @@ const ImpactAssessmentIntro = () => {
   }, []);
 
   return (
-    <ScreenView>
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator
-          size="large"
-          color={theme.colors.actionPrimary.default}
-        />
-        <Text style={{ marginTop: 20, color: theme.colors.text.default }}>
-          Loading Daily Questions...
-        </Text>
+    <ScreenView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
+      <View style={styles.center}>
+        <Spinner size="large" label="Loading Daily Questions..." />
       </View>
     </ScreenView>
   );
 };
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});
 
 export default ImpactAssessmentIntro;

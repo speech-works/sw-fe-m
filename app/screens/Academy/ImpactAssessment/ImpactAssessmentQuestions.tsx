@@ -1,14 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Alert, ScrollView, StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getTodayImpactAssessmentQuestions,
@@ -19,21 +11,25 @@ import {
   ImpactAssessmentDailyBatch,
 } from "../../../api/impactAssessment/types";
 import BottomSheetModal from "../../../components/BottomSheetModal";
-import Button from "../../../components/Button";
 import ImpactAssessmentContinueModal from "../../../components/ImpactAssessmentContinueModal";
-import OnboardingQuestion from "../../../components/OnBoarding/OnboardingQuestion";
-import ProgressBar from "../../../components/ProgressBar";
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
-import { theme } from "../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../util/functions/parseStyles";
+  Button,
+  IconButton,
+  ProgressBar,
+  Text,
+  icons,
+  space,
+  spacing,
+  useTheme,
+} from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
+import AssessmentQuestion from "./AssessmentQuestion";
 
 const ImpactAssessmentQuestions = () => {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const {
@@ -59,17 +55,22 @@ const ImpactAssessmentQuestions = () => {
   ) {
     // Safety valve: Navigate back if data is missing
     return (
-      <ScreenView>
+      <ScreenView style={styles.screen}>
+        <StatusBar barStyle="light-content" />
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text style={{ color: theme.colors.text.default }}>
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: colors.background.canvas },
+          ]}
+        />
+        <View style={styles.centerFallback}>
+          <Text variant="body" color="secondary" center>
             No questions available for today.
           </Text>
           <Button
-            text="Go Back"
+            label="Go Back"
             onPress={() => navigation.navigate("Root")}
-            style={{ marginTop: 20 }}
+            style={styles.fallbackButton}
           />
         </View>
       </ScreenView>
@@ -82,20 +83,25 @@ const ImpactAssessmentQuestions = () => {
   if (!currentQuestion) {
     // Should not happen if logic is correct, but safe guard
     return (
-      <ScreenView>
+      <ScreenView style={styles.screen}>
+        <StatusBar barStyle="light-content" />
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text style={{ color: theme.colors.feedback.error }}>
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: colors.background.canvas },
+          ]}
+        />
+        <View style={styles.centerFallback}>
+          <Text variant="body" color={colors.feedback.dangerText} center>
             Error loading question.
           </Text>
           <Button
-            text="Reset"
+            label="Reset"
             onPress={() => {
               setCurrentIndex(0);
               navigation.navigate("Root");
             }}
-            style={{ marginTop: 20 }}
+            style={styles.fallbackButton}
           />
         </View>
       </ScreenView>
@@ -194,34 +200,42 @@ const ImpactAssessmentQuestions = () => {
   // Reverse map for selection: Component returns ID (value), we store that directly.
 
   return (
-    <ScreenView style={styles.screenInner}>
+    <ScreenView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
+
       {/* Header Info */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>Impact Assessment</Text>
-        <TouchableOpacity
+      <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
+        <Text variant="h3" color="primary">
+          Impact Assessment
+        </Text>
+        <IconButton
+          name={icons.close}
           onPress={() => setIsStopModalVisible(true)}
-          style={styles.closeBtn}
-        >
-          <MaterialCommunityIcons
-            name="close"
-            size={18}
-            color={theme.colors.text.title}
-          />
-        </TouchableOpacity>
+          variant="control"
+        />
       </View>
 
-      <ProgressBar
-        currentStep={currentIndex + 1}
-        totalSteps={totalQuestions}
-        showPercentage={false}
-        style={styles.progress}
-      />
+      <View style={styles.progress}>
+        <ProgressBar
+          value={currentIndex + 1}
+          max={totalQuestions}
+          color={colors.action.primary}
+        />
+      </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <OnboardingQuestion
+        <AssessmentQuestion
           key={currentQuestion.id}
           id={currentQuestion.id}
           question={currentQuestion.text}
@@ -244,11 +258,14 @@ const ImpactAssessmentQuestions = () => {
       <View
         style={[
           styles.footer,
-          { paddingBottom: Math.max(insets.bottom + 8, 24) },
+          {
+            paddingBottom: Math.max(insets.bottom + spacing.sm, spacing["2xl"]),
+            backgroundColor: colors.background.canvas,
+          },
         ]}
       >
         <Button
-          text={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
+          label={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
           onPress={handleNext}
           disabled={!canProceed || isSubmitting}
         />
@@ -259,37 +276,38 @@ const ImpactAssessmentQuestions = () => {
         onClose={() => setIsStopModalVisible(false)}
         showCloseButton={true}
         fitContent={true}
+        backgroundColor={colors.surface.default}
       >
         <View
           style={[
             styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
+            { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
           ]}
         >
-          <Text style={styles.modalTitle}>Pause Assessment?</Text>
-          <Text style={styles.modalText}>
+          <Text variant="h3" color="primary" style={styles.modalTitle}>
+            Pause Assessment?
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.modalText}>
             Your progress will be saved for later. You can continue anytime from
             the Home screen.
           </Text>
 
           <View style={styles.modalButtons}>
             <Button
-              text="Stop"
-              variant="ghost"
-              style={{
-                borderColor: theme.colors.feedback.error,
-                borderWidth: 1,
-              }}
-              textColor={theme.colors.feedback.error}
+              label="Stop"
+              variant="danger"
               onPress={() => {
-                track(ANALYTICS_EVENTS.ASSESSMENT_ABANDONED, { atStep: currentIndex + 1, totalSteps: totalQuestions });
+                track(ANALYTICS_EVENTS.ASSESSMENT_ABANDONED, {
+                  atStep: currentIndex + 1,
+                  totalSteps: totalQuestions,
+                });
                 setIsStopModalVisible(false);
                 navigation.navigate("Root");
               }}
             />
             <Button
-              text="Cancel"
-              variant="normal"
+              label="Cancel"
+              variant="secondary"
               onPress={() => setIsStopModalVisible(false)}
             />
           </View>
@@ -308,73 +326,54 @@ const ImpactAssessmentQuestions = () => {
 };
 
 const styles = StyleSheet.create({
-  screenInner: {
-    paddingHorizontal: 24,
+  screen: {
+    flex: 1,
+    paddingHorizontal: space.screenX,
+    paddingTop: 0,
+  },
+  centerFallback: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fallbackButton: {
+    marginTop: spacing.xl,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  estimatedTime: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  stepLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    marginBottom: 4,
+    marginBottom: spacing.lg,
   },
   progress: {
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: spacing.sm,
+    marginBottom: spacing["2xl"],
   },
   content: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: spacing.xl,
   },
   footer: {
-    paddingTop: 16,
+    paddingTop: spacing.lg,
   },
   modalContent: {
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: space.screenX,
+    paddingVertical: spacing["3xl"],
     paddingTop: 54,
     alignItems: "center",
   },
   modalTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   modalText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 32,
+    marginBottom: spacing["3xl"],
   },
   modalButtons: {
     width: "100%",
-    gap: 12,
+    gap: spacing.md,
   },
 });
 

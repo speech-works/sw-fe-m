@@ -1,23 +1,21 @@
 import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../util/functions/parseStyles";
+import { Animated, Modal, StyleSheet, View } from "react-native";
 import { ToolType } from "../api/tools/types";
+import {
+  useTheme,
+  spacing,
+  radius,
+  size,
+  elevation,
+  Text,
+  Button,
+  Icon,
+  icons,
+  type IconName,
+} from "../design-system";
 
 interface ToolConsentCopy {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: IconName;
   title: string;
   body: string;
 }
@@ -29,7 +27,7 @@ interface ToolConsentCopy {
  */
 const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
   [ToolType.DAF]: {
-    icon: "headphones",
+    icon: icons.headphones,
     title: "About Delayed Auditory Feedback (DAF)",
     body:
       "DAF can make speech feel smoother by playing back your voice with a slight delay. Many people find it helpful in practice sessions.\n\n" +
@@ -37,7 +35,7 @@ const CONSENT_COPY: Partial<Record<ToolType, ToolConsentCopy>> = {
       "It's always okay to practice without it. Your voice is enough.",
   },
   [ToolType.CHORUS]: {
-    icon: "account-voice",
+    icon: icons.voiceTool,
     title: "About the Guide",
     body:
       "The Guide plays a gentle second voice alongside yours, which can make speech feel smoother. Many people find it helpful in practice.\n\n" +
@@ -59,6 +57,7 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
   tool,
   onAcknowledge,
 }) => {
+  const { colors } = useTheme();
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
@@ -97,32 +96,29 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(15, 23, 42, 0.6)", opacity: opacityAnim },
+            { backgroundColor: colors.background.sunken, opacity: opacityAnim },
           ]}
         />
         <Animated.View
           style={[
             styles.card,
+            { backgroundColor: colors.surface.elevated },
+            elevation.e3,
             { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          <LinearGradient
-            colors={["#10B981", "#059669"]}
-            style={styles.iconContainer}
-          >
-            <MaterialCommunityIcons name={copy.icon} size={32} color="white" />
-          </LinearGradient>
+          <View style={[styles.iconContainer, { backgroundColor: colors.accent.success }]}>
+            <Icon name={copy.icon} size={32} color={colors.accentOn.success} />
+          </View>
 
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.message}>{copy.body}</Text>
+          <Text variant="h3" center style={styles.title}>
+            {copy.title}
+          </Text>
+          <Text variant="body" center color="secondary" style={styles.message}>
+            {copy.body}
+          </Text>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={onAcknowledge}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionButtonText}>Got it — let's go</Text>
-          </TouchableOpacity>
+          <Button label="Got it — let's go" onPress={onAcknowledge} />
         </Animated.View>
       </View>
     </Modal>
@@ -134,59 +130,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing["2xl"],
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 32,
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 32,
+    borderRadius: radius.sheet,
+    paddingHorizontal: spacing["3xl"],
+    paddingTop: spacing["4xl"],
+    paddingBottom: spacing["3xl"],
     width: "100%",
     maxWidth: 380,
     alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation4),
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
+    width: size.avatar,
+    height: size.avatar,
+    borderRadius: radius.chip,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: "#059669",
-    shadowOpacity: 0.3,
+    marginBottom: spacing.xl,
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 20,
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   message: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 15,
-    color: theme.colors.text.default,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 28,
-  },
-  actionButton: {
-    width: "100%",
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: "#059669",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    marginBottom: spacing["2xl"],
   },
 });
 

@@ -1,12 +1,18 @@
 import Slider from "@react-native-community/slider";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../Theme/tokens";
+import { TouchableOpacity, View } from "react-native";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  borderWidth,
+  Icon,
+  icons,
+  makeStyles,
+  radius,
+  space,
+  spacing,
+  Text,
+  useTheme,
+} from "../../../../design-system";
+import { AccentPicker } from "./AccentPicker";
 
 interface VoiceHoverConfigProps {
   baseRate: number;
@@ -29,13 +35,19 @@ export function VoiceHoverConfigPanel({
   isSpeaking,
   onToggleSpeech,
 }: VoiceHoverConfigProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.controls}>
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text style={styles.heroEyebrow}>Guide</Text>
-            <Text style={styles.heroTitle}>Speech pacing</Text>
+            <Text variant="label" style={styles.heroEyebrow}>
+              Guide
+            </Text>
+            <Text variant="h3" style={styles.heroTitle}>
+              Speech pacing
+            </Text>
           </View>
 
           <View
@@ -44,11 +56,13 @@ export function VoiceHoverConfigPanel({
               isSpeaking ? styles.statusBadgeReady : styles.statusBadgeIdle,
             ]}
           >
-            <FAIcon
-              name="volume-up"
+            <Icon
+              name={icons.volume}
               size={12}
               color={
-                isSpeaking ? "#10B981" : theme.colors.actionPrimary.default
+                isSpeaking
+                  ? colors.feedback.successText
+                  : colors.action.primary
               }
             />
             <Text
@@ -58,27 +72,37 @@ export function VoiceHoverConfigPanel({
                   ? styles.statusBadgeTextReady
                   : styles.statusBadgeTextIdle,
               ]}
+              variant="label"
             >
               {isSpeaking ? "Speaking" : "Ready"}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.heroText}>
+        <Text variant="bodySm" style={styles.heroText}>
           Set the guide voice and pause timing, then press start when you want
           the reading support to begin.
         </Text>
       </View>
 
+      {/* Accent selection — same control here and in Settings; saved app-wide. */}
+      <AccentPicker />
+
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>
           <View>
-            <Text style={styles.sectionEyebrow}>Speech Rate</Text>
-            <Text style={styles.sectionTitle}>{baseRate.toFixed(1)}×</Text>
+            <Text variant="label" style={styles.sectionEyebrow}>
+              Speech Rate
+            </Text>
+            <Text variant="title" style={styles.sectionTitle}>
+              {baseRate.toFixed(1)}×
+            </Text>
           </View>
 
           <View style={styles.valueBadge}>
-            <Text style={styles.valueBadgeText}>Flow</Text>
+            <Text variant="label" style={styles.valueBadgeText}>
+              Flow
+            </Text>
           </View>
         </View>
 
@@ -90,35 +114,45 @@ export function VoiceHoverConfigPanel({
             step={0.1}
             value={baseRate}
             onValueChange={setBaseRate}
-            minimumTrackTintColor={theme.colors.library.orange[400]}
-            maximumTrackTintColor="#F1D9C6"
-            thumbTintColor={theme.colors.library.orange[400]}
+            minimumTrackTintColor={colors.action.primary}
+            maximumTrackTintColor={colors.border.default}
+            thumbTintColor={colors.action.primary}
           />
         </View>
 
         <View style={styles.rowContainer}>
-          <Text style={styles.paceText}>Slow</Text>
-          <Text style={styles.paceText}>Fast</Text>
+          <Text variant="caption" style={styles.paceText}>Slow</Text>
+          <Text variant="caption" style={styles.paceText}>Fast</Text>
         </View>
       </View>
 
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>
           <View>
-            <Text style={styles.sectionEyebrow}>Timing</Text>
-            <Text style={styles.sectionTitle}>Chunk spacing</Text>
+            <Text variant="label" style={styles.sectionEyebrow}>
+              Timing
+            </Text>
+            <Text variant="title" style={styles.sectionTitle}>
+              Chunk spacing
+            </Text>
           </View>
 
           <View style={styles.valueBadge}>
-            <Text style={styles.valueBadgeText}>Timing</Text>
+            <Text variant="label" style={styles.valueBadgeText}>
+              Timing
+            </Text>
           </View>
         </View>
 
         <View style={styles.controlGroup}>
           <View style={styles.controlSection}>
             <View style={styles.rowContainer}>
-              <Text style={styles.infoText}>Pre-pause</Text>
-              <Text style={styles.speedText}>{prePause} ms</Text>
+              <Text variant="bodySm" style={styles.infoText}>
+                Pre-pause
+              </Text>
+              <Text variant="bodySm" style={styles.speedText}>
+                {prePause} ms
+              </Text>
             </View>
             <View style={styles.sliderWrapper}>
               <Slider
@@ -128,14 +162,14 @@ export function VoiceHoverConfigPanel({
                 step={50}
                 value={prePause}
                 onValueChange={setPrePause}
-                minimumTrackTintColor={theme.colors.library.orange[400]}
-                maximumTrackTintColor="#F1D9C6"
-                thumbTintColor={theme.colors.library.orange[400]}
+                minimumTrackTintColor={colors.action.primary}
+                maximumTrackTintColor={colors.border.default}
+                thumbTintColor={colors.action.primary}
               />
             </View>
             <View style={styles.rowContainer}>
-              <Text style={styles.paceText}>Short</Text>
-              <Text style={styles.paceText}>Long</Text>
+              <Text variant="caption" style={styles.paceText}>Short</Text>
+              <Text variant="caption" style={styles.paceText}>Long</Text>
             </View>
           </View>
 
@@ -143,8 +177,12 @@ export function VoiceHoverConfigPanel({
 
           <View style={styles.controlSection}>
             <View style={styles.rowContainer}>
-              <Text style={styles.infoText}>Gap between chunks</Text>
-              <Text style={styles.speedText}>{gapBetweenChunks} ms</Text>
+              <Text variant="bodySm" style={styles.infoText}>
+                Gap between chunks
+              </Text>
+              <Text variant="bodySm" style={styles.speedText}>
+                {gapBetweenChunks} ms
+              </Text>
             </View>
             <View style={styles.sliderWrapper}>
               <Slider
@@ -154,14 +192,14 @@ export function VoiceHoverConfigPanel({
                 step={50}
                 value={gapBetweenChunks}
                 onValueChange={setGapBetweenChunks}
-                minimumTrackTintColor={theme.colors.library.orange[400]}
-                maximumTrackTintColor="#F1D9C6"
-                thumbTintColor={theme.colors.library.orange[400]}
+                minimumTrackTintColor={colors.action.primary}
+                maximumTrackTintColor={colors.border.default}
+                thumbTintColor={colors.action.primary}
               />
             </View>
             <View style={styles.rowContainer}>
-              <Text style={styles.paceText}>Short</Text>
-              <Text style={styles.paceText}>Long</Text>
+              <Text variant="caption" style={styles.paceText}>Short</Text>
+              <Text variant="caption" style={styles.paceText}>Long</Text>
             </View>
           </View>
         </View>
@@ -177,12 +215,12 @@ export function VoiceHoverConfigPanel({
           ]}
         >
           <View style={styles.buttonContent}>
-            <FAIcon
-              name={isSpeaking ? "stop" : "play"}
+            <Icon
+              name={isSpeaking ? icons.stop : icons.play}
               size={14}
-              color="#FFF"
+              color={colors.action.onPrimary}
             />
-            <Text style={styles.buttonText}>
+            <Text variant="title" style={styles.buttonText}>
               {isSpeaking ? "Stop Guide" : "Start Guide"}
             </Text>
           </View>
@@ -192,15 +230,15 @@ export function VoiceHoverConfigPanel({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   controls: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
     flexDirection: "column",
     gap: 14,
   },
   heroCard: {
-    paddingHorizontal: 4,
-    paddingTop: 2,
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.xxs,
     paddingBottom: 0,
     gap: 14,
   },
@@ -208,63 +246,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12,
+    gap: space.rowGap,
   },
   heroHeaderText: {
     flex: 1,
-    gap: 2,
+    gap: spacing.xxs,
   },
   heroEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.62,
+    color: colors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   heroTitle: {
-    ...parseTextStyle(theme.typography.Heading4),
-    color: theme.colors.text.title,
+    color: colors.text.primary,
   },
   heroText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    color: colors.text.secondary,
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
+    gap: spacing.xxs,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderWidth: borderWidth.thin,
   },
   statusBadgeReady: {
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    borderColor: "rgba(16, 185, 129, 0.16)",
+    backgroundColor: colors.accentTint.success,
+    borderColor: colors.accent.success,
   },
   statusBadgeIdle: {
-    backgroundColor: "#FFF4E6",
-    borderColor: "rgba(255, 144, 64, 0.20)",
+    backgroundColor: colors.action.primaryTint,
+    borderColor: colors.border.default,
   },
   statusBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
     fontWeight: "600",
   },
   statusBadgeTextReady: {
-    color: "#0F9F6E",
+    color: colors.feedback.successText,
   },
   statusBadgeTextIdle: {
-    color: theme.colors.actionPrimary.default,
+    color: colors.action.primary,
   },
   sliderCard: {
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 24,
+    backgroundColor: colors.surface.elevated,
+    borderRadius: radius.card,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: "rgba(253, 182, 129, 0.22)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    gap: spacing.lg,
+    borderWidth: borderWidth.thin,
+    borderColor: colors.border.default,
   },
   sliderHeader: {
     width: "100%",
@@ -273,39 +305,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.7,
+    color: colors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   sectionTitle: {
-    ...parseTextStyle(theme.typography.BodyHighLight),
-    color: theme.colors.text.title,
+    color: colors.text.primary,
   },
   valueBadge: {
-    backgroundColor: "#FFF4E6",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255, 144, 64, 0.20)",
+    backgroundColor: colors.action.primaryTint,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
+    borderWidth: borderWidth.thin,
+    borderColor: colors.border.default,
   },
   valueBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.actionPrimary.default,
+    color: colors.action.primary,
     fontWeight: "700",
   },
   controlGroup: {
-    gap: 16,
+    gap: spacing.lg,
   },
   controlSection: {
     width: "100%",
-    gap: 10,
+    gap: spacing.xs,
   },
   controlDivider: {
     height: 1,
-    backgroundColor: "rgba(253, 182, 129, 0.18)",
+    backgroundColor: colors.border.default,
   },
   rowContainer: {
     width: "100%",
@@ -314,12 +342,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   infoText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.title,
+    color: colors.text.primary,
   },
   speedText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.actionPrimary.default,
+    color: colors.action.primary,
     fontWeight: "700",
   },
   sliderWrapper: {
@@ -332,34 +358,30 @@ const styles = StyleSheet.create({
     height: 22,
   },
   paceText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    opacity: 0.68,
+    color: colors.text.tertiary,
   },
   buttonContainer: {
-    marginTop: 2,
+    marginTop: spacing.xxs,
   },
   button: {
     minHeight: 52,
-    borderRadius: 16,
+    borderRadius: radius.input,
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle("0px 6px 16px 0px rgba(255, 144, 64, 0.18)"),
   },
   buttonStart: {
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: colors.action.primary,
   },
   buttonStop: {
-    backgroundColor: "#E85D4A",
+    backgroundColor: colors.accent.danger,
   },
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: spacing.sm,
   },
   buttonText: {
-    color: "#FFF",
-    ...parseTextStyle(theme.typography.Button),
+    color: colors.action.onPrimary,
     fontWeight: "600",
   },
-});
+}));
