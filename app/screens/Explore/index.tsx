@@ -10,7 +10,7 @@ import { useEventStore } from "../../stores/events";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
-import { useTheme, useMotion, spacing, space, size, PageHeader } from "../../design-system";
+import { useTheme, useMotion, spacing, space, radius, size, PageHeader } from "../../design-system";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
@@ -126,6 +126,8 @@ const Explore = () => {
 
         {/* World Exploration Map */}
         <Animated.View entering={m.stagger(0)} style={[styles.section, styles.firstSection]}>
+          {/* A short accent rule marks where the page header ends and content begins. */}
+          <View style={[styles.sectionRule, { backgroundColor: colors.action.primary }]} />
           <WorldExplorationGraph />
         </Animated.View>
 
@@ -166,10 +168,17 @@ const styles = StyleSheet.create({
     marginHorizontal: space.screenX,
     marginTop: space.groupGap,
   },
-  // Extra breathing room between the page header and the first section — lets the
-  // page title "close" before the first section chip "opens".
+  // Breathing room between the page header and the first section, where the accent
+  // rule sits to mark the boundary.
   firstSection: {
-    marginTop: spacing["4xl"],
+    marginTop: spacing["3xl"],
+  },
+  // Short brand-orange rule marking the start of the content (header ↔ first section).
+  sectionRule: {
+    width: 28,
+    height: 3,
+    borderRadius: radius.xs,
+    marginBottom: spacing.md,
   },
   statusCap: {
     position: "absolute",
