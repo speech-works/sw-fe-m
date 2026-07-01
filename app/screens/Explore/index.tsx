@@ -125,7 +125,7 @@ const Explore = () => {
         />
 
         {/* World Exploration Map */}
-        <Animated.View entering={m.stagger(0)} style={styles.section}>
+        <Animated.View entering={m.stagger(0)} style={[styles.section, styles.firstSection]}>
           <WorldExplorationGraph />
         </Animated.View>
 
@@ -165,6 +165,10 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: space.screenX,
     marginTop: space.groupGap,
+  },
+  // Extra breathing room between the page header and the first section.
+  firstSection: {
+    marginTop: space.titleGap,
   },
   statusCap: {
     position: "absolute",

@@ -32,9 +32,9 @@ interface WorldExplorationGraphProps {
 // Fixed ghost-bar heights for the loading skeleton (no Math.random — stable across renders).
 const SKELETON_HEIGHTS = [56, 92, 44, 104, 72, 84, 52];
 const BAR_WIDTH = 14;
-// Shortest visible value fill (% of track) so a low-activity day reads as a real
-// capsule rising from the bottom, never a flat dot.
-const MIN_BAR_PERCENT = 22;
+// Floor applied ONLY to days that HAVE activity, so a tiny value (e.g. <1m) still shows
+// a visible capsule. Days with zero practice render no fill at all (honest, not a dummy).
+const MIN_BAR_PERCENT = 12;
 
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
@@ -224,27 +224,34 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           ) : (
             rhythmData.map((d, index) => {
               const actualPercent = Math.min(100, (d.minutes / maxMinutes) * 100);
-              const barHeight = Math.max(actualPercent, MIN_BAR_PERCENT);
+              const hasData = d.minutes > 0;
+              const fillHeight = Math.max(actualPercent, MIN_BAR_PERCENT);
 
               return (
                 <View key={index} style={styles.barColumn}>
-                  {/* Faint full-height track + a bright orange fill rising from the bottom. */}
+                  {/* Faint full-height track; the orange fill appears ONLY on days with
+                      real activity, its height reflecting that day's minutes. */}
                   <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
-                    <View
-                      style={[
-                        styles.fill,
-                        { height: `${barHeight}%`, backgroundColor: colors.action.primary },
-                      ]}
-                    />
+                    {hasData ? (
+                      <View
+                        style={[
+                          styles.fill,
+                          { height: `${fillHeight}%`, backgroundColor: colors.action.primary },
+                        ]}
+                      />
+                    ) : null}
                   </View>
+                  {/* Day label — today sits inside a small rounded accent chip. */}
                   <View style={styles.dayLabelRow}>
-                    <Text
-                      variant="caption"
-                      color={d.isToday ? colors.action.primary : colors.text.tertiary}
-                      style={d.isToday ? styles.todayLabel : undefined}
-                    >
-                      {d.dayLabel}
-                    </Text>
+                    {d.isToday ? (
+                      <View style={[styles.todayChip, { backgroundColor: colors.action.primary }]}>
+                        <Text variant="caption" color={colors.action.onPrimary} style={styles.todayLabel}>
+                          {d.dayLabel}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text variant="caption" color={colors.text.tertiary}>{d.dayLabel}</Text>
+                    )}
                   </View>
                 </View>
               );
@@ -324,12 +331,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   dayLabelRow: {
-    height: 22,
+    height: 28,
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  // Today is distinguished by weight + accent colour.
+  // Today's letter sits inside a small rounded accent chip.
+  todayChip: {
+    minWidth: 26,
+    height: 24,
+    paddingHorizontal: spacing.xxs,
+    borderRadius: radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   todayLabel: {
     fontFamily: fonts.bold,
   },
