@@ -1,21 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { BlurView } from "expo-blur";
-import {
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
 import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
@@ -23,14 +10,15 @@ import { useEventStore } from "../../stores/events";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import { useTheme, useMotion, space, size, PageHeader } from "../../design-system";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
 
 
 const Explore = () => {
+  const { colors } = useTheme();
+  const m = useMotion();
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { fetchSummary } = usePracticeCategorySummaryStore();
@@ -42,11 +30,7 @@ const Explore = () => {
   const navigation = useNavigation<any>();
   const [jumpInY, setJumpInY] = useState(400); // Default rough height
 
-  const [interactionsDone, setInteractionsDone] = useState(false);
-
-
-
-  // --- NEW: Scroll State for pausing animations ---
+  // --- Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
   // ----------------------------------------
 
@@ -112,76 +96,56 @@ const Explore = () => {
   }, [route.params?.scrollToJumpIn, jumpInY]);
 
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Background Mesh/Gradient */}
-      <View style={StyleSheet.absoluteFillObject}>
-        {/* We use a multi-stop gradient for a 'Mesh' feel */}
-        <LinearGradient
-          colors={["#FFF7ED", "#FFF", "#FFF"]} // Peach -> White
-          locations={[0, 0.4, 1]}
-          style={{ flex: 1 }}
+    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
+      <StatusBar barStyle="light-content" />
+      {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
+
+      <ScrollView
+        ref={scrollViewRef}
+        refreshControl={refreshControl}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={() => setIsScrolling(true)}
+        onMomentumScrollBegin={() => setIsScrolling(true)}
+        onScrollEndDrag={(e: any) => {
+          const hasMomentum =
+            e.nativeEvent?.velocity &&
+            Math.abs(e.nativeEvent.velocity.y) > 0.1;
+          if (!hasMomentum) {
+            setIsScrolling(false);
+          }
+        }}
+        onMomentumScrollEnd={() => setIsScrolling(false)}
+      >
+        <PageHeader
+          title="Explore"
+          description="Discover new ways to improve your speech."
+          standalone
         />
-      </View>
 
-      <View style={{ flex: 1 }}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 20,
-              height: HEADER_HEIGHT + insets.top,
-            },
-          ]}
-        >
-          <Text style={styles.title}>Explore</Text>
-          <Text style={styles.subtitle}>
-            Discover new ways to improve your speech.
-          </Text>
-        </BlurView>
-        <ScrollView
-          ref={scrollViewRef}
-          refreshControl={refreshControl}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: HEADER_HEIGHT + insets.top + 28 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          onScrollBeginDrag={() => setIsScrolling(true)}
-          onMomentumScrollBegin={() => setIsScrolling(true)}
-          onScrollEndDrag={(e: any) => {
-            const hasMomentum =
-              e.nativeEvent?.velocity &&
-              Math.abs(e.nativeEvent.velocity.y) > 0.1;
-            if (!hasMomentum) {
-              setIsScrolling(false);
-            }
-          }}
-          onMomentumScrollEnd={() => setIsScrolling(false)}
-        >
-          {/* World Exploration Map */}
+        {/* World Exploration Map */}
+        <Animated.View entering={m.stagger(0)} style={styles.section}>
           <WorldExplorationGraph />
+        </Animated.View>
 
-          <View style={{ height: 12 }} />
+        {/* 4 Types of Practice Grid */}
+        <Animated.View
+          entering={m.stagger(1)}
+          style={styles.section}
+          onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}
+        >
+          <PracticeGrid isScrolling={isScrolling} />
+        </Animated.View>
 
-          {/* 4 Types of Practice Grid */}
-          <View onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}>
-            <PracticeGrid isScrolling={isScrolling} />
-          </View>
-
-          <View style={{ height: 28 }} />
-
-
-
-          {/* Inline Library Section */}
+        {/* Inline Library Section */}
+        <Animated.View entering={m.stagger(2)} style={styles.section}>
           <LibrarySection onLayoutCapture={() => {}} />
-        </ScrollView>
-      </View>
+        </Animated.View>
+      </ScrollView>
 
-
-
-
+      {/* Opaque cap so scrolled content doesn't bleed under the status bar. */}
+      <View style={[styles.statusCap, { height: insets.top, backgroundColor: colors.background.canvas }]} />
     </ScreenView>
   );
 };
@@ -195,48 +159,18 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   scrollContent: {
-    paddingBottom: 130, // Space for Custom Tab Bar
-    paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingBottom: size.tabBarSafe,
+    paddingHorizontal: 0,
   },
-  header: {
+  section: {
+    marginHorizontal: space.screenX,
+    marginTop: space.groupGap,
+  },
+  statusCap: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 100,
-    paddingHorizontal: 16,
-    gap: 4,
+    zIndex: 10,
   },
-  innerContainer: {
-    gap: 32,
-    flex: 1,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  // Modal Styles
-  modalContent: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    gap: 16,
-  },
-  modalTitle: {
-    color: theme.colors.text.title,
-    ...parseTextStyle(theme.typography.Heading3),
-    textAlign: "center",
-  },
-  modalMessage: {
-    color: theme.colors.text.default,
-    ...parseTextStyle(theme.typography.Body),
-    textAlign: "center",
-    lineHeight: 22,
-  },
-
 });

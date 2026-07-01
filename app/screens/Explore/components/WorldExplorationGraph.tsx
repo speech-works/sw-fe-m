@@ -1,14 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, View } from "react-native";
 import {
   getDailyActivityStatsForTheWeek,
   getWeeklyReport,
@@ -19,17 +12,35 @@ import {
   WeeklyStat,
 } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
-import { theme } from "../../../Theme/tokens";
-import { parseTextStyle } from "../../../util/functions/parseStyles";
 import { getFlowBenchmarkCopy } from "../../../util/flowBenchmark";
+import {
+  useTheme,
+  spacing,
+  radius,
+  fonts,
+  Text,
+  Icon,
+  icons,
+  AnimatedNumber,
+  Skeleton,
+} from "../../../design-system";
 
 interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
 }
 
+// Fixed ghost-bar heights for the loading skeleton (no Math.random — stable across renders).
+const SKELETON_HEIGHTS = [56, 92, 44, 104, 72, 84, 52];
+const BAR_WIDTH = 14;
+// Shortest visible value fill (% of track) so a low-activity day reads as a real
+// capsule rising from the bottom, never a flat dot.
+const MIN_BAR_PERCENT = 22;
+
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
 }) => {
+  const { colors } = useTheme();
+
   const { user } = useUserStore();
   const [weeklyData, setWeeklyData] = useState<WeeklyStat[]>([]);
   const [weeklySummary, setWeeklySummary] =
@@ -185,218 +196,84 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
       onLayout={(event) => {
         if (onLayoutCapture) onLayoutCapture(event);
       }}
-      style={styles.shadowContainer}
-      shouldRasterizeIOS={true}
       accessible={true}
       accessibilityLabel={`Weekly progress: ${totalWeeklyMinutes} minutes practiced across ${daysActive} days this week`}
     >
-      <LinearGradient
-        colors={[
-          theme.colors.library.red[300],
-          theme.colors.library.orange[400],
-        ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        {/* Watermark Bubbles */}
-        <View style={styles.bubbleTopRight} />
-        <View style={styles.bubbleBottomLeft} />
+      {/* Header — sits directly on the page (no card container) */}
+      <View style={styles.header}>
+        <Text variant="h3" color="primary">This Week</Text>
+        <Text variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
+          {comparisonSubtitle}
+        </Text>
+      </View>
 
-        {/* World Icon Watermark */}
-        <View style={styles.worldWatermark}>
-          <Icon name="globe" size={140} color="rgba(255,255,255,0.08)" />
+      {/* Chart — floats on the dark page: faint track capsules + bright orange fills. */}
+      {!hasAnyActivity ? (
+        <View style={styles.emptyState}>
+          <Icon name={icons.weekly} size={36} color={colors.text.secondary} />
+          <Text variant="bodySm" color="secondary" center style={styles.emptyText}>
+            No practice yet this week — start today to build your rhythm.
+          </Text>
         </View>
-
-        {/* Content Layer */}
-        <View style={styles.contentLayer}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextBlock}>
-              <Text style={styles.headerLabel}>WEEKLY UPDATE</Text>
-              <Text
-                style={styles.comparisonBasisText}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {comparisonSubtitle}
-              </Text>
-            </View>
-          </View>
-
-          {/* Hero: Chart or Empty State */}
-          {!hasAnyActivity ? (
-            // Empty State
-            <View style={styles.emptyState}>
-              <Icon
-                name="calendar-check"
-                size={40}
-                color="rgba(255,255,255,0.3)"
-              />
-              <Text style={styles.emptyText}>No practice this week yet</Text>
-              <Text style={styles.emptySubtext}>
-                Start today to build your rhythm.
-              </Text>
-            </View>
+      ) : (
+        <View style={styles.chartRow}>
+          {loading ? (
+            SKELETON_HEIGHTS.map((h, i) => (
+              <Skeleton key={i} width={BAR_WIDTH} height={h} radius={radius.full} />
+            ))
           ) : (
-            // Regular Chart
-            <View style={styles.chartContainer}>
-              <View style={styles.chartRow}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  rhythmData.map((d, index) => {
-                    const actualPercent = Math.min(
-                      100,
-                      (d.minutes / maxMinutes) * 100,
-                    );
-                    const targetPercent = Math.min(
-                      100,
-                      (DAILY_TARGET_MINUTES / maxMinutes) * 100,
-                    );
+            rhythmData.map((d, index) => {
+              const actualPercent = Math.min(100, (d.minutes / maxMinutes) * 100);
+              const barHeight = Math.max(actualPercent, MIN_BAR_PERCENT);
 
-                    const isTargetReached = d.minutes >= DAILY_TARGET_MINUTES;
-                    // Improved Contrast: 0.85 opacity for better readability
-                    const actualColor = isTargetReached
-                      ? "#FFFFFF"
-                      : "rgba(255,255,255,0.85)";
-                    const targetColor = "rgba(255,255,255,0.15)";
-                    const isSkipped = d.minutes === 0;
-
-                    // Smart label: "99+" for large, "<1m" for sub-minute, otherwise rounded
-                    const minuteDisplay =
-                      d.minutes >= 100
-                        ? "99+"
-                        : d.minutes > 0 && d.minutes < 1
-                          ? "<1m"
-                          : `${Math.round(d.minutes)}m`;
-
-                    // Label should be above the taller of actual or target bar
-                    const topBarPercent = Math.max(
-                      actualPercent,
-                      targetPercent,
-                    );
-
-                    return (
-                      <View key={index} style={styles.barColumn}>
-                        {/* Bar and Label Container */}
-                        <View style={styles.barWrapper}>
-                          {/* Minute Label (2px above whichever bar is taller) */}
-                          {!isSkipped && (
-                            <Text
-                              style={[
-                                styles.minuteLabel,
-                                {
-                                  position: "absolute",
-                                  bottom: `${topBarPercent}%`,
-                                  left: 0,
-                                  right: 0,
-                                  marginBottom: 2, // 2px gap above bar
-                                },
-                              ]}
-                            >
-                              {minuteDisplay}
-                            </Text>
-                          )}
-
-                          {/* Bar Stack Container */}
-                          <View style={styles.barStackArea}>
-                            {/* Target Bar */}
-                            <View
-                              style={[
-                                styles.targetBar,
-                                {
-                                  height: `${targetPercent}%`,
-                                  backgroundColor: targetColor,
-                                },
-                              ]}
-                            />
-
-                            {/* Actual Bar */}
-                            {isSkipped ? (
-                              <View
-                                style={[
-                                  styles.dotSkipped,
-                                  { bottom: 0, position: "absolute" },
-                                ]}
-                              />
-                            ) : (
-                              <View
-                                style={[
-                                  styles.actualBar,
-                                  {
-                                    height: `${actualPercent}%`,
-                                    backgroundColor: actualColor,
-                                    zIndex: 2,
-                                  },
-                                ]}
-                              />
-                            )}
-                          </View>
-                        </View>
-
-                        {/* Day Label */}
-                        <View style={d.isToday ? styles.todayContainer : null}>
-                          <Text
-                            style={[
-                              styles.dayLabel,
-                              d.isToday && styles.todayLabel,
-                            ]}
-                          >
-                            {d.dayLabel}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })
-                )}
-              </View>
-            </View>
+              return (
+                <View key={index} style={styles.barColumn}>
+                  {/* Faint full-height track + a bright orange fill rising from the bottom. */}
+                  <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
+                    <View
+                      style={[
+                        styles.fill,
+                        { height: `${barHeight}%`, backgroundColor: colors.action.primary },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.dayLabelRow}>
+                    <Text
+                      variant="caption"
+                      color={d.isToday ? colors.action.primary : colors.text.tertiary}
+                      style={d.isToday ? styles.todayLabel : undefined}
+                    >
+                      {d.dayLabel}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
           )}
+        </View>
+      )}
 
-          {/* Footer: Stats Badges */}
-          <View style={styles.footerStats}>
-            {/* Streak Badge */}
-            <View style={[styles.statBadge, styles.activityBadge]}>
-              <View style={styles.watermarkIconContainer}>
-                <Icon name="fire" size={72} color="#FFF" />
-              </View>
-              <View style={styles.badgeContentCol}>
-                <Text
-                  style={styles.badgeMainValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                >
-                  {daysActive}
-                </Text>
-                <Text style={styles.badgeSubValue} numberOfLines={1}>
-                  {daysActive === 1 ? "active day" : "active days"}
-                </Text>
-              </View>
-            </View>
-
-            {/* Total Badge */}
-            <View style={[styles.statBadge, styles.minutesBadge]}>
-              <View style={styles.watermarkIconContainer}>
-                <Icon name="stopwatch" size={72} color="#FFF" />
-              </View>
-              <View style={styles.badgeContentCol}>
-                <Text
-                  style={styles.badgeMainValue}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.7}
-                >
-                  {totalPracticeSummary}
-                </Text>
-                <Text style={styles.badgeSubValue} numberOfLines={2}>
-                  {minutesBenchmarkSummary}
-                </Text>
-              </View>
-            </View>
+      {/* Summary stat cards below the chart */}
+      <View style={styles.statRow}>
+        <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
+          <AnimatedNumber value={daysActive} variant="h2" color="primary" />
+          <View style={styles.statLabelRow}>
+            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            <Text variant="caption" color="secondary">
+              {`active ${daysActive === 1 ? "day" : "days"}`}
+            </Text>
           </View>
         </View>
-      </LinearGradient>
+        <View style={[styles.statCard, { backgroundColor: colors.surface.default }]}>
+          <Text variant="h2" color="primary">{totalPracticeSummary}</Text>
+          <View style={styles.statLabelRow}>
+            <View style={[styles.statDot, { backgroundColor: colors.action.primary }]} />
+            <Text variant="caption" color="secondary" numberOfLines={1} style={styles.statLabel}>
+              {minutesBenchmarkSummary}
+            </Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 };
@@ -404,228 +281,80 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
 export default React.memo(WorldExplorationGraph);
 
 const styles = StyleSheet.create({
-  shadowContainer: {
-    borderRadius: 24,
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 8,
-    backgroundColor: theme.colors.library.red[100],
-    marginBottom: 24,
-    overflow: "hidden",
-  },
-  gradient: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24,
-    minHeight: 320,
-    position: "relative",
-  },
-  // Watermark Bubbles
-  bubbleTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -50,
-    left: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  worldWatermark: {
-    position: "absolute",
-    right: -40,
-    top: -40,
-    opacity: 0.6,
-  },
-  contentLayer: {
-    flex: 1,
-    gap: 20,
-    zIndex: 1,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerTextBlock: {
-    gap: 6,
-    paddingRight: 56,
-  },
-  headerLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-  comparisonBasisText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.84)",
-    fontSize: 13,
+  header: {
+    gap: spacing.xxs,
   },
   // Empty State
   emptyState: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    minHeight: 160,
+    justifyContent: "center",
+    paddingVertical: spacing["3xl"],
+    gap: spacing.sm,
   },
   emptyText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 17,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
-    marginTop: 16,
-    marginBottom: 8,
-    textAlign: "center",
+    paddingHorizontal: spacing.xl,
   },
-  emptySubtext: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 13,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-  },
-  // Chart
-  chartContainer: {
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 180,
-  },
+  // Chart — floats directly on the page (no container)
   chartRow: {
     flexDirection: "row",
     justifyContent: "space-evenly",
     alignItems: "flex-end",
-    height: 140, // Slightly reduced for better balance
+    height: 160,
     width: "100%",
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   barColumn: {
     flex: 1,
+    height: "100%", // definite height so the fills' % heights resolve consistently
     alignItems: "center",
-    maxWidth: 40,
+    maxWidth: 44,
   },
-  barWrapper: {
+  // Faint full-height track capsule (the "slot").
+  track: {
+    width: BAR_WIDTH,
     flex: 1,
-    width: "100%",
-    position: "relative",
-    marginBottom: 6,
-  },
-  minuteLabel: {
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  barStackArea: {
-    height: "100%",
-    width: 18,
+    borderRadius: radius.full,
     justifyContent: "flex-end",
+    marginBottom: spacing.sm,
+  },
+  // Bright value capsule rising from the bottom of the track.
+  fill: {
+    width: "100%",
+    borderRadius: radius.full,
+  },
+  dayLabelRow: {
+    height: 22,
+    width: "100%",
     alignItems: "center",
-    position: "relative",
-    marginLeft: "auto",
-    marginRight: "auto",
-  },
-  targetBar: {
-    width: 18,
-    position: "absolute",
-    bottom: 0,
-    borderRadius: 6,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-  },
-  actualBar: {
-    width: 18,
-    position: "absolute",
-    bottom: 0,
-    borderRadius: 6,
-  },
-  dotSkipped: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    marginBottom: 4,
-  },
-  dayLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11, // Increased from 10px
-    fontWeight: "600",
-  },
-  todayContainer: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  todayLabel: {
-    color: "#FFF",
-    fontWeight: "800",
-    fontSize: 11,
-    textShadowColor: "rgba(255,255,255,0.3)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
-  },
-  // Footer
-  // Footer
-  footerStats: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: "auto",
-    paddingTop: 12,
-  },
-  statBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 24,
-    overflow: "hidden",
-    position: "relative",
-  },
-  activityBadge: {
-    flex: 3.5,
-  },
-  minutesBadge: {
-    flex: 6.5,
-  },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -14,
-    bottom: -16,
-    opacity: 0.1,
-    transform: [{ rotate: "-15deg" }],
-  },
-  badgeContentCol: {
-    flex: 1,
     justifyContent: "center",
   },
-  badgeMainValue: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#FFF",
-    letterSpacing: -0.4,
+  // Today is distinguished by weight + accent colour.
+  todayLabel: {
+    fontFamily: fonts.bold,
   },
-  badgeSubValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.75)",
-    letterSpacing: -0.1,
-    lineHeight: 18,
-    marginTop: 4,
+  // Stat cards below the chart
+  statRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  statLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  statDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radius.full,
+  },
+  statLabel: {
+    flex: 1,
   },
 });

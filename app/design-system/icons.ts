@@ -85,6 +85,7 @@ export const icons = {
   locked: "lock", // locked achievement
   weekly: "calendar", // "This week" scope
   lifetime: "infinity", // "Lifetime" scope
+  globe: "globe", // world / exploration
 
   // ── Tools · media ──
   play: "play",
