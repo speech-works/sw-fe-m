@@ -1,7 +1,14 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import React, { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import {
   getDailyActivityStatsForTheWeek,
   getWeeklyReport,
@@ -13,11 +20,15 @@ import {
 } from "../../../api/progressReport/types";
 import { useUserStore } from "../../../stores/user";
 import { getFlowBenchmarkCopy } from "../../../util/flowBenchmark";
+import PressableScale from "../../../components/PressableScale";
 import {
   useTheme,
   spacing,
   radius,
   fonts,
+  borderWidth,
+  duration,
+  easing,
   Text,
   Icon,
   icons,
@@ -31,6 +42,13 @@ interface WorldExplorationGraphProps {
 
 // Fixed square size for each day cell in the week-rhythm row.
 const CELL_SIZE = 40;
+
+// A day's practice minutes, phrased for the header readout / accessibility label.
+const formatDayMinutes = (minutes: number): string => {
+  if (minutes <= 0) return "Rest day";
+  if (minutes < 1) return "<1 min";
+  return `${Math.round(minutes)} min`;
+};
 
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
@@ -47,6 +65,8 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     "This week so far • benchmarked against last week",
   );
   const [loading, setLoading] = useState<boolean>(true);
+  // Which day's peek chip is open (null = none). Presentational only.
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Configuration
   const DAILY_TARGET_MINUTES = 10;
@@ -176,6 +196,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
       const dateKey = format(dayDate, "yyyy-MM-dd");
       return {
         dayLabel: format(dayDate, "EEEEE"),
+        dayName: format(dayDate, "EEEE"),
         minutes: dataMap.get(dateKey) || 0,
         isToday: isSameDay(dayDate, today),
       };
@@ -187,20 +208,71 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     DAILY_TARGET_MINUTES * 1.3,
   );
 
+  // --- Header readout ---
+  // Tapping a day relabels the (already single-line, truncating) subtitle to
+  // "Wednesday · 12 min"; deselecting reverts to the benchmark copy. Reusing that
+  // slot makes collision / clipping / wrapping structurally impossible.
+  const selectedRhythm = selectedDay == null ? null : rhythmData[selectedDay];
+  const headerLine = selectedRhythm
+    ? `${selectedRhythm.dayName} · ${formatDayMinutes(selectedRhythm.minutes)}`
+    : comparisonSubtitle;
+
+  const reduceMotion = useReducedMotion();
+  const captionOpacity = useSharedValue(1);
+  const [shownCaption, setShownCaption] = useState(comparisonSubtitle);
+
+  // Crossfade the caption on change: fade out (fast/in), swap the string at the
+  // trough, fade in (reveal/out). Reassigning captionOpacity cancels an in-flight
+  // fade, so its callback fires with finished=false — a stale tap never lands.
+  useEffect(() => {
+    if (shownCaption === headerLine) return;
+    if (reduceMotion) {
+      setShownCaption(headerLine);
+      return;
+    }
+    captionOpacity.value = withTiming(
+      0,
+      { duration: duration.fast, easing: easing.in },
+      (finished) => {
+        if (finished) {
+          runOnJS(setShownCaption)(headerLine);
+          captionOpacity.value = withTiming(1, {
+            duration: duration.reveal,
+            easing: easing.out,
+          });
+        }
+      },
+    );
+  }, [headerLine, shownCaption, reduceMotion, captionOpacity]);
+
+  // Clear a held selection when the week's data is refetched, so the readout and
+  // ring can never point at a stale day.
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [weeklyData]);
+
+  const captionStyle = useAnimatedStyle(() => ({ opacity: captionOpacity.value }));
+
   return (
-    <View
+    <Pressable
       onLayout={(event) => {
         if (onLayoutCapture) onLayoutCapture(event);
       }}
+      // Tapping anywhere in the section that isn't a day cell clears the selection
+      // (each cell's own PressableScale captures its tap, so this only fires outside).
+      onPress={() => setSelectedDay(null)}
       accessible={true}
       accessibilityLabel={`Weekly progress: ${totalWeeklyMinutes} minutes practiced across ${daysActive} days this week`}
     >
-      {/* Header — sits directly on the page (no card container) */}
+      {/* Header — sits directly on the page (no card container). The caption
+          doubles as the per-day readout (crossfades in place on tap). */}
       <View style={styles.header}>
         <Text variant="h3" color="primary">This Week</Text>
-        <Text variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
-          {comparisonSubtitle}
-        </Text>
+        <Animated.View style={captionStyle}>
+          <Text variant="caption" color="secondary" numberOfLines={1} ellipsizeMode="tail">
+            {shownCaption}
+          </Text>
+        </Animated.View>
       </View>
 
       {/* Week rhythm — a compact strip of day cells, lit for days you practiced. */}
@@ -224,16 +296,34 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
               const hasData = d.minutes > 0;
               // Busier days glow brighter; the floor keeps even a light day clearly lit.
               const intensity = 0.6 + 0.4 * Math.min(1, d.minutes / maxMinutes);
+              const isSelected = selectedDay === index;
 
               return (
-                <View key={index} style={styles.dayCol}>
+                // Tapping a day reveals its minutes in the header readout above.
+                <PressableScale
+                  key={index}
+                  style={styles.dayCol}
+                  scaleTo={0.95}
+                  haptic={false}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${d.dayName}, ${formatDayMinutes(d.minutes).toLowerCase()}`}
+                  onPress={() => setSelectedDay((prev) => (prev === index ? null : index))}
+                >
                   {/* One cell per day — lit orange for days you practiced, quiet grey for rest days. */}
                   <View
                     style={[
                       styles.cell,
                       hasData
-                        ? { backgroundColor: colors.gamification.streak, opacity: intensity }
+                        ? {
+                            backgroundColor: colors.gamification.streak,
+                            // Selecting brightens the day to full so its ring reads crisply.
+                            opacity: isSelected ? 1 : intensity,
+                          }
                         : { backgroundColor: colors.surface.control },
+                      isSelected && {
+                        borderWidth: borderWidth.thick,
+                        borderColor: colors.border.strong,
+                      },
                     ]}
                   />
                   {/* Day label — today sits inside a small rounded accent chip. */}
@@ -248,7 +338,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
                       <Text variant="caption" color={colors.text.tertiary}>{d.dayLabel}</Text>
                     )}
                   </View>
-                </View>
+                </PressableScale>
               );
             })
           )}
@@ -276,7 +366,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
