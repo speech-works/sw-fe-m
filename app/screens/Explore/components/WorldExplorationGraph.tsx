@@ -29,12 +29,8 @@ interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
 }
 
-// Fixed ghost-bar heights for the loading skeleton (no Math.random — stable across renders).
-const SKELETON_HEIGHTS = [56, 92, 44, 104, 72, 84, 52];
-const BAR_WIDTH = 14;
-// Floor applied ONLY to days that HAVE activity, so a tiny value (e.g. <1m) still shows
-// a visible capsule. Days with zero practice render no fill at all (honest, not a dummy).
-const MIN_BAR_PERCENT = 12;
+// Fixed square size for each day cell in the week-rhythm row.
+const CELL_SIZE = 40;
 
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
@@ -207,7 +203,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         </Text>
       </View>
 
-      {/* Chart — floats on the dark page: faint track capsules + bright orange fills. */}
+      {/* Week rhythm — a compact strip of day cells, lit for days you practiced. */}
       {!hasAnyActivity ? (
         <View style={styles.emptyState}>
           <Icon name={icons.weekly} size={36} color={colors.text.secondary} />
@@ -216,31 +212,30 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           </Text>
         </View>
       ) : (
-        <View style={styles.chartRow}>
+        <View style={styles.rhythmRow}>
           {loading ? (
-            SKELETON_HEIGHTS.map((h, i) => (
-              <Skeleton key={i} width={BAR_WIDTH} height={h} radius={radius.full} />
+            Array.from({ length: 7 }).map((_, i) => (
+              <View key={i} style={styles.dayCol}>
+                <Skeleton width={CELL_SIZE} height={CELL_SIZE} radius={radius.md} />
+              </View>
             ))
           ) : (
             rhythmData.map((d, index) => {
-              const actualPercent = Math.min(100, (d.minutes / maxMinutes) * 100);
               const hasData = d.minutes > 0;
-              const fillHeight = Math.max(actualPercent, MIN_BAR_PERCENT);
+              // Busier days glow brighter; the floor keeps even a light day clearly lit.
+              const intensity = 0.6 + 0.4 * Math.min(1, d.minutes / maxMinutes);
 
               return (
-                <View key={index} style={styles.barColumn}>
-                  {/* Faint full-height track; the orange fill appears ONLY on days with
-                      real activity, its height reflecting that day's minutes. */}
-                  <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
-                    {hasData ? (
-                      <View
-                        style={[
-                          styles.fill,
-                          { height: `${fillHeight}%`, backgroundColor: colors.action.primary },
-                        ]}
-                      />
-                    ) : null}
-                  </View>
+                <View key={index} style={styles.dayCol}>
+                  {/* One cell per day — lit orange for days you practiced, quiet grey for rest days. */}
+                  <View
+                    style={[
+                      styles.cell,
+                      hasData
+                        ? { backgroundColor: colors.gamification.streak, opacity: intensity }
+                        : { backgroundColor: colors.surface.control },
+                    ]}
+                  />
                   {/* Day label — today sits inside a small rounded accent chip. */}
                   <View style={styles.dayLabelRow}>
                     {d.isToday ? (
@@ -301,34 +296,23 @@ const styles = StyleSheet.create({
   emptyText: {
     paddingHorizontal: spacing.xl,
   },
-  // Chart — floats directly on the page (no container)
-  chartRow: {
+  // Week-rhythm row — one cell per day, floats directly on the page (no container)
+  rhythmRow: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: "flex-end",
-    height: 160,
     width: "100%",
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
   },
-  barColumn: {
+  dayCol: {
     flex: 1,
-    height: "100%", // definite height so the fills' % heights resolve consistently
     alignItems: "center",
-    maxWidth: 44,
+    gap: spacing.sm,
   },
-  // Faint full-height track capsule (the "slot").
-  track: {
-    width: BAR_WIDTH,
-    flex: 1,
-    borderRadius: radius.full,
-    justifyContent: "flex-end",
-    marginBottom: spacing.sm,
-  },
-  // Bright value capsule rising from the bottom of the track.
-  fill: {
-    width: "100%",
-    borderRadius: radius.full,
+  // One day cell — lit for a practiced day, quiet grey for a rest day.
+  cell: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
+    borderRadius: radius.md,
   },
   dayLabelRow: {
     height: 28,
