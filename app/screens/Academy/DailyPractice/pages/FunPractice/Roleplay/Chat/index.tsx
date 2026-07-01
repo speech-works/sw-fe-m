@@ -1,15 +1,12 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
-  TouchableOpacity,
   UIManager,
   View,
 } from "react-native";
-import Animated from "react-native-reanimated";
 import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomScrollView, {
@@ -30,6 +27,7 @@ import {
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
+import ChatSession from "../../../../components/ChatSession";
 
 import {
   RolePlayNode,
@@ -47,7 +45,6 @@ import { useUserStore } from "../../../../../../../stores/user";
 
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
-import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
 
 // Define the message structure
 interface ChatMessage {
@@ -74,8 +71,9 @@ const Chat = () => {
   const { colors } = useTheme();
   const styles = useStyles();
   const HEADER_HEIGHT = 60;
-  const { voiceRecordingUri, setVoiceRecordingUri, submitVoiceRecording } =
-    useRecordedVoice(user?.id);
+  const { setVoiceRecordingUri, submitVoiceRecording } = useRecordedVoice(
+    user?.id,
+  );
 
   const selectedRole = useMemo(
     () =>
@@ -97,14 +95,12 @@ const Chat = () => {
   const [isDone, setIsDone] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const chatScrollRef = useRef<Animated.ScrollView>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [currentOptions, setCurrentOptions] = useState<RolePlayNodeOption[]>(
     [],
   );
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     (route.params as any).practiceActivity?.id || null,
@@ -151,7 +147,6 @@ const Chat = () => {
           },
         ]);
         setCurrentOptions(node.options || []);
-        setSelectedOptionId(null);
       } else {
         setCurrentOptions([]);
       }
@@ -160,19 +155,10 @@ const Chat = () => {
     }
   }, [currentNodeId, dialogues, hasInitialized]);
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (chatScrollRef.current && messages.length > 1) {
-      timer = setTimeout(() => {
-        chatScrollRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [messages]);
-
-  const handleSelectOption = (option: RolePlayNodeOption) => {
+  const handleAdvance = (
+    option: RolePlayNodeOption,
+    recordingUri: string | null,
+  ) => {
     if (!dialogues) return;
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -182,7 +168,9 @@ const Chat = () => {
         text: option.userLine,
       },
     ]);
-    setSelectedOptionId(option.id);
+    // Overwrite the local take each turn — the single completion upload
+    // (submitVoiceRecording) sends only this latest one.
+    setVoiceRecordingUri(recordingUri);
     setCurrentNodeId(option.nextNodeId);
   };
 
@@ -400,110 +388,31 @@ const Chat = () => {
     );
   }
 
-  // 2. Chat Layout (Flex Box + Dock)
+  // 2. Chat Layout — the shared chat session (inline suggestions + speak-to-advance).
   return (
-    <ScreenView style={styles.screenView}>
-      <StatusBar barStyle="light-content" />
-      <Background />
-      <Header />
-
-      {/* Chat Area - Expands */}
-      <View style={{ flex: 1, overflow: "hidden" }}>
-        <CustomScrollView
-          ref={chatScrollRef}
-          contentContainerStyle={[
-            styles.chatsScrollView,
-            { paddingTop: HEADER_HEIGHT + insets.top + 10 },
-          ]}
-          style={styles.chatsView}
-          scrollEventThrottle={16}
-        >
-          {/* Initial Spacer for top padding */}
-          <View style={{ height: 24 }} />
-
-          {messages.map((message) => (
-            <View
-              key={message.id}
-              style={
-                message.type === "incoming"
-                  ? styles.incomingMessage
-                  : styles.outgoingMessage
-              }
-            >
-              <Text
-                variant="body"
-                color={message.type === "incoming" ? "primary" : "inverse"}
-              >
-                {message.text}
-              </Text>
-            </View>
-          ))}
-
-          {/* Bottom Spacer for visual breathing room before input/dock */}
-          <View style={{ height: 32 }} />
-        </CustomScrollView>
-      </View>
-
-      {/* Action Dock - Fixed Bottom */}
-      <View style={styles.bottomDockContainer}>
-        {currentOptions.length > 0 && (
-          <View style={styles.suggestionsDock}>
-            <Text
-              variant="label"
-              color="tertiary"
-              style={styles.suggestionsTitleText}
-            >
-              Select a response:
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.suggestionsScrollContent}
-            >
-              {currentOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.suggestionCard,
-                    option.id === selectedOptionId
-                      ? styles.selectedSuggestionCard
-                      : null,
-                  ]}
-                  onPress={() => handleSelectOption(option)}
-                >
-                  <Text
-                    variant="body"
-                    color={option.id === selectedOptionId ? "inverse" : "primary"}
-                    style={styles.suggestionText}
-                  >
-                    {option.userLine}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <SmartRecorder
-          onRecorded={setVoiceRecordingUri}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          onDiscard={() => {
-            setVoiceRecordingUri(null);
-          }}
-        />
-      </View>
+    <>
+      <ChatSession
+        title={title}
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        messages={messages}
+        options={currentOptions}
+        onAdvance={handleAdvance}
+        onComplete={async () => {
+          setIsLoading(true);
+          try {
+            await onDonePress();
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+      />
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
@@ -542,71 +451,6 @@ const useStyles = makeStyles((c) => ({
     textAlign: "center",
     flex: 1,
     marginHorizontal: spacing.lg,
-  },
-  chatsView: {
-    flex: 1,
-  },
-  chatsScrollView: {
-    gap: spacing.xl,
-    paddingHorizontal: space.screenX,
-  },
-  incomingMessage: {
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    borderTopLeftRadius: radius.xs,
-    backgroundColor: c.surface.elevated,
-    maxWidth: "85%",
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: c.border.hairline,
-  },
-  outgoingMessage: {
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    borderBottomRightRadius: radius.xs,
-    backgroundColor: c.action.primary,
-    maxWidth: "85%",
-    alignSelf: "flex-end",
-  },
-  suggestionText: {
-    textAlign: "left",
-  },
-
-  // Bottom Dock
-  bottomDockContainer: {
-    // SmartRecorder owns its own margins/positioning.
-  },
-  suggestionsDock: {
-    marginTop: spacing.lg,
-    marginBottom: 0, // Sit right on top of recorder
-    gap: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  suggestionsScrollContent: {
-    paddingHorizontal: space.screenX,
-    gap: spacing.md,
-    paddingRight: spacing["4xl"],
-    paddingVertical: spacing.md,
-  },
-  suggestionsTitleText: {
-    marginLeft: space.screenX,
-  },
-  suggestionCard: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radius.card,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: c.surface.control,
-    borderWidth: 1,
-    borderColor: c.border.default,
-    overflow: "hidden",
-    maxWidth: 280, // Cap width for carousel
-    minWidth: 100,
-  },
-  selectedSuggestionCard: {
-    backgroundColor: c.action.primary,
-    borderColor: c.action.primary,
   },
   introContainer: {
     marginTop: spacing.sm,
