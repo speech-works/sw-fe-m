@@ -10,7 +10,7 @@ import { useEventStore } from "../../stores/events";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
-import { useTheme, useMotion, space, size, PageHeader } from "../../design-system";
+import { useTheme, useMotion, spacing, space, size, PageHeader } from "../../design-system";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
@@ -166,9 +166,10 @@ const styles = StyleSheet.create({
     marginHorizontal: space.screenX,
     marginTop: space.groupGap,
   },
-  // Extra breathing room between the page header and the first section.
+  // Extra breathing room between the page header and the first section — lets the
+  // page title "close" before the first section chip "opens".
   firstSection: {
-    marginTop: space.titleGap,
+    marginTop: spacing["4xl"],
   },
   statusCap: {
     position: "absolute",

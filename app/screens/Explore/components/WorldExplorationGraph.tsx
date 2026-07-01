@@ -40,8 +40,9 @@ interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
 }
 
-// Fixed square size for each day cell in the week-rhythm row.
-const CELL_SIZE = 40;
+// Height of each day cell; cells stretch to fill their column so the strip
+// spans the full width and its edges align with the title + stat cards.
+const CELL_HEIGHT = 32;
 
 // A day's practice minutes, phrased for the header readout / accessibility label.
 const formatDayMinutes = (minutes: number): string => {
@@ -264,8 +265,8 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
       accessible={true}
       accessibilityLabel={`Weekly progress: ${totalWeeklyMinutes} minutes practiced across ${daysActive} days this week`}
     >
-      {/* Header — sits directly on the page (no card container). The caption
-          doubles as the per-day readout (crossfades in place on tap). */}
+      {/* Header — title + caption, both flush-left so the whole section shares one
+          left edge. The caption doubles as the per-day readout (crossfades on tap). */}
       <View style={styles.header}>
         <Text variant="h3" color="primary">This Week</Text>
         <Animated.View style={captionStyle}>
@@ -288,7 +289,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           {loading ? (
             Array.from({ length: 7 }).map((_, i) => (
               <View key={i} style={styles.dayCol}>
-                <Skeleton width={CELL_SIZE} height={CELL_SIZE} radius={radius.md} />
+                <Skeleton width="100%" height={CELL_HEIGHT} radius={radius.md} />
               </View>
             ))
           ) : (
@@ -386,22 +387,23 @@ const styles = StyleSheet.create({
   emptyText: {
     paddingHorizontal: spacing.xl,
   },
-  // Week-rhythm row — one cell per day, floats directly on the page (no container)
+  // Week-rhythm row — one cell per day, spanning the full width so its edges
+  // align with the title and stat cards (floats directly on the page, no container).
   rhythmRow: {
     flexDirection: "row",
     width: "100%",
+    gap: spacing.sm,
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
   },
   dayCol: {
     flex: 1,
-    alignItems: "center",
     gap: spacing.sm,
   },
-  // One day cell — lit for a practiced day, quiet grey for a rest day.
+  // One day cell — fills its column; lit for a practiced day, quiet grey for a rest day.
   cell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
+    width: "100%",
+    height: CELL_HEIGHT,
     borderRadius: radius.md,
   },
   dayLabelRow: {
