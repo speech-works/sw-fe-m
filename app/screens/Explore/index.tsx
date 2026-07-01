@@ -1,12 +1,11 @@
 import { useRoute, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StatusBar, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
 import ScreenView from "../../components/ScreenView";
 import usePullToRefresh from "../../hooks/usePullToRefresh";
-import { useEventStore } from "../../stores/events";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
@@ -22,7 +21,6 @@ const Explore = () => {
   const { user } = useUserStore();
   const { practiceSession, setSession, clearSession } = useSessionStore();
   const { fetchSummary } = usePracticeCategorySummaryStore();
-  const { events, clear } = useEventStore();
   const insets = useSafeAreaInsets();
   const HEADER_HEIGHT = 100;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -33,6 +31,10 @@ const Explore = () => {
   // --- Scroll State for pausing animations ---
   const [isScrolling, setIsScrolling] = useState(false);
   // ----------------------------------------
+
+  // Bumped on any tap/scroll outside a day cell so "This Week" clears its selection.
+  const [deselectSignal, setDeselectSignal] = useState(0);
+  const dismissDaySelection = useCallback(() => setDeselectSignal((s) => s + 1), []);
 
   // Unused memoizations removed
 
@@ -106,7 +108,10 @@ const Explore = () => {
         refreshControl={refreshControl}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={() => setIsScrolling(true)}
+        onScrollBeginDrag={() => {
+          setIsScrolling(true);
+          dismissDaySelection();
+        }}
         onMomentumScrollBegin={() => setIsScrolling(true)}
         onScrollEndDrag={(e: any) => {
           const hasMomentum =
@@ -118,32 +123,36 @@ const Explore = () => {
         }}
         onMomentumScrollEnd={() => setIsScrolling(false)}
       >
-        <PageHeader
-          title="Explore"
-          description="Discover new ways to improve your speech."
-          standalone
-        />
+        {/* Tap target behind the content: tapping anywhere that isn't a day cell (or
+            another pressable) clears the "This Week" day selection. */}
+        <Pressable accessible={false} onPress={dismissDaySelection}>
+          <PageHeader
+            title="Explore"
+            description="Discover new ways to improve your speech."
+            standalone
+          />
 
-        {/* World Exploration Map */}
-        <Animated.View entering={m.stagger(0)} style={[styles.section, styles.firstSection]}>
-          {/* A short accent rule marks where the page header ends and content begins. */}
-          <View style={[styles.sectionRule, { backgroundColor: colors.action.primary }]} />
-          <WorldExplorationGraph />
-        </Animated.View>
+          {/* World Exploration Map */}
+          <Animated.View entering={m.stagger(0)} style={[styles.section, styles.firstSection]}>
+            {/* A short accent rule marks where the page header ends and content begins. */}
+            <View style={[styles.sectionRule, { backgroundColor: colors.action.primary }]} />
+            <WorldExplorationGraph deselectSignal={deselectSignal} />
+          </Animated.View>
 
-        {/* 4 Types of Practice Grid */}
-        <Animated.View
-          entering={m.stagger(1)}
-          style={styles.section}
-          onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}
-        >
-          <PracticeGrid isScrolling={isScrolling} />
-        </Animated.View>
+          {/* 4 Types of Practice Grid */}
+          <Animated.View
+            entering={m.stagger(1)}
+            style={styles.section}
+            onLayout={(e) => setJumpInY(e.nativeEvent.layout.y)}
+          >
+            <PracticeGrid isScrolling={isScrolling} />
+          </Animated.View>
 
-        {/* Inline Library Section */}
-        <Animated.View entering={m.stagger(2)} style={styles.section}>
-          <LibrarySection onLayoutCapture={() => {}} />
-        </Animated.View>
+          {/* Inline Library Section */}
+          <Animated.View entering={m.stagger(2)} style={styles.section}>
+            <LibrarySection onLayoutCapture={() => {}} />
+          </Animated.View>
+        </Pressable>
       </ScrollView>
 
       {/* Opaque cap so scrolled content doesn't bleed under the status bar. */}
@@ -175,8 +184,8 @@ const styles = StyleSheet.create({
   },
   // Short brand-orange rule marking the start of the content (header ↔ first section).
   sectionRule: {
-    width: 28,
-    height: 3,
+    width: 40,
+    height: 4,
     borderRadius: radius.xs,
     marginBottom: spacing.md,
   },

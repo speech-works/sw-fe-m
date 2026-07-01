@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -38,6 +38,8 @@ import {
 
 interface WorldExplorationGraphProps {
   onLayoutCapture?: (event: any) => void;
+  /** Bumped by the parent on any tap/scroll outside a day cell — clears the selection. */
+  deselectSignal?: number;
 }
 
 // Height of each day cell; cells stretch to fill their column so the strip
@@ -53,6 +55,7 @@ const formatDayMinutes = (minutes: number): string => {
 
 const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   onLayoutCapture,
+  deselectSignal,
 }) => {
   const { colors } = useTheme();
 
@@ -62,9 +65,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     useState<WeeklyReportResponse["summary"] | null>(null);
   const [minutesComparison, setMinutesComparison] =
     useState<FlowComparisonSummary | null>(null);
-  const [comparisonLabel, setComparisonLabel] = useState(
-    "This week so far • benchmarked against last week",
-  );
   const [loading, setLoading] = useState<boolean>(true);
   // Which day's peek chip is open (null = none). Presentational only.
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -82,7 +82,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           setWeeklyData([]);
           setWeeklySummary(null);
           setMinutesComparison(null);
-          setComparisonLabel("This week so far • benchmarked against last week");
           setLoading(false);
           return;
         }
@@ -108,7 +107,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         if (weeklyResult.status === "fulfilled") {
           setWeeklySummary(weeklyResult.value.summary);
           setMinutesComparison(weeklyResult.value.summary.practiceTimeComparison);
-          setComparisonLabel(weeklyResult.value.comparisonLabel);
         } else {
           console.error("Explore weekly report error:", weeklyResult.reason);
         }
@@ -139,26 +137,6 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
         ? `${totalWeeklyMinutes}m`
         : `${totalWeeklyMinutes.toFixed(1)}m`
       : `${(totalWeeklyMinutes / 60).toFixed(1)}h`;
-  const comparisonSubtitle = useMemo(() => {
-    const fallbackLabel = "Benchmarked against last week";
-
-    if (!comparisonLabel) {
-      return fallbackLabel;
-    }
-
-    const trimmedParts = comparisonLabel
-      .split("•")
-      .map((part) => part.trim())
-      .filter(Boolean);
-
-    const mostRelevantPart = trimmedParts[trimmedParts.length - 1];
-
-    if (!mostRelevantPart) {
-      return fallbackLabel;
-    }
-
-    return mostRelevantPart.charAt(0).toUpperCase() + mostRelevantPart.slice(1);
-  }, [comparisonLabel]);
   // Empty State Detection
   const hasAnyActivity = totalWeeklyMinutes > 0;
 
@@ -198,7 +176,9 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
   // stat card is labelled simply ("this week") and the comparison lives here in words.
   const benchmarkLine = minutesComparison?.hasBenchmark
     ? getFlowBenchmarkCopy(minutesComparison, "minutes").primary
-    : comparisonSubtitle;
+    : loading
+      ? "This week so far"
+      : "Your first week here";
 
   // --- Header readout ---
   // Tapping a day relabels the (already single-line, truncating) subtitle to
@@ -243,16 +223,18 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
     setSelectedDay(null);
   }, [weeklyData]);
 
+  // Clear the selection when the parent signals a tap/scroll outside a day cell.
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [deselectSignal]);
+
   const captionStyle = useAnimatedStyle(() => ({ opacity: captionOpacity.value }));
 
   return (
-    <Pressable
+    <View
       onLayout={(event) => {
         if (onLayoutCapture) onLayoutCapture(event);
       }}
-      // Tapping anywhere in the section that isn't a day cell clears the selection
-      // (each cell's own PressableScale captures its tap, so this only fires outside).
-      onPress={() => setSelectedDay(null)}
       accessible={true}
       accessibilityLabel={`Weekly progress: ${totalWeeklyMinutes} minutes practiced across ${daysActive} days this week`}
     >
@@ -358,7 +340,7 @@ const WorldExplorationGraph: React.FC<WorldExplorationGraphProps> = ({
           </View>
         </View>
       </View>
-    </Pressable>
+    </View>
   );
 };
 
