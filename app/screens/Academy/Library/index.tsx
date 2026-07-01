@@ -1,26 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
   LayoutAnimation,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   UIManager,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 import ScreenView from "../../../components/ScreenView";
 
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "../../../Theme/tokens";
-import { parseShadowStyle, parseTextStyle } from "../../../util/functions/parseStyles";
 
 import { CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -38,10 +30,22 @@ import BottomSheetModal from "../../../components/BottomSheetModal";
 import { useUserStore } from "../../../stores/user";
 import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
 import LibrarySection from "./components/LibrarySection";
-import ErrorStateCard from "../../../components/Dashboard/ErrorStateCard";
-import { ActivityIndicator } from "react-native";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
+import {
+  Text,
+  Button,
+  IconButton,
+  SearchField,
+  Spinner,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  useTheme,
+  spacing,
+  space,
+  size,
+} from "../../../design-system";
 
 // --- Data Definitions ---
 
@@ -143,6 +147,7 @@ type LibraryScreenNavigationProp = CompositeNavigationProp<
 
 const Library = () => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const exploreNavigation = useNavigation<LibraryScreenNavigationProp>();
   const route = useRoute<any>();
   const { from } = (route.params || {}) as {
@@ -168,7 +173,6 @@ const Library = () => {
     }
   };
 
-  const HEADER_HEIGHT = 60;
   const { user } = useUserStore();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -187,13 +191,6 @@ const Library = () => {
   const [selectedTechnique, setSelectedTechnique] =
     useState<TransformedTechnique | null>(null);
   const [isSelectionModalVisible, setIsSelectionModalVisible] = useState(false);
-
-  const searchBarScale = useRef(new Animated.Value(1)).current;
-  const searchIconScale = useRef(new Animated.Value(1)).current;
-  const searchAnim = useRef(new Animated.Value(0)).current;
-
-  // Header Elevation Animation based on scroll
-  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Enable LayoutAnimation on Android
   useEffect(() => {
@@ -251,48 +248,12 @@ const Library = () => {
     }
   }, [searchText, isSearching]);
 
-  // --- Animation Handlers ---
+  // --- Search Handlers ---
   const handleSearchToggle = () => {
-    Animated.sequence([
-      Animated.timing(searchIconScale, {
-        toValue: 0.85,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(searchIconScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    Animated.spring(searchBarScale, {
-      toValue: 1.02,
-      friction: 8,
-      tension: 100,
-      useNativeDriver: true,
-    }).start(() => {
-      Animated.spring(searchBarScale, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    Animated.timing(searchAnim, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
     setIsSearching(true);
   };
 
   const handleCancelSearch = () => {
-    Animated.timing(searchAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
     setIsSearching(false);
     setSearchText("");
     if (inputFieldRef.current) {
@@ -370,173 +331,62 @@ const Library = () => {
     }, 300);
   };
 
-  // Header Background Interpolation
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Premium Gradient Background - Softer, more sophisticated */}
-      <LinearGradient
-        colors={[
-          "#FFFBF7", // Very light cream
-          "#F5F7FA", // Cool gray-ish
-          "#FFFFFF",
-        ]}
-        style={styles.gradientBackground}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      {/* Dark canvas. */}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 
-      <StatusBar barStyle="dark-content" />
-
-      {/* --- Floating Glass Header --- */}
-      <View
-        style={[
-          styles.fixedHeaderContainer,
-          { paddingTop: insets.top + 10 },
-        ]}
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Dynamic Frosted Background Layer */}
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFillObject,
-            { opacity: headerBgOpacity },
-          ]}
-        >
-          <BlurView
-            intensity={80}
-            tint="light"
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
+        <PageHeader
+          title="Library"
+          description="Techniques to understand and reshape your speech."
+          onBack={handleBack}
+          right={
+            <IconButton
+              name={isSearching ? "x" : "search"}
+              onPress={isSearching ? handleCancelSearch : handleSearchToggle}
+            />
+          }
+          standalone
+        />
 
-        {/* Top Bar */}
-        <Animated.View
-          style={[
-            styles.headerTopBar,
-            { transform: [{ scale: searchBarScale }], height: HEADER_HEIGHT },
-          ]}
-        >
-          {isSearching ? (
-            <View style={styles.searchModeContainer}>
-              <View style={styles.glassSearchBar}>
-                <Icon
-                  name="search"
-                  size={16}
-                  color={theme.colors.library.orange[400]}
-                  style={styles.searchInputIcon}
-                />
-                <TextInput
-                  ref={inputFieldRef}
-                  style={styles.searchTextInput}
-                  placeholder="Find a technique..."
-                  placeholderTextColor={theme.colors.text.disabled}
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  autoFocus={true}
-                />
-                {searchText.length > 0 && (
-                  <TouchableOpacity
-                    onPress={handleClearText}
-                    style={{ padding: 4 }}
-                  >
-                    <Icon
-                      name="times-circle"
-                      size={16}
-                      color={theme.colors.text.default}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={handleCancelSearch}
-                style={styles.cancelButton}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.normalHeader}>
-              <TouchableOpacity
-                onPress={handleBack}
-                style={styles.backButton}
-              >
-                <Icon
-                  name="chevron-left"
-                  color={theme.colors.text.title}
-                  size={16}
-                />
-              </TouchableOpacity>
+        {/* Search field — revealed on demand. */}
+        {isSearching && (
+          <View style={styles.searchWrap}>
+            <SearchField
+              placeholder="Find a technique..."
+              value={searchText}
+              onChangeText={setSearchText}
+              onClear={handleClearText}
+              autoFocus
+            />
+          </View>
+        )}
 
-              <Text style={styles.headerTitle}>Library</Text>
-
-              <Animated.View
-                style={{ transform: [{ scale: searchIconScale }] }}
-              >
-                <TouchableOpacity
-                  onPress={handleSearchToggle}
-                  style={styles.searchIconButton}
-                >
-                  <LinearGradient
-                    colors={[
-                      theme.colors.library.orange[400],
-                      theme.colors.library.orange[500],
-                    ]}
-                    style={styles.searchIconGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Icon name="search" color="#FFFFFF" size={12} />
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
-          )}
-        </Animated.View>
-
-        {/* Filter Bar */}
-        <View style={styles.filterContainer}>
+        {/* Filter Bar (edge-to-edge — applies its own gutter) */}
+        <View style={styles.filterWrap}>
           <LibraryFilterBar
             currentFilter={activeFilter}
             onSelectFilter={setActiveFilter}
           />
         </View>
-      </View>
-
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + HEADER_HEIGHT + 96 }, // Significant gap after filters
-        ]}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
-        scrollEventThrottle={16}
-      >
 
         {loading && allTechniques.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={theme.colors.actionPrimary.default}
-            />
-            <Text style={styles.loadingText}>Fetching techniques...</Text>
+          <View style={styles.stateWrap}>
+            <Spinner label="Fetching techniques..." />
           </View>
         ) : error && allTechniques.length === 0 ? (
-          <View style={{ paddingHorizontal: 16 }}>
-            <ErrorStateCard
+          <View style={styles.stateWrap}>
+            <ErrorState
               onRetry={handleRetry}
-              variant="light"
               title="Library unavailable"
               message="We couldn't load the technique library. Check your connection and try again."
-              style={{ marginVertical: 20 }}
             />
           </View>
         ) : groupedData.length > 0 ? (
@@ -553,102 +403,52 @@ const Library = () => {
             />
           ))
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>
-              No techniques found matching your criteria.
-            </Text>
+          <View style={styles.stateWrap}>
+            <EmptyState
+              icon="search"
+              title="No techniques found"
+              message="Nothing matches your search or filters yet."
+            />
           </View>
         )}
-        <View style={{ height: 100 }} />
+
+        <View style={{ height: spacing["4xl"] }} />
       </ScrollView>
 
-      {/* --- Selection Modal --- */}
+      {/* --- Selection Modal (dark) --- */}
       <BottomSheetModal
         visible={isSelectionModalVisible}
         onClose={() => setIsSelectionModalVisible(false)}
         showCloseButton={true}
         fitContent={true}
+        backgroundColor={colors.surface.default}
       >
-        <LinearGradient
-          colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
+        <View
           style={[
-            styles.modalGradientContainer,
-            { paddingBottom: Math.max(insets.bottom, 48) },
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, spacing["3xl"]) },
           ]}
         >
-          {/* Watermark Background */}
-          <View style={styles.modalWatermark} pointerEvents="none">
-            <Icon
-              name={(() => {
-                const group = SLP_GROUPS.find((g) =>
-                  g.techniqueIds.includes(
-                    selectedTechnique?.id as TECHNIQUES_ENUM,
-                  ),
-                );
-                switch (group?.id) {
-                  case "UNDERSTANDING":
-                    return "eye";
-                  case "MODIFICATION":
-                    return "tools";
-                  case "FLUENCY":
-                    return "feather-alt";
-                  case "BREATHING":
-                    return "wind";
-                  case "RELAXATION":
-                    return "spa";
-                  case "VOCAL":
-                    return "microphone-alt";
-                  case "CBT_ACT":
-                    return "brain";
-                  case "EXPOSURE":
-                    return "mountain";
-                  default:
-                    return "lightbulb";
-                }
-              })()}
-              size={180}
-              color={theme.colors.library.orange[200]}
-              style={{ opacity: 0.25, transform: [{ rotate: "-15deg" }] }}
-            />
-          </View>
-
-          <Text style={styles.premiumModalTitle}>Choose Mode</Text>
-          <Text style={styles.premiumModalSubtitle}>
+          <Text variant="h2" color="primary" center style={styles.modalTitle}>
+            Choose Mode
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.modalSubtitle}>
             How would you like to practice {selectedTechnique?.name}?
           </Text>
 
-          <View style={styles.premiumModalActions}>
-            <TouchableOpacity
-              style={styles.premiumButtonShadow}
-              activeOpacity={0.8}
+          <View style={styles.modalActions}>
+            <Button
+              label="Watch Tutorial"
+              leftIcon="play"
               onPress={() => handleNavigate("TUTORIAL")}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]} // Match Start Practice gradient
-                style={styles.premiumButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.premiumButtonTextPrimary}>
-                  Watch Tutorial
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.premiumButtonSecondary}
-              activeOpacity={0.7}
+            />
+            <Button
+              label="Start Exercise"
+              variant="secondary"
               onPress={() => handleNavigate("EXERCISE")}
-            >
-              <Text style={styles.premiumButtonTextSecondary}>
-                Start Exercise
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
-        </LinearGradient>
+        </View>
       </BottomSheetModal>
     </ScreenView>
   );
@@ -658,221 +458,42 @@ export default Library;
 
 const styles = StyleSheet.create({
   screenView: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: 0,
-    backgroundColor: theme.colors.background.light,
   },
-  gradientBackground: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: -1,
-  },
-
-  // Fixed Header Complex
-  fixedHeaderContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-  },
-  glassBackground: {
-    backgroundColor: "rgba(255,255,255,0.85)",
-  },
-  headerTopBar: {
-    paddingHorizontal: 24,
-    marginBottom: 8,
-    height: 50,
-    justifyContent: "center",
-  },
-  filterContainer: {
-    paddingBottom: 8,
-  },
-
-  // Header Elements
-  normalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    marginTop: 2,
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    zIndex: -1, // Behind buttons
-  },
-  searchIconButton: {
-    width: 32, // Match back button size for symmetry? Or keep slightly larger as main action?
-    height: 32, // Let's keep original design or match 32 if desired. Original was 40.
-    borderRadius: 12, // Match shape
-    overflow: "hidden",
-    shadowColor: theme.colors.library.orange[400],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  searchIconGradient: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Search Mode
-  searchModeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  glassSearchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 44,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  searchInputIcon: {
-    marginRight: 8,
-  },
-  searchTextInput: {
-    flex: 1,
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    height: "100%",
-  },
-  cancelButton: {
-    paddingHorizontal: 4,
-  },
-  cancelButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.orange[500],
-    fontWeight: "600",
-  },
-
-  // Content
   scrollContent: {
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 0,
+    paddingBottom: size.tabBarSafe,
   },
-  contentSpacer: {
-    height: Platform.OS === "ios" ? 140 : 120, // Push content down below fixed header
+  searchWrap: {
+    paddingHorizontal: space.screenX,
+    marginTop: space.groupGap,
   },
-  emptyState: {
-    padding: 32,
+  filterWrap: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  stateWrap: {
+    paddingHorizontal: space.screenX,
+    marginTop: spacing["3xl"],
+  },
+  // Selection modal
+  modalContent: {
+    padding: spacing["3xl"],
     alignItems: "center",
-    marginTop: 40,
   },
-  emptyStateText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.gray[400],
-    textAlign: "center",
+  modalTitle: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-
-  // Premium Modal Styles
-  modalGradientContainer: {
-    padding: 32,
-    alignItems: "center",
-    paddingBottom: 48,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    position: "relative",
-    overflow: "hidden", // Clip watermark
+  modalSubtitle: {
+    marginBottom: spacing["2xl"],
+    lineHeight: 24,
   },
-  modalWatermark: {
-    position: "absolute",
-    right: -40,
-    top: -20,
-    zIndex: 0,
-  },
-  premiumModalTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#111827",
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-    letterSpacing: -0.5,
-    zIndex: 1,
-    marginTop: 16,
-  },
-  premiumModalSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#374151",
-    fontSize: 17,
-    lineHeight: 26,
-    textAlign: "center",
-    marginBottom: 32,
-    zIndex: 1,
-    opacity: 0.9,
-  },
-  premiumModalActions: {
+  modalActions: {
     width: "100%",
-    gap: 16, // Increased gap
-    zIndex: 1,
-  },
-  premiumButtonShadow: {
-    width: "100%",
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  premiumButtonGradient: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  premiumButtonTextPrimary: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-  },
-  premiumButtonSecondary: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  premiumButtonTextSecondary: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#374151",
-  },
-  loadingContainer: {
-    padding: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  loadingText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.disabled,
+    gap: spacing.md,
   },
 });

@@ -1,18 +1,18 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   ScrollView,
+  StatusBar,
+  StyleProp,
   StyleSheet,
-  Text,
+  TextStyle,
   TouchableOpacity,
   UIManager,
   View,
+  ViewStyle,
 } from "react-native";
 import Animated from "react-native-reanimated";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FixedRolePlayNode,
@@ -22,15 +22,18 @@ import { completePracticeActivity } from "../../../../../../../api/practiceActiv
 import { RecordingSourceType } from "../../../../../../../api/recordings/types";
 import CustomScrollView from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
+import {
+  IconButton,
+  Text,
+  makeStyles,
+  radius,
+  space,
+  spacing,
+} from "../../../../../../../design-system";
 import { useRecordedVoice } from "../../../../../../../hooks/useRecordedVoice";
 import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
-import { theme } from "../../../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
@@ -51,6 +54,7 @@ const Chat = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"SCChat">>();
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
   const insets = useSafeAreaInsets();
+  const styles = useStyles();
   const HEADER_HEIGHT = 60;
   const { sc, practiceActivityId, packContext, from } = route.params;
   const data = sc.practiceData || sc.socialChallengeData;
@@ -221,133 +225,74 @@ const Chat = () => {
     }
   };
 
-  // UPDATED: Render Message Text with Dark Purple Logic for Incoming ()
-  const renderMessageText = (text: string, type: "incoming" | "outgoing") => {
+  // Renders chat/option text where (parentheses) and [brackets] become solid,
+  // rounded highlight chips (the app's chip vibe). Plain text is split into
+  // per-word <Text> items so the flex row wraps naturally around the chips:
+  // unhighlighted words share the line and there are no orphaned highlighted
+  // spaces. () = primary technique, [] = the alternative. Chip fills are solid
+  // and never match a container background, so a highlight can never disappear.
+  const renderRichText = (
+    text: string,
+    baseTextStyle: StyleProp<TextStyle>,
+    containerStyle: StyleProp<ViewStyle>,
+  ) => {
     const regex = /(\[.*?\]|\(.*?\))/g;
     const segments = text.split(regex);
 
-    const baseTextStyle =
+    const nodes = segments.flatMap((segment, i) => {
+      if (!segment) return [];
+
+      const isBracket = segment.startsWith("[") && segment.endsWith("]");
+      const isParen = segment.startsWith("(") && segment.endsWith(")");
+
+      if (isBracket || isParen) {
+        let content = segment.slice(1, -1);
+        if (content.endsWith(".")) content = content.slice(0, -1);
+        return [
+          <View
+            key={`hl-${i}`}
+            style={isBracket ? styles.hlSecondary : styles.hlPrimary}
+          >
+            <Text
+              style={isBracket ? styles.hlSecondaryText : styles.hlPrimaryText}
+            >
+              {content}
+            </Text>
+          </View>,
+        ];
+      }
+
+      return segment.split(" ").flatMap((word, wIndex, arr) => {
+        if (!word) return [];
+        return [
+          <Text key={`t-${i}-${wIndex}`} style={baseTextStyle}>
+            {word}
+            {wIndex < arr.length - 1 ? " " : ""}
+          </Text>,
+        ];
+      });
+    });
+
+    return <View style={containerStyle}>{nodes}</View>;
+  };
+
+  const renderMessageText = (text: string, type: "incoming" | "outgoing") =>
+    renderRichText(
+      text,
       type === "incoming"
         ? styles.incomingMessageText
-        : styles.outgoinggMessageText;
+        : styles.outgoinggMessageText,
+      styles.richRowStart,
+    );
 
-    const components = segments.flatMap((segment, i) => {
-      if (!segment) return [];
+  // Selection is shown by the card's orange ring (selectedSuggestionCard), so
+  // option text never recolors and the chips always sit on a neutral-dark card.
+  const renderOptionText = (text: string) =>
+    renderRichText(text, styles.suggestionText, styles.richRowCenter);
 
-      const isBracket = segment.startsWith("[") && segment.endsWith("]");
-      const isParen = segment.startsWith("(") && segment.endsWith(")");
-
-      if (isBracket || isParen) {
-        let content = segment.slice(1, -1);
-        if (content.endsWith(".")) content = content.slice(0, -1);
-
-        let chipContainerStyle;
-        let chipTextStyle;
-
-        if (isBracket) {
-          // [] Brackets -> Grey
-          chipContainerStyle = styles.inlineChipGrey;
-          chipTextStyle = styles.inlineChipTextDark;
-        } else {
-          // () Parentheses logic
-          if (type === "incoming") {
-            // Incoming -> Dark Purple
-            chipContainerStyle = styles.inlineChipPurple;
-            chipTextStyle = styles.inlineChipText; // White text
-          } else {
-            // Outgoing -> Default Primary
-            chipContainerStyle = styles.inlineChip;
-            chipTextStyle = styles.inlineChipText; // White text
-          }
-        }
-
-        return [
-          <View key={`chip-${i}`} style={chipContainerStyle}>
-            <Text style={chipTextStyle}>{content}</Text>
-          </View>,
-        ];
-      }
-
-      // Normal text splitting
-      return segment.split(" ").map((word, wIndex, arr) => {
-        if (!word && wIndex !== arr.length - 1)
-          return <Text key={`space-${i}-${wIndex}`}> </Text>;
-        if (!word) return null;
-
-        return (
-          <Text key={`text-${i}-${wIndex}`} style={baseTextStyle}>
-            {word}
-            {wIndex < arr.length - 1 ? " " : ""}
-          </Text>
-        );
-      });
-    });
-
-    return <View style={styles.messageTextWrapContainer}>{components}</View>;
-  };
-
-  // Logic to render Option/Suggestion text
-  const renderOptionText = (text: string, isSelected: boolean) => {
-    const regex = /(\[.*?\]|\(.*?\))/g;
-    const segments = text.split(regex);
-
-    const components = segments.flatMap((segment, i) => {
-      if (!segment) return [];
-
-      const isBracket = segment.startsWith("[") && segment.endsWith("]");
-      const isParen = segment.startsWith("(") && segment.endsWith(")");
-
-      if (isBracket || isParen) {
-        let content = segment.slice(1, -1);
-        if (content.endsWith(".")) content = content.slice(0, -1);
-
-        const chipContainerStyle = isBracket
-          ? styles.inlineChipGrey
-          : styles.inlineChip;
-
-        const chipTextStyle = isBracket
-          ? styles.inlineChipTextDark
-          : styles.inlineChipText;
-
-        return [
-          <View key={`chip-${i}`} style={chipContainerStyle}>
-            <Text style={chipTextStyle}>{content}</Text>
-          </View>,
-        ];
-      }
-
-      return segment.split(" ").map((word, wIndex, arr) => {
-        if (!word && wIndex !== arr.length - 1)
-          return <Text key={`space-${i}-${wIndex}`}> </Text>;
-        if (!word) return null;
-
-        return (
-          <Text
-            key={`text-${i}-${wIndex}`}
-            style={[
-              styles.suggestionText,
-              isSelected ? styles.selectedSuggestionText : null,
-            ]}
-          >
-            {word}
-            {wIndex < arr.length - 1 ? " " : ""}
-          </Text>
-        );
-      });
-    });
-
-    return <View style={styles.textWrapContainer}>{components}</View>;
-  };
-
-  // Background Component
+  // Background Component — dark "Vivid" canvas (replaces the legacy light gradient).
   const Background = () => (
-    <View style={StyleSheet.absoluteFillObject}>
-      <LinearGradient
-        colors={["#FFF7ED", "#FDF2F8", "#FFFFFF"]}
-        locations={[0, 0.6, 1]}
-        style={{ flex: 1 }}
-      />
-    </View>
+    <View style={[StyleSheet.absoluteFillObject, styles.canvas]} />
   );
 
   if (isDone) {
@@ -378,31 +323,29 @@ const Chat = () => {
 
   return (
     <ScreenView style={styles.screenView}>
+      <StatusBar barStyle="light-content" />
       <Background />
 
-      <BlurView
-        intensity={80}
-        tint="light"
+      {/* Header — dark top bar (DS back button + scenario title). */}
+      <View
         style={[
           styles.topNavigationContainer,
           { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
         ]}
       >
-        <TouchableOpacity
+        <IconButton
+          name="arrow-left"
           onPress={() =>
             from === "MOOD_CHECK"
               ? navigation.navigate("Root" as any, { screen: "HOME" })
               : navigation.goBack()
           }
-          style={styles.backButton}
-        >
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        />
+        <Text variant="title" numberOfLines={1} style={styles.headerTitle}>
           {sc.name}
         </Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+        <View style={{ width: 44 }} />
+      </View>
 
       {/* Chat Area - Expands */}
       <View style={styles.chatAreaContainer}>
@@ -444,7 +387,13 @@ const Chat = () => {
       <View style={styles.bottomDockContainer}>
         {currentOptions.length > 0 && (
           <View style={styles.suggestionsDock}>
-            <Text style={styles.suggestionsTitleText}>Select a response:</Text>
+            <Text
+              variant="label"
+              color="tertiary"
+              style={styles.suggestionsTitleText}
+            >
+              Select a response:
+            </Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -463,22 +412,8 @@ const Chat = () => {
                   onPress={() => handleSelectOption(option)}
                   disabled={selectedOptionId !== null}
                 >
-                  <LinearGradient
-                    colors={
-                      option.id === selectedOptionId
-                        ? [
-                            theme.colors.actionPrimary.default,
-                            theme.colors.actionPrimary.default,
-                          ]
-                        : ["rgba(255,255,255,0.95)", "rgba(255,255,255,0.85)"]
-                    }
-                    style={StyleSheet.absoluteFill}
-                  />
                   <View style={styles.suggestionTextContainer}>
-                    {renderOptionText(
-                      option.userLine,
-                      option.id === selectedOptionId,
-                    )}
+                    {renderOptionText(option.userLine)}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -509,10 +444,13 @@ const Chat = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.background.canvas,
+  },
+  canvas: {
+    backgroundColor: c.background.canvas,
   },
   topNavigationContainer: {
     position: "absolute",
@@ -524,166 +462,139 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    paddingHorizontal: space.screenX,
+    backgroundColor: c.background.canvas,
   },
   headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
     textAlign: "center",
     flex: 1,
-    marginHorizontal: 16,
+    marginHorizontal: spacing.lg,
   },
   chatsView: {
     flex: 1,
   },
   chatsScrollView: {
-    gap: 20,
-    paddingHorizontal: 24,
+    gap: spacing.xl,
+    paddingHorizontal: space.screenX,
   },
   chatAreaContainer: {
     flex: 1,
     overflow: "hidden",
   },
   incomingMessage: {
-    padding: 16,
-    borderRadius: 20,
-    borderTopLeftRadius: 4,
-    backgroundColor: "#FFFFFF",
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    borderTopLeftRadius: radius.xs,
+    backgroundColor: c.surface.elevated,
     maxWidth: "85%",
     alignSelf: "flex-start",
-    ...parseShadowStyle(theme.shadow.elevation1),
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderColor: c.border.hairline,
   },
   incomingMessageText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: c.text.primary,
   },
   outgoingMessage: {
-    padding: 16,
-    borderRadius: 20,
-    borderBottomRightRadius: 4,
-    backgroundColor: theme.colors.library.orange[100],
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    borderBottomRightRadius: radius.xs,
+    // "You" bubble: a neutral-dark surface with an orange ring for identity —
+    // NOT an orange fill, so the warm primary highlight wash never disappears
+    // into it. Right-alignment + the ring distinguish it from incoming.
+    backgroundColor: c.surface.control,
+    borderWidth: 1,
+    borderColor: c.action.primary,
     maxWidth: "85%",
     alignSelf: "flex-end",
-    borderWidth: 1,
-    borderColor: "rgba(251, 146, 60, 0.1)",
   },
   outgoinggMessageText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#9A3412", // Dark Orange
-  },
-  chevronContainer: {
-    padding: 8,
-    alignItems: "center",
+    color: c.text.primary,
   },
   // Bottom Dock
   bottomDockContainer: {
-    // Fixed at bottom, VoiceRecorder handles its own positioning
+    // Fixed at bottom, SmartRecorder handles its own positioning
   },
   suggestionsDock: {
-    marginTop: 16,
-    marginBottom: 12,
-    gap: 12,
-    paddingVertical: 16,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
   },
   suggestionsScrollContent: {
-    paddingHorizontal: 24,
-    gap: 12,
-    paddingRight: 40,
-    paddingVertical: 12,
+    paddingHorizontal: space.screenX,
+    gap: spacing.md,
+    paddingRight: spacing["4xl"],
+    paddingVertical: spacing.md,
   },
   suggestionsTitleText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.disabled,
-    fontWeight: "600",
-    marginLeft: 24,
+    marginLeft: space.screenX,
   },
   suggestionCard: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 24,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.card,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: c.surface.control,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderColor: c.border.default,
     overflow: "hidden",
     maxWidth: 280,
     minWidth: 100,
   },
   selectedSuggestionCard: {
-    borderColor: theme.colors.actionPrimary.default,
+    // Selected state = an orange ring on a slightly-elevated neutral-dark surface
+    // (NOT an orange fill), so the highlight washes inside stay legible.
+    backgroundColor: c.surface.elevated,
+    borderColor: c.action.primary,
   },
   suggestionTextContainer: {
     // Container for the rendered option text
   },
   suggestionText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    color: c.text.primary,
     textAlign: "left",
   },
-  selectedSuggestionText: {
-    color: "#FFF",
-    fontWeight: "600",
+  richRowStart: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
   },
-  textWrapContainer: {
+  richRowCenter: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
   },
-  messageTextWrapContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    width: "100%",
+  // Solid, rounded highlight chips (the app chip vibe). Fills are solid accent
+  // colours that never match a container background, so a highlight can never
+  // disappear; marginVertical keeps wrapped lines readable when a chip is inline.
+  hlPrimary: {
+    backgroundColor: c.action.primary,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    marginHorizontal: spacing.xxs,
+    marginVertical: 1,
   },
-  inlineChip: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 0.5,
-  },
-  inlineChipText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
+  hlPrimaryText: {
     fontWeight: "700",
-    color: theme.colors.text.onDark,
+    color: c.action.onPrimary,
     includeFontPadding: false,
   },
-  inlineChipGrey: {
-    backgroundColor: "#b1a8a8ff",
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 0.5,
+  hlSecondary: {
+    backgroundColor: c.accent.purple,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    marginHorizontal: spacing.xxs,
+    marginVertical: 1,
   },
-  inlineChipTextDark: {
-    ...parseTextStyle(theme.typography.BodyDetails),
+  hlSecondaryText: {
     fontWeight: "700",
-    color: theme.colors.text.onDark,
+    color: c.accentOn.purple,
     includeFontPadding: false,
   },
-  // NEW: Dark Purple Chip Style
-  inlineChipPurple: {
-    backgroundColor: theme.colors.library.purple[400],
-    borderRadius: 6,
-    paddingHorizontal: 4,
-    paddingVertical: 0.5,
-  },
-});
+}));
 
 export default Chat;

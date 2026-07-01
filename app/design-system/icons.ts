@@ -35,6 +35,7 @@ export const icons = {
   chevronDown: "chevron-down",
   close: "x",
   add: "plus",
+  back: "arrow-left", // "go back" / previous
   forward: "arrow-right", // "go to" / next
   leave: "log-out", // leave / unpair
   copy: "copy",
@@ -75,6 +76,7 @@ export const icons = {
   rank: "medal", // level stage / rank
   milestone: "trophy", // milestone reached
   tip: "lightbulb", // a tip
+  reminder: "bell", // set/schedule a practice reminder
   affirmation: "sun", // an affirmation
   prompt: "message-circle-question-mark", // a shared question/prompt
   challenge: "target", // a shared challenge

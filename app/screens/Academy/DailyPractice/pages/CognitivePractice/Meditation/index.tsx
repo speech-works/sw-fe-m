@@ -1,31 +1,30 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
 import {
   CognitivePractice,
   CognitivePracticeType,
 } from "../../../../../../api/dailyPractice/types";
 import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import Button from "../../../../../../components/Button";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../components/ScreenView";
+import PressableScale from "../../../../../../components/PressableScale";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
-import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+  Page,
+  Surface,
+  Button,
+  Text,
+  Icon,
+  IconButton,
+  useTheme,
+  spacing,
+  space,
+  icons,
+} from "../../../../../../design-system";
 import MeditationCard from "./components/MeditationCard";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
 
@@ -48,7 +47,6 @@ import { showErrorBottomSheet } from "../../../../../../util/functions/bottomShe
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
@@ -59,7 +57,7 @@ import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreSt
 const Meditation = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Meditation">>();
   const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
   const { packContext, practiceActivity, from } = route.params || {};
@@ -96,8 +94,8 @@ const Meditation = () => {
   // URLs for background music and voice‐hover audio
   const [bgMusicUrl, setBgMusicUrl] = useState<string>();
   const [voiceHoverUrl, setVoiceHoverUrl] = useState<string>();
-  const [bgVolume, setBgVolume] = useState<number>(0.1);
-  const [hoverVolume, setHoverVolume] = useState<number>(0.8);
+  const [bgVolume] = useState<number>(0.1);
+  const [hoverVolume] = useState<number>(0.8);
 
   // Exercise playback states
   const [isPlaying, setIsPlaying] = useState<boolean>(packContext?.alreadyStarted || false);
@@ -210,7 +208,7 @@ const Meditation = () => {
 
     setCognitivePracticeId(meditationScenarios[selectedIndex]?.id || null);
 
-    // Reset playback when meditation type changes, 
+    // Reset playback when meditation type changes,
     // BUT avoid resetting on the very first mount if the pack already started the session.
     if (!isInitialMount.current || !packContext?.alreadyStarted) {
       setIsPlaying(false);
@@ -534,7 +532,7 @@ const Meditation = () => {
   const handleAbort = async () => {
     setIsPlaying(false);
     setIsStarted(false);
-    
+
     const userId = user?.id || practiceSession?.user?.id;
     if (currentActivityId && userId) {
       try {
@@ -614,39 +612,32 @@ const Meditation = () => {
   const displayMinutes = Math.floor(progress / 60);
   const displaySeconds = progress % 60;
 
-  // Immersive Practice View
+  // ── IMMERSIVE MODE (dark canvas + preserved meditation face + audio) ────────
   if (isStarted && !isDone) {
+    const sessionComplete = progress >= TOTAL_SESSION_SECONDS;
     return (
-      <View style={styles.immersiveContainer}>
-        {/* Deep Indigo Gradient to match Face - Darker Variant */}
-        <LinearGradient
-          colors={["#3949AB", "#283593", "#1A237E"]} // Darker shades of Indigo
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-
+      <View
+        style={[styles.immersiveContainer, { backgroundColor: colors.background.canvas }]}
+      >
         <View style={styles.immersiveContent}>
           {/* Timer */}
           <Text
-            style={[
-              styles.timerText,
-              { marginTop: 0 }, // Handled by container padding
-              progress >= TOTAL_SESSION_SECONDS && { color: "#4ADE80" }, // Green if > 5 mins
-            ]}
+            variant="display"
+            color={sessionComplete ? colors.feedback.successText : "primary"}
+            style={styles.timerText}
           >
             {`${displayMinutes.toString().padStart(2, "0")}:${displaySeconds
               .toString()
               .padStart(2, "0")}`}
           </Text>
 
-          {/* Large Meditation Face */}
+          {/* Large Meditation Face (preserved) */}
           <View>
             <MeditationFace size={240} />
           </View>
         </View>
 
-        {/* Audio Player (Invisible but active) */}
+        {/* Audio Player (Invisible but active) — preserved */}
         <VoiceHoverPlayer
           voiceHoverUrl={voiceHoverUrl}
           mute={mute}
@@ -657,27 +648,19 @@ const Meditation = () => {
 
         {/* Bottom Controls */}
         <View style={styles.immersiveControls}>
-          <TouchableOpacity
+          <IconButton
+            name={mute ? "volume-x" : "volume-2"}
+            variant="ghost"
             onPress={() => setMute(!mute)}
-            style={{ marginBottom: 20, alignSelf: "center", opacity: 0.8 }}
-          >
-            <Icon
-              name={mute ? "volume-mute" : "volume-up"}
-              size={24}
-              color="#FFF"
-            />
-          </TouchableOpacity>
+            color={colors.text.secondary}
+          />
 
           <Button
-            text="Complete Session"
-            variant="ghost"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.1)",
-              borderColor: "rgba(255,255,255,0.1)",
-              minWidth: 200,
-            }}
-            textColor="#F8FAFC"
+            label="Complete Session"
+            variant="secondary"
             onPress={handleCompletePress}
+            fullWidth={false}
+            style={styles.completeButton}
           />
         </View>
 
@@ -688,47 +671,33 @@ const Meditation = () => {
           showCloseButton={true}
           fitContent={true}
         >
-          <LinearGradient
-            colors={["#EFF6FF", "#DBEAFE"]}
-            style={[styles.skipModalContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}
+          <Surface
+            level="raised"
+            rounded="sheet"
+            style={[
+              styles.skipModalContainer,
+              { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
+            ]}
           >
-            <View style={styles.skipModalWatermark} pointerEvents="none">
-              <Icon
-                name="clock"
-                solid
-                size={180}
-                color={theme.colors.library.blue[200]}
-                style={{ opacity: 0.2, transform: [{ rotate: "15deg" }] }}
-              />
-            </View>
-            <Text style={styles.skipModalTitle}>Finish early?</Text>
-            <Text style={styles.skipModalDesc}>
+            <Text variant="h2" color="primary" center style={styles.skipModalTitle}>
+              Finish early?
+            </Text>
+            <Text variant="body" color="secondary" center style={styles.skipModalDesc}>
               We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
             </Text>
             <View style={styles.skipModalActions}>
-              <TouchableOpacity
-                style={styles.skipModalPrimaryButton}
+              <Button
+                label="End Session"
+                variant="primary"
                 onPress={confirmEarlyExit}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={[theme.colors.library.blue[500], theme.colors.library.blue[600]]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.skipModalButtonGradient}
-                >
-                  <Text style={styles.skipModalPrimaryButtonText}>End Session</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.skipModalSecondaryButton}
+              />
+              <Button
+                label="Continue Practice"
+                variant="secondary"
                 onPress={() => setShowEarlyExitPrompt(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.skipModalSecondaryButtonText}>Continue Practice</Text>
-              </TouchableOpacity>
+              />
             </View>
-          </LinearGradient>
+          </Surface>
         </BottomSheetModal>
 
         {exitSheet}
@@ -749,105 +718,57 @@ const Meditation = () => {
     );
   }
 
+  const tips =
+    selectedIndex !== null
+      ? meditationScenarios[selectedIndex]?.guidedMeditationData?.tips ?? []
+      : [];
+
+  // ── INTRO MODE ──────────────────────────────────────────────────────────────
   return (
     <>
-      <ScreenView style={styles.screenView}>
-        <BlurView
-          intensity={80}
-          tint="light"
-          style={[
-            styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Guided Meditation</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
+      <Page
+        title="Guided Meditation"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={<Button label="Start Exercise" onPress={handleStart} />}
+      >
+        {selectedIndex !== null && meditationScenarios[selectedIndex] && (
+          <MeditationCard
+            selectedMed={meditationScenarios[selectedIndex]}
+            onMedToggle={() => {
+              setIsVisible((old) => !old);
+            }}
+          />
+        )}
 
-        <ScrollView
-          contentContainerStyle={{
-            paddingHorizontal: 24,
-            paddingTop: HEADER_HEIGHT + insets.top + 20,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <>
-            {selectedIndex !== null && meditationScenarios[selectedIndex] && (
-              <View style={{ marginBottom: 32 }}>
-                <MeditationCard
-                  selectedMed={meditationScenarios[selectedIndex]}
-                  onMedToggle={() => {
-                    setIsVisible((old) => !old);
-                  }}
-                />
-              </View>
-            )}
-
-            {selectedIndex !== null &&
-              meditationScenarios[selectedIndex]?.guidedMeditationData?.tips &&
-              meditationScenarios[selectedIndex]?.guidedMeditationData!.tips!.length > 0 && (
-                <View style={styles.timelineSection}>
-                  <Text style={styles.sectionHeader}>Tips</Text>
-                  <View style={styles.timelineContainer}>
-                    {meditationScenarios[selectedIndex]?.guidedMeditationData!.tips!.map((tip, index, arr) => (
-                      <View key={index} style={styles.timelineItem}>
-                        <View style={styles.timelineTrack}>
-                          <View style={styles.timelineDot} />
-                          {index !== arr.length - 1 && (
-                            <View style={styles.timelineLine} />
-                          )}
-                        </View>
-                        <View style={styles.timelineContent}>
-                          <Text style={styles.timelineText}>{tip}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
+        {tips.length > 0 && (
+          <View>
+            <Text variant="h3" color="primary" style={styles.tipsHeading}>
+              Tips
+            </Text>
+            {tips.map((tip, index, arr) => (
+              <View key={index} style={styles.tipRow}>
+                <View style={styles.tipTrack}>
+                  <View
+                    style={[styles.tipDot, { backgroundColor: colors.action.primary }]}
+                  />
+                  {index !== arr.length - 1 && (
+                    <View
+                      style={[styles.tipLine, { backgroundColor: colors.border.default }]}
+                    />
+                  )}
                 </View>
-              )}
-          </>
-        </ScrollView>
-
-        {/* Start Button at bottom */}
-        <View
-          style={[
-            styles.bottomActionContainer,
-            { paddingBottom: insets.bottom || 24 },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleStart}
-            style={styles.startButton}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.library.purple[400],
-                theme.colors.library.purple[500],
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.startButtonGradient}
-            >
-              <Text style={styles.startButtonText}>Start Exercise</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </ScreenView>
+                <Text variant="body" color="secondary" style={styles.tipText}>
+                  {tip}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Page>
 
       <BottomSheetModal
         visible={isVisible}
@@ -858,85 +779,67 @@ const Meditation = () => {
         <View
           style={[
             styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
+            { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitleText}>Meditation Library</Text>
-            <Text style={styles.modalSubtitleText}>
+            <Text variant="h1" color="primary">
+              Meditation Library
+            </Text>
+            <Text variant="body" color="secondary" style={styles.modalSubtitle}>
               Select a scenario to start your practice
             </Text>
           </View>
 
-          <CustomScrollView
+          <ScrollView
             style={styles.scrollView}
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollContainer2}
+            showsVerticalScrollIndicator={false}
           >
             {meditationScenarios.map((med, index) => {
               const isSelected = selectedIndex === index;
               return (
-                <TouchableOpacity
+                <PressableScale
                   key={index}
-                  activeOpacity={0.9}
                   onPress={() => {
                     setSelectedIndex(index);
                     closeModal();
                   }}
-                  style={[
-                    styles.medCardBase,
-                    isSelected ? null : styles.medCardUnselected,
-                  ]}
                 >
-                  {isSelected ? (
-                    <LinearGradient
-                      colors={["#7C3AED", "#6D28D9"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.medCardGradient}
-                    >
-                      <View style={styles.watermarkIconContainer}>
-                        <Icon
-                          solid
-                          name={med.guidedMeditationData?.icon || "spa"}
-                          size={100}
-                          color="#FFFFFF"
-                          style={{ opacity: 0.1 }}
-                        />
-                      </View>
-                      <View style={styles.medDescContainer}>
-                        <Text style={styles.medNameTextSelected}>
-                          {med.name}
-                        </Text>
-                        <Text style={styles.medDetailTextSelected} numberOfLines={2}>
-                          {med.description}
-                        </Text>
-                      </View>
-                      <Icon name="check-circle" solid size={20} color="#FFF" />
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.medCardContent}>
-                      <View style={styles.watermarkIconContainer}>
-                        <Icon
-                          solid
-                          name={med.guidedMeditationData?.icon || "spa"}
-                          size={100}
-                          color="#94A3B8"
-                          style={{ opacity: 0.1 }}
-                        />
-                      </View>
-                      <View style={styles.medDescContainer}>
-                        <Text style={styles.medNameText}>{med.name}</Text>
-                        <Text style={styles.medDetailText} numberOfLines={2}>
-                          {med.description}
-                        </Text>
-                      </View>
+                  <Surface
+                    level={isSelected ? "elevated" : "control"}
+                    rounded="card"
+                    bordered={!isSelected}
+                    style={[
+                      styles.medCard,
+                      isSelected && { borderWidth: 1, borderColor: colors.border.selected },
+                    ]}
+                  >
+                    <View style={styles.watermarkIconContainer}>
+                      <Icon
+                        name={icons.affirmation}
+                        size={100}
+                        color={colors.text.tertiary}
+                        style={{ opacity: 0.1 }}
+                      />
                     </View>
-                  )}
-                </TouchableOpacity>
+                    <View style={styles.medDescContainer}>
+                      <Text variant="h3" color="primary">
+                        {med.name}
+                      </Text>
+                      <Text variant="bodySm" color="secondary" numberOfLines={2}>
+                        {med.description}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Icon name={icons.success} size={20} color={colors.action.primary} />
+                    )}
+                  </Surface>
+                </PressableScale>
               );
             })}
-          </CustomScrollView>
+          </ScrollView>
         </View>
       </BottomSheetModal>
 
@@ -954,310 +857,12 @@ const Meditation = () => {
 export default Meditation;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-    backgroundColor: "#FAFAFA",
-  },
-  container: {
-    gap: 32,
-    flex: 1,
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24, // Matched others
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  scrollContainer: {
-    gap: 32,
-    padding: SHADOW_BUFFER,
-    paddingBottom: 180,
-    flexGrow: 1,
-  },
-  skipModalContainer: {
-    padding: 32,
-    alignItems: "center",
-    paddingBottom: 48,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    position: "relative",
-    overflow: "hidden",
-  },
-  skipModalWatermark: {
-    position: "absolute",
-    left: -50,
-    top: -30,
-    zIndex: 0,
-  },
-  skipModalTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#1E3A8A", // Blue-900
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 16,
-    zIndex: 1,
-  },
-  skipModalDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#1E3A8A",
-    opacity: 0.8,
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
-    zIndex: 1,
-  },
-  skipModalActions: {
-    width: "100%",
-    gap: 12,
-    zIndex: 1,
-  },
-  skipModalPrimaryButton: {
-    width: "100%",
-    borderRadius: 20,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  skipModalButtonGradient: {
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipModalPrimaryButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  skipModalSecondaryButton: {
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(30,58,138,0.1)", // Border matching text blue
-  },
-  skipModalSecondaryButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#1E3A8A",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
-    width: 20,
-    marginRight: 16,
-  },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.library.purple[500],
-    marginTop: 7,
-    zIndex: 2,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#E5E7EB',
-    marginTop: 4,
-    marginBottom: -4,
-    zIndex: 1,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 24,
-  },
-  startButton: {
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontWeight: "700",
-  },
-  progressContainer: {
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface.elevated,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    padding: 24,
-    gap: 16,
-  },
-
-  progressTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  progressTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  progressDescText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
-  // Modal Styles
-  modalContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 24, // Increased top padding
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContainer2: {
-    paddingBottom: 64, // More bottom space
-    gap: 20, // Increased gap for airy feel
-    paddingTop: 12,
-  },
-  modalHeader: {
-    alignItems: "flex-start", // Left-align for editorial look
-    gap: 8,
-    marginBottom: 32, // Significant spacing
-    marginTop: 16,
-  },
-  modalTitleText: {
-    ...parseTextStyle(theme.typography.Heading1), // Heavy font
-    fontSize: 32, // Large editorial size
-    color: "#0F172A", // Slate-900 (Darker)
-    lineHeight: 38,
-    letterSpacing: -0.5,
-  },
-  modalSubtitleText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: "#64748B", // Slate-500
-    marginTop: 4,
-    maxWidth: "90%",
-    lineHeight: 24,
-  },
-
-  // Med Card Styles
-  medCardBase: {
-    width: "100%",
-    borderRadius: 24, // Squircle / Super-rounded
-    overflow: "hidden",
-  },
-  medCardUnselected: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  medCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 20, 
-    paddingHorizontal: 24,
-    minHeight: 90,
-  },
-  medCardGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    minHeight: 90,
-  },
-  watermarkIconContainer: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    transform: [{ rotate: "-15deg" }],
-    zIndex: 0,
-  },
-
-  // Text
-  medDescContainer: {
-    flex: 1,
-    gap: 6,
-  },
-  medNameText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#334155", // Slate-700
-    letterSpacing: -0.3,
-  },
-  medDetailText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#94A3B8", // Slate-400
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  medNameTextSelected: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 19,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: -0.3,
-  },
-  medDetailTextSelected: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "rgba(255,255,255,0.85)", // High contrast
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  // Immersive Styles
+  // Immersive
   immersiveContainer: {
     flex: 1,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 80, // Safe area padding for timer
+    paddingTop: spacing["6xl"],
   },
   immersiveContent: {
     flex: 1,
@@ -1266,22 +871,107 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   immersiveControls: {
-    paddingBottom: 48,
+    paddingBottom: spacing["5xl"],
     width: "100%",
     alignItems: "center",
+    gap: space.groupGap,
   },
   timerText: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 56, // Even Larger
     fontVariant: ["tabular-nums"],
-    color: "#F8FAFC",
-    marginBottom: 72,
-    opacity: 0.95,
-    fontWeight: "200", // Thinner, elegant font
-    letterSpacing: 4,
+    fontSize: 56,
     lineHeight: 80,
+    letterSpacing: 4,
+    marginBottom: spacing["6xl"],
   },
-  bottomActionContainer: {
-    paddingHorizontal: SHADOW_BUFFER + 20,
+  completeButton: {
+    minWidth: 200,
+  },
+  // Early-exit sheet
+  skipModalContainer: {
+    padding: spacing["3xl"],
+    alignItems: "center",
+    paddingBottom: spacing["5xl"],
+  },
+  skipModalTitle: {
+    marginBottom: space.groupGap,
+  },
+  skipModalDesc: {
+    marginBottom: spacing["3xl"],
+    lineHeight: 24,
+  },
+  skipModalActions: {
+    width: "100%",
+    gap: space.rowGap,
+  },
+  // Library modal
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: space.sectionGap,
+    paddingVertical: space.sectionGap,
+  },
+  modalHeader: {
+    alignItems: "flex-start",
+    gap: space.inlineGap,
+    marginBottom: spacing["3xl"],
+    marginTop: space.groupGap,
+  },
+  modalSubtitle: {
+    marginTop: space.titleSub,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContainer2: {
+    paddingBottom: spacing["6xl"],
+    gap: space.groupGap,
+    paddingTop: space.rowGap,
+  },
+  medCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: space.groupGap,
+    paddingHorizontal: space.sectionGap,
+    minHeight: 90,
+    overflow: "hidden",
+  },
+  watermarkIconContainer: {
+    position: "absolute",
+    right: -20,
+    bottom: -20,
+    transform: [{ rotate: "-15deg" }],
+    zIndex: 0,
+  },
+  medDescContainer: {
+    flex: 1,
+    gap: space.iconText,
+  },
+  // Intro tips (dark)
+  tipsHeading: {
+    marginBottom: space.groupGap,
+  },
+  tipRow: {
+    flexDirection: "row",
+  },
+  tipTrack: {
+    alignItems: "center",
+    width: 20,
+    marginRight: space.groupGap,
+  },
+  tipDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 7,
+  },
+  tipLine: {
+    width: 2,
+    flex: 1,
+    marginTop: 4,
+    marginBottom: -4,
+  },
+  tipText: {
+    flex: 1,
+    paddingBottom: spacing["3xl"],
+    lineHeight: 24,
   },
 });

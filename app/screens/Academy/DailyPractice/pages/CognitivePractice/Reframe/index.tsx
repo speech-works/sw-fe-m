@@ -1,14 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { ScrollView, StatusBar, StyleSheet, View } from "react-native";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
@@ -20,10 +12,21 @@ import {
   completePracticeActivity,
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
-import Button from "../../../../../../components/Button";
 import { useSessionStore } from "../../../../../../stores/session";
 import ScreenView from "../../../../../../components/ScreenView";
+import PressableScale from "../../../../../../components/PressableScale";
 import TextArea from "../../../../../../components/TextArea";
+import {
+  Button,
+  Surface,
+  Text,
+  Icon,
+  IconButton,
+  useTheme,
+  spacing,
+  space,
+  radius,
+} from "../../../../../../design-system";
 import {
   CDPStackNavigationProp,
   CDPStackParamList,
@@ -34,15 +37,9 @@ import {
 } from "../../../../../../navigators/stacks/ExploreStack/types";
 import { useActivityStore } from "../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../stores/user";
-import { theme } from "../../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import RainOverlay from "./components/RainOverlay";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
@@ -60,7 +57,7 @@ const Reframe = () => {
   const exploreNavigation =
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
-  const HEADER_HEIGHT = 60;
+  const { colors } = useTheme();
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null,
   );
@@ -227,7 +224,7 @@ const Reframe = () => {
       const rs = await getCognitivePracticeByType(
         CognitivePracticeType.REFRAMING_THOUGHTS,
       );
-      
+
       const recommendedId = (route.params as any)?.id;
       let targetScenario = rs[0];
       if (recommendedId) {
@@ -254,92 +251,106 @@ const Reframe = () => {
   }
 
   const currentScenario = scenarios[selectedScenarioIndex];
+  const started = !!currentActivityId;
 
   return (
     <ScreenView style={styles.screenView}>
-      {/* Background */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={["#E0E7FF", "#EEF2FF", "#FFFFFF"]} // Soft Indigo/White
-          locations={[0, 0.6, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
+      {/* Dark canvas + light status-bar glyphs (dark scaffold reference). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <SyncLoader />
 
-      {/* Header */}
-      <BlurView
-        intensity={80}
-        tint="light"
+      {/* Dark back bar */}
+      <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+          {
+            paddingTop: insets.top + space.inlineGap,
+            backgroundColor: colors.background.canvas,
+          },
         ]}
       >
-        <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.screenHeaderTitle}>Reframe Thoughts</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
+        <IconButton name="arrow-left" onPress={onBackPress} />
+        <Text variant="h3" color="primary">
+          Reframe Thoughts
+        </Text>
+        <View style={{ width: 44 }} />
+      </View>
 
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: 24,
-          paddingTop: HEADER_HEIGHT + insets.top + 20,
-          paddingBottom: insets.bottom + 80,
+          paddingHorizontal: space.screenX,
+          paddingTop: insets.top + 76,
+          paddingBottom: insets.bottom + spacing["5xl"],
         }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.cardContainer}>
-          {/* 1. Indigo/Blurple Gradient Header */}
-          <LinearGradient
-            colors={["#6366F1", "#818CF8"]} // Indigo 500 -> 400
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cardHeaderGradient}
+        <Surface level="default" rounded="card" style={styles.cardContainer}>
+          {/* 1. Solid plum header hosting the rain/sunshine overlay. */}
+          <View
+            style={[
+              styles.cardHeader,
+              { backgroundColor: colors.category.mirror },
+            ]}
           >
-            {/* Rain/Sunshine Animation - Behind everything */}
+            {/* Rain/Sunshine Animation (preserved) - Behind everything */}
             <RainOverlay
               showSunshine={!!(selectedReframe || writtenReframe.length > 0)}
             />
 
             {/* Watermark - Behind buttons */}
             <View style={styles.headerWatermark}>
-              <Icon name="cloud" size={96} color="rgba(255,255,255,0.15)" />
+              <Icon name="cloud" size={96} color={colors.categoryOn.mirror} />
             </View>
 
             {/* Buttons - On top with higher z-index */}
             <View style={styles.headerTopRow}>
-              <View style={styles.categoryPill}>
-                <Icon name="brain" size={12} color="#FFF" />
-                <Text style={styles.categoryPillText}>REFRAME</Text>
+              <View
+                style={[
+                  styles.categoryPill,
+                  { backgroundColor: colors.categoryOn.mirror },
+                ]}
+              >
+                <Icon name="wind" size={12} color={colors.category.mirror} />
+                <Text variant="caption" color={colors.category.mirror} style={styles.categoryPillText}>
+                  REFRAME
+                </Text>
               </View>
 
-              {/* Glassy Shuffle Button */}
-              <TouchableOpacity
+              {/* Shuffle Button */}
+              <PressableScale
                 onPress={toggleIndex}
-                style={styles.glassButton}
+                style={[
+                  styles.glassButton,
+                  { backgroundColor: colors.categoryOn.mirror },
+                ]}
               >
-                <Text style={styles.glassButtonText}>Shuffle</Text>
-                <Icon name="random" size={12} color="#FFF" />
-              </TouchableOpacity>
+                <Text variant="bodySm" color={colors.category.mirror}>
+                  Shuffle
+                </Text>
+                <Icon name="shuffle" size={12} color={colors.category.mirror} />
+              </PressableScale>
             </View>
-          </LinearGradient>
+          </View>
 
-          {/* 2. White Sheet Content */}
-          <View style={styles.cardBodySheet}>
+          {/* 2. Card body content */}
+          <View style={styles.cardBody}>
             {/* Content (Blurred or Visible based on state) */}
-            <View
-              style={{ opacity: !currentActivityId ? 0.3 : 1, width: "100%" }}
-            >
+            <View style={{ opacity: started ? 1 : 0.3, width: "100%" }}>
               {/* Negative Thought Section */}
               <View style={styles.negativeSection}>
                 <View style={styles.negativeLabelRow}>
-                  <Icon name="cloud-rain" size={14} color="#A5B4FC" />
-                  <Text style={styles.sectionLabel}>NEGATIVE THOUGHT</Text>
+                  <Icon name="cloud-rain" size={14} color={colors.text.tertiary} />
+                  <Text variant="label" color="tertiary">
+                    NEGATIVE THOUGHT
+                  </Text>
                 </View>
-                <Text style={styles.negativeText}>
+                <Text variant="h2" color="primary" center style={styles.negativeText}>
                   "{currentScenario?.negativeThought || "Loading..."}"
                 </Text>
               </View>
@@ -350,7 +361,7 @@ const Reframe = () => {
               {/* Reframe Options */}
               <View style={styles.positiveSection}>
                 <View style={styles.positiveLabelRow}>
-                  <Text style={styles.sectionLabelPositive}>
+                  <Text variant="label" color="link" center>
                     CHOOSE A BETTER PERSPECTIVE
                   </Text>
                 </View>
@@ -359,66 +370,87 @@ const Reframe = () => {
                   {currentScenario?.reframedThoughts.map((item, index) => {
                     const isSelected = selectedReframe === item;
                     return (
-                      <TouchableOpacity
+                      <PressableScale
                         key={index}
-                        activeOpacity={0.7} // More tactile feedback
+                        onPress={() => setSelectedReframe(item)}
                         style={[
                           styles.optionCard,
-                          isSelected && styles.optionCardSelected,
+                          {
+                            backgroundColor: isSelected
+                              ? colors.action.primaryTint
+                              : colors.surface.elevated,
+                            borderColor: isSelected
+                              ? colors.border.selected
+                              : colors.border.hairline,
+                          },
                         ]}
-                        onPress={() => setSelectedReframe(item)}
                       >
-                        {/* Radio Circle Removed - Tile Interaction */}
                         <Text
-                          style={[
-                            styles.optionText,
-                            isSelected && styles.optionTextSelected,
-                          ]}
+                          variant="body"
+                          color={isSelected ? "link" : "secondary"}
+                          center
+                          style={styles.optionText}
                         >
                           {item}
                         </Text>
-                      </TouchableOpacity>
+                      </PressableScale>
                     );
                   })}
                 </View>
 
                 {/* Write Your Own */}
                 <View style={styles.writeOwnContainer}>
-                  <Text style={styles.writeOwnLabel}>Or write your own:</Text>
+                  <Text variant="bodySm" color="tertiary" center>
+                    Or write your own:
+                  </Text>
                   <TextArea
                     value={writtenReframe}
                     onChangeText={setWrittenReframe}
                     placeholder="I can handle this by..."
                     numberOfLines={3}
-                    inputStyle={styles.textAreaInput}
-                    containerStyle={styles.textAreaWrapper}
+                    inputStyle={[styles.textAreaInput, { color: colors.text.primary }]}
+                    containerStyle={{
+                      ...styles.textAreaWrapper,
+                      backgroundColor: colors.surface.elevated,
+                      borderColor: colors.border.hairline,
+                    }}
                   />
                 </View>
 
                 {(selectedReframe || writtenReframe.length > 0) && (
                   <Button
-                    text="Submit Reframe"
+                    label="Submit Reframe"
                     onPress={() => setShowVitalsModal(true)}
-                    style={{ marginTop: 24 }}
+                    style={{ marginTop: space.sectionGap }}
                   />
                 )}
               </View>
             </View>
           </View>
-        </View>
+        </Surface>
       </ScrollView>
 
-      {/* Start Button Overlay if not started - MOVED OUTSIDE SCROLL VIEW */}
-      {!currentActivityId && (
-        <View style={[styles.startOverlay, { paddingTop: insets.top + 100 }]}>
-          <View style={styles.startContent}>
-            <Text style={styles.startTitle}>Ready to Shift Perspective?</Text>
-            <Text style={styles.startDesc}>
+      {/* Start Overlay if not started - dark scrim + card */}
+      {!started && (
+        <View
+          style={[
+            styles.startOverlay,
+            {
+              paddingTop: insets.top + 100,
+              backgroundColor: colors.overlay.scrim,
+            },
+          ]}
+        >
+          <Surface level="elevated" rounded="card" padded={spacing["4xl"]} style={styles.startContent}>
+            <Text variant="h2" color="primary" center>
+              Ready to Shift Perspective?
+            </Text>
+            <Text variant="body" color="secondary" center style={styles.startDesc}>
               Learn to identify negative thoughts and replace them with
               empowering ones.
             </Text>
             <Button
-              text="Start Exercise"
+              label="Start Exercise"
               onPress={async () => {
                 if (!cognitivePracticeId) {
                   console.warn("Missing cognitivePracticeId in Reframe start");
@@ -437,7 +469,7 @@ const Reframe = () => {
               }}
               style={styles.startButton}
             />
-          </View>
+          </Surface>
         </View>
       )}
 
@@ -467,38 +499,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  screenHeaderTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  scrollContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: space.screenX,
+    paddingBottom: space.inlineGap,
   },
 
-  // Card UI
+  // Card
   cardContainer: {
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
     overflow: "hidden",
-    minHeight: 650, // Taller card
+    minHeight: 650,
   },
-  cardHeaderGradient: {
-    padding: 24,
-    paddingBottom: 48, // Space for overlap
+  cardHeader: {
+    padding: space.sectionGap,
+    paddingBottom: spacing["5xl"], // Space for overlap
     position: "relative",
     height: 160,
     overflow: "hidden", // Clip rain/sun animation to header bounds
@@ -514,222 +526,111 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 12,
+    paddingHorizontal: space.rowGap,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderRadius: radius.chip,
   },
   categoryPillText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FFF",
-    letterSpacing: 1.5, // Airy tracking
+    letterSpacing: 1.5,
   },
   glassButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    gap: space.inlineGap,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 13,
-    color: "#FFF",
-    fontWeight: "600",
+    paddingVertical: space.inlineGap,
+    borderRadius: radius.chip,
   },
   headerWatermark: {
     position: "absolute",
     right: -20,
     bottom: -20,
-    opacity: 0.1,
+    opacity: 0.15,
     transform: [{ rotate: "-15deg" }],
   },
-  cardBodySheet: {
-    backgroundColor: "#FFFFFF",
+  cardBody: {
     marginTop: -40, // Overlap
-    paddingHorizontal: 24,
-    paddingTop: 0, // Let elements float up if needed, or stick to padding
-    paddingBottom: 40,
+    paddingHorizontal: space.sectionGap,
+    paddingBottom: spacing["4xl"],
     minHeight: 500,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
   },
 
   // Start Overlay
   startOverlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 20, // Higher zIndex
+    zIndex: 20,
     justifyContent: "flex-start",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.85)", // More opaque for focus
   },
   startContent: {
-    padding: 40,
     alignItems: "center",
-    gap: 20,
-    backgroundColor: "#FFF",
-    borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
+    gap: space.sectionGap,
     width: "85%",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  startTitle: {
-    ...parseTextStyle(theme.typography.Heading2), // Larger title
-    textAlign: "center",
-    color: "#1E1B4B", // Midnight
   },
   startDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    textAlign: "center",
-    color: "#4B5563",
     lineHeight: 24,
   },
   startButton: {
     width: "100%",
-    backgroundColor: "#4F46E5", // Indigo 600
-    height: 56,
-    borderRadius: 16,
-    shadowColor: "#4F46E5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
 
   // Content Sections
-
-  // Content Sections
-
-  // Negative Section - Modern Hero
   negativeSection: {
     width: "100%",
-    paddingHorizontal: 12,
-    marginTop: 32, // More breathing room
-    marginBottom: 24,
-    alignItems: "center", // Center content
+    paddingHorizontal: space.rowGap,
+    marginTop: spacing["3xl"],
+    marginBottom: space.sectionGap,
+    alignItems: "center",
   },
   negativeLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
-    opacity: 0.6,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 2, // Wide tracking
-    color: "#6B7280",
-    textTransform: "uppercase",
+    gap: space.inlineGap,
+    marginBottom: space.groupGap,
   },
   negativeText: {
-    ...parseTextStyle(theme.typography.Heading2), // Larger heading
-    fontSize: 28,
-    color: "#111827", // Almost black
     lineHeight: 38,
-    fontWeight: "600",
-    textAlign: "center",
   },
-
-  // Divider - Vertical Space
   dividerContainer: {
-    height: 16,
+    height: space.groupGap,
     width: "100%",
   },
-  dividerLine: { display: "none" },
-  dividerIconBox: { display: "none" },
-
-  // Positive Section
   positiveSection: {
     width: "100%",
-    gap: 16,
+    gap: space.groupGap,
   },
   positiveLabelRow: {
-    marginBottom: 12,
+    marginBottom: space.rowGap,
     alignItems: "center",
   },
-  sectionLabelPositive: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 2,
-    color: "#6366F1", // Indigo 500
-    textTransform: "uppercase",
-    textAlign: "center",
-  },
   optionsList: {
-    gap: 16,
+    gap: space.groupGap,
   },
   optionCard: {
     flexDirection: "row",
-    alignItems: "center", // Center vertically
-    padding: 24, // Larger click area
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    alignItems: "center",
+    padding: space.sectionGap,
+    borderRadius: radius.card,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-    // Modern "Float" shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.03, // Very subtle
-    shadowRadius: 16,
-    elevation: 2,
   },
-  optionCardSelected: {
-    borderColor: "#6366F1", // Indigo border
-    backgroundColor: "#F5F3FF", // Violet tint
-    shadowColor: "#6366F1", // Colored shadow glow
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  // Removed Radio Circle styles
-  radioCircle: { display: "none" },
-  radioCircleSelected: { display: "none" },
-
   optionText: {
     flex: 1,
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 17,
-    color: "#374151",
     lineHeight: 26,
-    textAlign: "center", // Center text in tile
   },
-  optionTextSelected: {
-    color: "#4338CA", // Indigo 700
-    fontWeight: "600",
-  },
-
-  // Write Own
   writeOwnContainer: {
-    marginTop: 32,
-    gap: 12,
-  },
-  writeOwnLabel: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontWeight: "600",
-    color: "#9CA3AF",
-    textAlign: "center",
+    marginTop: spacing["3xl"],
+    gap: space.rowGap,
   },
   textAreaWrapper: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 20,
-    backgroundColor: "#F9FAFB",
-    padding: 8,
+    borderRadius: radius.input,
+    padding: space.inlineGap,
   },
   textAreaInput: {
     fontSize: 16,
-    color: "#374151",
     minHeight: 100,
-    textAlign: "center", // Center input text like the cards
+    textAlign: "center",
   },
 });

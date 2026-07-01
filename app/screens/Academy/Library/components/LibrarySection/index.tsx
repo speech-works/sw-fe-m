@@ -1,31 +1,24 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   TECHNIQUE_LEVEL_ENUM,
   TransformedTechnique,
 } from "../../../../../api/library/types";
 import BottomSheetModal from "../../../../../components/BottomSheetModal";
-import { theme } from "../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../util/functions/parseStyles";
+import {
+  IconName,
+  Text,
+  Icon,
+  Button,
+  Divider,
+  useTheme,
+  spacing,
+  space,
+  radius,
+  size,
+} from "../../../../../design-system";
 import TechniqueCard from "../TechniqueCard";
-
-// Enable LayoutAnimation on Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface LibrarySectionProps {
   sectionId?: string;
@@ -47,22 +40,23 @@ const LibrarySection = ({
   onTechniqueSelect,
 }: LibrarySectionProps) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
 
   // Bento Logic:
   const isUnderstanding = sectionId === "UNDERSTANDING";
 
-  // Icon mapping for header
-  const getHeaderIcon = () => {
+  // Icon mapping for header (registry-safe Fluent glyphs).
+  const getHeaderIcon = (): IconName => {
     switch (sectionId) {
       case "UNDERSTANDING":
-        return "brain";
+        return "eye";
       case "MODIFICATION":
-        return "tools";
+        return "layers";
       case "FLUENCY":
-        return "feather";
+        return "wind";
       case "RELAXATION":
-        return "spa";
+        return "sun";
       default:
         return "lightbulb";
     }
@@ -72,64 +66,38 @@ const LibrarySection = ({
 
   return (
     <View style={styles.container}>
-      {/* Watermark - subtle background icon */}
-      <View style={styles.watermarkContainer} pointerEvents="none">
-        <Icon
-          name={
-            isUnderstanding
-              ? "brain"
-              : sectionId === "MODIFICATION"
-                ? "tools"
-                : "feather"
-          }
-          size={120}
-          color={theme.colors.library.gray[200]}
-          style={{ opacity: 0.15, transform: [{ rotate: "-15deg" }] }}
-        />
-      </View>
-
       {/* --- Minimal Header --- */}
       <View style={styles.header}>
-        {/* Title Column */}
-        <View style={styles.titleColumn}>
-          {subtitle && (
-            <View style={styles.subtitlePill}>
-              <Text style={styles.subtitleText}>{subtitle}</Text>
-            </View>
-          )}
+        {subtitle ? (
+          <Text variant="label" color="tertiary" style={styles.subtitle}>
+            {subtitle.toUpperCase()}
+          </Text>
+        ) : null}
 
-          <View style={styles.mainTitleRow}>
-            {/* Soft Icon Circle */}
-            <LinearGradient
-              colors={["#FFF7ED", "#FFEDD5"]} // Very subtle orange wash
-              style={styles.iconCircle}
-            >
-              <Icon
-                name={getHeaderIcon()}
-                size={18}
-                color={theme.colors.library.orange[500]}
-              />
-            </LinearGradient>
-
-            <Text style={styles.title}>{title}</Text>
-
-            {/* Info Icon Toggle - Opens Modal */}
-            <TouchableOpacity
-              onPress={() => setIsInfoModalVisible(true)}
-              style={styles.infoIconWrapper}
-              hitSlop={12}
-            >
-              <Icon
-                name="info-circle"
-                size={20}
-                color={
-                  isInfoModalVisible
-                    ? theme.colors.library.orange[500]
-                    : theme.colors.library.gray[300]
-                }
-              />
-            </TouchableOpacity>
+        <View style={styles.mainTitleRow}>
+          {/* Soft orange-tint icon chip. */}
+          <View
+            style={[styles.iconChip, { backgroundColor: colors.action.primaryTint }]}
+          >
+            <Icon name={getHeaderIcon()} size={size.iconSm} color={colors.action.primary} />
           </View>
+
+          <Text variant="h2" color="primary" style={styles.title}>
+            {title}
+          </Text>
+
+          {/* Info toggle — opens the section detail sheet. */}
+          <TouchableOpacity
+            onPress={() => setIsInfoModalVisible(true)}
+            style={styles.infoIconWrapper}
+            hitSlop={12}
+          >
+            <Icon
+              name="info"
+              size={size.icon}
+              color={isInfoModalVisible ? colors.action.primary : colors.text.tertiary}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -160,57 +128,47 @@ const LibrarySection = ({
         })}
       </View>
 
-      {/* --- Info Bottom Sheet --- */}
+      {/* --- Info Bottom Sheet (dark) --- */}
       <BottomSheetModal
         visible={isInfoModalVisible}
         onClose={() => setIsInfoModalVisible(false)}
         showCloseButton={true}
         fitContent={true}
+        backgroundColor={colors.surface.default}
       >
-        {/* Redesigned Premium Glassmorphic Modal Content */}
-        <LinearGradient
-          colors={["#FFFCF9", "#FFF7ED"]} // Soft beige gradient
+        <View
           style={[
-            styles.modalGradientContainer,
-            { paddingBottom: Math.max(insets.bottom, 32) },
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, spacing["3xl"]) },
           ]}
         >
-          {/* Watermark Background */}
-          <View style={styles.modalWatermark} pointerEvents="none">
-            <Icon
-              name={getHeaderIcon()}
-              size={180}
-              color={theme.colors.library.orange[200]}
-              style={{ opacity: 0.25, transform: [{ rotate: "-15deg" }] }}
-            />
+          <View style={[styles.modalIconChip, { backgroundColor: colors.action.primaryTint }]}>
+            <Icon name={getHeaderIcon()} size={size.iconLg} color={colors.action.primary} />
           </View>
 
-          <Text style={styles.modalTitle}>{title}</Text>
-          {subtitle && (
-            <Text style={styles.modalSubtitle}>{subtitle.toUpperCase()}</Text>
-          )}
+          <Text variant="h2" color="primary" center style={styles.modalTitle}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text variant="label" color="tertiary" center style={styles.modalSubtitle}>
+              {subtitle.toUpperCase()}
+            </Text>
+          ) : null}
 
-          <View style={styles.divider} />
+          <View style={styles.modalDivider}>
+            <Divider />
+          </View>
 
-          <Text style={styles.modalBody}>{aboutText}</Text>
+          <Text variant="body" color="secondary" center style={styles.modalBody}>
+            {aboutText}
+          </Text>
 
-          {/* Standard Primary Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.8}
+          <Button
+            label="Got it"
             onPress={() => setIsInfoModalVisible(false)}
-            style={styles.standardButtonWrapper}
-          >
-            <LinearGradient
-              colors={[
-                theme.colors.actionPrimary.default,
-                theme.colors.actionPrimary.default,
-              ]} // Consistently use primary action color
-              style={styles.closeButton}
-            >
-              <Text style={styles.closeButtonText}>Got it</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </LinearGradient>
+            style={styles.modalButton}
+          />
+        </View>
       </BottomSheetModal>
     </View>
   );
@@ -220,149 +178,66 @@ export default LibrarySection;
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 40,
-    position: "relative",
-    overflow: "hidden", // Clip watermark
-  },
-  watermarkContainer: {
-    position: "absolute",
-    right: -20,
-    top: 10,
-    zIndex: -1,
+    marginBottom: spacing["4xl"],
   },
   header: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    paddingHorizontal: space.screenX,
+    marginBottom: spacing.lg,
   },
-  titleColumn: {
-    // marginBottom: 8,
-  },
-  subtitlePill: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-    marginBottom: 8,
-  },
-  subtitleText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.gray[500],
-    fontWeight: "700",
-    fontSize: 10,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+  subtitle: {
+    marginBottom: spacing.sm,
   },
   mainTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
-  iconCircle: {
+  iconChip: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: radius.md,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FFEDD5", // Orange 100
   },
   title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#111827", // Gray 900
-    fontSize: 22,
     flex: 1,
-    lineHeight: 28,
   },
   infoIconWrapper: {
-    padding: 8,
+    padding: spacing.sm,
   },
   list: {
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingHorizontal: space.screenX,
+    gap: spacing.lg,
   },
-
-  // Premium Modal Styles
-  modalGradientContainer: {
-    padding: 32, // Increased padding
+  // Info sheet content
+  modalContent: {
+    padding: spacing["3xl"],
     alignItems: "center",
-    paddingBottom: 48,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    position: "relative",
-    overflow: "hidden", // Clip watermark
   },
-  modalWatermark: {
-    position: "absolute",
-    right: -40,
-    top: -20,
-    zIndex: 0,
+  modalIconChip: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.card,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   modalTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#111827",
-    fontSize: 28, // Bold & Large
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-    letterSpacing: -0.5,
-    zIndex: 1,
-    marginTop: 20,
+    marginBottom: spacing.xs,
   },
   modalSubtitle: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.gray[400],
-    fontWeight: "700",
-    fontSize: 12,
-    letterSpacing: 1.5, // Spaced out
-    marginBottom: 24,
-    textAlign: "center",
-    zIndex: 1,
+    marginBottom: spacing.lg,
   },
-  divider: {
+  modalDivider: {
     width: 60,
-    height: 4,
-    backgroundColor: "rgba(0,0,0,0.04)", // Very subtle
-    borderRadius: 2,
-    marginBottom: 32,
-    zIndex: 1,
+    marginBottom: spacing.xl,
   },
   modalBody: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#374151", // Gray 700
-    fontSize: 17, // Larger body
-    lineHeight: 28,
-    fontWeight: "400",
-    textAlign: "center",
-    marginBottom: 40,
-    opacity: 0.9,
-    zIndex: 1,
+    marginBottom: spacing["3xl"],
   },
-  standardButtonWrapper: {
+  modalButton: {
     width: "100%",
     maxWidth: 280,
-    shadowColor: theme.colors.actionPrimary.default,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-    borderRadius: 30,
-    zIndex: 1,
-  },
-  closeButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 16,
-    letterSpacing: 0.5,
   },
 });

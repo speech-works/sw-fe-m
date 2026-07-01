@@ -1,13 +1,17 @@
-import BottomSheetModal from "../../../../../../../components/BottomSheetModal";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../../../../Theme/tokens";
+import { View } from "react-native";
+import PressableScale from "../../../../../../../components/PressableScale";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
+  Dialog,
+  Icon,
+  Text,
+  elevation,
+  makeStyles,
+  radius,
+  size,
+  space,
+  useTheme,
+} from "../../../../../../../design-system";
 import ModernWaveform from "../../../../../Library/TechniquePage/components/ModernWaveform";
 import { useAudioRecorder } from "./useAudioRecorder";
 
@@ -34,6 +38,8 @@ const SmartRecorder: React.FC<Props> = ({
   onSubmit,
   onDiscard,
 }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const {
     startRecording,
     stopRecording,
@@ -76,9 +82,9 @@ const SmartRecorder: React.FC<Props> = ({
   const [isPreparing, setIsPreparing] = useState(false);
   const [showSmallAudioPrompt, setShowSmallAudioPrompt] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmitPress = () => {
     // If audio is < 1 second (1000ms), warn user.
-    if (duration > 0 && duration < 1000) {
+    if (duration < 1000) {
       setShowSmallAudioPrompt(true);
     } else {
       onSubmit?.();
@@ -127,10 +133,7 @@ const SmartRecorder: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       {/* Floating Dock */}
-      <LinearGradient
-        colors={["#FFF", "#FDFDFD"]}
-        style={[styles.dock, isRecording && styles.dockRecording]}
-      >
+      <View style={[styles.dock, isRecording && styles.dockRecording]}>
         {/* LEFT SECTION: Tools or Timer */}
         <View
           style={
@@ -145,25 +148,24 @@ const SmartRecorder: React.FC<Props> = ({
             <View style={styles.recordingIndicator}>
               <View style={styles.recordingDot} />
               <View style={styles.recordingTextContainer}>
-                <Text style={styles.recordingText}>Rec</Text>
-                <Text style={styles.timerTextRecording}>
+                <Text variant="caption" color="tertiary" style={styles.recordingText}>
+                  Rec
+                </Text>
+                <Text variant="caption" color={colors.feedback.dangerText} style={styles.timerText}>
                   {formatTime(recordingDuration)}
                 </Text>
               </View>
             </View>
           ) : isPlaying ? (
             <View style={styles.playbackIndicator}>
-              <Text style={styles.timerTextPlayback}>
+              <Text variant="bodySm" color="secondary" style={styles.timerTextPlayback}>
                 {formatTime(playbackPosition)}
               </Text>
             </View>
           ) : hasRecording ? (
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={handleDiscard}
-            >
-              <Icon name="trash" size={20} color="#94A3B8" />
-            </TouchableOpacity>
+            <PressableScale style={styles.controlButton} onPress={handleDiscard}>
+              <Icon name="trash-2" size={size.icon} color={colors.text.tertiary} />
+            </PressableScale>
           ) : (
             <View style={styles.toolsWrapper}>{renderTools?.()}</View>
           )}
@@ -181,9 +183,7 @@ const SmartRecorder: React.FC<Props> = ({
                 mode={state}
                 height={32}
                 glowColor={
-                  isRecording
-                    ? theme.colors.library.red[500]
-                    : theme.colors.library.orange[500]
+                  isRecording ? colors.feedback.danger : colors.action.primary
                 }
                 points={POINTS}
               />
@@ -194,158 +194,90 @@ const SmartRecorder: React.FC<Props> = ({
         {/* Play Button for Review (Center) - Only if hasRecording and NOT playing/recording */}
         {hasRecording && !isPlaying && !isRecording && (
           <View style={styles.centerSection}>
-            <TouchableOpacity style={styles.playButton} onPress={handlePlay}>
-              <LinearGradient
-                colors={["#FFF", "#F5F5F5"]}
-                style={StyleSheet.absoluteFill}
-              />
+            <PressableScale style={styles.playButton} onPress={handlePlay}>
               <Icon
                 name="play"
-                size={20}
-                color="#94A3B8"
+                size={size.icon}
+                color={colors.action.primary}
                 style={{ marginLeft: 3 }}
               />
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         )}
 
         {/* Duration text perfectly centered between Left (Trash) and Center (Play) */}
         {hasRecording && !isPlaying && !isRecording && (
           <View style={styles.reviewTimerContainer} pointerEvents="none">
-            <Text style={styles.timerTextPlayback}>{formatTime(duration)}</Text>
+            <Text variant="bodySm" color="secondary" style={styles.timerTextPlayback}>
+              {formatTime(duration)}
+            </Text>
           </View>
         )}
 
         {/* RIGHT SECTION: Stop/Submit */}
         <View style={styles.rightSection}>
           {isRecording ? (
-            <TouchableOpacity
-              style={styles.stopButton}
-              onPress={handleStopRecording}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.red[500],
-                  theme.colors.library.red[600],
-                ]}
-                style={StyleSheet.absoluteFill}
-              />
-              <Icon name="stop" size={16} color="#FFF" />
-            </TouchableOpacity>
+            <PressableScale style={styles.stopButtonRecording} onPress={handleStopRecording}>
+              <Icon name="square" size={size.iconSm} color={colors.accentOn.danger} />
+            </PressableScale>
           ) : isPlaying ? (
-            <TouchableOpacity
-              style={styles.stopButton}
-              onPress={handleStopPlay}
-            >
-              <LinearGradient
-                colors={["#F1F5F9", "#E2E8F0"]}
-                style={StyleSheet.absoluteFill}
-              />
-              <Icon name="stop" size={16} color={theme.colors.text.default} />
-            </TouchableOpacity>
+            <PressableScale style={styles.stopButton} onPress={handleStopPlay}>
+              <Icon name="square" size={size.iconSm} color={colors.text.primary} />
+            </PressableScale>
           ) : hasRecording ? (
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Icon name="check" size={20} color="#FFF" />
-            </TouchableOpacity>
+            <PressableScale style={styles.submitButton} onPress={handleSubmitPress}>
+              <Icon name="check" size={size.icon} color={colors.action.onPrimary} />
+            </PressableScale>
           ) : (
             // Idle Right: Mic Button
-            <TouchableOpacity
-              style={styles.mainMicButton}
+            <PressableScale
+              style={[styles.mainMicButton, isPreparing && styles.mainMicButtonPreparing]}
               onPress={handleStartRecording}
               disabled={isPreparing}
             >
-              <LinearGradient
-                colors={
-                  isPreparing
-                    ? [
-                        theme.colors.library.gray[200],
-                        theme.colors.library.gray[300],
-                      ]
-                    : [
-                        theme.colors.library.orange[400],
-                        theme.colors.library.orange[500],
-                      ]
-                }
-                style={StyleSheet.absoluteFill}
+              <Icon
+                name="mic"
+                size={size.icon}
+                color={isPreparing ? colors.action.disabledText : colors.action.onPrimary}
               />
-              <Icon name="microphone" size={20} color="#FFF" />
-            </TouchableOpacity>
+            </PressableScale>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
-      {/* Small Audio Prompt Bottom Sheet */}
-      <BottomSheetModal
+      {/* Small Audio Prompt */}
+      <Dialog
         visible={showSmallAudioPrompt}
         onClose={() => setShowSmallAudioPrompt(false)}
-        showCloseButton={true}
-        fitContent={true}
-      >
-        <LinearGradient
-          colors={["#FFFCF9", "#FFF7ED"]}
-          style={styles.modalGradientContainer}
-        >
-          <View style={styles.modalIconContainer}>
-            <Icon name="exclamation-circle" size={48} color={theme.colors.library.orange[400]} />
-          </View>
-          <Text style={styles.premiumModalTitle}>Wait a moment</Text>
-          <Text style={styles.premiumModalSubtitle}>
-            The audio clip is absent or too small. Would you like to complete the task without submitting your voice recording?
-          </Text>
-
-          <View style={styles.premiumModalActions}>
-            <TouchableOpacity
-              style={styles.premiumButtonShadow}
-              activeOpacity={0.8}
-              onPress={confirmSmallAudioSubmit}
-            >
-              <LinearGradient
-                colors={[theme.colors.actionPrimary.default, theme.colors.actionPrimary.default]}
-                style={styles.premiumButtonGradient}
-              >
-                <Text style={styles.premiumButtonTextPrimary}>Yes, Complete Task</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.premiumButtonSecondary}
-              activeOpacity={0.7}
-              onPress={() => setShowSmallAudioPrompt(false)}
-            >
-              <Text style={styles.premiumButtonTextSecondary}>No, Record Again</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </BottomSheetModal>
+        title="Audio too short"
+        message="The audio clip is absent or too small. Would you like to complete the task without submitting your voice recording?"
+        confirmLabel="Submit Anyway"
+        onConfirm={confirmSmallAudioSubmit}
+        cancelLabel="Cancel"
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: space.screenX,
     marginBottom: 34, // Safe area margin
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
   dock: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 8,
-    borderRadius: 35,
-    backgroundColor: "#FFFFFF",
+    borderRadius: radius.pill,
+    backgroundColor: c.surface.material,
     height: 70,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    borderColor: c.border.default,
+    ...elevation.e2,
   },
   dockRecording: {
-    backgroundColor: "#FFF",
-    borderColor: theme.colors.library.red[200],
+    borderColor: c.feedback.danger,
     borderWidth: 2,
   },
   stopButton: {
@@ -355,12 +287,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    backgroundColor: c.surface.control,
+  },
+  stopButtonRecording: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: c.feedback.danger,
   },
   separator: {
     width: 1,
     height: 32,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: c.border.default,
     marginHorizontal: 12,
   },
   leftSection: {
@@ -423,19 +364,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.library.red[500],
+    backgroundColor: c.feedback.danger,
     marginRight: 6,
   },
   recordingText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "#94A3B8",
-    fontWeight: "700",
     fontSize: 12,
   },
-  timerTextRecording: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.red[500],
-    fontWeight: "700",
+  timerText: {
     fontSize: 12,
   },
   playbackIndicator: {
@@ -443,9 +378,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   timerTextPlayback: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.library.orange[500],
-    fontWeight: "600",
     fontSize: 14,
   },
   toolsWrapper: {
@@ -458,7 +390,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: c.action.primary,
+  },
+  mainMicButtonPreparing: {
+    backgroundColor: c.action.disabledBg,
   },
   controlButton: {
     width: 48,
@@ -471,10 +406,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: c.action.primary,
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation2),
   },
   playButton: {
     width: 48,
@@ -483,63 +417,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: "#FFF",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    backgroundColor: c.surface.control,
   },
-  modalGradientContainer: {
-    padding: 32,
-    alignItems: "center",
-    paddingBottom: 48,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-  },
-  modalIconContainer: {
-    marginBottom: 16,
-  },
-  premiumModalTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#111827",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  premiumModalSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#374151",
-    textAlign: "center",
-    marginBottom: 32,
-    opacity: 0.9,
-  },
-  premiumModalActions: {
-    width: "100%",
-    gap: 16,
-  },
-  premiumButtonShadow: {
-    borderRadius: 16,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  premiumButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-  },
-  premiumButtonTextPrimary: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-  },
-  premiumButtonSecondary: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: "#F3F4F6",
-  },
-  premiumButtonTextSecondary: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#4B5563",
-  },
-});
+}));
 
 export default SmartRecorder;

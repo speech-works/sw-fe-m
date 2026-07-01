@@ -1,26 +1,14 @@
-// FORCE REFRESH BUNDLER - SYSTEM SYNC 1
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import FAIcon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CustomScrollView, {
-  SHADOW_BUFFER,
-} from "../../../../../../../components/CustomScrollView";
+import CustomScrollView from "../../../../../../../components/CustomScrollView";
 import ScreenView from "../../../../../../../components/ScreenView";
 import {
   CharacterVoiceFDPStackNavigationProp,
   CharacterVoiceFDPStackParamList,
 } from "../../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/FunPracticeStack/CharacterVoicePracticeStack/types";
-import { theme } from "../../../../../../../Theme/tokens";
 import { getFunPracticeById } from "../../../../../../../api/dailyPractice";
 
 import {
@@ -34,9 +22,15 @@ import { useActivityStore } from "../../../../../../../stores/activity";
 import { useSessionStore } from "../../../../../../../stores/session";
 import { useUserStore } from "../../../../../../../stores/user";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../../util/functions/parseStyles";
+  Page,
+  Button,
+  Text,
+  Icon,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+} from "../../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
@@ -47,6 +41,7 @@ const CVExercise = () => {
   const navigation =
     useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
@@ -100,7 +95,6 @@ const CVExercise = () => {
   const [currentActivityId, setCurrentActivityId] = useState<string | null>(
     null,
   );
-  const canUseHardMode = (user?.fearedSounds?.length ?? 0) > 0;
 
   const toggleIndex = () => {
     if (texts && texts.length > 0) {
@@ -231,7 +225,7 @@ const CVExercise = () => {
     );
   }
 
-  // 1. Pre-Practice (Tips) View
+  // 1. Pre-Practice (Tips) View — DETAIL recipe on the dark canvas.
   if (!currentActivityId) {
     const tipsArray = effectiveCvData?.hints || [
       "Get into character and have fun.",
@@ -240,129 +234,75 @@ const CVExercise = () => {
     ];
 
     return (
-      <ScreenView style={[styles.screenView, { backgroundColor: "#FAFAFA" }]}>
-        <View style={styles.container}>
-          <BlurView
-            intensity={80}
-            tint="light"
-            style={[
-              styles.topNavigationContainer,
-              {
-                paddingTop: insets.top + 10,
-                height: HEADER_HEIGHT + insets.top,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() =>
-                from === "MOOD_CHECK"
-                  ? navigation.navigate("Root" as any, { screen: "HOME" })
-                  : navigation.goBack()
+      <Page
+        title="Character Voice"
+        description="Express yourself by adopting fun personas and practicing different vocal styles."
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        footer={
+          <Button
+            label="Start Practice"
+            onPress={async () => {
+              setIsStarting(true);
+              try {
+                await markActivityStart();
+              } finally {
+                setIsStarting(false);
               }
-              style={styles.backButton}
-            >
-              <Icon
-                name="chevron-left"
-                size={16}
-                color={theme.colors.text.title}
-              />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Voice Practice</Text>
-            <View style={{ width: 32 }} />
-          </BlurView>
-
-          <View style={styles.container}>
-            <ScrollView
-              key="tips-scroll"
-              contentContainerStyle={{
-                paddingHorizontal: 24,
-                paddingTop: HEADER_HEIGHT + insets.top + 20,
-                paddingBottom: 120,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.heroSection}>
-                <Text style={styles.heroTitle}>Character Voice</Text>
-                <Text style={styles.heroDescription}>
-                  Express yourself by adopting fun personas and practicing different vocal styles.
-                </Text>
-              </View>
-
-              <View style={styles.timelineSection}>
-                <Text style={styles.sectionHeader}>Tips</Text>
-                <View style={styles.timelineContainer}>
-                  {tipsArray.map((tip, index, arr) => (
-                    <View key={index} style={styles.timelineItem}>
-                      <View style={styles.timelineTrack}>
-                        <View style={styles.timelineDot} />
-                        {index !== arr.length - 1 && (
-                          <View style={styles.timelineLine} />
-                        )}
-                      </View>
-                      <View style={styles.timelineContent}>
-                        <Text style={styles.timelineText}>{tip}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Fixed Start Button at bottom */}
-            <View
-              style={[
-                styles.bottomActionContainer,
-                { paddingBottom: insets.bottom || 24 },
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={async () => {
-                  setIsStarting(true);
-                  try {
-                    await markActivityStart();
-                  } finally {
-                    setIsStarting(false);
-                  }
-                }}
-                disabled={isStarting}
-                style={styles.startButton}
-              >
-                <LinearGradient
-                  colors={[
-                    theme.colors.library.orange[400],
-                    theme.colors.library.orange[500],
+            }}
+            loading={isStarting}
+            disabled={isStarting}
+          />
+        }
+      >
+        {/* Tips — a dot timeline on the dark canvas. */}
+        <View>
+          <Text variant="h3" color="primary" style={styles.tipsHeading}>
+            Tips
+          </Text>
+          {tipsArray.map((tip, index, arr) => (
+            <View key={index} style={styles.tipRow}>
+              <View style={styles.tipTrack}>
+                <View
+                  style={[
+                    styles.tipDot,
+                    { backgroundColor: colors.action.primary },
                   ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.startButtonGradient}
-                >
-                  <Text style={styles.startButtonText}>Start Practice</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                />
+                {index !== arr.length - 1 && (
+                  <View
+                    style={[
+                      styles.tipLine,
+                      { backgroundColor: colors.border.default },
+                    ]}
+                  />
+                )}
+              </View>
+              <Text variant="body" color="secondary" style={styles.tipText}>
+                {tip}
+              </Text>
             </View>
-          </View>
+          ))}
         </View>
-      </ScreenView>
+      </Page>
     );
   }
 
-  // 2. Active Practice View
+  // 2. Active Practice View — re-themed to the dark canvas (exercise logic intact).
   return (
-    <ScreenView style={styles.screenView}>
-      <LinearGradient
-        colors={["#FFF7ED", "#FFEDD5", "#FFF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0.6 }}
-        style={StyleSheet.absoluteFill}
-      />
+    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
       <View style={styles.container}>
-        <BlurView
-          intensity={80}
-          tint="light"
+        <View
           style={[
             styles.topNavigationContainer,
-            { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
+            {
+              paddingTop: insets.top + 10,
+              height: HEADER_HEIGHT + insets.top,
+              backgroundColor: colors.background.canvas,
+            },
           ]}
         >
           <TouchableOpacity
@@ -371,17 +311,18 @@ const CVExercise = () => {
                 ? navigation.navigate("Root" as any, { screen: "HOME" })
                 : navigation.goBack()
             }
-            style={styles.backButton}
+            style={[
+              styles.backButton,
+              { backgroundColor: colors.surface.control },
+            ]}
           >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
+            <Icon name="chevron-left" size={16} color={colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Voice Practice</Text>
+          <Text variant="h3" color="primary">
+            Voice Practice
+          </Text>
           <View style={{ width: 32 }} />
-        </BlurView>
+        </View>
 
         <View style={styles.container}>
           <CustomScrollView
@@ -394,63 +335,104 @@ const CVExercise = () => {
               },
             ]}
           >
-            <View style={styles.cardContainer}>
-              {/* 1. Warm Gradient Header */}
-              <LinearGradient
-                colors={["#2DD4BF", "#0F766E"]} // Teal 400 -> Teal 700 (Matching Character Voice Theme)
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardHeaderGradient}
+            <View
+              style={[
+                styles.cardContainer,
+                { backgroundColor: colors.surface.default },
+              ]}
+            >
+              {/* 1. Accent Header (solid) */}
+              <View
+                style={[
+                  styles.cardHeader,
+                  { backgroundColor: colors.accent.purple },
+                ]}
               >
                 <View style={styles.headerTopRow}>
-                  <View style={styles.categoryPill}>
-                    <Icon name="microphone-alt" size={12} color="#115E59" />
-                    <Text style={styles.categoryPillText}>VOICE</Text>
+                  <View
+                    style={[
+                      styles.categoryPill,
+                      { backgroundColor: colors.surface.default },
+                    ]}
+                  >
+                    <Icon
+                      name={icons.voiceTool}
+                      size={12}
+                      color={colors.text.primary}
+                    />
+                    <Text variant="label" color="primary">
+                      VOICE
+                    </Text>
                   </View>
 
-                  {/* Glassy Next Button */}
+                  {/* Next Button */}
                   <TouchableOpacity
                     onPress={toggleIndex}
-                    style={styles.glassButton}
+                    style={[
+                      styles.nextButton,
+                      { backgroundColor: colors.surface.default },
+                    ]}
                   >
-                    <Text style={styles.glassButtonText}>Next</Text>
-                    <Icon name="chevron-right" size={12} color="#FFF" />
+                    <Text variant="label" color="primary">
+                      Next
+                    </Text>
+                    <Icon
+                      name={icons.chevronRight}
+                      size={12}
+                      color={colors.text.primary}
+                    />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.titleContainer}>
-                  <Text style={styles.articleTitle}>{effectiveName}</Text>
+                  <Text
+                    variant="h2"
+                    color={colors.accentOn.purple}
+                    style={styles.articleTitle}
+                  >
+                    {effectiveName}
+                  </Text>
                   <AudioPlaybackButton
                     audioUrl={effectiveCvData?.exampleAudioUrl}
                     iconSize={14}
-                    activeColor="#FFF"
-                    style={styles.playbackButton}
+                    activeColor={colors.accentOn.purple}
+                    style={[
+                      styles.playbackButton,
+                      { backgroundColor: colors.surface.default },
+                    ]}
                   />
                 </View>
 
                 {/* Watermark */}
-                <View style={styles.headerWatermark}>
+                <View style={styles.headerWatermark} pointerEvents="none">
                   <Icon
-                    name="microphone-alt"
+                    name={icons.voiceTool}
                     size={96}
-                    color="rgba(255,255,255,0.15)"
+                    color={colors.accentOn.purple}
                   />
                 </View>
-              </LinearGradient>
+              </View>
 
-              {/* 2. White Sheet Content */}
-              <View style={styles.cardBodySheet}>
-                {/* Internal Watermark */}
-                <View style={styles.sheetWatermarkContainer}>
-                  <Icon
+              {/* 2. Sheet Content */}
+              <View
+                style={[
+                  styles.cardBodySheet,
+                  { backgroundColor: colors.surface.default },
+                ]}
+              >
+                {/* Internal Watermark — server-driven character glyph (FontAwesome). */}
+                <View style={styles.sheetWatermarkContainer} pointerEvents="none">
+                  <FAIcon
                     name={effectiveCvData?.icon || "user"}
                     size={120}
-                    color={theme.colors.library.orange[200]}
+                    color={colors.surface.control}
                   />
                 </View>
 
                 <View style={styles.textArea}>
-                  <Text style={styles.readingText}>{texts[currentIndex]}</Text>
+                  <Text variant="h2" color="primary" style={styles.readingText}>
+                    {texts[currentIndex]}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -488,19 +470,13 @@ export default CVExercise;
 const styles = StyleSheet.create({
   screenView: {
     paddingBottom: 0,
-    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
   },
-  tipsScrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 32,
-  },
   scrollContent: {
-    paddingVertical: SHADOW_BUFFER,
-    paddingHorizontal: 24,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing["2xl"],
     // Bottom padding inserted dynamically via style prop
   },
   topNavigationContainer: {
@@ -512,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing["2xl"],
   },
   backButton: {
     width: 32,
@@ -520,56 +496,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerHardModeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerHardModeActive: {
-    backgroundColor: "#FFF7ED",
-    borderColor: "rgba(234, 88, 12, 0.3)",
-  },
-  activeDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EA580C",
-    borderWidth: 1.5,
-    borderColor: "#FFF",
   },
   // Card Styles
   cardContainer: {
     borderRadius: 32,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#FFFFFF",
     overflow: "hidden", // Clip the sheet
     minHeight: 450,
   },
-  cardHeaderGradient: {
-    padding: 24,
+  cardHeader: {
+    padding: spacing["2xl"],
     paddingBottom: 48, // Space for overlap
     position: "relative",
     height: 180,
@@ -582,46 +517,27 @@ const styles = StyleSheet.create({
   categoryPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    gap: spacing.xs,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: radius.chip,
   },
-  categoryPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#115E59",
-    letterSpacing: 1,
-  },
-  glassButton: {
+  nextButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  glassButtonText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "600",
+    borderRadius: radius.chip,
   },
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 24,
-    gap: 12,
+    marginTop: spacing["2xl"],
+    gap: spacing.md,
     zIndex: 1,
   },
   articleTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFF",
-    fontSize: 26,
     zIndex: 1,
   },
   headerWatermark: {
@@ -632,12 +548,11 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
   },
   cardBodySheet: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     marginTop: -40, // Overlap
-    padding: 24,
-    paddingBottom: 40,
+    padding: spacing["2xl"],
+    paddingBottom: spacing["4xl"],
     minHeight: 300,
     alignItems: "center",
     justifyContent: "center", // Center text vertically
@@ -653,7 +568,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   textArea: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     alignItems: "center",
     zIndex: 1,
   },
@@ -661,112 +576,43 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
     justifyContent: "center",
     alignItems: "center",
     padding: 0, // Override default padding
   },
   readingText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.default,
     lineHeight: 36,
-    fontSize: 24,
     textAlign: "center",
-  },
-
-  tipsScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    gap: 16,
-  },
-  startButton: {
-    marginTop: 20,
-    borderRadius: 20,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    marginBottom: 0,
-  },
-  startButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 20,
-    gap: 10,
-  },
-  startButtonText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontWeight: "700",
   },
   // Recorder Dock
   actionDockWrapper: {},
-  bottomActionContainer: {
-    paddingHorizontal: 24,
+  // Pre-practice tips (dark)
+  tipsHeading: {
+    marginBottom: spacing.lg,
   },
-  // Timeline & Hero Styles
-  heroSection: {
-    marginBottom: 32,
+  tipRow: {
+    flexDirection: "row",
   },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading1),
-    fontSize: 40,
-    color: '#111827',
-    marginBottom: 12,
-    letterSpacing: -1,
-    lineHeight: 48,
-  },
-  heroDescription: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#4B5563',
-    lineHeight: 24,
-  },
-  timelineSection: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    color: '#111827',
-    marginBottom: 24,
-  },
-  timelineContainer: {
-    paddingLeft: 4,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-  },
-  timelineTrack: {
-    alignItems: 'center',
+  tipTrack: {
+    alignItems: "center",
     width: 20,
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
-  timelineDot: {
+  tipDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.library.blue[500],
     marginTop: 7,
-    zIndex: 2,
   },
-  timelineLine: {
+  tipLine: {
     width: 2,
     flex: 1,
-    backgroundColor: '#E5E7EB',
     marginTop: 4,
     marginBottom: -4,
-    zIndex: 1,
   },
-  timelineContent: {
+  tipText: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  timelineText: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    color: '#374151',
+    paddingBottom: spacing["2xl"],
     lineHeight: 24,
   },
 });

@@ -1,5 +1,4 @@
 // DAFTool.tsx
-import Slider from "@react-native-community/slider";
 import {
   Audio,
   InterruptionModeAndroid,
@@ -7,28 +6,27 @@ import {
 } from "expo-av";
 import { Buffer } from "buffer";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import PCM from "react-native-pcm-player-lite";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
 import {
   AUDIO_FORMATS,
   AUDIO_SOURCES,
   CHANNEL_CONFIGS,
   InputAudioStream,
 } from "@dr.pogodin/react-native-audio";
-import { theme } from "../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  useTheme,
+  spacing,
+  radius,
+  borderWidth,
+  Text,
+  Icon,
+  icons,
+  Button,
+  Slider,
+  Spinner,
+  Dialog,
+} from "../../../../design-system";
 import { isHeadsetConnected } from "../../../../util/functions/headset";
 
 interface AudioChunk {
@@ -348,6 +346,7 @@ export function DAFTool({
   onDismissHeadsetPrompt,
   onRecheckHeadset,
 }: DAFToolProps) {
+  const { colors } = useTheme();
   const isControlled = controlledIsActive !== undefined;
 
   const internalHook = useDAF(isControlled);
@@ -414,10 +413,7 @@ export function DAFTool({
     // If null, it means loading.
     return (
       <View style={[styles.container, styles.centerContent, style]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.statusText}>
-          Requesting microphone permission...
-        </Text>
+        <Spinner label="Requesting microphone permission..." />
       </View>
     );
   }
@@ -426,272 +422,203 @@ export function DAFTool({
     // Controlled mode + null permission = also loading
     return (
       <View style={[styles.container, styles.centerContent, style]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.statusText}>
-          Requesting microphone permission...
-        </Text>
+        <Spinner label="Requesting microphone permission..." />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, style]}>
+      {/* Hero — free-floating eyebrow/title + headset status on the sheet surface. */}
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View style={styles.heroHeaderText}>
-            <Text style={styles.heroEyebrow}>DAF</Text>
-            <Text style={styles.heroTitle}>Delayed feedback</Text>
+            <Text variant="label" color="tertiary">
+              DAF
+            </Text>
+            <Text variant="h3" color="primary">
+              Delayed feedback
+            </Text>
           </View>
 
           <View
             style={[
               styles.statusBadge,
-              activeHeadsetConnected
-                ? styles.statusBadgeReady
-                : styles.statusBadgeWarning,
+              {
+                backgroundColor: activeHeadsetConnected
+                  ? colors.accentTint.success
+                  : colors.accentTint.danger,
+              },
             ]}
           >
-            <FAIcon
-              name="headphones-alt"
+            <Icon
+              name={icons.headphones}
               size={13}
               color={
                 activeHeadsetConnected
-                  ? "#10B981"
-                  : theme.colors.feedback.error
+                  ? colors.feedback.successText
+                  : colors.feedback.dangerText
               }
             />
             <Text
-              style={[
-                styles.statusBadgeText,
+              variant="label"
+              color={
                 activeHeadsetConnected
-                  ? styles.statusBadgeTextReady
-                  : styles.statusBadgeTextWarning,
-              ]}
+                  ? colors.feedback.successText
+                  : colors.feedback.dangerText
+              }
             >
               {activeHeadsetConnected ? "Ready" : "Needed"}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.heroText}>
+        <Text variant="bodySm" color="secondary">
           {activeHeadsetConnected
             ? "Hear your own voice back with a slight delay while you practice."
             : "Plug in your headphones to begin."}
         </Text>
       </View>
 
-      <View style={styles.sliderCard}>
+      {/* Delay slider card — elevated surface + hairline. */}
+      <View
+        style={[
+          styles.sliderCard,
+          {
+            backgroundColor: colors.surface.elevated,
+            borderColor: colors.border.default,
+          },
+        ]}
+      >
         <View style={styles.sliderHeader}>
           <View>
-            <Text style={styles.sectionEyebrow}>Delay</Text>
-            <Text style={styles.sectionTitle}>{activeDelayMs} ms</Text>
+            <Text variant="label" color="tertiary">
+              DELAY
+            </Text>
+            <Text variant="h3" color="primary">
+              {activeDelayMs} ms
+            </Text>
           </View>
 
-          <View style={styles.valueBadge}>
-            <Text style={styles.valueBadgeText}>Adjust</Text>
+          <View
+            style={[
+              styles.valueBadge,
+              {
+                backgroundColor: colors.action.primaryTint,
+                borderColor: colors.border.selected,
+              },
+            ]}
+          >
+            <Text variant="label" color={colors.action.primary}>
+              Adjust
+            </Text>
           </View>
         </View>
 
-        <View style={styles.sliderWrapper}>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={1000}
-            step={25}
-            value={activeDelayMs}
-            onValueChange={handleDelayChange}
-            minimumTrackTintColor={theme.colors.library.orange[400]}
-            maximumTrackTintColor="#F1D9C6"
-            thumbTintColor={theme.colors.library.orange[400]}
-          />
-        </View>
+        <Slider
+          minimumValue={0}
+          maximumValue={1000}
+          step={25}
+          value={activeDelayMs}
+          onValueChange={handleDelayChange}
+          haptic={false}
+        />
 
         <View style={styles.rowContainer}>
-          <Text style={styles.paceText}>Subtle</Text>
-          <Text style={styles.paceText}>Stronger</Text>
+          <Text variant="caption" color="tertiary">
+            Subtle
+          </Text>
+          <Text variant="caption" color="tertiary">
+            Stronger
+          </Text>
         </View>
       </View>
 
-      <TouchableOpacity
-        onPress={activeToggleDAF}
-        activeOpacity={0.85}
-        style={[
-          styles.button,
-          activeIsDAFActive ? styles.buttonStop : styles.buttonStart,
-        ]}
+      <Button
+        variant={activeIsDAFActive ? "secondary" : "primary"}
+        label={activeIsDAFActive ? "Stop DAF" : "Start DAF"}
+        leftIcon={activeIsDAFActive ? icons.stop : icons.play}
+        onPress={() => activeToggleDAF && activeToggleDAF()}
         disabled={activeHasPermission === false}
-      >
-        <View style={styles.buttonContent}>
-          <FAIcon
-            name={activeIsDAFActive ? "stop" : "play"}
-            size={14}
-            color="#FFF"
-          />
-          <Text style={styles.buttonText}>
-            {activeIsDAFActive ? "Stop DAF" : "Start DAF"}
-          </Text>
-        </View>
-      </TouchableOpacity>
+      />
 
       {visibleStatusMessage ? (
         <View
           style={[
             styles.statusBanner,
-            isStatusError ? styles.statusBannerError : styles.statusBannerInfo,
+            {
+              backgroundColor: isStatusError
+                ? colors.accentTint.danger
+                : colors.action.primaryTint,
+            },
           ]}
         >
-          <FAIcon
-            name={isStatusError ? "exclamation-circle" : "info-circle"}
+          <Icon
+            name={isStatusError ? icons.warning : icons.tip}
             size={14}
             color={
               isStatusError
-                ? theme.colors.feedback.error
-                : theme.colors.actionPrimary.default
+                ? colors.feedback.dangerText
+                : colors.action.primary
             }
           />
-          <Text style={styles.statusBannerText}>{visibleStatusMessage}</Text>
+          <Text variant="bodySm" color="secondary" style={styles.statusBannerText}>
+            {visibleStatusMessage}
+          </Text>
         </View>
       ) : null}
 
-      <Modal
+      <Dialog
         visible={Boolean(activeShowHeadsetPrompt)}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.promptOverlay}>
-          <View style={styles.promptBox}>
-            <FAIcon
-              name="headphones-alt"
-              size={36}
-              color={theme.colors.actionPrimary.default}
-              style={{ marginBottom: 14 }}
-            />
-            <Text style={styles.promptTitle}>Headphones Required</Text>
-            <Text style={styles.promptText}>
-              Please connect your headphones before starting DAF.
-            </Text>
-
-            <View style={styles.promptButtonRow}>
-              <TouchableOpacity
-                style={styles.promptButtonSecondary}
-                onPress={activeDismissHeadsetPrompt}
-              >
-                <Text style={styles.promptButtonTextSecondary}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.promptButtonPrimary}
-                onPress={activeRecheckHeadset}
-              >
-                <Text style={styles.promptButtonTextPrimary}>Check Again</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => activeDismissHeadsetPrompt && activeDismissHeadsetPrompt()}
+        title="Headphones Required"
+        message="Please connect your headphones before starting DAF."
+        cancelLabel="Close"
+        confirmLabel="Check Again"
+        onConfirm={() => activeRecheckHeadset && activeRecheckHeadset()}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
     flexDirection: "column",
-    gap: 14,
+    gap: spacing.lg,
   },
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
   },
   heroCard: {
-    paddingHorizontal: 4,
-    paddingTop: 2,
-    paddingBottom: 0,
-    gap: 14,
+    paddingHorizontal: spacing.xs,
+    gap: spacing.md,
   },
   heroHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.md,
   },
   heroHeaderText: {
     flex: 1,
-    gap: 2,
-  },
-  heroEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.62,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    gap: spacing.xxs,
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-  },
-  statusBadgeReady: {
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    borderColor: "rgba(16, 185, 129, 0.16)",
-  },
-  statusBadgeWarning: {
-    backgroundColor: "rgba(239, 68, 68, 0.06)",
-    borderColor: "rgba(239, 68, 68, 0.14)",
-  },
-  statusBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    fontWeight: "600",
-  },
-  statusBadgeTextReady: {
-    color: "#0F9F6E",
-  },
-  statusBadgeTextWarning: {
-    color: theme.colors.feedback.error,
-  },
-  heroTitle: {
-    ...parseTextStyle(theme.typography.Heading4),
-    color: theme.colors.text.title,
-  },
-  heroText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle("0px 6px 16px 0px rgba(255, 144, 64, 0.18)"),
-  },
-  buttonStart: {
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
-  buttonStop: {
-    backgroundColor: "#E85D4A",
-  },
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  buttonText: {
-    color: "#FFF",
-    ...parseTextStyle(theme.typography.Button),
-    fontWeight: "600",
+    gap: spacing.xs,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   sliderCard: {
-    backgroundColor: theme.colors.surface.elevated,
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: "rgba(253, 182, 129, 0.22)",
-    ...parseShadowStyle(theme.shadow.elevation1),
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.lg,
+    borderWidth: borderWidth.thin,
   },
   sliderHeader: {
     width: "100%",
@@ -699,29 +626,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sectionEyebrow: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.text.default,
-    opacity: 0.7,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  sectionTitle: {
-    ...parseTextStyle(theme.typography.BodyHighLight),
-    color: theme.colors.text.title,
-  },
   valueBadge: {
-    backgroundColor: "#FFF4E6",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255, 144, 64, 0.20)",
-  },
-  valueBadgeText: {
-    ...parseTextStyle(theme.typography.LabelSmall),
-    color: theme.colors.actionPrimary.default,
-    fontWeight: "700",
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderWidth: borderWidth.thin,
   },
   rowContainer: {
     width: "100%",
@@ -729,97 +638,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sliderWrapper: {
-    width: "100%",
-    justifyContent: "center",
-    overflow: "visible",
-  },
-  slider: {
-    width: "100%",
-    height: 22,
-  },
-  paceText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    opacity: 0.68,
-  },
-  statusText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginTop: 10,
-  },
   statusBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  statusBannerInfo: {
-    backgroundColor: "#FFF4E6",
-  },
-  statusBannerError: {
-    backgroundColor: "#FEF2F2",
+    gap: spacing.sm,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   statusBannerText: {
     flex: 1,
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-  },
-  promptOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
-  },
-  promptBox: {
-    width: "100%",
-    maxWidth: 360,
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 24,
-    paddingVertical: 28,
-    alignItems: "center",
-  },
-  promptTitle: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: theme.colors.text.title,
-    marginBottom: 8,
-  },
-  promptText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  promptButtonRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  promptButtonPrimary: {
-    backgroundColor: theme.colors.actionPrimary.default,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  promptButtonSecondary: {
-    backgroundColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  promptButtonTextPrimary: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  promptButtonTextSecondary: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-    fontWeight: "600",
   },
 });

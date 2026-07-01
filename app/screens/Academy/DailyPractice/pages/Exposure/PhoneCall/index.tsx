@@ -1,16 +1,17 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome5";
+// Server-driven scenario glyphs are FontAwesome names (e.g. "robot"), matching
+// how the shared CallingWidget renders the same value — a scoped vendor-icon
+// exception, not part of the Fluent DS set.
+import FA5Icon from "react-native-vector-icons/FontAwesome5";
 import { WS_BASE_URL } from "../../../../../../api/constants";
 import { getPhoneCallScenarios } from "../../../../../../api/dailyPractice";
 import {
@@ -28,8 +29,15 @@ import {
 import { useUserStore } from "../../../../../../stores/user";
 import { useAICallConsentStore } from "../../../../../../stores/aiCallConsent";
 import AICallConsentModal from "../../../../../../components/AICallConsentModal";
-import { theme } from "../../../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../../../util/functions/parseStyles";
+import {
+  Text,
+  Icon,
+  IconButton,
+  icons,
+  useTheme,
+  spacing,
+  radius,
+} from "../../../../../../design-system";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 const RINGING_SOUND_FILE = require("../../../../../../assets/sounds/dial-tone_us.wav");
@@ -54,6 +62,7 @@ const PhoneCall = () => {
   const { user } = useUserStore();
   const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   // One-time disclosure before the first AI conversation (voice is streamed to
   // a third-party AI partner). Hydration-guarded to avoid a flash for users who
@@ -311,14 +320,12 @@ const PhoneCall = () => {
 
   return (
     <>
-      <View style={styles.container}>
-        <LinearGradient
-          colors={["#020617", "#1e1b4b", "#2e1065"] as const} // Deep Slate -> Indigo -> Violet
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      >
         {/* Safe Area Top Layout */}
         <View
           style={[
@@ -326,39 +333,34 @@ const PhoneCall = () => {
             { paddingTop: insets.top + (Platform.OS === "android" ? 12 : 10) },
           ]}
         >
-          <TouchableOpacity
+          <IconButton
+            name="arrow-left"
             onPress={() =>
               from === "MOOD_CHECK"
                 ? navigation.navigate("Root" as any, { screen: "HOME" })
                 : navigation.goBack()
             }
-            style={styles.backButtonGlass}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Icon name="chevron-left" size={14} color="#FFFFFF" />
-          </TouchableOpacity>
+          />
           <TouchableOpacity
             style={styles.headerTextContainer}
             onPress={() => setIsModalVisible(true)}
           >
-            <Text style={styles.headerTitleModern}>AI Conversation</Text>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-            >
-              <Text style={styles.headerSubtitleModern}>
+            <Text variant="label" color="tertiary" style={styles.headerEyebrow}>
+              AI CONVERSATION
+            </Text>
+            <View style={styles.headerTitleRow}>
+              <Text variant="title" color="primary">
                 {selectedScenario?.name || "Select Scenario"}
               </Text>
               <Icon
-                name="caret-down"
-                size={12}
-                color="rgba(255,255,255,0.7)"
-                style={{ marginTop: 4 }}
+                name={icons.chevronDown}
+                size={14}
+                color={colors.text.secondary}
               />
             </View>
           </TouchableOpacity>
           {/* Placeholder for settings/tips or balance */}
-          <View style={{ width: 40 }} />
+          <View style={{ width: 44 }} />
         </View>
 
         {/* Main Calling UI Place */}
@@ -388,11 +390,11 @@ const PhoneCall = () => {
         showCloseButton={true}
         fitContent={false}
       >
-        <LinearGradient
-          colors={["#0f172a", "#1e1b4b", "#2e1065"] as const}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ flex: 1, width: "100%" }}
+        <View
+          style={[
+            styles.modalSheet,
+            { backgroundColor: colors.background.canvas },
+          ]}
         >
           <View
             style={[
@@ -401,8 +403,10 @@ const PhoneCall = () => {
             ]}
           >
             <View style={styles.modalTitleContainer}>
-              <Text style={styles.modalTitleText}>Practice Scenarios</Text>
-              <Text style={styles.modalDescText}>
+              <Text variant="h3" color="primary" center>
+                Practice Scenarios
+              </Text>
+              <Text variant="bodySm" color="secondary" center>
                 Select a scenario to practice
               </Text>
             </View>
@@ -412,52 +416,58 @@ const PhoneCall = () => {
               nestedScrollEnabled={true}
               contentContainerStyle={styles.modalScrollContainer}
             >
-              {scenarioData.map((scenario, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.scenarioCard,
-                    selectedScenario?.id === scenario.id &&
-                      styles.selectedScenarioCard,
-                  ]}
-                  onPress={() => {
-                    setSelectedScenario(scenario);
-                    closeModal();
-                  }}
-                >
-                  <View style={styles.scenarioIconContainer}>
-                    <Icon
-                      solid
-                      name={scenario.phoneCallData?.icon || "robot"}
-                      size={24}
-                      color={theme.colors.actionPrimary.default}
-                    />
-                  </View>
-                  <View style={styles.scenarioDescContainer}>
-                    <Text
+              {scenarioData.map((scenario, index) => {
+                const isSelected = selectedScenario?.id === scenario.id;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.scenarioCard,
+                      {
+                        backgroundColor: isSelected
+                          ? colors.action.primaryTint
+                          : colors.surface.default,
+                        borderColor: isSelected
+                          ? colors.border.selected
+                          : colors.border.hairline,
+                      },
+                    ]}
+                    onPress={() => {
+                      setSelectedScenario(scenario);
+                      closeModal();
+                    }}
+                  >
+                    <View
                       style={[
-                        styles.scenarioNameText,
-                        selectedScenario?.id === scenario.id &&
-                          styles.selectedCardText,
+                        styles.scenarioIconContainer,
+                        { backgroundColor: colors.surface.control },
                       ]}
                     >
-                      {scenario.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.scenarioDetailText,
-                        selectedScenario?.id === scenario.id &&
-                          styles.selectedCardText,
-                      ]}
-                    >
-                      {scenario.description}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                      <FA5Icon
+                        solid
+                        name={scenario.phoneCallData?.icon || "robot"}
+                        size={24}
+                        color={colors.action.primary}
+                      />
+                    </View>
+                    <View style={styles.scenarioDescContainer}>
+                      <Text variant="title" color="primary">
+                        {scenario.name}
+                      </Text>
+                      <Text
+                        variant="bodySm"
+                        color="secondary"
+                        style={styles.scenarioDetailText}
+                      >
+                        {scenario.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </CustomScrollView>
           </View>
-        </LinearGradient>
+        </View>
       </BottomSheetModal>
 
       <VitalsFeedbackModal
@@ -486,117 +496,76 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     // paddingTop handled dynamically
-    paddingBottom: 20,
+    paddingBottom: spacing.xl,
     zIndex: 10,
-  },
-  backButtonGlass: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)", // Glass effect
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
   },
   headerTextContainer: {
     alignItems: "center",
   },
-  headerTitleModern: {
-    fontFamily: "Outfit-Medium", // Assuming font exists, based on other files
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
+  headerEyebrow: {
     letterSpacing: 1,
-    textTransform: "uppercase",
   },
-  headerSubtitleModern: {
-    fontFamily: "Outfit-Bold",
-    color: "#FFFFFF",
-    fontSize: 16,
-    marginTop: 4,
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xxs,
   },
   mainContent: {
     flex: 1,
     position: "relative",
   },
 
-  // Modal Styles (kept largely same)
-  // Modal Styles (Updated for Futuristic Theme)
+  // Scenario picker sheet (dark canvas)
+  modalSheet: {
+    flex: 1,
+    width: "100%",
+  },
   modalContent: {
-    paddingVertical: 24,
+    paddingVertical: spacing["2xl"],
     width: "100%",
     flex: 1,
     flexDirection: "column",
-    gap: 32,
-    backgroundColor: "#0f172a", // Fallback
+    gap: spacing["3xl"],
   },
   modalTitleContainer: {
-    gap: 12,
+    gap: spacing.md,
     alignItems: "center",
-  },
-  modalTitleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFFFFF",
-    fontSize: 22,
-    letterSpacing: 1,
-  },
-  modalDescText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.6)",
   },
   modalScrollView: {
     flex: 1,
-    padding: 4,
+    padding: spacing.xs,
   },
   modalScrollContainer: {
-    gap: 16,
+    gap: spacing.lg,
     alignItems: "center",
-    paddingBottom: 32,
-    paddingHorizontal: 16,
+    paddingBottom: spacing["3xl"],
+    paddingHorizontal: spacing.lg,
   },
   scenarioCard: {
     width: "100%",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    borderRadius: radius.chip,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    backgroundColor: "rgba(255,255,255,0.05)", // Glass effect
+    gap: spacing.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  selectedScenarioCard: {
-    backgroundColor: "rgba(56, 189, 248, 0.15)", // Sky blue tint
-    borderColor: theme.colors.actionPrimary.default,
-  },
-  selectedCardText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
   },
   scenarioIconContainer: {
     height: 44,
     width: 44,
-    display: "flex",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.1)",
   },
   scenarioDescContainer: {
-    gap: 4,
+    gap: spacing.xs,
     flexShrink: 1,
   },
-  scenarioNameText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 16,
-  },
   scenarioDetailText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: "rgba(255,255,255,0.5)",
+    marginTop: spacing.xxs,
   },
 });

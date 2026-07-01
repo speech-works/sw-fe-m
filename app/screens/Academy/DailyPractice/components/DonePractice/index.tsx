@@ -1,29 +1,26 @@
 import { useNavigation } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { StatusBar, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 
 import ConfettiAnimation from "../../../../../components/ConfettiAnimation";
+import ScreenView from "../../../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../../../constants/routes";
-import { theme } from "../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
+  useTheme,
+  useSuccessPop,
+  spacing,
+  radius,
+  Text,
+  Button,
+  Icon,
+  icons,
+} from "../../../../../design-system";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
 import { getMyBuddy } from "../../../../../api/buddies";
 import { PracticeActivityContentType } from "../../../../../api/practiceActivities/types";
 import { activityKindFromContentType } from "../../../../../util/functions/post";
-
-const { width } = Dimensions.get("window");
 
 interface DonePracticeProps {
   practiceName?: string;
@@ -43,9 +40,14 @@ const DonePractice = ({
   activityId,
   contentType,
 }: DonePracticeProps) => {
+  const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const [hasBuddy, setHasBuddy] = useState(false);
   const [hasShared, setHasShared] = useState(false);
+
+  // Subtle entrance for the status disc — bouncy celebration when completed,
+  // a gentler settle when the session was ended early. Reduced-motion aware.
+  const discPop = useSuccessPop(true, { celebrate: !isAborted });
 
   useEffect(() => {
     if (isAborted) return;
@@ -55,48 +57,39 @@ const DonePractice = ({
   }, [isAborted]);
 
   return (
-    <View style={styles.container}>
-      {/* Confetti Animation (Only if completed) */}
+    <ScreenView style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Dark canvas (replaces the legacy light gradient background). */}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
+
+      {/* Confetti (Only if completed) — bright saturated hues read on the dark canvas. */}
       {!isAborted && <ConfettiAnimation />}
 
-      {/* Immersive Gradient Background */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <LinearGradient
-          colors={
-            isAborted
-              ? ["#F8FAFC", "#F1F5F9", "#E2E8F0"] // Soft slate blues for aborted
-              : ["#FFF7ED", "#FFEDD5", "#FFF"] // Warm peach for completed
-          }
-          locations={[0, 0.5, 1]}
-          style={{ flex: 1 }}
-        />
-      </View>
-
       <View style={styles.content}>
-        {/* Checkmark or Pause/Leaf Icon */}
-        <View style={styles.checkmarkContainer}>
-          <LinearGradient
-            colors={
-              isAborted ? ["#94A3B8", "#64748B"] : ["#10B981", "#059669"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.checkmarkCircle}
-          >
-            <Icon
-              name={isAborted ? "leaf" : "check"}
-              size={isAborted ? 50 : 60}
-              color="#FFFFFF"
-            />
-          </LinearGradient>
-        </View>
+        {/* Status disc — green success on completion, a calm neutral disc when aborted. */}
+        <Animated.View
+          style={[
+            styles.disc,
+            {
+              backgroundColor: isAborted ? colors.surface.elevated : colors.accent.success,
+            },
+            discPop,
+          ]}
+        >
+          <Icon
+            name={isAborted ? icons.affirmation : icons.success}
+            size={isAborted ? 50 : 60}
+            color={isAborted ? colors.text.secondary : colors.accentOn.success}
+          />
+        </Animated.View>
 
         {/* Success / Encouraging Text */}
         <View style={styles.textContainer}>
-          <Text style={styles.titleText}>
+          <Text variant="h1" color="primary" center>
             {isAborted ? "That's okay." : "Great Job!"}
           </Text>
-          <Text style={styles.descText}>
+          <Text variant="body" color="secondary" center style={styles.descText}>
             {isAborted
               ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`
               : `You've completed your daily ${practiceName}. Keep up the momentum!`}
@@ -107,9 +100,10 @@ const DonePractice = ({
         <View style={styles.actionContainer}>
           {/* 1a. Share this session as a post — shown when paired */}
           {!isAborted && hasBuddy && !!activityId && from !== "MOOD_CHECK" && !hasShared && (
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              activeOpacity={0.7}
+            <Button
+              variant="secondary"
+              label="Share this session"
+              leftIcon={icons.share}
               onPress={() =>
                 navigation.navigate("PracticeComposer", {
                   activityId,
@@ -118,278 +112,121 @@ const DonePractice = ({
                   onShared: () => setHasShared(true),
                 })
               }
-            >
-              <Text style={styles.secondaryButtonText}>Share this session</Text>
-              <Icon
-                name="share-alt"
-                size={56}
-                color={theme.colors.text.default}
-                style={styles.secondaryWatermark}
-              />
-            </TouchableOpacity>
+            />
           )}
 
           {/* 1b. Invite buddy — top, hidden when already paired or aborted */}
           {!isAborted && !hasBuddy && from !== "MOOD_CHECK" && (
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              activeOpacity={0.7}
+            <Button
+              variant="secondary"
+              label="Invite a Practice Buddy"
+              leftIcon={icons.addPerson}
               onPress={() =>
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.COMMUNITY,
                 })
               }
-            >
-              <Text style={styles.secondaryButtonText}>
-                Invite a Practice Buddy
-              </Text>
-              <Icon
-                name="user-friends"
-                size={90}
-                color={theme.colors.text.default}
-                style={[styles.secondaryWatermark, { bottom: -25, right: -15 }]}
-              />
-            </TouchableOpacity>
+            />
           )}
 
           {/* 2. Set Reminder — middle */}
           {from !== "MOOD_CHECK" && (
-            <View style={styles.reminderWrapper}>
-              <Reminder
-                suggestedCategory={mapPracticeToCategory(practiceName)}
-                renderTrigger={(onOpen) => (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={onOpen}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.secondaryButtonText}>Set Reminder</Text>
-                    <Icon
-                      name="bell"
-                      size={64}
-                      color={theme.colors.text.default}
-                      style={styles.secondaryWatermark}
-                    />
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
+            <Reminder
+              suggestedCategory={mapPracticeToCategory(practiceName)}
+              renderTrigger={(onOpen) => (
+                <Button
+                  variant="secondary"
+                  label="Set Reminder"
+                  leftIcon={icons.reminder}
+                  onPress={onOpen}
+                />
+              )}
+            />
           )}
 
           {/* 3. Primary CTA — always at the bottom */}
           {from === "MOOD_CHECK" ? (
             <>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                activeOpacity={0.7}
+              <Button
+                variant="secondary"
+                label="Explore More"
+                leftIcon={icons.explore}
                 onPress={() => {
                   navigation.navigate("Root", {
                     screen: ROUTE_NAMES.EXPLORE,
                     params: { screen: "Explore", params: { scrollToJumpIn: true } },
                   });
                 }}
-              >
-                <Text style={styles.secondaryButtonText}>Explore More</Text>
-                <Icon
-                  name="compass"
-                  size={64}
-                  color={theme.colors.text.default}
-                  style={styles.secondaryWatermark}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.exploreButton}
-                activeOpacity={0.9}
+              />
+              <Button
+                variant="primary"
+                label="Back to Home"
+                rightIcon={icons.home}
                 onPress={() => {
                   navigation.navigate("Root", {
                     screen: ROUTE_NAMES.HOME,
                   });
                 }}
-              >
-                <LinearGradient
-                  colors={[
-                    theme.colors.library.orange[400],
-                    theme.colors.library.orange[500],
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.exploreGradient}
-                >
-                  <Text style={styles.exploreText}>Back to Home</Text>
-                  <Icon
-                    name="home"
-                    size={80}
-                    color="#FFF"
-                    style={styles.exploreWatermark}
-                  />
-                </LinearGradient>
-              </TouchableOpacity>
+              />
             </>
           ) : onDone ? (
-            <TouchableOpacity
-              style={styles.exploreButton}
-              activeOpacity={0.9}
+            <Button
+              variant="primary"
+              label="Done"
+              rightIcon={icons.success}
               onPress={onDone}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.exploreGradient}
-              >
-                <Text style={styles.exploreText}>Done</Text>
-                <Icon
-                  name="check"
-                  size={80}
-                  color="#FFF"
-                  style={styles.exploreWatermark}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
+            />
           ) : (
-            <TouchableOpacity
-              style={styles.exploreButton}
-              activeOpacity={0.9}
+            <Button
+              variant="primary"
+              label="Explore More"
+              rightIcon={icons.explore}
               onPress={() => {
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.EXPLORE,
                   params: { screen: "Explore", params: { scrollToJumpIn: true } },
                 });
               }}
-            >
-              <LinearGradient
-                colors={[
-                  theme.colors.library.orange[400],
-                  theme.colors.library.orange[500],
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.exploreGradient}
-              >
-                <Text style={styles.exploreText}>Explore More</Text>
-                <Icon
-                  name="compass"
-                  size={80}
-                  color="#FFF"
-                  style={styles.exploreWatermark}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
+            />
           )}
         </View>
       </View>
-    </View>
+    </ScreenView>
   );
 };
 
 export default DonePractice;
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 40,
+    paddingHorizontal: spacing["3xl"],
+    gap: spacing["4xl"],
   },
-  checkmarkContainer: {
-    padding: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkmarkCircle: {
+  disc: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   textContainer: {
     alignItems: "center",
-    gap: 12,
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    fontSize: 32,
-    letterSpacing: -0.5,
+    gap: spacing.md,
   },
   descText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
     lineHeight: 24,
-    opacity: 0.8,
   },
   actionContainer: {
     width: "100%",
-    gap: 12,
-    marginTop: 20,
-  },
-  reminderWrapper: {
-    width: "100%",
-  },
-  exploreButton: {
-    width: "100%",
-    height: 56, // Fixed height for absolute positioning
-    borderRadius: 16,
-    overflow: "hidden", // Clip the watermark
-    borderWidth: 1,
-    borderColor: "transparent",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  exploreGradient: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  exploreText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: "#FFF",
-    zIndex: 2, // Text above watermark
-  },
-  exploreWatermark: {
-    position: "absolute",
-    right: -15,
-    bottom: -15,
-    opacity: 0.2,
-    transform: [{ rotate: "-15deg" }],
-  },
-  secondaryButton: {
-    width: "100%",
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#FFF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    overflow: "hidden",
-  },
-  secondaryButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.default,
-    zIndex: 2,
-  },
-  secondaryWatermark: {
-    position: "absolute",
-    right: -12,
-    bottom: -12,
-    opacity: 0.08,
-    transform: [{ rotate: "10deg" }],
+    gap: spacing.md,
+    marginTop: spacing.xl,
   },
 });

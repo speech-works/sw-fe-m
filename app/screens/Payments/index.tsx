@@ -23,6 +23,7 @@ import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PAYMENTS_ENABLED } from "../../constants/features";
 import { theme } from "../../Theme/tokens";
+import { Text as DSText } from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -465,11 +466,13 @@ const SubscribeScreen = () => {
           <View style={styles.testModeIconWrap}>
             <Icon name="flask-outline" size={28} color="#F97316" />
           </View>
-          <Text style={styles.testModeTitle}>You&apos;re in test mode</Text>
-          <Text style={styles.testModeBody}>
+          <DSText variant="h2" color="primary" center style={styles.testModeTitle}>
+            You&apos;re in test mode
+          </DSText>
+          <DSText variant="body" color="secondary" center style={styles.testModeBody}>
             Payments are disabled right now while we finish the setup. Current
             pricing is {selectedPlanSummary}.
-          </Text>
+          </DSText>
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => setShowTestModeModal(false)}
@@ -900,17 +903,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   testModeTitle: {
-    color: theme.colors.text.title,
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "center",
     marginBottom: 10,
   },
   testModeBody: {
-    color: theme.colors.text.default,
-    fontSize: 16,
     lineHeight: 24,
-    textAlign: "center",
   },
   testModeButtonWrap: {
     width: "100%",
