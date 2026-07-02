@@ -20,6 +20,8 @@ export interface SliderProps {
   disabled?: boolean;
   /** Fire a selection tick on change (default true). */
   haptic?: boolean;
+  /** Override active track/thumb colour for context-themed flows. */
+  accentColor?: string;
 }
 
 /** Themed range input — brand track + thumb, optional label/value row. */
@@ -35,8 +37,10 @@ export const Slider: React.FC<SliderProps> = ({
   formatValue = (v) => `${Math.round(v)}`,
   disabled = false,
   haptic = true,
+  accentColor,
 }) => {
   const { colors } = useTheme();
+  const activeColor = accentColor ?? colors.action.primary;
   return (
     <View style={{ gap: 6 }}>
       {label || showValue ? (
@@ -66,9 +70,9 @@ export const Slider: React.FC<SliderProps> = ({
         maximumValue={maximumValue}
         step={step}
         disabled={disabled}
-        minimumTrackTintColor={disabled ? colors.action.disabledText : colors.action.primary}
+        minimumTrackTintColor={disabled ? colors.action.disabledText : activeColor}
         maximumTrackTintColor={colors.surface.row}
-        thumbTintColor={Platform.OS === "android" ? colors.action.primary : undefined}
+        thumbTintColor={Platform.OS === "android" ? activeColor : undefined}
         style={{ height: 36 }}
       />
     </View>

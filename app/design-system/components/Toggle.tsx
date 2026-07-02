@@ -20,17 +20,18 @@ export interface ToggleProps {
    */
   onChange?: (next: boolean) => void;
   disabled?: boolean;
+  activeColor?: string;
 }
 
 /** Themed switch — orange when on, control surface when off; animated thumb. */
-export const Toggle: React.FC<ToggleProps> = ({ value, onChange, disabled }) => {
+export const Toggle: React.FC<ToggleProps> = ({ value, onChange, disabled, activeColor }) => {
   const { colors } = useTheme();
   const v = useDerivedValue(
     () => withTiming(value ? 1 : 0, { duration: duration.base, easing: easing.out }),
     [value],
   );
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(v.value, [0, 1], [colors.surface.control, colors.action.primary]),
+    backgroundColor: interpolateColor(v.value, [0, 1], [colors.surface.control, activeColor ?? colors.action.primary]),
   }));
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: interpolate(v.value, [0, 1], [2, 22]) }],

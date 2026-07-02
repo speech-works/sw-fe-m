@@ -38,6 +38,8 @@ interface RecorderToolsProps {
   focusMode?: boolean;
   expanded?: boolean;
   onExpand?: () => void;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 const TOOLS = [
@@ -55,8 +57,12 @@ const RecorderTools: React.FC<RecorderToolsProps> = ({
   focusMode = false,
   expanded = false,
   onExpand,
+  accentColor,
+  onAccentColor,
 }) => {
   const { colors } = useTheme();
+  const accent = accentColor ?? colors.action.primary;
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
 
   if (focusMode && !expanded) {
     return (
@@ -93,7 +99,7 @@ const RecorderTools: React.FC<RecorderToolsProps> = ({
               styles.dockItem,
               isActive && [
                 styles.dockItemActive,
-                { backgroundColor: colors.action.primary },
+                { backgroundColor: accent },
               ],
             ]}
             onPress={() => {
@@ -109,12 +115,12 @@ const RecorderTools: React.FC<RecorderToolsProps> = ({
             <Icon
               name={tool.icon}
               size={24}
-              color={isActive ? colors.action.onPrimary : colors.text.secondary}
+              color={isActive ? onAccent : colors.text.secondary}
             />
             {isActive && (
               <Text
                 variant="label"
-                color={colors.action.onPrimary}
+                color={onAccent}
                 numberOfLines={1}
                 style={styles.dockItemLabel}
               >

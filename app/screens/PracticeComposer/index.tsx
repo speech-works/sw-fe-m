@@ -3,17 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   ActivityKind,
@@ -35,8 +28,21 @@ import { useUserStore } from "../../stores/user";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 import SignalCard from "../../components/SignalCard";
-import BottomSheetModal from "../../components/BottomSheetModal";
-import Button from "../../components/Button";
+import PressableScale from "../../components/PressableScale";
+import {
+  Button,
+  Icon,
+  IconButton,
+  Sheet,
+  Text,
+  borderWidth,
+  icons,
+  radius,
+  spacing,
+  type SemanticColors,
+  useTheme,
+  withAlpha,
+} from "../../design-system";
 
 const CAPTION_MAX = 280;
 
@@ -75,16 +81,41 @@ const FIELD_LABELS: Record<PracticePayloadField, string> = {
   journeyCompleted: "Journey done",
 };
 
+const parentAccentForKind = (
+  kind: ActivityKind,
+  colors: SemanticColors,
+): { color: string; onColor: string } => {
+  switch (kind) {
+    case "READING_PRACTICE":
+      return { color: colors.category.reading, onColor: colors.categoryOn.reading };
+    case "FUN_PRACTICE":
+      return { color: colors.category.fun, onColor: colors.categoryOn.fun };
+    case "COGNITIVE_PRACTICE":
+      return { color: colors.category.breathing, onColor: colors.categoryOn.breathing };
+    case "EXPOSURE_PRACTICE":
+      return { color: colors.category.exposure, onColor: colors.categoryOn.exposure };
+    case "TECHNIQUE_PRACTICE":
+    default:
+      return { color: colors.category.reading, onColor: colors.categoryOn.reading };
+  }
+};
+
 const PracticeComposer = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const user = useUserStore((s) => s.user);
 
   const params = route.params ?? {};
   const activityId: string | undefined = params.activityId;
   const activityKind: ActivityKind = params.activityKind ?? "READING_PRACTICE";
   const activityName: string | undefined = params.activityName;
+  const fallbackAccent = parentAccentForKind(activityKind, colors);
+  const accentColor: string = params.accentColor ?? fallbackAccent.color;
+  const onAccentColor: string = params.onAccentColor ?? fallbackAccent.onColor;
+  const accentWash = withAlpha(accentColor, 0.16);
+  const accentBorder = withAlpha(accentColor, 0.46);
+  const subtleText = colors.text.secondary;
 
   const [threadId, setThreadId] = useState<string | null>(null);
 
@@ -95,6 +126,7 @@ const PracticeComposer = () => {
   const [resolved, setResolved] = useState<PracticePayload | null>(null);
   const [includedFields, setIncludedFields] = useState<PracticePayloadField[]>([]);
   const [caption, setCaption] = useState("");
+  const [captionFocused, setCaptionFocused] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [posting, setPosting] = useState(false);
 
@@ -228,115 +260,166 @@ const PracticeComposer = () => {
   const canPost = !!activityId && !!threadId;
 
   return (
-    <BottomSheetModal
-      visible={true}
+    <Sheet
+      visible
       onClose={handleClose}
-      maxHeight="95%"
-      showHandle
-      showCloseButton
-      backgroundColor="#FFFDF9"
+      title="Share with your buddy"
+      right={<IconButton name={icons.close} onPress={handleClose} />}
+      contentStyle={styles.sheetContent}
     >
       <View style={styles.container}>
-        <Text style={styles.sheetTitle}>Share with your buddy</Text>
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={insets.top + 8}
-      >
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sectionLabel}>PREVIEW</Text>
-          {loadingPreview ? (
-            <View style={styles.previewLoading}>
-              <ActivityIndicator color="#FF6B00" />
-            </View>
-          ) : (
-            <SignalCard signal={draftSignal} variant="preview" isFirst isLast />
-          )}
-
-          {availableFields.length > 0 ? (
-            <>
-              <Text style={styles.sectionLabel}>WHAT TO SHOW</Text>
-              <View style={styles.toggleRow}>
-                {availableFields.map((f) => {
-                  const on = includedFields.includes(f);
-                  return (
-                    <TouchableOpacity
-                      key={f}
-                      activeOpacity={0.7}
-                      onPress={() => toggleField(f)}
-                      style={[styles.toggleChip, on && styles.toggleChipOn]}
-                    >
-                      <MaterialCommunityIcons name={on ? "check" : "plus"} size={14} color={on ? "#FFFFFF" : "#737780"} />
-                      <Text style={[styles.toggleText, on && styles.toggleTextOn]}>{FIELD_LABELS[f]}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          ) : null}
-
-          <Text style={styles.sectionLabel}>ADD A NOTE (OPTIONAL)</Text>
-          <TextInput
-            style={styles.captionInput}
-            placeholder="Say something about this session…"
-            placeholderTextColor="#A1A4AA"
-            value={caption}
-            onChangeText={setCaption}
-            maxLength={CAPTION_MAX}
-            multiline
-          />
-          <Text style={styles.captionCount}>
-            {caption.length}/{CAPTION_MAX}
+        <View style={styles.header}>
+          <View style={[styles.headerIcon, { backgroundColor: accentWash, borderColor: accentBorder }]}>
+            <Icon name={icons.share} size={20} color={accentColor} />
+          </View>
+          <Text variant="bodySm" color="secondary" center style={styles.headerSubtitle}>
+            Choose what shows up in your practice update.
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Text variant="label" color="secondary" style={styles.sectionLabel}>
+          Preview
+        </Text>
+        {loadingPreview ? (
+          <View
+            style={[
+              styles.previewLoading,
+              { backgroundColor: colors.surface.default, borderColor: colors.border.hairline },
+            ]}
+          >
+            <ActivityIndicator color={accentColor} />
+          </View>
+        ) : (
+          <SignalCard signal={draftSignal} variant="preview" isFirst isLast />
+        )}
+
+        {availableFields.length > 0 ? (
+          <>
+            <Text variant="label" color="secondary" style={styles.sectionLabel}>
+              What to show
+            </Text>
+            <View style={styles.toggleRow}>
+              {availableFields.map((f) => {
+                const on = includedFields.includes(f);
+                return (
+                  <PressableScale
+                    key={f}
+                    onPress={() => toggleField(f)}
+                    scaleTo={0.96}
+                    style={[
+                      styles.toggleChip,
+                      {
+                        backgroundColor: on ? accentColor : colors.surface.control,
+                        borderColor: on ? accentColor : colors.border.default,
+                      },
+                    ]}
+                  >
+                    <Icon name={on ? icons.success : icons.add} size={16} color={on ? onAccentColor : subtleText} />
+                    <Text variant="label" color={on ? onAccentColor : subtleText}>
+                      {FIELD_LABELS[f]}
+                    </Text>
+                  </PressableScale>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+
+        <Text variant="label" color="secondary" style={styles.sectionLabel}>
+          Add a note
+        </Text>
+        <TextInput
+          style={[
+            styles.captionInput,
+            {
+              backgroundColor: colors.surface.control,
+              borderColor: captionFocused ? accentColor : colors.border.default,
+              color: colors.text.primary,
+            },
+          ]}
+          placeholder="Say something about this session..."
+          placeholderTextColor={colors.text.tertiary}
+          value={caption}
+          onChangeText={setCaption}
+          maxLength={CAPTION_MAX}
+          multiline
+          onFocus={() => setCaptionFocused(true)}
+          onBlur={() => setCaptionFocused(false)}
+        />
+        <Text variant="caption" color="tertiary" style={styles.captionCount}>
+          {caption.length}/{CAPTION_MAX}
+        </Text>
+
         <Button
-          text="Share with buddy"
+          label="Share with buddy"
           onPress={handlePost}
           disabled={!canPost}
           loading={posting}
-          leftIcon="paper-plane"
+          leftIcon={icons.send}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
+          style={styles.primaryAction}
         />
       </View>
-    </View>
-    </BottomSheetModal>
+    </Sheet>
   );
 };
 
 export default PracticeComposer;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFDF9" },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#401B00",
-    textAlign: "center",
-    marginTop: 48,
-    marginBottom: 8,
+  sheetContent: {
+    paddingTop: spacing.lg,
   },
-  scroll: { padding: 16, paddingBottom: 32 },
-  sectionLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 1, color: "#A1A4AA", marginTop: 16, marginBottom: 10 },
-  previewLoading: { height: 160, alignItems: "center", justifyContent: "center" },
+  container: {
+    gap: spacing.xs,
+  },
+  header: {
+    alignItems: "center",
+    paddingBottom: spacing.sm,
+  },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    borderWidth: borderWidth.thin,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  headerSubtitle: {
+    maxWidth: 260,
+  },
+  sectionLabel: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  previewLoading: {
+    height: 176,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.card,
+    borderWidth: borderWidth.hairline,
+  },
   toggleRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  toggleChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, backgroundColor: "#FFF0E5" },
-  toggleChipOn: { backgroundColor: "#FF6B00" },
-  toggleText: { fontSize: 13, fontWeight: "700", color: "#737780" },
-  toggleTextOn: { color: "#FFFFFF" },
+  toggleChip: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: borderWidth.thin,
+  },
   captionInput: {
-    minHeight: 80,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#FFDABF",
-    backgroundColor: "#FFFFFF",
-    padding: 14,
+    minHeight: 92,
+    borderRadius: radius.input,
+    borderWidth: borderWidth.thin,
+    padding: spacing.md,
     fontSize: 15,
-    color: "#401B00",
+    lineHeight: 22,
     textAlignVertical: "top",
   },
-  captionCount: { alignSelf: "flex-end", fontSize: 12, color: "#A1A4AA", marginTop: 6 },
-  footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(0,0,0,0.05)", backgroundColor: "#FFFDF9" },
+  captionCount: { alignSelf: "flex-end", marginTop: spacing.xs },
+  primaryAction: {
+    marginTop: spacing.lg,
+  },
 });

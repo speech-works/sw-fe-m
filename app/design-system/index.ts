@@ -34,6 +34,7 @@ export {
   AA_NORMAL,
   AA_LARGE,
 } from "./utils/contrast";
+export { withAlpha } from "./utils/color";
 
 // Types + scheme metadata.
 export type { SemanticColors } from "./semantic/roles";

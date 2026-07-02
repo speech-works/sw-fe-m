@@ -11,6 +11,7 @@ import {
   spacing,
   Text,
   useTheme,
+  withAlpha,
 } from "../../../../design-system";
 
 interface VoiceHoverConfigProps {
@@ -22,6 +23,8 @@ interface VoiceHoverConfigProps {
   setGapBetweenChunks: (val: number) => void;
   isSpeaking: boolean;
   onToggleSpeech: () => void;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 export function VoiceHoverConfigPanel({
@@ -33,9 +36,13 @@ export function VoiceHoverConfigPanel({
   setGapBetweenChunks,
   isSpeaking,
   onToggleSpeech,
+  accentColor,
+  onAccentColor,
 }: VoiceHoverConfigProps) {
   const { colors } = useTheme();
   const styles = useStyles();
+  const accent = accentColor ?? colors.action.primary;
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
   return (
     <View style={styles.controls}>
       <View style={styles.heroCard}>
@@ -53,6 +60,10 @@ export function VoiceHoverConfigPanel({
             style={[
               styles.statusBadge,
               isSpeaking ? styles.statusBadgeReady : styles.statusBadgeIdle,
+              !isSpeaking && {
+                backgroundColor: withAlpha(accent, 0.14),
+                borderColor: accent,
+              },
             ]}
           >
             <Icon
@@ -61,7 +72,7 @@ export function VoiceHoverConfigPanel({
               color={
                 isSpeaking
                   ? colors.feedback.successText
-                  : colors.action.primary
+                  : accent
               }
             />
             <Text
@@ -70,6 +81,7 @@ export function VoiceHoverConfigPanel({
                 isSpeaking
                   ? styles.statusBadgeTextReady
                   : styles.statusBadgeTextIdle,
+                !isSpeaking && { color: accent },
               ]}
               variant="label"
             >
@@ -102,8 +114,13 @@ export function VoiceHoverConfigPanel({
             </Text>
           </View>
 
-          <View style={styles.valueBadge}>
-            <Text variant="label" style={styles.valueBadgeText}>
+          <View
+            style={[
+              styles.valueBadge,
+              { backgroundColor: withAlpha(accent, 0.14), borderColor: accent },
+            ]}
+          >
+            <Text variant="label" style={[styles.valueBadgeText, { color: accent }]}>
               Flow
             </Text>
           </View>
@@ -117,9 +134,9 @@ export function VoiceHoverConfigPanel({
             step={0.1}
             value={baseRate}
             onValueChange={setBaseRate}
-            minimumTrackTintColor={colors.action.primary}
+            minimumTrackTintColor={accent}
             maximumTrackTintColor={colors.border.default}
-            thumbTintColor={colors.action.primary}
+            thumbTintColor={accent}
           />
         </View>
 
@@ -140,8 +157,13 @@ export function VoiceHoverConfigPanel({
             </Text>
           </View>
 
-          <View style={styles.valueBadge}>
-            <Text variant="label" style={styles.valueBadgeText}>
+          <View
+            style={[
+              styles.valueBadge,
+              { backgroundColor: withAlpha(accent, 0.14), borderColor: accent },
+            ]}
+          >
+            <Text variant="label" style={[styles.valueBadgeText, { color: accent }]}>
               Timing
             </Text>
           </View>
@@ -153,7 +175,7 @@ export function VoiceHoverConfigPanel({
               <Text variant="bodySm" style={styles.infoText}>
                 Pre-pause
               </Text>
-              <Text variant="bodySm" style={styles.speedText}>
+              <Text variant="bodySm" style={[styles.speedText, { color: accent }]}>
                 {prePause} ms
               </Text>
             </View>
@@ -165,9 +187,9 @@ export function VoiceHoverConfigPanel({
                 step={50}
                 value={prePause}
                 onValueChange={setPrePause}
-                minimumTrackTintColor={colors.action.primary}
+                minimumTrackTintColor={accent}
                 maximumTrackTintColor={colors.border.default}
-                thumbTintColor={colors.action.primary}
+                thumbTintColor={accent}
               />
             </View>
             <View style={styles.rowContainer}>
@@ -183,7 +205,7 @@ export function VoiceHoverConfigPanel({
               <Text variant="bodySm" style={styles.infoText}>
                 Gap between chunks
               </Text>
-              <Text variant="bodySm" style={styles.speedText}>
+              <Text variant="bodySm" style={[styles.speedText, { color: accent }]}>
                 {gapBetweenChunks} ms
               </Text>
             </View>
@@ -195,9 +217,9 @@ export function VoiceHoverConfigPanel({
                 step={50}
                 value={gapBetweenChunks}
                 onValueChange={setGapBetweenChunks}
-                minimumTrackTintColor={colors.action.primary}
+                minimumTrackTintColor={accent}
                 maximumTrackTintColor={colors.border.default}
-                thumbTintColor={colors.action.primary}
+                thumbTintColor={accent}
               />
             </View>
             <View style={styles.rowContainer}>
@@ -215,15 +237,19 @@ export function VoiceHoverConfigPanel({
           style={[
             styles.button,
             isSpeaking ? styles.buttonStop : styles.buttonStart,
+            !isSpeaking && { backgroundColor: accent },
           ]}
         >
           <View style={styles.buttonContent}>
             <Icon
               name={isSpeaking ? icons.stop : icons.play}
               size={14}
-              color={colors.action.onPrimary}
+              color={isSpeaking ? colors.action.onPrimary : onAccent}
             />
-            <Text variant="title" style={styles.buttonText}>
+            <Text
+              variant="title"
+              style={[styles.buttonText, !isSpeaking && { color: onAccent }]}
+            >
               {isSpeaking ? "Stop Guide" : "Start Guide"}
             </Text>
           </View>

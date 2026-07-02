@@ -11,6 +11,7 @@ import {
   Icon,
   icons,
   type IconName,
+  withAlpha,
 } from "../design-system";
 
 interface ToolConsentCopy {
@@ -49,22 +50,27 @@ interface ToolConsentModalProps {
   /** Called when the user taps "Got it" — caller should persist consent and
    *  then proceed with activating the tool. */
   onAcknowledge: () => void;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
   visible,
   tool,
   onAcknowledge,
+  accentColor,
+  onAccentColor,
 }) => {
   const { colors } = useTheme();
+  const iconAccent = accentColor ?? colors.accent.success;
   const copy = tool ? CONSENT_COPY[tool] : undefined;
   if (!copy) return null;
 
   return (
     <Sheet visible={visible} onClose={onAcknowledge}>
       <View style={styles.container}>
-        <View style={[styles.iconDisc, { backgroundColor: colors.accentTint.success }]}>
-          <Icon name={copy.icon} size={28} color={colors.accent.success} />
+        <View style={[styles.iconDisc, { backgroundColor: withAlpha(iconAccent, 0.14) }]}>
+          <Icon name={copy.icon} size={28} color={iconAccent} />
         </View>
 
         <Text variant="h2" center>
@@ -75,7 +81,12 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
         </Text>
 
         <View style={styles.buttons}>
-          <Button label="Got it — let's go" onPress={onAcknowledge} />
+          <Button
+            label="Got it — let's go"
+            onPress={onAcknowledge}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+          />
         </View>
       </View>
     </Sheet>

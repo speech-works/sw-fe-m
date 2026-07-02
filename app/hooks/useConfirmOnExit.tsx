@@ -52,6 +52,8 @@ interface UseConfirmOnExitParams {
   from?: string;
   /** Pack context, if launched from a pack — reuses the existing PackModule destination. */
   packContext?: PackContext | null;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -130,6 +132,8 @@ export function useConfirmOnExit({
   family,
   from,
   packContext,
+  accentColor,
+  onAccentColor,
 }: UseConfirmOnExitParams): { exitSheet: React.ReactElement } {
   const isActive = !!activityId;
   const [visible, setVisible] = useState(false);
@@ -216,6 +220,8 @@ export function useConfirmOnExit({
       icon="content-save-outline"
       primaryButton={{ label: "Save & Finish", onPress: handleSave }}
       secondaryButton={{ label: "Discard", onPress: handleDiscard }}
+      accentColor={accentColor}
+      onAccentColor={onAccentColor}
     />
   );
 

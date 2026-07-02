@@ -33,6 +33,8 @@ interface Props {
   disabled?: boolean;
   /** Hide the idle tools↔mic divider (for docks with no left-side tools). Default false. */
   hideSeparator?: boolean;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 const SmartRecorder: React.FC<Props> = ({
@@ -43,9 +45,13 @@ const SmartRecorder: React.FC<Props> = ({
   onDiscard,
   disabled = false,
   hideSeparator = false,
+  accentColor,
+  onAccentColor,
 }) => {
   const { colors } = useTheme();
   const styles = useStyles();
+  const accent = accentColor ?? colors.action.primary;
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
   const {
     startRecording,
     stopRecording,
@@ -190,9 +196,7 @@ const SmartRecorder: React.FC<Props> = ({
                 envelope={displayEnvelope}
                 mode={state}
                 height={32}
-                glowColor={
-                  isRecording ? colors.feedback.danger : colors.action.primary
-                }
+                glowColor={isRecording ? colors.feedback.danger : accent}
                 points={POINTS}
               />
             </View>
@@ -206,7 +210,7 @@ const SmartRecorder: React.FC<Props> = ({
               <Icon
                 name="play"
                 size={size.icon}
-                color={colors.action.primary}
+                color={accent}
                 style={{ marginLeft: 3 }}
               />
             </PressableScale>
@@ -233,14 +237,18 @@ const SmartRecorder: React.FC<Props> = ({
               <Icon name="square" size={size.iconSm} color={colors.text.primary} />
             </PressableScale>
           ) : hasRecording ? (
-            <PressableScale style={styles.submitButton} onPress={handleSubmitPress}>
-              <Icon name="check" size={size.icon} color={colors.action.onPrimary} />
+            <PressableScale
+              style={[styles.submitButton, { backgroundColor: accent }]}
+              onPress={handleSubmitPress}
+            >
+              <Icon name="check" size={size.icon} color={onAccent} />
             </PressableScale>
           ) : (
             // Idle Right: Mic Button
             <PressableScale
               style={[
                 styles.mainMicButton,
+                { backgroundColor: accent },
                 (isPreparing || disabled) && styles.mainMicButtonPreparing,
               ]}
               onPress={handleStartRecording}
@@ -252,7 +260,7 @@ const SmartRecorder: React.FC<Props> = ({
                 color={
                   isPreparing || disabled
                     ? colors.action.disabledText
-                    : colors.action.onPrimary
+                    : onAccent
                 }
               />
             </PressableScale>
@@ -269,6 +277,8 @@ const SmartRecorder: React.FC<Props> = ({
         confirmLabel="Submit Anyway"
         onConfirm={confirmSmallAudioSubmit}
         cancelLabel="Cancel"
+        accentColor={accent}
+        onAccentColor={onAccent}
       />
     </View>
   );
@@ -409,7 +419,6 @@ const useStyles = makeStyles((c) => ({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: c.action.primary,
   },
   mainMicButtonPreparing: {
     backgroundColor: c.action.disabledBg,
@@ -425,7 +434,6 @@ const useStyles = makeStyles((c) => ({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: c.action.primary,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -36,8 +36,9 @@ import {
   Sheet,
   useTheme,
   spacing,
+  withAlpha,
 } from "../../../../../../design-system";
-import { readingTips } from "../data";
+import { readingPracticeAccents, readingTips } from "../data";
 
 // API & Stores
 import { getReadingPracticeByType } from "../../../../../../api/dailyPractice";
@@ -69,6 +70,10 @@ import {
 const PoemPractice = () => {
   const navigation = useNavigation<RDPStackNavigationProp<"PoemPractice">>();
   const { colors } = useTheme();
+  const accent = readingPracticeAccents.poem;
+  const accentColor = colors.accent[accent];
+  const onAccentColor = colors.accentOn[accent];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
   const { setTabBarVisible } = useUIStore();
   const { updateActivity, doesActivityExist } = useActivityStore();
   const { practiceSession } = useSessionStore();
@@ -333,7 +338,7 @@ const PoemPractice = () => {
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
       return (
-        <DSText variant="body" color="primary" style={styles.readingText}>
+        <DSText variant="body" color={onAccentColor} style={styles.readingText}>
           {practiceText}
         </DSText>
       );
@@ -343,12 +348,12 @@ const PoemPractice = () => {
     const after = practiceText.slice(start + length);
 
     return (
-      <DSText variant="body" color="primary" style={styles.readingText}>
+      <DSText variant="body" color={onAccentColor} style={styles.readingText}>
         {before}
         <RNText
           style={{
-            backgroundColor: colors.action.primaryTint,
-            color: colors.text.primary,
+            backgroundColor: highlightColor,
+            color: onAccentColor,
           }}
         >
           {word}
@@ -388,6 +393,8 @@ const PoemPractice = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -403,6 +410,8 @@ const PoemPractice = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -415,6 +424,8 @@ const PoemPractice = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -440,6 +451,8 @@ const PoemPractice = () => {
     family: "Reading",
     from,
     packContext,
+    accentColor,
+    onAccentColor,
   });
 
   // --- View: Done Practice ---
@@ -449,6 +462,8 @@ const PoemPractice = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="poem practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () =>
@@ -477,6 +492,7 @@ const PoemPractice = () => {
             onPress={() => runStart()}
             loading={isStarting || isLoading}
             disabled={isStarting || isLoading}
+            style={isStarting || isLoading ? undefined : { backgroundColor: accentColor }}
           />
         }
       >
@@ -492,6 +508,7 @@ const PoemPractice = () => {
           value={hardMode}
           onValueChange={setHardMode}
           canUseHardMode={canUseHardMode}
+          accent={accent}
         />
 
         {/* Tips — a dot timeline on the dark canvas. */}
@@ -500,7 +517,7 @@ const PoemPractice = () => {
           {readingTips.poem.map((tip, index, arr) => (
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
-                <View style={[styles.tipDot, { backgroundColor: colors.action.primary }]} />
+                <View style={[styles.tipDot, { backgroundColor: accentColor }]} />
                 {index !== arr.length - 1 && (
                   <View style={[styles.tipLine, { backgroundColor: colors.border.default }]} />
                 )}
@@ -523,6 +540,8 @@ const PoemPractice = () => {
         onBack={onBackPress}
         category="POEM"
         align="top"
+        accent={accentColor}
+        onAccent={onAccentColor}
         onNext={toggleIndex}
         pagination={{
           page: currentPage,
@@ -549,6 +568,8 @@ const PoemPractice = () => {
               }
             }}
             onDiscard={() => setVoiceRecordingUri(null)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             renderTools={() => (
               <RecorderTools
                 activeToolId={selectedPracticeTool}
@@ -559,6 +580,8 @@ const PoemPractice = () => {
                 focusMode={focusMode}
                 expanded={toolsExpanded}
                 onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
             )}
           />
@@ -566,10 +589,10 @@ const PoemPractice = () => {
       >
         <View style={styles.readingBlock}>
           <View style={styles.metaHead}>
-            <DSText variant="h2" color="primary" center>
+            <DSText variant="h2" color={onAccentColor} center>
               {allPoems[selectedIndex]?.title}
             </DSText>
-            <DSText variant="bodySm" color="secondary" center>
+            <DSText variant="bodySm" color={withAlpha(onAccentColor, 0.68)} center>
               — {allPoems[selectedIndex]?.author} · Level{" "}
               {toPascalCase(allPoems[selectedIndex]?.difficulty)}
             </DSText>
@@ -608,6 +631,8 @@ const PoemPractice = () => {
         visible={consentTool !== null}
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

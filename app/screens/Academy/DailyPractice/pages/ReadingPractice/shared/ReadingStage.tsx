@@ -12,16 +12,20 @@ import CustomScrollView from "../../../../../../components/CustomScrollView";
 import PressableScale from "../../../../../../components/PressableScale";
 import ScreenView from "../../../../../../components/ScreenView";
 import {
-  Gradient,
   Icon,
-  PageHeader,
+  Gradient,
   Text,
   icons,
   makeStyles,
   radius,
+  size,
   space,
   spacing,
   useTheme,
+  duration,
+  easing,
+  onColor,
+  withAlpha,
   zIndex,
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
@@ -47,6 +51,8 @@ interface ReadingStageProps {
   category: string;
   /** Accent colour for the eyebrow + nav chevrons. Defaults to the reading blue. */
   accent?: string;
+  /** AA-safe foreground that sits on the accent page background. */
+  onAccent?: string;
   /** "center" (default) for a single short item; "top" for long / paginated reading. */
   align?: "center" | "top";
   /** Advance to the next item — a "Next" pill in the fixed deck. */
@@ -75,6 +81,7 @@ export function ReadingStage({
   onBack,
   category,
   accent,
+  onAccent,
   align = "center",
   onNext,
   pagination,
@@ -87,14 +94,28 @@ export function ReadingStage({
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const accentColor = accent ?? colors.accent.info;
+  const foregroundColor = onAccent ?? onColor(accentColor, colors);
+  const foregroundMuted = withAlpha(foregroundColor, 0.68);
+  const floatingBorder = withAlpha(foregroundColor, 0.24);
 
-  // Soft blue ambient that breathes in when focus is on (behind the opaque text).
-  const wash = useSharedValue(focus?.active ? 1 : 0);
+  // Focus is an occasional, explicit state change: animate opacity/transform only.
+  const focusProgress = useSharedValue(focus?.active ? 1 : 0);
   useEffect(() => {
     const target = focus?.active ? 1 : 0;
-    wash.value = reduceMotion ? target : withTiming(target, { duration: 260 });
-  }, [focus?.active, reduceMotion, wash]);
-  const washStyle = useAnimatedStyle(() => ({ opacity: wash.value * 0.6 }));
+    focusProgress.value = reduceMotion
+      ? target
+      : withTiming(target, { duration: duration.reveal, easing: easing.out });
+  }, [focus?.active, focusProgress, reduceMotion]);
+  const focusGradientStyle = useAnimatedStyle(() => {
+    const progress = focusProgress.value;
+    return {
+      opacity: progress,
+      transform: [
+        { scale: reduceMotion ? 1 : 1.05 - progress * 0.05 },
+        { translateY: reduceMotion ? 0 : -18 + progress * 18 },
+      ],
+    };
+  });
 
   // Measure the real deck+dock height so the scroll reserves exactly enough for content
   // to clear the entire scrim fade (not just the deck) — otherwise the last lines dim.
@@ -107,9 +128,15 @@ export function ReadingStage({
   const bottomReserve = scrimH + spacing.lg; // last line lands above the fade
 
   const eyebrow = focus?.active ? "FOCUS · YOUR SOUNDS" : category;
-
-  // TEMP DEBUG (remove): real scroll numbers to diagnose the can't-scroll-past-deck bug.
-  const [dbg, setDbg] = useState({ c: 0, l: 0 });
+  const focusGradientColors: readonly [string, string, string] = [
+    withAlpha(foregroundColor, 0.02),
+    withAlpha(foregroundColor, 0.2),
+    withAlpha(foregroundColor, 0.06),
+  ];
+  const scrimColors: readonly [string, string] = [
+    withAlpha(accentColor, 0),
+    withAlpha(accentColor, 0.96),
+  ];
 
   const renderNav = () => {
     const parts: React.ReactNode[] = [];
@@ -117,7 +144,13 @@ export function ReadingStage({
       const first = pagination.page <= 0;
       const last = pagination.page >= pagination.count - 1;
       parts.push(
-        <View key="page" style={styles.pageNav}>
+        <View
+          key="page"
+          style={[
+            styles.pageNav,
+            { borderColor: floatingBorder, backgroundColor: colors.surface.elevated },
+          ]}
+        >
           <PressableScale
             onPress={first ? undefined : pagination.onPrev}
             style={[styles.pageBtn, first && styles.pageBtnOff]}
@@ -138,7 +171,14 @@ export function ReadingStage({
     }
     if (onNext) {
       parts.push(
-        <PressableScale key="next" onPress={onNext} style={styles.nextPill}>
+        <PressableScale
+          key="next"
+          onPress={onNext}
+          style={[
+            styles.nextPill,
+            { borderColor: floatingBorder, backgroundColor: colors.surface.elevated },
+          ]}
+        >
           <Text variant="label" color="secondary">
             Next
           </Text>
@@ -153,17 +193,27 @@ export function ReadingStage({
   const hasDeck = !!(focus || pagination || onNext);
 
   return (
-    <ScreenView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
-      <View style={[StyleSheet.absoluteFillObject, styles.canvas]} />
-      <Animated.View
-        pointerEvents="none"
+    <ScreenView style={[styles.screen, { backgroundColor: accentColor }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={accentColor} />
+      <View
         style={[
           StyleSheet.absoluteFillObject,
-          { backgroundColor: colors.accentTint.info },
-          washStyle,
+          styles.canvas,
+          { backgroundColor: accentColor },
         ]}
       />
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFillObject, focusGradientStyle]}
+      >
+        <Gradient
+          colors={focusGradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 0.48, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
 
       {/* SCROLLING reading surface — nothing interactive lives here, so nothing shifts. */}
       <CustomScrollView
@@ -172,17 +222,26 @@ export function ReadingStage({
           { paddingTop: insets.top + space.inlineGap, paddingBottom: bottomReserve },
         ]}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={(_w: number, h: number) =>
-          setDbg((s) => ({ ...s, c: h }))
-        }
-        onLayout={(e: LayoutChangeEvent) => {
-          const h = e.nativeEvent.layout.height;
-          setDbg((s) => ({ ...s, l: h }));
-        }}
       >
-        <PageHeader title={title} onBack={onBack} />
+        <View style={styles.header}>
+          <PressableScale
+            onPress={onBack}
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: colors.surface.control,
+                borderColor: colors.border.strong,
+              },
+            ]}
+          >
+            <Icon name={icons.back} size={20} color={colors.text.primary} />
+          </PressableScale>
+          <Text variant="h1" color={foregroundColor} style={styles.title}>
+            {title}
+          </Text>
+        </View>
         <View style={[styles.stage, align === "center" && styles.stageCenter]}>
-          <Text variant="label" color={accentColor} style={styles.eyebrow}>
+          <Text variant="label" color={foregroundMuted} style={styles.eyebrow}>
             {eyebrow}
           </Text>
           <View style={styles.content}>{children}</View>
@@ -191,14 +250,21 @@ export function ReadingStage({
 
       {/* Bottom fade — sized to the measured cluster so content dissolves before it. */}
       <View style={[styles.scrim, { height: scrimH }]} pointerEvents="none">
-        <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+        <Gradient colors={scrimColors} style={StyleSheet.absoluteFill} />
       </View>
 
       {/* FIXED control deck + dock — measured; every control here is solid + never moves. */}
       <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
         {hasDeck ? (
           <View style={styles.deck} pointerEvents="box-none">
-            <View style={styles.deckSide}>{focus ? <FocusControl {...focus} /> : null}</View>
+            <View style={styles.deckSide}>
+              {focus ? (
+                <FocusControl
+                  {...focus}
+                  accentColor={accentColor}
+                />
+              ) : null}
+            </View>
             <View style={styles.deckSide}>{renderNav()}</View>
           </View>
         ) : null}
@@ -206,26 +272,8 @@ export function ReadingStage({
       </View>
 
       {insets.top > 0 ? (
-        <View style={[styles.statusCap, { height: insets.top }]} />
+        <View style={[styles.statusCap, { height: insets.top, backgroundColor: accentColor }]} />
       ) : null}
-
-      {/* TEMP DEBUG (remove) */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: insets.top + 4,
-          right: 6,
-          backgroundColor: "rgba(0,0,0,0.8)",
-          paddingHorizontal: 6,
-          paddingVertical: 3,
-          zIndex: 9999,
-        }}
-      >
-        <Text variant="caption" color="#00ff88">
-          {`c:${Math.round(dbg.c)} l:${Math.round(dbg.l)} r:${Math.round(bottomReserve)} k:${Math.round(clusterH)}`}
-        </Text>
-      </View>
     </ScreenView>
   );
 }
@@ -236,6 +284,21 @@ const useStyles = makeStyles((c) => ({
   scroll: {
     paddingHorizontal: space.screenX,
     flexGrow: 1,
+  },
+  header: {
+    gap: space.titleGap,
+  },
+  backButton: {
+    width: size.backBtn,
+    height: size.backBtn,
+    borderRadius: size.backBtn / 2,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
+  title: {
+    maxWidth: "92%",
   },
   // Natural flow by default (top-aligned) so LONG/paginated content measures its true
   // height and scrolls fully. `stageCenter` adds flexGrow only for short single items

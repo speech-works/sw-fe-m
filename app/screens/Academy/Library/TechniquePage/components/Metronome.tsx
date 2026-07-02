@@ -11,6 +11,7 @@ import {
   icons,
   Button,
   Slider,
+  withAlpha,
 } from "../../../../../design-system";
 
 export const useMetronome = (muteLogic = false) => {
@@ -87,6 +88,8 @@ interface MetronomeProps {
   onTogglePlay?: (playing: boolean) => void;
   speed?: number;
   onSpeedChange?: (speed: number) => void;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 const Metronome = ({
@@ -94,8 +97,12 @@ const Metronome = ({
   onTogglePlay,
   speed: controlledSpeed,
   onSpeedChange,
+  accentColor,
+  onAccentColor,
 }: MetronomeProps) => {
   const { colors } = useTheme();
+  const accent = accentColor ?? colors.action.primary;
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
   const isControlled = controlledIsPlaying !== undefined;
 
   // If controlled, mute the internal hook logic (because parent runs it)
@@ -137,7 +144,7 @@ const Metronome = ({
               {
                 backgroundColor: activeIsPlaying
                   ? colors.accentTint.success
-                  : colors.action.primaryTint,
+                  : withAlpha(accent, 0.14),
               },
             ]}
           >
@@ -147,7 +154,7 @@ const Metronome = ({
               color={
                 activeIsPlaying
                   ? colors.feedback.successText
-                  : colors.action.primary
+                  : accent
               }
             />
             <Text
@@ -155,7 +162,7 @@ const Metronome = ({
               color={
                 activeIsPlaying
                   ? colors.feedback.successText
-                  : colors.action.primary
+                  : accent
               }
             >
               {activeIsPlaying ? "Playing" : "Ready"}
@@ -193,12 +200,12 @@ const Metronome = ({
             style={[
               styles.valueBadge,
               {
-                backgroundColor: colors.action.primaryTint,
-                borderColor: colors.border.selected,
+                backgroundColor: withAlpha(accent, 0.14),
+                borderColor: accent,
               },
             ]}
           >
-            <Text variant="label" color={colors.action.primary}>
+            <Text variant="label" color={accent}>
               Beat
             </Text>
           </View>
@@ -211,6 +218,7 @@ const Metronome = ({
           value={activeSpeed}
           onValueChange={(val) => activeSetSpeed && activeSetSpeed(val)}
           haptic={false}
+          accentColor={accent}
         />
 
         <View style={styles.rowContainer}>
@@ -228,6 +236,8 @@ const Metronome = ({
         label={activeIsPlaying ? "Stop Metronome" : "Start Metronome"}
         leftIcon={activeIsPlaying ? icons.stop : icons.play}
         onPress={() => activeSetIsPlaying && activeSetIsPlaying(!activeIsPlaying)}
+        accentColor={accent}
+        onAccentColor={onAccent}
       />
     </View>
   );

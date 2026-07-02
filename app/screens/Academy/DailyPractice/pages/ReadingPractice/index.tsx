@@ -23,10 +23,7 @@ import {
   spacing,
   radius,
 } from "../../../../../design-system";
-
-/** Vivid accent role per sub-category — keeps each card distinct while the whole
- *  list lives on the dark canvas (the PracticeGrid solid-accent recipe). */
-type ReadingAccent = "info" | "success" | "warning" | "purple" | "danger";
+import { ReadingAccent, readingPracticeAccents } from "./data";
 
 const ReadingPractice = () => {
   const navigation =
@@ -59,35 +56,35 @@ const ReadingPractice = () => {
       subtitle: "Focus on single words",
       onPress: () => navigation.navigate("WordPractice"),
       icon: <LetterOFace size={80} />,
-      accent: "info", // blue
+      accent: readingPracticeAccents.word,
     },
     {
       title: "Phrases",
       subtitle: "Glide effortlessly on the airflow",
       onPress: () => navigation.navigate("PhrasePractice"),
       icon: <GliderFace size={80} />,
-      accent: "success", // lime/green
+      accent: readingPracticeAccents.phrase,
     },
     {
       title: "Quotes",
       subtitle: "Inspirational quotes",
       onPress: () => navigation.navigate("QuotePractice"),
       icon: <AuthorFace size={80} />,
-      accent: "warning", // amber
+      accent: readingPracticeAccents.quote,
     },
     {
       title: "Poems",
       subtitle: "Verses & rhymes",
       onPress: () => navigation.navigate("PoemPractice"),
       icon: <PoetFace size={80} />,
-      accent: "purple", // violet
+      accent: readingPracticeAccents.poem,
     },
     {
       title: "Stories",
       subtitle: "Short stories & tales",
       onPress: () => navigation.navigate("StoryPractice"),
       icon: <StorytellerFace size={80} />,
-      accent: "danger", // orange/rose
+      accent: readingPracticeAccents.story,
     },
   ];
 

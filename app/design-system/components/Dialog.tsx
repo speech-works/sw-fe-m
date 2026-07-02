@@ -14,6 +14,8 @@ export interface DialogProps {
   /** Style the confirm action as destructive (danger) rather than primary. */
   destructive?: boolean;
   cancelLabel?: string;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /** Centered confirmation dialog (distinct from the bottom Sheet) — for short, often destructive, confirms. */
@@ -26,6 +28,8 @@ export const Dialog: React.FC<DialogProps> = ({
   onConfirm,
   destructive,
   cancelLabel = "Cancel",
+  accentColor,
+  onAccentColor,
 }) => {
   return (
     <AnimatedModal visible={visible} onClose={onClose}>
@@ -42,6 +46,8 @@ export const Dialog: React.FC<DialogProps> = ({
           <Button
             label={confirmLabel}
             variant={destructive ? "danger" : "primary"}
+            accentColor={destructive ? undefined : accentColor}
+            onAccentColor={destructive ? undefined : onAccentColor}
             size="md"
             onPress={onConfirm}
           />

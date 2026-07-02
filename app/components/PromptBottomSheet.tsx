@@ -8,6 +8,7 @@ import {
   useTheme,
   radius,
   spacing,
+  withAlpha,
 } from "../design-system";
 
 interface PromptBottomSheetProps {
@@ -26,6 +27,8 @@ interface PromptBottomSheetProps {
     label: string;
     onPress: () => void;
   };
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -43,14 +46,16 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
   iconColor,
   primaryButton,
   secondaryButton,
+  accentColor,
+  onAccentColor,
 }) => {
   const { colors } = useTheme();
-  const accent = iconColor ?? colors.action.primary;
+  const accent = accentColor ?? iconColor ?? colors.action.primary;
 
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={styles.container}>
-        <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
+        <View style={[styles.iconDisc, { backgroundColor: withAlpha(accent, 0.14) }]}>
           <MaterialCommunityIcons name={icon as any} size={28} color={accent} />
         </View>
 
@@ -66,6 +71,8 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
             <Button
               label={primaryButton.label}
               variant={primaryButton.destructive ? "danger" : "primary"}
+              accentColor={primaryButton.destructive ? undefined : accentColor}
+              onAccentColor={primaryButton.destructive ? undefined : onAccentColor}
               onPress={() => {
                 primaryButton.onPress();
                 onClose();
@@ -77,6 +84,7 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
             <Button
               label={secondaryButton.label}
               variant="ghost"
+              onColor={accent}
               onPress={() => {
                 secondaryButton.onPress();
                 onClose();

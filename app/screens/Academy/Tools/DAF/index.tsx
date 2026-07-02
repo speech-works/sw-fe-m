@@ -26,6 +26,7 @@ import {
   Slider,
   Spinner,
   Dialog,
+  withAlpha,
 } from "../../../../design-system";
 import { isHeadsetConnected } from "../../../../util/functions/headset";
 
@@ -331,6 +332,8 @@ type DAFToolProps = {
   showHeadsetPrompt?: boolean;
   onDismissHeadsetPrompt?: () => void;
   onRecheckHeadset?: () => void;
+  accentColor?: string;
+  onAccentColor?: string;
 };
 
 export function DAFTool({
@@ -345,8 +348,12 @@ export function DAFTool({
   showHeadsetPrompt: controlledShowHeadsetPrompt,
   onDismissHeadsetPrompt,
   onRecheckHeadset,
+  accentColor,
+  onAccentColor,
 }: DAFToolProps) {
   const { colors } = useTheme();
+  const accent = accentColor ?? colors.action.primary;
+  const onAccent = onAccentColor ?? colors.action.onPrimary;
   const isControlled = controlledIsActive !== undefined;
 
   const internalHook = useDAF(isControlled);
@@ -504,12 +511,12 @@ export function DAFTool({
             style={[
               styles.valueBadge,
               {
-                backgroundColor: colors.action.primaryTint,
-                borderColor: colors.border.selected,
+                backgroundColor: withAlpha(accent, 0.14),
+                borderColor: accent,
               },
             ]}
           >
-            <Text variant="label" color={colors.action.primary}>
+            <Text variant="label" color={accent}>
               Adjust
             </Text>
           </View>
@@ -522,6 +529,7 @@ export function DAFTool({
           value={activeDelayMs}
           onValueChange={handleDelayChange}
           haptic={false}
+          accentColor={accent}
         />
 
         <View style={styles.rowContainer}>
@@ -540,6 +548,8 @@ export function DAFTool({
         leftIcon={activeIsDAFActive ? icons.stop : icons.play}
         onPress={() => activeToggleDAF && activeToggleDAF()}
         disabled={activeHasPermission === false}
+        accentColor={accent}
+        onAccentColor={onAccent}
       />
 
       {visibleStatusMessage ? (
@@ -549,7 +559,7 @@ export function DAFTool({
             {
               backgroundColor: isStatusError
                 ? colors.accentTint.danger
-                : colors.action.primaryTint,
+                : withAlpha(accent, 0.14),
             },
           ]}
         >
@@ -559,7 +569,7 @@ export function DAFTool({
             color={
               isStatusError
                 ? colors.feedback.dangerText
-                : colors.action.primary
+                : accent
             }
           />
           <Text variant="bodySm" color="secondary" style={styles.statusBannerText}>
@@ -576,6 +586,8 @@ export function DAFTool({
         cancelLabel="Close"
         confirmLabel="Check Again"
         onConfirm={() => activeRecheckHeadset && activeRecheckHeadset()}
+        accentColor={accent}
+        onAccentColor={onAccent}
       />
     </View>
   );

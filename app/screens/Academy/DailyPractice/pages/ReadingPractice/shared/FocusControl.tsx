@@ -7,6 +7,7 @@ import {
   Dialog,
   Text,
   makeStyles,
+  onColor,
   radius,
   spacing,
   useTheme,
@@ -18,6 +19,7 @@ export interface FocusConfig {
   /** The user has at least one feared sound configured. */
   canUse: boolean;
   onToggle: (next: boolean) => void;
+  accentColor?: string;
 }
 
 /**
@@ -28,11 +30,18 @@ export interface FocusConfig {
  * deck above the dock, so it's thumb-reachable, never translucent, and never overlaps or
  * shifts the reading text. No feared sounds set → routes to Settings › Difficult Sounds.
  */
-export function FocusControl({ active, canUse, onToggle }: FocusConfig) {
+export function FocusControl({
+  active,
+  canUse,
+  onToggle,
+  accentColor,
+}: FocusConfig) {
   const { colors } = useTheme();
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const [gateVisible, setGateVisible] = useState(false);
+  const accent = accentColor ?? colors.accent.info;
+  const onAccent = onColor(accent, colors);
 
   const onPress = () => {
     if (!canUse) {
@@ -52,14 +61,14 @@ export function FocusControl({ active, canUse, onToggle }: FocusConfig) {
             // Always a SOLID surface (never the translucent tint) so text can't bleed
             // through; the accent lives in the border + dot + label.
             backgroundColor: colors.surface.elevated,
-            borderColor: active ? colors.accent.info : colors.border.strong,
+            borderColor: active ? accent : colors.border.strong,
           },
         ]}
       >
         <View
           style={[
             styles.dot,
-            { backgroundColor: active ? colors.accent.info : colors.text.tertiary },
+            { backgroundColor: active ? accent : colors.text.tertiary },
           ]}
         />
         {/* Constant label (never "Focus"→"Focusing") so the pill can't change width and
@@ -67,7 +76,7 @@ export function FocusControl({ active, canUse, onToggle }: FocusConfig) {
             "FOCUS · YOUR SOUNDS". Short so focus + page-nav + Next fit one deck row. */}
         <Text
           variant="label"
-          color={active ? colors.accent.info : "secondary"}
+          color={active ? accent : "secondary"}
           numberOfLines={1}
         >
           Focus
@@ -80,6 +89,8 @@ export function FocusControl({ active, canUse, onToggle }: FocusConfig) {
         title="Add your sounds first"
         message="Choose the sounds you find difficult in Settings, then focus mode practises words that contain them."
         confirmLabel="Go to Settings"
+        accentColor={accent}
+        onAccentColor={onAccent}
         onConfirm={() => {
           setGateVisible(false);
           navigation.navigate("Root", {

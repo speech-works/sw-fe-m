@@ -15,6 +15,8 @@ import {
   Button,
   Icon,
   icons,
+  onColor,
+  withAlpha,
 } from "../../../../../design-system";
 import Reminder from "../Reminder";
 import { mapPracticeToCategory } from "../../../../../constants/reminderTemplates";
@@ -30,6 +32,8 @@ interface DonePracticeProps {
   /** The completed activity — enables sharing it as a card-post (when paired). */
   activityId?: string;
   contentType?: PracticeActivityContentType;
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 const DonePractice = ({
@@ -39,11 +43,19 @@ const DonePractice = ({
   from,
   activityId,
   contentType,
+  accentColor,
+  onAccentColor,
 }: DonePracticeProps) => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const [hasBuddy, setHasBuddy] = useState(false);
   const [hasShared, setHasShared] = useState(false);
+  const pageColor = accentColor ?? colors.background.canvas;
+  const foreground = onAccentColor ?? (accentColor ? onColor(accentColor, colors) : colors.text.primary);
+  const mutedForeground = accentColor ? withAlpha(foreground, 0.68) : colors.text.secondary;
+  const controlBorder = accentColor ? withAlpha(foreground, 0.2) : colors.border.strong;
+  const primaryFill = accentColor ? colors.surface.elevated : undefined;
+  const primaryInk = accentColor ? colors.text.primary : undefined;
 
   // Subtle entrance for the status disc — bouncy celebration when completed,
   // a gentler settle when the session was ended early. Reduced-motion aware.
@@ -58,10 +70,10 @@ const DonePractice = ({
 
   return (
     <ScreenView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={accentColor ? "dark-content" : "light-content"} backgroundColor={pageColor} />
 
       {/* Dark canvas (replaces the legacy light gradient background). */}
-      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: pageColor }]} />
 
       {/* Confetti (Only if completed) — bright saturated hues read on the dark canvas. */}
       {!isAborted && <ConfettiAnimation />}
@@ -72,7 +84,11 @@ const DonePractice = ({
           style={[
             styles.disc,
             {
-              backgroundColor: isAborted ? colors.surface.elevated : colors.accent.success,
+              backgroundColor: isAborted
+                ? colors.surface.elevated
+                : accentColor
+                  ? colors.surface.elevated
+                  : colors.accent.success,
             },
             discPop,
           ]}
@@ -80,16 +96,20 @@ const DonePractice = ({
           <Icon
             name={isAborted ? icons.affirmation : icons.success}
             size={isAborted ? 50 : 60}
-            color={isAborted ? colors.text.secondary : colors.accentOn.success}
+            color={
+              isAborted
+                ? colors.text.secondary
+                : accentColor ?? colors.accentOn.success
+            }
           />
         </Animated.View>
 
         {/* Success / Encouraging Text */}
         <View style={styles.textContainer}>
-          <Text variant="h1" color="primary" center>
+          <Text variant="h1" color={foreground} center>
             {isAborted ? "That's okay." : "Great Job!"}
           </Text>
-          <Text variant="body" color="secondary" center style={styles.descText}>
+          <Text variant="body" color={mutedForeground} center style={styles.descText}>
             {isAborted
               ? `Every effort is a step forward. You can always return to your ${practiceName} when you feel ready.`
               : `You've completed your daily ${practiceName}. Keep up the momentum!`}
@@ -104,11 +124,14 @@ const DonePractice = ({
               variant="secondary"
               label="Share this session"
               leftIcon={icons.share}
+              style={accentColor ? { borderColor: controlBorder } : undefined}
               onPress={() =>
                 navigation.navigate("PracticeComposer", {
                   activityId,
                   activityKind: activityKindFromContentType(contentType),
                   activityName: practiceName,
+                  accentColor,
+                  onAccentColor,
                   onShared: () => setHasShared(true),
                 })
               }
@@ -121,6 +144,7 @@ const DonePractice = ({
               variant="secondary"
               label="Invite a Practice Buddy"
               leftIcon={icons.addPerson}
+              style={accentColor ? { borderColor: controlBorder } : undefined}
               onPress={() =>
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.COMMUNITY,
@@ -138,6 +162,7 @@ const DonePractice = ({
                   variant="secondary"
                   label="Set Reminder"
                   leftIcon={icons.reminder}
+                  style={accentColor ? { borderColor: controlBorder } : undefined}
                   onPress={onOpen}
                 />
               )}
@@ -151,6 +176,7 @@ const DonePractice = ({
                 variant="secondary"
                 label="Explore More"
                 leftIcon={icons.explore}
+                style={accentColor ? { borderColor: controlBorder } : undefined}
                 onPress={() => {
                   navigation.navigate("Root", {
                     screen: ROUTE_NAMES.EXPLORE,
@@ -162,6 +188,8 @@ const DonePractice = ({
                 variant="primary"
                 label="Back to Home"
                 rightIcon={icons.home}
+                accentColor={primaryFill}
+                onAccentColor={primaryInk}
                 onPress={() => {
                   navigation.navigate("Root", {
                     screen: ROUTE_NAMES.HOME,
@@ -174,6 +202,8 @@ const DonePractice = ({
               variant="primary"
               label="Done"
               rightIcon={icons.success}
+              accentColor={primaryFill}
+              onAccentColor={primaryInk}
               onPress={onDone}
             />
           ) : (
@@ -181,6 +211,8 @@ const DonePractice = ({
               variant="primary"
               label="Explore More"
               rightIcon={icons.explore}
+              accentColor={primaryFill}
+              onAccentColor={primaryInk}
               onPress={() => {
                 navigation.navigate("Root", {
                   screen: ROUTE_NAMES.EXPLORE,

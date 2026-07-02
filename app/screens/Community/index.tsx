@@ -983,7 +983,7 @@ const styles = StyleSheet.create({
 
   // Paired — partnership layout
   pairedWrapper: {
-    paddingTop: spacing.xs,
+    paddingTop: spacing.xl,
     paddingBottom: spacing["2xl"],
   },
 

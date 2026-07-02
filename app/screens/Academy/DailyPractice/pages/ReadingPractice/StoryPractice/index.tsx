@@ -31,8 +31,9 @@ import {
   Sheet,
   useTheme,
   spacing,
+  withAlpha,
 } from "../../../../../../design-system";
-import { readingTips } from "../data";
+import { readingPracticeAccents, readingTips } from "../data";
 import { useStoryPractice } from "./useStoryPractice";
 import { useToolGuardrails } from "../../../../../../hooks/useToolGuardrails";
 import ToolConsentModal from "../../../../../../components/ToolConsentModal";
@@ -47,6 +48,10 @@ import {
 const StoryPractice = () => {
   const { state, actions } = useStoryPractice();
   const { colors } = useTheme();
+  const accent = readingPracticeAccents.story;
+  const accentColor = colors.accent[accent];
+  const onAccentColor = colors.accentOn[accent];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
   /* State Destructuring */
   const {
     practiceComplete,
@@ -109,6 +114,8 @@ const StoryPractice = () => {
     family: "Reading",
     from,
     packContext,
+    accentColor,
+    onAccentColor,
   });
 
   // --- Rendering Helpers ---
@@ -118,7 +125,7 @@ const StoryPractice = () => {
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
       return (
-        <DSText variant="body" color="primary" style={styles.readingText}>
+        <DSText variant="body" color={onAccentColor} style={styles.readingText}>
           {practiceText}
         </DSText>
       );
@@ -128,12 +135,12 @@ const StoryPractice = () => {
     const after = practiceText.slice(start + length);
 
     return (
-      <DSText variant="body" color="primary" style={styles.readingText}>
+      <DSText variant="body" color={onAccentColor} style={styles.readingText}>
         {before}
         <RNText
           style={{
-            backgroundColor: colors.action.primaryTint,
-            color: colors.text.primary,
+            backgroundColor: highlightColor,
+            color: onAccentColor,
           }}
         >
           {word}
@@ -199,6 +206,8 @@ const StoryPractice = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -214,6 +223,8 @@ const StoryPractice = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -226,6 +237,8 @@ const StoryPractice = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -281,6 +294,8 @@ const StoryPractice = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="story practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -318,6 +333,11 @@ const StoryPractice = () => {
             onPress={() => runStart()}
             loading={isStarting || isLoading || !hasHydrated}
             disabled={isStarting || !hasHydrated || isLoading}
+            style={
+              isStarting || !hasHydrated || isLoading
+                ? undefined
+                : { backgroundColor: accentColor }
+            }
           />
         }
       >
@@ -333,6 +353,7 @@ const StoryPractice = () => {
           value={hardMode}
           onValueChange={actions.setHardMode}
           canUseHardMode={canUseHardMode}
+          accent={accent}
         />
 
         {/* Tips — a dot timeline on the dark canvas. */}
@@ -341,7 +362,7 @@ const StoryPractice = () => {
           {readingTips.story.map((tip, index, arr) => (
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
-                <View style={[styles.tipDot, { backgroundColor: colors.action.primary }]} />
+                <View style={[styles.tipDot, { backgroundColor: accentColor }]} />
                 {index !== arr.length - 1 && (
                   <View style={[styles.tipLine, { backgroundColor: colors.border.default }]} />
                 )}
@@ -376,6 +397,8 @@ const StoryPractice = () => {
         }
         category="STORY"
         align="top"
+        accent={accentColor}
+        onAccent={onAccentColor}
         onNext={actions.toggleIndex}
         pagination={{
           page: currentPage,
@@ -405,6 +428,8 @@ const StoryPractice = () => {
             onDiscard={() => {
               actions.setVoiceRecordingUri(null);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             renderTools={() => (
               <RecorderTools
                 activeToolId={selectedPracticeTool}
@@ -415,6 +440,8 @@ const StoryPractice = () => {
                 focusMode={focusMode}
                 expanded={toolsExpanded}
                 onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
             )}
           />
@@ -422,10 +449,10 @@ const StoryPractice = () => {
       >
         <View style={styles.readingBlock}>
           <View style={styles.metaHead}>
-            <DSText variant="h2" color="primary" center>
+            <DSText variant="h2" color={onAccentColor} center>
               {currentStory?.title}
             </DSText>
-            <DSText variant="bodySm" color="secondary" center>
+            <DSText variant="bodySm" color={withAlpha(onAccentColor, 0.68)} center>
               — {currentStory?.author}
             </DSText>
           </View>
@@ -463,6 +490,8 @@ const StoryPractice = () => {
         visible={consentTool !== null}
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

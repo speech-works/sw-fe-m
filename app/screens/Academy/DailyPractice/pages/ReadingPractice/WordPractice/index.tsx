@@ -30,8 +30,9 @@ import {
   Sheet,
   useTheme,
   spacing,
+  withAlpha,
 } from "../../../../../../design-system";
-import { readingTips } from "../data";
+import { readingPracticeAccents, readingTips } from "../data";
 import { useWordPractice } from "./useWordPractice";
 
 // Fluency-aid over-reliance guardrails
@@ -49,6 +50,10 @@ const WordPractice = () => {
   const { state, actions } = useWordPractice();
   const navigation = useNavigation<RDPStackNavigationProp<"WordPractice">>();
   const { colors } = useTheme();
+  const accent = readingPracticeAccents.word;
+  const accentColor = colors.accent[accent];
+  const onAccentColor = colors.accentOn[accent];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
 
   /* State Destructuring */
   const {
@@ -108,6 +113,8 @@ const WordPractice = () => {
     family: "Reading",
     from,
     packContext,
+    accentColor,
+    onAccentColor,
   });
 
   // --- Rendering Helpers ---
@@ -117,7 +124,7 @@ const WordPractice = () => {
     const [start, length] = highlightRange;
     if (start < 0 || length === 0) {
       return (
-        <DSText variant="h1" color="primary" style={styles.readingText}>
+        <DSText variant="h1" color={onAccentColor} style={styles.readingText}>
           {practiceText}
         </DSText>
       );
@@ -127,12 +134,12 @@ const WordPractice = () => {
     const after = practiceText.slice(start + length);
 
     return (
-      <DSText variant="h1" color="primary" style={styles.readingText}>
+      <DSText variant="h1" color={onAccentColor} style={styles.readingText}>
         {before}
         <RNText
           style={{
-            backgroundColor: colors.action.primaryTint,
-            color: colors.text.primary,
+            backgroundColor: highlightColor,
+            color: onAccentColor,
           }}
         >
           {word}
@@ -198,6 +205,8 @@ const WordPractice = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -213,6 +222,8 @@ const WordPractice = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -225,6 +236,8 @@ const WordPractice = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -280,6 +293,8 @@ const WordPractice = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.READING_PRACTICE}
         practiceName="word practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -317,6 +332,11 @@ const WordPractice = () => {
             onPress={() => runStart()}
             loading={isStarting || isLoading || !hasHydrated}
             disabled={isStarting || !hasHydrated || isLoading}
+            style={
+              isStarting || !hasHydrated || isLoading
+                ? undefined
+                : { backgroundColor: accentColor }
+            }
           />
         }
       >
@@ -332,6 +352,7 @@ const WordPractice = () => {
           value={hardMode}
           onValueChange={actions.setHardMode}
           canUseHardMode={canUseHardMode}
+          accent={accent}
         />
 
         {/* Tips — a dot timeline on the dark canvas. */}
@@ -340,7 +361,7 @@ const WordPractice = () => {
           {readingTips.word.map((tip, index, arr) => (
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
-                <View style={[styles.tipDot, { backgroundColor: colors.action.primary }]} />
+                <View style={[styles.tipDot, { backgroundColor: accentColor }]} />
                 {index !== arr.length - 1 && (
                   <View style={[styles.tipLine, { backgroundColor: colors.border.default }]} />
                 )}
@@ -366,6 +387,8 @@ const WordPractice = () => {
             : actions.onBackPress()
         }
         category="WORD"
+        accent={accentColor}
+        onAccent={onAccentColor}
         onNext={actions.toggleIndex}
         focus={{
           active: hardMode,
@@ -388,6 +411,8 @@ const WordPractice = () => {
             onDiscard={() => {
               actions.setVoiceRecordingUri(null);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             renderTools={() => (
               <RecorderTools
                 activeToolId={selectedPracticeTool}
@@ -398,6 +423,8 @@ const WordPractice = () => {
                 focusMode={focusMode}
                 expanded={toolsExpanded}
                 onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
             )}
           />
@@ -437,6 +464,8 @@ const WordPractice = () => {
         visible={consentTool !== null}
         tool={consentTool}
         onAcknowledge={() => acknowledgeConsent(proceedToolSelect)}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

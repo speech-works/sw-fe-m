@@ -27,6 +27,10 @@ export interface ButtonProps {
    *  bright/custom fill (e.g. an accent-coloured Sheet) — pass the AA-correct
    *  on-fill colour (`accentOn.*`). Solid variants stay dark and ignore this. */
   onColor?: string;
+  /** Override the primary fill for context-themed flows. */
+  accentColor?: string;
+  /** AA-correct foreground for `accentColor`. */
+  onAccentColor?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -45,13 +49,15 @@ export const Button: React.FC<ButtonProps> = ({
   rightIcon,
   fullWidth = true,
   onColor,
+  accentColor,
+  onAccentColor,
   style,
 }) => {
   const { colors } = useTheme();
   const isDisabled = disabled || loading;
 
-  let bg = colors.action.primary;
-  let fg = colors.action.onPrimary;
+  let bg = accentColor ?? colors.action.primary;
+  let fg = onAccentColor ?? colors.action.onPrimary;
   let borderColor: string | undefined;
 
   if (variant === "secondary") {
