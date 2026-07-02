@@ -1,6 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { StyleSheet, View, ScrollView, Dimensions } from "react-native";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import {
   LibStackNavigationProp,
@@ -16,8 +16,8 @@ import {
   spacing,
   radius,
   Sheet,
+  TabDock,
 } from "../../../../design-system";
-import BentoPathSelector from "./components/BentoPathSelector";
 import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
 import TutorialPage from "./TutorialPage";
@@ -34,6 +34,8 @@ const TechniquePage = () => {
 
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
 
   const isContentAccessible = user?.isPaid || hasFree;
   const closeModal = () => setIsModalVisible(false);
@@ -54,24 +56,14 @@ const TechniquePage = () => {
     handleStepChange(index);
   };
 
-  const RenderPage =
-    activeStageIndex === 0 ? (
-      <TutorialPage
-        setActiveStageIndex={handleChildStageChange}
-        techniqueId={techniqueId}
-      />
-    ) : activeStageIndex === 1 && isContentAccessible ? (
-      <PracticePage
-        setActiveStageIndex={handleChildStageChange}
-        techniqueId={techniqueId}
-      />
-    ) : activeStageIndex === 2 && isContentAccessible ? (
-      <QuizPage
-        techniqueId={techniqueId}
-        techniqueName={techniqueName}
-        from={from}
-      />
-    ) : null;
+  useEffect(() => {
+    if (scrollViewRef.current && contentWidth > 0) {
+      scrollViewRef.current.scrollTo({
+        x: activeStageIndex * contentWidth,
+        animated: true,
+      });
+    }
+  }, [activeStageIndex, contentWidth]);
 
   useEffect(() => {
     if (stage === "TUTORIAL") {
@@ -104,30 +96,77 @@ const TechniquePage = () => {
         contentGap={spacing.lg}
       >
         {/* Stepper (Navigation) — dark tab bar */}
-        <BentoPathSelector
-          steps={[
+        <TabDock
+          inline
+          fitContent
+          accessibilityLabel="Technique stages"
+          items={[
             {
+              key: "0",
               label: "Learn",
               icon: "play",
-              disabled: false,
             },
             {
+              key: "1",
               label: "Practice",
-              icon: "mic-vocal",
-              disabled: !isContentAccessible,
+              icon: !isContentAccessible ? "lock" : "mic-vocal",
             },
             {
+              key: "2",
               label: "Test",
-              icon: "square-check",
-              disabled: !isContentAccessible,
+              icon: !isContentAccessible ? "lock" : "square-check",
             },
           ]}
-          currentStepIndex={activeStageIndex}
-          onStepChange={handleStepChange}
+          activeKey={activeStageIndex.toString()}
+          onSelect={(k) => handleStepChange(parseInt(k, 10))}
         />
 
         {/* Main Content — child pages own their own scroll/dock. */}
-        <View style={styles.contentContainer}>{RenderPage}</View>
+        <View 
+          style={styles.contentContainer}
+          onLayout={(e) => {
+            const width = e.nativeEvent.layout.width;
+            if (width > 0) setContentWidth(width);
+          }}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={isContentAccessible}
+            onMomentumScrollEnd={(e) => {
+              const offsetX = e.nativeEvent.contentOffset.x;
+              const pageIndex = Math.round(offsetX / contentWidth);
+              handleStepChange(pageIndex);
+            }}
+            style={{ flex: 1 }}
+          >
+            <View style={{ width: contentWidth }}>
+              <TutorialPage
+                setActiveStageIndex={handleChildStageChange}
+                techniqueId={techniqueId}
+              />
+            </View>
+            {isContentAccessible && (
+              <>
+                <View style={{ width: contentWidth }}>
+                  <PracticePage
+                    setActiveStageIndex={handleChildStageChange}
+                    techniqueId={techniqueId}
+                  />
+                </View>
+                <View style={{ width: contentWidth }}>
+                  <QuizPage
+                    techniqueId={techniqueId}
+                    techniqueName={techniqueName}
+                    from={from}
+                  />
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </View>
       </Page>
 
       {/* Info Modal (dark) */}
