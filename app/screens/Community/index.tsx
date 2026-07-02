@@ -801,52 +801,38 @@ const Community = () => {
           </View>
         ) : isPaired ? (
           <View style={{ flex: 1 }}>
-            <ScrollView
-              ref={scrollViewRef}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                const offsetX = e.nativeEvent.contentOffset.x;
-                const pageIndex = Math.round(offsetX / screenWidth);
-                setView(pageIndex === 0 ? "us" : "timeline");
+            <CustomScrollView
+              contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+              onScrollY={handleScrollY}
+              onEndReached={() => {
+                if (view === "timeline") timelineRef.current?.loadMore();
               }}
-              style={{ flex: 1 }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={colors.action.primary}
+                  colors={[colors.action.primary]}
+                  progressViewOffset={insets.top + 8}
+                />
+              }
             >
-              <View style={{ width: screenWidth }}>
-                <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
-                  onScrollY={handleScrollY}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={refreshing}
-                      onRefresh={onRefresh}
-                      tintColor={colors.action.primary}
-                      colors={[colors.action.primary]}
-                      progressViewOffset={insets.top + 8}
-                    />
-                  }
-                >
-                  {renderHeader()}
+              {renderHeader()}
+              <ScrollView
+                ref={scrollViewRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const offsetX = e.nativeEvent.contentOffset.x;
+                  const pageIndex = Math.round(offsetX / screenWidth);
+                  setView(pageIndex === 0 ? "us" : "timeline");
+                }}
+              >
+                <View style={{ width: screenWidth }}>
                   {renderPaired()}
-                </CustomScrollView>
-              </View>
-              <View style={{ width: screenWidth }}>
-                <CustomScrollView
-                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
-                  onScrollY={handleScrollY}
-                  onEndReached={() => timelineRef.current?.loadMore()}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={refreshing}
-                      onRefresh={onRefresh}
-                      tintColor={colors.action.primary}
-                      colors={[colors.action.primary]}
-                      progressViewOffset={insets.top + 8}
-                    />
-                  }
-                >
-                  {renderHeader()}
+                </View>
+                <View style={{ width: screenWidth }}>
                   {thread ? (
                     <Timeline
                       ref={timelineRef}
@@ -857,17 +843,19 @@ const Community = () => {
                       onReachOut={setSupportSignal}
                     />
                   ) : null}
-                </CustomScrollView>
+                </View>
+              </ScrollView>
+            </CustomScrollView>
 
-                <TouchableOpacity
-                  style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
-                  activeOpacity={0.85}
-                  onPress={handleOpenMoment}
-                >
-                  <Icon name={icons.add} size={24} color={colors.action.onPrimary} />
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+            {view === "timeline" && (
+              <TouchableOpacity
+                style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
+                activeOpacity={0.85}
+                onPress={handleOpenMoment}
+              >
+                <Icon name={icons.add} size={24} color={colors.action.onPrimary} />
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <CustomScrollView
