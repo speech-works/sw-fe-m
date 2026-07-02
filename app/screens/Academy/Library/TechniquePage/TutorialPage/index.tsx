@@ -21,17 +21,20 @@ import {
   ErrorState,
   useTheme,
   spacing,
+  space,
   radius,
 } from "../../../../../design-system";
 
 interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
+  header?: React.ReactNode;
 }
 
 const TutorialPage = ({
   techniqueId,
   setActiveStageIndex,
+  header,
 }: TutorialPageProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
@@ -141,6 +144,7 @@ const TutorialPage = ({
 
   return (
     <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      {header}
       <View style={{ gap: spacing.lg }}>
         <View style={styles.videoContainer}>
           <VideoPlayer
@@ -202,7 +206,8 @@ export default TutorialPage;
 // ---- STYLES ----
 const styles = StyleSheet.create({
   scrollContent: {
-    padding: 2,
+    paddingHorizontal: space.screenX,
+    paddingBottom: spacing["2xl"],
     flexGrow: 1,
   },
   stateContainer: {

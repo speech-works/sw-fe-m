@@ -1,6 +1,7 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import {
   LibStackNavigationProp,
@@ -8,7 +9,6 @@ import {
 } from "../../../../navigators/stacks/ExploreStack/LibraryStack/types";
 import { useUserStore } from "../../../../stores/user";
 import {
-  Page,
   Text,
   Button,
   IconButton,
@@ -17,7 +17,12 @@ import {
   radius,
   Sheet,
   TabDock,
+  useTheme,
+  space,
+  zIndex,
+  PageHeader,
 } from "../../../../design-system";
+import ScreenView from "../../../../components/ScreenView";
 import PracticePage from "./PracticePage";
 import QuizPage from "./QuizPage";
 import TutorialPage from "./TutorialPage";
@@ -26,7 +31,8 @@ const TechniquePage = () => {
   const { user } = useUserStore();
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
-
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProp<LibStackParamList, "TechniquePage">>();
 
   const { techniqueId, techniqueName, techniqueDesc, stage, hasFree, from } =
@@ -77,9 +83,11 @@ const TechniquePage = () => {
     }
   }, [stage, isContentAccessible]);
 
-  return (
-    <>
-      <Page
+  const topPad = insets.top + space.inlineGap;
+
+  const header = (
+    <View style={{ paddingTop: topPad, paddingHorizontal: space.screenX, paddingBottom: spacing.lg }}>
+      <PageHeader
         title={techniqueName}
         onBack={() =>
           from === "MOOD_CHECK"
@@ -92,10 +100,8 @@ const TechniquePage = () => {
             onPress={() => setIsModalVisible(true)}
           />
         }
-        scroll={false}
-        contentGap={spacing.lg}
-      >
-        {/* Stepper (Navigation) — dark tab bar */}
+      />
+      <View style={{ marginTop: space.titleGap }}>
         <TabDock
           inline
           fitContent
@@ -120,9 +126,17 @@ const TechniquePage = () => {
           activeKey={activeStageIndex.toString()}
           onSelect={(k) => handleStepChange(parseInt(k, 10))}
         />
+      </View>
+    </View>
+  );
+
+  return (
+    <>
+      <ScreenView style={{ backgroundColor: colors.background.canvas, flex: 1 }}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
         {/* Main Content — child pages own their own scroll/dock. */}
-        <View 
+        <View
           style={styles.contentContainer}
           onLayout={(e) => {
             const width = e.nativeEvent.layout.width;
@@ -146,6 +160,7 @@ const TechniquePage = () => {
               <TutorialPage
                 setActiveStageIndex={handleChildStageChange}
                 techniqueId={techniqueId}
+                header={header}
               />
             </View>
             {isContentAccessible && (
@@ -154,6 +169,7 @@ const TechniquePage = () => {
                   <PracticePage
                     setActiveStageIndex={handleChildStageChange}
                     techniqueId={techniqueId}
+                    header={header}
                   />
                 </View>
                 <View style={{ width: contentWidth }}>
@@ -161,13 +177,28 @@ const TechniquePage = () => {
                     techniqueId={techniqueId}
                     techniqueName={techniqueName}
                     from={from}
+                    header={header}
                   />
                 </View>
               </>
             )}
           </ScrollView>
         </View>
-      </Page>
+
+        {insets.top > 0 ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: insets.top,
+              backgroundColor: colors.background.canvas,
+              zIndex: zIndex.sticky,
+            }}
+          />
+        ) : null}
+      </ScreenView>
 
       {/* Info Modal (dark) */}
       <Sheet visible={isModalVisible} onClose={closeModal}>

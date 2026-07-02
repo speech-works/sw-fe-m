@@ -28,17 +28,20 @@ import {
   useTheme,
   spacing,
   radius,
+  space,
   Sheet,
 } from "../../../../../design-system";
 
 interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
+  header?: React.ReactNode;
 }
 
 const PracticePage = ({
   techniqueId,
   setActiveStageIndex,
+  header,
 }: PracticePageProps) => {
   const { colors } = useTheme();
   // Data State
@@ -215,6 +218,7 @@ const PracticePage = ({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {header}
           <View style={styles.stage}>
             <Text variant="label" color={colors.accent.info} style={styles.eyebrow}>
               PRACTICE
@@ -318,7 +322,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: space.screenX,
     paddingBottom: spacing["4xl"],
   },
   stage: {

@@ -24,6 +24,7 @@ import {
   ProgressBar,
   useTheme,
   spacing,
+  space,
   radius,
   borderWidth,
 } from "../../../../../design-system";
@@ -32,9 +33,10 @@ interface QuizPageProps {
   techniqueId: TECHNIQUES_ENUM;
   techniqueName: string;
   from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
+  header?: React.ReactNode;
 }
 
-const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
+const QuizPage = ({ techniqueId, techniqueName, from, header }: QuizPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { colors } = useTheme();
@@ -130,6 +132,7 @@ const QuizPage = ({ techniqueId, techniqueName, from }: QuizPageProps) => {
 
   return (
     <CustomScrollView contentContainerStyle={styles.scrollContent}>
+      {header}
       <View style={styles.innerContainer}>
         {/* Progress Indicator */}
         <View style={styles.progressSection}>
@@ -333,7 +336,8 @@ const styles = StyleSheet.create({
     padding: spacing["4xl"],
   },
   scrollContent: {
-    padding: spacing.lg,
+    paddingHorizontal: space.screenX,
+    paddingBottom: spacing["2xl"],
     flexGrow: 1,
   },
   innerContainer: {
