@@ -87,7 +87,7 @@ const TechniquePage = () => {
   const topPad = insets.top + space.inlineGap;
 
   const header = (
-    <View style={{ paddingTop: topPad, paddingHorizontal: space.screenX, paddingBottom: spacing.lg }}>
+    <View style={{ paddingTop: topPad, paddingBottom: spacing.lg }}>
       <PageHeader
         title={techniqueName}
         onBack={() =>
@@ -194,13 +194,15 @@ const TechniquePage = () => {
           />
         ) : null}
 
-        <TouchableOpacity
-          style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
-          activeOpacity={0.85}
-          onPress={() => setIsModalVisible(true)}
-        >
-          <Icon name="info" size={24} color={colors.action.onPrimary} />
-        </TouchableOpacity>
+        {activeStageIndex === 0 && (
+          <TouchableOpacity
+            style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
+            activeOpacity={0.85}
+            onPress={() => setIsModalVisible(true)}
+          >
+            <Icon name="info" size={24} color={colors.action.onPrimary} />
+          </TouchableOpacity>
+        )}
       </ScreenView>
 
       {/* Info Modal (dark) */}
