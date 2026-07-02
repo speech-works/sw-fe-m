@@ -1,6 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, StatusBar, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import {
@@ -21,6 +21,7 @@ import {
   space,
   zIndex,
   PageHeader,
+  Icon,
 } from "../../../../design-system";
 import ScreenView from "../../../../components/ScreenView";
 import PracticePage from "./PracticePage";
@@ -93,12 +94,6 @@ const TechniquePage = () => {
           from === "MOOD_CHECK"
             ? navigation.navigate("Root" as any, { screen: "HOME" })
             : navigation.navigate("Library", { from })
-        }
-        right={
-          <IconButton
-            name="info"
-            onPress={() => setIsModalVisible(true)}
-          />
         }
       />
       <View style={{ marginTop: space.titleGap }}>
@@ -198,6 +193,14 @@ const TechniquePage = () => {
             }}
           />
         ) : null}
+
+        <TouchableOpacity
+          style={[styles.stickyFab, { backgroundColor: colors.surface.control, shadowColor: colors.shadow }]}
+          activeOpacity={0.85}
+          onPress={() => setIsModalVisible(true)}
+        >
+          <Icon name="info" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
       </ScreenView>
 
       {/* Info Modal (dark) */}
@@ -262,5 +265,19 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 280,
     alignSelf: "center",
+  },
+  stickyFab: {
+    position: "absolute",
+    bottom: 110,
+    right: spacing["2xl"],
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

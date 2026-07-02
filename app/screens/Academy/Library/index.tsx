@@ -8,6 +8,7 @@ import {
   TextInput,
   UIManager,
   View,
+  TouchableOpacity,
 } from "react-native";
 import ScreenView from "../../../components/ScreenView";
 
@@ -44,6 +45,8 @@ import {
   space,
   size,
   Sheet,
+  Icon,
+  radius,
 } from "../../../design-system";
 
 // --- Data Definitions ---
@@ -345,12 +348,6 @@ const Library = () => {
           title="Library"
           description="Techniques to understand and reshape your speech."
           onBack={handleBack}
-          right={
-            <IconButton
-              name={isSearching ? "x" : "search"}
-              onPress={isSearching ? handleCancelSearch : handleSearchToggle}
-            />
-          }
           standalone
         />
 
@@ -412,6 +409,14 @@ const Library = () => {
 
         <View style={{ height: spacing["4xl"] }} />
       </ScrollView>
+
+      <TouchableOpacity
+        style={[styles.stickyFab, { backgroundColor: colors.surface.control, shadowColor: colors.shadow }]}
+        activeOpacity={0.85}
+        onPress={isSearching ? handleCancelSearch : handleSearchToggle}
+      >
+        <Icon name={isSearching ? "x" : "search"} size={24} color={colors.text.primary} />
+      </TouchableOpacity>
 
       {/* --- Selection Modal (dark) --- */}
       <Sheet visible={isSelectionModalVisible} onClose={() => setIsSelectionModalVisible(false)}>
@@ -482,5 +487,19 @@ const styles = StyleSheet.create({
   modalActions: {
     width: "100%",
     gap: spacing.md,
+  },
+  stickyFab: {
+    position: "absolute",
+    bottom: 110,
+    right: spacing["2xl"],
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });
