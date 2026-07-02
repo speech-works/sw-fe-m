@@ -195,11 +195,11 @@ const TechniquePage = () => {
         ) : null}
 
         <TouchableOpacity
-          style={[styles.stickyFab, { backgroundColor: colors.surface.control, shadowColor: colors.shadow }]}
+          style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
           activeOpacity={0.85}
           onPress={() => setIsModalVisible(true)}
         >
-          <Icon name="info" size={24} color={colors.text.primary} />
+          <Icon name="info" size={24} color={colors.action.onPrimary} />
         </TouchableOpacity>
       </ScreenView>
 

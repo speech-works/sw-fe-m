@@ -411,11 +411,11 @@ const Library = () => {
       </ScrollView>
 
       <TouchableOpacity
-        style={[styles.stickyFab, { backgroundColor: colors.surface.control, shadowColor: colors.shadow }]}
+        style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
         activeOpacity={0.85}
         onPress={isSearching ? handleCancelSearch : handleSearchToggle}
       >
-        <Icon name={isSearching ? "x" : "search"} size={24} color={colors.text.primary} />
+        <Icon name={isSearching ? "x" : "search"} size={24} color={colors.action.onPrimary} />
       </TouchableOpacity>
 
       {/* --- Selection Modal (dark) --- */}
