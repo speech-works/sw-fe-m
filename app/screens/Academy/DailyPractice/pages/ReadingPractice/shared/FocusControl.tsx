@@ -62,12 +62,15 @@ export function FocusControl({ active, canUse, onToggle }: FocusConfig) {
             { backgroundColor: active ? colors.accent.info : colors.text.tertiary },
           ]}
         />
+        {/* Constant label (never "Focus"→"Focusing") so the pill can't change width and
+            shift on toggle; state shows via the blue dot/border, the wash, and the eyebrow
+            "FOCUS · YOUR SOUNDS". Short so focus + page-nav + Next fit one deck row. */}
         <Text
           variant="label"
           color={active ? colors.accent.info : "secondary"}
           numberOfLines={1}
         >
-          {active ? "Focusing on your sounds" : "Focus on your sounds"}
+          Focus
         </Text>
       </PressableScale>
 

@@ -376,6 +376,7 @@ const StoryPractice = () => {
         }
         category="STORY"
         align="top"
+        onNext={actions.toggleIndex}
         pagination={{
           page: currentPage,
           count: pages.length,

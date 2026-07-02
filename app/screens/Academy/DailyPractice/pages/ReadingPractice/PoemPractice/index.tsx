@@ -523,6 +523,7 @@ const PoemPractice = () => {
         onBack={onBackPress}
         category="POEM"
         align="top"
+        onNext={toggleIndex}
         pagination={{
           page: currentPage,
           count: pages.length,

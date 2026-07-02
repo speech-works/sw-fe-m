@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { LayoutChangeEvent, StatusBar, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -26,10 +26,11 @@ import {
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
 
-/** Bottom clearance for the floating dock (pill 70 + ~34 safe margin + gap). */
-const DOCK_RESERVE = 120;
-/** Extra clearance for the fixed control deck (focus + nav row) above the dock. */
-const DECK_RESERVE = 52;
+/** First-paint estimate of the fixed cluster height (deck row + dock); replaced by the
+ *  measured value on layout so the scroll always reserves the exact right space. */
+const CLUSTER_ESTIMATE = 168;
+/** Soft fade above the fixed cluster. Content must clear this whole zone to stay crisp. */
+const SCRIM_FADE = 40;
 
 export interface Pagination {
   /** 0-based current page. */
@@ -48,9 +49,9 @@ interface ReadingStageProps {
   accent?: string;
   /** "center" (default) for a single short item; "top" for long / paginated reading. */
   align?: "center" | "top";
-  /** Advance to the next item — a "Next" pill in the fixed deck (single-item screens). */
+  /** Advance to the next item — a "Next" pill in the fixed deck. */
   onNext?: () => void;
-  /** Page navigation for paginated reading (poem/story) — replaces the Next pill. */
+  /** Page navigation for paginated reading (poem/story) — sits beside the Next pill. */
   pagination?: Pagination;
   /** Hard-mode ("Focus on your sounds") control. Omit on screens with no hard mode. */
   focus?: FocusConfig;
@@ -64,10 +65,10 @@ interface ReadingStageProps {
  *
  * Two separated surfaces so NO action can ever cause layout shift:
  *  1. A SCROLLING reading surface (header + eyebrow + metadata + body) with nothing
- *     interactive in it, so its variable length can't move any control.
+ *     interactive in it, so its variable length can't move a control.
  *  2. A FIXED control deck pinned above the mic dock holding every control as a solid
- *     pill — the focus toggle (left) and Next / page-nav (right). Content fades into the
- *     canvas via a `scrimDown` scrim before it reaches the deck, so nothing overlaps.
+ *     pill — focus (left), page-nav + Next (right). The scroll reserves the MEASURED
+ *     cluster height + the scrim fade, so the last line always clears the fade fully.
  */
 export function ReadingStage({
   title,
@@ -95,16 +96,28 @@ export function ReadingStage({
   }, [focus?.active, reduceMotion, wash]);
   const washStyle = useAnimatedStyle(() => ({ opacity: wash.value * 0.6 }));
 
+  // Measure the real deck+dock height so the scroll reserves exactly enough for content
+  // to clear the entire scrim fade (not just the deck) — otherwise the last lines dim.
+  const [clusterH, setClusterH] = useState(CLUSTER_ESTIMATE);
+  const onDeckLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && Math.abs(h - clusterH) > 1) setClusterH(h);
+  };
+  const scrimH = clusterH + SCRIM_FADE;
+  const bottomReserve = scrimH + spacing.lg; // last line lands above the fade
+
   const eyebrow = focus?.active ? "FOCUS · YOUR SOUNDS" : category;
-  const hasDeck = !!(focus || pagination || onNext);
-  const bottomReserve = DOCK_RESERVE + (hasDeck ? DECK_RESERVE : 0);
+
+  // TEMP DEBUG (remove): real scroll numbers to diagnose the can't-scroll-past-deck bug.
+  const [dbg, setDbg] = useState({ c: 0, l: 0 });
 
   const renderNav = () => {
+    const parts: React.ReactNode[] = [];
     if (pagination) {
       const first = pagination.page <= 0;
       const last = pagination.page >= pagination.count - 1;
-      return (
-        <View style={styles.pageNav}>
+      parts.push(
+        <View key="page" style={styles.pageNav}>
           <PressableScale
             onPress={first ? undefined : pagination.onPrev}
             style={[styles.pageBtn, first && styles.pageBtnOff]}
@@ -120,21 +133,24 @@ export function ReadingStage({
           >
             <Icon name="chevron-right" size={18} color={accentColor} />
           </PressableScale>
-        </View>
+        </View>,
       );
     }
     if (onNext) {
-      return (
-        <PressableScale onPress={onNext} style={styles.nextPill}>
+      parts.push(
+        <PressableScale key="next" onPress={onNext} style={styles.nextPill}>
           <Text variant="label" color="secondary">
             Next
           </Text>
           <Icon name={icons.chevronRight} size={16} color={accentColor} />
-        </PressableScale>
+        </PressableScale>,
       );
     }
-    return null;
+    if (!parts.length) return null;
+    return <View style={styles.navGroup}>{parts}</View>;
   };
+
+  const hasDeck = !!(focus || pagination || onNext);
 
   return (
     <ScreenView style={styles.screen}>
@@ -156,9 +172,16 @@ export function ReadingStage({
           { paddingTop: insets.top + space.inlineGap, paddingBottom: bottomReserve },
         ]}
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={(_w: number, h: number) =>
+          setDbg((s) => ({ ...s, c: h }))
+        }
+        onLayout={(e: LayoutChangeEvent) => {
+          const h = e.nativeEvent.layout.height;
+          setDbg((s) => ({ ...s, l: h }));
+        }}
       >
         <PageHeader title={title} onBack={onBack} />
-        <View style={[styles.stage, align === "top" && styles.stageTop]}>
+        <View style={[styles.stage, align === "center" && styles.stageCenter]}>
           <Text variant="label" color={accentColor} style={styles.eyebrow}>
             {eyebrow}
           </Text>
@@ -166,16 +189,13 @@ export function ReadingStage({
         </View>
       </CustomScrollView>
 
-      {/* Bottom fade — content dissolves into the canvas before the fixed deck. */}
-      <View
-        style={[styles.scrim, { height: bottomReserve + spacing["4xl"] }]}
-        pointerEvents="none"
-      >
+      {/* Bottom fade — sized to the measured cluster so content dissolves before it. */}
+      <View style={[styles.scrim, { height: scrimH }]} pointerEvents="none">
         <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
       </View>
 
-      {/* FIXED control deck + dock — pinned; every control here is solid + never moves. */}
-      <View style={styles.deckFloat} pointerEvents="box-none">
+      {/* FIXED control deck + dock — measured; every control here is solid + never moves. */}
+      <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
         {hasDeck ? (
           <View style={styles.deck} pointerEvents="box-none">
             <View style={styles.deckSide}>{focus ? <FocusControl {...focus} /> : null}</View>
@@ -188,6 +208,24 @@ export function ReadingStage({
       {insets.top > 0 ? (
         <View style={[styles.statusCap, { height: insets.top }]} />
       ) : null}
+
+      {/* TEMP DEBUG (remove) */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: insets.top + 4,
+          right: 6,
+          backgroundColor: "rgba(0,0,0,0.8)",
+          paddingHorizontal: 6,
+          paddingVertical: 3,
+          zIndex: 9999,
+        }}
+      >
+        <Text variant="caption" color="#00ff88">
+          {`c:${Math.round(dbg.c)} l:${Math.round(dbg.l)} r:${Math.round(bottomReserve)} k:${Math.round(clusterH)}`}
+        </Text>
+      </View>
     </ScreenView>
   );
 }
@@ -199,17 +237,19 @@ const useStyles = makeStyles((c) => ({
     paddingHorizontal: space.screenX,
     flexGrow: 1,
   },
-  // flexGrow (never flex:1 — flex:1 sets flexBasis 0, so tall content overflows the
-  // fixed height, overlaps the header and can't scroll). flexGrow keeps base = content.
+  // Natural flow by default (top-aligned) so LONG/paginated content measures its true
+  // height and scrolls fully. `stageCenter` adds flexGrow only for short single items
+  // (word/quote) that should vertically centre — they never overflow, so no scroll issue.
+  // Do NOT put flexGrow here: a flexGrow child inside a flexGrow scroll container is
+  // flex-resolved to viewport height, clipping overflow and breaking scroll (RN gotcha).
   stage: {
-    flexGrow: 1,
-    justifyContent: "center",
     alignItems: "center",
     gap: spacing["2xl"],
     paddingVertical: spacing["3xl"],
   },
-  stageTop: {
-    justifyContent: "flex-start",
+  stageCenter: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
   eyebrow: {
     letterSpacing: 1.2,
@@ -241,12 +281,17 @@ const useStyles = makeStyles((c) => ({
   deckSide: {
     flexShrink: 1,
   },
-  nextPill: {
+  navGroup: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+  },
+  nextPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     height: 40,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: c.border.strong,
@@ -264,9 +309,9 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.surface.elevated,
   },
   pageBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -274,7 +319,7 @@ const useStyles = makeStyles((c) => ({
     opacity: 0.3,
   },
   pageCount: {
-    minWidth: 42,
+    minWidth: 30,
     textAlign: "center",
     fontVariant: ["tabular-nums"],
   },
