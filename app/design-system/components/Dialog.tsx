@@ -35,20 +35,18 @@ export const Dialog: React.FC<DialogProps> = ({
           {message}
         </Text>
       ) : null}
-      <View style={{ flexDirection: "row", gap: 10, marginTop: 22 }}>
-        <View style={{ flex: 1 }}>
-          <Button label={cancelLabel} variant="secondary" size="md" onPress={onClose} />
-        </View>
+      {/* Stacked full-width (matches the DS confirm-sheet convention) so labels of any
+          length stay on one centred line — a 50/50 row cramped the wider label into a wrap. */}
+      <View style={{ gap: 10, marginTop: 22 }}>
         {onConfirm ? (
-          <View style={{ flex: 1 }}>
-            <Button
-              label={confirmLabel}
-              variant={destructive ? "danger" : "primary"}
-              size="md"
-              onPress={onConfirm}
-            />
-          </View>
+          <Button
+            label={confirmLabel}
+            variant={destructive ? "danger" : "primary"}
+            size="md"
+            onPress={onConfirm}
+          />
         ) : null}
+        <Button label={cancelLabel} variant="secondary" size="md" onPress={onClose} />
       </View>
     </AnimatedModal>
   );

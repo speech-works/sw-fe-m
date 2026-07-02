@@ -3,8 +3,8 @@ import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import PressableScale from "../../../../../components/PressableScale";
 import {
-  Icon,
   Text,
+  borderWidth,
   makeStyles,
   radius,
   spacing,
@@ -56,9 +56,7 @@ export function SuggestionCards<O extends ChatSessionOption>({
               style={[styles.card, armed && styles.cardArmed]}
             >
               <View style={[styles.radio, armed && styles.radioArmed]}>
-                {armed ? (
-                  <Icon name="check" size={14} color={colors.action.onPrimary} />
-                ) : null}
+                {armed ? <View style={styles.radioDot} /> : null}
               </View>
               <View style={styles.cardBody}>
                 <RichText
@@ -99,18 +97,24 @@ const useStyles = makeStyles((c) => ({
     backgroundColor: c.action.primaryTint,
     borderColor: c.action.primary,
   },
+  // Matches the DS Radio spec exactly (22 circle, thick ring, 11 inner dot).
   radio: {
     width: 22,
     height: 22,
     borderRadius: radius.full,
-    borderWidth: 2,
+    borderWidth: borderWidth.thick,
     borderColor: c.border.strong,
     alignItems: "center",
     justifyContent: "center",
   },
   radioArmed: {
-    backgroundColor: c.action.primary,
     borderColor: c.action.primary,
+  },
+  radioDot: {
+    width: 11,
+    height: 11,
+    borderRadius: radius.full,
+    backgroundColor: c.action.primary,
   },
   cardBody: {
     flex: 1,

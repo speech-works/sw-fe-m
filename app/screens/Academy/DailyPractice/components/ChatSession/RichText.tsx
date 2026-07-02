@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { Text, makeStyles, radius, spacing } from "../../../../../design-system";
+import { Text, fonts, makeStyles, radius, spacing } from "../../../../../design-system";
 
 interface RichTextProps {
   text: string;
@@ -87,7 +87,7 @@ const useStyles = makeStyles((c) => ({
     marginVertical: 1,
   },
   hlPrimaryText: {
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.action.onPrimary,
     includeFontPadding: false,
   },
@@ -100,7 +100,7 @@ const useStyles = makeStyles((c) => ({
     marginVertical: 1,
   },
   hlSecondaryText: {
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.accentOn.purple,
     includeFontPadding: false,
   },

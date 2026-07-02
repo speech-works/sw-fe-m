@@ -10,7 +10,6 @@ import {
   ImpactAssessmentAnswerSubmission,
   ImpactAssessmentDailyBatch,
 } from "../../../api/impactAssessment/types";
-import BottomSheetModal from "../../../components/BottomSheetModal";
 import ImpactAssessmentContinueModal from "../../../components/ImpactAssessmentContinueModal";
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
@@ -23,6 +22,7 @@ import {
   space,
   spacing,
   useTheme,
+  Sheet,
 } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
@@ -271,23 +271,15 @@ const ImpactAssessmentQuestions = () => {
         />
       </View>
 
-      <BottomSheetModal
+      <Sheet
         visible={isStopModalVisible}
         onClose={() => setIsStopModalVisible(false)}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={colors.surface.default}
       >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
-          ]}
-        >
-          <Text variant="h3" color="primary" style={styles.modalTitle}>
+        <View style={styles.modalContent}>
+          <Text variant="h2" center>
             Pause Assessment?
           </Text>
-          <Text variant="body" color="secondary" center style={styles.modalText}>
+          <Text variant="body" color="secondary" center>
             Your progress will be saved for later. You can continue anytime from
             the Home screen.
           </Text>
@@ -312,7 +304,7 @@ const ImpactAssessmentQuestions = () => {
             />
           </View>
         </View>
-      </BottomSheetModal>
+      </Sheet>
 
       {/* Continue Modal */}
       <ImpactAssessmentContinueModal
@@ -360,20 +352,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   modalContent: {
-    paddingHorizontal: space.screenX,
-    paddingVertical: spacing["3xl"],
-    paddingTop: 54,
     alignItems: "center",
-  },
-  modalTitle: {
-    marginBottom: spacing.md,
-  },
-  modalText: {
-    marginBottom: spacing["3xl"],
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
   modalButtons: {
     width: "100%",
     gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

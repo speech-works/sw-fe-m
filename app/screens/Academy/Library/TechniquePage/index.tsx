@@ -1,9 +1,7 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
-import BottomSheetModal from "../../../../components/BottomSheetModal";
 import {
   LibStackNavigationProp,
   LibStackParamList,
@@ -15,9 +13,9 @@ import {
   Button,
   IconButton,
   Divider,
-  useTheme,
   spacing,
   radius,
+  Sheet,
 } from "../../../../design-system";
 import BentoPathSelector from "./components/BentoPathSelector";
 import PracticePage from "./PracticePage";
@@ -25,8 +23,6 @@ import QuizPage from "./QuizPage";
 import TutorialPage from "./TutorialPage";
 
 const TechniquePage = () => {
-  const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
   const { user } = useUserStore();
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
@@ -135,19 +131,8 @@ const TechniquePage = () => {
       </Page>
 
       {/* Info Modal (dark) */}
-      <BottomSheetModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={colors.surface.default}
-      >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
-          ]}
-        >
+      <Sheet visible={isModalVisible} onClose={closeModal}>
+        <View style={styles.modalContent}>
           {/* Therapist Face */}
           <View style={styles.modalFaceContainer}>
             <TherapistFace width={120} height={120} />
@@ -171,7 +156,7 @@ const TechniquePage = () => {
             style={styles.modalButton}
           />
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </>
   );
 };
@@ -186,8 +171,8 @@ const styles = StyleSheet.create({
   },
   // Info sheet content
   modalContent: {
-    padding: spacing["3xl"],
     alignItems: "center",
+    paddingTop: spacing.sm,
   },
   modalFaceContainer: {
     marginBottom: spacing.xl,

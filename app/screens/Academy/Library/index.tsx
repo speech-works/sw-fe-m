@@ -9,7 +9,6 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../components/ScreenView";
 
 import { useNavigation } from "@react-navigation/native";
@@ -26,7 +25,6 @@ import { ExploreStackParamList } from "../../../navigators/stacks/ExploreStack/t
 import { useRoute } from "@react-navigation/native";
 
 // New Components
-import BottomSheetModal from "../../../components/BottomSheetModal";
 import { useUserStore } from "../../../stores/user";
 import LibraryFilterBar, { FilterType } from "./components/LibraryFilterBar";
 import LibrarySection from "./components/LibrarySection";
@@ -45,6 +43,7 @@ import {
   spacing,
   space,
   size,
+  Sheet,
 } from "../../../design-system";
 
 // --- Data Definitions ---
@@ -146,7 +145,6 @@ type LibraryScreenNavigationProp = CompositeNavigationProp<
 >;
 
 const Library = () => {
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const exploreNavigation = useNavigation<LibraryScreenNavigationProp>();
   const route = useRoute<any>();
@@ -416,19 +414,8 @@ const Library = () => {
       </ScrollView>
 
       {/* --- Selection Modal (dark) --- */}
-      <BottomSheetModal
-        visible={isSelectionModalVisible}
-        onClose={() => setIsSelectionModalVisible(false)}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={colors.surface.default}
-      >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, spacing["3xl"]) },
-          ]}
-        >
+      <Sheet visible={isSelectionModalVisible} onClose={() => setIsSelectionModalVisible(false)}>
+        <View style={styles.modalContent}>
           <Text variant="h2" color="primary" center style={styles.modalTitle}>
             Choose Mode
           </Text>
@@ -449,7 +436,7 @@ const Library = () => {
             />
           </View>
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </ScreenView>
   );
 };
@@ -481,8 +468,8 @@ const styles = StyleSheet.create({
   },
   // Selection modal
   modalContent: {
-    padding: spacing["3xl"],
     alignItems: "center",
+    paddingTop: spacing.sm,
   },
   modalTitle: {
     marginTop: spacing.sm,

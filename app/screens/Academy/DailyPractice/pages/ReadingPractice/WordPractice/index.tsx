@@ -1,21 +1,14 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
-  LayoutAnimation,
-  ScrollView,
   StyleSheet,
   Text as RNText,
-  TouchableOpacity,
   View,
 } from "react-native";
 
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../components/ScreenView";
 import DonePractice from "../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Tools
 import Metronome, {
@@ -25,6 +18,8 @@ import { DAFTool, useDAF } from "../../../../Tools/DAF";
 import { VoiceHover } from "../../../../Tools/VoiceHover";
 import { VoiceHoverConfigPanel } from "../../../../Tools/VoiceHover/VoiceHoverConfigPanel";
 import SmartRecorder from "../StoryPractice/components/SmartRecorder";
+import RecorderTools from "../StoryPractice/components/RecorderTools";
+import { ReadingStage } from "../shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
 
 import { ToolType } from "../../../../../../api/tools/types";
@@ -32,12 +27,9 @@ import {
   Page,
   Button,
   Text as DSText,
-  Icon,
-  IconButton,
-  icons,
+  Sheet,
   useTheme,
   spacing,
-  radius,
 } from "../../../../../../design-system";
 import { readingTips } from "../data";
 import { useWordPractice } from "./useWordPractice";
@@ -56,9 +48,7 @@ import {
 const WordPractice = () => {
   const { state, actions } = useWordPractice();
   const navigation = useNavigation<RDPStackNavigationProp<"WordPractice">>();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const HEADER_HEIGHT = 60;
 
   /* State Destructuring */
   const {
@@ -365,292 +355,83 @@ const WordPractice = () => {
     );
   }
 
-  const bottomPadding = 32;
-
-  // Active Practice View — re-themed to the dark canvas (exercise logic intact).
+  // Active Practice View — the shared "Clean Focus" reading stage (logic intact).
   return (
-    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 10,
-            height: HEADER_HEIGHT + insets.top,
-            backgroundColor: colors.background.canvas,
-          },
-        ]}
-      >
-        <IconButton
-          name="arrow-left"
-          onPress={() =>
-            from === "MOOD_CHECK"
-              ? navigation.navigate("Root" as any, { screen: "HOME" })
-              : actions.onBackPress()
-          }
-        />
-        <DSText variant="h3" color="primary">
-          Word Practice
-        </DSText>
-
-        {/* Hard Mode Toggle in Header */}
-        <View style={styles.headerRight}>
-          {canUseHardMode && (
-            <TouchableOpacity
-              onPress={() => actions.setHardMode(!hardMode)}
-              style={[
-                styles.headerHardModeButton,
-                {
-                  backgroundColor: hardMode
-                    ? colors.action.primaryTint
-                    : colors.surface.control,
-                },
-              ]}
-            >
-              <Icon
-                name={icons.streak}
-                size={14}
-                color={hardMode ? colors.action.primary : colors.text.secondary}
+    <>
+      <ReadingStage
+        title="Word Practice"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : actions.onBackPress()
+        }
+        category="WORD"
+        onNext={actions.toggleIndex}
+        focus={{
+          active: hardMode,
+          canUse: canUseHardMode,
+          onToggle: actions.setHardMode,
+        }}
+        dock={
+          <SmartRecorder
+            onRecorded={actions.setVoiceRecordingUri}
+            onToggle={actions.toggleIndex}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onSubmit={async () => {
+              actions.setIsLoading(true);
+              try {
+                await actions.onDonePress();
+              } finally {
+                actions.setIsLoading(false);
+              }
+            }}
+            onDiscard={() => {
+              actions.setVoiceRecordingUri(null);
+            }}
+            renderTools={() => (
+              <RecorderTools
+                activeToolId={selectedPracticeTool}
+                isDafActive={dafState.isDAFActive}
+                isGuideActive={vhIsPlaying}
+                isTempoActive={metronomeState.isPlaying}
+                onSelect={handleToolSelect}
+                focusMode={focusMode}
+                expanded={toolsExpanded}
+                onExpand={() => setToolsExpanded(true)}
               />
-              {hardMode && (
-                <View
-                  style={[
-                    styles.activeDot,
-                    {
-                      backgroundColor: colors.action.primary,
-                      borderColor: colors.background.canvas,
-                    },
-                  ]}
-                />
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Reading Content */}
-      <View style={{ flex: 1 }}>
-        <CustomScrollView
-          key="practice-scroll"
-          scrollEnabled={true}
-          contentContainerStyle={[
-            styles.readingScrollContent,
-            {
-              paddingTop: HEADER_HEIGHT + insets.top + 10,
-              paddingBottom: bottomPadding,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.cardContainer,
-              { backgroundColor: colors.surface.default },
-            ]}
-          >
-            {/* 1. Accent Header (solid) */}
-            <View
-              style={[
-                styles.cardHeaderGradient,
-                { backgroundColor: colors.accent.info },
-              ]}
-            >
-              <View style={styles.headerTopRow}>
-                <View
-                  style={[
-                    styles.categoryPill,
-                    { backgroundColor: colors.surface.default },
-                  ]}
-                >
-                  <Icon name={icons.spokeUp} size={12} color={colors.text.primary} />
-                  <DSText variant="label" color="primary">
-                    WORD
-                  </DSText>
-                </View>
-
-                {/* Next Button */}
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <TouchableOpacity
-                    onPress={actions.toggleIndex}
-                    style={[
-                      styles.nextButton,
-                      { backgroundColor: colors.surface.default },
-                    ]}
-                  >
-                    <DSText variant="label" color="primary">
-                      Next
-                    </DSText>
-                    <Icon
-                      name={icons.chevronRight}
-                      size={12}
-                      color={colors.text.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Watermark */}
-              <View style={styles.headerWatermark} pointerEvents="none">
-                <Icon name={icons.spokeUp} size={96} color={colors.accentOn.info} />
-              </View>
-            </View>
-
-            {/* 2. Sheet Content */}
-            <View
-              style={[
-                styles.cardBodySheet,
-                { backgroundColor: colors.surface.default },
-              ]}
-            >
-              {/* Internal Watermark */}
-              <View style={styles.sheetWatermarkContainer} pointerEvents="none">
-                <Icon name={icons.spokeUp} size={120} color={colors.text.primary} />
-              </View>
-
-              <View style={styles.textArea}>
-                {/* VoiceHover Logic */}
-                {selectedPracticeTool === ToolType.CHORUS && (
-                  <View style={{ height: 0, overflow: "hidden" }}>
-                    <VoiceHover
-                      text={currentWord?.textContent || ""}
-                      onHighlightChange={(s, l) =>
-                        actions.setHighlightRange([s, l])
-                      }
-                      rate={vhRate}
-                      prePause={vhPrePause}
-                      gap={vhGap}
-                      isPlaying={vhIsPlaying}
-                      onComplete={() => setVhIsPlaying(false)}
-                    />
-                  </View>
-                )}
-                {renderHighlightedText()}
-              </View>
-            </View>
+            )}
+          />
+        }
+      >
+        {/* VoiceHover drives the highlight; the component itself is hidden. */}
+        {selectedPracticeTool === ToolType.CHORUS && (
+          <View style={{ height: 0, overflow: "hidden" }}>
+            <VoiceHover
+              text={currentWord?.textContent || ""}
+              onHighlightChange={(s, l) => actions.setHighlightRange([s, l])}
+              rate={vhRate}
+              prePause={vhPrePause}
+              gap={vhGap}
+              isPlaying={vhIsPlaying}
+              onComplete={() => setVhIsPlaying(false)}
+            />
           </View>
-        </CustomScrollView>
-      </View>
-
-      {/* Action Dock (Fixed Bottom) */}
-      <View style={styles.actionDockWrapper}>
-        <SmartRecorder
-          onRecorded={actions.setVoiceRecordingUri}
-          onToggle={actions.toggleIndex}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onSubmit={async () => {
-            actions.setIsLoading(true);
-            try {
-              await actions.onDonePress();
-            } finally {
-              actions.setIsLoading(false);
-            }
-          }}
-          onDiscard={() => {
-            actions.setVoiceRecordingUri(null);
-          }}
-          renderTools={() =>
-            focusMode && !toolsExpanded ? (
-              <TouchableOpacity
-                style={[
-                  styles.toolsCollapsed,
-                  { backgroundColor: colors.surface.control },
-                ]}
-                onPress={() => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut,
-                  );
-                  setToolsExpanded(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <Icon name="sliders" size={14} color={colors.text.secondary} />
-                <DSText variant="label" color="secondary">
-                  Tools
-                </DSText>
-              </TouchableOpacity>
-            ) : (
-            <View style={styles.dockTools}>
-              {[
-                { id: ToolType.DAF, icon: icons.headphones, label: "DAF" },
-                { id: ToolType.CHORUS, icon: icons.voiceTool, label: "Guide" },
-                { id: ToolType.METRONOME, icon: icons.duration, label: "Tempo" },
-              ].map((tool) => {
-                const isActive =
-                  (tool.id === ToolType.DAF &&
-                    selectedPracticeTool === tool.id &&
-                    dafState.isDAFActive) ||
-                  (tool.id === ToolType.CHORUS &&
-                    selectedPracticeTool === tool.id &&
-                    vhIsPlaying) ||
-                  (tool.id === ToolType.METRONOME &&
-                    selectedPracticeTool === tool.id &&
-                    metronomeState.isPlaying);
-                return (
-                  <TouchableOpacity
-                    key={tool.id}
-                    style={[
-                      styles.dockItem,
-                      isActive && [
-                        styles.dockItemActive,
-                        { backgroundColor: colors.action.primary },
-                      ],
-                    ]}
-                    onPress={() => {
-                      LayoutAnimation.configureNext(
-                        LayoutAnimation.Presets.easeInEaseOut,
-                      );
-                      handleToolSelect(tool.id);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Icon
-                      name={tool.icon}
-                      size={20}
-                      color={
-                        isActive ? colors.action.onPrimary : colors.text.secondary
-                      }
-                    />
-                    {isActive && (
-                      <DSText
-                        variant="label"
-                        color={colors.action.onPrimary}
-                        numberOfLines={1}
-                        style={styles.dockItemLabel}
-                      >
-                        {tool.label}
-                      </DSText>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            )
-          }
-        />
-      </View>
+        )}
+        {renderHighlightedText()}
+      </ReadingStage>
 
       {/* Detail Sheet for Tools */}
-      <BottomSheetModal
+      <Sheet
         visible={!!activeToolSheet}
         onClose={() => actions.setActiveToolSheet(null)}
-        maxHeight={500}
-        showCloseButton={true}
-        fitContent={true}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.sheetContent,
-            { paddingBottom: Math.max(insets.bottom, 24) },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <DSText variant="h3" color="primary" center style={styles.sheetTitle}>
-            {activeToolSheet === ToolType.CHORUS
-              ? "Guide Settings"
-              : `${activeToolSheet} Settings`}
-          </DSText>
-          {renderToolSheetContent()}
-        </ScrollView>
-      </BottomSheetModal>
+        <DSText variant="h2" center style={styles.sheetTitle}>
+          {activeToolSheet === ToolType.CHORUS
+            ? "Guide Settings"
+            : `${activeToolSheet} Settings`}
+        </DSText>
+        {renderToolSheetContent()}
+      </Sheet>
 
       <ToolConsentModal
         visible={consentTool !== null}
@@ -659,58 +440,15 @@ const WordPractice = () => {
       />
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default WordPractice;
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
-  },
-  header: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.xl,
-  },
-  headerRight: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerHardModeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activeDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-  },
 
   // Reading Mode Styles
-  readingScrollContent: {
-    paddingHorizontal: spacing["2xl"],
-  },
-  textArea: {
-    marginTop: spacing.lg,
-    alignItems: "center",
-  },
   readingText: {
     lineHeight: 48,
     fontSize: 48, // Much larger for single words
@@ -720,101 +458,9 @@ const styles = StyleSheet.create({
   },
 
   // Action Dock
-  actionDockWrapper: {},
-  toolsCollapsed: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: radius.input,
-  },
-  dockTools: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: spacing.xs,
-  },
-  dockItem: {
-    paddingVertical: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    flexDirection: "row",
-    flex: 1,
-  },
-  dockItemActive: {
-    paddingHorizontal: spacing.md,
-    flex: 2.5,
-  },
-  dockItemLabel: {
-    marginLeft: 6,
-  },
-  // Sheet (renders on the shared BottomSheetModal's dark surface)
-  sheetContent: {
-    padding: spacing["2xl"],
-  },
+  // Sheet (renders on the shared DS Sheet's dark surface)
   sheetTitle: {
     marginBottom: spacing.xl,
-  },
-  cardContainer: {
-    borderRadius: radius.card,
-    overflow: "hidden",
-  },
-  cardHeaderGradient: {
-    padding: spacing["2xl"],
-    paddingBottom: 48,
-    position: "relative",
-    height: 180,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.chip,
-  },
-  nextButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.chip,
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -10,
-    opacity: 0.15,
-    transform: [{ rotate: "-15deg" }],
-  },
-  cardBodySheet: {
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-    marginTop: -40,
-    padding: spacing["2xl"],
-    paddingBottom: spacing["4xl"],
-    minHeight: 200,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetWatermarkContainer: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.06,
-    zIndex: 0,
   },
   // Pre-practice tips (dark)
   tipsHeading: {

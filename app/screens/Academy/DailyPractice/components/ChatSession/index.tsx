@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
-import { makeStyles, zIndex } from "../../../../../design-system";
+import { Gradient, makeStyles, spacing, zIndex } from "../../../../../design-system";
 import { ChatThread } from "./ChatThread";
 import { InputDock } from "./InputDock";
 import type { ChatSessionOption, ChatSessionProps } from "./types";
 
 /** Bottom clearance for the floating dock (pill 70 + ~34 safe margin + gap). */
 const DOCK_RESERVE = 120;
+/** The bottom fade dissolves scrolling content into the canvas before it reaches the dock. */
+const SCRIM_H = DOCK_RESERVE + spacing["4xl"];
 
 /**
  * Shared active-session chat layout for Roleplay, Interview, and Social
@@ -71,6 +73,12 @@ export default function ChatSession<O extends ChatSessionOption>({
         bottomPadding={DOCK_RESERVE}
       />
 
+      {/* Bottom fade — content dissolves into the canvas before it reaches the
+          floating dock, so the opaque pill never blends with a bubble behind it. */}
+      <View style={styles.dockScrim} pointerEvents="none">
+        <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+      </View>
+
       {/* Floating dock — absolute over the thread; conversation scrolls behind it. */}
       <View style={styles.dockFloat} pointerEvents="box-none">
         <InputDock
@@ -101,12 +109,20 @@ const useStyles = makeStyles((c) => ({
   canvas: {
     backgroundColor: c.background.canvas,
   },
+  dockScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: SCRIM_H,
+  },
   dockFloat: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
   },
+
   statusCap: {
     position: "absolute",
     top: 0,

@@ -2,15 +2,10 @@ import React from "react";
 import { View } from "react-native";
 import {
   Button,
-  Icon,
   Text,
-  elevation,
   makeStyles,
-  radius,
-  size,
   space,
   spacing,
-  useTheme,
 } from "../../../../../design-system";
 import SmartRecorder from "../../pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 
@@ -19,7 +14,7 @@ interface InputDockProps {
   hasOptions: boolean;
   /** The dialogue has reached its end — show Finish. */
   isEnded: boolean;
-  /** An option is armed — show the live recorder. */
+  /** An option is armed — the mic is live. */
   armed: boolean;
   /** The current turn's local recording (drives the recorder's review state). */
   turnRecordingUri: string | null;
@@ -33,11 +28,11 @@ interface InputDockProps {
 }
 
 /**
- * The single fixed bottom surface. It never stacks a second pill — it swaps
- * between three states: a disabled prompt (options shown, nothing armed yet),
- * the live SmartRecorder (an option is armed → speak it to advance), and a
- * Finish button (dialogue ended). Kept in-tree (no native Modal) so it never
- * stacks over the vitals / exit Modals.
+ * The single bottom dock — the shared `SmartRecorder`, reused (not a bespoke
+ * pill). Until an option is armed the mic is disabled and a subtle hint sits in
+ * the recorder's idle left area (the space it otherwise uses for tools/waveform);
+ * arming an option lights the mic up to speak. At the dialogue's end it's a
+ * Finish button. Kept in-tree (no native Modal).
  */
 export const InputDock: React.FC<InputDockProps> = ({
   hasOptions,
@@ -50,7 +45,6 @@ export const InputDock: React.FC<InputDockProps> = ({
   onComplete,
 }) => {
   const styles = useStyles();
-  const { colors } = useTheme();
 
   if (isEnded) {
     return (
@@ -60,49 +54,42 @@ export const InputDock: React.FC<InputDockProps> = ({
     );
   }
 
-  if (armed) {
-    return (
-      <SmartRecorder
-        prevRecordingUri={turnRecordingUri ?? undefined}
-        onRecorded={onRecorded}
-        onSubmit={onConfirm}
-        onDiscard={onDiscard}
-      />
-    );
-  }
+  if (!hasOptions) return null;
 
-  if (hasOptions) {
-    return (
-      <View style={styles.wrap}>
-        <View style={styles.promptPill}>
-          <Icon name="mic" size={size.icon} color={colors.text.tertiary} />
-          <Text variant="label" color="tertiary">
-            Tap a reply, then speak it
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  return null;
+  return (
+    <SmartRecorder
+      disabled={!armed}
+      hideSeparator
+      prevRecordingUri={turnRecordingUri ?? undefined}
+      onRecorded={onRecorded}
+      onSubmit={onConfirm}
+      onDiscard={onDiscard}
+      renderTools={
+        armed
+          ? undefined
+          : () => (
+              <Text
+                variant="bodySm"
+                color="tertiary"
+                numberOfLines={1}
+                style={styles.hint}
+              >
+                Tap a reply, then speak it
+              </Text>
+            )
+      }
+    />
+  );
 };
 
-const useStyles = makeStyles((c) => ({
-  // Matches SmartRecorder's own container footprint (it brings its own margins).
+const useStyles = makeStyles(() => ({
+  // Matches SmartRecorder's own container footprint for the Finish state.
   wrap: {
     marginHorizontal: space.screenX,
-    marginBottom: 34,
+    marginBottom: spacing["3xl"],
   },
-  promptPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    height: 70,
-    borderRadius: radius.pill,
-    backgroundColor: c.surface.material,
-    borderWidth: 1,
-    borderColor: c.border.default,
-    ...elevation.e2,
+  // A little breathing room so the placeholder clears the pill's rounded end.
+  hint: {
+    marginLeft: spacing.sm,
   },
 }));

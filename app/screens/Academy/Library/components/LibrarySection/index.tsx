@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   TECHNIQUE_LEVEL_ENUM,
   TransformedTechnique,
 } from "../../../../../api/library/types";
-import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import {
   IconName,
   Text,
@@ -17,6 +15,7 @@ import {
   space,
   radius,
   size,
+  Sheet,
 } from "../../../../../design-system";
 import TechniqueCard from "../TechniqueCard";
 
@@ -39,7 +38,6 @@ const LibrarySection = ({
   isPaidUser,
   onTechniqueSelect,
 }: LibrarySectionProps) => {
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
 
@@ -129,19 +127,8 @@ const LibrarySection = ({
       </View>
 
       {/* --- Info Bottom Sheet (dark) --- */}
-      <BottomSheetModal
-        visible={isInfoModalVisible}
-        onClose={() => setIsInfoModalVisible(false)}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={colors.surface.default}
-      >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, spacing["3xl"]) },
-          ]}
-        >
+      <Sheet visible={isInfoModalVisible} onClose={() => setIsInfoModalVisible(false)}>
+        <View style={styles.modalContent}>
           <View style={[styles.modalIconChip, { backgroundColor: colors.action.primaryTint }]}>
             <Icon name={getHeaderIcon()} size={size.iconLg} color={colors.action.primary} />
           </View>
@@ -169,7 +156,7 @@ const LibrarySection = ({
             style={styles.modalButton}
           />
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </View>
   );
 };
@@ -211,8 +198,8 @@ const styles = StyleSheet.create({
   },
   // Info sheet content
   modalContent: {
-    padding: spacing["3xl"],
     alignItems: "center",
+    paddingTop: spacing.sm,
   },
   modalIconChip: {
     width: 64,

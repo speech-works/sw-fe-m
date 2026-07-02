@@ -41,6 +41,19 @@ export interface IconProps {
 // Fluent has no brand logos → these three render via FontAwesome5 brands.
 const BRAND: Record<string, string> = { facebook: "facebook", instagram: "instagram", whatsapp: "whatsapp" };
 
+// Optical-size compensation. Every Fluent glyph shares a 24×24 viewBox, but some fill far
+// more of it than others (chunky headphones vs. a hollow clock ring vs. a narrow mic), so at
+// the same numeric `size` they read as different sizes. We nudge the viewBox per glyph — a
+// positive inset shrinks a "heavy" glyph, a negative inset grows a "light" one — while the
+// rendered box (width/height) stays exactly `size`, so nothing visible is added and layout
+// never shifts. Values are symmetric (centered) and deliberately small (≤~12%).
+const OPTICAL_INSET: Record<string, number> = {
+  headphones: 1.6,    // chunky ear cups — shrink
+  "mic-vocal": 0.4,   // mic + circle badge — trim slightly
+  clock: -0.6,        // hollow ring reads light — grow a touch
+  mic: 0.4,           // narrow capsule (~same fill as mic-vocal) — balance to match, not inflate
+};
+
 export const Icon: React.FC<IconProps> = ({ name, size = 20, color, style }) => {
   const { colors } = useTheme();
   const resolved = color ?? colors.text.primary;
@@ -52,8 +65,12 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, color, style }) => 
 
   const paths = FLUENT[name];
   if (paths) {
+    const inset = OPTICAL_INSET[name] ?? 0;
+    const viewBox = inset
+      ? `${-inset} ${-inset} ${24 + inset * 2} ${24 + inset * 2}`
+      : "0 0 24 24";
     return (
-      <Svg width={size} height={size} viewBox="0 0 24 24" style={style}>
+      <Svg width={size} height={size} viewBox={viewBox} style={style}>
         {paths.map((p, i) => (
           <Path key={i} d={p.d} fill={resolved} fillRule={p.e ? "evenodd" : undefined} />
         ))}

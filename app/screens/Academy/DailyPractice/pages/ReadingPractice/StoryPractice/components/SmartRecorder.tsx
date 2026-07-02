@@ -29,6 +29,10 @@ interface Props {
   renderTools?: () => React.ReactNode;
   onSubmit?: () => void;
   onDiscard?: () => void;
+  /** Disable starting a recording (idle mic button off + dimmed). Default false. */
+  disabled?: boolean;
+  /** Hide the idle tools↔mic divider (for docks with no left-side tools). Default false. */
+  hideSeparator?: boolean;
 }
 
 const SmartRecorder: React.FC<Props> = ({
@@ -37,6 +41,8 @@ const SmartRecorder: React.FC<Props> = ({
   renderTools,
   onSubmit,
   onDiscard,
+  disabled = false,
+  hideSeparator = false,
 }) => {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -171,8 +177,10 @@ const SmartRecorder: React.FC<Props> = ({
           )}
         </View>
 
-        {/* SEPARATOR (Only in Idle) */}
-        {!isRecording && !hasRecording && <View style={styles.separator} />}
+        {/* SEPARATOR (Only in Idle, and only when there are left-side tools) */}
+        {!isRecording && !hasRecording && !hideSeparator && (
+          <View style={styles.separator} />
+        )}
 
         {/* CENTER SECTION:  Mic Button OR Waveform */}
         {(isRecording || isPlaying) && (
@@ -231,14 +239,21 @@ const SmartRecorder: React.FC<Props> = ({
           ) : (
             // Idle Right: Mic Button
             <PressableScale
-              style={[styles.mainMicButton, isPreparing && styles.mainMicButtonPreparing]}
+              style={[
+                styles.mainMicButton,
+                (isPreparing || disabled) && styles.mainMicButtonPreparing,
+              ]}
               onPress={handleStartRecording}
-              disabled={isPreparing}
+              disabled={isPreparing || disabled}
             >
               <Icon
                 name="mic"
                 size={size.icon}
-                color={isPreparing ? colors.action.disabledText : colors.action.onPrimary}
+                color={
+                  isPreparing || disabled
+                    ? colors.action.disabledText
+                    : colors.action.onPrimary
+                }
               />
             </PressableScale>
           )}
@@ -270,10 +285,14 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "space-between",
     padding: 8,
     borderRadius: radius.pill,
-    backgroundColor: c.surface.material,
+    // Opaque elevated surface (NOT the translucent `surface.material`) so content
+    // never bleeds through the floating dock — matches the solid dark language.
+    backgroundColor: c.surface.elevated,
     height: 70,
     borderWidth: 1,
-    borderColor: c.border.default,
+    // Stronger hairline so the pill reads as a distinct floating surface even
+    // when it overlaps a same-toned bubble mid-scroll (border.default is too faint).
+    borderColor: c.border.strong,
     ...elevation.e2,
   },
   dockRecording: {

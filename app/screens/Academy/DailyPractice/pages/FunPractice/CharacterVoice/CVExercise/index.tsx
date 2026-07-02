@@ -1,10 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import FAIcon from "react-native-vector-icons/FontAwesome5";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import CustomScrollView from "../../../../../../../components/CustomScrollView";
-import ScreenView from "../../../../../../../components/ScreenView";
+import { StyleSheet, View } from "react-native";
 import {
   CharacterVoiceFDPStackNavigationProp,
   CharacterVoiceFDPStackParamList,
@@ -25,24 +21,20 @@ import {
   Page,
   Button,
   Text,
-  Icon,
-  icons,
   useTheme,
   spacing,
-  radius,
 } from "../../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
 import DonePractice from "../../../../components/DonePractice";
 
 import SmartRecorder from "../../../ReadingPractice/StoryPractice/components/SmartRecorder";
+import { ReadingStage } from "../../../ReadingPractice/shared/ReadingStage";
 
 const CVExercise = () => {
   const navigation =
     useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const HEADER_HEIGHT = 60;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext, practiceActivity, from } = route.params;
@@ -185,8 +177,7 @@ const CVExercise = () => {
   }, [navigation]);
 
   // --- Render Helpers ---
-
-  const bottomPadding = 400; // Space for the dock
+ // Space for the dock
 
   // --- Confirm-on-exit: prompt to save/discard if leaving mid-practice ---
   const { exitSheet } = useConfirmOnExit({
@@ -291,287 +282,79 @@ const CVExercise = () => {
     );
   }
 
-  // 2. Active Practice View — re-themed to the dark canvas (exercise logic intact).
+  // 2. Active Practice View — the shared "Clean Focus" reading stage (purple accent).
   return (
-    <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <View style={styles.container}>
-        <View
-          style={[
-            styles.topNavigationContainer,
-            {
-              paddingTop: insets.top + 10,
-              height: HEADER_HEIGHT + insets.top,
-              backgroundColor: colors.background.canvas,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() =>
-              from === "MOOD_CHECK"
-                ? navigation.navigate("Root" as any, { screen: "HOME" })
-                : navigation.goBack()
-            }
-            style={[
-              styles.backButton,
-              { backgroundColor: colors.surface.control },
-            ]}
-          >
-            <Icon name="chevron-left" size={16} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text variant="h3" color="primary">
-            Voice Practice
-          </Text>
-          <View style={{ width: 32 }} />
-        </View>
-
-        <View style={styles.container}>
-          <CustomScrollView
-            key="practice-scroll"
-            contentContainerStyle={[
-              styles.scrollContent,
-              {
-                paddingTop: HEADER_HEIGHT + insets.top + 10,
-                paddingBottom: bottomPadding,
-              },
-            ]}
-          >
-            <View
+    <>
+      <ReadingStage
+        title="Voice Practice"
+        onBack={() =>
+          from === "MOOD_CHECK"
+            ? navigation.navigate("Root" as any, { screen: "HOME" })
+            : navigation.goBack()
+        }
+        category="VOICE"
+        accent={colors.accent.purple}
+        onNext={toggleIndex}
+        dock={
+          <SmartRecorder
+            onRecorded={setVoiceRecordingUri}
+            prevRecordingUri={voiceRecordingUri || undefined}
+            onToggle={toggleIndex}
+            onSubmit={async () => {
+              setIsLoading(true);
+              try {
+                await onDonePress();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onDiscard={() => {
+              setVoiceRecordingUri(null);
+            }}
+          />
+        }
+      >
+        <View style={styles.readingBlock}>
+          <View style={styles.charHead}>
+            <Text variant="h2" color="primary" center>
+              {effectiveName}
+            </Text>
+            <AudioPlaybackButton
+              audioUrl={effectiveCvData?.exampleAudioUrl}
+              iconSize={14}
+              activeColor={colors.accent.purple}
               style={[
-                styles.cardContainer,
-                { backgroundColor: colors.surface.default },
+                styles.playbackButton,
+                { backgroundColor: colors.surface.control },
               ]}
-            >
-              {/* 1. Accent Header (solid) */}
-              <View
-                style={[
-                  styles.cardHeader,
-                  { backgroundColor: colors.accent.purple },
-                ]}
-              >
-                <View style={styles.headerTopRow}>
-                  <View
-                    style={[
-                      styles.categoryPill,
-                      { backgroundColor: colors.surface.default },
-                    ]}
-                  >
-                    <Icon
-                      name={icons.voiceTool}
-                      size={12}
-                      color={colors.text.primary}
-                    />
-                    <Text variant="label" color="primary">
-                      VOICE
-                    </Text>
-                  </View>
-
-                  {/* Next Button */}
-                  <TouchableOpacity
-                    onPress={toggleIndex}
-                    style={[
-                      styles.nextButton,
-                      { backgroundColor: colors.surface.default },
-                    ]}
-                  >
-                    <Text variant="label" color="primary">
-                      Next
-                    </Text>
-                    <Icon
-                      name={icons.chevronRight}
-                      size={12}
-                      color={colors.text.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.titleContainer}>
-                  <Text
-                    variant="h2"
-                    color={colors.accentOn.purple}
-                    style={styles.articleTitle}
-                  >
-                    {effectiveName}
-                  </Text>
-                  <AudioPlaybackButton
-                    audioUrl={effectiveCvData?.exampleAudioUrl}
-                    iconSize={14}
-                    activeColor={colors.accentOn.purple}
-                    style={[
-                      styles.playbackButton,
-                      { backgroundColor: colors.surface.default },
-                    ]}
-                  />
-                </View>
-
-                {/* Watermark */}
-                <View style={styles.headerWatermark} pointerEvents="none">
-                  <Icon
-                    name={icons.voiceTool}
-                    size={96}
-                    color={colors.accentOn.purple}
-                  />
-                </View>
-              </View>
-
-              {/* 2. Sheet Content */}
-              <View
-                style={[
-                  styles.cardBodySheet,
-                  { backgroundColor: colors.surface.default },
-                ]}
-              >
-                {/* Internal Watermark — server-driven character glyph (FontAwesome). */}
-                <View style={styles.sheetWatermarkContainer} pointerEvents="none">
-                  <FAIcon
-                    name={effectiveCvData?.icon || "user"}
-                    size={120}
-                    color={colors.surface.control}
-                  />
-                </View>
-
-                <View style={styles.textArea}>
-                  <Text variant="h2" color="primary" style={styles.readingText}>
-                    {texts[currentIndex]}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </CustomScrollView>
+            />
+          </View>
+          <Text variant="h2" color="primary" style={styles.readingText}>
+            {texts[currentIndex]}
+          </Text>
         </View>
-      </View>
-
-      {/* Action Dock (Fixed Bottom) */}
-      <View style={styles.actionDockWrapper}>
-        <SmartRecorder
-          onRecorded={setVoiceRecordingUri}
-          prevRecordingUri={voiceRecordingUri || undefined}
-          onToggle={toggleIndex}
-          onSubmit={async () => {
-            setIsLoading(true);
-            try {
-              await onDonePress();
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          onDiscard={() => {
-            setVoiceRecordingUri(null);
-          }}
-        />
-      </View>
+      </ReadingStage>
 
       {exitSheet}
-    </ScreenView>
+    </>
   );
 };
 
 export default CVExercise;
 
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
+  readingBlock: {
+    width: "100%",
+    alignItems: "center",
+    gap: spacing["2xl"],
   },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing["2xl"],
-    // Bottom padding inserted dynamically via style prop
-  },
-  topNavigationContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+  charHead: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing["2xl"],
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
     justifyContent: "center",
+    gap: spacing.md,
   },
   // Card Styles
-  cardContainer: {
-    borderRadius: 32,
-    overflow: "hidden", // Clip the sheet
-    minHeight: 450,
-  },
-  cardHeader: {
-    padding: spacing["2xl"],
-    paddingBottom: 48, // Space for overlap
-    position: "relative",
-    height: 180,
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.chip,
-  },
-  nextButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.chip,
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing["2xl"],
-    gap: spacing.md,
-    zIndex: 1,
-  },
-  articleTitle: {
-    zIndex: 1,
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -10,
-    opacity: 0.15,
-    transform: [{ rotate: "-15deg" }],
-  },
-  cardBodySheet: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -40, // Overlap
-    padding: spacing["2xl"],
-    paddingBottom: spacing["4xl"],
-    minHeight: 300,
-    alignItems: "center",
-    justifyContent: "center", // Center text vertically
-  },
-  sheetWatermarkContainer: {
-    position: "absolute",
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.6,
-    zIndex: 0,
-  },
-  textArea: {
-    marginTop: spacing.lg,
-    alignItems: "center",
-    zIndex: 1,
-  },
   playbackButton: {
     width: 44,
     height: 44,
@@ -585,7 +368,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   // Recorder Dock
-  actionDockWrapper: {},
   // Pre-practice tips (dark)
   tipsHeading: {
     marginBottom: spacing.lg,

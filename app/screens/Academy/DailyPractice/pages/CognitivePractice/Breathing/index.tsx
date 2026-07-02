@@ -5,10 +5,8 @@ import {
 } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { showErrorBottomSheet } from "../../../../../../util/functions/bottomSheet";
 import { BreathingHalo } from "./components/BreathingHalo";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
@@ -32,12 +30,12 @@ import {
 import DonePractice from "../../../components/DonePractice";
 import {
   Page,
-  Surface,
   Button,
   Text,
   useTheme,
   spacing,
   space,
+  Sheet,
 } from "../../../../../../design-system";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
@@ -46,7 +44,6 @@ import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/
 const Breathing = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Breathing">>();
   const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
   const passedActivity = route.params?.practiceActivity;
@@ -268,7 +265,7 @@ const Breathing = () => {
 
   const confirmEarlyExit = () => {
     setShowEarlyExitPrompt(false);
-    // Allow the BottomSheetModal to fully animate out (300ms) before
+    // Allow the Sheet to fully animate out (300ms) before
     // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
     setTimeout(() => {
       handleAbort();
@@ -485,24 +482,15 @@ const Breathing = () => {
         />
 
         {/* Early Exit Prompt Bottom Sheet */}
-        <BottomSheetModal
+        <Sheet
           visible={showEarlyExitPrompt}
           onClose={() => setShowEarlyExitPrompt(false)}
-          showCloseButton={true}
-          fitContent={true}
         >
-          <Surface
-            level="raised"
-            rounded="sheet"
-            style={[
-              styles.skipModalContainer,
-              { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
-            ]}
-          >
-            <Text variant="h2" color="primary" center style={styles.skipModalTitle}>
+          <View style={styles.skipModal}>
+            <Text variant="h2" center>
               Finish early?
             </Text>
-            <Text variant="body" color="secondary" center style={styles.skipModalDesc}>
+            <Text variant="body" color="secondary" center>
               We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
             </Text>
             <View style={styles.skipModalActions}>
@@ -517,8 +505,8 @@ const Breathing = () => {
                 onPress={() => setShowEarlyExitPrompt(false)}
               />
             </View>
-          </Surface>
-        </BottomSheetModal>
+          </View>
+        </Sheet>
 
         {exitSheet}
       </View>
@@ -630,6 +618,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing["5xl"],
   },
   // Early-exit sheet
+  skipModal: {
+    alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
+  },
   skipModalContainer: {
     padding: spacing["3xl"],
     alignItems: "center",

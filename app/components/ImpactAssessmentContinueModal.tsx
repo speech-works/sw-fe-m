@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Sheet,
-  IconButton,
   Text,
   Button,
   Icon,
@@ -21,9 +20,9 @@ interface ImpactAssessmentContinueModalProps {
 
 /**
  * "Great job — keep going?" prompt shown between assessment sets. Built on the
- * design-system `Sheet` (floating close button in the header, outside the card)
- * so it matches the shared `PromptBottomSheet` chrome, with an extra badge for
- * the remaining-question count.
+ * design-system `Sheet` (grab handle + backdrop-tap dismiss, NO cross button) so
+ * it matches the shared confirm-sheet chrome, with an extra badge for the
+ * remaining-question count.
  */
 const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps> = ({
   visible,
@@ -38,28 +37,24 @@ const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps
   }
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={onSaveForLater}
-      right={<IconButton name={icons.close} onPress={onSaveForLater} />}
-    >
+    <Sheet visible={visible} onClose={onSaveForLater}>
       <View style={styles.container}>
         {/* Success disc — a "set complete" celebration. */}
         <View style={[styles.iconDisc, { backgroundColor: colors.accentTint.success }]}>
           <Icon name={icons.success} size={28} color={colors.accent.success} />
         </View>
 
-        <Text variant="h3" color="primary" center style={styles.title}>
+        <Text variant="h2" center>
           Great job!
         </Text>
-        <Text variant="body" color="secondary" center style={styles.subtitle}>
+        <Text variant="bodySm" color="secondary" center>
           You completed this set.
         </Text>
 
         {/* Remaining-question badge. */}
         <View style={[styles.remainingBadge, { backgroundColor: colors.action.primaryTint }]}>
           <Icon name={icons.duration} size={14} color={colors.text.secondary} />
-          <Text variant="bodySm" color="secondary" style={styles.remainingText}>
+          <Text variant="label" color="secondary">
             {remainingQuestions} question{remainingQuestions !== 1 ? "s" : ""}{" "}
             remaining
           </Text>
@@ -77,8 +72,8 @@ const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
   iconDisc: {
     width: 56,
@@ -86,13 +81,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
   },
   remainingBadge: {
     flexDirection: "row",
@@ -101,14 +89,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.chip,
     gap: spacing.sm,
-    marginBottom: spacing["2xl"],
-  },
-  remainingText: {
-    fontWeight: "600",
   },
   buttons: {
     width: "100%",
     gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

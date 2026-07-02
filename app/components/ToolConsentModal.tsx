@@ -1,12 +1,11 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Modal, StyleSheet, View } from "react-native";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 import { ToolType } from "../api/tools/types";
 import {
+  Sheet,
   useTheme,
   spacing,
   radius,
-  size,
-  elevation,
   Text,
   Button,
   Icon,
@@ -58,102 +57,48 @@ export const ToolConsentModal: React.FC<ToolConsentModalProps> = ({
   onAcknowledge,
 }) => {
   const { colors } = useTheme();
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      opacityAnim.setValue(0);
-      scaleAnim.setValue(0.9);
-    }
-  }, [visible]);
-
   const copy = tool ? CONSENT_COPY[tool] : undefined;
   if (!copy) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onAcknowledge}
-    >
+    <Sheet visible={visible} onClose={onAcknowledge}>
       <View style={styles.container}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: colors.background.sunken, opacity: opacityAnim },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.card,
-            { backgroundColor: colors.surface.elevated },
-            elevation.e3,
-            { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
-          ]}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: colors.accent.success }]}>
-            <Icon name={copy.icon} size={32} color={colors.accentOn.success} />
-          </View>
+        <View style={[styles.iconDisc, { backgroundColor: colors.accentTint.success }]}>
+          <Icon name={copy.icon} size={28} color={colors.accent.success} />
+        </View>
 
-          <Text variant="h3" center style={styles.title}>
-            {copy.title}
-          </Text>
-          <Text variant="body" center color="secondary" style={styles.message}>
-            {copy.body}
-          </Text>
+        <Text variant="h2" center>
+          {copy.title}
+        </Text>
+        <Text variant="body" center color="secondary">
+          {copy.body}
+        </Text>
 
+        <View style={styles.buttons}>
           <Button label="Got it — let's go" onPress={onAcknowledge} />
-        </Animated.View>
+        </View>
       </View>
-    </Modal>
+    </Sheet>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
-  card: {
-    borderRadius: radius.sheet,
-    paddingHorizontal: spacing["3xl"],
-    paddingTop: spacing["4xl"],
-    paddingBottom: spacing["3xl"],
+  iconDisc: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttons: {
     width: "100%",
-    maxWidth: 380,
-    alignItems: "center",
-  },
-  iconContainer: {
-    width: size.avatar,
-    height: size.avatar,
-    borderRadius: radius.chip,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.lg,
-  },
-  message: {
-    marginBottom: spacing["2xl"],
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

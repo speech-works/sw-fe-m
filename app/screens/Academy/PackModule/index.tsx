@@ -15,7 +15,6 @@ import {
   startModule,
 } from "../../../api/packs";
 import { ContentBlockType, Pack, PackModule } from "../../../api/packs/types";
-import BottomSheetModal from "../../../components/BottomSheetModal";
 import { ContentRenderer } from "../../../components/Pack/ContentRenderer";
 import ScreenView from "../../../components/ScreenView";
 import { ROUTE_NAMES } from "../../../constants/routes";
@@ -32,6 +31,7 @@ import {
   icons,
   spacing,
   useTheme,
+  Sheet,
 } from "../../../design-system";
 import { ExploreStackNavigationProp } from "../../../navigators/stacks/ExploreStack/types";
 import { track } from "../../../util/analytics/postHog";
@@ -616,12 +616,9 @@ const PackModuleScreen = () => {
       )}
 
       {/* Skip Confirmation Bottom Sheet */}
-      <BottomSheetModal
+      <Sheet
         visible={showSkipConfirmation}
         onClose={() => setShowSkipConfirmation(false)}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={colors.background.raised}
       >
         <View style={styles.skipModalContainer}>
           <View
@@ -637,16 +634,11 @@ const PackModuleScreen = () => {
             />
           </View>
 
-          <Text variant="h2" color="primary" center style={styles.skipModalTitle}>
+          <Text variant="h2" center>
             Skip Recommended Activity?
           </Text>
 
-          <Text
-            variant="body"
-            color="secondary"
-            center
-            style={styles.skipModalDesc}
-          >
+          <Text variant="body" color="secondary" center>
             This exercise is recommended for your progress. Skipping this
             activity may affect the accuracy of your insights.
           </Text>
@@ -667,7 +659,7 @@ const PackModuleScreen = () => {
             />
           </View>
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </Page>
   );
 };
@@ -720,10 +712,9 @@ const styles = StyleSheet.create({
   },
   // Skip Confirmation Modal
   skipModalContainer: {
-    paddingHorizontal: spacing["3xl"],
-    paddingTop: spacing["3xl"],
-    paddingBottom: spacing["4xl"],
     alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
   skipModalIcon: {
     width: 56,
@@ -743,6 +734,7 @@ const styles = StyleSheet.create({
   skipModalActions: {
     width: "100%",
     gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

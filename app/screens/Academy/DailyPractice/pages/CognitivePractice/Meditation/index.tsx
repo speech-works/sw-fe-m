@@ -1,7 +1,6 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -10,7 +9,6 @@ import {
   CognitivePractice,
   CognitivePracticeType,
 } from "../../../../../../api/dailyPractice/types";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import PressableScale from "../../../../../../components/PressableScale";
 import { useBackgroundAudio } from "../../../../../../hooks/useBackgroundAudio";
 import {
@@ -24,6 +22,7 @@ import {
   spacing,
   space,
   icons,
+  Sheet,
 } from "../../../../../../design-system";
 import MeditationCard from "./components/MeditationCard";
 import VoiceHoverPlayer from "./components/VoieHoverPlayer";
@@ -47,7 +46,6 @@ import { showErrorBottomSheet } from "../../../../../../util/functions/bottomShe
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { track } from "../../../../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../../../../util/analytics/analyticsEvents";
 import { ExploreStackNavigationProp } from "../../../../../../navigators/stacks/ExploreStack/types";
@@ -56,7 +54,6 @@ import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreSt
 
 const Meditation = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Meditation">>();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
@@ -522,7 +519,7 @@ const Meditation = () => {
 
   const confirmEarlyExit = () => {
     setShowEarlyExitPrompt(false);
-    // Allow the BottomSheetModal to fully animate out (300ms) before
+    // Allow the Sheet to fully animate out (300ms) before
     // attempting to mount the VitalsFeedbackModal, avoiding iOS collision freezes.
     setTimeout(() => {
       handleAbort();
@@ -665,24 +662,15 @@ const Meditation = () => {
         </View>
 
         {/* Early Exit Prompt Bottom Sheet */}
-        <BottomSheetModal
+        <Sheet
           visible={showEarlyExitPrompt}
           onClose={() => setShowEarlyExitPrompt(false)}
-          showCloseButton={true}
-          fitContent={true}
         >
-          <Surface
-            level="raised"
-            rounded="sheet"
-            style={[
-              styles.skipModalContainer,
-              { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
-            ]}
-          >
-            <Text variant="h2" color="primary" center style={styles.skipModalTitle}>
+          <View style={styles.skipModal}>
+            <Text variant="h2" center>
               Finish early?
             </Text>
-            <Text variant="body" color="secondary" center style={styles.skipModalDesc}>
+            <Text variant="body" color="secondary" center>
               We recommend at least 5 minutes of practice for the best results. Are you sure you want to end your session early?
             </Text>
             <View style={styles.skipModalActions}>
@@ -697,8 +685,8 @@ const Meditation = () => {
                 onPress={() => setShowEarlyExitPrompt(false)}
               />
             </View>
-          </Surface>
-        </BottomSheetModal>
+          </View>
+        </Sheet>
 
         {exitSheet}
       </View>
@@ -770,33 +758,17 @@ const Meditation = () => {
         )}
       </Page>
 
-      <BottomSheetModal
-        visible={isVisible}
-        onClose={closeModal}
-        maxHeight="80%"
-        showCloseButton={true}
-      >
-        <View
-          style={[
-            styles.modalContent,
-            { paddingBottom: Math.max(insets.bottom, spacing["2xl"]) },
-          ]}
-        >
-          <View style={styles.modalHeader}>
-            <Text variant="h1" color="primary">
-              Meditation Library
-            </Text>
-            <Text variant="body" color="secondary" style={styles.modalSubtitle}>
-              Select a scenario to start your practice
-            </Text>
-          </View>
+      <Sheet visible={isVisible} onClose={closeModal}>
+        <View style={styles.modalHeader}>
+          <Text variant="h2" color="primary">
+            Meditation Library
+          </Text>
+          <Text variant="body" color="secondary" style={styles.modalSubtitle}>
+            Select a scenario to start your practice
+          </Text>
+        </View>
 
-          <ScrollView
-            style={styles.scrollView}
-            nestedScrollEnabled={true}
-            contentContainerStyle={styles.scrollContainer2}
-            showsVerticalScrollIndicator={false}
-          >
+        <View style={styles.medList}>
             {meditationScenarios.map((med, index) => {
               const isSelected = selectedIndex === index;
               return (
@@ -839,9 +811,8 @@ const Meditation = () => {
                 </PressableScale>
               );
             })}
-          </ScrollView>
         </View>
-      </BottomSheetModal>
+      </Sheet>
 
       <VitalsFeedbackModal
         visible={showVitalsModal}
@@ -887,6 +858,11 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
   // Early-exit sheet
+  skipModal: {
+    alignItems: "center",
+    paddingTop: spacing.sm,
+    gap: spacing.md,
+  },
   skipModalContainer: {
     padding: spacing["3xl"],
     alignItems: "center",
@@ -925,6 +901,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing["6xl"],
     gap: space.groupGap,
     paddingTop: space.rowGap,
+  },
+  medList: {
+    gap: space.groupGap,
   },
   medCard: {
     flexDirection: "row",

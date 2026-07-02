@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  StyleSheet,
   ListRenderItem,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +14,7 @@ import ScreenView from "../../components/ScreenView";
 import { useTheme } from "../useTheme";
 import { spacing, space, size, zIndex } from "../primitives/scale";
 import { PageHeader } from "./PageHeader";
+import { Gradient } from "./Gradient";
 
 /** FlatList body config — forwarded to a single FlatList that owns the page body. */
 export interface PageListConfig {
@@ -79,7 +81,7 @@ export const Page: React.FC<PageProps> = ({
   const topPad = insets.top + space.inlineGap; // safe area + 8, matches Header
   const tabPad = tabBarSafe ? size.tabBarSafe : 0;
   const bottomPad =
-    (footer ? footerH + space.groupGap : insets.bottom + space.screenX) + tabPad;
+    (footer ? footerH + space.sectionGap : insets.bottom + space.screenX) + tabPad;
   const gap = contentGap ?? space.groupGap;
 
   // No own horizontal padding — the container applies space.screenX so the title
@@ -170,19 +172,36 @@ export const Page: React.FC<PageProps> = ({
       ) : null}
       {footer ? (
         <View
-          onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            paddingHorizontal: space.screenX,
-            paddingTop: space.sectionGap,
-            paddingBottom: Math.max(insets.bottom + space.rowGap, spacing["3xl"]),
-            backgroundColor: colors.background.canvas,
-          }}
+          pointerEvents="box-none"
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
         >
-          {footer}
+          {/* Bottom fade — scrolling content dissolves into the canvas before it
+           * reaches the floating action, so nothing stays hidden behind an opaque
+           * band (matches the recorder-dock treatment). */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: -space.sectionGap,
+            }}
+          >
+            <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+          </View>
+
+          <View
+            pointerEvents="box-none"
+            onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}
+            style={{
+              paddingHorizontal: space.screenX,
+              paddingTop: space.sectionGap,
+              paddingBottom: Math.max(insets.bottom + space.rowGap, spacing["3xl"]),
+            }}
+          >
+            {footer}
+          </View>
         </View>
       ) : null}
     </ScreenView>

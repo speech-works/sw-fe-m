@@ -17,6 +17,7 @@ import {
   Icon,
   icons,
   Button,
+  Gradient,
   Spinner,
 } from "../../../../../../design-system";
 import type { SemanticColors } from "../../../../../../design-system";
@@ -404,8 +405,20 @@ const PhoneCallReport: React.FC<Props> = ({
         )}
       </ScrollView>
 
-      {/* Sticky CTA */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+      {/* Bottom fade — content dissolves into the canvas before the floating CTA
+          (matches the Page footer + recorder dock). */}
+      <View
+        pointerEvents="none"
+        style={[styles.footerScrim, { height: insets.bottom + 130 }]}
+      >
+        <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+      </View>
+
+      {/* Sticky CTA — floats over the faded content. */}
+      <View
+        pointerEvents="box-none"
+        style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}
+      >
         <Button
           variant="primary"
           label="Continue"
@@ -568,6 +581,12 @@ const styles = StyleSheet.create({
   transcriptSpeaker: { fontWeight: "800" },
 
   // CTA
+  footerScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   footer: {
     position: "absolute",
     left: 0,

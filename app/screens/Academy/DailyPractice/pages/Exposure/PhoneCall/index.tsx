@@ -18,9 +18,7 @@ import {
   ExposurePracticeType,
   PhoneCallScenario,
 } from "../../../../../../api/dailyPractice/types";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
 import CallingWidget from "../../../../../../components/CallingWidget";
-import CustomScrollView from "../../../../../../components/CustomScrollView";
 import {
   PhoneCallEDPStackNavigationProp,
   PhoneCallEDPStackParamList,
@@ -34,6 +32,7 @@ import {
   Icon,
   IconButton,
   icons,
+  Sheet,
   useTheme,
   spacing,
   radius,
@@ -383,39 +382,17 @@ const PhoneCall = () => {
         </View>
       </View>
 
-      <BottomSheetModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        maxHeight="80%"
-        showCloseButton={true}
-        fitContent={false}
-      >
-        <View
-          style={[
-            styles.modalSheet,
-            { backgroundColor: colors.background.canvas },
-          ]}
-        >
-          <View
-            style={[
-              styles.modalContent,
-              { paddingBottom: Math.max(insets.bottom, 24) },
-            ]}
-          >
-            <View style={styles.modalTitleContainer}>
-              <Text variant="h3" color="primary" center>
-                Practice Scenarios
-              </Text>
-              <Text variant="bodySm" color="secondary" center>
-                Select a scenario to practice
-              </Text>
-            </View>
+      <Sheet visible={isModalVisible} onClose={closeModal}>
+        <View style={styles.modalTitleContainer}>
+          <Text variant="h2" center>
+            Practice Scenarios
+          </Text>
+          <Text variant="bodySm" color="secondary" center>
+            Select a scenario to practice
+          </Text>
+        </View>
 
-            <CustomScrollView
-              style={styles.modalScrollView}
-              nestedScrollEnabled={true}
-              contentContainerStyle={styles.modalScrollContainer}
-            >
+        <View style={styles.scenarioList}>
               {scenarioData.map((scenario, index) => {
                 const isSelected = selectedScenario?.id === scenario.id;
                 return (
@@ -465,10 +442,8 @@ const PhoneCall = () => {
                   </TouchableOpacity>
                 );
               })}
-            </CustomScrollView>
-          </View>
         </View>
-      </BottomSheetModal>
+      </Sheet>
 
       <VitalsFeedbackModal
         visible={showVitalsModal}
@@ -519,30 +494,13 @@ const styles = StyleSheet.create({
   },
 
   // Scenario picker sheet (dark canvas)
-  modalSheet: {
-    flex: 1,
-    width: "100%",
-  },
-  modalContent: {
-    paddingVertical: spacing["2xl"],
-    width: "100%",
-    flex: 1,
-    flexDirection: "column",
-    gap: spacing["3xl"],
-  },
   modalTitleContainer: {
     gap: spacing.md,
     alignItems: "center",
   },
-  modalScrollView: {
-    flex: 1,
-    padding: spacing.xs,
-  },
-  modalScrollContainer: {
+  scenarioList: {
     gap: spacing.lg,
-    alignItems: "center",
-    paddingBottom: spacing["3xl"],
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xl,
   },
   scenarioCard: {
     width: "100%",

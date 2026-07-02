@@ -12,7 +12,6 @@ import {
   Text,
   useTheme,
 } from "../../../../design-system";
-import { AccentPicker } from "./AccentPicker";
 
 interface VoiceHoverConfigProps {
   baseRate: number;
@@ -79,14 +78,18 @@ export function VoiceHoverConfigPanel({
           </View>
         </View>
 
-        <Text variant="bodySm" style={styles.heroText}>
-          Set the guide voice and pause timing, then press start when you want
-          the reading support to begin.
-        </Text>
+        <View style={styles.heroTextGroup}>
+          <Text variant="bodySm" style={styles.heroText}>
+            Set the pace and pause timing, then press start when you want the
+            reading support to begin.
+          </Text>
+          {/* The accent lives in one place (Settings) so it can't drift between
+              the sheet and Preferences; point the user there to change it. */}
+          <Text variant="caption" color="tertiary">
+            Voice accent is chosen in Settings › Reading voice.
+          </Text>
+        </View>
       </View>
-
-      {/* Accent selection — same control here and in Settings; saved app-wide. */}
-      <AccentPicker />
 
       <View style={styles.sliderCard}>
         <View style={styles.sliderHeader}>
@@ -259,6 +262,9 @@ const useStyles = makeStyles((colors) => ({
   },
   heroTitle: {
     color: colors.text.primary,
+  },
+  heroTextGroup: {
+    gap: 4,
   },
   heroText: {
     color: colors.text.secondary,

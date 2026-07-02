@@ -3,12 +3,11 @@ import { View, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   Sheet,
-  IconButton,
   Text,
   Button,
   useTheme,
+  radius,
   spacing,
-  icons,
 } from "../design-system";
 
 interface PromptBottomSheetProps {
@@ -30,11 +29,10 @@ interface PromptBottomSheetProps {
 }
 
 /**
- * Shared confirmation prompt, built on the design-system `Sheet` so every prompt
- * across the app shares the same chrome: a floating close button in the sheet's
- * header (OUTSIDE the card, the DS convention) + a consistent centred body
- * (accent icon → title → message → stacked action buttons). Callers only pass
- * content — the look and feel is owned here, so it stays uniform everywhere.
+ * Shared confirmation prompt on the design-system `Sheet`, so every prompt across
+ * the app shares one chrome: grab handle + backdrop-tap dismiss (NO cross button),
+ * with a centred body (accent icon disc → title → message → stacked action
+ * buttons) matching `OutcomeModal`. Callers pass only content.
  */
 const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
   visible,
@@ -50,22 +48,16 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
   const accent = iconColor ?? colors.action.primary;
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={onClose}
-      right={<IconButton name={icons.close} onPress={onClose} />}
-    >
+    <Sheet visible={visible} onClose={onClose}>
       <View style={styles.container}>
-        {/* Accent icon disc — a calm, consistent replacement for the old
-            oversized rotated watermark. */}
         <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
           <MaterialCommunityIcons name={icon as any} size={28} color={accent} />
         </View>
 
-        <Text variant="h3" color="primary" center style={styles.title}>
+        <Text variant="h2" center>
           {title}
         </Text>
-        <Text variant="body" color="secondary" center style={styles.message}>
+        <Text variant="bodySm" color="secondary" center>
           {message}
         </Text>
 
@@ -100,27 +92,20 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
   iconDisc: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.lg,
-  },
-  title: {
-    marginBottom: spacing.sm,
-  },
-  message: {
-    lineHeight: 24,
-    marginBottom: spacing["2xl"],
   },
   buttons: {
     width: "100%",
     gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
 

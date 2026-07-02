@@ -92,8 +92,6 @@ export function ChatThread<O extends ChatSessionOption>({
         ))}
 
         <SuggestionCards options={options} armedOptionId={armedOptionId} onArm={onArm} />
-
-        <View style={{ height: 32 }} />
       </CustomScrollView>
     </View>
   );
