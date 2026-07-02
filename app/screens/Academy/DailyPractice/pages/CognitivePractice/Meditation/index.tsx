@@ -856,6 +856,7 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     minWidth: 200,
+    alignSelf: "center",
   },
   // Early-exit sheet
   skipModal: {

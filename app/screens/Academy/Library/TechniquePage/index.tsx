@@ -191,5 +191,6 @@ const styles = StyleSheet.create({
   modalButton: {
     width: "100%",
     maxWidth: 280,
+    alignSelf: "center",
   },
 });
