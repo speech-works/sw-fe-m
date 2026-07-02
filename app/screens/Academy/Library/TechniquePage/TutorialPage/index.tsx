@@ -9,6 +9,7 @@ import { TECHNIQUES_ENUM, Tutorial } from "../../../../../api/library/types";
 
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import { VideoPlayer } from "../../../../../components/VideoPlayer";
 import { useUserStore } from "../../../../../stores/user";
@@ -29,12 +30,14 @@ interface TutorialPageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
   header?: React.ReactNode;
+  outerScrollY?: Animated.SharedValue<number>;
 }
 
 const TutorialPage = ({
   techniqueId,
   setActiveStageIndex,
   header,
+  outerScrollY,
 }: TutorialPageProps) => {
   const { colors } = useTheme();
   const { user } = useUserStore();
@@ -143,7 +146,7 @@ const TutorialPage = ({
   }
 
   return (
-    <CustomScrollView contentContainerStyle={styles.scrollContent}>
+    <CustomScrollView contentContainerStyle={styles.scrollContent} outerScrollY={outerScrollY}>
       {header}
       <View style={{ gap: spacing.lg }}>
         <View style={styles.videoContainer}>

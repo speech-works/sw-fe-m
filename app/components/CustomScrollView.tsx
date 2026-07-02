@@ -34,6 +34,7 @@ interface CustomScrollViewProps {
   onEndReached?: () => void;
   /** Distance (px) from the bottom at which `onEndReached` fires. Defaults to 320. */
   onEndReachedThreshold?: number;
+  outerScrollY?: Animated.SharedValue<number>;
   [key: string]: any;
 }
 
@@ -52,6 +53,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       onEndReached,
       onEndReachedThreshold = 320,
       onScrollY,
+      outerScrollY,
       ...rest
     },
     ref,
@@ -74,6 +76,9 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
       {
         onScroll: (event) => {
           scrollY.value = event.contentOffset.y;
+          if (outerScrollY) {
+            outerScrollY.value = event.contentOffset.y;
+          }
           contentHeight.value = event.contentSize.height;
           layoutHeight.value = event.layoutMeasurement.height;
 

@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { getQuizByTechnique } from "../../../../../api/library";
 import {
   FinalAnswer,
@@ -34,9 +35,10 @@ interface QuizPageProps {
   techniqueName: string;
   from?: "HOME" | "EXPLORE" | "MOOD_CHECK";
   header?: React.ReactNode;
+  outerScrollY?: Animated.SharedValue<number>;
 }
 
-const QuizPage = ({ techniqueId, techniqueName, from, header }: QuizPageProps) => {
+const QuizPage = ({ techniqueId, techniqueName, from, header, outerScrollY }: QuizPageProps) => {
   const navigation =
     useNavigation<LibStackNavigationProp<keyof LibStackParamList>>();
   const { colors } = useTheme();
@@ -131,7 +133,7 @@ const QuizPage = ({ techniqueId, techniqueName, from, header }: QuizPageProps) =
   const isNextDisabled = selectedAnsIndex === undefined || isSubmitting;
 
   return (
-    <CustomScrollView contentContainerStyle={styles.scrollContent}>
+    <CustomScrollView contentContainerStyle={styles.scrollContent} outerScrollY={outerScrollY}>
       {header}
       <View style={styles.innerContainer}>
         {/* Progress Indicator */}

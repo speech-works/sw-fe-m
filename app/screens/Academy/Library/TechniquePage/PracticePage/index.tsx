@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { getAllExerciseItems } from "../../../../../api/library";
 import {
@@ -12,6 +12,7 @@ import {
   TECHNIQUES_ENUM,
 } from "../../../../../api/library/types";
 import { speakText } from "../../../../../util/functions/speak";
+import CustomScrollView from "../../../../../components/CustomScrollView";
 
 // Components
 import { ToolType } from "../../../../../api/tools/types";
@@ -36,12 +37,14 @@ interface PracticePageProps {
   techniqueId: TECHNIQUES_ENUM;
   setActiveStageIndex: React.Dispatch<React.SetStateAction<number>>;
   header?: React.ReactNode;
+  outerScrollY?: Animated.SharedValue<number>;
 }
 
 const PracticePage = ({
   techniqueId,
   setActiveStageIndex,
   header,
+  outerScrollY,
 }: PracticePageProps) => {
   const { colors } = useTheme();
   // Data State
@@ -214,9 +217,10 @@ const PracticePage = ({
     <View style={styles.container}>
       {/* Main Content Area */}
       <View style={{ flex: 1 }}>
-        <ScrollView
+        <CustomScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          outerScrollY={outerScrollY}
         >
           {header}
           <View style={styles.stage}>
@@ -275,7 +279,7 @@ const PracticePage = ({
               </Text>
             </View>
           </View>
-        </ScrollView>
+        </CustomScrollView>
       </View>
 
       {/* Dock (Fixed Bottom) */}

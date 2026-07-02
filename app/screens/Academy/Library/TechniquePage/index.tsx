@@ -2,6 +2,7 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, ScrollView, Dimensions, StatusBar, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
 import {
   LibStackNavigationProp,
@@ -43,6 +44,12 @@ const TechniquePage = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+  const [headerHeight, setHeaderHeight] = useState(200);
+
+  const scrollY_0 = useSharedValue(0);
+  const scrollY_1 = useSharedValue(0);
+  const scrollY_2 = useSharedValue(0);
+  const activeIndexSv = useSharedValue(0);
 
   const isContentAccessible = user?.isPaid || hasFree;
   const closeModal = () => setIsModalVisible(false);
@@ -70,6 +77,7 @@ const TechniquePage = () => {
         animated: true,
       });
     }
+    activeIndexSv.value = activeStageIndex;
   }, [activeStageIndex, contentWidth]);
 
   useEffect(() => {
@@ -86,49 +94,84 @@ const TechniquePage = () => {
 
   const topPad = insets.top + space.inlineGap;
 
-  const header = (
-    <View style={{ paddingTop: topPad, paddingBottom: spacing.lg }}>
-      <PageHeader
-        title={techniqueName}
-        onBack={() =>
-          from === "MOOD_CHECK"
-            ? navigation.navigate("Root" as any, { screen: "HOME" })
-            : navigation.navigate("Library", { from })
-        }
-      />
-      <View style={{ marginTop: space.titleGap }}>
-        <TabDock
-          inline
-          fitContent
-          accessibilityLabel="Technique stages"
-          items={[
-            {
-              key: "0",
-              label: "Learn",
-              icon: "play",
-            },
-            {
-              key: "1",
-              label: "Practice",
-              icon: !isContentAccessible ? "lock" : "mic-vocal",
-            },
-            {
-              key: "2",
-              label: "Test",
-              icon: !isContentAccessible ? "lock" : "square-check",
-            },
-          ]}
-          activeKey={activeStageIndex.toString()}
-          onSelect={(k) => handleStepChange(parseInt(k, 10))}
+  const headerStyle = useAnimatedStyle(() => {
+    let currentY = 0;
+    if (activeIndexSv.value === 0) currentY = scrollY_0.value;
+    else if (activeIndexSv.value === 1) currentY = scrollY_1.value;
+    else if (activeIndexSv.value === 2) currentY = scrollY_2.value;
+
+    return {
+      transform: [{ translateY: -Math.max(0, currentY) }]
+    };
+  });
+
+  const realHeader = (
+    <Animated.View 
+      style={[{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: zIndex.sticky - 1 }, headerStyle]}
+      pointerEvents="box-none"
+      onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+    >
+      <View style={{ paddingTop: topPad, paddingBottom: spacing.lg, paddingHorizontal: space.screenX, backgroundColor: colors.background.canvas }}>
+        <PageHeader
+          title={techniqueName}
+          onBack={() =>
+            from === "MOOD_CHECK"
+              ? navigation.navigate("Root" as any, { screen: "HOME" })
+              : navigation.navigate("Library", { from })
+          }
         />
+        <View style={{ marginTop: space.titleGap }}>
+          <TabDock
+            inline
+            fitContent
+            accessibilityLabel="Technique stages"
+            items={[
+              {
+                key: "0",
+                label: "Learn",
+                icon: "play",
+              },
+              {
+                key: "1",
+                label: "Practice",
+                icon: !isContentAccessible ? "lock" : "mic-vocal",
+              },
+              {
+                key: "2",
+                label: "Test",
+                icon: !isContentAccessible ? "lock" : "square-check",
+              },
+            ]}
+            activeKey={activeStageIndex.toString()}
+            onSelect={(k) => handleStepChange(parseInt(k, 10))}
+          />
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
+
+  const headerPlaceholder = <View style={{ height: headerHeight }} />;
 
   return (
     <>
       <ScreenView style={{ backgroundColor: colors.background.canvas, flex: 1 }}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+        {insets.top > 0 ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: insets.top,
+              backgroundColor: colors.background.canvas,
+              zIndex: zIndex.sticky,
+            }}
+          />
+        ) : null}
+
+        {realHeader}
 
         {/* Main Content — child pages own their own scroll/dock. */}
         <View
@@ -155,7 +198,8 @@ const TechniquePage = () => {
               <TutorialPage
                 setActiveStageIndex={handleChildStageChange}
                 techniqueId={techniqueId}
-                header={header}
+                header={headerPlaceholder}
+                outerScrollY={scrollY_0}
               />
             </View>
             {isContentAccessible && (
@@ -164,7 +208,8 @@ const TechniquePage = () => {
                   <PracticePage
                     setActiveStageIndex={handleChildStageChange}
                     techniqueId={techniqueId}
-                    header={header}
+                    header={headerPlaceholder}
+                    outerScrollY={scrollY_1}
                   />
                 </View>
                 <View style={{ width: contentWidth }}>
@@ -172,27 +217,14 @@ const TechniquePage = () => {
                     techniqueId={techniqueId}
                     techniqueName={techniqueName}
                     from={from}
-                    header={header}
+                    header={headerPlaceholder}
+                    outerScrollY={scrollY_2}
                   />
                 </View>
               </>
             )}
           </ScrollView>
         </View>
-
-        {insets.top > 0 ? (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: insets.top,
-              backgroundColor: colors.background.canvas,
-              zIndex: zIndex.sticky,
-            }}
-          />
-        ) : null}
 
         {activeStageIndex === 0 && (
           <TouchableOpacity
