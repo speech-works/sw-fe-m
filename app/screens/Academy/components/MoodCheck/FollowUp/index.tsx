@@ -27,7 +27,7 @@ import {
 } from "../../../../../util/functions/parseStyles";
 
 import CustomScrollView from "../../../../../components/CustomScrollView";
-import ListCard from "../../../DailyPractice/components/ListCard";
+import GradientActionCard from "../../../DailyPractice/components/GradientActionCard";
 
 import { MoodType } from "../../../../../api/moodCheck/types";
 import {
@@ -575,7 +575,7 @@ const FollowUp = () => {
                             </Text>
                           </View>
                         )}
-                        <ListCard
+                        <GradientActionCard
                           noChevron
                           title={rec.title}
                           description={rec.description}

@@ -8,7 +8,7 @@ import {
     parseTextStyle,
 } from "../../../../util/functions/parseStyles";
 
-export interface ListCardProps {
+export interface GradientActionCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -18,7 +18,7 @@ export interface ListCardProps {
   gradientColors?: readonly [string, string];
 }
 
-const ListCard = ({
+const GradientActionCard = ({
   title,
   description,
   icon,
@@ -26,7 +26,7 @@ const ListCard = ({
   disabled,
   noChevron,
   gradientColors = ["#FFFFFF", "#FAFBFC"],
-}: ListCardProps) => {
+}: GradientActionCardProps) => {
   return (
     <TouchableOpacity
       style={[styles.container, disabled ? styles.disabledContainer : null]}
@@ -83,7 +83,7 @@ const ListCard = ({
   );
 };
 
-export default ListCard;
+export default GradientActionCard;
 
 const styles = StyleSheet.create({
   container: {

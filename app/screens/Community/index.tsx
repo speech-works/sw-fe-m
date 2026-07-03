@@ -801,38 +801,60 @@ const Community = () => {
           </View>
         ) : isPaired ? (
           <View style={{ flex: 1 }}>
-            <CustomScrollView
-              contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
-              onScrollY={handleScrollY}
-              onEndReached={() => {
-                if (view === "timeline") timelineRef.current?.loadMore();
+            {/* Horizontal pager of two INDEPENDENT vertical scrolls. Each page owns
+                its own CustomScrollView so its content scrolls clear of the floating
+                dock (paddingBottom). Do NOT collapse this into one vertical scroll
+                wrapping a horizontal pager — a horizontal ScrollView clips vertical
+                overflow, which traps each page's bottom content behind the dock. */}
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={{ flex: 1 }}
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const pageIndex = Math.round(offsetX / screenWidth);
+                setView(pageIndex === 0 ? "us" : "timeline");
               }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={colors.action.primary}
-                  colors={[colors.action.primary]}
-                  progressViewOffset={insets.top + 8}
-                />
-              }
             >
-              {renderHeader()}
-              <ScrollView
-                ref={scrollViewRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => {
-                  const offsetX = e.nativeEvent.contentOffset.x;
-                  const pageIndex = Math.round(offsetX / screenWidth);
-                  setView(pageIndex === 0 ? "us" : "timeline");
-                }}
-              >
-                <View style={{ width: screenWidth }}>
+              {/* Us page */}
+              <View style={{ width: screenWidth }}>
+                <CustomScrollView
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  onScrollY={handleScrollY}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={colors.action.primary}
+                      colors={[colors.action.primary]}
+                      progressViewOffset={insets.top + 8}
+                    />
+                  }
+                >
+                  {renderHeader()}
                   {renderPaired()}
-                </View>
-                <View style={{ width: screenWidth }}>
+                </CustomScrollView>
+              </View>
+
+              {/* Timeline page */}
+              <View style={{ width: screenWidth }}>
+                <CustomScrollView
+                  contentContainerStyle={[styles.scrollView, { paddingBottom: 130, flexGrow: 1 }]}
+                  onScrollY={handleScrollY}
+                  onEndReached={() => timelineRef.current?.loadMore()}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={colors.action.primary}
+                      colors={[colors.action.primary]}
+                      progressViewOffset={insets.top + 8}
+                    />
+                  }
+                >
+                  {renderHeader()}
                   {thread ? (
                     <Timeline
                       ref={timelineRef}
@@ -843,10 +865,12 @@ const Community = () => {
                       onReachOut={setSupportSignal}
                     />
                   ) : null}
-                </View>
-              </ScrollView>
-            </CustomScrollView>
+                </CustomScrollView>
+              </View>
+            </ScrollView>
 
+            {/* Screen-level sticky compose FAB — shown only on the Timeline tab
+                (kept from the restructure; independent of the scroll nesting). */}
             {view === "timeline" && (
               <TouchableOpacity
                 style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
