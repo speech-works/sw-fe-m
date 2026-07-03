@@ -164,7 +164,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
           style={[{ flex: 1, overflow: "hidden" }, style]}
           contentContainerStyle={[
             styles.scrollContent,
-            {
+            showScrollButtons && {
               padding: SHADOW_BUFFER,
               paddingBottom: BUTTON_AREA_HEIGHT,
             },

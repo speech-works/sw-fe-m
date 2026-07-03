@@ -122,10 +122,12 @@ export function ReadingStage({
   const [clusterH, setClusterH] = useState(CLUSTER_ESTIMATE);
   const onDeckLayout = (e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height;
+    console.log(`[ReadingStage] deckFloat measured height: ${h}`);
     if (h > 0 && Math.abs(h - clusterH) > 1) setClusterH(h);
   };
   const scrimH = clusterH + SCRIM_FADE;
-  const bottomReserve = scrimH + spacing.lg; // last line lands above the fade
+  const bottomReserve = scrimH + spacing["6xl"]; // extra generous clearance (64px instead of 16px)
+  console.log(`[ReadingStage] clusterH=${clusterH} scrimH=${scrimH} bottomReserve=${bottomReserve} SCRIM_FADE=${SCRIM_FADE}`);
 
   const eyebrow = focus?.active ? "FOCUS · YOUR SOUNDS" : category;
   const focusGradientColors: readonly [string, string, string] = [
@@ -211,7 +213,8 @@ export function ReadingStage({
       <CustomScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + space.inlineGap, paddingBottom: bottomReserve },
+          align === "center" && { flexGrow: 1 },
+          { paddingTop: insets.top + space.inlineGap },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -238,6 +241,10 @@ export function ReadingStage({
           </Text>
           <View style={styles.content}>{children}</View>
         </View>
+        
+        {/* Explicit spacer guarantees the scrollable area extends past the fade/dock,
+            avoiding iOS flex padding miscalculations that cause bounce-back. */}
+        <View style={{ height: bottomReserve }} />
       </CustomScrollView>
 
       {/* Bottom fade — sized to the measured cluster so content dissolves before it. */}
@@ -291,7 +298,6 @@ const useStyles = makeStyles((c) => ({
   canvas: { backgroundColor: c.background.canvas },
   scroll: {
     paddingHorizontal: space.screenX,
-    flexGrow: 1,
   },
   header: {
     gap: space.titleGap,
