@@ -61,18 +61,18 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
       >
         <View style={styles.textBody}>
           <View style={styles.titleRow}>
-            {/* Flame = intensity; lights up orange when Hard Mode is on. */}
+            {/* Target = focus; lights up with the accent when Focus Mode is on. */}
             <Icon
-              name={icons.streak}
+              name={icons.focus}
               size={16}
               color={value ? accentColor : colors.text.tertiary}
             />
             <Text variant="title" color={value ? accentColor : colors.text.primary}>
-              Hard Mode
+              Focus Mode
             </Text>
           </View>
           <Text variant="bodySm" color="secondary">
-            Intensify your practice by focusing exclusively on your feared sounds.
+            Focus your practice exclusively on your feared sounds.
           </Text>
         </View>
         {/* Display-only switch — the whole card owns the tap (handlePress). */}
@@ -83,7 +83,7 @@ const HardModeToggle: React.FC<HardModeToggleProps> = ({
         visible={showGate}
         onClose={() => setShowGate(false)}
         title="Action required"
-        message="Add feared sounds in Settings to use Hard Mode."
+        message="Add feared sounds in Settings to use Focus Mode."
         confirmLabel="Go to Settings"
         accentColor={accentColor}
         onAccentColor={onAccentColor}

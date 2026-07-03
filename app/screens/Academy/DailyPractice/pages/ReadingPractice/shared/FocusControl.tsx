@@ -5,6 +5,7 @@ import PressableScale from "../../../../../../components/PressableScale";
 import {
   Dialog,
   Icon,
+  icons,
   FLOATING_CONTROL_SIZE,
   floatingControlSurface,
   makeStyles,
@@ -68,7 +69,7 @@ export function FocusControl({
           },
         ]}
       >
-        <Icon name="target" size={22} color={active ? onAccent : accent} />
+        <Icon name={icons.focus} size={22} color={active ? onAccent : accent} />
       </PressableScale>
 
       <Dialog
