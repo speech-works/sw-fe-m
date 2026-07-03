@@ -35,6 +35,10 @@ const CVExercise = () => {
   const navigation =
     useNavigation<CharacterVoiceFDPStackNavigationProp<"CVExercise">>();
   const { colors } = useTheme();
+  // Character Voice = the "purple" accent from the Fun Practice list; the whole
+  // practice inherits that identity (stage, dock, tips, save + done screens).
+  const accentColor = colors.accent.purple;
+  const onAccentColor = colors.accentOn.purple;
   const route =
     useRoute<RouteProp<CharacterVoiceFDPStackParamList, "CVExercise">>();
   const { id, name, cvData, packContext, practiceActivity, from } = route.params;
@@ -185,6 +189,7 @@ const CVExercise = () => {
     activityId: currentActivityId,
     isCompleted: isDone,
     onSave: onDonePress,
+    accentColor,
     family: "Fun",
     from,
     packContext,
@@ -196,6 +201,8 @@ const CVExercise = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="character voice exercise"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -246,6 +253,7 @@ const CVExercise = () => {
             }}
             loading={isStarting}
             disabled={isStarting}
+            style={isStarting ? undefined : { backgroundColor: accentColor }}
           />
         }
       >
@@ -260,7 +268,7 @@ const CVExercise = () => {
                 <View
                   style={[
                     styles.tipDot,
-                    { backgroundColor: colors.action.primary },
+                    { backgroundColor: accentColor },
                   ]}
                 />
                 {index !== arr.length - 1 && (
@@ -293,7 +301,7 @@ const CVExercise = () => {
             : navigation.goBack()
         }
         category="VOICE"
-        accent={colors.accent.purple}
+        accent={accentColor}
         onNext={toggleIndex}
         dock={
           <SmartRecorder
@@ -311,6 +319,8 @@ const CVExercise = () => {
             onDiscard={() => {
               setVoiceRecordingUri(null);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         }
       >
@@ -322,7 +332,7 @@ const CVExercise = () => {
             <AudioPlaybackButton
               audioUrl={effectiveCvData?.exampleAudioUrl}
               iconSize={14}
-              activeColor={colors.accent.purple}
+              activeColor={accentColor}
               style={[
                 styles.playbackButton,
                 { backgroundColor: colors.surface.control },

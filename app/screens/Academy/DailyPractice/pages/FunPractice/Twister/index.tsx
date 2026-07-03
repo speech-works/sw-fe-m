@@ -38,6 +38,7 @@ import {
   useTheme,
   spacing,
   Sheet,
+  withAlpha,
 } from "../../../../../../design-system";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
@@ -59,6 +60,13 @@ const Twister = () => {
   const navigation =
     useNavigation<TwisterFDPStackNavigationProp<"TwisterExercise">>();
   const { colors } = useTheme();
+  // Tongue Twisters = the "success" (green) accent on the Fun Practice list; the
+  // whole practice inherits that identity (like CVExercise's purple) so the stage,
+  // focus, dock tools and done screen all read green — mirroring the reading pages.
+  const accentRole = "success" as const;
+  const accentColor = colors.accent[accentRole];
+  const onAccentColor = colors.accentOn[accentRole];
+  const highlightColor = withAlpha(onAccentColor, 0.14);
   const route = useRoute<TwisterFDPStackRouteProp<"TwisterExercise">>();
   const { packContext, from } = route.params || {};
   const { updateActivity, doesActivityExist } = useActivityStore();
@@ -157,6 +165,8 @@ const Twister = () => {
             onRecheckHeadset={() => {
               void dafState.updateHeadsetStatus(true);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.METRONOME:
@@ -172,6 +182,8 @@ const Twister = () => {
             }}
             speed={metronomeState.speed}
             onSpeedChange={(val) => metronomeState.setSpeed(val)}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         );
       case ToolType.CHORUS:
@@ -184,6 +196,8 @@ const Twister = () => {
             gapBetweenChunks={vhGap}
             setGapBetweenChunks={setVhGap}
             isSpeaking={vhIsPlaying}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             onToggleSpeech={() => {
               const nextIsPlaying = !vhIsPlaying;
               setVhIsPlaying(nextIsPlaying);
@@ -417,7 +431,7 @@ const Twister = () => {
         {before}
         <RNText
           style={{
-            backgroundColor: colors.action.primaryTint,
+            backgroundColor: highlightColor,
             color: colors.text.primary,
           }}
         >
@@ -436,6 +450,7 @@ const Twister = () => {
     activityId: currentActivityId,
     isCompleted: practiceComplete,
     onSave: onDonePress,
+    accentColor,
     family: "Fun",
     from,
     packContext,
@@ -447,6 +462,8 @@ const Twister = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="tongue twister"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -490,6 +507,11 @@ const Twister = () => {
             onPress={() => runStart()}
             loading={isStarting || !hasHydrated}
             disabled={isStarting || !hasHydrated}
+            style={
+              isStarting || !hasHydrated
+                ? undefined
+                : { backgroundColor: accentColor }
+            }
           />
         }
       >
@@ -505,6 +527,7 @@ const Twister = () => {
           value={hardMode}
           onValueChange={setHardMode}
           canUseHardMode={canUseHardMode}
+          accent={accentRole}
         />
 
         {/* Tips — a dot timeline on the dark canvas. */}
@@ -518,7 +541,7 @@ const Twister = () => {
                 <View
                   style={[
                     styles.tipDot,
-                    { backgroundColor: colors.action.primary },
+                    { backgroundColor: accentColor },
                   ]}
                 />
                 {index !== arr.length - 1 && (
@@ -551,11 +574,13 @@ const Twister = () => {
             : navigation.goBack()
         }
         category="TWISTER"
+        accent={accentColor}
         onNext={toggleIndex}
         focus={{
           active: hardMode,
           canUse: canUseHardMode,
           onToggle: setHardMode,
+          accentColor,
         }}
         dock={
           <SmartRecorder
@@ -573,6 +598,8 @@ const Twister = () => {
             onDiscard={() => {
               setVoiceRecordingUri(null);
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
             renderTools={() => (
               <RecorderTools
                 activeToolId={selectedPracticeTool}
@@ -583,6 +610,8 @@ const Twister = () => {
                 focusMode={focusMode}
                 expanded={toolsExpanded}
                 onExpand={() => setToolsExpanded(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
             )}
           />
