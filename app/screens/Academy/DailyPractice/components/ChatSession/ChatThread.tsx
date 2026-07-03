@@ -27,6 +27,9 @@ interface ChatThreadProps<O extends ChatSessionOption> {
   onArm: (option: O) => void;
   /** Bottom clearance so the newest content clears the floating dock. */
   bottomPadding: number;
+  /** Category accent for the "You" ring + highlight chips + armed reply (optional). */
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -44,6 +47,8 @@ export function ChatThread<O extends ChatSessionOption>({
   armedOptionId,
   onArm,
   bottomPadding,
+  accentColor,
+  onAccentColor,
 }: ChatThreadProps<O>) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -84,14 +89,28 @@ export function ChatThread<O extends ChatSessionOption>({
             key={message.id}
             entering={enter()}
             style={
-              message.type === "incoming" ? styles.incoming : styles.outgoing
+              message.type === "incoming"
+                ? styles.incoming
+                : [styles.outgoing, accentColor ? { borderColor: accentColor } : null]
             }
           >
-            <RichText text={message.text} color={colors.text.primary} align="start" />
+            <RichText
+              text={message.text}
+              color={colors.text.primary}
+              align="start"
+              accentColor={accentColor}
+              onAccentColor={onAccentColor}
+            />
           </Animated.View>
         ))}
 
-        <SuggestionCards options={options} armedOptionId={armedOptionId} onArm={onArm} />
+        <SuggestionCards
+          options={options}
+          armedOptionId={armedOptionId}
+          onArm={onArm}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
+        />
       </CustomScrollView>
     </View>
   );

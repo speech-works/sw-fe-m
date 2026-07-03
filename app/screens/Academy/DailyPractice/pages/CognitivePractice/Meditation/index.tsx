@@ -55,6 +55,10 @@ import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreSt
 const Meditation = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Meditation">>();
   const { colors } = useTheme();
+  // Guided Meditation = the "purple" accent from the Cognitive Practice list;
+  // the flow inherits it (Start, tips, selection, save + done screens).
+  const accentColor = colors.accent.purple;
+  const onAccentColor = colors.accentOn.purple;
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
   const { packContext, practiceActivity, from } = route.params || {};
@@ -113,6 +117,7 @@ const Meditation = () => {
     activityId: currentActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: () => setShowVitalsModal(true),
+    accentColor,
     family: "Cognitive",
     from,
     packContext,
@@ -678,6 +683,8 @@ const Meditation = () => {
                 label="End Session"
                 variant="primary"
                 onPress={confirmEarlyExit}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
               <Button
                 label="Continue Practice"
@@ -699,6 +706,8 @@ const Meditation = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="meditation"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={undefined}
         isAborted={isAborted}
         from={from}
@@ -721,7 +730,14 @@ const Meditation = () => {
             ? navigation.navigate("Root" as any, { screen: "HOME" })
             : navigation.goBack()
         }
-        footer={<Button label="Start Exercise" onPress={handleStart} />}
+        footer={
+          <Button
+            label="Start Exercise"
+            onPress={handleStart}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+          />
+        }
       >
         {selectedIndex !== null && meditationScenarios[selectedIndex] && (
           <MeditationCard
@@ -741,7 +757,7 @@ const Meditation = () => {
               <View key={index} style={styles.tipRow}>
                 <View style={styles.tipTrack}>
                   <View
-                    style={[styles.tipDot, { backgroundColor: colors.action.primary }]}
+                    style={[styles.tipDot, { backgroundColor: accentColor }]}
                   />
                   {index !== arr.length - 1 && (
                     <View
@@ -785,7 +801,7 @@ const Meditation = () => {
                     bordered={!isSelected}
                     style={[
                       styles.medCard,
-                      isSelected && { borderWidth: 1, borderColor: colors.border.selected },
+                      isSelected && { borderWidth: 1, borderColor: accentColor },
                     ]}
                   >
                     <View style={styles.watermarkIconContainer}>
@@ -805,7 +821,7 @@ const Meditation = () => {
                       </Text>
                     </View>
                     {isSelected && (
-                      <Icon name={icons.success} size={20} color={colors.action.primary} />
+                      <Icon name={icons.success} size={20} color={accentColor} />
                     )}
                   </Surface>
                 </PressableScale>

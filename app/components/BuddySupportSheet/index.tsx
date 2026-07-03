@@ -146,7 +146,6 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
               onPress={() => sendNote(n.id)}
               accessibilityLabel={`Send: ${n.text}`}
             >
-              <Text variant="body" style={styles.noteEmoji}>{n.emoji}</Text>
               <Text variant="bodySm" color={isSent ? "secondary" : "primary"} style={[styles.flex1, styles.bold]}>{n.text}</Text>
               {isSending ? (
                 <ActivityIndicator size="small" color={colors.action.primary} />
@@ -211,7 +210,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
         {anySent ? (
           <View style={styles.sentBanner}>
             <Icon name={icons.success} size={16} color={colors.accent.success} />
-            <Text variant="bodySm" color="primary" style={styles.bold}>{name} will know you're here. 💛</Text>
+            <Text variant="bodySm" color="primary" style={styles.bold}>{name} will know you're here.</Text>
           </View>
         ) : null}
 
@@ -256,7 +255,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: borderWidth.thin,
   },
-  noteEmoji: {},
 
   lifelineBtn: {
     flexDirection: "row",

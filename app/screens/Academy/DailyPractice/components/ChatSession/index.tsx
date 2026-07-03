@@ -27,6 +27,8 @@ export default function ChatSession<O extends ChatSessionOption>({
   options,
   onAdvance,
   onComplete,
+  accentColor,
+  onAccentColor,
 }: ChatSessionProps<O>) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
@@ -71,6 +73,8 @@ export default function ChatSession<O extends ChatSessionOption>({
         armedOptionId={armedOptionId}
         onArm={handleArm}
         bottomPadding={DOCK_RESERVE}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {/* Bottom fade — content dissolves into the canvas before it reaches the
@@ -90,6 +94,8 @@ export default function ChatSession<O extends ChatSessionOption>({
           onConfirm={handleConfirm}
           onDiscard={handleDiscard}
           onComplete={onComplete}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
         />
       </View>
 

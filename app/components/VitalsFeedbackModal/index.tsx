@@ -103,7 +103,7 @@ export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
             />
           </TouchableOpacity>
           {/* Header */}
-          <Text style={styles.title}>How did it go? 🎉</Text>
+          <Text style={styles.title}>How did it go?</Text>
           <Text style={styles.subtitle}>
             Your feedback helps us personalize your journey
           </Text>

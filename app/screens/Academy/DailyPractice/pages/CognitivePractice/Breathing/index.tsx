@@ -45,6 +45,10 @@ const Breathing = () => {
   const navigation = useNavigation<ExploreStackNavigationProp<"Breathing">>();
   const route = useRoute<CDPStackRouteProp<"BreathingPractice">>();
   const { colors } = useTheme();
+  // Guided Breathing = the "danger" (rose) accent from the Cognitive Practice
+  // list; the flow inherits it (Start, tips, save + done screens).
+  const accentColor = colors.accent.danger;
+  const onAccentColor = colors.accentOn.danger;
 
   const passedActivity = route.params?.practiceActivity;
   const packContext = route.params?.packContext;
@@ -87,6 +91,7 @@ const Breathing = () => {
     activityId: currentActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: () => setShowVitalsModal(true),
+    accentColor,
     family: "Cognitive",
     from,
     packContext,
@@ -498,6 +503,8 @@ const Breathing = () => {
                 label="End Session"
                 variant="primary"
                 onPress={confirmEarlyExit}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
               />
               <Button
                 label="Continue Practice"
@@ -519,6 +526,8 @@ const Breathing = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="breathing exercise"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={undefined}
         isAborted={isAborted}
         from={from}
@@ -553,6 +562,8 @@ const Breathing = () => {
                 // Global stamina modal will be handled by the API layer event
               }
             }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
         }
       >
@@ -565,7 +576,7 @@ const Breathing = () => {
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
                 <View
-                  style={[styles.tipDot, { backgroundColor: colors.action.primary }]}
+                  style={[styles.tipDot, { backgroundColor: accentColor }]}
                 />
                 {index !== arr.length - 1 && (
                   <View

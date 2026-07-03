@@ -41,4 +41,13 @@ export interface ChatSessionProps<O extends ChatSessionOption = ChatSessionOptio
    * screen's existing completion flow (vitals modal / mark-complete).
    */
   onComplete: () => void;
+
+  /**
+   * Category accent for the chat's own surfaces (the armed reply card, the "You"
+   * bubble ring, technique highlight chips, the recorder). Optional — omit it and
+   * everything stays the brand orange (Interview / Social Challenge do this;
+   * Roleplay passes its blue category colour).
+   */
+  accentColor?: string;
+  onAccentColor?: string;
 }

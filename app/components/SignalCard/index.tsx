@@ -318,8 +318,8 @@ const SignalCard = ({
     if (p.journeyCompleted) {
       statusText = "Journey milestone";
       subtitle = signal.authorIsMe
-        ? `Completed the ${p.journeyTitle ?? "journey"} 🎉`
-        : `${authorName} completed the ${p.journeyTitle ?? "journey"} 🎉`;
+        ? `Completed the ${p.journeyTitle ?? "journey"}`
+        : `${authorName} completed the ${p.journeyTitle ?? "journey"}`;
     } else if (p.moduleCompleted) {
       statusText = "Journey milestone";
       const where = p.journeyTitle ? ` in ${p.journeyTitle}` : "";

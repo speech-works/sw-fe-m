@@ -10,6 +10,7 @@ import {
   spacing,
   useMotion,
   useTheme,
+  withAlpha,
 } from "../../../../../design-system";
 import { RichText } from "./RichText";
 import type { ChatSessionOption } from "./types";
@@ -20,6 +21,9 @@ interface SuggestionCardsProps<O extends ChatSessionOption> {
   armedOptionId: string | null;
   onArm: (option: O) => void;
   disabled?: boolean;
+  /** Category accent for the armed card + radio (defaults to brand orange). */
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -33,6 +37,8 @@ export function SuggestionCards<O extends ChatSessionOption>({
   armedOptionId,
   onArm,
   disabled,
+  accentColor,
+  onAccentColor,
 }: SuggestionCardsProps<O>) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -53,16 +59,37 @@ export function SuggestionCards<O extends ChatSessionOption>({
             <PressableScale
               onPress={() => onArm(option)}
               disabled={disabled}
-              style={[styles.card, armed && styles.cardArmed]}
+              style={[
+                styles.card,
+                armed && styles.cardArmed,
+                armed && accentColor
+                  ? { backgroundColor: withAlpha(accentColor, 0.12), borderColor: accentColor }
+                  : null,
+              ]}
             >
-              <View style={[styles.radio, armed && styles.radioArmed]}>
-                {armed ? <View style={styles.radioDot} /> : null}
+              <View
+                style={[
+                  styles.radio,
+                  armed && styles.radioArmed,
+                  armed && accentColor ? { borderColor: accentColor } : null,
+                ]}
+              >
+                {armed ? (
+                  <View
+                    style={[
+                      styles.radioDot,
+                      accentColor ? { backgroundColor: accentColor } : null,
+                    ]}
+                  />
+                ) : null}
               </View>
               <View style={styles.cardBody}>
                 <RichText
                   text={option.userLine}
                   color={colors.text.primary}
                   align="start"
+                  accentColor={accentColor}
+                  onAccentColor={onAccentColor}
                 />
               </View>
             </PressableScale>

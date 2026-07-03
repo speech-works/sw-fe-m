@@ -146,7 +146,7 @@ const Briefing = () => {
         style={styles.scenarioCard}
       >
         <View style={styles.scenarioHeader}>
-          <Icon name="bookmark" size={14} color={colors.action.primary} />
+          <Icon name="bookmark" size={14} color={colors.accent.info} />
           <Text variant="label" color="primary">
             THE SCENARIO
           </Text>
@@ -159,11 +159,11 @@ const Briefing = () => {
         <View
           style={[
             styles.durationPill,
-            { backgroundColor: colors.action.primaryTint },
+            { backgroundColor: colors.accentTint.info },
           ]}
         >
-          <Icon name={icons.duration} size={12} color={colors.action.primary} />
-          <Text variant="caption" color="link">
+          <Icon name={icons.duration} size={12} color={colors.accent.info} />
+          <Text variant="caption" color={colors.feedback.infoText}>
             {roleplay.scenario.duration} mins
           </Text>
         </View>
@@ -180,7 +180,7 @@ const Briefing = () => {
               <View
                 style={[
                   styles.tipDot,
-                  { backgroundColor: colors.action.primary },
+                  { backgroundColor: colors.accent.info },
                 ]}
               />
               {index !== arr.length - 1 && (
@@ -221,13 +221,13 @@ const Briefing = () => {
                 <View
                   style={[
                     styles.roleIconContainer,
-                    { backgroundColor: colors.action.primaryTint },
+                    { backgroundColor: colors.accentTint.info },
                   ]}
                 >
                   <FAIcon
                     size={20}
                     name={role.fontAwesomeIcon}
-                    color={colors.action.primary}
+                    color={colors.accent.info}
                   />
                 </View>
                 <View style={styles.roleInfo}>

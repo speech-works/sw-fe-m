@@ -8,6 +8,9 @@ interface RichTextProps {
   color: string;
   /** Row alignment — messages flow from the start, option cards centre. */
   align?: "start" | "center";
+  /** Category accent for the primary `()` highlight chip (defaults to brand orange). */
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -19,7 +22,13 @@ interface RichTextProps {
  * accent colours that never match a container background, so a highlight can
  * never disappear.
  */
-export const RichText: React.FC<RichTextProps> = ({ text, color, align = "start" }) => {
+export const RichText: React.FC<RichTextProps> = ({
+  text,
+  color,
+  align = "start",
+  accentColor,
+  onAccentColor,
+}) => {
   const styles = useStyles();
   const regex = /(\[.*?\]|\(.*?\))/g;
   const segments = text.split(regex);
@@ -36,11 +45,19 @@ export const RichText: React.FC<RichTextProps> = ({ text, color, align = "start"
       return [
         <View
           key={`hl-${i}`}
-          style={isBracket ? styles.hlSecondary : styles.hlPrimary}
+          style={
+            isBracket
+              ? styles.hlSecondary
+              : [styles.hlPrimary, accentColor ? { backgroundColor: accentColor } : null]
+          }
         >
           <Text
             variant="body"
-            style={isBracket ? styles.hlSecondaryText : styles.hlPrimaryText}
+            style={
+              isBracket
+                ? styles.hlSecondaryText
+                : [styles.hlPrimaryText, onAccentColor ? { color: onAccentColor } : null]
+            }
           >
             {content}
           </Text>

@@ -25,6 +25,9 @@ interface InputDockProps {
   onDiscard: () => void;
   /** Finish the practice (end of dialogue). */
   onComplete: () => void;
+  /** Category accent for the recorder + Finish button (defaults to brand orange). */
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
 /**
@@ -43,13 +46,20 @@ export const InputDock: React.FC<InputDockProps> = ({
   onConfirm,
   onDiscard,
   onComplete,
+  accentColor,
+  onAccentColor,
 }) => {
   const styles = useStyles();
 
   if (isEnded) {
     return (
       <View style={styles.wrap}>
-        <Button label="Finish" onPress={onComplete} />
+        <Button
+          label="Finish"
+          onPress={onComplete}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
+        />
       </View>
     );
   }
@@ -64,6 +74,8 @@ export const InputDock: React.FC<InputDockProps> = ({
       onRecorded={onRecorded}
       onSubmit={onConfirm}
       onDiscard={onDiscard}
+      accentColor={accentColor}
+      onAccentColor={onAccentColor}
       renderTools={
         armed
           ? undefined

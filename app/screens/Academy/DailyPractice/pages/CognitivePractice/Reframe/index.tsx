@@ -58,6 +58,10 @@ const Reframe = () => {
     useNavigation<ExploreStackNavigationProp<keyof ExploreStackParamList>>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  // Reframe Thoughts = the "info" (blue) accent from the Cognitive Practice list;
+  // the flow inherits it (Start, selection, save + done screens).
+  const accentColor = colors.accent.info;
+  const onAccentColor = colors.accentOn.info;
   const [selectedReframe, setSelectedReframe] = React.useState<string | null>(
     null,
   );
@@ -125,6 +129,7 @@ const Reframe = () => {
     activityId: currentActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: () => setShowVitalsModal(true),
+    accentColor,
     family: "Cognitive",
     from,
     packContext,
@@ -244,6 +249,8 @@ const Reframe = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.COGNITIVE_PRACTICE}
         practiceName="reframe practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={undefined}
         from={from}
       />
@@ -377,10 +384,10 @@ const Reframe = () => {
                           styles.optionCard,
                           {
                             backgroundColor: isSelected
-                              ? colors.action.primaryTint
+                              ? colors.accentTint.info
                               : colors.surface.elevated,
                             borderColor: isSelected
-                              ? colors.border.selected
+                              ? accentColor
                               : colors.border.hairline,
                           },
                         ]}
@@ -467,7 +474,7 @@ const Reframe = () => {
                   }
                 }
               }}
-              style={styles.startButton}
+              style={[styles.startButton, { backgroundColor: accentColor }]}
             />
           </Surface>
         </View>

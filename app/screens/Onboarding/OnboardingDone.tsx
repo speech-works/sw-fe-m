@@ -25,7 +25,7 @@ const OnboardingDone: React.FC = () => {
   return (
     <ScreenView>
       <View style={styles.container}>
-        <Text style={styles.title}>You're all set! 🎉</Text>
+        <Text style={styles.title}>You're all set!</Text>
 
         <Text style={styles.subtitle}>
           Based on your answers, we’ve built a personalised practice plan for

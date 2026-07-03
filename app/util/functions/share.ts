@@ -10,7 +10,7 @@ const APP_SCHEME = "speechworks";
  */
 export function buildBuddyInviteMessage(code: string): string {
   return (
-    `Practice with me on Speechworks 🦋\n\n` +
+    `Practice with me on Speechworks\n\n` +
     `Use my invite code ${code} when you sign up and we'll be practice buddies: ` +
     `${APP_SCHEME}://r/${code}`
   );

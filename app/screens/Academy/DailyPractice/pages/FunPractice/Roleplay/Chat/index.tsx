@@ -69,6 +69,10 @@ const Chat = () => {
   const { user } = useUserStore();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  // Role Play = the "info" (blue) accent from the Fun Practice list; the whole
+  // flow inherits it (intro, chat, save + done screens).
+  const accentColor = colors.accent.info;
+  const onAccentColor = colors.accentOn.info;
   const styles = useStyles();
   const HEADER_HEIGHT = 60;
   const { setVoiceRecordingUri, submitVoiceRecording } = useRecordedVoice(
@@ -234,6 +238,7 @@ const Chat = () => {
     activityId: currentActivityId,
     isCompleted: isDone,
     onSave: onDonePress,
+    accentColor,
     family: "Fun",
     from,
     packContext,
@@ -245,6 +250,8 @@ const Chat = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.FUN_PRACTICE}
         practiceName="roleplay"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -316,7 +323,7 @@ const Chat = () => {
                 <FAIcon
                   name={selectedRole?.fontAwesomeIcon || "user"}
                   size={140}
-                  color={colors.action.primary}
+                  color={colors.accent.info}
                 />
               </View>
 
@@ -326,7 +333,7 @@ const Chat = () => {
                     <FAIcon
                       size={20}
                       name={selectedRole?.fontAwesomeIcon || "user"}
-                      color={colors.action.primary}
+                      color={colors.accent.info}
                     />
                   </View>
                   <View style={styles.roleTextGroup}>
@@ -355,7 +362,7 @@ const Chat = () => {
                           <Icon
                             size={14}
                             name="check"
-                            color={colors.action.primary}
+                            color={colors.accent.info}
                           />
                           <Text variant="bodySm" color="secondary" style={styles.traitText}>
                             {c}
@@ -380,7 +387,10 @@ const Chat = () => {
               }}
               disabled={isStarting}
               loading={isStarting}
-              style={styles.startButton}
+              style={[
+                styles.startButton,
+                isStarting ? null : { backgroundColor: accentColor },
+              ]}
             />
           </View>
         </CustomScrollView>
@@ -393,6 +403,8 @@ const Chat = () => {
     <>
       <ChatSession
         title={title}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onBack={() =>
           from === "MOOD_CHECK"
             ? navigation.navigate("Root" as any, { screen: "HOME" })
