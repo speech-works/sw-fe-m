@@ -34,7 +34,7 @@ import { FocusConfig, FocusControl } from "./FocusControl";
  *  measured value on layout so the scroll always reserves the exact right space. */
 const CLUSTER_ESTIMATE = 168;
 /** Soft fade above the fixed cluster. Content must clear this whole zone to stay crisp. */
-const SCRIM_FADE = 40;
+const SCRIM_FADE = 100;
 
 export interface Pagination {
   /** 0-based current page. */
@@ -133,10 +133,14 @@ export function ReadingStage({
     withAlpha(foregroundColor, 0.2),
     withAlpha(foregroundColor, 0.06),
   ];
-  const scrimColors: readonly [string, string] = [
+  // Ease-in curve: stays nearly invisible at the top, ramps up near the controls.
+  const scrimColors: readonly [string, string, string, string] = [
     withAlpha(accentColor, 0),
-    withAlpha(accentColor, 0.96),
+    withAlpha(accentColor, 0.05),
+    withAlpha(accentColor, 0.4),
+    accentColor,
   ];
+  const scrimLocations: readonly [number, number, number, number] = [0, 0.35, 0.7, 1];
 
   const renderNav = () => {
     const parts: React.ReactNode[] = [];
@@ -202,18 +206,6 @@ export function ReadingStage({
           { backgroundColor: accentColor },
         ]}
       />
-      <Animated.View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFillObject, focusGradientStyle]}
-      >
-        <Gradient
-          colors={focusGradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          locations={[0, 0.48, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
 
       {/* SCROLLING reading surface — nothing interactive lives here, so nothing shifts. */}
       <CustomScrollView
@@ -250,8 +242,24 @@ export function ReadingStage({
 
       {/* Bottom fade — sized to the measured cluster so content dissolves before it. */}
       <View style={[styles.scrim, { height: scrimH }]} pointerEvents="none">
-        <Gradient colors={scrimColors} style={StyleSheet.absoluteFill} />
+        <Gradient colors={scrimColors} locations={scrimLocations} style={StyleSheet.absoluteFill} />
       </View>
+
+      {/* Focus gradient rendered ABOVE the scrim so it tints the scrim area uniformly,
+          eliminating the visible line where the scrim's raw accentColor meets the
+          focus-tinted background. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFillObject, focusGradientStyle]}
+      >
+        <Gradient
+          colors={focusGradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          locations={[0, 0.48, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
 
       {/* FIXED control deck + dock — measured; every control here is solid + never moves. */}
       <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
