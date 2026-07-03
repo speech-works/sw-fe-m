@@ -1,6 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, ScrollView, Dimensions, StatusBar, TouchableOpacity } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
 import TherapistFace from "../../../../assets/sw-faces/TherapistFace";
@@ -12,7 +12,6 @@ import { useUserStore } from "../../../../stores/user";
 import {
   Text,
   Button,
-  IconButton,
   Divider,
   spacing,
   radius,
@@ -22,7 +21,7 @@ import {
   space,
   zIndex,
   PageHeader,
-  Icon,
+  FloatingControls,
 } from "../../../../design-system";
 import ScreenView from "../../../../components/ScreenView";
 import PracticePage from "./PracticePage";
@@ -227,13 +226,15 @@ const TechniquePage = () => {
         </View>
 
         {activeStageIndex === 0 && (
-          <TouchableOpacity
-            style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
-            activeOpacity={0.85}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Icon name="info" size={24} color={colors.action.onPrimary} />
-          </TouchableOpacity>
+          <FloatingControls
+            items={[
+              {
+                icon: "info",
+                onPress: () => setIsModalVisible(true),
+                accessibilityLabel: "About this technique",
+              },
+            ]}
+          />
         )}
       </ScreenView>
 
@@ -299,19 +300,5 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 280,
     alignSelf: "center",
-  },
-  stickyFab: {
-    position: "absolute",
-    bottom: 110,
-    right: spacing["2xl"],
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
 });

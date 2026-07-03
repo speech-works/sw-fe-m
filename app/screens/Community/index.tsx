@@ -45,6 +45,7 @@ import {
   AnimatedModal,
   Skeleton,
   Toggle,
+  FloatingControls,
   staggerEntering,
 } from "../../design-system";
 import {
@@ -869,16 +870,18 @@ const Community = () => {
               </View>
             </ScrollView>
 
-            {/* Screen-level sticky compose FAB — shown only on the Timeline tab
+            {/* Screen-level sticky compose control — shown only on the Timeline tab
                 (kept from the restructure; independent of the scroll nesting). */}
             {view === "timeline" && (
-              <TouchableOpacity
-                style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
-                activeOpacity={0.85}
-                onPress={handleOpenMoment}
-              >
-                <Icon name={icons.add} size={24} color={colors.action.onPrimary} />
-              </TouchableOpacity>
+              <FloatingControls
+                items={[
+                  {
+                    icon: icons.add,
+                    onPress: handleOpenMoment,
+                    accessibilityLabel: "Share a moment",
+                  },
+                ]}
+              />
             )}
           </View>
         ) : (
@@ -1246,21 +1249,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
   },
-  stickyFab: {
-    position: "absolute",
-    bottom: 110,
-    right: spacing["2xl"],
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-
   dividerBox: {
     flexDirection: "row",
     alignItems: "center",

@@ -834,6 +834,8 @@ const Meditation = () => {
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

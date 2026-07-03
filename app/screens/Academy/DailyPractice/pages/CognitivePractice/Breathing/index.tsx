@@ -484,6 +484,8 @@ const Breathing = () => {
           onSubmit={handleVitalsSubmit}
           onSkip={handleVitalsSkip}
           showAccuracy={showAccuracy}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
         />
 
         {/* Early Exit Prompt Bottom Sheet */}
@@ -598,6 +600,8 @@ const Breathing = () => {
         onSubmit={handleVitalsSubmit}
         onSkip={handleVitalsSkip}
         showAccuracy={showAccuracy}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

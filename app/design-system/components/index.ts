@@ -33,6 +33,8 @@ export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
 export { IconButton } from "./IconButton";
 export type { IconButtonProps } from "./IconButton";
+export { FloatingControls } from "./FloatingControls";
+export type { FloatingControlsProps, FloatingControlItem } from "./FloatingControls";
 export { Chip } from "./Chip";
 export type { ChipProps } from "./Chip";
 export { TextLink } from "./TextLink";

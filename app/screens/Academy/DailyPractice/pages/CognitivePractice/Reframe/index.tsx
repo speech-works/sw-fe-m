@@ -13,7 +13,6 @@ import {
 } from "../../../../../../api/practiceActivities";
 import { PracticeActivityContentType } from "../../../../../../api/practiceActivities/types";
 import { useSessionStore } from "../../../../../../stores/session";
-import ScreenView from "../../../../../../components/ScreenView";
 import PressableScale from "../../../../../../components/PressableScale";
 import TextArea from "../../../../../../components/TextArea";
 import {
@@ -21,7 +20,9 @@ import {
   Surface,
   Text,
   Icon,
-  IconButton,
+  PageHeader,
+  Gradient,
+  FloatingControls,
   useTheme,
   spacing,
   space,
@@ -39,7 +40,6 @@ import { useActivityStore } from "../../../../../../stores/activity";
 import { useUserStore } from "../../../../../../stores/user";
 import DonePractice from "../../../components/DonePractice";
 import VitalsFeedbackModal from "../../../../../../components/VitalsFeedbackModal";
-import RainOverlay from "./components/RainOverlay";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CDPStackRouteProp } from "../../../../../../navigators/stacks/ExploreStack/DailyPracticeStack/CognitivePracticeStack/types";
@@ -47,6 +47,7 @@ import { showErrorBottomSheet } from "../../../../../../util/functions/bottomShe
 import { EVENT_NAMES } from "../../../../../../stores/events/constants";
 import { dispatchCustomEvent } from "../../../../../../util/functions/events";
 import SyncLoader from "../../../../../../components/SyncLoader";
+import ReframeWeather from "./components/ReframeWeather";
 
 const Reframe = () => {
   const route = useRoute<CDPStackRouteProp<"ReframePractice">>();
@@ -261,183 +262,140 @@ const Reframe = () => {
   const started = !!currentActivityId;
 
   return (
-    <ScreenView style={styles.screenView}>
-      {/* Dark canvas + light status-bar glyphs (dark scaffold reference). */}
-      <View
-        style={[
-          StyleSheet.absoluteFillObject,
-          { backgroundColor: colors.background.canvas },
-        ]}
-      />
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <View style={styles.root}>
       <SyncLoader />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Dark back bar */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + space.inlineGap,
-            backgroundColor: colors.background.canvas,
-          },
-        ]}
-      >
-        <IconButton name="arrow-left" onPress={onBackPress} />
-        <Text variant="h3" color="primary">
-          Reframe Thoughts
-        </Text>
-        <View style={{ width: 44 }} />
-      </View>
+      {/* Ambient weather — moody rain that clears into warm light as a reframe is
+          chosen. Sits behind the scrollable content. */}
+      <ReframeWeather sunshine={!!(selectedReframe || writtenReframe.length > 0)} />
 
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: space.screenX,
-          paddingTop: insets.top + 76,
-          paddingBottom: insets.bottom + spacing["5xl"],
-        }}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + space.inlineGap,
+            // Clears the floating-control slot (bottom 110 + 46 button + gap).
+            paddingBottom: 180,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <Surface level="default" rounded="card" style={styles.cardContainer}>
-          {/* 1. Solid plum header hosting the rain/sunshine overlay. */}
-          <View
-            style={[
-              styles.cardHeader,
-              { backgroundColor: colors.category.mirror },
-            ]}
-          >
-            {/* Rain/Sunshine Animation (preserved) - Behind everything */}
-            <RainOverlay
-              showSunshine={!!(selectedReframe || writtenReframe.length > 0)}
-            />
+        <PageHeader title="Reframe Thoughts" onBack={onBackPress} />
 
-            {/* Watermark - Behind buttons */}
-            <View style={styles.headerWatermark}>
-              <Icon name="cloud" size={96} color={colors.categoryOn.mirror} />
+        <View style={styles.body}>
+          {/* Eyebrow — Reframe's blue identity. Shuffle lives in the floating FAB. */}
+          <Text variant="label" color={accentColor} style={styles.eyebrow}>
+            REFRAME
+          </Text>
+
+          {/* Negative thought */}
+          <View style={styles.negativeSection}>
+            <View style={styles.negativeLabelRow}>
+              <Icon name="cloud-rain" size={14} color={colors.text.tertiary} />
+              <Text variant="label" color="tertiary">
+                NEGATIVE THOUGHT
+              </Text>
             </View>
-
-            {/* Buttons - On top with higher z-index */}
-            <View style={styles.headerTopRow}>
-              <View
-                style={[
-                  styles.categoryPill,
-                  { backgroundColor: colors.categoryOn.mirror },
-                ]}
-              >
-                <Icon name="wind" size={12} color={colors.category.mirror} />
-                <Text variant="caption" color={colors.category.mirror} style={styles.categoryPillText}>
-                  REFRAME
-                </Text>
-              </View>
-
-              {/* Shuffle Button */}
-              <PressableScale
-                onPress={toggleIndex}
-                style={[
-                  styles.glassButton,
-                  { backgroundColor: colors.categoryOn.mirror },
-                ]}
-              >
-                <Text variant="bodySm" color={colors.category.mirror}>
-                  Shuffle
-                </Text>
-                <Icon name="shuffle" size={12} color={colors.category.mirror} />
-              </PressableScale>
-            </View>
+            <Text variant="h2" color="primary" center style={styles.negativeText}>
+              "{currentScenario?.negativeThought || "Loading..."}"
+            </Text>
           </View>
 
-          {/* 2. Card body content */}
-          <View style={styles.cardBody}>
-            {/* Content (Blurred or Visible based on state) */}
-            <View style={{ opacity: started ? 1 : 0.3, width: "100%" }}>
-              {/* Negative Thought Section */}
-              <View style={styles.negativeSection}>
-                <View style={styles.negativeLabelRow}>
-                  <Icon name="cloud-rain" size={14} color={colors.text.tertiary} />
-                  <Text variant="label" color="tertiary">
-                    NEGATIVE THOUGHT
-                  </Text>
-                </View>
-                <Text variant="h2" color="primary" center style={styles.negativeText}>
-                  "{currentScenario?.negativeThought || "Loading..."}"
-                </Text>
-              </View>
+          {/* Choose a better perspective */}
+          <View style={styles.positiveSection}>
+            <Text variant="label" color={accentColor} center style={styles.chooseLabel}>
+              CHOOSE A BETTER PERSPECTIVE
+            </Text>
 
-              {/* Divider - Minimalist Space */}
-              <View style={styles.dividerContainer} />
-
-              {/* Reframe Options */}
-              <View style={styles.positiveSection}>
-                <View style={styles.positiveLabelRow}>
-                  <Text variant="label" color="link" center>
-                    CHOOSE A BETTER PERSPECTIVE
-                  </Text>
-                </View>
-
-                <View style={styles.optionsList}>
-                  {currentScenario?.reframedThoughts.map((item, index) => {
-                    const isSelected = selectedReframe === item;
-                    return (
-                      <PressableScale
-                        key={index}
-                        onPress={() => setSelectedReframe(item)}
-                        style={[
-                          styles.optionCard,
-                          {
-                            backgroundColor: isSelected
-                              ? colors.accentTint.info
-                              : colors.surface.elevated,
-                            borderColor: isSelected
-                              ? accentColor
-                              : colors.border.hairline,
-                          },
-                        ]}
-                      >
-                        <Text
-                          variant="body"
-                          color={isSelected ? "link" : "secondary"}
-                          center
-                          style={styles.optionText}
-                        >
-                          {item}
-                        </Text>
-                      </PressableScale>
-                    );
-                  })}
-                </View>
-
-                {/* Write Your Own */}
-                <View style={styles.writeOwnContainer}>
-                  <Text variant="bodySm" color="tertiary" center>
-                    Or write your own:
-                  </Text>
-                  <TextArea
-                    value={writtenReframe}
-                    onChangeText={setWrittenReframe}
-                    placeholder="I can handle this by..."
-                    numberOfLines={3}
-                    inputStyle={[styles.textAreaInput, { color: colors.text.primary }]}
-                    containerStyle={{
-                      ...styles.textAreaWrapper,
-                      backgroundColor: colors.surface.elevated,
-                      borderColor: colors.border.hairline,
-                    }}
-                  />
-                </View>
-
-                {(selectedReframe || writtenReframe.length > 0) && (
-                  <Button
-                    label="Submit Reframe"
-                    onPress={() => setShowVitalsModal(true)}
-                    style={{ marginTop: space.sectionGap }}
-                  />
-                )}
-              </View>
+            <View style={styles.optionsList}>
+              {currentScenario?.reframedThoughts.map((item, index) => {
+                const isSelected = selectedReframe === item;
+                return (
+                  <PressableScale
+                    key={index}
+                    onPress={() => setSelectedReframe(item)}
+                    style={[
+                      styles.optionCard,
+                      {
+                        backgroundColor: isSelected
+                          ? colors.accentTint.info
+                          : colors.surface.elevated,
+                        borderColor: isSelected ? accentColor : colors.border.hairline,
+                      },
+                    ]}
+                  >
+                    <Text
+                      variant="body"
+                      color={isSelected ? colors.feedback.infoText : "secondary"}
+                      center
+                      style={styles.optionText}
+                    >
+                      {item}
+                    </Text>
+                  </PressableScale>
+                );
+              })}
             </View>
+
+            {/* Write your own */}
+            <View style={styles.writeOwnContainer}>
+              <Text variant="bodySm" color="tertiary" center>
+                Or write your own:
+              </Text>
+              <TextArea
+                value={writtenReframe}
+                onChangeText={setWrittenReframe}
+                placeholder="I can handle this by..."
+                numberOfLines={3}
+                inputStyle={[styles.textAreaInput, { color: colors.text.primary }]}
+                containerStyle={{
+                  ...styles.textAreaWrapper,
+                  backgroundColor: colors.surface.elevated,
+                  borderColor: colors.border.hairline,
+                }}
+              />
+            </View>
+
+            {(selectedReframe || writtenReframe.length > 0) && (
+              <Button
+                label="Submit Reframe"
+                onPress={() => setShowVitalsModal(true)}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
+                style={styles.submitButton}
+              />
+            )}
           </View>
-        </Surface>
+        </View>
       </ScrollView>
 
-      {/* Start Overlay if not started - dark scrim + card */}
+      {/* Floating shuffle control — the canonical lower-right slot (same as the
+          Community "+" and Library search). Cycles to a fresh thought to reframe. */}
+      <FloatingControls
+        items={[
+          {
+            icon: "refresh-cw",
+            onPress: toggleIndex,
+            accessibilityLabel: "Shuffle to a new thought",
+            accentColor,
+            onAccentColor,
+          },
+        ]}
+      />
+
+      {/* Soft dark cap so scrolled content fades out behind the status bar. */}
+      {insets.top > 0 ? (
+        <Gradient
+          colors={["#10151F", "rgba(16,21,31,0)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.statusCap, { height: insets.top + spacing.sm }]}
+          pointerEvents="none"
+        />
+      ) : null}
+
+      {/* Start gate — dark scrim + card until the exercise begins. */}
       {!started && (
         <View
           style={[
@@ -448,7 +406,12 @@ const Reframe = () => {
             },
           ]}
         >
-          <Surface level="elevated" rounded="card" padded={spacing["4xl"]} style={styles.startContent}>
+          <Surface
+            level="elevated"
+            rounded="card"
+            padded={spacing["4xl"]}
+            style={styles.startContent}
+          >
             <Text variant="h2" color="primary" center>
               Ready to Shift Perspective?
             </Text>
@@ -467,14 +430,22 @@ const Reframe = () => {
                   await markActivityStart();
                 } catch (error: any) {
                   console.error("Error starting reframe practice:", error);
-                  if (error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" || error?.response?.status === 402) {
+                  if (
+                    error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" ||
+                    error?.response?.status === 402
+                  ) {
                     dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
                   } else {
-                    showErrorBottomSheet("Failed to start", "An error occurred while starting the session.");
+                    showErrorBottomSheet(
+                      "Failed to start",
+                      "An error occurred while starting the session.",
+                    );
                   }
                 }
               }}
-              style={[styles.startButton, { backgroundColor: accentColor }]}
+              accentColor={accentColor}
+              onAccentColor={onAccentColor}
+              style={styles.startButton}
             />
           </Surface>
         </View>
@@ -484,112 +455,44 @@ const Reframe = () => {
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}
-    </ScreenView>
+    </View>
   );
 };
 
 export default Reframe;
 
 const styles = StyleSheet.create({
-  screenView: {
-    flex: 1,
+  root: { flex: 1 },
+
+  scroll: {
+    paddingHorizontal: space.screenX,
   },
-  header: {
+  body: {
+    marginTop: space.titleGap,
+    gap: space.sectionGap,
+  },
+  statusCap: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 30,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: space.screenX,
-    paddingBottom: space.inlineGap,
   },
 
-  // Card
-  cardContainer: {
-    overflow: "hidden",
-    minHeight: 650,
-  },
-  cardHeader: {
-    padding: space.sectionGap,
-    paddingBottom: spacing["5xl"], // Space for overlap
-    position: "relative",
-    height: 160,
-    overflow: "hidden", // Clip rain/sun animation to header bounds
-  },
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    zIndex: 10, // Above rain/sunshine animation
-    position: "relative",
-  },
-  categoryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: space.rowGap,
-    paddingVertical: 6,
-    borderRadius: radius.chip,
-  },
-  categoryPillText: {
+  // Header eyebrow
+  eyebrow: {
     letterSpacing: 1.5,
   },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.inlineGap,
-    paddingHorizontal: 14,
-    paddingVertical: space.inlineGap,
-    borderRadius: radius.chip,
-  },
-  headerWatermark: {
-    position: "absolute",
-    right: -20,
-    bottom: -20,
-    opacity: 0.15,
-    transform: [{ rotate: "-15deg" }],
-  },
-  cardBody: {
-    marginTop: -40, // Overlap
-    paddingHorizontal: space.sectionGap,
-    paddingBottom: spacing["4xl"],
-    minHeight: 500,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-  },
 
-  // Start Overlay
-  startOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 20,
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  startContent: {
-    alignItems: "center",
-    gap: space.sectionGap,
-    width: "85%",
-  },
-  startDesc: {
-    lineHeight: 24,
-  },
-  startButton: {
-    width: "100%",
-  },
-
-  // Content Sections
+  // Negative thought
   negativeSection: {
     width: "100%",
-    paddingHorizontal: space.rowGap,
-    marginTop: spacing["3xl"],
-    marginBottom: space.sectionGap,
     alignItems: "center",
+    paddingVertical: spacing.md,
   },
   negativeLabelRow: {
     flexDirection: "row",
@@ -600,17 +503,14 @@ const styles = StyleSheet.create({
   negativeText: {
     lineHeight: 38,
   },
-  dividerContainer: {
-    height: space.groupGap,
-    width: "100%",
-  },
+
+  // Perspectives
   positiveSection: {
     width: "100%",
     gap: space.groupGap,
   },
-  positiveLabelRow: {
-    marginBottom: space.rowGap,
-    alignItems: "center",
+  chooseLabel: {
+    letterSpacing: 1.5,
   },
   optionsList: {
     gap: space.groupGap,
@@ -627,7 +527,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   writeOwnContainer: {
-    marginTop: spacing["3xl"],
+    marginTop: spacing.xl,
     gap: space.rowGap,
   },
   textAreaWrapper: {
@@ -639,5 +539,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 100,
     textAlign: "center",
+  },
+  submitButton: {
+    marginTop: space.sectionGap,
+  },
+
+  // Start gate
+  startOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 20,
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  startContent: {
+    alignItems: "center",
+    gap: space.sectionGap,
+    width: "85%",
+  },
+  startDesc: {
+    lineHeight: 24,
+  },
+  startButton: {
+    width: "100%",
   },
 });

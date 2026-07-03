@@ -1,23 +1,12 @@
-import Slider from "@react-native-community/slider";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
+  AnimatedModal,
+  Button,
+  Slider,
   Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
-import Button from "../Button";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+  spacing,
+} from "../../design-system";
 
 interface VitalsFeedbackModalProps {
   visible: boolean;
@@ -28,255 +17,156 @@ interface VitalsFeedbackModalProps {
   }) => void;
   onSkip: () => void;
   showAccuracy?: boolean; // Show 3rd slider for TECHNIQUE_DRILL
+  /** Category accent for the sliders + Submit (defaults to the brand orange, so
+   *  callers with no category colour — e.g. Exposure — stay orange). */
+  accentColor?: string;
+  onAccentColor?: string;
 }
 
+const MIN = 20;
+const MAX = 100;
+const INITIAL = 60;
+
+/** One labelled 0–100 vitals slider with left/right anchor captions. */
+const VitalsQuestion: React.FC<{
+  label: string;
+  left: string;
+  right: string;
+  value: number;
+  onChange: (v: number) => void;
+  accentColor?: string;
+}> = ({ label, left, right, value, onChange, accentColor }) => (
+  <View style={styles.question}>
+    <Text variant="title" color="primary">
+      {label}
+    </Text>
+    <View style={styles.range}>
+      <Text variant="caption" color="tertiary">
+        {left}
+      </Text>
+      <Text variant="caption" color="tertiary">
+        {right}
+      </Text>
+    </View>
+    <Slider
+      minimumValue={MIN}
+      maximumValue={MAX}
+      step={1}
+      value={value}
+      onValueChange={onChange}
+      accentColor={accentColor}
+      haptic={false}
+    />
+  </View>
+);
+
+/**
+ * Post-practice "how did it go?" vitals form (effort / autonomy, plus accuracy
+ * for technique drills). Dark DS card via `AnimatedModal` — same content grammar
+ * as the other dark modals (centred h2 + bodySm header, gap-driven spacing,
+ * stacked full-width buttons). The sliders + Submit inherit the caller's category
+ * accent (Reframe blue, Breathing rose, …). The "Skip" button and a backdrop tap
+ * both dismiss, so there's no redundant close X.
+ */
 export const VitalsFeedbackModal: React.FC<VitalsFeedbackModalProps> = ({
   visible,
   onSubmit,
   onSkip,
   showAccuracy = false,
+  accentColor,
+  onAccentColor,
 }) => {
-  const [effort, setEffort] = useState(60);
-  const [autonomy, setAutonomy] = useState(60);
-  const [accuracy, setAccuracy] = useState(60);
-
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      opacityAnim.setValue(0);
-      slideAnim.setValue(20);
-    }
-  }, [visible]);
+  const [effort, setEffort] = useState(INITIAL);
+  const [autonomy, setAutonomy] = useState(INITIAL);
+  const [accuracy, setAccuracy] = useState(INITIAL);
 
   const handleSubmit = () => {
-    const vitals = {
+    onSubmit({
       effortScore: Math.round(effort),
       autonomyScore: Math.round(autonomy),
       ...(showAccuracy && { accuracyScore: Math.round(accuracy) }),
-    };
-    onSubmit(vitals);
+    });
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onSkip}
-    >
-      <View style={styles.container}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: "rgba(0,0,0,0.5)", opacity: opacityAnim },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              opacity: opacityAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <TouchableOpacity onPress={onSkip} style={styles.closeBtn}>
-            <MaterialCommunityIcons
-              name="close"
-              size={18}
-              color={theme.colors.text.disabled}
-            />
-          </TouchableOpacity>
-          {/* Header */}
-          <Text style={styles.title}>How did it go?</Text>
-          <Text style={styles.subtitle}>
-            Your feedback helps us personalize your journey
+    <AnimatedModal visible={visible} onClose={onSkip} maxWidth={420}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text variant="h2" color="primary" center>
+            How did it go?
           </Text>
+          <Text variant="bodySm" color="secondary" center>
+            Help us personalize your journey
+          </Text>
+        </View>
 
-          {/* Accuracy Slider (Conditional - only for TECHNIQUE_DRILL) */}
-          {showAccuracy && (
-            <View style={styles.question}>
-              <Text style={styles.label}>How accurate was your technique?</Text>
-              <View style={styles.range}>
-                <Text style={styles.rangeText}>Poor Form</Text>
-                <Text style={styles.rangeText}>Perfect</Text>
-              </View>
-              <Slider
-                style={styles.slider}
-                minimumValue={20}
-                maximumValue={100}
-                step={1}
-                value={accuracy}
-                onValueChange={setAccuracy}
-                minimumTrackTintColor={theme.colors.library.orange[500]}
-                maximumTrackTintColor="#E0E0E0"
-              />
-            </View>
-          )}
+        {showAccuracy && (
+          <VitalsQuestion
+            label="How accurate was your technique?"
+            left="Poor Form"
+            right="Perfect"
+            value={accuracy}
+            onChange={setAccuracy}
+            accentColor={accentColor}
+          />
+        )}
+        <VitalsQuestion
+          label="How difficult was this?"
+          left="Very Easy"
+          right="Very Hard"
+          value={effort}
+          onChange={setEffort}
+          accentColor={accentColor}
+        />
+        <VitalsQuestion
+          label="How much control did you feel?"
+          left="Forced"
+          right="Fully In Control"
+          value={autonomy}
+          onChange={setAutonomy}
+          accentColor={accentColor}
+        />
 
-          {/* Effort Slider (Always) */}
-          <View style={styles.question}>
-            <Text style={styles.label}>How difficult was this?</Text>
-            <View style={styles.range}>
-              <Text style={styles.rangeText}>Very Easy</Text>
-              <Text style={styles.rangeText}>Very Hard</Text>
-            </View>
-            <Slider
-              style={styles.slider}
-              minimumValue={20}
-              maximumValue={100}
-              step={1}
-              value={effort}
-              onValueChange={setEffort}
-              minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="#E0E0E0"
-            />
-          </View>
-
-          {/* Autonomy Slider (Always) */}
-          <View style={styles.question}>
-            <Text style={styles.label}>How much control did you feel?</Text>
-            <View style={styles.range}>
-              <Text style={styles.rangeText}>Forced</Text>
-              <Text style={styles.rangeText}>Fully In Control</Text>
-            </View>
-            <Slider
-              style={styles.slider}
-              minimumValue={20}
-              maximumValue={100}
-              step={1}
-              value={autonomy}
-              onValueChange={setAutonomy}
-              minimumTrackTintColor={theme.colors.actionPrimary.default}
-              maximumTrackTintColor="#E0E0E0"
-            />
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttons}>
-            <Button
-              text="Skip"
-              onPress={onSkip}
-              variant="ghost"
-              style={styles.skipButton}
-            />
-            <Button
-              text="Submit"
-              onPress={handleSubmit}
-              variant="normal"
-              style={styles.submitButton}
-            />
-          </View>
-        </Animated.View>
+        <View style={styles.buttons}>
+          <Button
+            label="Submit"
+            onPress={handleSubmit}
+            variant="primary"
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
+          />
+          <Button
+            label="Skip"
+            onPress={onSkip}
+            variant="ghost"
+            onColor={accentColor}
+          />
+        </View>
       </View>
-    </Modal>
+    </AnimatedModal>
   );
 };
 
+export default VitalsFeedbackModal;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
+  content: {
+    gap: spacing.xl,
+  },
+  header: {
     alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingHorizontal: 28,
-    paddingTop: 54,
-    paddingBottom: 28,
-    width: "100%",
-    maxWidth: 420,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 26,
-    fontWeight: "700",
-    marginBottom: 8,
-    textAlign: "center",
-    color: theme.colors.text.title,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 14,
-    color: theme.colors.text.disabled,
-    marginBottom: 32,
-    textAlign: "center",
-    lineHeight: 20,
+    gap: spacing.xs,
   },
   question: {
-    marginBottom: 28,
-  },
-  label: {
-    ...parseTextStyle(theme.typography.Body),
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-    color: theme.colors.text.title,
+    gap: spacing.sm,
   },
   range: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  rangeText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    fontSize: 12,
-    color: theme.colors.text.disabled,
-    fontWeight: "500",
-  },
-  slider: {
-    width: "100%",
-    height: 40,
+    paddingHorizontal: spacing.xs,
   },
   buttons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  skipButton: {
-    flex: 1,
-  },
-  submitButton: {
-    flex: 1,
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    zIndex: 10,
+    gap: spacing.md,
+    marginTop: spacing.xs,
   },
 });
-
-export default VitalsFeedbackModal;

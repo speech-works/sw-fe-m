@@ -8,7 +8,6 @@ import {
   TextInput,
   UIManager,
   View,
-  TouchableOpacity,
 } from "react-native";
 import ScreenView from "../../../components/ScreenView";
 
@@ -34,7 +33,6 @@ import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 import {
   Text,
   Button,
-  IconButton,
   SearchField,
   Spinner,
   EmptyState,
@@ -45,8 +43,7 @@ import {
   space,
   size,
   Sheet,
-  Icon,
-  radius,
+  FloatingControls,
 } from "../../../design-system";
 
 // --- Data Definitions ---
@@ -410,13 +407,15 @@ const Library = () => {
         <View style={{ height: spacing["4xl"] }} />
       </ScrollView>
 
-      <TouchableOpacity
-        style={[styles.stickyFab, { backgroundColor: colors.action.primary, shadowColor: colors.shadow }]}
-        activeOpacity={0.85}
-        onPress={isSearching ? handleCancelSearch : handleSearchToggle}
-      >
-        <Icon name={isSearching ? "x" : "search"} size={24} color={colors.action.onPrimary} />
-      </TouchableOpacity>
+      <FloatingControls
+        items={[
+          {
+            icon: isSearching ? "x" : "search",
+            onPress: isSearching ? handleCancelSearch : handleSearchToggle,
+            accessibilityLabel: isSearching ? "Close search" : "Search the library",
+          },
+        ]}
+      />
 
       {/* --- Selection Modal (dark) --- */}
       <Sheet visible={isSelectionModalVisible} onClose={() => setIsSelectionModalVisible(false)}>
@@ -487,19 +486,5 @@ const styles = StyleSheet.create({
   modalActions: {
     width: "100%",
     gap: spacing.md,
-  },
-  stickyFab: {
-    position: "absolute",
-    bottom: 110,
-    right: spacing["2xl"],
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
 });
