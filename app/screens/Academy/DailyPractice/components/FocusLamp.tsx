@@ -23,30 +23,37 @@ import Animated, {
 
 const { width, height } = Dimensions.get("window");
 
-/* ── rig geometry (one static SVG; only wrapper transforms animate) ── */
-const ANCHOR_RIGHT = 72; // lamp centreline, from the right edge
-const CORD_LEN = 92;
-const SHADE_H = 56;
-const RIM_Y = CORD_LEN + SHADE_H; // where light leaves the shade
-const CONE_H = Math.round(height * 0.62);
-const RIG_W = 460; // wide enough to hold the light cone
-const RIG_H = RIM_Y + CONE_H;
-const AXIS = RIG_W / 2; // lamp centreline inside the viewBox
+/* ── rig geometry — small and high, tucked beside the back-bar row so it can
+      never overlap a title/description. One static SVG; only wrapper
+      transforms/opacity animate. ── */
+const ANCHOR_RIGHT = 52; // lamp centreline, from the right edge
+const CORD_LEN = 48;
+const SHADE_H = 38;
+const SHADE_HALF = 36; // half-width of the shade mouth
+const RIM_Y = CORD_LEN + SHADE_H;
+const RIG_W = 220;
+const RIG_H = RIM_Y + 60; // a little room for the bulb halo
+const AXIS = RIG_W / 2;
 
 /**
- * Focus Mode's reading lamp. When focus engages, a wired lamp drops in from the
- * top-right corner, settles with a slow pendulum sway, and spreads a MILD warm
- * cone of light down the page. Disengaging dims the light first, then retracts
- * the lamp — both directions eased (never abrupt), like the Reframe weather.
- * Colours are deliberate art literals (a scene, not theme chrome). Sits behind
- * content, non-interactive. Reduced motion: fades only — no drop, no sway.
+ * Focus Mode's reading lamp. A small wired lamp drops in from the top-right and
+ * the room dims around it; instead of a spotlight cone, one EDGELESS radial
+ * light field settles over the reading area — dim the room, rest the light on
+ * the words. Turning focus off relights the room quickly (light fades first,
+ * then the lamp retracts). Colours are deliberate art literals (a scene, not
+ * theme chrome). Non-interactive. Reduced motion: fades only — no drop, no sway.
  */
-export const FocusLamp: React.FC<{ focus: boolean }> = ({ focus }) => {
+export const FocusLamp: React.FC<{
+  focus: boolean;
+  /** Room-dim strength while lit (0–1). Default suits both dark intros and
+   *  bright practice canvases — the light field lifts the reading zone back up. */
+  dim?: number;
+}> = ({ focus, dim = 0.44 }) => {
   const reduced = useReducedMotion();
 
   // 1 = lamp hanging in place, 0 = retracted above the screen.
   const drop = useSharedValue(focus ? 1 : 0);
-  // 1 = light on. Turns on after the lamp lands; turns off before it retracts.
+  // 1 = light on. On after the lamp lands; off BEFORE it retracts (exit faster).
   const lit = useSharedValue(focus ? 1 : 0);
   // Ambient pendulum phase (0..1 mirrored).
   const sway = useSharedValue(0.5);
@@ -54,21 +61,20 @@ export const FocusLamp: React.FC<{ focus: boolean }> = ({ focus }) => {
   useEffect(() => {
     if (focus) {
       drop.value = withTiming(1, {
-        duration: reduced ? 300 : 700,
-        // Slight settle past the mark, like a cord catching its length.
-        easing: reduced ? Easing.out(Easing.cubic) : Easing.out(Easing.back(1.4)),
+        duration: reduced ? 260 : 620,
+        // A soft settle past the mark, like a cord catching its length.
+        easing: reduced ? Easing.out(Easing.cubic) : Easing.out(Easing.back(1.3)),
       });
       lit.value = withDelay(
-        reduced ? 0 : 420,
-        withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }),
+        reduced ? 0 : 360,
+        withTiming(1, { duration: 540, easing: Easing.out(Easing.cubic) }),
       );
     } else {
-      // Light off first…
-      lit.value = withTiming(0, { duration: 320, easing: Easing.in(Easing.cubic) });
-      // …then the lamp draws back up.
+      // Snappy relight: light off quickly, lamp follows.
+      lit.value = withTiming(0, { duration: 260, easing: Easing.out(Easing.cubic) });
       drop.value = withDelay(
-        reduced ? 0 : 180,
-        withTiming(0, { duration: reduced ? 300 : 520, easing: Easing.in(Easing.cubic) }),
+        reduced ? 0 : 140,
+        withTiming(0, { duration: reduced ? 260 : 420, easing: Easing.out(Easing.cubic) }),
       );
     }
   }, [focus, reduced, drop, lit]);
@@ -76,7 +82,7 @@ export const FocusLamp: React.FC<{ focus: boolean }> = ({ focus }) => {
   useEffect(() => {
     if (reduced) return;
     sway.value = withRepeat(
-      withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
     );
@@ -86,87 +92,85 @@ export const FocusLamp: React.FC<{ focus: boolean }> = ({ focus }) => {
   const rigStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, drop.value * 1.4),
     transform: [
-      { translateY: reduced ? 0 : (drop.value - 1) * (RIM_Y + 40) },
-      { rotate: reduced ? "0deg" : `${-1.5 + 3 * sway.value}deg` },
+      { translateY: reduced ? 0 : (drop.value - 1) * (RIM_Y + 36) },
+      { rotate: reduced ? "0deg" : `${-1.2 + 2.4 * sway.value}deg` },
     ],
   }));
   const lightStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
-  // A faint room-wide warmth so the "mild light" reaches the whole screen.
-  const washStyle = useAnimatedStyle(() => ({ opacity: 0.5 * lit.value }));
-  // The room dims as the lamp lights — the page recedes so the lamp reads as the
-  // light source. Kept mild so text stays comfortably legible.
-  const dimStyle = useAnimatedStyle(() => ({ opacity: 0.34 * lit.value }));
+  // The room recedes so the lamp reads as the light source.
+  const dimStyle = useAnimatedStyle(() => ({ opacity: dim * lit.value }));
 
   return (
     <Animated.View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* Room dim — below the lamp + its light, so the cone "cuts through" it. */}
+      {/* Room dim — under the light so the glow lifts it over the reading zone. */}
       <Animated.View style={[styles.dim, dimStyle]} />
 
-      {/* Whole rig (cord + shade + its light) swings together from the cord anchor. */}
-      <Animated.View style={[styles.rig, rigStyle]}>
-        {/* Light cone + pool — fade with `lit`, under the lamp so the shade caps it. */}
-        <Animated.View style={[StyleSheet.absoluteFill, lightStyle]}>
-          <Svg width={RIG_W} height={RIG_H} viewBox={`0 0 ${RIG_W} ${RIG_H}`}>
-            <Defs>
-              <SvgLinearGradient id="fl-cone" x1="0.5" y1="0" x2="0.5" y2="1">
-                <Stop offset="0" stopColor="#FFD98C" stopOpacity={0.34} />
-                <Stop offset="0.55" stopColor="#FFC66B" stopOpacity={0.12} />
-                <Stop offset="1" stopColor="#FFC66B" stopOpacity={0} />
-              </SvgLinearGradient>
-              <RadialGradient id="fl-halo" cx="0.5" cy="0.5" r="0.5">
-                <Stop offset="0" stopColor="#FFE9B8" stopOpacity={0.85} />
-                <Stop offset="1" stopColor="#FFE9B8" stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            {/* The cone widens from the shade rim down the page. */}
-            <Path
-              d={`M ${AXIS - 50} ${RIM_Y - 4}
-                  L ${AXIS - 205} ${RIM_Y + CONE_H}
-                  L ${AXIS + 165} ${RIM_Y + CONE_H}
-                  L ${AXIS + 50} ${RIM_Y - 4} Z`}
-              fill="url(#fl-cone)"
-            />
-            {/* Bulb halo just under the rim. */}
-            <Circle cx={AXIS} cy={RIM_Y - 4} r={46} fill="url(#fl-halo)" />
-          </Svg>
-        </Animated.View>
+      {/* The light — ONE edgeless field that pools over the content area, plus a
+          faint warmth around the lamp's corner. No geometry, no edges. */}
+      <Animated.View style={[StyleSheet.absoluteFill, lightStyle]}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          <Defs>
+            <RadialGradient id="fl-pool" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor="#FFD9A0" stopOpacity={0.15} />
+              <Stop offset="0.45" stopColor="#FFD09A" stopOpacity={0.08} />
+              <Stop offset="0.75" stopColor="#FFC98F" stopOpacity={0.03} />
+              <Stop offset="1" stopColor="#FFC98F" stopOpacity={0} />
+            </RadialGradient>
+            <RadialGradient id="fl-corner" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor="#FFCF87" stopOpacity={0.14} />
+              <Stop offset="1" stopColor="#FFCF87" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          {/* Reading pool — centred on the content zone, wider than the screen so
+              its falloff never shows an edge. */}
+          <Ellipse
+            cx={width * 0.52}
+            cy={height * 0.36}
+            rx={width * 0.85}
+            ry={height * 0.46}
+            fill="url(#fl-pool)"
+          />
+          {/* Corner warmth around the lamp itself. */}
+          <Ellipse
+            cx={width - ANCHOR_RIGHT}
+            cy={RIM_Y}
+            rx={width * 0.5}
+            ry={height * 0.28}
+            fill="url(#fl-corner)"
+          />
+        </Svg>
+      </Animated.View>
 
-        {/* The lamp itself — cord, green shade, warm rim + bulb. */}
+      {/* The lamp — small, high, swinging gently from its ceiling anchor. */}
+      <Animated.View style={[styles.rig, rigStyle]}>
         <Svg width={RIG_W} height={RIG_H} viewBox={`0 0 ${RIG_W} ${RIG_H}`}>
           <Defs>
             <SvgLinearGradient id="fl-shade" x1="0.5" y1="0" x2="0.5" y2="1">
               <Stop offset="0" stopColor="#2F6B52" />
               <Stop offset="1" stopColor="#1D4736" />
             </SvgLinearGradient>
+            <RadialGradient id="fl-halo" cx="0.5" cy="0.5" r="0.5">
+              <Stop offset="0" stopColor="#FFE9B8" stopOpacity={0.6} />
+              <Stop offset="0.55" stopColor="#FFE0A6" stopOpacity={0.22} />
+              <Stop offset="1" stopColor="#FFE0A6" stopOpacity={0} />
+            </RadialGradient>
           </Defs>
+          {/* Bulb halo — soft, small, behind the shade mouth. */}
+          <Circle cx={AXIS} cy={RIM_Y - 2} r={24} fill="url(#fl-halo)" />
           {/* Ceiling cap + cord. */}
-          <Rect x={AXIS - 9} y={0} width={18} height={7} rx={3.5} fill="#3A362F" />
-          <Rect x={AXIS - 1.5} y={5} width={3} height={CORD_LEN - 4} rx={1.5} fill="#3A362F" />
+          <Rect x={AXIS - 7} y={0} width={14} height={6} rx={3} fill="#3A362F" />
+          <Rect x={AXIS - 1.25} y={4} width={2.5} height={CORD_LEN - 3} rx={1.25} fill="#3A362F" />
           {/* Conical shade (narrow crown → wide mouth). */}
           <Path
-            d={`M ${AXIS - 13} ${CORD_LEN}
-                L ${AXIS - 52} ${RIM_Y - 6}
-                Q ${AXIS} ${RIM_Y + 8} ${AXIS + 52} ${RIM_Y - 6}
-                L ${AXIS + 13} ${CORD_LEN} Z`}
+            d={`M ${AXIS - 9} ${CORD_LEN}
+                L ${AXIS - SHADE_HALF} ${RIM_Y - 5}
+                Q ${AXIS} ${RIM_Y + 6} ${AXIS + SHADE_HALF} ${RIM_Y - 5}
+                L ${AXIS + 9} ${CORD_LEN} Z`}
             fill="url(#fl-shade)"
           />
           {/* Lit inner rim + bulb peeking out. */}
-          <Ellipse cx={AXIS} cy={RIM_Y - 5} rx={48} ry={9} fill="#F6E9C9" />
-          <Circle cx={AXIS} cy={RIM_Y - 2} r={8} fill="#FFE9B8" />
-        </Svg>
-      </Animated.View>
-
-      {/* Mild room warmth — strongest near the lamp corner, vanishing low-left. */}
-      <Animated.View style={[StyleSheet.absoluteFill, washStyle]}>
-        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-          <Defs>
-            <RadialGradient id="fl-room" cx="0.82" cy="0.12" r="1">
-              <Stop offset="0" stopColor="#FFCF87" stopOpacity={0.16} />
-              <Stop offset="0.55" stopColor="#FFCF87" stopOpacity={0.05} />
-              <Stop offset="1" stopColor="#FFCF87" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect x={0} y={0} width={width} height={height} fill="url(#fl-room)" />
+          <Ellipse cx={AXIS} cy={RIM_Y - 4} rx={SHADE_HALF - 3} ry={7} fill="#F6E9C9" />
+          <Circle cx={AXIS} cy={RIM_Y - 2} r={6} fill="#FFE9B8" />
         </Svg>
       </Animated.View>
     </Animated.View>
