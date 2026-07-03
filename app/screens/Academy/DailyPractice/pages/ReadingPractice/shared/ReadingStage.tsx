@@ -15,9 +15,7 @@ import {
   Icon,
   Gradient,
   Text,
-  icons,
   makeStyles,
-  radius,
   size,
   space,
   spacing,
@@ -27,12 +25,16 @@ import {
   onColor,
   withAlpha,
   zIndex,
+  FloatingControls,
+  FloatingControlItem,
+  floatingControlSurface,
+  FLOATING_CONTROL_SIZE,
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
 
-/** First-paint estimate of the fixed cluster height (deck row + dock); replaced by the
- *  measured value on layout so the scroll always reserves the exact right space. */
-const CLUSTER_ESTIMATE = 168;
+/** First-paint estimate of the fixed cluster height (control stack + dock); replaced by
+ *  the measured value on layout so the scroll always reserves the exact right space. */
+const CLUSTER_ESTIMATE = 260;
 /** Soft fade above the fixed cluster. Content must clear this whole zone to stay crisp. */
 const SCRIM_FADE = 100;
 
@@ -96,7 +98,6 @@ export function ReadingStage({
   const accentColor = accent ?? colors.accent.info;
   const foregroundColor = onAccent ?? onColor(accentColor, colors);
   const foregroundMuted = withAlpha(foregroundColor, 0.68);
-  const floatingBorder = withAlpha(foregroundColor, 0.24);
 
   // Focus is an occasional, explicit state change: animate opacity/transform only.
   const focusProgress = useSharedValue(focus?.active ? 1 : 0);
@@ -144,59 +145,71 @@ export function ReadingStage({
   ];
   const scrimLocations: readonly [number, number, number, number] = [0, 0.35, 0.7, 1];
 
-  const renderNav = () => {
-    const parts: React.ReactNode[] = [];
+  const hasDeck = !!(focus || pagination || onNext);
+
+  // Every control lives in one right-aligned floating stack above the dock (shared
+  // `FloatingControls`). column-reverse means items[0] sits at the bottom (thumb),
+  // so the primary FORWARD control anchors it: the pager on paginated screens, else
+  // Next. Focus stacks in the middle; Next rides the top on paginated screens.
+  const renderControls = () => {
+    if (!hasDeck) return null;
+    const items: FloatingControlItem[] = [];
+
     if (pagination) {
       const first = pagination.page <= 0;
       const last = pagination.page >= pagination.count - 1;
-      parts.push(
-        <View
-          key="page"
-          style={[
-            styles.pageNav,
-            { borderColor: floatingBorder, backgroundColor: colors.surface.elevated },
-          ]}
-        >
-          <PressableScale
-            onPress={first ? undefined : pagination.onPrev}
-            style={[styles.pageBtn, first && styles.pageBtnOff]}
+      items.push({
+        key: "pager",
+        render: (
+          <View
+            style={[
+              styles.pager,
+              { backgroundColor: colors.surface.elevated, shadowColor: colors.shadow },
+            ]}
           >
-            <Icon name="chevron-left" size={18} color={accentColor} />
-          </PressableScale>
-          <Text variant="label" color="secondary" style={styles.pageCount}>
-            {pagination.page + 1} / {pagination.count}
-          </Text>
-          <PressableScale
-            onPress={last ? undefined : pagination.onNext}
-            style={[styles.pageBtn, last && styles.pageBtnOff]}
-          >
-            <Icon name="chevron-right" size={18} color={accentColor} />
-          </PressableScale>
-        </View>,
-      );
+            <PressableScale
+              onPress={first ? undefined : pagination.onPrev}
+              style={[styles.pagerBtn, first && styles.pagerOff]}
+              accessibilityLabel="Previous page"
+            >
+              <Icon name="chevron-up" size={20} color={accentColor} />
+            </PressableScale>
+            <Text variant="label" color="secondary" style={styles.pagerCount}>
+              {pagination.page + 1}/{pagination.count}
+            </Text>
+            <PressableScale
+              onPress={last ? undefined : pagination.onNext}
+              style={[styles.pagerBtn, last && styles.pagerOff]}
+              accessibilityLabel="Next page"
+            >
+              <Icon name="chevron-down" size={20} color={accentColor} />
+            </PressableScale>
+          </View>
+        ),
+      });
     }
-    if (onNext) {
-      parts.push(
-        <PressableScale
-          key="next"
-          onPress={onNext}
-          style={[
-            styles.nextPill,
-            { borderColor: floatingBorder, backgroundColor: colors.surface.elevated },
-          ]}
-        >
-          <Text variant="label" color="secondary">
-            Next
-          </Text>
-          <Icon name={icons.chevronRight} size={16} color={accentColor} />
-        </PressableScale>,
-      );
-    }
-    if (!parts.length) return null;
-    return <View style={styles.navGroup}>{parts}</View>;
-  };
 
-  const hasDeck = !!(focus || pagination || onNext);
+    if (focus) {
+      items.push({
+        key: "focus",
+        render: <FocusControl {...focus} accentColor={accentColor} />,
+      });
+    }
+
+    if (onNext) {
+      const nextButton: FloatingControlItem = {
+        icon: "arrow-right",
+        onPress: onNext,
+        accessibilityLabel: "Next",
+        accentColor: colors.surface.elevated,
+        onAccentColor: accentColor,
+      };
+      if (pagination) items.push(nextButton);
+      else items.unshift(nextButton);
+    }
+
+    return <FloatingControls inline items={items} style={styles.deckStack} />;
+  };
 
   return (
     <ScreenView style={[styles.screen, { backgroundColor: accentColor }]}>
@@ -229,7 +242,7 @@ export function ReadingStage({
               },
             ]}
           >
-            <Icon name={icons.back} size={20} color={colors.text.primary} />
+            <Icon name="arrow-left" size={20} color={colors.text.primary} />
           </PressableScale>
           <Text variant="h1" color={foregroundColor} style={styles.title}>
             {title}
@@ -268,21 +281,9 @@ export function ReadingStage({
         />
       </Animated.View>
 
-      {/* FIXED control deck + dock — measured; every control here is solid + never moves. */}
+      {/* FIXED control stack + dock — measured; every control here is solid + never moves. */}
       <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
-        {hasDeck ? (
-          <View style={styles.deck} pointerEvents="box-none">
-            <View style={styles.deckSide}>
-              {focus ? (
-                <FocusControl
-                  {...focus}
-                  accentColor={accentColor}
-                />
-              ) : null}
-            </View>
-            <View style={styles.deckSide}>{renderNav()}</View>
-          </View>
-        ) : null}
+        {renderControls()}
         {dock}
       </View>
 
@@ -347,56 +348,30 @@ const useStyles = makeStyles((c) => ({
     right: 0,
     bottom: 0,
   },
-  deck: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginHorizontal: space.screenX,
-    marginBottom: spacing.sm,
+  // The floating control stack, right-aligned above the dock (gutter + gap).
+  deckStack: {
+    alignSelf: "stretch",
+    paddingRight: space.screenX,
+    marginBottom: spacing.md,
   },
-  deckSide: {
-    flexShrink: 1,
-  },
-  navGroup: {
-    flexDirection: "row",
+  // Vertical pager pill — same footprint as the icon FABs, taller to house
+  // prev / count / next in one consistent control.
+  pager: {
+    ...floatingControlSurface,
     alignItems: "center",
-    gap: spacing.sm,
-  },
-  nextPill: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingVertical: spacing.xs,
     gap: spacing.xs,
-    height: 40,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.border.strong,
-    backgroundColor: c.surface.elevated,
   },
-  pageNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    height: 40,
-    paddingHorizontal: spacing.xs,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: c.border.strong,
-    backgroundColor: c.surface.elevated,
-  },
-  pageBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  pagerBtn: {
+    width: FLOATING_CONTROL_SIZE,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
   },
-  pageBtnOff: {
+  pagerOff: {
     opacity: 0.3,
   },
-  pageCount: {
-    minWidth: 30,
+  pagerCount: {
     textAlign: "center",
     fontVariant: ["tabular-nums"],
   },

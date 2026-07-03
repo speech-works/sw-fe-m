@@ -1,15 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import { View } from "react-native";
 
 import PressableScale from "../../../../../../components/PressableScale";
 import {
   Dialog,
-  Text,
+  Icon,
+  FLOATING_CONTROL_SIZE,
+  floatingControlSurface,
   makeStyles,
   onColor,
-  radius,
-  spacing,
   useTheme,
 } from "../../../../../../design-system";
 
@@ -24,11 +23,12 @@ export interface FocusConfig {
 
 /**
  * Reading-practice "hard mode", reframed. Hard mode filters the set to words that
- * contain the user's feared sounds — one deliberate, LABELLED tap that engages focus
- * and re-fetches (the backend only knows a single `hardMode` boolean; per-sound picking
- * would swap the word on every tap). Rendered as a SOLID pill inside the fixed control
- * deck above the dock, so it's thumb-reachable, never translucent, and never overlaps or
- * shifts the reading text. No feared sounds set → routes to Settings › Difficult Sounds.
+ * contain the user's feared sounds — one deliberate tap that engages focus and
+ * re-fetches (the backend only knows a single `hardMode` boolean; per-sound picking
+ * would swap the word on every tap). Rendered as a FAB in the reading control stack
+ * (`FloatingControls`): a solid target button that fills with the accent when active,
+ * so state is obvious and it never overlaps the reading text. No feared sounds set →
+ * routes to Settings › Difficult Sounds.
  */
 export function FocusControl({
   active,
@@ -55,32 +55,20 @@ export function FocusControl({
     <>
       <PressableScale
         onPress={onPress}
+        accessibilityRole="button"
+        accessibilityState={{ selected: active }}
+        accessibilityLabel={active ? "Focus on your sounds, on" : "Focus on your sounds"}
         style={[
-          styles.pill,
+          styles.fab,
           {
-            // Always a SOLID surface (never the translucent tint) so text can't bleed
-            // through; the accent lives in the border + dot + label.
-            backgroundColor: colors.surface.elevated,
-            borderColor: active ? accent : colors.border.strong,
+            // Active fills with the accent (state is obvious); inactive is a quiet
+            // surface with an accent icon — matching the other floating controls.
+            backgroundColor: active ? accent : colors.surface.elevated,
+            shadowColor: colors.shadow,
           },
         ]}
       >
-        <View
-          style={[
-            styles.dot,
-            { backgroundColor: active ? accent : colors.text.tertiary },
-          ]}
-        />
-        {/* Constant label (never "Focus"→"Focusing") so the pill can't change width and
-            shift on toggle; state shows via the blue dot/border, the wash, and the eyebrow
-            "FOCUS · YOUR SOUNDS". Short so focus + page-nav + Next fit one deck row. */}
-        <Text
-          variant="label"
-          color={active ? accent : "secondary"}
-          numberOfLines={1}
-        >
-          Focus
-        </Text>
+        <Icon name="target" size={22} color={active ? onAccent : accent} />
       </PressableScale>
 
       <Dialog
@@ -105,18 +93,10 @@ export function FocusControl({
 }
 
 const useStyles = makeStyles(() => ({
-  pill: {
-    flexDirection: "row",
+  fab: {
+    ...floatingControlSurface,
+    height: FLOATING_CONTROL_SIZE,
     alignItems: "center",
-    gap: spacing.sm,
-    height: 40,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    justifyContent: "center",
   },
 }));

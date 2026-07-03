@@ -419,34 +419,41 @@ const Reframe = () => {
               Learn to identify negative thoughts and replace them with
               empowering ones.
             </Text>
-            <Button
-              label="Start Exercise"
-              onPress={async () => {
-                if (!cognitivePracticeId) {
-                  console.warn("Missing cognitivePracticeId in Reframe start");
-                  return;
-                }
-                try {
-                  await markActivityStart();
-                } catch (error: any) {
-                  console.error("Error starting reframe practice:", error);
-                  if (
-                    error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" ||
-                    error?.response?.status === 402
-                  ) {
-                    dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
-                  } else {
-                    showErrorBottomSheet(
-                      "Failed to start",
-                      "An error occurred while starting the session.",
-                    );
+            <View style={styles.startButtons}>
+              <Button
+                label="Start Exercise"
+                onPress={async () => {
+                  if (!cognitivePracticeId) {
+                    console.warn("Missing cognitivePracticeId in Reframe start");
+                    return;
                   }
-                }
-              }}
-              accentColor={accentColor}
-              onAccentColor={onAccentColor}
-              style={styles.startButton}
-            />
+                  try {
+                    await markActivityStart();
+                  } catch (error: any) {
+                    console.error("Error starting reframe practice:", error);
+                    if (
+                      error?.response?.data?.errorCode === "INSUFFICIENT_STAMINA" ||
+                      error?.response?.status === 402
+                    ) {
+                      dispatchCustomEvent(EVENT_NAMES.SHOW_STAMINA_UPSELL);
+                    } else {
+                      showErrorBottomSheet(
+                        "Failed to start",
+                        "An error occurred while starting the session.",
+                      );
+                    }
+                  }
+                }}
+                accentColor={accentColor}
+                onAccentColor={onAccentColor}
+              />
+              <Button
+                label="Go back"
+                variant="ghost"
+                onColor={accentColor}
+                onPress={onBackPress}
+              />
+            </View>
           </Surface>
         </View>
       )}
@@ -559,7 +566,8 @@ const styles = StyleSheet.create({
   startDesc: {
     lineHeight: 24,
   },
-  startButton: {
+  startButtons: {
     width: "100%",
+    gap: spacing.sm,
   },
 });
