@@ -111,13 +111,15 @@ export const FocusLamp: React.FC<{
             <RadialGradient
               id="fl-vignette"
               cx={width / 2}
-              cy={height * 0.44}
-              r={height * 0.72}
+              cy={height * 0.46}
+              r={height * 0.8}
               gradientUnits="userSpaceOnUse"
             >
+              {/* Bright core reaches down to ~the dock, so text stays crisp until it
+                  crosses it; the shadow deepens only below (behind the dock). */}
               <Stop offset="0" stopColor="#000" stopOpacity={0.04} />
-              <Stop offset="0.55" stopColor="#000" stopOpacity={0.07} />
-              <Stop offset="0.82" stopColor="#000" stopOpacity={0.46} />
+              <Stop offset="0.62" stopColor="#000" stopOpacity={0.07} />
+              <Stop offset="0.85" stopColor="#000" stopOpacity={0.46} />
               <Stop offset="1" stopColor="#000" stopOpacity={0.82} />
             </RadialGradient>
           </Defs>

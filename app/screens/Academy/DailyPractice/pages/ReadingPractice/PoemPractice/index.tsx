@@ -671,7 +671,6 @@ const PoemPractice = () => {
                   ref={(el) => {
                     pageRefs.current[i] = el;
                   }}
-                  style={i !== currentPage ? styles.pageInactive : undefined}
                 >
                   {i === currentPage ? (
                     renderHighlightedText()
@@ -741,11 +740,6 @@ const styles = StyleSheet.create({
   readingText: {
     lineHeight: 32, // More breathability
     fontSize: 18,
-  },
-  // Non-active pages recede so the current page reads as the focus (and signals
-  // which page recording/guide will use, now that the counter is gone).
-  pageInactive: {
-    opacity: 0.4,
   },
   loadingWrap: {
     paddingVertical: spacing["5xl"],
