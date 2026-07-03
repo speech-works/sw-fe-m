@@ -133,7 +133,10 @@ const DockItem: React.FC<DockItemProps> = ({
 
   const [labelWidth, setLabelWidth] = useState(0);
   // Estimate until the real width is measured, so the active label never pops in at 0.
-  const targetWidth = labelWidth || Math.round(label.length * 8.2);
+  // +2 headroom so the exact-width wrapper can never hairline-clip the glyphs.
+  const targetWidth = labelWidth
+    ? labelWidth + 2
+    : Math.round(label.length * 8.2);
 
   const v = useDerivedValue(
     () => (reduceMotion ? (isFocused ? 1 : 0) : withSpring(isFocused ? 1 : 0, DOCK_SPRING)),
@@ -203,13 +206,16 @@ const DockItem: React.FC<DockItemProps> = ({
             </Animated.View>
           </Animated.View>
 
-          {/* invisible measurer — gives the wrapper its expand target */}
+          {/* Invisible measurer — gives the wrapper its expand target. It's given a
+              generous fixed width so numberOfLines can never truncate it (the narrow
+              pill would otherwise cap it and under-measure long labels like
+              "Settings"); onTextLayout then reports the TRUE glyph-run width. */}
           <Text
             variant="bodySm"
             numberOfLines={1}
             style={[styles.label, styles.measure]}
-            onLayout={(e) => {
-              const w = Math.ceil(e.nativeEvent.layout.width);
+            onTextLayout={(e) => {
+              const w = Math.ceil(e.nativeEvent.lines[0]?.width ?? 0);
               if (w && w !== labelWidth) setLabelWidth(w);
             }}
           >
@@ -293,7 +299,11 @@ const styles = StyleSheet.create({
   },
   measure: {
     position: "absolute",
+    left: 0,
     opacity: 0,
+    // Wide enough that the single line never wraps/truncates; it's out of flow +
+    // opacity 0, so it neither shows nor widens the pill.
+    width: 1000,
   },
   badge: {
     position: "absolute",
