@@ -75,6 +75,8 @@ export { Spinner } from "./Spinner";
 export type { SpinnerProps } from "./Spinner";
 export { PageControl } from "./PageControl";
 export type { PageControlProps } from "./PageControl";
+export { Carousel } from "./Carousel";
+export type { CarouselProps } from "./Carousel";
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 export { ErrorState } from "./ErrorState";

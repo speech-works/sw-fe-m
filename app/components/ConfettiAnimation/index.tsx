@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, View } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -25,8 +25,17 @@ const COLORS = [
   "#EC4899", // Pink
 ];
 
+/**
+ * A one-shot celebration burst: 50 pieces fall past the bottom once, swaying and
+ * spinning a FINITE number of times, then the whole layer unmounts. It must be
+ * rendered as a viewport overlay (a sibling of the scroll, never a scroll child) —
+ * otherwise the absolute layer scrolls with the content and the settled pieces
+ * reappear mid-page. The earlier version looped sway/rotate forever, so pieces
+ * parked one screen down and span in place indefinitely.
+ */
 const ConfettiAnimation = () => {
   const confettiPieces = useRef<ConfettiPiece[]>([]);
+  const [done, setDone] = useState(false);
 
   // Generate confetti pieces
   if (confettiPieces.current.length === 0) {
@@ -39,7 +48,7 @@ const ConfettiAnimation = () => {
         rotate: new Animated.Value(0),
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size: Math.random() * 8 + 4, // 4-12px
-        delay: Math.random() * 1000, // 0-1000ms delay
+        delay: Math.random() * 800, // 0-800ms stagger
         initialX: startX, // Store for sway calculation
       };
     });
@@ -47,61 +56,52 @@ const ConfettiAnimation = () => {
 
   useEffect(() => {
     const animations = confettiPieces.current.map((piece) => {
-      const fallDuration = 3000 + Math.random() * 2000; // 3-5 seconds
+      const fallDuration = 2600 + Math.random() * 1400; // 2.6-4s
       const swayAmount = (Math.random() - 0.5) * 100; // -50 to 50
+      const swayLeg = fallDuration / 4;
 
       return Animated.parallel([
-        // Fall down
+        // Fall down and off-screen — one shot.
         Animated.timing(piece.y, {
           toValue: height + 50,
           duration: fallDuration,
           delay: piece.delay,
           useNativeDriver: true,
         }),
-        // Sway horizontally
+        // Sway: a FINITE two out-and-back cycles spanning the fall (no infinite loop).
         Animated.sequence([
           Animated.delay(piece.delay),
-          Animated.loop(
-            Animated.sequence([
-              Animated.timing(piece.x, {
-                toValue: piece.initialX + swayAmount,
-                duration: 1000,
-                useNativeDriver: true,
-              }),
-              Animated.timing(piece.x, {
-                toValue: piece.initialX,
-                duration: 1000,
-                useNativeDriver: true,
-              }),
-            ]),
-          ),
+          Animated.timing(piece.x, { toValue: piece.initialX + swayAmount, duration: swayLeg, useNativeDriver: true }),
+          Animated.timing(piece.x, { toValue: piece.initialX, duration: swayLeg, useNativeDriver: true }),
+          Animated.timing(piece.x, { toValue: piece.initialX + swayAmount, duration: swayLeg, useNativeDriver: true }),
+          Animated.timing(piece.x, { toValue: piece.initialX, duration: swayLeg, useNativeDriver: true }),
         ]),
-        // Rotate
-        Animated.sequence([
-          Animated.delay(piece.delay),
-          Animated.loop(
-            Animated.timing(piece.rotate, {
-              toValue: 360,
-              duration: 2000 + Math.random() * 1000,
-              useNativeDriver: true,
-            }),
-          ),
-        ]),
+        // Rotate: two full spins over the fall, then stop.
+        Animated.timing(piece.rotate, {
+          toValue: 720,
+          duration: fallDuration,
+          delay: piece.delay,
+          useNativeDriver: true,
+        }),
       ]);
     });
 
-    const starrtedAnimation = Animated.parallel(animations);
-    starrtedAnimation.start();
-
-    return () => starrtedAnimation.stop();
+    const burst = Animated.parallel(animations);
+    burst.start(({ finished }) => {
+      // Everything has landed off-screen — tear the layer down so nothing lingers.
+      if (finished) setDone(true);
+    });
+    return () => burst.stop();
   }, []);
+
+  if (done) return null;
 
   return (
     <View style={styles.container} pointerEvents="none">
       {confettiPieces.current.map((piece) => {
         const rotateInterpolate = piece.rotate.interpolate({
-          inputRange: [0, 360],
-          outputRange: ["0deg", "360deg"],
+          inputRange: [0, 720],
+          outputRange: ["0deg", "720deg"],
         });
 
         return (
