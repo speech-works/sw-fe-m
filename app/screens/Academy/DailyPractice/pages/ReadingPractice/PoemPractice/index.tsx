@@ -3,8 +3,9 @@ import {
   useNavigation,
   useRoute,
 } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   StyleSheet,
   Text as RNText,
   View,
@@ -35,6 +36,7 @@ import {
   Button,
   Text as DSText,
   Sheet,
+  Spinner,
   useTheme,
   spacing,
   withAlpha,
@@ -332,6 +334,49 @@ const PoemPractice = () => {
     }
   };
 
+  // --- Scroll-driven page tracking (replaces the pager buttons) ---
+  // All pages render in one continuous scroll; the "active" page is whichever has
+  // scrolled up to the reading line. currentPage stays the recording/guide unit —
+  // only HOW it's chosen changed, so the recording/highlight logic is untouched.
+  const pageRefs = useRef<Array<View | null>>([]);
+  const lastTrackY = useRef(-1);
+
+  const trackActivePage = useCallback(() => {
+    const valid = pageRefs.current
+      .map((r, i) => ({ r, i }))
+      .filter((x) => x.r) as Array<{ r: View; i: number }>;
+    if (!valid.length) return;
+    const line = Dimensions.get("window").height * 0.34;
+    const tops: Record<number, number> = {};
+    let remaining = valid.length;
+    valid.forEach(({ r, i }) => {
+      r.measureInWindow((_x, y) => {
+        tops[i] = y;
+        remaining -= 1;
+        if (remaining === 0) {
+          let active = 0;
+          Object.keys(tops)
+            .map(Number)
+            .sort((a, b) => a - b)
+            .forEach((idx) => {
+              if (tops[idx] <= line) active = idx;
+            });
+          setCurrentPage(active);
+        }
+      });
+    });
+  }, [setCurrentPage]);
+
+  const handleScrollY = useCallback(
+    (y: number) => {
+      // Recompute only every ~40px so we're not measuring on every bucketed tick.
+      if (Math.abs(y - lastTrackY.current) < 40) return;
+      lastTrackY.current = y;
+      trackActivePage();
+    },
+    [trackActivePage],
+  );
+
   // --- Render Helpers ---
 
   const renderHighlightedText = () => {
@@ -545,12 +590,7 @@ const PoemPractice = () => {
         accent={accentColor}
         onAccent={onAccentColor}
         onNext={toggleIndex}
-        pagination={{
-          page: currentPage,
-          count: pages.length,
-          onPrev: () => setCurrentPage((p) => Math.max(0, p - 1)),
-          onNext: () => setCurrentPage((p) => Math.min(pages.length - 1, p + 1)),
-        }}
+        onScrollY={handleScrollY}
         focus={{
           active: hardMode,
           canUse: canUseHardMode,
@@ -614,8 +654,51 @@ const PoemPractice = () => {
               />
             </View>
           )}
-          {renderHighlightedText()}
 
+          {/* Every page in one continuous scroll; the active page is lit + gets the
+              read-along highlight, the rest are dimmed. Scrolling one to the reading
+              line makes it active (see handleScrollY). A spinner covers the content
+              load, and an end marker closes the passage. */}
+          {pages.length === 0 ? (
+            <View style={styles.loadingWrap}>
+              <Spinner color={onAccentColor} />
+            </View>
+          ) : (
+            <>
+              {pages.map((pageText, i) => (
+                <View
+                  key={i}
+                  ref={(el) => {
+                    pageRefs.current[i] = el;
+                  }}
+                  style={i !== currentPage ? styles.pageInactive : undefined}
+                >
+                  {i === currentPage ? (
+                    renderHighlightedText()
+                  ) : (
+                    <DSText variant="body" color={onAccentColor} style={styles.readingText}>
+                      {pageText}
+                    </DSText>
+                  )}
+                </View>
+              ))}
+              <View style={styles.endMark}>
+                <View
+                  style={[styles.endRule, { backgroundColor: withAlpha(onAccentColor, 0.28) }]}
+                />
+                <DSText
+                  variant="label"
+                  color={withAlpha(onAccentColor, 0.55)}
+                  style={styles.endText}
+                >
+                  THE END
+                </DSText>
+                <View
+                  style={[styles.endRule, { backgroundColor: withAlpha(onAccentColor, 0.28) }]}
+                />
+              </View>
+            </>
+          )}
         </View>
       </ReadingStage>
 
@@ -658,6 +741,29 @@ const styles = StyleSheet.create({
   readingText: {
     lineHeight: 32, // More breathability
     fontSize: 18,
+  },
+  // Non-active pages recede so the current page reads as the focus (and signals
+  // which page recording/guide will use, now that the counter is gone).
+  pageInactive: {
+    opacity: 0.4,
+  },
+  loadingWrap: {
+    paddingVertical: spacing["5xl"],
+    alignItems: "center",
+  },
+  endMark: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    marginTop: spacing["2xl"],
+  },
+  endRule: {
+    height: 1,
+    width: 40,
+  },
+  endText: {
+    letterSpacing: 3,
   },
 
   // Action Dock

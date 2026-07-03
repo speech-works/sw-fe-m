@@ -64,6 +64,9 @@ interface ReadingStageProps {
   pagination?: Pagination;
   /** Hard-mode ("Focus on your sounds") control. Omit on screens with no hard mode. */
   focus?: FocusConfig;
+  /** Vertical scroll-offset callback (bucketed ~6px). Used by paginated reading to
+   *  auto-track the on-screen page from scroll position instead of pager buttons. */
+  onScrollY?: (y: number) => void;
   /** The floating recorder dock (each page keeps its own recording wiring). */
   dock: React.ReactNode;
   children: React.ReactNode;
@@ -89,6 +92,7 @@ export function ReadingStage({
   onNext,
   pagination,
   focus,
+  onScrollY,
   dock,
   children,
 }: ReadingStageProps) {
@@ -231,6 +235,7 @@ export function ReadingStage({
           { paddingTop: insets.top + space.inlineGap },
         ]}
         showsVerticalScrollIndicator={false}
+        onScrollY={onScrollY}
       >
         <View style={styles.header}>
           <PressableScale

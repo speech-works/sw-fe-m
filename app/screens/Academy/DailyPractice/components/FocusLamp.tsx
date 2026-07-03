@@ -37,18 +37,17 @@ const AXIS = RIG_W / 2;
 
 /**
  * Focus Mode's reading lamp. A small wired lamp drops in from the top-right and
- * the room dims around it; instead of a spotlight cone, one EDGELESS radial
- * light field settles over the reading area — dim the room, rest the light on
- * the words. Turning focus off relights the room quickly (light fades first,
- * then the lamp retracts). Colours are deliberate art literals (a scene, not
- * theme chrome). Non-interactive. Reduced motion: fades only — no drop, no sway.
+ * the room dims around it via a SPOTLIGHT VIGNETTE — the reading column keeps its
+ * full brightness so the text pops (dark ink stays high-contrast on the bright
+ * canvas), while the surroundings fall into shadow. A soft edgeless warm field
+ * rests over the reading area on top. Turning focus off relights the room quickly
+ * (light fades first, then the lamp retracts). Colours are deliberate art literals
+ * (a scene, not theme chrome). Non-interactive. Reduced motion: fades only — no
+ * drop, no sway.
  */
 export const FocusLamp: React.FC<{
   focus: boolean;
-  /** Room-dim strength while lit (0–1). Default suits both dark intros and
-   *  bright practice canvases — the light field lifts the reading zone back up. */
-  dim?: number;
-}> = ({ focus, dim = 0.44 }) => {
+}> = ({ focus }) => {
   const reduced = useReducedMotion();
 
   // 1 = lamp hanging in place, 0 = retracted above the screen.
@@ -98,12 +97,33 @@ export const FocusLamp: React.FC<{
   }));
   const lightStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
   // The room recedes so the lamp reads as the light source.
-  const dimStyle = useAnimatedStyle(() => ({ opacity: dim * lit.value }));
+  const dimStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
 
   return (
     <Animated.View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* Room dim — under the light so the glow lifts it over the reading zone. */}
-      <Animated.View style={[styles.dim, dimStyle]} />
+      {/* Room dim — a SPOTLIGHT VIGNETTE, not a flat wash. The reading column keeps
+          its full brightness (so dark ink on the bright canvas keeps its contrast and
+          the text pops), while the surroundings — top chrome, margins, the dock —
+          fall into shadow. This is what makes focus mode calmer to read, not darker. */}
+      <Animated.View style={[StyleSheet.absoluteFill, dimStyle]}>
+        <Svg width={width} height={height}>
+          <Defs>
+            <RadialGradient
+              id="fl-vignette"
+              cx={width / 2}
+              cy={height * 0.44}
+              r={height * 0.72}
+              gradientUnits="userSpaceOnUse"
+            >
+              <Stop offset="0" stopColor="#000" stopOpacity={0.04} />
+              <Stop offset="0.55" stopColor="#000" stopOpacity={0.07} />
+              <Stop offset="0.82" stopColor="#000" stopOpacity={0.46} />
+              <Stop offset="1" stopColor="#000" stopOpacity={0.82} />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={width} height={height} fill="url(#fl-vignette)" />
+        </Svg>
+      </Animated.View>
 
       {/* The light — ONE edgeless field that pools over the content area, plus a
           faint warmth around the lamp's corner. No geometry, no edges. */}
@@ -180,10 +200,6 @@ export const FocusLamp: React.FC<{
 export default FocusLamp;
 
 const styles = StyleSheet.create({
-  dim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000",
-  },
   rig: {
     position: "absolute",
     top: 0,
