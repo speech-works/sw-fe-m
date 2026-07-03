@@ -21,6 +21,9 @@ import {
 
 const Briefing = () => {
   const { colors } = useTheme();
+  // Social Challenge = the "warning" (amber) accent from the Exposure hub card.
+  const accentColor = colors.accent.warning;
+  const onAccentColor = colors.accentOn.warning;
   const navigation =
     useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();
   const route = useRoute<RouteProp<SCEDPStackParamList, "SCBriefing">>();
@@ -56,6 +59,8 @@ const Briefing = () => {
       footer={
         <Button
           label="Begin Challenge"
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
           onPress={async () => {
             const activityId = await markActivityStart();
             if (activityId) {
@@ -72,7 +77,7 @@ const Briefing = () => {
       {/* Scenario Details — a dark card on the canvas. */}
       <Surface level="default" rounded="card" padded={spacing["2xl"]}>
         <View style={styles.scenarioHeader}>
-          <Icon name={icons.challenge} size={16} color={colors.action.primary} />
+          <Icon name={icons.challenge} size={16} color={accentColor} />
           <Text variant="label" color="tertiary" style={styles.scenarioLabel}>
             THE SCENARIO
           </Text>
@@ -93,10 +98,7 @@ const Briefing = () => {
             <View key={index} style={styles.tipRow}>
               <View style={styles.tipTrack}>
                 <View
-                  style={[
-                    styles.tipDot,
-                    { backgroundColor: colors.action.primary },
-                  ]}
+                  style={[styles.tipDot, { backgroundColor: accentColor }]}
                 />
                 {index !== arr.length - 1 && (
                   <View

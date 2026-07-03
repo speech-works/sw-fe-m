@@ -16,6 +16,7 @@ import DonePractice from "../../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
+import { useTheme } from "../../../../../../../design-system";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -28,6 +29,10 @@ import { InterviewEDPStackRouteProp } from "../../../../../../../navigators/stac
 import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
 const Chat = () => {
+  const { colors } = useTheme();
+  // Interview = the "danger" (rose) accent from the Exposure hub card.
+  const accentColor = colors.accent.danger;
+  const onAccentColor = colors.accentOn.danger;
   const navigation =
     useNavigation<ExploreStackNavigationProp<"InterviewChat">>();
   const route = useRoute<InterviewEDPStackRouteProp<"InterviewChat">>();
@@ -177,6 +182,7 @@ const Chat = () => {
     activityId: practiceActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: onDonePress,
+    accentColor,
     family: "Exposure",
     from,
     packContext,
@@ -212,6 +218,8 @@ const Chat = () => {
         activityId={practiceActivityId ?? undefined}
         contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="interview practice"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -245,12 +253,16 @@ const Chat = () => {
         options={currentOptions}
         onAdvance={handleAdvance}
         onComplete={onDonePress}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       <VitalsFeedbackModal
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}

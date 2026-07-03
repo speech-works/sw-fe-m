@@ -62,6 +62,9 @@ export const PrepScreen: React.FC = () => {
   const route = useRoute<any>();
   const { colors } = useTheme();
   const styles = useStyles();
+  // Mirror Work = the "success" (green) accent from the Cognitive Practice list.
+  const accentColor = colors.accent.success;
+  const onAccentColor = colors.accentOn.success;
 
   const practiceData = route.params?.practiceData || {};
   const mirrorWorkData: MirrorWorkData = practiceData.mirrorWorkData || {
@@ -183,7 +186,13 @@ export const PrepScreen: React.FC = () => {
         'Speak to your camera and notice what your body does. No scores, no performance — just observation.'
       }
       footer={
-        <Button label="Start practice" variant="primary" onPress={handleStart} />
+        <Button
+          label="Start practice"
+          variant="primary"
+          onPress={handleStart}
+          accentColor={accentColor}
+          onAccentColor={onAccentColor}
+        />
       }
     >
       {/* Two-up bento: privacy + gentle-notes reassurance. */}
@@ -309,7 +318,7 @@ const useStyles = makeStyles((c) => ({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: c.action.primary,
+    backgroundColor: c.accent.success,
     marginTop: spacing.sm,
   },
   timelineLine: {

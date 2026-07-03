@@ -62,6 +62,9 @@ const PhoneCall = () => {
   const { updateActivity } = useActivityStore();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  // Phone Call = the "purple" accent from the Exposure hub card.
+  const accentColor = colors.accent.purple;
+  const onAccentColor = colors.accentOn.purple;
 
   // One-time disclosure before the first AI conversation (voice is streamed to
   // a third-party AI partner). Hydration-guarded to avoid a flash for users who
@@ -278,6 +281,7 @@ const PhoneCall = () => {
     onSave: () => {
       markActivityComplete();
     },
+    accentColor,
     family: "Exposure",
     from,
     packContext,
@@ -297,6 +301,8 @@ const PhoneCall = () => {
         activityId={currentActivityId ?? undefined}
         contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="AI conversation"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -402,10 +408,10 @@ const PhoneCall = () => {
                       styles.scenarioCard,
                       {
                         backgroundColor: isSelected
-                          ? colors.action.primaryTint
+                          ? colors.accentTint.purple
                           : colors.surface.default,
                         borderColor: isSelected
-                          ? colors.border.selected
+                          ? accentColor
                           : colors.border.hairline,
                       },
                     ]}
@@ -424,7 +430,7 @@ const PhoneCall = () => {
                         solid
                         name={scenario.phoneCallData?.icon || "robot"}
                         size={24}
-                        color={colors.action.primary}
+                        color={accentColor}
                       />
                     </View>
                     <View style={styles.scenarioDescContainer}>
@@ -449,6 +455,8 @@ const PhoneCall = () => {
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       <AICallConsentModal

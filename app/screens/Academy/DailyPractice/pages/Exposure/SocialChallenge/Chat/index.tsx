@@ -16,6 +16,7 @@ import DonePractice from "../../../../components/DonePractice";
 import { PracticeActivityContentType } from "../../../../../../../api/practiceActivities/types";
 import VitalsFeedbackModal from "../../../../../../../components/VitalsFeedbackModal";
 import { useConfirmOnExit } from "../../../../../../../hooks/useConfirmOnExit";
+import { useTheme } from "../../../../../../../design-system";
 
 // Define the message structure for this context
 interface ChatMessage {
@@ -28,6 +29,10 @@ import { SCEDPStackRouteProp } from "../../../../../../../navigators/stacks/Expl
 import { ExploreStackNavigationProp } from "../../../../../../../navigators/stacks/ExploreStack/types";
 
 const Chat = () => {
+  const { colors } = useTheme();
+  // Social Challenge = the "warning" (amber) accent from the Exposure hub card.
+  const accentColor = colors.accent.warning;
+  const onAccentColor = colors.accentOn.warning;
   const navigation = useNavigation<ExploreStackNavigationProp<"SCChat">>();
   const route = useRoute<SCEDPStackRouteProp<"SCChat">>();
   const { sc, practiceActivityId, packContext, from } = route.params;
@@ -160,6 +165,7 @@ const Chat = () => {
     activityId: practiceActivityId,
     isCompleted: isDone || showVitalsModal,
     onSave: onDonePress,
+    accentColor,
     family: "Exposure",
     from,
     packContext,
@@ -195,6 +201,8 @@ const Chat = () => {
         activityId={practiceActivityId ?? undefined}
         contentType={PracticeActivityContentType.EXPOSURE_PRACTICE}
         practiceName="social challenge"
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
         onDone={
           packContext
             ? () => {
@@ -228,12 +236,16 @@ const Chat = () => {
         options={currentOptions}
         onAdvance={handleAdvance}
         onComplete={onDonePress}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       <VitalsFeedbackModal
         visible={showVitalsModal}
         onSkip={() => handleVitalsSubmit(undefined)}
         onSubmit={handleVitalsSubmit}
+        accentColor={accentColor}
+        onAccentColor={onAccentColor}
       />
 
       {exitSheet}
