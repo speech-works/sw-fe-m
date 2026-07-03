@@ -13,6 +13,7 @@ import SmartRecorder from "../../ReadingPractice/StoryPractice/components/SmartR
 import RecorderTools from "../../ReadingPractice/StoryPractice/components/RecorderTools";
 import { ReadingStage } from "../../ReadingPractice/shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
+import FocusLamp from "../../../components/FocusLamp";
 
 import { getFunPracticeByType } from "../../../../../../api/dailyPractice";
 import {
@@ -496,6 +497,7 @@ const Twister = () => {
       <Page
         title="Tongue Twisters"
         description="Challenge your articulation and speed with playful phonetic puzzles."
+        background={<FocusLamp focus={hardMode} />}
         onBack={() =>
           from === "MOOD_CHECK"
             ? navigation.navigate("Root" as any, { screen: "HOME" })

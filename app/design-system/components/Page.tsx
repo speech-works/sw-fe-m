@@ -35,6 +35,9 @@ export interface PageProps {
   right?: React.ReactNode;
   /** Pinned bottom action (e.g. a primary Button). */
   footer?: React.ReactNode;
+  /** Full-bleed layer rendered BEHIND the body (above the opaque canvas) — for an
+   * ambient background (e.g. a weather/flame effect). Non-interactive. */
+  background?: React.ReactNode;
   /** Wrap the body in KeyboardAvoidingView (forms). */
   keyboardAvoiding?: boolean;
   /** Scroll the body (default true). Ignored when `list` is set. */
@@ -64,6 +67,7 @@ export const Page: React.FC<PageProps> = ({
   onBack,
   right,
   footer,
+  background,
   keyboardAvoiding,
   scroll = true,
   contentGap,
@@ -170,10 +174,20 @@ export const Page: React.FC<PageProps> = ({
           }}
         />
       ) : null}
+      {/* Ambient background (e.g. the Focus lamp) sits ABOVE the body AND the status
+       * cap, so it can dim/illuminate the screen edge-to-edge from the very top;
+       * it's non-interactive and below the footer, so a pinned CTA stays crisp.
+       * Renders only when a `background` is passed — pages without one are wholly
+       * unaffected (their top bars never change). */}
+      {background ? (
+        <View style={[StyleSheet.absoluteFill, { zIndex: zIndex.sticky + 1 }]} pointerEvents="none">
+          {background}
+        </View>
+      ) : null}
       {footer ? (
         <View
           pointerEvents="box-none"
-          style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: zIndex.sticky + 2 }}
         >
           {/* Bottom fade — scrolling content dissolves into the canvas before it
            * reaches the floating action, so nothing stays hidden behind an opaque

@@ -31,6 +31,7 @@ import {
   FLOATING_CONTROL_SIZE,
 } from "../../../../../../design-system";
 import { FocusConfig, FocusControl } from "./FocusControl";
+import FocusLamp from "../../../components/FocusLamp";
 
 /** First-paint estimate of the fixed cluster height (control stack + dock); replaced by
  *  the measured value on layout so the scroll always reserves the exact right space. */
@@ -281,6 +282,14 @@ export function ReadingStage({
         />
       </Animated.View>
 
+      {/* Focus-mode lamp — drops in from the top-right while focus is engaged and
+          casts a mild reading light; eases in/out with the toggle. Sits ABOVE the
+          status cap (so the dim + cord reach the very top) but below the controls,
+          which stay crisp via a higher zIndex. */}
+      <View style={styles.lampLayer} pointerEvents="none">
+        <FocusLamp focus={!!focus?.active} />
+      </View>
+
       {/* FIXED control stack + dock — measured; every control here is solid + never moves. */}
       <View style={styles.deckFloat} pointerEvents="box-none" onLayout={onDeckLayout}>
         {renderControls()}
@@ -342,11 +351,18 @@ const useStyles = makeStyles((c) => ({
     right: 0,
     bottom: 0,
   },
+  lampLayer: {
+    ...StyleSheet.absoluteFillObject,
+    // Above the status cap (zIndex.sticky) so the dim + cord reach the top edge.
+    zIndex: zIndex.sticky + 1,
+  },
   deckFloat: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+    // Above the lamp layer so the controls + dock never get dimmed.
+    zIndex: zIndex.sticky + 2,
   },
   // The floating control stack, right-aligned above the dock (gutter + gap).
   deckStack: {

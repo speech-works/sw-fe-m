@@ -20,6 +20,7 @@ import SmartRecorder from "../StoryPractice/components/SmartRecorder";
 import RecorderTools from "../StoryPractice/components/RecorderTools";
 import { ReadingStage } from "../shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
+import FocusLamp from "../../../components/FocusLamp";
 
 import { ToolType } from "../../../../../../api/tools/types";
 import {
@@ -317,6 +318,7 @@ const QuotePractice = () => {
       <Page
         title="Quote Practice"
         description="Draw inspiration and practice expressive delivery through famous quotes."
+        background={<FocusLamp focus={hardMode} />}
         onBack={() =>
           from === "MOOD_CHECK"
             ? navigation.navigate("Root" as any, { screen: "HOME" })

@@ -20,6 +20,7 @@ import SmartRecorder from "../StoryPractice/components/SmartRecorder";
 import RecorderTools from "../StoryPractice/components/RecorderTools";
 import { ReadingStage } from "../shared/ReadingStage";
 import HardModeToggle from "../../../components/HardModeToggle";
+import FocusLamp from "../../../components/FocusLamp";
 
 import { ToolType } from "../../../../../../api/tools/types";
 import {
@@ -317,6 +318,7 @@ const PhrasePractice = () => {
       <Page
         title="Phrase Practice"
         description="Practice fluid transitions and natural pacing with full phrases."
+        background={<FocusLamp focus={hardMode} />}
         onBack={() =>
           from === "MOOD_CHECK"
             ? navigation.navigate("Root" as any, { screen: "HOME" })
