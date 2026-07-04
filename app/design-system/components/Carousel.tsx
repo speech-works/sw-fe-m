@@ -59,8 +59,12 @@ export function Carousel<T>({
   const scrollX = useSharedValue(0);
   const lastIndex = useSharedValue(0);
 
-  const itemWidth = Math.max(0, width - peek - gap);
-  const interval = itemWidth + gap;
+  // A lone slide has nothing to peek to — collapse the peek/gap so it fills the width.
+  const single = data.length <= 1;
+  const effPeek = single ? 0 : peek;
+  const effGap = single ? 0 : gap;
+  const itemWidth = Math.max(0, width - effPeek - effGap);
+  const interval = itemWidth + effGap;
 
   const onLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -96,12 +100,12 @@ export function Carousel<T>({
             snapToAlignment="start"
             onScroll={scrollHandler}
             scrollEventThrottle={16}
-            contentContainerStyle={{ paddingRight: peek }}
+            contentContainerStyle={{ paddingRight: effPeek }}
           >
             {data.map((item, i) => (
               <View
                 key={keyExtractor ? keyExtractor(item, i) : String(i)}
-                style={{ width: itemWidth, marginRight: gap }}
+                style={{ width: itemWidth, marginRight: effGap }}
               >
                 {renderItem({ item, index: i })}
               </View>

@@ -17,6 +17,7 @@ import { radius, space, size, spacing } from "../primitives/scale";
 import { duration } from "../motion";
 import { relativeLuminance } from "../utils/contrast";
 import { Text } from "./Text";
+import { Gradient } from "./Gradient";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 /** Decorative drag affordance shown on headerless sheets. */
@@ -32,6 +33,9 @@ export interface SheetProps {
   right?: React.ReactNode;
   /** Override the sheet surface color (e.g. an accent for a themed guide). */
   color?: string;
+  /** Fill the sheet surface with a gradient instead of a solid color (e.g. to match
+   *  a parent gradient card). Takes precedence over `color`. */
+  gradientColors?: readonly [string, string, ...string[]];
   /** Fires once the sheet has FULLY animated out and unmounted. Use this to run
    *  navigation after a close — the sheet is a native Modal, so navigating while
    *  it is still visible leaves it on top of (or lingering over) the new screen. */
@@ -48,6 +52,7 @@ export const Sheet: React.FC<SheetProps> = ({
   title,
   right,
   color,
+  gradientColors,
   onDismissed,
   contentStyle,
 }) => {
@@ -62,7 +67,7 @@ export const Sheet: React.FC<SheetProps> = ({
 
   // The grab handle must read on whatever surface the sheet uses: a bright
   // accent fill needs a dark handle, the default dark card a light one.
-  const surface = color ?? colors.surface.elevated;
+  const surface = gradientColors?.[0] ?? color ?? colors.surface.elevated;
   const handleColor =
     relativeLuminance(surface) > 0.18 ? colors.text.onInverse : colors.border.strong;
 
@@ -130,6 +135,31 @@ export const Sheet: React.FC<SheetProps> = ({
 
   if (!mounted) return null;
 
+  const contentPad = {
+    paddingHorizontal: space.screenX,
+    paddingTop: hasHeader ? space.screenX : spacing.md,
+    paddingBottom: Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
+  };
+  const innerContent = (
+    <>
+      {!hasHeader ? (
+        <View
+          style={{
+            width: GRAB_HANDLE.w,
+            height: GRAB_HANDLE.h,
+            borderRadius: radius.full,
+            backgroundColor: handleColor,
+            alignSelf: "center",
+            marginBottom: spacing.lg,
+          }}
+        />
+      ) : null}
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+        {children}
+      </ScrollView>
+    </>
+  );
+
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: "flex-end" }}>
@@ -151,38 +181,42 @@ export const Sheet: React.FC<SheetProps> = ({
             </View>
           ) : null}
 
-          <View
-            style={[
-              {
-                backgroundColor: color ?? colors.surface.elevated,
-                borderTopLeftRadius: radius.pill,
-                borderTopRightRadius: radius.pill,
-                paddingHorizontal: space.screenX,
-                paddingTop: hasHeader ? space.screenX : spacing.md,
-                paddingBottom: Math.max(insets.bottom + spacing.lg, spacing["3xl"]),
-                maxHeight: SCREEN_H * 0.85,
-              },
-              elevation.e3,
-              contentStyle,
-            ]}
-          >
-            {!hasHeader ? (
-              <View
-                style={{
-                  width: GRAB_HANDLE.w,
-                  height: GRAB_HANDLE.h,
-                  borderRadius: radius.full,
-                  backgroundColor: handleColor,
-                  alignSelf: "center",
-                  marginBottom: spacing.lg,
-                }}
-              />
-            ) : null}
-
-            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-              {children}
-            </ScrollView>
-          </View>
+          {gradientColors ? (
+            // Gradient surface: overflow-clip the rounded top; the gradient fills
+            // edge-to-edge behind an inner padded wrapper. (overflow:hidden drops the
+            // iOS shadow — fine, a bright sheet reads on the dark backdrop regardless.)
+            <View
+              style={[
+                {
+                  borderTopLeftRadius: radius.pill,
+                  borderTopRightRadius: radius.pill,
+                  maxHeight: SCREEN_H * 0.85,
+                  overflow: "hidden",
+                  backgroundColor: gradientColors[0],
+                },
+                contentStyle,
+              ]}
+            >
+              <Gradient colors={gradientColors} style={StyleSheet.absoluteFill} />
+              <View style={contentPad}>{innerContent}</View>
+            </View>
+          ) : (
+            <View
+              style={[
+                {
+                  backgroundColor: color ?? colors.surface.elevated,
+                  borderTopLeftRadius: radius.pill,
+                  borderTopRightRadius: radius.pill,
+                  ...contentPad,
+                  maxHeight: SCREEN_H * 0.85,
+                },
+                elevation.e3,
+                contentStyle,
+              ]}
+            >
+              {innerContent}
+            </View>
+          )}
         </Animated.View>
       </View>
     </Modal>

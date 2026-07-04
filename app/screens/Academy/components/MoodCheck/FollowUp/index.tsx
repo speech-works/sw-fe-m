@@ -4,30 +4,33 @@ import {
   useRoute,
   useIsFocused,
 } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
+  StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
   BackHandler,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheetModal from "../../../../../components/BottomSheetModal";
 import ScreenView from "../../../../../components/ScreenView";
-import { theme } from "../../../../../Theme/tokens";
-import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../util/functions/parseStyles";
-
 import CustomScrollView from "../../../../../components/CustomScrollView";
-import GradientActionCard from "../../../DailyPractice/components/GradientActionCard";
+import {
+  Sheet,
+  Gradient,
+  Text,
+  Icon,
+  IconName,
+  IconButton,
+  useTheme,
+  icons,
+  withAlpha,
+  spacing,
+  space,
+  radius,
+  SemanticColors,
+} from "../../../../../design-system";
 
 import { MoodType } from "../../../../../api/moodCheck/types";
 import {
@@ -46,7 +49,7 @@ import CalmFace from "../../../../../assets/mood-check/CalmFace";
 import HappyFace from "../../../../../assets/mood-check/HappyFace";
 import SadFace from "../../../../../assets/mood-check/SadFace";
 
-const { width } = Dimensions.get("window");
+type AccentKey = keyof SemanticColors["accent"];
 
 const iconContainerStyle: ViewStyle = {
   display: "flex",
@@ -72,31 +75,32 @@ const ACTIVITY_ID_TO_TECHNIQUE: Record<string, string> = {
   "30000000-0000-4000-8000-000000000105": "SELF_DISCLOSURE",
 };
 
-// Map mood to content and activities
+// Map mood to content and activities. `accentKey` resolves the mood tint via the
+// DS accent roles (angry→danger, calm→success, happy→warning, sad→info).
 const moodContentMap = {
   [MoodType.HAPPY]: {
     title: "What’s been making you smile today?",
     desc: "Celebrating wins—big or small—boosts confidence. Share your joy.",
     FaceComponent: HappyFace,
-    gradientColor: theme.colors.moodcheck.happy,
+    accentKey: "warning" as AccentKey,
   },
   [MoodType.ANGRY]: {
     title: "Got some steam to let off?",
     desc: "Naming anger and putting it into words helps you release tension.",
     FaceComponent: AngryFace,
-    gradientColor: theme.colors.moodcheck.angry,
+    accentKey: "danger" as AccentKey,
   },
   [MoodType.SAD]: {
     title: "Need to lighten your heart?",
     desc: "Expressing tough feelings eases the load. Let it out in speech or text.",
     FaceComponent: SadFace,
-    gradientColor: theme.colors.moodcheck.sad,
+    accentKey: "info" as AccentKey,
   },
   [MoodType.CALM]: {
     title: "Feeling peaceful right now?",
     desc: "Capture this calm—it’ll be your anchor when things get hectic.",
     FaceComponent: CalmFace,
-    gradientColor: theme.colors.moodcheck.calm,
+    accentKey: "success" as AccentKey,
   },
 };
 
@@ -126,10 +130,10 @@ const FollowUp = () => {
   const isFocused = useIsFocused();
   const { mood } = route.params;
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const HEADER_HEIGHT = 60;
 
-  const { FaceComponent, title, desc, gradientColor } =
-    moodContentMap[mood];
+  const { FaceComponent, title, desc, accentKey } = moodContentMap[mood];
   const [recommendations, setRecommendations] = useState<
     PracticeSuggestion[]
   >([]);
@@ -154,11 +158,9 @@ const FollowUp = () => {
       onPress: () => {
         setExpressionType(EXPRESSION_TYPE_ENUM.TALK);
       },
-      icon: (
-        <Icon solid name="microphone" size={80} color="rgba(255,255,255,0.2)" />
-      ),
-      colors: [theme.colors.library.orange[400], "#F43F5E"] as const,
-      accentColor: "#FFF",
+      iconName: icons.spokeUp,
+      gradientToken: "sunrise" as const,
+      ink: colors.accentOn.warning,
     },
     {
       title: "Write it down",
@@ -166,16 +168,16 @@ const FollowUp = () => {
       onPress: () => {
         setExpressionType(EXPRESSION_TYPE_ENUM.WRITE);
       },
-      icon: <Icon solid name="edit" size={80} color="rgba(255,255,255,0.2)" />,
-      colors: ["#A78BFA", "#7C3AED"] as const,
-      accentColor: "#FFF",
+      iconName: "edit-3" as const,
+      gradientToken: "aurora" as const,
+      ink: colors.accentOn.purple,
     },
   ];
 
   const navigateToHome = () => {
     // Unwind the mood-check flow so this screen UNMOUNTS on exit. Otherwise it
     // lingers in the Explore tab's stack and its window-level exit prompt (a
-    // BottomSheetModal) can paint over whatever screen is focused in any tab.
+    // Sheet) can paint over whatever screen is focused in any tab.
     // Pop the MoodCheckStack off the parent (Explore) stack, then go Home.
     // Degrades safely: if the parent can't go back, we just navigate Home and
     // the focus-gate on the prompt still prevents any leak.
@@ -198,7 +200,7 @@ const FollowUp = () => {
   };
 
   // Safety: never let the exit prompt render while this screen is backgrounded.
-  // (A BottomSheetModal renders at the window level, so a lingering FollowUp
+  // (A Sheet renders at the window level, so a lingering FollowUp
   // could otherwise paint its prompt over other screens.)
   useEffect(() => {
     if (!isFocused) setShowExitPromptSheet(false);
@@ -271,48 +273,20 @@ const FollowUp = () => {
     switch (rec.contentType) {
       case "READING_PRACTICE":
         return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                { backgroundColor: theme.colors.library.orange[100] },
-              ]}
-            >
-              <Icon
-                solid
-                name="book-open"
-                size={20}
-                color={theme.colors.library.orange[500]}
-              />
-            </View>
-          ),
+          iconName: "book-open",
           action: rec.activityType === "QUOTE" ? "QuotePractice" : rec.activityType === "POEM" ? "PoemPractice" : "StoryPractice",
-          colors: [theme.colors.library.orange[400], "#F43F5E"] as const,
+          gradientToken: "sunrise" as const,
+          ink: colors.accentOn.warning,
           params: { id: rec.id, from: "MOOD_CHECK" },
         };
       case "FUN_PRACTICE":
         return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                { backgroundColor: theme.colors.library.green[100] },
-              ]}
-            >
-              <Icon
-                solid
-                name={
-                  rec.activityType === "TONGUE_TWISTER"
-                    ? "grin-squint" 
-                    : rec.activityType === "ROLEPLAY"
-                    ? "theater-masks"
-                    : "microphone-alt"
-                }
-                size={20}
-                color={theme.colors.library.green[400]}
-              />
-            </View>
-          ),
+          iconName:
+            rec.activityType === "TONGUE_TWISTER"
+              ? "smile"
+              : rec.activityType === "ROLEPLAY"
+              ? "film"
+              : "mic",
           action:
             rec.activityType === "TONGUE_TWISTER"
               ? "TwisterExercise"
@@ -321,49 +295,20 @@ const FollowUp = () => {
               : rec.activityType === "CHARACTER_VOICE"
               ? "CVExercise"
               : "TwisterPracticeStack",
-          colors: ["#34D399", "#059669"] as const,
+          gradientToken: "meadow" as const,
+          ink: colors.accentOn.success,
           params: { id: rec.id, from: "MOOD_CHECK" },
         };
       case "COGNITIVE_PRACTICE":
         return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                {
-                  backgroundColor:
-                    rec.activityType === "REFRAME"
-                      ? theme.colors.library.orange[100]
-                      : rec.activityType === "MEDITATION"
-                      ? "#F5F3FF" // Light purple
-                      : theme.colors.library.blue[100],
-                },
-              ]}
-            >
-              <Icon
-                solid
-                name={
-                  rec.activityType === "MEDITATION"
-                    ? "spa"
-                    : rec.activityType === "REFRAME"
-                    ? "brain"
-                    : rec.activityType === "CHALLENGE"
-                    ? "clipboard-list"
-                    : "wind"
-                }
-                size={20}
-                color={
-                  rec.activityType === "REFRAME"
-                    ? theme.colors.library.orange[400]
-                    : rec.activityType === "MEDITATION"
-                    ? "#7C3AED"
-                    : rec.activityType === "CHALLENGE"
-                    ? theme.colors.library.green[500]
-                    : theme.colors.library.blue[400]
-                }
-              />
-            </View>
-          ),
+          iconName:
+            rec.activityType === "MEDITATION"
+              ? "sparkles"
+              : rec.activityType === "REFRAME"
+              ? "refresh-cw"
+              : rec.activityType === "CHALLENGE"
+              ? "clipboard"
+              : "wind",
           action:
             rec.activityType === "MEDITATION"
               ? "MeditationPractice"
@@ -374,50 +319,38 @@ const FollowUp = () => {
               : rec.activityType === "MEDITATION"
               ? "MeditationPractice"
               : "BreathingPractice",
-          colors:
+          gradientToken:
             rec.activityType === "REFRAME"
-              ? ([theme.colors.library.orange[400], theme.colors.library.orange[600]] as const)
+              ? ("sunrise" as const)
               : rec.activityType === "MEDITATION"
-              ? (["#A78BFA", "#7C3AED"] as const)
+              ? ("aurora" as const)
               : rec.activityType === "CHALLENGE"
-              ? ([theme.colors.library.green[400], theme.colors.library.green[600]] as const)
-              : ([theme.colors.library.blue[400], theme.colors.library.blue[600]] as const),
+              ? ("meadow" as const)
+              : ("aurora" as const),
+          ink:
+            rec.activityType === "REFRAME"
+              ? colors.accentOn.warning
+              : rec.activityType === "MEDITATION"
+              ? colors.accentOn.purple
+              : rec.activityType === "CHALLENGE"
+              ? colors.accentOn.success
+              : colors.accentOn.info,
+          accentColors:
+            rec.activityType === "MEDITATION" || rec.activityType === "CHALLENGE" || rec.activityType === "REFRAME"
+              ? undefined
+              : ([colors.accent.info, colors.accent.info] as const),
           params: { id: rec.id, from: "MOOD_CHECK" },
         };
       case "EXPOSURE_PRACTICE":
         return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                {
-                  backgroundColor:
-                    rec.activityType === "CHALLENGE"
-                      ? theme.colors.library.blue[100]
-                      : theme.colors.library.orange[100],
-                },
-              ]}
-            >
-              <Icon
-                solid
-                name={
-                  rec.activityType === "CHALLENGE"
-                    ? "mountain"
-                    : rec.activityType === "DRILL"
-                    ? "dumbbell"
-                    : rec.activityType === "ROLEPLAY"
-                    ? "theater-masks"
-                    : "feather-alt"
-                }
-                size={20}
-                color={
-                  rec.activityType === "CHALLENGE"
-                    ? theme.colors.library.blue[400]
-                    : theme.colors.library.orange[400]
-                }
-              />
-            </View>
-          ),
+          iconName:
+            rec.activityType === "CHALLENGE"
+              ? "flag"
+              : rec.activityType === "DRILL"
+              ? "activity"
+              : rec.activityType === "ROLEPLAY"
+              ? "film"
+              : "feather",
           action:
             rec.activityType === "CHALLENGE"
               ? "RealLifeChallenge"
@@ -426,10 +359,18 @@ const FollowUp = () => {
               : rec.activityType === "DRILL" || rec.activityType === "TECHNIQUE"
               ? "TechniquePage"
               : "ExposurePractice",
-          colors:
+          gradientToken:
             rec.activityType === "CHALLENGE"
-              ? ([theme.colors.library.blue[400], theme.colors.library.blue[600]] as const)
-              : ([theme.colors.library.orange[400], theme.colors.library.orange[600]] as const),
+              ? ("aurora" as const)
+              : ("sunrise" as const),
+          ink:
+            rec.activityType === "CHALLENGE"
+              ? colors.accentOn.info
+              : colors.accentOn.warning,
+          accentColors:
+            rec.activityType === "CHALLENGE"
+              ? ([colors.accent.info, colors.accent.info] as const)
+              : undefined,
           params: {
             techniqueId: ACTIVITY_ID_TO_TECHNIQUE[rec.id] || rec.id,
             techniqueDesc: rec.description,
@@ -443,26 +384,11 @@ const FollowUp = () => {
         };
       default:
         return {
-          icon: (
-            <View
-              style={[
-                iconContainerStyle,
-                { backgroundColor: theme.colors.library.gray[100] },
-              ]}
-            >
-              <Icon
-                solid
-                name="play"
-                size={20}
-                color={theme.colors.library.gray[500]}
-              />
-            </View>
-          ),
+          iconName: icons.play,
           action: "StoryPractice",
-          colors: [
-            theme.colors.library.blue[400],
-            theme.colors.library.blue[600],
-          ] as const,
+          gradientToken: "aurora" as const,
+          ink: colors.accentOn.info,
+          accentColors: [colors.accent.info, colors.accent.info] as const,
           params: { id: rec.id, from: "MOOD_CHECK" },
         };
     }
@@ -500,42 +426,38 @@ const FollowUp = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
-        {/* Background Gradient */}
-        <LinearGradient
-          colors={[gradientColor, "#FFFFFF"]}
-          style={StyleSheet.absoluteFillObject}
+        <StatusBar barStyle="light-content" />
+        {/* Dark canvas background */}
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: colors.background.canvas },
+          ]}
+        />
+        {/* Mood-tinted top fade — the mood accent bleeding into the dark canvas. */}
+        <Gradient
+          colors={[colors.accentTint[accentKey], colors.background.canvas]}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.6 }}
+          end={{ x: 0.5, y: 0.55 }}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
         />
 
-        {/* Header */}
-        <BlurView
-          intensity={80}
-          tint="light"
+        {/* Header — standard back button, no title (matches every other screen). */}
+        <View
           style={[
             styles.header,
             { paddingTop: insets.top + 10, height: HEADER_HEIGHT + insets.top },
           ]}
         >
-          <TouchableOpacity
-            onPress={navigateToHome}
-            style={styles.backButton}
-          >
-            <Icon
-              name="chevron-left"
-              size={16}
-              color={theme.colors.text.title}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Daily Log</Text>
-          <View style={{ width: 32 }} />
-        </BlurView>
+          <IconButton name={icons.back} onPress={navigateToHome} />
+        </View>
 
         <View style={styles.container}>
           <CustomScrollView
             contentContainerStyle={[
               styles.innerContainer,
-              { paddingTop: HEADER_HEIGHT + insets.top },
+              { paddingTop: HEADER_HEIGHT + insets.top + space.sectionGap },
             ]}
           >
             {!submitted && (
@@ -547,14 +469,18 @@ const FollowUp = () => {
                     shouldAnimate={isFocused}
                   />
                 </View>
-                <Text style={styles.titleText}>{title}</Text>
-                <Text style={styles.descText}>{desc}</Text>
+                <Text variant="h2" color="primary" center>
+                  {title}
+                </Text>
+                <Text variant="body" color="secondary" center>
+                  {desc}
+                </Text>
               </View>
             )}
             {submitted ? (
               <View style={styles.helpfulActContianer}>
                 <View style={styles.helpfulHeader}>
-                  <Text style={styles.helpfulTitleText}>
+                  <Text variant="h2" color="primary" center>
                     Try one of these tailored activities:
                   </Text>
                 </View>
@@ -569,18 +495,25 @@ const FollowUp = () => {
                     return (
                       <View key={rec.id || idx} style={styles.cardContainer}>
                         {rec.dominantPhoneme && (
-                          <View style={styles.focusBadge}>
-                            <Text style={styles.focusBadgeText}>
+                          <View
+                            style={[
+                              styles.focusBadge,
+                              { backgroundColor: colors.accent.warning },
+                            ]}
+                          >
+                            <Text
+                              variant="caption"
+                              style={[
+                                styles.focusBadgeText,
+                                { color: colors.accentOn.warning },
+                              ]}
+                            >
                               Focus: /{rec.dominantPhoneme}/
                             </Text>
                           </View>
                         )}
-                        <GradientActionCard
-                          noChevron
-                          title={rec.title}
-                          description={rec.description}
-                          icon={config.icon}
-                          gradientColors={config.colors}
+                        <TouchableOpacity
+                          activeOpacity={0.9}
                           onPress={() => {
                             navigation.navigate({
                               name: config.action as any,
@@ -596,12 +529,47 @@ const FollowUp = () => {
                               }
                             });
                           }}
-                        />
+                        >
+                          <Gradient
+                            token={config.gradientToken}
+                            colors={(config as { accentColors?: readonly [string, string] }).accentColors}
+                            style={styles.recCard}
+                          >
+                            {/* Icon chip in the card's dark ink (dark-on-bright),
+                                so it's legible on the vivid gradient. */}
+                            <View
+                              style={[
+                                iconContainerStyle,
+                                { backgroundColor: withAlpha(config.ink, 0.16) },
+                              ]}
+                            >
+                              <Icon
+                                name={config.iconName as IconName}
+                                size={20}
+                                color={config.ink}
+                              />
+                            </View>
+                            <View style={styles.recTextContainer}>
+                              <Text
+                                variant="title"
+                                style={{ color: config.ink }}
+                              >
+                                {rec.title}
+                              </Text>
+                              <Text
+                                variant="bodySm"
+                                style={{ color: config.ink }}
+                              >
+                                {rec.description}
+                              </Text>
+                            </View>
+                          </Gradient>
+                        </TouchableOpacity>
                       </View>
                     );
                   })
                 )}
-                
+
               </View>
             ) : (
               <>
@@ -613,52 +581,53 @@ const FollowUp = () => {
                       onPress={item.onPress}
                       style={styles.cardWrapper}
                     >
-                      <LinearGradient
-                        colors={item.colors}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                      <Gradient
+                        token={item.gradientToken}
                         style={styles.gradientCard}
                       >
-                        {/* Decorative Bubbles */}
-                        <View
-                          style={[
-                            styles.bubble,
-                            { top: -20, right: -20, width: 80, height: 80 },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.bubble,
-                            {
-                              bottom: 10,
-                              left: 10,
-                              width: 40,
-                              height: 40,
-                              opacity: 0.1,
-                            },
-                          ]}
-                        />
-
                         <View style={styles.cardContent}>
                           <View>
-                            <Text style={styles.cardTitle}>{item.title}</Text>
-                            <Text style={styles.cardSubtitle}>
+                            <Text
+                              variant="h3"
+                              style={[styles.cardTitle, { color: item.ink }]}
+                            >
+                              {item.title}
+                            </Text>
+                            <Text
+                              variant="bodySm"
+                              style={{ color: item.ink }}
+                            >
                               {item.description}
                             </Text>
                           </View>
                           <View style={styles.iconContainer}>
-                            <View style={styles.iconWrapper}>{item.icon}</View>
+                            <View style={styles.iconWrapper}>
+                              <Icon name={item.iconName} size={56} color={item.ink} />
+                            </View>
                           </View>
                         </View>
-                        <View style={styles.playButton}>
-                          <Icon name="play" size={12} color={item.colors[1]} />
+                        <View
+                          style={[
+                            styles.playButton,
+                            { backgroundColor: colors.action.secondary },
+                          ]}
+                        >
+                          <Icon
+                            name={icons.play}
+                            size={12}
+                            color={colors.action.onSecondary}
+                          />
                           <Text
-                            style={[styles.playText, { color: item.colors[1] }]}
+                            variant="bodySm"
+                            style={[
+                              styles.playText,
+                              { color: colors.action.onSecondary },
+                            ]}
                           >
                             Start
                           </Text>
                         </View>
-                      </LinearGradient>
+                      </Gradient>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -670,7 +639,9 @@ const FollowUp = () => {
                 style={styles.skipButton}
                 activeOpacity={0.8}
               >
-                <Text style={styles.skipButtonText}>I&apos;ll do it later</Text>
+                <Text variant="body" color="secondary" style={styles.skipButtonText}>
+                  I&apos;ll do it later
+                </Text>
               </TouchableOpacity>
             </View>
           </CustomScrollView>
@@ -698,185 +669,225 @@ const FollowUp = () => {
         }}
       />
 
-      <BottomSheetModal
+      <Sheet
         visible={showExitPromptSheet && isFocused}
         onClose={() => setShowExitPromptSheet(false)}
-        fitContent
-        showCloseButton={true}
-        showHandle={false}
       >
         <View
           style={[
-            styles.exitPromptSheetContainer,
+            styles.sheetContainer,
             { paddingBottom: Math.max(insets.bottom, 28) },
           ]}
         >
-          <View style={styles.exitPromptIconShell}>
-            <LinearGradient
-              colors={["#FDBA74", "#F97316"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.exitPromptIconGradient}
-            >
-              <Icon name="exclamation" size={24} color="#FFFFFF" />
-            </LinearGradient>
+          <View
+            style={[
+              styles.sheetIconShell,
+              { backgroundColor: colors.accentTint.warning },
+            ]}
+          >
+            <Gradient token="brand" style={styles.sheetIconGradient}>
+              <Icon
+                name={icons.warning}
+                size={24}
+                color={colors.accentOn.warning}
+              />
+            </Gradient>
           </View>
 
-          <Text style={styles.exitPromptTitle}>Mood not recorded today</Text>
-          <Text style={styles.exitPromptDesc}>
+          <Text variant="h2" color="primary" center style={styles.sheetTitle}>
+            Mood not recorded today
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.sheetDesc}>
             Your mood check-in for today is still incomplete. You can stay here
             and record it now, or head back home and skip it for the day.
           </Text>
 
           <TouchableOpacity
-            style={styles.exitPromptPrimaryButton}
+            style={styles.sheetPrimaryButton}
             onPress={() => setShowExitPromptSheet(false)}
             activeOpacity={0.9}
           >
-            <LinearGradient
-              colors={["#FDBA74", "#F97316"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.exitPromptPrimaryGradient}
-            >
-              <Text style={styles.exitPromptPrimaryButtonText}>
+            <Gradient token="brand" style={styles.sheetPrimaryGradient}>
+              <Text
+                variant="body"
+                style={[styles.sheetPrimaryButtonText, { color: colors.accentOn.warning }]}
+              >
                 Record mood now
               </Text>
-            </LinearGradient>
+            </Gradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.exitPromptSecondaryButton}
+            style={[
+              styles.sheetSecondaryButton,
+              {
+                backgroundColor: colors.action.secondary,
+                borderColor: colors.border.default,
+              },
+            ]}
             onPress={() => {
               setShowExitPromptSheet(false);
               navigateToHome();
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.exitPromptSecondaryButtonText}>
+            <Text
+              variant="body"
+              style={[styles.sheetSecondaryButtonText, { color: colors.action.onSecondary }]}
+            >
               Skip for today
             </Text>
           </TouchableOpacity>
         </View>
-      </BottomSheetModal>
+      </Sheet>
 
-      <BottomSheetModal
+      <Sheet
         visible={recoverySheet.visible}
         onClose={handleCancelRecovery}
-        fitContent
-        showCloseButton={false}
-        closeOnBackdropPress={false}
-        backgroundColor="#FFF7F2"
+        color={colors.surface.default}
       >
         <View
           style={[
-            styles.recoverySheetContainer,
+            styles.sheetContainer,
             { paddingBottom: Math.max(insets.bottom, 28) },
           ]}
         >
-          <View style={styles.recoveryIconShell}>
-            <LinearGradient
-              colors={["#FF8A5B", "#FF5A5F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.recoveryIconGradient}
-            >
-              <Icon name="exclamation" size={28} color="#FFFFFF" />
-            </LinearGradient>
+          <View
+            style={[
+              styles.sheetIconShell,
+              { backgroundColor: colors.accentTint.danger },
+            ]}
+          >
+            <Gradient token="sunrise" style={styles.sheetIconGradient}>
+              <Icon
+                name={icons.danger}
+                size={28}
+                color={colors.accentOn.danger}
+              />
+            </Gradient>
           </View>
 
-          <Text style={styles.recoverySheetEyebrow}>Couldn&apos;t finish</Text>
-          <Text style={styles.recoverySheetTitle}>{recoveryTitle}</Text>
-          <Text style={styles.recoverySheetDesc}>{recoveryDescription}</Text>
+          <Text
+            variant="label"
+            center
+            style={[styles.sheetEyebrow, { color: colors.feedback.dangerText }]}
+          >
+            Couldn&apos;t finish
+          </Text>
+          <Text variant="h2" color="primary" center style={styles.sheetTitle}>
+            {recoveryTitle}
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.sheetDesc}>
+            {recoveryDescription}
+          </Text>
 
           <TouchableOpacity
-            style={styles.recoveryPrimaryButton}
+            style={styles.sheetPrimaryButton}
             onPress={handleRetryExpression}
             activeOpacity={0.9}
           >
-            <LinearGradient
-              colors={["#FF8A5B", "#FF5A5F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.recoveryPrimaryGradient}
-            >
-              <Text style={styles.recoveryPrimaryButtonText}>
+            <Gradient token="sunrise" style={styles.sheetPrimaryGradient}>
+              <Text
+                variant="body"
+                style={[styles.sheetPrimaryButtonText, { color: colors.accentOn.danger }]}
+              >
                 {recoveryPrimaryActionText}
               </Text>
-            </LinearGradient>
+            </Gradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.recoverySecondaryButton}
+            style={[
+              styles.sheetSecondaryButton,
+              {
+                backgroundColor: colors.action.secondary,
+                borderColor: colors.border.default,
+              },
+            ]}
             onPress={handleCancelRecovery}
             activeOpacity={0.8}
           >
-            <Text style={styles.recoverySecondaryButtonText}>
+            <Text
+              variant="body"
+              style={[styles.sheetSecondaryButtonText, { color: colors.action.onSecondary }]}
+            >
               Back to home
             </Text>
           </TouchableOpacity>
         </View>
-      </BottomSheetModal>
+      </Sheet>
 
-      <BottomSheetModal
+      <Sheet
         visible={showSuccessSheet}
         onClose={() => setShowSuccessSheet(false)}
-        fitContent
-        showCloseButton={true}
-        showHandle={false}
       >
         <View
           style={[
-            styles.successSheetContainer,
+            styles.sheetContainer,
             { paddingBottom: Math.max(insets.bottom, 28) },
           ]}
         >
-          <View style={styles.successIconShell}>
-            <LinearGradient
-              colors={["#34D399", "#059669"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.successIconGradient}
-            >
-              <Icon name="check" size={28} color="#FFFFFF" />
-            </LinearGradient>
+          <View
+            style={[
+              styles.sheetIconShell,
+              { backgroundColor: colors.accentTint.success },
+            ]}
+          >
+            <Gradient token="meadow" style={styles.sheetIconGradient}>
+              <Icon
+                name={icons.success}
+                size={28}
+                color={colors.accentOn.success}
+              />
+            </Gradient>
           </View>
 
-          <Text style={styles.successSheetTitle}>Mood recorded</Text>
-          <Text style={styles.successSheetDesc}>
+          <Text variant="h2" color="primary" center style={styles.sheetTitle}>
+            Mood recorded
+          </Text>
+          <Text variant="body" color="secondary" center style={styles.sheetDesc}>
             Your check-in has been saved successfully. We&apos;ve refreshed your
             progress and prepared a few helpful next steps for you.
           </Text>
 
           <TouchableOpacity
-            style={styles.successPrimaryButton}
+            style={styles.sheetPrimaryButton}
             onPress={() => setShowSuccessSheet(false)}
             activeOpacity={0.9}
           >
-            <LinearGradient
-              colors={["#34D399", "#059669"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.successPrimaryGradient}
-            >
-              <Text style={styles.successPrimaryButtonText}>
+            <Gradient token="meadow" style={styles.sheetPrimaryGradient}>
+              <Text
+                variant="body"
+                style={[styles.sheetPrimaryButtonText, { color: colors.accentOn.success }]}
+              >
                 See recommendations
               </Text>
-            </LinearGradient>
+            </Gradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.successSecondaryButton}
+            style={[
+              styles.sheetSecondaryButton,
+              {
+                backgroundColor: colors.action.secondary,
+                borderColor: colors.border.default,
+              },
+            ]}
             onPress={() => {
               setShowSuccessSheet(false);
               navigateToHome();
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.successSecondaryButtonText}>Back to home</Text>
+            <Text
+              variant="body"
+              style={[styles.sheetSecondaryButtonText, { color: colors.action.onSecondary }]}
+            >
+              Back to home
+            </Text>
           </TouchableOpacity>
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </>
   );
 };
@@ -888,19 +899,18 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   container: {
-    gap: 16,
+    gap: spacing.lg,
     flex: 1,
   },
   innerContainer: {
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing["4xl"],
   },
   helpfulHeader: {
     alignItems: "center",
     justifyContent: "center",
   },
-  // hardMode styles removed
   loadingContainer: {
     height: 200,
     justifyContent: "center",
@@ -912,17 +922,13 @@ const styles = StyleSheet.create({
   focusBadge: {
     position: "absolute",
     top: -8,
-    right: 16,
-    backgroundColor: "#F97316",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    right: spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
     zIndex: 10,
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
   focusBadgeText: {
-    color: "#FFF",
-    fontSize: 10,
     fontWeight: "800",
     textTransform: "uppercase",
   },
@@ -933,304 +939,110 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
     marginTop: 2,
   },
-
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-
   titleWrapper: {
-    gap: 16,
+    gap: spacing.lg,
     alignItems: "center",
   },
   faceContainer: {
     alignItems: "center",
     justifyContent: "center",
   },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-  },
-  descText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    fontWeight: "400",
-  },
-
   followUpActContainer: {
-    gap: 16,
+    gap: spacing.lg,
   },
   helpfulActContianer: {
-    gap: 16,
-  },
-  helpfulTitleText: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
+    gap: spacing.lg,
   },
   skipContainer: {
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 32,
+    marginTop: spacing.lg,
+    marginBottom: spacing["3xl"],
   },
   skipButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     alignItems: "center",
     justifyContent: "center",
   },
   skipButtonText: {
-    ...parseTextStyle(theme.typography.Button),
-    color: theme.colors.text.default,
     fontWeight: "600",
   },
-  successSheetContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
+  sheetContainer: {
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing["3xl"],
     alignItems: "center",
-    backgroundColor: "#F8FFFC",
   },
-  successIconShell: {
+  sheetIconShell: {
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
   },
-  successIconGradient: {
+  sheetIconGradient: {
     width: 68,
     height: 68,
     borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
   },
-  successSheetTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  successSheetDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  successPrimaryButton: {
-    width: "100%",
-    borderRadius: 18,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  successPrimaryGradient: {
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  successPrimaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  successSecondaryButton: {
-    width: "100%",
-    height: 50,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(15, 23, 42, 0.08)",
-  },
-  successSecondaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  exitPromptSheetContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    alignItems: "center",
-    backgroundColor: "#FFF9F3",
-  },
-  exitPromptIconShell: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: "rgba(249, 115, 22, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  exitPromptIconGradient: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  exitPromptTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  exitPromptDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  exitPromptPrimaryButton: {
-    width: "100%",
-    borderRadius: 18,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  exitPromptPrimaryGradient: {
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  exitPromptPrimaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  exitPromptSecondaryButton: {
-    width: "100%",
-    height: 50,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "rgba(15, 23, 42, 0.08)",
-  },
-  exitPromptSecondaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    fontWeight: "600",
-  },
-  recoverySheetContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    alignItems: "center",
-    backgroundColor: "#FFF7F2",
-  },
-  recoveryIconShell: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: "rgba(255, 122, 89, 0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-  recoveryIconGradient: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  recoverySheetEyebrow: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    textAlign: "center",
-    color: "#F97316",
+  sheetEyebrow: {
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  recoverySheetTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
-    textAlign: "center",
-    marginBottom: 10,
+  sheetTitle: {
+    marginBottom: spacing.sm,
   },
-  recoverySheetDesc: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
+  sheetDesc: {
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: spacing["2xl"],
   },
-  recoveryPrimaryButton: {
+  sheetPrimaryButton: {
     width: "100%",
-    borderRadius: 18,
+    borderRadius: radius.input,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  recoveryPrimaryGradient: {
+  sheetPrimaryGradient: {
     height: 52,
     alignItems: "center",
     justifyContent: "center",
   },
-  recoveryPrimaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: "#FFFFFF",
+  sheetPrimaryButtonText: {
     fontWeight: "700",
   },
-  recoverySecondaryButton: {
+  sheetSecondaryButton: {
     width: "100%",
     height: 50,
-    borderRadius: 18,
+    borderRadius: radius.input,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(15, 23, 42, 0.08)",
   },
-  recoverySecondaryButtonText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
+  sheetSecondaryButtonText: {
     fontWeight: "600",
   },
-  lottie: {
-    // Removed
-  },
   cardWrapper: {
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    backgroundColor: "#fff", // Fallback
+    borderRadius: radius.card,
   },
   gradientCard: {
-    borderRadius: 24,
-    padding: 20,
-    height: 140, // Fixed height for consistency
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    // Natural height with a real gap between the copy and the Start button (a fixed
+    // height + space-between crammed them together). Matches the card CTA rhythm.
+    gap: space.sectionGap,
     position: "relative",
     overflow: "hidden",
-    justifyContent: "space-between",
-  },
-  bubble: {
-    position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.2)",
   },
   cardContent: {
     flexDirection: "row",
@@ -1239,42 +1051,46 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   cardTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: "#FFF",
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "500",
+    marginBottom: spacing.xs,
   },
   iconContainer: {
     position: "absolute",
-    right: -20,
-    bottom: -50,
+    right: -16,
+    bottom: -36,
     zIndex: 0,
+    opacity: 0.2,
   },
   iconWrapper: {
-    // To allow transforming checks if needed
     transform: [{ scale: 1.2 }, { rotate: "-10deg" }],
-    opacity: 0.9,
+  },
+  recCard: {
+    borderRadius: radius.card,
+    padding: spacing.xl,
+    paddingVertical: spacing["2xl"],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.lg,
+    overflow: "hidden",
+  },
+  recIconWrapper: {
+    // leading icon chip
+  },
+  recTextContainer: {
+    flex: 1,
+    gap: space.titleSub,
   },
   playButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.chip,
     alignSelf: "flex-start",
     gap: 6,
     zIndex: 2,
-    ...parseShadowStyle(theme.shadow.elevation1),
     marginTop: "auto", // Push to bottom
   },
   playText: {
-    ...parseTextStyle(theme.typography.BodySmall),
     fontWeight: "700",
   },
 });

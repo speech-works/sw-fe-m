@@ -6,7 +6,6 @@ import { PackProgress, PackRecommendation } from "../../api/packs/types";
 import PressableScale from "../PressableScale";
 import ErrorStateCard from "./ErrorStateCard";
 import {
-  Gradient,
   Sheet,
   Text,
   Button,
@@ -128,7 +127,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           })
         }
       >
-        <Gradient token="meadow" style={[styles.gradient, styles.gradientCentered]}>
+        <View style={[styles.gradient, styles.gradientCentered, { backgroundColor: colors.accent.success }]}>
           <View style={styles.watermarkMain} pointerEvents="none">
             <Icon name={icons.success} size={140} color={withAlpha(ink, 0.14)} />
           </View>
@@ -156,12 +155,12 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               </Text>
             </View>
           </View>
-        </Gradient>
+        </View>
       </PressableScale>
     );
   }
 
-  const { pack, tags } = recommendation;
+  const { pack } = recommendation;
 
   // Calculate Progress
   // Safely access modules (backend might return undefined modules list)
@@ -225,7 +224,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
     setModalVisible(false);
   };
 
-  const ink = colors.accentOn.danger;
+  const ink = colors.action.onPrimary;
   const watermarkIcon = isSafetyMode ? icons.care : icons.energy;
 
   return (
@@ -236,18 +235,16 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
         onPress={percentComplete >= 1 ? handleFindNext : handlePress}
         disabled={percentComplete >= 1 && isRefreshing}
       >
-        <Gradient token="sunrise" style={styles.gradient}>
+        <View style={[styles.gradient, { backgroundColor: colors.action.primary }]}>
           <View>
             {/* 1. Header Section */}
             <View style={styles.headerText}>
-              {tags && tags.length > 0 ? (
-                <View style={styles.eyebrow}>
-                  <Icon name={icons.streak} size={12} color={ink} />
-                  <Text variant="label" color={ink}>
-                    {tags[0].toUpperCase()}
-                  </Text>
-                </View>
-              ) : null}
+              <View style={styles.eyebrow}>
+                <Icon name={icons.journeyRoute} size={14} color={ink} />
+                <Text variant="label" color={ink}>
+                  Guided Path
+                </Text>
+              </View>
               <Text variant="h2" color={ink} style={styles.packTitle}>
                 {pack.title}
               </Text>
@@ -264,10 +261,10 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             {/* 2. Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressLabels}>
-                <Text variant="caption" color={ink}>
+                <Text variant="bodySm" color={ink}>
                   Module {nextModuleOrder} of {totalModules}
                 </Text>
-                <Text variant="caption" color={ink}>
+                <Text variant="bodySm" color={ink}>
                   {Math.round(percentComplete * 100)}%
                 </Text>
               </View>
@@ -286,13 +283,6 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           {percentComplete >= 1 ? (
             <View style={styles.innerCard}>
               <View style={styles.innerCardContent}>
-                <View style={styles.innerWatermark} pointerEvents="none">
-                  <Icon
-                    name={icons.win}
-                    size={140}
-                    color={withAlpha(colors.action.primary, 0.1)}
-                  />
-                </View>
                 <Text variant="label" color={colors.action.primary}>
                   ALL CAUGHT UP
                 </Text>
@@ -317,13 +307,6 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             nextModuleDisplay && (
               <View style={styles.innerCard}>
                 <View style={styles.innerCardContent}>
-                  <View style={styles.innerWatermark} pointerEvents="none">
-                    <Icon
-                      name={icons.spokeUp}
-                      size={140}
-                      color={withAlpha(colors.action.primary, 0.1)}
-                    />
-                  </View>
                   <Text variant="label" color={colors.action.primary}>
                     CURRENT MODULE
                   </Text>
@@ -342,7 +325,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               </View>
             )
           )}
-        </Gradient>
+        </View>
         {recommendation.isRefresher && (
           <View style={styles.refresherBadge}>
             <Text variant="caption" color={colors.accentOn.success}>
@@ -485,15 +468,9 @@ const useStyles = makeStyles((c) => ({
     gap: space.inlineGap,
     position: "relative",
   },
-  innerWatermark: {
-    position: "absolute",
-    top: -20,
-    right: -20,
-    zIndex: 0,
-    transform: [{ rotate: "-15deg" }],
-  },
   innerTitle: {
     marginTop: space.titleSub,
+    marginBottom: space.titleSub,
   },
   actionBar: {
     backgroundColor: c.surface.control,

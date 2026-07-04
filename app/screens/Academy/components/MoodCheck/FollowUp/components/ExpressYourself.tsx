@@ -1,15 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheetModal from "../../../../../../components/BottomSheetModal";
+import { StyleSheet, View } from "react-native";
 
 import { logMood } from "../../../../../../api/moodCheck";
 import { MoodType } from "../../../../../../api/moodCheck/types";
@@ -18,11 +8,20 @@ import { useRecordedVoice } from "../../../../../../hooks/useRecordedVoice";
 import { useMoodCheckStore } from "../../../../../../stores/mood";
 import { useProgressReportStore } from "../../../../../../stores/progressReport";
 import { useUserStore } from "../../../../../../stores/user";
-import { theme } from "../../../../../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../../../../../util/functions/parseStyles";
+  useTheme,
+  space,
+  spacing,
+  radius,
+  size,
+  gradients,
+  Sheet,
+  Text,
+  Icon,
+  Button,
+  TextField,
+  withAlpha,
+} from "../../../../../../design-system";
 import SmartRecorder from "../../../../DailyPractice/pages/ReadingPractice/StoryPractice/components/SmartRecorder";
 
 export enum EXPRESSION_TYPE_ENUM {
@@ -71,7 +70,7 @@ const ExpressYourself = ({
   onSubmit,
   onError,
 }: ExpressYourselfProps) => {
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { user } = useUserStore();
   const setMood = useMoodCheckStore((state) => state.setMood);
   const fetchReport = useProgressReportStore((state) => state.fetchReport);
@@ -148,249 +147,135 @@ const ExpressYourself = ({
     }
   };
 
-  // Premium Light Configuration
+  // Per-mode identity — the SAME fill as the parent action card (Talk = orange /
+  // action.primary ≈ the sunrise card; Write = purple ≈ the aurora card), dark ink.
   const getConfig = () => {
     if (expressionType === EXPRESSION_TYPE_ENUM.WRITE) {
       return {
-        // Light Purple Gradient (Background)
-        gradient: [
-          theme.colors.library.purple[100],
-          theme.colors.library.purple[200],
-        ] as const,
-        icon: "pencil",
+        gradientColors: gradients.aurora.colors, // matches the "Write it down" card
+        fill: colors.accent.purple,
+        ink: colors.accentOn.purple,
+        icon: "edit-3" as const,
         title: "Write it down",
         subtitle: "Clear your mind by putting thoughts into words.",
-        // Vibrant Button
-        buttonGradient: [
-          theme.colors.library.purple[400],
-          theme.colors.library.purple[600],
-        ] as const,
-        // Dark Text for Contrast
-        titleColor: theme.colors.library.purple[800],
-        iconColor: theme.colors.library.purple[400],
       };
     }
     return {
-      // Light Orange Gradient (Background)
-      gradient: [
-        theme.colors.library.orange[100],
-        theme.colors.library.orange[200],
-      ] as const,
-      icon: "microphone",
+      gradientColors: gradients.sunrise.colors, // matches the "Talk it out" card
+      fill: colors.action.primary,
+      ink: colors.accentOn.warning,
+      icon: "mic" as const,
       title: "Talk it out",
       subtitle: "Speak freely to release tension and process emotions.",
-      // Vibrant Button
-      buttonGradient: [
-        theme.colors.library.orange[400],
-        theme.colors.library.red[400],
-      ] as const,
-      // Dark Text for Contrast
-      titleColor: theme.colors.library.orange[800],
-      iconColor: theme.colors.library.orange[400],
     };
   };
 
   const config = getConfig();
+  const fill = config.fill;
+  const ink = config.ink;
 
   return (
-    <View>
-      <BottomSheetModal
-        visible={expressionType !== null}
-        onClose={onClose}
-        onAfterClose={onAfterClose}
-        showCloseButton={true}
-        fitContent={true}
-        backgroundColor={config.gradient[1]}
-        hasBottomSafePadding={false}
-      >
-        <LinearGradient
-          colors={config.gradient}
-          style={[styles.container, { paddingBottom: Math.max(insets.bottom, 24) }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          {/* Decorative Bubbles (Subtle White) */}
-          <View style={styles.bubbleTopRight} />
-          <View style={styles.bubbleBottomLeft} />
-
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: config.titleColor }]}>
-                {config.title}
-              </Text>
-              <Text style={styles.headerSubtitle}>{config.subtitle}</Text>
-            </View>
-            <View style={styles.iconContainer}>
-              <MaterialIcon
-                name={config.icon}
-                size={32}
-                color={config.iconColor}
-                style={{ opacity: 0.2 }}
-              />
-            </View>
+    <Sheet
+      visible={expressionType !== null}
+      onClose={onClose}
+      onDismissed={onAfterClose}
+      gradientColors={config.gradientColors}
+    >
+      <View style={styles.body}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.headerTextContainer}>
+            <Text variant="h2" color={ink}>
+              {config.title}
+            </Text>
+            <Text variant="body" color={ink}>
+              {config.subtitle}
+            </Text>
           </View>
+          <View style={styles.iconContainer}>
+            <Icon name={config.icon} size={32} color={withAlpha(ink, 0.25)} />
+          </View>
+        </View>
 
-          {/* Interaction Section */}
-          {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
-            <View style={styles.card} pointerEvents={isSubmitting ? "none" : "auto"}>
-              <TextInput
-                style={styles.textInput}
-                multiline
-                placeholder="Start writing here..."
-                placeholderTextColor={theme.colors.text.disabled}
-                value={writtenText}
-                onChangeText={setWrittenText}
-              />
-              {/* Action Button for Write mode */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleSubmit}
-                disabled={writtenText.length < 1 || isSubmitting}
-                style={[
-                  styles.buttonContainer,
-                  (writtenText.length < 1 || isSubmitting) &&
-                    styles.disabledButtonContainer,
-                ]}
-              >
-                <LinearGradient
-                  colors={config.buttonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.gradientButton}
-                >
-                  <Text style={styles.submitText}>
-                    {isSubmitting ? "Saving..." : "Let it out"}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View
-              style={styles.recorderSection}
-              pointerEvents={isSubmitting ? "none" : "auto"}
-            >
-              <Text style={styles.recorderHint}>
-                {isSubmitting ? "Saving your mood..." : "Ready to record"}
-              </Text>
-              <SmartRecorder
-                onRecorded={(uri) => setVoiceRecordingUri(uri)}
-                prevRecordingUri={voiceRecordingUri || undefined}
-                onSubmit={handleSubmit}
-                onDiscard={() => setVoiceRecordingUri(null)}
-              />
-            </View>
-          )}
-        </LinearGradient>
-      </BottomSheetModal>
-    </View>
+        {/* Interaction Section */}
+        {expressionType === EXPRESSION_TYPE_ENUM.WRITE ? (
+          <View
+            style={[styles.card, { backgroundColor: colors.surface.default }]}
+            pointerEvents={isSubmitting ? "none" : "auto"}
+          >
+            <TextField
+              multiline
+              numberOfLines={6}
+              placeholder="Start writing here..."
+              value={writtenText}
+              onChangeText={setWrittenText}
+            />
+            {/* Action Button for Write mode */}
+            <Button
+              label={isSubmitting ? "Saving..." : "Let it out"}
+              onPress={handleSubmit}
+              disabled={writtenText.length < 1 || isSubmitting}
+              accentColor={fill}
+              onAccentColor={ink}
+            />
+          </View>
+        ) : (
+          <View
+            style={styles.recorderSection}
+            pointerEvents={isSubmitting ? "none" : "auto"}
+          >
+            <Text variant="body" color={ink} center>
+              {isSubmitting ? "Saving your mood..." : "Ready to record"}
+            </Text>
+            <SmartRecorder
+              onRecorded={(uri) => setVoiceRecordingUri(uri)}
+              prevRecordingUri={voiceRecordingUri || undefined}
+              onSubmit={handleSubmit}
+              onDiscard={() => setVoiceRecordingUri(null)}
+            />
+          </View>
+        )}
+      </View>
+    </Sheet>
   );
 };
 
 export default ExpressYourself;
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-    paddingTop: 54,
-    position: "relative",
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    overflow: "hidden",
-  },
-  bubbleTopRight: {
-    position: "absolute",
-    top: -50,
-    right: -30,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(255, 255, 255, 0.4)", // Substle white on light bg
-  },
-  bubbleBottomLeft: {
-    position: "absolute",
-    bottom: -20,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+  body: {
+    gap: space.groupGap,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: space.groupGap,
+    gap: space.iconText,
     zIndex: 1,
   },
   headerTextContainer: {
     flex: 1,
-    paddingRight: 12,
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading2),
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.library.gray[500],
-    lineHeight: 20,
-    fontSize: 14,
+    gap: space.titleSub,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: size.backBtn,
+    height: size.backBtn,
     justifyContent: "center",
     alignItems: "center",
     transform: [{ rotate: "-15deg" }],
-    // No background, just the icon acting as watermark
   },
   card: {
-    backgroundColor: "#FFF",
-    borderRadius: 32,
-    padding: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    gap: 24,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.lg,
     zIndex: 2,
-  },
-  textInput: {
-    height: 140,
-    textAlignVertical: "top",
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.library.gray[800],
-    fontSize: 18,
+    marginTop: spacing["2xl"], // sit the interaction a bit below the header
   },
   recorderSection: {
-    gap: 16,
+    gap: space.groupGap,
     zIndex: 2,
-    paddingBottom: 10,
-  },
-  recorderHint: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  buttonContainer: {
-    borderRadius: 20,
-    overflow: "hidden",
-    marginTop: 8,
-  },
-  disabledButtonContainer: {
-    opacity: 0.5,
-  },
-  gradientButton: {
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  submitText: {
-    color: "#FFF",
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    fontSize: 16,
+    paddingTop: spacing["3xl"], // drop the recorder down from the header copy
+    paddingBottom: spacing.lg,
   },
 });

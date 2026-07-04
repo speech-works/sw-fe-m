@@ -35,6 +35,7 @@ import {
   icons,
   makeStyles,
   spacing,
+  space,
   radius,
   useTheme,
 } from "../../design-system";
@@ -558,10 +559,12 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
         // Vibrant Purple/Violet Gradient for Growth/Insights
         style={styles.container}
       >
-        {/* Decorative Bubbles */}
+        {/* Decorative watermark — sprout, echoing the card's growth identity
+            (same glyph as the eyebrow, and as the app's other growth-journey
+            cards) instead of an unrelated trend arrow. */}
         <View style={styles.mainWatermarkContainer}>
           <Icon
-            name={icons.trend}
+            name={icons.growthSeed}
             size={300}
             color={colors.action.primary}
             style={{ opacity: 0.08 }}
@@ -585,7 +588,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                     dashboard-card header grammar (ResourceStats / SmartRec). */}
                 <View style={styles.eyebrow}>
                   <Icon
-                    name={icons.chartPie}
+                    name={icons.growthSeed}
                     size={14}
                     color={colors.action.primary}
                   />
@@ -638,7 +641,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               </>
             ) : (
               <>
-                <Text variant="h3" color="primary" style={styles.bigTitle}>
+                <Text variant="h2" color="primary">
                   Growth Profile
                 </Text>
                 <Text variant="bodySm" color="secondary" style={styles.subtitle}>
@@ -876,11 +879,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                 {topBreakthroughs.length > 0 ? (
                   <>
                     <Text
-                      variant="label"
-                      color="tertiary"
+                      variant="title"
+                      color="primary"
                       style={styles.sectionLabel}
                     >
-                      TOP BREAKTHROUGHS
+                      Top Breakthroughs
                     </Text>
                     {(() => {
                       const [heroItem, ...secondaryItems] = topBreakthroughs;
@@ -929,9 +932,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
                                   <View style={styles.compactBreakthroughHeader}>
                                     <Text
-                                      variant="label"
-                                      color="secondary"
-                                      style={[styles.cardTitle, { marginBottom: 0 }]}
+                                      variant="title"
+                                      color="primary"
+                                      style={styles.cardTitle}
                                       numberOfLines={1}
                                       adjustsFontSizeToFit
                                       minimumFontScale={0.7}
@@ -1017,9 +1020,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                             >
                               <View style={styles.heroHeader}>
                                 <Text
-                                  variant="label"
-                                  color="secondary"
-                                  style={[styles.cardTitle, { marginBottom: 0 }]}
+                                  variant="title"
+                                  color="primary"
+                                  style={styles.cardTitle}
                                 >
                                   {heroItem.config.label}
                                 </Text>
@@ -1123,12 +1126,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                         }}
                                       >
                                         <Text
-                                          variant="label"
-                                          color="secondary"
-                                          style={[
-                                            styles.cardTitle,
-                                            { marginBottom: 0, flex: 1 },
-                                          ]}
+                                          variant="title"
+                                          color="primary"
+                                          style={[styles.cardTitle, { flex: 1 }]}
                                           numberOfLines={1}
                                           adjustsFontSizeToFit
                                           minimumFontScale={0.8}
@@ -1257,9 +1257,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 const useStyles = makeStyles((c) => ({
   container: {
     borderRadius: radius.card,
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 24, // Reduced bottom padding
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
     marginVertical: 0,
     backgroundColor: c.surface.default,
     overflow: "hidden",
@@ -1306,14 +1306,14 @@ const useStyles = makeStyles((c) => ({
   // Decorative Elements (White transparent overlays)
 
   header: {
-    marginBottom: 24,
+    marginBottom: space.sectionGap,
     zIndex: 1,
   },
   headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   eyebrow: {
     flexDirection: "row",
@@ -1324,21 +1324,16 @@ const useStyles = makeStyles((c) => ({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     backgroundColor: c.action.primaryTint,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: radius.md,
+    gap: spacing.sm,
     alignSelf: "flex-start",
   },
-  chipText: {
-    letterSpacing: 1.5,
-  },
+  chipText: {},
   textContainer: {
-    gap: 6,
-  },
-  bigTitle: {
-    letterSpacing: -0.6,
+    gap: space.titleSub,
   },
   subtitle: {},
   syncLink: {
@@ -1453,9 +1448,7 @@ const useStyles = makeStyles((c) => ({
     alignItems: "flex-start",
   },
   cardTitle: {
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.2,
+    marginBottom: space.titleSub,
   },
   heroValue: {
     letterSpacing: -1,
@@ -1496,8 +1489,6 @@ const useStyles = makeStyles((c) => ({
   },
   sectionLabel: {
     marginBottom: spacing.lg,
-    textTransform: "uppercase",
-    letterSpacing: 2,
   },
 
   btChange: {

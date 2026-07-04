@@ -233,7 +233,7 @@ const ResourceStats = ({
                 OVERVIEW
               </Text>
             </View>
-            <Text variant="h3" color="primary" style={styles.cardTitle}>
+            <Text variant="h2" color="primary" style={styles.cardTitle}>
               Daily Progress
             </Text>
             <Text variant="bodySm" color="secondary">
@@ -251,8 +251,8 @@ const ResourceStats = ({
                 <View style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}>
                   <Icon name={icons.energy} size={16} color={colors.action.primary} />
                 </View>
-                <Text variant="label" color="secondary">
-                  ENERGY TANK
+                <Text variant="title" color="primary">
+                  Energy Tank
                 </Text>
               </View>
               <Text variant="h2" color={colors.action.primary}>
@@ -318,9 +318,8 @@ const ResourceStats = ({
                 </View>
 
                 <View style={styles.cardHeader}>
-                  {/* secondary, not tertiary — tertiary is sub-AA on surface.control */}
-                  <Text variant="label" color="secondary">
-                    FREE ACTIVITY
+                  <Text variant="title" color="primary">
+                    Free Activity
                   </Text>
                 </View>
                 <View style={styles.cardBody}>
@@ -371,8 +370,8 @@ const ResourceStats = ({
                 </View>
 
                 <View style={styles.cardHeader}>
-                  <Text variant="label" color="secondary">
-                    LEVEL
+                  <Text variant="title" color="primary">
+                    Level
                   </Text>
                 </View>
                 <View style={styles.cardBody}>
