@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
@@ -14,8 +14,14 @@ import {
 import { GrowthProfileAxisKey } from "../../api/overallState/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import {
+  buildTrendWeeks,
+  overallOf,
+} from "../../stores/userBehaviorTrends/selectors";
+import {
   Icon,
   Text,
+  TrendLine,
+  AnimatedNumber,
   icons,
   makeStyles,
   spacing,
@@ -23,8 +29,6 @@ import {
   radius,
   useTheme,
   useMotion,
-  duration,
-  easing,
 } from "../../design-system";
 import type { IconName } from "../../design-system/components/Icon";
 import PressableScale from "../PressableScale";
@@ -36,8 +40,8 @@ import { HomeStackNavigationProp } from "../../navigators/index";
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-// --- 1. Translation Map ---
 type MetricAccentKey = "success" | "danger" | "info" | "purple" | "warning";
+type MomentumState = "ACTIVE" | "QUIET" | "SLIPPING";
 
 const METRIC_CONFIG: Record<
   ClinicalDomain,
@@ -45,7 +49,6 @@ const METRIC_CONFIG: Record<
     label: string;
     accentKey: MetricAccentKey;
     icon: IconName;
-    description: string;
     profileKey: keyof GrowthProfileMetrics;
   }
 > = {
@@ -53,59 +56,54 @@ const METRIC_CONFIG: Record<
     label: "Confidence",
     accentKey: "success",
     icon: icons.confidence,
-    description: "Belief in your ability to speak freely.",
     profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
     accentKey: "danger",
     icon: icons.courage,
-    description: "Facing situations without holding back.",
     profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
-    label: "Mastery", // Was Control
+    label: "Mastery",
     accentKey: "info",
     icon: icons.mastery,
-    description: "Managing speech techniques effectively.",
     profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
-    label: "Ease", // Was Flow
+    label: "Ease",
     accentKey: "purple",
     icon: icons.ease,
-    description: "Smoothness in daily communication.",
     profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
     accentKey: "warning",
     icon: icons.social,
-    description: "Active participation in social life.",
     profileKey: "social",
   },
 };
 
-type MetricRowItem = {
+// Momentum wording matches Progress Report's WeeklyGrowthCard.
+const MOMENTUM_LABEL: Record<MomentumState, string> = {
+  ACTIVE: "Rising",
+  QUIET: "Stable",
+  SLIPPING: "Slipping",
+};
+
+type MetricChipItem = {
   key: GrowthProfileAxisKey;
   domain: ClinicalDomain;
   config: (typeof METRIC_CONFIG)[ClinicalDomain];
   current: number;
-  previous: number | null;
-  absoluteDelta: number | null;
-  percentDelta: number | null;
   hasComparison: boolean;
+  percentDelta: number | null;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 };
 
-/**
- * One tappable metric row: accent icon + name, an animated bar of the combined
- * score with a ghost tick at last week's value, and a right-aligned delta chip.
- * Precise and scannable where the old radar was a blob — every metric's weekly
- * change is visible at a glance, and the whole row is an obvious tap target.
- */
-const MetricRow: React.FC<{
-  item: MetricRowItem;
+/** One tappable metric tile — accent icon, score, a trend arrow, and its label. */
+const MetricChip: React.FC<{
+  item: MetricChipItem;
   index: number;
   onPress: (domain: ClinicalDomain) => void;
 }> = ({ item, index, onPress }) => {
@@ -114,81 +112,38 @@ const MetricRow: React.FC<{
   const motion = useMotion();
 
   const accent = colors.accent[item.config.accentKey];
-  const current = clamp(item.current ?? 0, 0, 100);
-  const previous =
-    item.hasComparison && item.previous != null
-      ? clamp(item.previous, 0, 100)
-      : null;
-
-  // Bar fills 0 → score on mount (skipped under reduced motion).
-  const fillAnim = useSharedValue(motion.reduced ? current : 0);
-  useEffect(() => {
-    fillAnim.value = motion.reduced
-      ? current
-      : withTiming(current, { duration: duration.reveal, easing: easing.out });
-  }, [current, motion.reduced]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${fillAnim.value}%`,
-  }));
-
   const pct = item.percentDelta;
   const improving = item.trend === "IMPROVING" && (pct ?? 0) > 0;
   const worsening = item.trend === "WORSENING" && (pct ?? 0) < 0;
-  const showDelta = item.hasComparison && pct != null && (improving || worsening);
-  const deltaColor = improving
-    ? colors.feedback.successText
-    : colors.feedback.dangerText;
+  const showTrend = item.hasComparison && (improving || worsening);
 
   return (
-    <Animated.View entering={motion.stagger(index)}>
+    <Animated.View style={styles.chipWrap} entering={motion.stagger(index)}>
       <PressableScale
-        scaleTo={0.98}
+        scaleTo={0.96}
         onPress={() => onPress(item.domain)}
-        style={styles.row}
+        style={styles.chip}
       >
-        <View style={styles.labelBox}>
-          <Icon name={item.config.icon} size={18} color={accent} />
-          <Text variant="title" color="primary" numberOfLines={1}>
-            {item.config.label}
+        <Icon name={item.config.icon} size={18} color={accent} />
+        <View style={styles.chipValueRow}>
+          <Text variant="title" color="primary">
+            {Math.round(item.current)}
           </Text>
-        </View>
-
-        <View style={styles.trackWrap}>
-          <View style={styles.track}>
-            <Animated.View
-              style={[styles.fill, { backgroundColor: accent }, fillStyle]}
-            />
-          </View>
-          {previous != null && (
-            <View
-              style={[
-                styles.ghostTick,
-                { left: `${previous}%`, backgroundColor: colors.text.tertiary },
-              ]}
-              pointerEvents="none"
+          {showTrend && (
+            <Icon
+              name={improving ? icons.trend : icons.trendDown}
+              size={12}
+              color={
+                improving
+                  ? colors.feedback.successText
+                  : colors.feedback.dangerText
+              }
             />
           )}
         </View>
-
-        <View style={styles.deltaBox}>
-          {showDelta ? (
-            <View style={styles.deltaRow}>
-              <Icon
-                name={improving ? icons.trend : icons.trendDown}
-                size={14}
-                color={deltaColor}
-              />
-              <Text variant="bodySm" color={deltaColor}>
-                {improving ? "+" : ""}
-                {Math.round(pct)}%
-              </Text>
-            </View>
-          ) : (
-            <Text variant="bodySm" color="tertiary">
-              –
-            </Text>
-          )}
-        </View>
+        <Text variant="caption" color="tertiary" numberOfLines={1}>
+          {item.config.label}
+        </Text>
       </PressableScale>
     </Animated.View>
   );
@@ -197,17 +152,16 @@ const MetricRow: React.FC<{
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const { colors } = useTheme();
   const styles = useStyles();
-  const {
-    overallState,
-    fetchAllTrends,
-    loading,
-    error,
-  } = useUserBehaviorTrendsStore();
+  const motion = useMotion();
+  const { overallState, historyBuckets, fetchAllTrends, loading, error } =
+    useUserBehaviorTrendsStore();
 
   const navigation = useNavigation<HomeStackNavigationProp<"Home">>();
   const combinedProfile = overallState?.profile?.axes?.combined ?? null;
-  const isMomentumSlipping =
-    overallState?.profile?.meta?.momentumState === "SLIPPING";
+  const momentumState = overallState?.profile?.meta?.momentumState as
+    | MomentumState
+    | undefined;
+  const isMomentumSlipping = momentumState === "SLIPPING";
 
   const handleMetricPress = (domain: ClinicalDomain) => {
     if (!overallState) return;
@@ -217,8 +171,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       family: "combined" | "clinical" | "engagement",
     ) => {
       const familyAxes = overallState.profile.axes[family];
-      const familyDelta = overallState.profile.comparison.deltas[family][profileKey];
-
+      const familyDelta =
+        overallState.profile.comparison.deltas[family][profileKey];
       return {
         currentScore: familyAxes[profileKey],
         previousScore: familyDelta.previous,
@@ -228,16 +182,14 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       };
     };
 
-    const familyData = {
-      combined: buildFamilyData("combined"),
-      clinical: buildFamilyData("clinical"),
-      engagement: buildFamilyData("engagement"),
-    };
-
     navigation.navigate("DimensionDetail", {
       domain,
       accentKey: METRIC_CONFIG[domain].accentKey,
-      familyData,
+      familyData: {
+        combined: buildFamilyData("combined"),
+        clinical: buildFamilyData("clinical"),
+        engagement: buildFamilyData("engagement"),
+      },
       comparisonLabel: overallState.profile.comparison.comparisonLabel,
     });
   };
@@ -249,21 +201,15 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   const onRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-
-    // Continuous rotation on the sync glyph while fetching.
     rotationAnim.value = withRepeat(
-      withTiming(360, {
-        duration: 1000,
-        easing: Easing.linear,
-      }),
+      withTiming(360, { duration: 1000, easing: Easing.linear }),
       -1,
       false,
     );
-
     try {
       await fetchAllTrends();
-    } catch (error) {
-      console.error("Failed to refresh:", error);
+    } catch (err) {
+      console.error("Failed to refresh:", err);
     } finally {
       rotationAnim.value = withTiming(0, { duration: 200 });
       setIsRefreshing(false);
@@ -271,19 +217,12 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   };
 
   const refreshIconStyle = useAnimatedStyle(
-    () => ({
-      // Avoids template-literal allocation per frame — string concat is faster
-      transform: [{ rotate: rotationAnim.value + "deg" }],
-    }),
+    () => ({ transform: [{ rotate: rotationAnim.value + "deg" }] }),
     [],
   );
 
-  // All 5 metrics as rows (combined family), in the canonical domain order.
-  const metricRows = useMemo<MetricRowItem[]>(() => {
-    if (!overallState?.profile) {
-      return [];
-    }
-
+  const metricChips = useMemo<MetricChipItem[]>(() => {
+    if (!overallState?.profile) return [];
     const combinedAxes = overallState.profile.axes.combined;
     const combinedDeltas = overallState.profile.comparison.deltas.combined;
 
@@ -291,36 +230,45 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       const config = METRIC_CONFIG[domain];
       const key = config.profileKey;
       const delta = combinedDeltas[key];
-
       return {
         key,
         domain,
         config,
         current: combinedAxes[key],
-        previous: delta.previous,
-        absoluteDelta: delta.absoluteDelta,
-        percentDelta: delta.percentDelta,
         hasComparison: delta.hasComparison,
+        percentDelta: delta.percentDelta,
         trend: delta.trend,
       };
     });
   }, [overallState]);
 
+  // Overall growth hero: current value, 4-week series, and week-over-week delta.
+  const overall = useMemo(() => {
+    if (!combinedProfile) return null;
+    const current = overallOf(combinedProfile);
+    const series = buildTrendWeeks(historyBuckets, overallState, (agg) =>
+      overallOf(agg.profile.axes.combined),
+    );
+    const prev = series.length >= 2 ? series[series.length - 2].value : null;
+    const delta = prev != null ? current - prev : null;
+    return {
+      current,
+      delta,
+      values: series.map((w) => w.value),
+      labels: series.map((w) => w.label),
+    };
+  }, [combinedProfile, historyBuckets, overallState]);
+
   const dynamicSubtitle = useMemo(() => {
-    const best = metricRows
+    const best = metricChips
       .filter((item) => item.hasComparison && (item.percentDelta ?? 0) > 0)
       .sort((a, b) => (b.percentDelta ?? 0) - (a.percentDelta ?? 0))[0];
-
-    if (!best) {
-      return "Building your foundation";
-    }
-
+    if (!best) return "Building your foundation";
     return `Your ${best.config.label} improved ${Math.abs(
       best.percentDelta ?? 0,
     ).toFixed(0)}%!`;
-  }, [metricRows]);
+  }, [metricChips]);
 
-  // Error State
   if (error) {
     return (
       <ErrorStateCard
@@ -331,34 +279,27 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     );
   }
 
-  // Safe guard for early render
-  if (loading || !overallState?.profile || !combinedProfile) {
+  if (loading || !overallState?.profile || !combinedProfile || !overall) {
     return (
       <View style={[styles.container, style]}>
-        {/* Header Skeleton */}
         <View style={styles.header}>
           <View style={styles.textContainer}>
-            <SkeletonLoader
-              width={180}
-              height={34}
-              style={{ borderRadius: 6 }}
-            />
-            <SkeletonLoader
-              width={240}
-              height={18}
-              style={{ borderRadius: 4 }}
-            />
+            <SkeletonLoader width={180} height={34} style={{ borderRadius: 6 }} />
+            <SkeletonLoader width={240} height={18} style={{ borderRadius: 4 }} />
           </View>
         </View>
-
-        {/* Metric rows skeleton */}
-        <View style={styles.rows}>
+        <SkeletonLoader
+          width="100%"
+          height={120}
+          style={{ borderRadius: 16, marginBottom: spacing.xl }}
+        />
+        <View style={styles.chips}>
           {[0, 1, 2, 3, 4].map((i) => (
             <SkeletonLoader
               key={i}
               width="100%"
-              height={32}
-              style={{ borderRadius: 8 }}
+              height={72}
+              style={{ borderRadius: 12, flex: 1 }}
             />
           ))}
         </View>
@@ -366,11 +307,16 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
     );
   }
 
+  const deltaColor =
+    overall.delta == null || overall.delta === 0
+      ? colors.text.tertiary
+      : overall.delta > 0
+        ? colors.feedback.successText
+        : colors.feedback.dangerText;
+
   return (
     <View>
       <View style={[styles.container, style]}>
-        {/* Decorative watermark — sprout, echoing the card's growth identity
-            (the same glyph the app's other growth-journey cards use). */}
         <View style={styles.mainWatermarkContainer}>
           <Icon
             name={icons.growthSeed}
@@ -380,38 +326,21 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           />
         </View>
 
-        {/* Header — title + subtitle, no eyebrow. The momentum chip is a
-            functional status badge, shown above the title only when slipping. */}
+        {/* Header — title + subtitle, no eyebrow. Momentum chip only when slipping. */}
         <View style={styles.header}>
           {(isRefreshing || isMomentumSlipping) && (
             <View style={styles.headerTopRow}>
               {isRefreshing ? (
-                <SkeletonLoader
-                  width={80}
-                  height={22}
-                  style={{ borderRadius: 20 }}
-                />
+                <SkeletonLoader width={80} height={22} style={{ borderRadius: 20 }} />
               ) : (
                 <View
                   style={[
-                    styles.chip,
-                    {
-                      backgroundColor: colors.surface.control,
-                      borderRadius: 12,
-                      paddingHorizontal: 8,
-                    },
+                    styles.chipBadge,
+                    { backgroundColor: colors.surface.control },
                   ]}
                 >
-                  <Icon
-                    name={icons.warning}
-                    size={12}
-                    color={colors.text.tertiary}
-                  />
-                  <Text
-                    variant="label"
-                    color="secondary"
-                    style={styles.chipText}
-                  >
+                  <Icon name={icons.warning} size={12} color={colors.text.tertiary} />
+                  <Text variant="label" color="secondary">
                     Slipping Momentum
                   </Text>
                 </View>
@@ -420,36 +349,66 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           )}
 
           <View style={styles.textContainer}>
-            {isRefreshing ? (
-              <>
-                <SkeletonLoader
-                  width={180}
-                  height={34}
-                  style={{ borderRadius: 6 }}
-                />
-                <SkeletonLoader
-                  width={240}
-                  height={18}
-                  style={{ borderRadius: 4 }}
-                />
-              </>
-            ) : (
-              <>
-                <Text variant="h2" color="primary">
-                  Growth Profile
+            <Text variant="h2" color="primary">
+              Growth Profile
+            </Text>
+            <Text variant="body" color="secondary">
+              {dynamicSubtitle}
+            </Text>
+          </View>
+        </View>
+
+        {/* Hero — overall growth score + weekly delta + momentum. */}
+        <View style={styles.hero}>
+          <AnimatedNumber
+            value={overall.current}
+            variant="screenTitle"
+            color="primary"
+          />
+          <View style={styles.heroMeta}>
+            {overall.delta != null && (
+              <View style={styles.heroDelta}>
+                {overall.delta !== 0 && (
+                  <Icon
+                    name={overall.delta > 0 ? icons.trend : icons.trendDown}
+                    size={14}
+                    color={deltaColor}
+                  />
+                )}
+                <Text variant="bodySm" color={deltaColor}>
+                  {overall.delta > 0 ? "+" : ""}
+                  {overall.delta} this week
                 </Text>
-                <Text variant="body" color="secondary" style={styles.subtitle}>
-                  {dynamicSubtitle}
+              </View>
+            )}
+            {momentumState && (
+              <View
+                style={[styles.momentumPill, { backgroundColor: colors.surface.control }]}
+              >
+                <Text variant="label" color="secondary">
+                  {MOMENTUM_LABEL[momentumState]}
                 </Text>
-              </>
+              </View>
             )}
           </View>
         </View>
 
-        {/* Metric rows — the whole profile, one precise bar per dimension. */}
-        <View style={styles.rows}>
-          {metricRows.map((item, index) => (
-            <MetricRow
+        {/* Signature line chart — overall trajectory over 4 weeks. */}
+        <View style={styles.chartWrap}>
+          <TrendLine
+            data={overall.values}
+            labels={overall.labels}
+            color={colors.action.primary}
+            height={120}
+          />
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: colors.border.hairline }]} />
+
+        {/* 5 tappable metric chips. */}
+        <View style={styles.chips}>
+          {metricChips.map((item, index) => (
+            <MetricChip
               key={item.key}
               item={item}
               index={index}
@@ -465,21 +424,14 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           style={styles.syncLink}
         >
           <Animated.View style={isRefreshing ? refreshIconStyle : null}>
-            <Icon
-              name={icons.refresh}
-              size={16}
-              color={colors.text.tertiary}
-            />
+            <Icon name={icons.refresh} size={16} color={colors.text.tertiary} />
           </Animated.View>
           <Text variant="caption" color="tertiary" style={styles.syncText}>
             {isRefreshing
               ? "Syncing data..."
               : `Last synced at ${new Date(
-                overallState.profile.meta.computedAt,
-              ).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`}
+                  overallState.profile.meta.computedAt,
+                ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -507,78 +459,75 @@ const useStyles = makeStyles((c) => ({
     transform: [{ rotate: "-15deg" }, { scaleX: -1 }],
   },
   header: {
-    marginBottom: space.sectionGap,
+    marginBottom: space.groupGap,
     zIndex: 1,
   },
   headerTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: spacing.xl,
   },
-  chip: {
+  chipBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: c.action.primaryTint,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 12,
     gap: spacing.sm,
     alignSelf: "flex-start",
   },
-  chipText: {},
   textContainer: {
     gap: space.titleSub,
   },
-  subtitle: {},
-  // Metric rows
-  rows: {
-    gap: space.rowGap,
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     zIndex: 1,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 44,
-    gap: spacing.md,
-  },
-  labelBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.inlineGap,
-    width: 118,
-  },
-  trackWrap: {
-    flex: 1,
-    height: 10,
-    justifyContent: "center",
-  },
-  track: {
-    height: 6,
-    borderRadius: radius.xs,
-    backgroundColor: c.surface.control,
-    overflow: "hidden",
-  },
-  fill: {
-    height: "100%",
-    borderRadius: radius.xs,
-  },
-  ghostTick: {
-    position: "absolute",
-    top: 0,
-    width: 2,
-    height: 10,
-    borderRadius: 1,
-  },
-  deltaBox: {
-    width: 64,
+  heroMeta: {
     alignItems: "flex-end",
+    gap: space.inlineGap,
   },
-  deltaRow: {
+  heroDelta: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+  },
+  momentumPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  chartWrap: {
+    zIndex: 1,
+    marginBottom: spacing.lg,
+  },
+  divider: {
+    height: 1,
+    marginBottom: spacing.lg,
+  },
+  chips: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    zIndex: 1,
+    marginBottom: spacing.md,
+  },
+  chipWrap: {
+    flex: 1,
+  },
+  chip: {
+    backgroundColor: c.surface.control,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  chipValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xxs,
   },
   syncLink: {
     flexDirection: "row",
@@ -586,7 +535,6 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "flex-start",
     marginTop: spacing.sm,
     gap: spacing.sm,
-    paddingVertical: 0,
     zIndex: 1,
   },
   syncText: {
