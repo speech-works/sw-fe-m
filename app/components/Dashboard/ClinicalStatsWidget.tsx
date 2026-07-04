@@ -547,11 +547,12 @@ const useStyles = makeStyles((c) => ({
     alignItems: "center",
     justifyContent: "flex-start",
     marginTop: spacing.sm,
+    marginLeft: -2,
     gap: spacing.sm,
     zIndex: 1,
   },
   syncText: {
-    width: "100%",
+    flex: 1,
   },
 }));
 
