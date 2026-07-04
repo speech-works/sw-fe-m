@@ -347,10 +347,12 @@ const DimensionDetailScreen = () => {
       {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
       <Animated.View entering={motion.stagger(2)} style={styles.chartHero}>
         <View style={styles.chartHeader}>
-          <View style={styles.chartHeaderLeft}>
-            <Text variant="label" color="tertiary">
-              This week
-            </Text>
+          <Text variant="label" color="tertiary">
+            This week
+          </Text>
+
+          {/* Number + trend pill on one line — tight, baseline-grouped. */}
+          <View style={styles.numberRow}>
             {isUnavailable ? (
               <Text variant="screenTitle" color="tertiary">
                 —
@@ -363,48 +365,47 @@ const DimensionDetailScreen = () => {
                 color="primary"
               />
             )}
+
+            {!isUnavailable && hasComparison && (
+              <View
+                style={[
+                  styles.trendPill,
+                  { backgroundColor: withAlpha(trendColor, 0.14) },
+                ]}
+              >
+                <Icon
+                  name={
+                    trend === "IMPROVING"
+                      ? icons.trend
+                      : trend === "WORSENING"
+                        ? icons.trendDown
+                        : "minus"
+                  }
+                  size={15}
+                  color={trendColor}
+                />
+                <Text variant="title" color={trendColor}>
+                  {Math.abs(activeMetrics.percentDelta ?? 0).toFixed(1)}%
+                </Text>
+              </View>
+            )}
+
+            {!isUnavailable && !hasComparison && (
+              <View
+                style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
+              >
+                <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
+                <Text variant="bodySm" color="tertiary">
+                  New baseline
+                </Text>
+              </View>
+            )}
           </View>
 
-          {!isUnavailable && (
-            <View style={styles.readoutMeta}>
-              {hasComparison ? (
-                <>
-                  <View
-                    style={[
-                      styles.trendPill,
-                      { backgroundColor: withAlpha(trendColor, 0.14) },
-                    ]}
-                  >
-                    <Icon
-                      name={
-                        trend === "IMPROVING"
-                          ? icons.trend
-                          : trend === "WORSENING"
-                            ? icons.trendDown
-                            : "minus"
-                      }
-                      size={15}
-                      color={trendColor}
-                    />
-                    <Text variant="title" color={trendColor}>
-                      {Math.abs(activeMetrics.percentDelta ?? 0).toFixed(1)}%
-                    </Text>
-                  </View>
-                  <Text variant="caption" color="tertiary">
-                    vs last week · was {Math.round(activeMetrics.previousScore ?? 0)}
-                  </Text>
-                </>
-              ) : (
-                <View
-                  style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
-                >
-                  <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
-                  <Text variant="bodySm" color="tertiary">
-                    New baseline
-                  </Text>
-                </View>
-              )}
-            </View>
+          {!isUnavailable && hasComparison && (
+            <Text variant="caption" color="tertiary">
+              vs last week · was {Math.round(activeMetrics.previousScore ?? 0)}
+            </Text>
           )}
         </View>
 
@@ -413,7 +414,7 @@ const DimensionDetailScreen = () => {
             data={trendValues.map((w) => w.value)}
             labels={trendValues.map((w) => w.label)}
             color={accentColor}
-            height={128}
+            height={92}
           />
         ) : (
           <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
@@ -489,21 +490,18 @@ const useStyles = makeStyles((c) => ({
     marginBottom: space.sectionGap,
   },
   chartHero: {
-    marginBottom: space.sectionGap,
+    marginBottom: space.groupGap,
   },
-  // Label + score sit top-left; trend detail top-right; the chart flows below.
+  // A tidy left-aligned stack: label → number+pill row → caption; chart below.
   chartHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginBottom: space.rowGap,
-  },
-  chartHeaderLeft: {
+    alignItems: "flex-start",
     gap: spacing.xxs,
+    marginBottom: spacing.sm,
   },
-  readoutMeta: {
-    alignItems: "flex-end",
-    gap: spacing.sm,
+  numberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
   trendEmpty: {
     marginTop: space.groupGap,
