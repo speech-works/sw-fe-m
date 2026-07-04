@@ -77,26 +77,23 @@ export const icons = {
   milestone: "trophy", // milestone reached
   tip: "lightbulb", // a tip
   reminder: "bell", // set/schedule a practice reminder
-  affirmation: "sun", // an affirmation
+  affirmation: "message-square", // an affirmation
   prompt: "message-circle-question-mark", // a shared question/prompt
-  challenge: "target", // a shared challenge
+  challenge: "flag", // a shared challenge
   mood: "smile", // mood
   trend: "trending-up", // trend
   trendDown: "trending-down", // trend, downward
   chartPie: "chart-pie", // pie/breakdown chart
   refresh: "refresh-cw", // sync / refresh
   // Growth-profile radar domains (ClinicalStatsWidget)
-  confidence: "mic-vocal", // confidence — owning your voice (was "sun", duped `affirmation`)
-  // Deliberate shared glyph with `focus`/`challenge` — the surfaces never co-occur,
-  // and a bullseye is the honest metaphor for technique mastery (was "check-circle",
-  // which read as a verified badge and duped `success`).
-  mastery: "target", // mastery / impairment recovery
+  confidence: "sun", // confidence — owning your voice
+  mastery: "graduation-cap", // mastery / skill level
   ease: "sunset", // ease — calm, settled speech (was "droplet", a Feather outline amid filled Fluent)
   social: "users", // social participation
   // Growth Profile family lenses (DimensionDetail tabs) — collision-free, denotative
   lensCombined: "layer", // combined = stacked baseline + recent signal
   lensClinical: "clipboard-pulse", // clinical = validated questionnaire record
-  lensEngagement: "chat", // engagement = recent check-ins
+  lensEngagement: "person-star", // engagement = active user (person + star = engaged)
   growthSeed: "sprout", // growth (seedling)
   locked: "lock", // locked achievement
   weekly: "calendar", // "This week" scope
@@ -109,7 +106,7 @@ export const icons = {
   volume: "volume-2",
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
   headphones: "headphones",
-  focus: "target", // focus mode — practise only your feared sounds
+  focus: "camera", // focus mode — practise only your feared sounds
 
   // ── Settings · profile · premium ──
   email: "mail",

@@ -132,11 +132,6 @@ const MetricChip: React.FC<{
           <Icon name={item.config.icon} size={16} color={accent} />
           {showTrend && (
             <View style={styles.chipTrend}>
-              <Icon
-                name={improving ? icons.trend : icons.trendDown}
-                size={12}
-                color={trendColor}
-              />
               <Text variant="caption" color={trendColor}>
                 {improving ? "+" : ""}
                 {Math.round(pct ?? 0)}%
