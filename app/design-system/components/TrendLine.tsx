@@ -133,7 +133,8 @@ export const TrendLine: React.FC<TrendLineProps> = ({
           <>
             <Defs>
               <LinearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={withAlpha(color, 0.22)} />
+                {/* Soft wash, not a slab — flat data would otherwise fill a block. */}
+                <Stop offset="0" stopColor={withAlpha(color, 0.12)} />
                 <Stop offset="1" stopColor={withAlpha(color, 0)} />
               </LinearGradient>
             </Defs>

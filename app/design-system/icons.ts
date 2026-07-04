@@ -86,9 +86,12 @@ export const icons = {
   chartPie: "chart-pie", // pie/breakdown chart
   refresh: "refresh-cw", // sync / refresh
   // Growth-profile radar domains (ClinicalStatsWidget)
-  confidence: "sun", // confidence / affective wellbeing
-  mastery: "check-circle", // mastery / impairment recovery
-  ease: "droplet", // ease / functional flow
+  confidence: "mic-vocal", // confidence — owning your voice (was "sun", duped `affirmation`)
+  // Deliberate shared glyph with `focus`/`challenge` — the surfaces never co-occur,
+  // and a bullseye is the honest metaphor for technique mastery (was "check-circle",
+  // which read as a verified badge and duped `success`).
+  mastery: "target", // mastery / impairment recovery
+  ease: "sunset", // ease — calm, settled speech (was "droplet", a Feather outline amid filled Fluent)
   social: "users", // social participation
   growthSeed: "sprout", // growth (seedling)
   locked: "lock", // locked achievement

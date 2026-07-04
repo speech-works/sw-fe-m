@@ -117,6 +117,10 @@ const MetricChip: React.FC<{
   const worsening = item.trend === "WORSENING" && (pct ?? 0) < 0;
   const showTrend = item.hasComparison && (improving || worsening);
 
+  const trendColor = improving
+    ? colors.feedback.successText
+    : colors.feedback.dangerText;
+
   return (
     <Animated.View style={styles.chipWrap} entering={motion.stagger(index)}>
       <PressableScale
@@ -124,24 +128,26 @@ const MetricChip: React.FC<{
         onPress={() => onPress(item.domain)}
         style={styles.chip}
       >
-        <Icon name={item.config.icon} size={18} color={accent} />
-        <View style={styles.chipValueRow}>
-          <Text variant="title" color="primary">
-            {Math.round(item.current)}
-          </Text>
+        <View style={styles.chipHeader}>
+          <Icon name={item.config.icon} size={16} color={accent} />
           {showTrend && (
-            <Icon
-              name={improving ? icons.trend : icons.trendDown}
-              size={12}
-              color={
-                improving
-                  ? colors.feedback.successText
-                  : colors.feedback.dangerText
-              }
-            />
+            <View style={styles.chipTrend}>
+              <Icon
+                name={improving ? icons.trend : icons.trendDown}
+                size={12}
+                color={trendColor}
+              />
+              <Text variant="caption" color={trendColor}>
+                {improving ? "+" : ""}
+                {Math.round(pct ?? 0)}%
+              </Text>
+            </View>
           )}
         </View>
-        <Text variant="caption" color="tertiary" numberOfLines={1}>
+        <Text variant="h3" color="primary">
+          {Math.round(item.current)}
+        </Text>
+        <Text variant="bodySm" color="secondary" numberOfLines={1}>
           {item.config.label}
         </Text>
       </PressableScale>
@@ -509,25 +515,32 @@ const useStyles = makeStyles((c) => ({
   },
   chips: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     zIndex: 1,
     marginBottom: spacing.md,
   },
+  // ~30% basis wraps 5 tiles into 3-then-2 rows; flexGrow lets each row's
+  // tiles stretch evenly to fill the width instead of leaving a gap.
   chipWrap: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "30%",
   },
   chip: {
     backgroundColor: c.surface.control,
     borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-    alignItems: "center",
+    padding: spacing.md,
     gap: spacing.xs,
   },
-  chipValueRow: {
+  chipHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xxs,
+    justifyContent: "space-between",
+  },
+  chipTrend: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   syncLink: {
     flexDirection: "row",

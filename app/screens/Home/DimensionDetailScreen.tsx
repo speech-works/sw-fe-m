@@ -21,7 +21,6 @@ import {
   useTheme,
   useMotion,
   makeStyles,
-  withAlpha,
   spacing,
   space,
   radius,
@@ -249,11 +248,7 @@ const DimensionDetailScreen = () => {
       description={config.description}
       onBack={() => navigation.goBack()}
     >
-      <View style={styles.watermark} pointerEvents="none">
-        <Icon name={config.icon} size={400} color={withAlpha(accentColor, 0.1)} />
-      </View>
-
-      {/* Family tabs — the score for each family lives inline in its tab. */}
+      {/* Family tabs — each family's score is an inline hint next to its label. */}
       <Animated.View entering={motion.stagger(0)} style={styles.tabs}>
         {FAMILY_ORDER.map((family) => {
           const active = family === selectedFamily;
@@ -270,18 +265,10 @@ const DimensionDetailScreen = () => {
                 { backgroundColor: active ? accentColor : "transparent" },
               ]}
             >
-              <Text
-                variant="bodySm"
-                color={active ? onAccentColor : "tertiary"}
-                center
-              >
+              <Text variant="bodySm" color={active ? onAccentColor : "tertiary"}>
                 {FAMILY_LABELS[family]}
               </Text>
-              <Text
-                variant="label"
-                color={active ? onAccentColor : "secondary"}
-                center
-              >
+              <Text variant="label" color={active ? onAccentColor : "secondary"}>
                 {familyScore(family)}
               </Text>
             </PressableScale>
@@ -290,7 +277,7 @@ const DimensionDetailScreen = () => {
       </Animated.View>
 
       <Animated.View entering={motion.stagger(1)}>
-        <Text variant="bodySm" color="secondary" center style={styles.familyDesc}>
+        <Text variant="bodySm" color="secondary" style={styles.familyDesc}>
           {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
         </Text>
       </Animated.View>
@@ -393,30 +380,25 @@ const DimensionDetailScreen = () => {
 export default DimensionDetailScreen;
 
 const useStyles = makeStyles((c) => ({
-  watermark: {
-    position: "absolute",
-    top: 0,
-    right: -150,
-    zIndex: -1,
-    transform: [{ rotate: "-15deg" }],
-  },
   tabs: {
     flexDirection: "row",
     backgroundColor: c.surface.default,
     borderRadius: radius.chip,
     padding: 4,
     gap: 4,
-    marginBottom: space.sectionGap,
+    marginBottom: space.groupGap,
   },
+  // Single line — label + inline score hint, standard 38px segmented height.
   tab: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    height: 38,
     borderRadius: radius.chip - 4,
+    flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    justifyContent: "center",
+    gap: space.inlineGap,
   },
   familyDesc: {
-    paddingHorizontal: spacing.md,
     marginBottom: space.sectionGap,
   },
   hero: {

@@ -118,6 +118,7 @@ export const Page: React.FC<PageProps> = ({
         extraData={list.extraData}
         refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
+        style={{ flex: 1, backgroundColor: colors.background.canvas }}
         ListHeaderComponent={
           <View style={{ paddingTop: topPad }}>
             {titleBlock}
@@ -137,6 +138,7 @@ export const Page: React.FC<PageProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}
+        style={{ flex: 1, backgroundColor: colors.background.canvas }}
         contentContainerStyle={{
           paddingTop: topPad,
           paddingHorizontal: space.screenX,
