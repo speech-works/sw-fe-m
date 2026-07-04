@@ -1,7 +1,15 @@
-import React, { useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Svg, Circle } from "react-native-svg";
-import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
+import React, { useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import {
+  ClinicalDomain,
+  GrowthProfileMetrics,
+} from "../../api/userBehaviorTrends/types";
+import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackRouteProp } from "../../navigators/index";
 import {
@@ -10,12 +18,18 @@ import {
   Icon,
   IconName,
   icons,
+  Segmented,
+  ProgressRing,
+  AnimatedNumber,
   useTheme,
+  useMotion,
   makeStyles,
   withAlpha,
   spacing,
   space,
   radius,
+  duration,
+  easing,
   SemanticColors,
 } from "../../design-system";
 
@@ -30,10 +44,21 @@ type FamilyMetricData = {
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 };
 
-const FAMILY_CONFIG: Record<DetailFamily, { label: string; accentKey: AccentKey }> = {
-  combined: { label: "Combined", accentKey: "warning" },
-  clinical: { label: "Clinical", accentKey: "success" },
-  engagement: { label: "Engagement", accentKey: "info" },
+const FAMILY_ORDER: DetailFamily[] = ["combined", "clinical", "engagement"];
+
+const FAMILY_LABELS: Record<DetailFamily, string> = {
+  combined: "Combined",
+  clinical: "Clinical",
+  engagement: "Engagement",
+};
+
+/** Axis key for each domain — mirrors the Growth Profile card's METRIC_CONFIG. */
+const PROFILE_KEYS: Record<ClinicalDomain, keyof GrowthProfileMetrics> = {
+  [ClinicalDomain.AFFECTIVE_DISTRESS]: "confidence",
+  [ClinicalDomain.AVOIDANCE_BEHAVIOR]: "courage",
+  [ClinicalDomain.IMPAIRMENT_STRUGGLE]: "mastery",
+  [ClinicalDomain.FUNCTIONAL_LIMITATION]: "ease",
+  [ClinicalDomain.PARTICIPATION_RESTRICTION]: "social",
 };
 
 const FAMILY_DESCRIPTIONS: Record<
@@ -175,22 +200,129 @@ const DIMENSION_CONFIG: Record<
 
 const GAUGE_SIZE = 160;
 const GAUGE_STROKE = 14;
+const TREND_COLUMN_MAX = 72;
+
+type TrendWeek = {
+  key: string;
+  label: string;
+  value: number | null; // null = no data → hollow column
+  isCurrent: boolean;
+};
+
+/** One weekly column — grows 0 → value on mount (static under reduced motion). */
+const TrendColumn: React.FC<{ week: TrendWeek; accent: string; tint: string }> = ({
+  week,
+  accent,
+  tint,
+}) => {
+  const styles = useStyles();
+  const motion = useMotion();
+
+  const target =
+    week.value == null
+      ? 0
+      : Math.max((Math.min(100, Math.max(0, week.value)) / 100) * TREND_COLUMN_MAX, 6);
+
+  const heightAnim = useSharedValue(motion.reduced ? target : 0);
+  useEffect(() => {
+    heightAnim.value = motion.reduced
+      ? target
+      : withTiming(target, { duration: duration.reveal, easing: easing.out });
+  }, [target, motion.reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  const barStyle = useAnimatedStyle(() => ({ height: heightAnim.value }));
+
+  return (
+    <View style={styles.trendColumn}>
+      <View style={styles.trendColumnWell}>
+        {week.value == null ? (
+          <View style={styles.trendHollow} />
+        ) : (
+          <Animated.View
+            style={[
+              styles.trendBar,
+              { backgroundColor: week.isCurrent ? accent : tint },
+              barStyle,
+            ]}
+          />
+        )}
+      </View>
+      <Text
+        variant="caption"
+        color={week.isCurrent ? "secondary" : "tertiary"}
+        center
+      >
+        {week.label}
+      </Text>
+    </View>
+  );
+};
 
 const DimensionDetailScreen = () => {
   const route = useRoute<HomeStackRouteProp<"DimensionDetail">>();
   const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
   const { colors } = useTheme();
   const styles = useStyles();
+  const motion = useMotion();
+  const { historyBuckets, overallState } = useUserBehaviorTrendsStore();
   const { domain, familyData: rawFamilyData } = route.params;
 
   const familyData = rawFamilyData as Record<DetailFamily, FamilyMetricData>;
 
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
 
+  const profileKey = domain ? PROFILE_KEYS[domain as ClinicalDomain] : "confidence";
+
+  // 4 weekly columns, oldest → newest, ending at the current week ("Now").
+  // History buckets may or may not include the current period — normalize so the
+  // last column is always this week's live value from `overallState`.
+  const trendWeeks = useMemo<TrendWeek[]>(() => {
+    const currentPeriodKey = overallState?.periodKey ?? null;
+    const currentValue =
+      overallState?.profile?.axes?.[selectedFamily]?.[profileKey] ?? null;
+
+    const pastBuckets = [...historyBuckets]
+      .sort((a, b) => String(a.periodKey).localeCompare(String(b.periodKey)))
+      .filter((bucket) => bucket.periodKey !== currentPeriodKey)
+      .slice(-3);
+
+    const past = pastBuckets.map((bucket) => ({
+      key: bucket.periodKey,
+      label: "",
+      value:
+        bucket.hasData && bucket.snapshot
+          ? bucket.snapshot.profile.axes[selectedFamily]?.[profileKey] ?? null
+          : null,
+      isCurrent: false,
+    }));
+
+    // Pad to exactly 3 past weeks so the block never collapses pre-history.
+    while (past.length < 3) {
+      past.unshift({ key: `empty-${past.length}`, label: "", value: null, isCurrent: false });
+    }
+
+    const weeks: TrendWeek[] = [
+      ...past,
+      {
+        key: currentPeriodKey ?? "now",
+        label: "Now",
+        value: currentValue,
+        isCurrent: true,
+      },
+    ];
+
+    return weeks.map((week, index) =>
+      week.isCurrent
+        ? week
+        : { ...week, label: `${weeks.length - 1 - index}w` },
+    );
+  }, [historyBuckets, overallState, selectedFamily, profileKey]);
+
   if (!domain) return null;
 
   const config = DIMENSION_CONFIG[domain as ClinicalDomain];
   const accentColor = colors.accent[config.accentKey];
+  const onAccentColor = colors.accentOn[config.accentKey];
+  const accentTint = colors.accentTint[config.accentKey];
   const activeMetrics = familyData[selectedFamily];
   const isUnavailable = activeMetrics.currentScore === null;
   const hasComparison = activeMetrics.previousScore !== null;
@@ -202,12 +334,13 @@ const DimensionDetailScreen = () => {
         ? colors.feedback.dangerText
         : colors.text.tertiary;
 
-  // Gauge ring geometry (unchanged math; colours are tokens now).
-  const gaugeRadius = (GAUGE_SIZE - GAUGE_STROKE) / 2;
-  const circumference = 2 * Math.PI * gaugeRadius;
   const score = activeMetrics.currentScore;
-  const progress = score === null ? 0 : score / 100;
-  const strokeDashoffset = circumference * (1 - progress);
+  const isEngagementEmpty = selectedFamily === "engagement" && isUnavailable;
+
+  const familyScore = (family: DetailFamily) => {
+    const value = familyData[family]?.currentScore;
+    return value == null ? "—" : String(Math.round(value));
+  };
 
   return (
     <Page
@@ -217,109 +350,142 @@ const DimensionDetailScreen = () => {
     >
       {/* Faint domain watermark, behind the content. */}
       <View style={styles.watermark} pointerEvents="none">
-        <Icon name={config.icon} size={400} color={withAlpha(accentColor, 0.08)} />
+        <Icon name={config.icon} size={400} color={withAlpha(accentColor, 0.1)} />
       </View>
 
       <View style={styles.card}>
-        <View style={styles.switcher}>
-          {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
-            const active = f === selectedFamily;
-            return (
-              <TouchableOpacity
-                key={f}
-                activeOpacity={0.8}
-                onPress={() => setSelectedFamily(f)}
-                style={[
-                  styles.switcherPill,
-                  active && { backgroundColor: accentColor },
-                ]}
-              >
-                <Text
-                  variant="bodySm"
-                  color={active ? colors.accentOn[config.accentKey] : colors.text.tertiary}
-                >
-                  {FAMILY_CONFIG[f].label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <Text variant="bodySm" color="secondary" center style={styles.familyDesc}>
-          {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
-        </Text>
-
-        <View style={styles.gaugeWrapper}>
-          <View style={styles.gauge}>
-            <Svg width={GAUGE_SIZE} height={GAUGE_SIZE}>
-              <Circle
-                cx={GAUGE_SIZE / 2}
-                cy={GAUGE_SIZE / 2}
-                r={gaugeRadius}
-                stroke={colors.border.default}
-                strokeWidth={GAUGE_STROKE}
-                fill="none"
-              />
-              <Circle
-                cx={GAUGE_SIZE / 2}
-                cy={GAUGE_SIZE / 2}
-                r={gaugeRadius}
-                stroke={accentColor}
-                strokeWidth={GAUGE_STROKE}
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                fill="none"
-                transform={`rotate(-90 ${GAUGE_SIZE / 2} ${GAUGE_SIZE / 2})`}
-              />
-            </Svg>
-            <View style={styles.gaugeContent}>
-              <Text variant="label" color="tertiary">
-                CURRENT SCORE
-              </Text>
-              <Text
-                variant="display"
-                color={score === null ? "tertiary" : "primary"}
-              >
-                {score === null ? "--" : Math.round(score)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.trendRow}>
-          <Icon
-            name={
-              !hasComparison
-                ? icons.duration
-                : trend === "IMPROVING"
-                  ? icons.trend
-                  : trend === "WORSENING"
-                    ? icons.trendDown
-                    : "minus"
-            }
-            size={16}
-            color={trendColor}
+        {/* Family switcher — DS segmented control in the metric's accent. */}
+        <Animated.View entering={motion.stagger(0)} style={styles.switcherWrap}>
+          <Segmented
+            options={FAMILY_ORDER.map((f) => FAMILY_LABELS[f])}
+            value={FAMILY_LABELS[selectedFamily]}
+            onChange={(label) => {
+              const next = FAMILY_ORDER.find((f) => FAMILY_LABELS[f] === label);
+              if (next) setSelectedFamily(next);
+            }}
+            accentColor={accentColor}
+            onAccentColor={onAccentColor}
           />
-          <Text variant="bodySm" color={trendColor}>
-            {!hasComparison
-              ? "Waiting for history"
-              : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
-          </Text>
-        </View>
+        </Animated.View>
 
-        {hasComparison && (
-          <Text variant="caption" color="tertiary" style={styles.previousScore}>
-            Previously {Math.round(activeMetrics.previousScore ?? 0)}
-          </Text>
-        )}
+        {/* 3-family strip — how the blend relates, without tab-hopping. */}
+        <Animated.View entering={motion.stagger(1)} style={styles.familyStrip}>
+          {FAMILY_ORDER.map((family, index) => (
+            <React.Fragment key={family}>
+              {index > 0 && (
+                <Text variant="bodySm" color="tertiary">
+                  ·
+                </Text>
+              )}
+              <Text
+                variant="bodySm"
+                color={family === selectedFamily ? accentColor : "secondary"}
+              >
+                {FAMILY_LABELS[family]} {familyScore(family)}
+              </Text>
+            </React.Fragment>
+          ))}
+        </Animated.View>
 
-        <View style={[styles.insight, { borderTopColor: withAlpha(accentColor, 0.2) }]}>
-          <Icon name={icons.energy} size={16} color={accentColor} style={styles.insightIcon} />
+        <Animated.View entering={motion.stagger(2)}>
+          <Text variant="bodySm" color="secondary" center style={styles.familyDesc}>
+            {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
+          </Text>
+        </Animated.View>
+
+        {/* Hero — DS ring + counting score. Re-keyed per family so the count
+            replays when the view actually changes. */}
+        <Animated.View entering={motion.stagger(3)} style={styles.gaugeWrapper}>
+          <ProgressRing
+            progress={score === null ? 0 : score / 100}
+            size={GAUGE_SIZE}
+            strokeWidth={GAUGE_STROKE}
+            color={accentColor}
+            trackColor={colors.surface.control}
+          >
+            <Text variant="label" color="tertiary">
+              Current Score
+            </Text>
+            {score === null ? (
+              <Text variant="display" color="tertiary">
+                —
+              </Text>
+            ) : (
+              <AnimatedNumber
+                key={selectedFamily}
+                value={Math.round(score)}
+                variant="display"
+                color="primary"
+              />
+            )}
+          </ProgressRing>
+        </Animated.View>
+
+        <Animated.View entering={motion.stagger(4)} style={styles.trendChipGroup}>
+          <View style={styles.trendRow}>
+            <Icon
+              name={
+                !hasComparison
+                  ? icons.duration
+                  : trend === "IMPROVING"
+                    ? icons.trend
+                    : trend === "WORSENING"
+                      ? icons.trendDown
+                      : "minus"
+              }
+              size={16}
+              color={trendColor}
+            />
+            <Text variant="bodySm" color={trendColor}>
+              {!hasComparison
+                ? "Waiting for history"
+                : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
+            </Text>
+          </View>
+
+          {hasComparison && (
+            <Text variant="caption" color="tertiary" style={styles.previousScore}>
+              Previously {Math.round(activeMetrics.previousScore ?? 0)}
+            </Text>
+          )}
+        </Animated.View>
+
+        {/* 4-week trend — from the history buckets the store already fetches. */}
+        <Animated.View entering={motion.stagger(5)} style={styles.trendBlock}>
+          <Text variant="title" color="primary" style={styles.trendTitle}>
+            Last 4 weeks
+          </Text>
+          <View style={styles.trendColumns}>
+            {trendWeeks.map((week) => (
+              <TrendColumn
+                key={`${selectedFamily}-${week.key}`}
+                week={week}
+                accent={accentColor}
+                tint={accentTint}
+              />
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Insight — or the engagement empty state when there's no signal yet. */}
+        <Animated.View
+          entering={motion.stagger(6)}
+          style={[styles.insight, { borderTopColor: colors.border.hairline }]}
+        >
+          <Icon
+            name={icons.energy}
+            size={16}
+            color={accentColor}
+            style={styles.insightIcon}
+          />
           <Text variant="bodySm" color="secondary" style={styles.insightText}>
-            {isUnavailable ? "Reflection pending..." : config.recommendations[trend]}
+            {isEngagementEmpty
+              ? "No engagement signal yet — practice this week to build it."
+              : isUnavailable
+                ? "Reflection pending..."
+                : config.recommendations[trend]}
           </Text>
-        </View>
+        </Animated.View>
       </View>
     </Page>
   );
@@ -338,24 +504,20 @@ const useStyles = makeStyles((c) => ({
   card: {
     backgroundColor: c.surface.default,
     borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: c.border.hairline,
     padding: spacing["2xl"],
     alignItems: "center",
   },
-  switcher: {
-    flexDirection: "row",
-    backgroundColor: c.surface.control,
-    borderRadius: radius.chip,
-    padding: spacing.xs,
-    alignSelf: "center",
-    marginBottom: space.sectionGap,
+  switcherWrap: {
+    alignSelf: "stretch",
+    marginBottom: space.groupGap,
   },
-  switcherPill: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+  familyStrip: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.chip,
-    minWidth: 92,
+    gap: space.inlineGap,
+    marginBottom: space.groupGap,
   },
   familyDesc: {
     paddingHorizontal: spacing.md,
@@ -364,14 +526,7 @@ const useStyles = makeStyles((c) => ({
   gaugeWrapper: {
     marginBottom: space.groupGap,
   },
-  gauge: {
-    width: GAUGE_SIZE,
-    height: GAUGE_SIZE,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  gaugeContent: {
-    position: "absolute",
+  trendChipGroup: {
     alignItems: "center",
   },
   trendRow: {
@@ -385,8 +540,35 @@ const useStyles = makeStyles((c) => ({
   },
   previousScore: {
     marginTop: spacing.xs,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  },
+  trendBlock: {
+    width: "100%",
+    marginTop: space.sectionGap,
+  },
+  trendTitle: {
+    marginBottom: space.groupGap,
+  },
+  trendColumns: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.md,
+  },
+  trendColumn: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  trendColumnWell: {
+    height: 72,
+    justifyContent: "flex-end",
+  },
+  trendBar: {
+    borderRadius: radius.xs,
+  },
+  trendHollow: {
+    height: 6,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: c.border.hairline,
   },
   insight: {
     marginTop: space.sectionGap,

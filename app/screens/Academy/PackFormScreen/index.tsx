@@ -27,6 +27,9 @@ import {
   showSuccessBottomSheet,
 } from "../../../util/functions/bottomSheet";
 
+/** Keys of `colors.accent` / `accentOn` — the flow's fill + its AA-correct ink. */
+type AccentKey = "lime" | "purple" | "success" | "warning" | "danger" | "info";
+
 type PackFormRouteProp = RouteProp<
   {
     params: {
@@ -35,6 +38,8 @@ type PackFormRouteProp = RouteProp<
       packId: string;
       moduleId: string;
       blockId: string;
+      /** Flow accent, inherited from the card that opened this form. Reflection = purple. */
+      accentKey?: AccentKey;
     };
   },
   "params"
@@ -48,6 +53,9 @@ interface FieldProps {
   field: FormField;
   value: any;
   onChange: (value: any) => void;
+  /** Flow accent fill + its AA-correct on-fill ink. */
+  accent: string;
+  onAccent: string;
 }
 
 /** LIKERT_5 / LIKERT_7 — discrete numbered tap targets */
@@ -56,6 +64,8 @@ const LikertField: React.FC<FieldProps & { count: number }> = ({
   value,
   onChange,
   count,
+  accent,
+  onAccent,
 }) => {
   const { colors } = useTheme();
   const targets = Array.from({ length: count }, (_, i) => i + 1);
@@ -70,16 +80,14 @@ const LikertField: React.FC<FieldProps & { count: number }> = ({
               style={[
                 fieldStyles.likertTarget,
                 {
-                  backgroundColor: isSelected
-                    ? colors.action.primary
-                    : colors.surface.control,
+                  backgroundColor: isSelected ? accent : colors.surface.control,
                 },
               ]}
               onPress={() => onChange(n)}
             >
               <Text
                 variant="title"
-                color={isSelected ? colors.action.onPrimary : "secondary"}
+                color={isSelected ? onAccent : "secondary"}
               >
                 {n}
               </Text>
@@ -102,7 +110,12 @@ const LikertField: React.FC<FieldProps & { count: number }> = ({
 };
 
 /** SLIDER — continuous range */
-const SliderField: React.FC<FieldProps> = ({ field, value, onChange }) => {
+const SliderField: React.FC<FieldProps> = ({
+  field,
+  value,
+  onChange,
+  accent,
+}) => {
   const { colors } = useTheme();
   const min = field.min ?? 0;
   const max = field.max ?? 100;
@@ -117,9 +130,9 @@ const SliderField: React.FC<FieldProps> = ({ field, value, onChange }) => {
         step={1}
         value={current}
         onValueChange={onChange}
-        minimumTrackTintColor={colors.action.primary}
+        minimumTrackTintColor={accent}
         maximumTrackTintColor={colors.surface.row}
-        thumbTintColor={colors.action.primary}
+        thumbTintColor={accent}
       />
       <View style={fieldStyles.likertLabels}>
         <Text variant="caption" color="tertiary">
@@ -137,7 +150,12 @@ const SliderField: React.FC<FieldProps> = ({ field, value, onChange }) => {
 };
 
 /** BOOLEAN_TOGGLE — Yes / No segment */
-const BooleanToggleField: React.FC<FieldProps> = ({ value, onChange }) => {
+const BooleanToggleField: React.FC<FieldProps> = ({
+  value,
+  onChange,
+  accent,
+  onAccent,
+}) => {
   const { colors } = useTheme();
   return (
     <View style={fieldStyles.toggleRow}>
@@ -152,16 +170,14 @@ const BooleanToggleField: React.FC<FieldProps> = ({ value, onChange }) => {
             style={[
               fieldStyles.toggleOption,
               {
-                backgroundColor: isSelected
-                  ? colors.action.primary
-                  : colors.surface.control,
+                backgroundColor: isSelected ? accent : colors.surface.control,
               },
             ]}
             onPress={() => onChange(val)}
           >
             <Text
               variant="title"
-              color={isSelected ? colors.action.onPrimary : "secondary"}
+              color={isSelected ? onAccent : "secondary"}
             >
               {label}
             </Text>
@@ -201,6 +217,7 @@ const MultipleChoiceField: React.FC<FieldProps> = ({
   field,
   value,
   onChange,
+  accent,
 }) => {
   const { colors } = useTheme();
   return (
@@ -214,9 +231,7 @@ const MultipleChoiceField: React.FC<FieldProps> = ({
               fieldStyles.mcOption,
               {
                 backgroundColor: colors.surface.control,
-                borderColor: isSelected
-                  ? colors.border.selected
-                  : colors.border.default,
+                borderColor: isSelected ? accent : colors.border.default,
               },
             ]}
             onPress={() => onChange(option)}
@@ -225,9 +240,7 @@ const MultipleChoiceField: React.FC<FieldProps> = ({
               style={[
                 fieldStyles.mcRadio,
                 {
-                  borderColor: isSelected
-                    ? colors.action.primary
-                    : colors.border.strong,
+                  borderColor: isSelected ? accent : colors.border.strong,
                 },
               ]}
             >
@@ -235,7 +248,7 @@ const MultipleChoiceField: React.FC<FieldProps> = ({
                 <View
                   style={[
                     fieldStyles.mcRadioDot,
-                    { backgroundColor: colors.action.primary },
+                    { backgroundColor: accent },
                   ]}
                 />
               )}
@@ -263,6 +276,11 @@ const PackFormScreen = () => {
   const route = useRoute<PackFormRouteProp>();
   const { colors } = useTheme();
   const { configuration, formId, packId, moduleId, blockId } = route.params;
+
+  // Flow accent, inherited from the card that opened this form (reflection = purple).
+  const accentKey: AccentKey = route.params.accentKey ?? "purple";
+  const accent = colors.accent[accentKey];
+  const onAccent = colors.accentOn[accentKey];
 
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -325,43 +343,21 @@ const PackFormScreen = () => {
     const value = answers[field.id];
     const onChange = (v: any) => updateAnswer(field.id, v);
 
+    const fieldProps = { field, value, onChange, accent, onAccent };
+
     switch (field.type) {
       case FormFieldType.LIKERT_5:
-        return (
-          <LikertField
-            field={field}
-            value={value}
-            onChange={onChange}
-            count={field.ratingMax ?? 5}
-          />
-        );
+        return <LikertField {...fieldProps} count={field.ratingMax ?? 5} />;
       case FormFieldType.LIKERT_7:
-        return (
-          <LikertField
-            field={field}
-            value={value}
-            onChange={onChange}
-            count={field.ratingMax ?? 7}
-          />
-        );
+        return <LikertField {...fieldProps} count={field.ratingMax ?? 7} />;
       case FormFieldType.SLIDER:
-        return <SliderField field={field} value={value} onChange={onChange} />;
+        return <SliderField {...fieldProps} />;
       case FormFieldType.BOOLEAN_TOGGLE:
-        return (
-          <BooleanToggleField field={field} value={value} onChange={onChange} />
-        );
+        return <BooleanToggleField {...fieldProps} />;
       case FormFieldType.TEXT_INPUT:
-        return (
-          <TextInputField field={field} value={value} onChange={onChange} />
-        );
+        return <TextInputField {...fieldProps} />;
       case FormFieldType.MULTIPLE_CHOICE:
-        return (
-          <MultipleChoiceField
-            field={field}
-            value={value}
-            onChange={onChange}
-          />
-        );
+        return <MultipleChoiceField {...fieldProps} />;
       default:
         return (
           <Text variant="bodySm" color="tertiary">
@@ -381,6 +377,8 @@ const PackFormScreen = () => {
           <Button
             label="Complete"
             leftIcon="check"
+            accentColor={accent}
+            onAccentColor={onAccent}
             loading={submitting}
             disabled={!allRequiredFilled}
             onPress={handleSubmit}
@@ -406,12 +404,9 @@ const PackFormScreen = () => {
               </Text>
               {field.required && (
                 <View
-                  style={[
-                    styles.requiredBadge,
-                    { backgroundColor: colors.action.primaryTint },
-                  ]}
+                  style={[styles.requiredBadge, { backgroundColor: accent }]}
                 >
-                  <Text variant="caption" color="link">
+                  <Text variant="caption" color={onAccent}>
                     Required
                   </Text>
                 </View>

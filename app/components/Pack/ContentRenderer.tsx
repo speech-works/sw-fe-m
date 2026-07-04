@@ -19,7 +19,6 @@ import {
     VideoBlockContent,
 } from "../../api/packs/types";
 import {
-    Gradient,
     Text,
     Icon,
     icons,
@@ -68,7 +67,7 @@ const CompletedCard: React.FC<{ title: string; children?: React.ReactNode }> = (
       <View style={styles.completedChip}>
         <Icon name={icons.success} size={14} color={colors.accentOn.success} />
         <Text variant="label" color={colors.accentOn.success}>
-          COMPLETED
+          Completed
         </Text>
       </View>
       <View style={styles.textContainer}>
@@ -237,7 +236,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         content.descriptionOverride ||
         "Use your techniques in this clinical challenge.";
 
-      // Done → calm success card; active → vivid sunrise CTA hero.
+      // Done → calm success card; active → solid action.primary CTA hero.
       if (isCompleted) {
         return (
           <CompletedCard title={content.titleOverride || "Practice Activity"}>
@@ -249,8 +248,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         );
       }
 
-      const ink = colors.accentOn.danger;
-      const chipLabel = isMandatory ? "RECOMMENDED" : "OPTIONAL";
+      const ink = colors.action.onPrimary;
 
       return (
         <TactileTouchableOpacity
@@ -259,7 +257,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           disabled={loading}
           activeOpacity={0.9}
         >
-          <Gradient token="sunrise" style={styles.cardGradient}>
+          <View style={[styles.cardFill, { backgroundColor: colors.action.primary }]}>
             {/* Decorative bubbles — subtle ink wash on the bright fill. */}
             <View
               style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
@@ -271,15 +269,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             />
 
             <View style={styles.cardContent}>
-              {/* Header chip */}
-              <View style={[styles.chip, { backgroundColor: withAlpha(ink, 0.16) }]}>
-                <Icon name={icons.proud} size={14} color={ink} />
-                <Text variant="label" color={ink}>
-                  {chipLabel}
-                </Text>
-              </View>
-
-              {/* Title and Description */}
+              {/* Title and Description — no eyebrow (matches home card language). */}
               <View style={styles.textContainer}>
                 <Text variant="h2" color={ink}>
                   {content.titleOverride || "Practice Activity"}
@@ -287,21 +277,21 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 <SimpleMarkdown content={activityDescription} textColor={ink} />
               </View>
 
-              {/* Action pill — bordered ink (bright-fill rule: no white pill) */}
-              <View style={[styles.ctaPill, { borderColor: ink }]}>
+              {/* Action = solid dark island (matches home hero CTAs). */}
+              <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
                 {loading ? (
-                  <Spinner size="small" color={ink} />
+                  <Spinner size="small" color={colors.action.onSecondary} />
                 ) : (
                   <>
-                    <Icon name={icons.play} size={16} color={ink} />
-                    <Text variant="title" color={ink}>
+                    <Icon name={icons.play} size={16} color={colors.action.onSecondary} />
+                    <Text variant="title" color={colors.action.onSecondary}>
                       Start Practice
                     </Text>
                   </>
                 )}
               </View>
             </View>
-          </Gradient>
+          </View>
         </TactileTouchableOpacity>
       );
     }
@@ -326,12 +316,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           packId,
           moduleId,
           blockId: block.id,
+          // Reflection flow accent — keeps the form's inner controls in sync
+          // with the purple reflection card that opened it.
+          accentKey: "purple",
         });
       };
 
-      // Done → calm success card; active → the same vivid sunrise action hero as
-      // the practice card, so a module's steps read as one consistent flow (the
-      // chip label/icon carries the block-type distinction, not the card colour).
+      // Done → calm success card; active → a solid purple hero (the app's
+      // "reflect / write it down" accent), distinct from the orange practice
+      // hero so the two block types read as different steps at a glance.
       if (isCompleted) {
         return (
           <CompletedCard title={formTitle}>
@@ -344,7 +337,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         );
       }
 
-      const ink = colors.accentOn.danger;
+      const ink = colors.accentOn.purple;
 
       return (
         <TactileTouchableOpacity
@@ -352,7 +345,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
           onPress={handleStartForm}
           activeOpacity={0.9}
         >
-          <Gradient token="sunrise" style={styles.cardGradient}>
+          <View style={[styles.cardFill, { backgroundColor: colors.accent.purple }]}>
             <View
               style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
               pointerEvents="none"
@@ -363,13 +356,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
             />
 
             <View style={styles.cardContent}>
-              <View style={[styles.chip, { backgroundColor: withAlpha(ink, 0.16) }]}>
-                <Icon name={icons.checklist} size={14} color={ink} />
-                <Text variant="label" color={ink}>
-                  REFLECTION
-                </Text>
-              </View>
-
+              {/* Title and Description — no eyebrow (matches home card language). */}
               <View style={styles.textContainer}>
                 <Text variant="h2" color={ink}>
                   {formTitle}
@@ -381,14 +368,15 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
                 ) : null}
               </View>
 
-              <View style={[styles.ctaPill, { borderColor: ink }]}>
-                <Icon name={icons.play} size={16} color={ink} />
-                <Text variant="title" color={ink}>
+              {/* Action = solid dark island (matches home hero CTAs). */}
+              <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
+                <Icon name={icons.play} size={16} color={colors.action.onSecondary} />
+                <Text variant="title" color={colors.action.onSecondary}>
                   Start Reflection
                 </Text>
               </View>
             </View>
-          </Gradient>
+          </View>
         </TactileTouchableOpacity>
       );
     }
@@ -414,17 +402,17 @@ const useStyles = makeStyles((c) => ({
     overflow: "hidden",
     backgroundColor: c.surface.control,
   },
-  // Gradient hero card (active ACTIVITY / FORM)
+  // Solid vivid hero card (active ACTIVITY / FORM) — matches the home hero cards.
   card: {
     marginBottom: spacing.xl,
     borderRadius: radius.card,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 8,
   },
-  cardGradient: {
+  cardFill: {
     borderRadius: radius.card,
     padding: spacing.xl,
     overflow: "hidden",
@@ -451,23 +439,14 @@ const useStyles = makeStyles((c) => ({
     gap: space.groupGap,
     alignItems: "flex-start",
   },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    gap: space.inlineGap,
-  },
   textContainer: {
     gap: space.titleSub,
   },
-  ctaPill: {
+  cta: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
     gap: space.inlineGap,
-    borderWidth: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
@@ -480,7 +459,7 @@ const useStyles = makeStyles((c) => ({
     padding: spacing.xl,
     backgroundColor: c.surface.elevated,
     borderWidth: 1,
-    borderColor: c.border.default,
+    borderColor: c.border.hairline,
     gap: space.groupGap,
     alignItems: "flex-start",
   },

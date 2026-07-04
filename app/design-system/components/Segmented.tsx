@@ -9,10 +9,21 @@ export interface SegmentedProps {
   options: string[];
   value: string;
   onChange: (value: string) => void;
+  /** Accent fill for the ACTIVE segment (e.g. the flow's `colors.accent.*`).
+   *  Defaults to the neutral `surface.control` step. */
+  accentColor?: string;
+  /** AA-correct foreground for `accentColor` (`accentOn.*`). */
+  onAccentColor?: string;
 }
 
 /** Segmented control — one active segment on a track. */
-export const Segmented: React.FC<SegmentedProps> = ({ options, value, onChange }) => {
+export const Segmented: React.FC<SegmentedProps> = ({
+  options,
+  value,
+  onChange,
+  accentColor,
+  onAccentColor,
+}) => {
   const { colors } = useTheme();
   return (
     <View
@@ -36,10 +47,21 @@ export const Segmented: React.FC<SegmentedProps> = ({ options, value, onChange }
               borderRadius: radius.chip - 4,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: active ? colors.surface.control : "transparent",
+              backgroundColor: active
+                ? accentColor ?? colors.surface.control
+                : "transparent",
             }}
           >
-            <Text variant="bodySm" color={active ? "primary" : "tertiary"}>
+            <Text
+              variant="bodySm"
+              color={
+                active
+                  ? accentColor
+                    ? onAccentColor ?? "primary"
+                    : "primary"
+                  : "tertiary"
+              }
+            >
               {opt}
             </Text>
           </PressableScale>

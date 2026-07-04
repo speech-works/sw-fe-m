@@ -4,7 +4,6 @@ import PressableScale from "../../../components/PressableScale";
 import {
   Text,
   Icon,
-  IconName,
   icons,
   useTheme,
   withAlpha,
@@ -20,8 +19,6 @@ type AccentKey = "success" | "warning" | "purple";
 
 interface VariantConfig {
   accentKey: AccentKey;
-  eyebrowIcon: IconName;
-  eyebrow: string;
   title: string;
   subtitle: string;
   cta: string;
@@ -30,24 +27,18 @@ interface VariantConfig {
 const VARIANTS: Record<PromoVariant, VariantConfig> = {
   onboarding: {
     accentKey: "success",
-    eyebrowIcon: icons.energy,
-    eyebrow: "Setup Required",
     title: "Complete Profile",
     subtitle: "Finish setting up to get your personalized plan",
     cta: "Continue Setup",
   },
   impactAssessment: {
     accentKey: "warning",
-    eyebrowIcon: icons.stats,
-    eyebrow: "Clinical Assessment",
     title: "Unlock Your Profile",
     subtitle: "", // always overridden with the live question count
     cta: "Continue Assessment",
   },
   mood: {
     accentKey: "purple",
-    eyebrowIcon: icons.mood,
-    eyebrow: "Mood Check",
     title: "How are you feeling?",
     subtitle: "Track your mood to unlock insights",
     cta: "Check In",
@@ -67,7 +58,7 @@ export interface PromoCardProps {
 /**
  * The single Home promo/nudge card — a flat, solid vivid-accent banner matching the
  * Explore card language (`PracticeGrid` / `LibrarySection`): a `colors.accent` fill,
- * AA-correct `accentOn` ink, a caps eyebrow, an `h2` title, subtle ink-circle texture,
+ * AA-correct `accentOn` ink, an `h2` title, subtle ink-circle texture,
  * and a dark-island CTA. No illustrations — sleek and content-first. The whole card is
  * the tap target; the CTA pill is a visual affordance.
  */
@@ -92,7 +83,7 @@ export const PromoCard: React.FC<PromoCardProps> = ({
       <View style={[styles.fill, { backgroundColor: fill }]}>
         {/* Subtle ink-circle texture (the Explore banner pattern) — depth without art. */}
         <View
-          style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.12) }]}
+          style={[styles.blobA, { backgroundColor: withAlpha(ink, 0.1) }]}
           pointerEvents="none"
         />
         <View
@@ -102,12 +93,6 @@ export const PromoCard: React.FC<PromoCardProps> = ({
 
         {/* Message */}
         <View>
-          <View style={styles.eyebrow}>
-            <Icon name={v.eyebrowIcon} size={14} color={ink} />
-            <Text variant="label" color={ink}>
-              {v.eyebrow}
-            </Text>
-          </View>
           <Text variant="h2" color={ink} style={styles.title}>
             {v.title}
           </Text>
@@ -186,13 +171,6 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-  },
-  eyebrow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: space.inlineGap,
-    marginBottom: space.groupGap,
   },
   title: {
     marginBottom: space.titleSub,

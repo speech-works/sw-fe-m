@@ -129,17 +129,10 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
       >
         <View style={[styles.gradient, styles.gradientCentered, { backgroundColor: colors.accent.success }]}>
           <View style={styles.watermarkMain} pointerEvents="none">
-            <Icon name={icons.success} size={140} color={withAlpha(ink, 0.14)} />
+            <Icon name={icons.success} size={140} color={withAlpha(ink, 0.1)} />
           </View>
 
           <View style={styles.caughtUpContent}>
-            <View style={styles.eyebrow}>
-              <Icon name={icons.proud} size={14} color={ink} />
-              <Text variant="label" color={ink}>
-                Curated Recommendation
-              </Text>
-            </View>
-
             <Text variant="h2" color={ink} center>
               All Caught Up!
             </Text>
@@ -239,12 +232,6 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           <View>
             {/* 1. Header Section */}
             <View style={styles.headerText}>
-              <View style={styles.eyebrow}>
-                <Icon name={icons.journeyRoute} size={14} color={ink} />
-                <Text variant="label" color={ink}>
-                  Guided Path
-                </Text>
-              </View>
               <Text variant="h2" color={ink} style={styles.packTitle}>
                 {pack.title}
               </Text>
@@ -255,7 +242,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
 
             {/* Large Watermark Icon */}
             <View style={styles.watermarkMain} pointerEvents="none">
-              <Icon name={watermarkIcon} size={220} color={withAlpha(ink, 0.12)} />
+              <Icon name={watermarkIcon} size={220} color={withAlpha(ink, 0.1)} />
             </View>
 
             {/* 2. Progress Section */}
@@ -284,7 +271,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             <View style={styles.innerCard}>
               <View style={styles.innerCardContent}>
                 <Text variant="label" color={colors.action.primary}>
-                  ALL CAUGHT UP
+                  All Caught Up
                 </Text>
                 <Text variant="h3" color="primary" style={styles.innerTitle}>
                   Great job!
@@ -298,7 +285,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                   <Spinner size="small" color={colors.action.primary} />
                 ) : (
                   <Text variant="label" color={colors.action.primary}>
-                    FIND NEXT
+                    Find Next
                   </Text>
                 )}
               </View>
@@ -308,7 +295,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               <View style={styles.innerCard}>
                 <View style={styles.innerCardContent}>
                   <Text variant="label" color={colors.action.primary}>
-                    CURRENT MODULE
+                    Current Module
                   </Text>
                   <Text variant="h3" color="primary" style={styles.innerTitle}>
                     {nextModuleDisplay.title.replace(/^Module \d+:\s*/, "")}
@@ -319,7 +306,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                 </View>
                 <View style={styles.actionBar}>
                   <Text variant="label" color={colors.action.primary}>
-                    {actionButtonText.toUpperCase()}
+                    {actionButtonText}
                   </Text>
                 </View>
               </View>
@@ -376,7 +363,7 @@ const useStyles = makeStyles((c) => ({
   container: {
     borderRadius: radius.card,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 16,
     elevation: 8,
   },
@@ -398,19 +385,11 @@ const useStyles = makeStyles((c) => ({
     minHeight: 220,
     justifyContent: "center",
   },
-  eyebrow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    gap: space.inlineGap,
-    marginBottom: space.groupGap,
-  },
   headerText: {
     zIndex: 1,
     paddingRight: 72,
   },
   packTitle: {
-    marginTop: space.titleSub,
     marginBottom: space.titleSub,
   },
   watermarkMain: {

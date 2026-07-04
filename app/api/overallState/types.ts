@@ -108,9 +108,11 @@ export interface OverallStateProfile {
  */
 export interface UserOverallStateAggregate {
   id: string;
-  periodKey: string; // e.g., "2026-W06" (ISO week)
-  periodStart: string; // e.g., "2026-02-03" (Monday)
-  periodEnd: string; // e.g., "2026-02-09" (Sunday)
+  periodKey: string; // e.g., "2026-W06" (ISO week) — always present; use for sorting/matching
+  // NOTE: the backend does not reliably send these date bounds. Treat as optional
+  // and sort/match on `periodKey` instead of assuming they're strings.
+  periodStart?: string; // e.g., "2026-02-03" (Monday)
+  periodEnd?: string; // e.g., "2026-02-09" (Sunday)
   clinical: ClinicalSummary;
   engagement: EngagementSummary;
   combined: CombinedView;
@@ -119,9 +121,10 @@ export interface UserOverallStateAggregate {
 }
 
 export interface OverallStateHistoryBucket {
-  periodKey: string;
-  periodStart: string;
-  periodEnd: string;
+  periodKey: string; // always present; use for sorting/matching
+  // See note on UserOverallStateAggregate — these may be absent at runtime.
+  periodStart?: string;
+  periodEnd?: string;
   hasData: boolean;
   snapshot?: UserOverallStateAggregate;
 }

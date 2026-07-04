@@ -217,26 +217,24 @@ const ResourceStats = ({
   return (
     <View style={[styles.container, style]}>
       {/* Dark identity card — orange/accent stats, not an orange flood. */}
-      <View style={[styles.card, { backgroundColor: colors.surface.default }]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface.default, borderColor: colors.border.hairline },
+        ]}
+      >
         {/* Large watermark — flame at low opacity on the dark surface. */}
         <View style={styles.mainWatermarkContainer} pointerEvents="none">
-          <Icon name={icons.streak} size={120} color={colors.action.primary} style={{ opacity: 0.08 }} />
+          <Icon name={icons.streak} size={120} color={colors.action.primary} style={{ opacity: 0.1 }} />
         </View>
 
-        {/* Header — bare eyebrow (icon + label, no tint pill: the 12% wash is
-            near-invisible against the card; bare orange reads 7:1). */}
+        {/* Header — title + subtitle, no eyebrow. */}
         <View style={styles.headerRow}>
           <View>
-            <View style={styles.eyebrow}>
-              <Icon name={icons.chartPie} size={14} color={colors.action.primary} />
-              <Text variant="label" color={colors.action.primary}>
-                OVERVIEW
-              </Text>
-            </View>
             <Text variant="h2" color="primary" style={styles.cardTitle}>
               Daily Progress
             </Text>
-            <Text variant="bodySm" color="secondary">
+            <Text variant="body" color="secondary">
               Your energy and growth
             </Text>
           </View>
@@ -433,6 +431,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: radius.card,
+    borderWidth: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing["3xl"],
     paddingBottom: spacing["2xl"],
@@ -445,13 +444,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: spacing["2xl"],
     zIndex: 1,
-  },
-  eyebrow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: spacing.md,
-    gap: spacing.sm,
   },
   cardTitle: {
     marginBottom: spacing.xs,
