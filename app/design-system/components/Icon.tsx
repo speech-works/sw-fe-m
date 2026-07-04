@@ -23,7 +23,8 @@ export type ExtraIconName =
   | "ear" | "stethoscope" | "triangle-alert" | "sparkles" | "trophy"
   | "circle-arrow-up" | "message-circle-question-mark" | "lightbulb" | "sprout"
   | "route" | "chart-pie" | "square-check" | "party-popper" | "hand-helping"
-  | "hourglass" | "medal" | "mic-vocal" | "layout-grid" | "history" | "whatsapp";
+  | "hourglass" | "medal" | "mic-vocal" | "layout-grid" | "history" | "whatsapp"
+  | "layer" | "clipboard-pulse" | "chat";
 
 export type IconName = FeatherName | ExtraIconName;
 

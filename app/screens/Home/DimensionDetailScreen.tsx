@@ -1,6 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { View } from "react-native";
-import Animated from "react-native-reanimated";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  withSpring,
+} from "react-native-reanimated";
 import {
   ClinicalDomain,
   GrowthProfileMetrics,
@@ -18,15 +25,16 @@ import {
   TrendLine,
   AnimatedNumber,
   haptics,
+  spring,
   useTheme,
   useMotion,
   makeStyles,
+  withAlpha,
   spacing,
   space,
   radius,
   SemanticColors,
 } from "../../design-system";
-import PressableScale from "../../components/PressableScale";
 
 type DetailFamily = "combined" | "clinical" | "engagement";
 type AccentKey = keyof SemanticColors["accent"];
@@ -191,6 +199,75 @@ const DIMENSION_CONFIG: Record<
   },
 };
 
+/** Growth-family lens icons — collision-free glyphs that denote each tab. */
+const FAMILY_ICONS: Record<DetailFamily, IconName> = {
+  combined: icons.lensCombined,
+  clinical: icons.lensClinical,
+  engagement: icons.lensEngagement,
+};
+
+/**
+ * One family tab — the Community `TabDock` mechanic: icon-only when idle, the label
+ * expands + the accent pill fills in when active, all on the shared `gentle` spring.
+ */
+const FamilyTab: React.FC<{
+  label: string;
+  icon: IconName;
+  active: boolean;
+  accent: string;
+  onAccent: string;
+  onPress: () => void;
+}> = ({ label, icon, active, accent, onAccent, onPress }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const reduced = useReducedMotion();
+  const labelTarget = label.length * 8 + 4; // generous so a glyph run never clips
+  const v = useDerivedValue(
+    () => (reduced ? (active ? 1 : 0) : withSpring(active ? 1 : 0, spring.gentle)),
+    [active, reduced],
+  );
+
+  const pillStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      Math.min(1, Math.max(0, v.value)),
+      [0, 1],
+      ["transparent", accent],
+    ),
+  }));
+  const idleIconStyle = useAnimatedStyle(() => ({ opacity: 1 - v.value }));
+  const activeIconStyle = useAnimatedStyle(() => ({ opacity: v.value }));
+  const labelStyle = useAnimatedStyle(() => ({
+    width: Math.max(0, interpolate(v.value, [0, 1], [0, labelTarget])),
+    marginLeft: Math.max(0, interpolate(v.value, [0, 1], [0, 6])),
+    opacity: Math.max(0, Math.min(1, v.value)),
+  }));
+
+  return (
+    <Pressable onPress={onPress}>
+      <Animated.View style={[styles.tabPill, pillStyle]}>
+          <View style={styles.tabIconBox}>
+            <Animated.View style={[styles.tabIconLayer, idleIconStyle]}>
+              <Icon name={icon} size={18} color={colors.text.tertiary} />
+            </Animated.View>
+            <Animated.View style={[styles.tabIconLayer, activeIconStyle]}>
+              <Icon name={icon} size={18} color={onAccent} />
+            </Animated.View>
+          </View>
+        <Animated.View style={[styles.tabLabelWrap, labelStyle]}>
+          <Text
+            variant="bodySm"
+            color={onAccent}
+            numberOfLines={1}
+            style={styles.tabLabelText}
+          >
+            {label}
+          </Text>
+        </Animated.View>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const DimensionDetailScreen = () => {
   const route = useRoute<HomeStackRouteProp<"DimensionDetail">>();
   const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
@@ -237,43 +314,28 @@ const DimensionDetailScreen = () => {
   const isEngagementEmpty = selectedFamily === "engagement" && isUnavailable;
   const hasTrendData = trendValues.some((w) => w.value != null);
 
-  const familyScore = (family: DetailFamily) => {
-    const value = familyData[family]?.currentScore;
-    return value == null ? "—" : String(Math.round(value));
-  };
-
   return (
     <Page
       title={config.label}
       description={config.description}
       onBack={() => navigation.goBack()}
     >
-      {/* Family tabs — each family's score is an inline hint next to its label. */}
+      {/* Family tabs — Community-style morphing pill (label only). */}
       <Animated.View entering={motion.stagger(0)} style={styles.tabs}>
-        {FAMILY_ORDER.map((family) => {
-          const active = family === selectedFamily;
-          return (
-            <PressableScale
-              key={family}
-              scaleTo={0.97}
-              onPress={() => {
-                if (!active) haptics.selection();
-                setSelectedFamily(family);
-              }}
-              style={[
-                styles.tab,
-                { backgroundColor: active ? accentColor : "transparent" },
-              ]}
-            >
-              <Text variant="bodySm" color={active ? onAccentColor : "tertiary"}>
-                {FAMILY_LABELS[family]}
-              </Text>
-              <Text variant="label" color={active ? onAccentColor : "secondary"}>
-                {familyScore(family)}
-              </Text>
-            </PressableScale>
-          );
-        })}
+        {FAMILY_ORDER.map((family) => (
+          <FamilyTab
+            key={family}
+            label={FAMILY_LABELS[family]}
+            icon={FAMILY_ICONS[family]}
+            active={family === selectedFamily}
+            accent={accentColor}
+            onAccent={onAccentColor}
+            onPress={() => {
+              if (family !== selectedFamily) haptics.selection();
+              setSelectedFamily(family);
+            }}
+          />
+        ))}
       </Animated.View>
 
       <Animated.View entering={motion.stagger(1)}>
@@ -282,81 +344,87 @@ const DimensionDetailScreen = () => {
         </Text>
       </Animated.View>
 
-      {/* Hero number + delta. */}
-      <Animated.View entering={motion.stagger(2)} style={styles.hero}>
-        {isUnavailable ? (
-          <Text variant="screenTitle" color="tertiary">
-            —
-          </Text>
-        ) : (
-          <AnimatedNumber
-            key={selectedFamily}
-            value={Math.round(score)}
-            variant="screenTitle"
-            color="primary"
-          />
-        )}
-        {hasComparison && !isUnavailable ? (
-          <>
-            <View
-              style={[styles.deltaChip, { backgroundColor: colors.surface.control }]}
-            >
-              <Icon
-                name={
-                  trend === "IMPROVING"
-                    ? icons.trend
-                    : trend === "WORSENING"
-                      ? icons.trendDown
-                      : "minus"
-                }
-                size={16}
-                color={trendColor}
-              />
-              <Text variant="bodySm" color={trendColor}>
-                {(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}
-                {activeMetrics.percentDelta?.toFixed(1)}% vs last week
-              </Text>
-            </View>
-            <Text variant="caption" color="tertiary" style={styles.prev}>
-              Previously {Math.round(activeMetrics.previousScore ?? 0)}
+      {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
+      <Animated.View entering={motion.stagger(2)} style={styles.chartHero}>
+        <View style={styles.chartHeader}>
+          <View style={styles.chartHeaderLeft}>
+            <Text variant="label" color="tertiary">
+              This week
             </Text>
-          </>
-        ) : (
-          !isUnavailable && (
-            <View
-              style={[styles.deltaChip, { backgroundColor: colors.surface.control }]}
-            >
-              <Icon name={icons.duration} size={16} color={colors.text.tertiary} />
-              <Text variant="bodySm" color="tertiary">
-                Waiting for history
+            {isUnavailable ? (
+              <Text variant="screenTitle" color="tertiary">
+                —
               </Text>
-            </View>
-          )
-        )}
-      </Animated.View>
+            ) : (
+              <AnimatedNumber
+                key={selectedFamily}
+                value={Math.round(score)}
+                variant="screenTitle"
+                color="primary"
+              />
+            )}
+          </View>
 
-      {/* Signature 4-week trend line. */}
-      <Animated.View entering={motion.stagger(3)} style={styles.trendBlock}>
-        <Text variant="title" color="primary" style={styles.trendTitle}>
-          Last 4 weeks
-        </Text>
+          {!isUnavailable && (
+            <View style={styles.readoutMeta}>
+              {hasComparison ? (
+                <>
+                  <View
+                    style={[
+                      styles.trendPill,
+                      { backgroundColor: withAlpha(trendColor, 0.14) },
+                    ]}
+                  >
+                    <Icon
+                      name={
+                        trend === "IMPROVING"
+                          ? icons.trend
+                          : trend === "WORSENING"
+                            ? icons.trendDown
+                            : "minus"
+                      }
+                      size={15}
+                      color={trendColor}
+                    />
+                    <Text variant="title" color={trendColor}>
+                      {Math.abs(activeMetrics.percentDelta ?? 0).toFixed(1)}%
+                    </Text>
+                  </View>
+                  <Text variant="caption" color="tertiary">
+                    vs last week · was {Math.round(activeMetrics.previousScore ?? 0)}
+                  </Text>
+                </>
+              ) : (
+                <View
+                  style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
+                >
+                  <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
+                  <Text variant="bodySm" color="tertiary">
+                    New baseline
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
         {hasTrendData ? (
           <TrendLine
             data={trendValues.map((w) => w.value)}
             labels={trendValues.map((w) => w.label)}
             color={accentColor}
-            height={120}
+            height={128}
           />
         ) : (
-          <Text variant="bodySm" color="tertiary">
+          <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
             Not enough signal yet — a few weeks of practice will draw your trend.
           </Text>
         )}
       </Animated.View>
 
-      {/* Insight — or the engagement empty state. */}
+      {/* Insight message — closes the screen. */}
       <Animated.View
-        entering={motion.stagger(4)}
+        entering={motion.stagger(3)}
         style={[styles.insight, { borderTopColor: colors.border.hairline }]}
       >
         <Icon
@@ -380,48 +448,73 @@ const DimensionDetailScreen = () => {
 export default DimensionDetailScreen;
 
 const useStyles = makeStyles((c) => ({
+  // Hugs its tabs (like the Community dock) instead of filling the width.
   tabs: {
     flexDirection: "row",
+    alignSelf: "flex-start",
     backgroundColor: c.surface.default,
-    borderRadius: radius.chip,
+    borderRadius: radius.pill,
     padding: 4,
     gap: 4,
     marginBottom: space.groupGap,
   },
-  // Single line — label + inline score hint, standard 38px segmented height.
-  tab: {
-    flex: 1,
-    height: 38,
-    borderRadius: radius.chip - 4,
+  // Icon-only when idle; the accent fill + label expand in when active.
+  tabPill: {
     flexDirection: "row",
+    height: 40,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
-    gap: space.inlineGap,
+    paddingHorizontal: spacing.md,
+  },
+  tabIconBox: {
+    width: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIconLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabLabelWrap: {
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+  tabLabelText: {
+    textAlign: "center",
   },
   familyDesc: {
     marginBottom: space.sectionGap,
   },
-  hero: {
-    alignItems: "center",
-    gap: space.rowGap,
+  chartHero: {
     marginBottom: space.sectionGap,
   },
-  deltaChip: {
+  // Label + score sit top-left; trend detail top-right; the chart flows below.
+  chartHeader: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginBottom: space.rowGap,
+  },
+  chartHeaderLeft: {
+    gap: spacing.xxs,
+  },
+  readoutMeta: {
+    alignItems: "flex-end",
+    gap: spacing.sm,
+  },
+  trendEmpty: {
+    marginTop: space.groupGap,
+  },
+  trendPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.inlineGap,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.input,
-  },
-  prev: {
-    marginTop: -spacing.xs,
-  },
-  trendBlock: {
-    marginBottom: space.sectionGap,
-  },
-  trendTitle: {
-    marginBottom: space.groupGap,
+    borderRadius: radius.pill,
   },
   insight: {
     paddingTop: space.groupGap,
