@@ -1,17 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import { format, isValid, parseISO } from "date-fns";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Animated,
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  InteractionManager,
-} from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { RefreshControl, View } from "react-native";
 import {
   getTodayImpactAssessmentQuestions,
   startImpactAssessmentCollection,
@@ -22,7 +12,6 @@ import ClinicalStatsWidget from "../../components/Dashboard/ClinicalStatsWidget"
 import SmartRecommendationCard from "../../components/Dashboard/SmartRecommendationCard";
 import ImpactAssessmentWidget from "../../components/ImpactAssessmentWidget";
 import OnboardingReminderCard from "../../components/OnboardingReminderCard";
-import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useMoodCheckStore } from "../../stores/mood";
@@ -30,19 +19,26 @@ import { useImpactAssessmentStore } from "../../stores/impactAssessment";
 import { useOnboardingStore } from "../../stores/onboarding";
 import { useUserStore } from "../../stores/user";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
-import { theme } from "../../Theme/tokens";
 import { getLocalTodayDateString } from "../../util/functions/date";
-import { parseTextStyle } from "../../util/functions/parseStyles";
 import MoodCheckPopup from "../Academy/components/MoodCheck/MoodCheckPopup";
 import ResourceStats from "../Academy/components/ResourceStats";
 import MoodCheckBanner from "./components/MoodCheckBanner";
 import Toast from "react-native-toast-message";
-
 import OnboardingResumeModal from "../../components/OnboardingResumeModal";
-const { width } = Dimensions.get("window");
+import {
+  Page,
+  Carousel,
+  Text,
+  useTheme,
+  makeStyles,
+  space,
+  radius,
+} from "../../design-system";
+import { InteractionManager } from "react-native";
 
 const Home = () => {
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { user, setUser, fetchUser } = useUserStore();
   const { fetchAllTrends } = useUserBehaviorTrendsStore();
   const { emit } = useEventStore();
@@ -72,14 +68,11 @@ const Home = () => {
   const showImpactAssessment = !!impactAssessmentProgress && !showOnboarding;
   const showMoodCheck = !hasRecordedToday;
 
-  const cards = [];
+  const cards: string[] = [];
   if (showOnboarding) cards.push("onboarding");
   else if (showImpactAssessment) cards.push("impactAssessment");
 
   if (showMoodCheck) cards.push("mood");
-
-  const totalPages = cards.length;
-  const paginationData = Array.from({ length: totalPages }, (_, i) => i);
 
   // Resume Handler
   const handleResumeOnboarding = () => {
@@ -259,23 +252,6 @@ const Home = () => {
     }
   }, [fetchAllTrends, initImpactAssessment, setUser, user?.level]);
 
-  const carouselItemWidth = width - 32; // Exact match to other cards (width - 32)
-  const carouselSpacing = 8;
-  // Calculate padding to center the card.
-  // Carousel is full width (width).
-  const sidePadding = (width - carouselItemWidth) / 2;
-  const snapInterval = carouselItemWidth + carouselSpacing;
-
-  // Pagination Logic (React Native Animated)
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollHandler = React.useMemo(
-    () =>
-      Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-        useNativeDriver: true,
-      }),
-    [scrollX],
-  );
-
   const currentHour = new Date().getHours();
   const greeting =
     currentHour < 12
@@ -285,171 +261,100 @@ const Home = () => {
         : "Good Evening,";
   const firstName = user?.name ? user.name.split(" ")[0] : "";
 
-  return (
-    <ScreenView style={[styles.container, { paddingHorizontal: 0, paddingTop: insets.top + 16 }]}>
-      {interactionsDone && <MoodCheckPopup />}
+  const renderCard = (cardType: string) => {
+    if (cardType === "onboarding") {
+      return (
+        <OnboardingReminderCard
+          currentStep={currentOnboardingScreen - 1}
+          totalSteps={totalOnboardingScreens}
+          onPress={async () => {
+            try {
+              const state = useOnboardingStore.getState();
+              if (
+                state.flow &&
+                (state.currentScreen > 1 ||
+                  Object.keys(state.answers).length > 0)
+              ) {
+                setShowResumeModal(true);
+                return;
+              }
+              const flow = await getActiveOnboardingFlow();
+              state.startFresh(flow);
+              emit(EVENT_NAMES.START_ONBOARDING);
+            } catch (err) {
+              console.error("Failed to load onboarding flow:", err);
+            }
+          }}
+        />
+      );
+    }
+    if (cardType === "impactAssessment") {
+      return (
+        <ImpactAssessmentWidget
+          dayNumber={impactAssessmentProgress?.dayNumber}
+          totalDays={impactAssessmentProgress?.totalDays}
+          totalRemaining={impactAssessmentProgress?.totalRemaining}
+          onPress={() => {
+            navigation.navigate("ExploreStack", {
+              screen: "DailyPracticeStack",
+              params: { screen: "ImpactAssessmentIntro" },
+            });
+          }}
+        />
+      );
+    }
+    if (cardType === "mood") {
+      return interactionsDone ? (
+        <MoodCheckBanner />
+      ) : (
+        <View style={styles.cardPlaceholder} />
+      );
+    }
+    return null;
+  };
 
-      <ScrollView
-        scrollEnabled={true}
-        contentContainerStyle={[styles.scroll, { paddingHorizontal: 16 }]}
+  return (
+    <>
+      <Page
+        tabBarSafe
+        contentGap={space.sectionGap}
+        hero={
+          <View>
+            <Text variant="h3" color="secondary">
+              {greeting}
+            </Text>
+            {firstName ? (
+              <Text variant="screenTitle" color="primary">
+                {firstName}
+              </Text>
+            ) : null}
+          </View>
+        }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.text.secondary}
+            colors={[colors.action.primary]}
+          />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.greeting}>{greeting}</Text>
-          {firstName ? (
-            <Text style={styles.subGreeting}>{firstName}</Text>
-          ) : null}
-        </View>
+        {cards.length > 0 ? (
+          <Carousel
+            data={cards}
+            keyExtractor={(c) => c}
+            renderItem={({ item }) => renderCard(item)}
+          />
+        ) : null}
 
-        <View style={{ height: 28 }} />
+        <ResourceStats refreshing={refreshing} />
 
-        {/* --- Top Carousel --- */}
-        {totalPages > 0 && (
-          <Animated.ScrollView
-            horizontal
-            scrollEnabled={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: sidePadding,
-              marginBottom: 0,
-            }}
-            style={{
-              marginHorizontal: -16,
-              marginBottom: 0,
-            }}
-            snapToInterval={snapInterval}
-            decelerationRate="fast"
-            snapToAlignment="start"
-            onScroll={scrollHandler}
-            scrollEventThrottle={16}
-          >
-            {cards.map((cardType, index) => (
-              <View
-                key={cardType}
-                style={[
-                  styles.carouselItem,
-                  {
-                    width: carouselItemWidth,
-                    marginRight:
-                      index === totalPages - 1 ? 0 : carouselSpacing,
-                  },
-                ]}
-              >
-                {cardType === "onboarding" && (
-                  <OnboardingReminderCard
-                    currentStep={currentOnboardingScreen - 1}
-                    totalSteps={totalOnboardingScreens}
-                    style={{ marginBottom: 0 }}
-                    onPress={async () => {
-                      try {
-                        const state = useOnboardingStore.getState();
-                        if (
-                          state.flow &&
-                          (state.currentScreen > 1 ||
-                            Object.keys(state.answers).length > 0)
-                        ) {
-                          setShowResumeModal(true);
-                          return;
-                        }
-                        const flow = await getActiveOnboardingFlow();
-                        state.startFresh(flow);
-                        emit(EVENT_NAMES.START_ONBOARDING);
-                      } catch (err) {
-                        console.error("Failed to load onboarding flow:", err);
-                      }
-                    }}
-                  />
-                )}
-                {cardType === "impactAssessment" && (
-                  <ImpactAssessmentWidget
-                    dayNumber={impactAssessmentProgress?.dayNumber}
-                    totalDays={impactAssessmentProgress?.totalDays}
-                    totalRemaining={impactAssessmentProgress?.totalRemaining}
-                    style={{ marginBottom: 0 }}
-                    onPress={() => {
-                      navigation.navigate("ExploreStack", {
-                        screen: "DailyPracticeStack",
-                        params: { screen: "ImpactAssessmentIntro" },
-                      });
-                    }}
-                  />
-                )}
-                {cardType === "mood" && (
-                  <View collapsable={false}>
-                    {interactionsDone ? (
-                      <MoodCheckBanner style={{ marginBottom: 0 }} />
-                    ) : (
-                      <View
-                        style={{
-                          height: 260,
-                          borderRadius: 24,
-                          backgroundColor: "rgba(0,0,0,0.02)",
-                        }}
-                      />
-                    )}
-                  </View>
-                )}
-              </View>
-            ))}
-          </Animated.ScrollView>
-        )}
-
-        {/* Pagination Indicators */}
-        {totalPages > 1 && (
-          <View style={styles.paginationContainer}>
-            {cards.map((_, index) => {
-              const inputRange = [
-                (index - 1) * snapInterval,
-                index * snapInterval,
-                (index + 1) * snapInterval,
-              ];
-
-              const dotScaleX = scrollX.interpolate({
-                inputRange,
-                outputRange: [1, 3, 1],
-                extrapolate: "clamp",
-              });
-
-              const opacity = scrollX.interpolate({
-                inputRange,
-                outputRange: [0.4, 1, 0.4],
-                extrapolate: "clamp",
-              });
-
-              return (
-                <Animated.View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    {
-                      transform: [{ scaleX: dotScaleX }],
-                      opacity: opacity,
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-        )}
-        {/* ------------------- */}
-
-        <View style={{ height: 16 }} />
-
-        <ResourceStats refreshing={refreshing} style={{ marginBottom: 0 }} />
-
-        <View style={{ height: 28 }} />
-
-        <SmartRecommendationCard
-          key={`rec-${refreshKey}`}
-          style={{ marginBottom: 0 }}
-        />
-
-        <View style={{ height: 28 }} />
+        <SmartRecommendationCard key={`rec-${refreshKey}`} />
 
         <ClinicalStatsWidget />
-      </ScrollView>
+      </Page>
+
+      {interactionsDone && <MoodCheckPopup />}
 
       {/* Resume Modal Overlay */}
       <OnboardingResumeModal
@@ -458,45 +363,16 @@ const Home = () => {
         onStartOver={handleStartOverOnboarding}
         onDismiss={() => setShowResumeModal(false)}
       />
-    </ScreenView>
+    </>
   );
 };
-const styles = StyleSheet.create({
-  container: {
-    // paddingTop is set dynamically using insets.top + 16
-  },
-  scroll: {
-    paddingBottom: 130, // Space for Custom Tab Bar
-  },
-  header: {
-    marginBottom: 0,
-  },
-  greeting: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.default,
-  },
-  subGreeting: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-  },
-  carouselContent: {
-    // Deprecated, handled inline
-    marginBottom: 24,
-  },
-  carouselItem: {
-    // Deprecated, handled inline
-  },
-  paginationContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 0,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.background.default,
-  },
-});
+
 export default Home;
+
+const useStyles = makeStyles((c) => ({
+  cardPlaceholder: {
+    height: 260,
+    borderRadius: radius.card,
+    backgroundColor: c.surface.default,
+  },
+}));

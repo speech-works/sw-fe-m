@@ -115,7 +115,7 @@ const ImpactAssessmentComplete = () => {
               <ProgressBar
                 value={progress.completionPercentage}
                 max={100}
-                color={colors.action.primary}
+                color={colors.accent.warning}
               />
               <Text
                 variant="bodySm"
@@ -136,7 +136,12 @@ const ImpactAssessmentComplete = () => {
           { paddingBottom: Math.max(insets.bottom + spacing.md, spacing["3xl"]) },
         ]}
       >
-        <Button label="Back to Dashboard" onPress={handleDone} />
+        <Button
+          label="Back to Dashboard"
+          onPress={handleDone}
+          accentColor={colors.accent.warning}
+          onAccentColor={colors.accentOn.warning}
+        />
       </View>
     </ScreenView>
   );

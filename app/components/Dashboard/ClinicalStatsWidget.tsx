@@ -1,9 +1,7 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -31,7 +29,16 @@ import {
 } from "../../api/userBehaviorTrends/types";
 import { GrowthProfileAxisKey } from "../../api/overallState/types";
 import { useUserBehaviorTrendsStore } from "../../stores/userBehaviorTrends";
-import { theme } from "../../Theme/tokens";
+import {
+  Icon,
+  Text,
+  icons,
+  makeStyles,
+  spacing,
+  radius,
+  useTheme,
+} from "../../design-system";
+import type { IconName } from "../../design-system/components/Icon";
 import SkeletonLoader from "../SkeletonLoader";
 import ErrorStateCard from "./ErrorStateCard";
 import { useNavigation } from "@react-navigation/native";
@@ -45,48 +52,50 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 // --- 1. Translation Map ---
+type MetricAccentKey = "success" | "danger" | "info" | "purple" | "warning";
+
 const METRIC_CONFIG: Record<
   ClinicalDomain,
   {
     label: string;
-    color: string;
-    icon: string;
+    accentKey: MetricAccentKey;
+    icon: IconName;
     description: string;
     profileKey: keyof GrowthProfileMetrics;
   }
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#059669", // Emerald 600 - Highly visible green
-    icon: "shield-check",
+    accentKey: "success",
+    icon: icons.confidence,
     description: "Belief in your ability to speak freely.",
     profileKey: "confidence",
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#E11D48", // Rose 600 - Warm and visible red/pink
-    icon: "fire",
+    accentKey: "danger",
+    icon: icons.courage,
     description: "Facing situations without holding back.",
     profileKey: "courage",
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery", // Was Control
-    color: "#0284C7", // Sky 600 - Deep cyan/blue
-    icon: "target",
+    accentKey: "info",
+    icon: icons.mastery,
     description: "Managing speech techniques effectively.",
     profileKey: "mastery",
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease", // Was Flow
-    color: "#8B5CF6", // Violet 500 - Solid purple
-    icon: "water",
+    accentKey: "purple",
+    icon: icons.ease,
     description: "Smoothness in daily communication.",
     profileKey: "ease",
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#EA580C", // Orange 600 - Vibrant, visible orange
-    icon: "account-group",
+    accentKey: "warning",
+    icon: icons.social,
     description: "Active participation in social life.",
     profileKey: "social",
   },
@@ -119,6 +128,8 @@ type BreakthroughItem = {
 };
 
 const ClinicalStatsWidget = ({ style }: { style?: any }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const {
     overallState,
     historyBuckets,
@@ -159,6 +170,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
 
     navigation.navigate("DimensionDetail", {
       domain,
+      accentKey: METRIC_CONFIG[domain].accentKey,
       familyData,
       comparisonLabel: overallState.profile.comparison.comparisonLabel,
     });
@@ -548,10 +560,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       >
         {/* Decorative Bubbles */}
         <View style={styles.mainWatermarkContainer}>
-          <MaterialCommunityIcons
-            name="trending-up"
+          <Icon
+            name={icons.trend}
             size={300}
-            color={theme.colors.library.orange[500]}
+            color={colors.action.primary}
             style={{ opacity: 0.08 }}
           />
         </View>
@@ -569,35 +581,38 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
-                <View style={styles.chip}>
-                  <MaterialCommunityIcons
-                    name="chart-donut"
-                    size={12}
-                    color={theme.colors.library.orange[500]}
+                {/* Bare eyebrow (icon + label, no tint pill) — matches the
+                    dashboard-card header grammar (ResourceStats / SmartRec). */}
+                <View style={styles.eyebrow}>
+                  <Icon
+                    name={icons.chartPie}
+                    size={14}
+                    color={colors.action.primary}
                   />
-                  <Text style={styles.chipText}>TRACKING</Text>
+                  <Text variant="label" color={colors.action.primary}>
+                    TRACKING
+                  </Text>
                 </View>
                 {isMomentumSlipping && (
                   <View
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: theme.colors.library.gray[100],
+                        backgroundColor: colors.surface.control,
                         borderRadius: 12,
                         paddingHorizontal: 8,
                       },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name="alert-circle-outline"
+                    <Icon
+                      name={icons.warning}
                       size={12}
-                      color={theme.colors.library.gray[500]}
+                      color={colors.text.tertiary}
                     />
                     <Text
-                      style={[
-                        styles.chipText,
-                        { color: theme.colors.library.gray[600] },
-                      ]}
+                      variant="label"
+                      color="secondary"
+                      style={styles.chipText}
                     >
                       SLIPPING MOMENTUM
                     </Text>
@@ -623,8 +638,12 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               </>
             ) : (
               <>
-                <Text style={styles.bigTitle}>Growth Profile</Text>
-                <Text style={styles.subtitle}>{dynamicSubtitle}</Text>
+                <Text variant="h3" color="primary" style={styles.bigTitle}>
+                  Growth Profile
+                </Text>
+                <Text variant="bodySm" color="secondary" style={styles.subtitle}>
+                  {dynamicSubtitle}
+                </Text>
               </>
             )}
           </View>
@@ -646,12 +665,12 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   <SvgGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
                     <Stop
                       offset="0"
-                      stopColor={theme.colors.library.orange[300]}
+                      stopColor={colors.action.primary}
                       stopOpacity="0.6"
                     />
                     <Stop
                       offset="1"
-                      stopColor={theme.colors.library.orange[100]}
+                      stopColor={colors.action.primaryTint}
                       stopOpacity="0.2"
                     />
                   </SvgGradient>
@@ -662,7 +681,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   <Path
                     key={`grid-${i}`}
                     d={pathD}
-                    stroke={theme.colors.library.gray[200]}
+                    stroke={colors.border.default}
                     strokeWidth="0.5" // Thinner grid
                     strokeDasharray="4,2" // Tighter dash
                     fill="none"
@@ -685,7 +704,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                       y1={CENTER}
                       x2={end.x}
                       y2={end.y}
-                      stroke={theme.colors.library.gray[200]} // Lighter axis
+                      stroke={colors.border.default} // Lighter axis
                       strokeWidth="1"
                       strokeDasharray="2,2" // Tighter dash
                     />
@@ -698,7 +717,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                     <AnimatedPath
                       d={historicalPathD}
                       fill="none"
-                      stroke={theme.colors.library.gray[300]}
+                      stroke={colors.text.tertiary}
                       strokeWidth={1.5}
                       strokeDasharray="5,5"
                       opacity={0.9}
@@ -708,9 +727,9 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   {/* 2. Clinical Baseline Layer (Greenish) */}
                   <AnimatedPath
                     d={baselinePathD}
-                    fill="#4CAF50"
+                    fill={colors.accent.success}
                     fillOpacity={0.12}
-                    stroke="#4CAF50"
+                    stroke={colors.accent.success}
                     strokeWidth={1.5}
                     strokeDasharray="4,4"
                   />
@@ -720,7 +739,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                   <AnimatedPath
                     d={currentPathD}
                     fill="none"
-                    stroke={theme.colors.library.orange[300]}
+                    stroke={colors.action.primary}
                     strokeWidth="12"
                     strokeOpacity={0.15}
                   />
@@ -730,7 +749,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                     d={currentPathD}
                     fill="url(#radarGradient)"
                     fillOpacity={0.6}
-                    stroke="#FF9800"
+                    stroke={colors.action.primary}
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -743,8 +762,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                       cx={coord.x}
                       cy={coord.y}
                       r="4"
-                      fill="white"
-                      stroke="#FF9800"
+                      fill={colors.surface.default}
+                      stroke={colors.action.primary}
                       strokeWidth="2"
                     />
                   ))}
@@ -770,7 +789,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                       key={`text-${i}`}
                       x={pos.x}
                       y={pos.y}
-                      fill={"#666666"}
+                      fill={colors.text.secondary}
                       fontSize={"10"}
                       fontWeight={"600"}
                       textAnchor={anchor}
@@ -808,10 +827,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           <View style={styles.breakthroughContainer}>
             {/* Breakthrough Watermark Icon */}
             <View style={styles.breakthroughWatermarkContainer}>
-              <MaterialCommunityIcons
-                name="trophy-variant"
+              <Icon
+                name={icons.milestone}
                 size={160}
-                color={theme.colors.library.orange[500]}
+                color={colors.action.primary}
                 style={{ opacity: 0.08 }}
               />
             </View>
@@ -856,7 +875,13 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
               <>
                 {topBreakthroughs.length > 0 ? (
                   <>
-                    <Text style={styles.sectionLabel}>TOP BREAKTHROUGHS</Text>
+                    <Text
+                      variant="label"
+                      color="tertiary"
+                      style={styles.sectionLabel}
+                    >
+                      TOP BREAKTHROUGHS
+                    </Text>
                     {(() => {
                       const [heroItem, ...secondaryItems] = topBreakthroughs;
                       const isCompactBreakthroughLayout =
@@ -889,21 +914,23 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                       : null,
                                     {
                                       borderWidth: 1,
-                                      borderColor: theme.colors.library.gray[100],
+                                      borderColor: colors.border.hairline,
                                     },
                                   ]}
                                 >
                                   <View style={styles.compactBreakthroughWatermark}>
-                                    <MaterialCommunityIcons
-                                      name={item.config.icon as any}
+                                    <Icon
+                                      name={item.config.icon}
                                       size={40}
-                                      color={item.config.color}
+                                      color={colors.accent[item.config.accentKey]}
                                       style={{ opacity: 0.08 }}
                                     />
                                   </View>
 
                                   <View style={styles.compactBreakthroughHeader}>
                                     <Text
+                                      variant="label"
+                                      color="secondary"
                                       style={[styles.cardTitle, { marginBottom: 0 }]}
                                       numberOfLines={1}
                                       adjustsFontSizeToFit
@@ -914,7 +941,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                   </View>
 
                                   <View style={styles.compactBreakthroughValueRow}>
-                                    <Text style={styles.compactBreakthroughValue}>
+                                    <Text
+                                      variant="h2"
+                                      color="primary"
+                                      style={styles.compactBreakthroughValue}
+                                    >
                                       {Math.round(item.current)}
                                     </Text>
                                     {item.hasComparison ? (
@@ -924,27 +955,28 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                         }
                                       >
                                         <Text
-                                          style={[
-                                            styles.btChange,
+                                          variant="bodySm"
+                                          color={
                                             isImp
-                                              ? styles.textSuccess
-                                              : styles.textNeutral,
-                                          ]}
+                                              ? colors.feedback.successText
+                                              : colors.feedback.dangerText
+                                          }
+                                          style={styles.btChange}
                                         >
                                           {item.percentDelta! > 0 ? "+" : ""}
                                           {item.percentDelta?.toFixed(1)}%
                                         </Text>
-                                        <MaterialCommunityIcons
+                                        <Icon
                                           name={
                                             isImp
-                                              ? "trending-up"
-                                              : "trending-down"
+                                              ? icons.trend
+                                              : icons.trendDown
                                           }
                                           size={14}
                                           color={
                                             isImp
-                                              ? theme.colors.library.green[400]
-                                              : theme.colors.library.red[400]
+                                              ? colors.feedback.successText
+                                              : colors.feedback.dangerText
                                           }
                                         />
                                       </View>
@@ -952,7 +984,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                   </View>
 
                                   {item.absoluteDelta !== null ? (
-                                    <Text style={styles.btDeltaTextSmall}>
+                                    <Text
+                                      variant="label"
+                                      color="secondary"
+                                      style={styles.btDeltaTextSmall}
+                                    >
                                       {formatPointDelta(item.absoluteDelta)}
                                     </Text>
                                   ) : null}
@@ -975,23 +1011,29 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                 styles.heroCard,
                                 {
                                   borderWidth: 1,
-                                  borderColor: theme.colors.library.gray[100],
+                                  borderColor: colors.border.hairline,
                                 },
                               ]}
                             >
                               <View style={styles.heroHeader}>
                                 <Text
+                                  variant="label"
+                                  color="secondary"
                                   style={[styles.cardTitle, { marginBottom: 0 }]}
                                 >
                                   {heroItem.config.label}
                                 </Text>
-                                <MaterialCommunityIcons
-                                  name={heroItem.config.icon as any}
+                                <Icon
+                                  name={heroItem.config.icon}
                                   size={18}
-                                  color={heroItem.config.color}
+                                  color={colors.accent[heroItem.config.accentKey]}
                                 />
                               </View>
-                              <Text style={styles.heroValue}>
+                              <Text
+                                variant="h2"
+                                color="primary"
+                                style={styles.heroValue}
+                              >
                                 {Math.round(heroItem.current)}
                               </Text>
                               <View style={styles.btChangeRow}>
@@ -1003,31 +1045,28 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                     }}
                                   >
                                     <Text
-                                      style={[
-                                        {
-                                          color:
-                                            heroItem.trend === "IMPROVING"
-                                              ? theme.colors.library.green[400]
-                                              : theme.colors.library.red[400],
-                                          fontWeight: "700",
-                                        },
-                                      ]}
+                                      variant="bodySm"
+                                      color={
+                                        heroItem.trend === "IMPROVING"
+                                          ? colors.feedback.successText
+                                          : colors.feedback.dangerText
+                                      }
                                     >
                                       {heroItem.percentDelta! > 0 ? "+" : ""}
                                       {heroItem.percentDelta?.toFixed(1)}%
                                     </Text>
 
-                                    <MaterialCommunityIcons
+                                    <Icon
                                       name={
                                         heroItem.trend === "IMPROVING"
-                                          ? "trending-up"
-                                          : "trending-down"
+                                          ? icons.trend
+                                          : icons.trendDown
                                       }
                                       size={16}
                                       color={
                                         heroItem.trend === "IMPROVING"
-                                          ? theme.colors.library.green[400]
-                                          : theme.colors.library.red[400]
+                                          ? colors.feedback.successText
+                                          : colors.feedback.dangerText
                                       }
                                       style={{ marginLeft: 4 }}
                                     />
@@ -1035,7 +1074,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                 )}
                               </View>
                               {heroItem.absoluteDelta !== null ? (
-                                <Text style={styles.btDeltaText}>
+                                <Text
+                                  variant="bodySm"
+                                  color="secondary"
+                                  style={styles.btDeltaText}
+                                >
                                   {formatPointDelta(heroItem.absoluteDelta)}
                                 </Text>
                               ) : null}
@@ -1056,8 +1099,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                     styles.miniCard,
                                     {
                                       borderWidth: 1,
-                                      borderColor:
-                                        theme.colors.library.gray[100],
+                                      borderColor: colors.border.hairline,
                                       flex: 1,
                                       height: 100,
                                       padding: 12,
@@ -1081,6 +1123,8 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                         }}
                                       >
                                         <Text
+                                          variant="label"
+                                          color="secondary"
                                           style={[
                                             styles.cardTitle,
                                             { marginBottom: 0, flex: 1 },
@@ -1092,10 +1136,10 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                           {item.config.label}
                                         </Text>
                                         <View style={{ marginLeft: 4 }}>
-                                          <MaterialCommunityIcons
-                                            name={item.config.icon as any}
+                                          <Icon
+                                            name={item.config.icon}
                                             size={14}
-                                            color={item.config.color}
+                                            color={colors.accent[item.config.accentKey]}
                                           />
                                         </View>
                                       </View>
@@ -1109,11 +1153,14 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                           }}
                                         >
                                           <Text
+                                            variant="bodySm"
+                                            color={
+                                              isImp
+                                                ? colors.feedback.successText
+                                                : colors.feedback.dangerText
+                                            }
                                             style={[
                                               styles.btChange,
-                                              isImp
-                                                ? styles.textSuccess
-                                                : styles.textNeutral,
                                               {
                                                 fontSize: 11,
                                                 fontWeight: "700",
@@ -1123,17 +1170,17 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                             {item.percentDelta! > 0 ? "+" : ""}
                                             {item.percentDelta?.toFixed(1)}%
                                           </Text>
-                                          <MaterialCommunityIcons
+                                          <Icon
                                             name={
                                               isImp
-                                                ? "trending-up"
-                                                : "trending-down"
+                                                ? icons.trend
+                                                : icons.trendDown
                                             }
                                             size={14}
                                             color={
                                               isImp
-                                                ? theme.colors.library.green[400]
-                                                : theme.colors.library.red[400]
+                                                ? colors.feedback.successText
+                                                : colors.feedback.dangerText
                                             }
                                             style={{ marginLeft: 2 }}
                                           />
@@ -1141,7 +1188,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                       )}
 
                                       {item.absoluteDelta !== null ? (
-                                        <Text style={styles.btDeltaTextSmall}>
+                                        <Text
+                                          variant="label"
+                                          color="secondary"
+                                          style={styles.btDeltaTextSmall}
+                                        >
                                           {formatPointDelta(
                                             item.absoluteDelta,
                                           )}
@@ -1149,7 +1200,11 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
                                       ) : null}
                                     </View>
 
-                                    <Text style={styles.miniValue}>
+                                    <Text
+                                      variant="title"
+                                      color="primary"
+                                      style={styles.miniValue}
+                                    >
                                       {Math.round(item.current)}
                                     </Text>
                                   </View>
@@ -1174,13 +1229,13 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
             style={styles.syncLink}
           >
             <Animated.View style={isRefreshing ? refreshIconStyle : null}>
-              <MaterialCommunityIcons
-                name="sync"
+              <Icon
+                name={icons.refresh}
                 size={16}
-                color={theme.colors.library.gray[400]}
+                color={colors.text.tertiary}
               />
             </Animated.View>
-            <Text style={styles.syncText}>
+            <Text variant="caption" color="tertiary" style={styles.syncText}>
               {isRefreshing
                 ? "Syncing data..."
                 : `Last synced at ${new Date(
@@ -1199,47 +1254,45 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   container: {
-    borderRadius: 24,
+    borderRadius: radius.card,
     paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 24, // Reduced bottom padding
     marginVertical: 0,
-    backgroundColor: "white",
+    backgroundColor: c.surface.default,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: c.border.default,
     // Premium SaaS Shadow
-    shadowColor: "#64748B",
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
     elevation: 8,
   },
   comparisonCaption: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     fontSize: 13,
-    color: "#94A3B8",
+    color: c.text.tertiary,
     fontWeight: "600",
   },
   contentPanel: {
-    marginTop: 16,
+    marginTop: spacing.md,
     paddingHorizontal: 0,
   },
 
   btChangeRow: {
     marginTop: "auto",
-    paddingTop: 12,
+    paddingTop: spacing.md,
   },
   miniValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text.title,
+    color: c.text.primary,
   },
   card: {
-    backgroundColor: "white",
-    borderRadius: 24,
+    backgroundColor: c.surface.default,
+    borderRadius: radius.card,
     marginVertical: 0,
     padding: 20,
   },
@@ -1262,56 +1315,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  eyebrow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    alignSelf: "flex-start",
+  },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: theme.colors.library.orange[100],
+    backgroundColor: c.action.primaryTint,
     borderRadius: 12,
     gap: 6,
     alignSelf: "flex-start",
   },
   chipText: {
-    color: theme.colors.library.orange[600],
-    fontSize: 10,
-    fontWeight: "900",
     letterSpacing: 1.5,
   },
   textContainer: {
     gap: 6,
   },
   bigTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: theme.colors.text.title,
     letterSpacing: -0.6,
-    lineHeight: 30,
   },
-  subtitle: {
-    fontSize: 15,
-    color: "#64748B",
-    lineHeight: 22,
-    fontWeight: "500",
-  },
+  subtitle: {},
   syncLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    marginTop: 8,
-    gap: 8,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
     paddingVertical: 0,
   },
   syncText: {
-    fontSize: 12,
-    color: theme.colors.library.gray[400],
-    fontWeight: "600",
     width: "100%",
   },
   chartContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   chartLabelHitbox: {
     position: "absolute",
@@ -1331,32 +1375,32 @@ const styles = StyleSheet.create({
     minHeight: 300,
   },
   errorText: {
-    color: theme.colors.text.default,
-    marginTop: 12,
-    marginBottom: 16,
+    color: c.text.secondary,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
     fontSize: 14,
   },
   retryBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: theme.colors.library.orange[400],
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: c.action.primary,
     borderRadius: 20,
   },
   retryText: {
-    color: theme.colors.text.onDark,
+    color: c.action.onPrimary,
     fontWeight: "600",
     fontSize: 13,
   },
   heroChartContainer: {
-    marginTop: 12,
+    marginTop: spacing.md,
     flexDirection: "column",
-    gap: 12,
+    gap: spacing.md,
   },
   compactBreakthroughGrid: {
-    marginTop: 12,
+    marginTop: spacing.md,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: spacing.md,
   },
   compactBreakthroughCard: {
     width: "48%",
@@ -1364,7 +1408,7 @@ const styles = StyleSheet.create({
     flexBasis: "45%",
     height: 104,
     justifyContent: "space-between",
-    padding: 16,
+    padding: spacing.lg,
     position: "relative",
     overflow: "hidden",
   },
@@ -1387,15 +1431,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.md,
     zIndex: 1,
   },
   compactBreakthroughValue: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: theme.colors.text.title,
     letterSpacing: -0.8,
-    lineHeight: 30,
   },
   compactBreakthroughDeltaRow: {
     flexDirection: "row",
@@ -1413,30 +1453,24 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   cardTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#64748B",
     marginBottom: 4,
     textTransform: "uppercase",
     letterSpacing: 0.2,
   },
   heroValue: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: theme.colors.text.title,
     letterSpacing: -1,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   bentoBottomRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
   },
   miniCard: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: c.surface.elevated,
+    padding: spacing.lg,
+    borderRadius: radius.input,
     height: 110,
   },
   miniContent: {
@@ -1447,10 +1481,10 @@ const styles = StyleSheet.create({
   },
 
   breakthroughContainer: {
-    marginTop: 12,
+    marginTop: spacing.md,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: c.border.default,
     position: "relative",
   },
   breakthroughWatermarkContainer: {
@@ -1461,10 +1495,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "15deg" }],
   },
   sectionLabel: {
-    fontSize: 10,
-    fontWeight: "900",
-    color: "#94A3B8",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     textTransform: "uppercase",
     letterSpacing: 2,
   },
@@ -1475,20 +1506,10 @@ const styles = StyleSheet.create({
   },
   btDeltaText: {
     marginTop: 6,
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.text.default,
   },
   btDeltaTextSmall: {
     marginTop: 4,
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.text.default,
   },
-  textSuccess: { color: theme.colors.library.green[400] },
-  textError: { color: theme.colors.library.red[400] },
-  textNeutral: { color: theme.colors.library.red[400] },
-
-});
+}));
 
 export default React.memo(ClinicalStatsWidget);

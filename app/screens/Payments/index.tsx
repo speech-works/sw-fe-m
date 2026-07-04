@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   Dimensions,
@@ -16,14 +15,22 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import BottomSheetModal from "../../components/BottomSheetModal";
 import { SUBSCRIPTION_PRICING } from "../../constants/pricing";
 import CustomScrollView from "../../components/CustomScrollView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PAYMENTS_ENABLED } from "../../constants/features";
-import { theme } from "../../Theme/tokens";
-import { Text as DSText } from "../../design-system";
+import {
+  Text as DSText,
+  Icon,
+  type IconName,
+  icons,
+  Sheet,
+  useTheme,
+  makeStyles,
+  spacing,
+  radius,
+  withAlpha,
+} from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
@@ -34,6 +41,8 @@ export enum PAYMENT_PLAN_TYPE {
 
 const SubscribeScreen = () => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [paymentPlan, setPaymentPlan] = useState<PAYMENT_PLAN_TYPE>(
     PAYMENT_PLAN_TYPE.ANNUALLY,
   );
@@ -78,7 +87,11 @@ const SubscribeScreen = () => {
           {/* Background Layer */}
           <View style={StyleSheet.absoluteFillObject}>
             <LinearGradient
-              colors={["#0F172A", "#1E293B", "#0F172A"]}
+              colors={[
+                colors.background.canvas,
+                colors.surface.default,
+                colors.background.canvas,
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ flex: 1 }}
@@ -90,7 +103,7 @@ const SubscribeScreen = () => {
                 {
                   top: -50,
                   right: -50,
-                  backgroundColor: "#22D3EE",
+                  backgroundColor: colors.accent.info,
                   opacity: 0.1,
                 },
               ]}
@@ -103,7 +116,7 @@ const SubscribeScreen = () => {
                   left: -50,
                   width: 250,
                   height: 250,
-                  backgroundColor: "#8B5CF6",
+                  backgroundColor: colors.accent.purple,
                   opacity: 0.08,
                 },
               ]}
@@ -118,7 +131,7 @@ const SubscribeScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Icon name="close" size={20} color={theme.colors.text.title} />
+              <Icon name={icons.close} size={20} color={colors.text.onInverse} />
             </TouchableOpacity>
           </View>
 
@@ -130,43 +143,54 @@ const SubscribeScreen = () => {
             <View style={styles.heroContainer}>
               <View style={styles.badgeGlass}>
                 <View style={styles.badgeInner}>
-                  <Icon name="crown" size={12} color="#D4AF37" />
-                  <Text style={styles.badgeText}>PREMIUM ACCESS</Text>
+                  <Icon name={icons.pro} size={12} color={colors.premium.gold} />
+                  <DSText variant="caption" style={styles.badgeText}>
+                    PREMIUM ACCESS
+                  </DSText>
                 </View>
               </View>
-              <Text style={styles.heroTitle}>Control Your Voice.</Text>
-              <Text style={styles.heroSubtitle}>
+              <DSText variant="h1" color="primary" center style={styles.heroTitle}>
+                Control Your Voice.
+              </DSText>
+              <DSText
+                variant="body"
+                color="secondary"
+                center
+                style={styles.heroSubtitle}
+              >
                 Unlock the clinically-proven power of Speechworks and turn your
                 limitations into strengths.
-              </Text>
+              </DSText>
             </View>
 
             {/* Feature Carousel */}
             <View style={styles.carouselSection}>
-              <Text style={styles.carouselHeader}>
+              <DSText
+                variant="h3"
+                color="primary"
+                center
+                style={styles.carouselHeader}
+              >
                 Experience the Difference
-              </Text>
+              </DSText>
               <ScrollView
                 horizontal
                 pagingEnabled={false}
                 showsHorizontalScrollIndicator={false}
                 onScroll={(e) => {
                   const x = e.nativeEvent.contentOffset.x;
-                  const snapInterval = theme.dimensions.screenWidth * 0.8 + 16;
+                  const snapInterval = SCREEN_WIDTH * 0.8 + 16;
                   const index = Math.round(x / snapInterval);
                   if (index !== carouselIndex) setCarouselIndex(index);
                 }}
                 scrollEventThrottle={16}
                 style={styles.carousel}
-                snapToInterval={theme.dimensions.screenWidth * 0.8 + 16}
+                snapToInterval={SCREEN_WIDTH * 0.8 + 16}
                 snapToAlignment="start"
                 decelerationRate="fast"
                 contentContainerStyle={{
                   paddingHorizontal:
-                    (theme.dimensions.screenWidth -
-                      (theme.dimensions.screenWidth * 0.8 + 16)) /
-                    2 +
-                    8,
+                    (SCREEN_WIDTH - (SCREEN_WIDTH * 0.8 + 16)) / 2 + 8,
                 }}
               >
                 {[
@@ -174,76 +198,98 @@ const SubscribeScreen = () => {
                     label: "Perf. Intelligence",
                     free: "Limited",
                     pro: "Deep Audit",
-                    icon: "chart-line",
+                    icon: "bar-chart-2",
                     desc: "Deep tracking across 5 clinical domains with weekly breakthrough reports.",
                   },
                   {
                     label: "Daily Activities",
                     free: "1 / Day",
                     pro: "No Limits",
-                    icon: "calendar-check",
+                    icon: "calendar",
                     desc: "Progress shouldn't be gated. Practice as much as you need to reach your goals.",
                   },
                   {
                     label: "Real-World Practice",
                     free: "Basic",
                     pro: "Full Access",
-                    icon: "robot",
+                    icon: "bot",
                     desc: "Simulate pressure with AI phone calls and social challenge drills.",
                   },
                   {
                     label: "Stamina System",
                     free: "Static",
                     pro: "Smart Refill",
-                    icon: "lightning-bolt",
+                    icon: "zap",
                     desc: "Passive regeneration means you're always ready for a breakthrough.",
                   },
                   {
                     label: "Clinical Depth",
                     free: "Preview",
                     pro: "Full Access",
-                    icon: "folder-open",
+                    icon: "layers",
                     desc: "Unlock the entire library of clinical packs designed by Speechworks.",
                   },
                 ].map((slide, i) => (
                   <View key={i} style={styles.carouselSlide}>
-                    <View
-                      style={[
-                        styles.slideInner,
-                        { backgroundColor: "rgba(255, 255, 255, 0.04)" },
-                      ]}
-                    >
+                    <View style={styles.slideInner}>
                       <View style={styles.watermarkIcon}>
                         <Icon
-                          name={slide.icon}
+                          name={slide.icon as IconName}
                           size={120}
-                          color="#D4AF37"
+                          color={colors.premium.gold}
                           style={{ opacity: 0.03 }}
                         />
                       </View>
                       <View style={styles.iconCircle}>
-                        <Icon name={slide.icon} size={28} color="#D4AF37" />
+                        <Icon
+                          name={slide.icon as IconName}
+                          size={28}
+                          color={colors.premium.gold}
+                        />
                       </View>
-                      <Text style={styles.slideTitle}>{slide.label}</Text>
-                      <Text style={styles.slideDesc}>{slide.desc}</Text>
+                      <DSText variant="h3" color="primary" style={styles.slideTitle}>
+                        {slide.label}
+                      </DSText>
+                      <DSText
+                        variant="bodySm"
+                        color="secondary"
+                        style={styles.slideDesc}
+                      >
+                        {slide.desc}
+                      </DSText>
 
                       <View style={styles.compareRow}>
                         <View style={styles.compareCol}>
-                          <Text style={styles.compareLabel}>FREE</Text>
-                          <Text style={styles.compareValue}>{slide.free}</Text>
+                          <DSText
+                            variant="caption"
+                            color="tertiary"
+                            style={styles.compareLabel}
+                          >
+                            FREE
+                          </DSText>
+                          <DSText
+                            variant="bodySm"
+                            color="secondary"
+                            style={styles.compareValue}
+                          >
+                            {slide.free}
+                          </DSText>
                         </View>
                         <View style={styles.compareDivider} />
                         <View style={styles.compareCol}>
-                          <Text
-                            style={[styles.compareLabel, { color: "#D4AF37" }]}
+                          <DSText
+                            variant="caption"
+                            style={[styles.compareLabel, { color: colors.premium.gold }]}
                           >
                             PRO
-                          </Text>
-                          <Text
-                            style={[styles.compareValue, { color: "#FFFFFF" }]}
+                          </DSText>
+                          <DSText
+                            variant="bodySm"
+                            color="primary"
+                            style={styles.compareValue}
                           >
                             {slide.pro}
-                          </Text>
+                          </DSText>
                         </View>
                       </View>
                     </View>
@@ -270,37 +316,51 @@ const SubscribeScreen = () => {
             <View style={styles.noteContainer}>
               <View style={styles.noteWatermark}>
                 <Icon
-                  name="account-group"
+                  name="users"
                   size={180}
-                  color="#D4AF37"
+                  color={colors.premium.gold}
                   style={{ opacity: 0.02 }}
                 />
               </View>
               <Icon
-                name="format-quote-open"
+                name="message-square"
                 size={40}
-                color="#D4AF37"
-                style={{ opacity: 0.2, marginBottom: 16 }}
+                color={colors.premium.gold}
+                style={{ opacity: 0.2, marginBottom: spacing.lg }}
               />
-              <Text style={styles.noteText}>
+              <DSText variant="title" color="primary" center style={styles.noteText}>
                 We built Premium because progress shouldn't be limited by a
                 timer. It's the commitment you make to your future self—having
                 the right support when anxiety hits and the real data to prove
                 you’re winning.
-              </Text>
+              </DSText>
               <View style={styles.noteSignature}>
                 <View style={styles.signatureLine} />
-                <Text style={styles.signatureText}>The Speechworks Team</Text>
+                <DSText variant="caption" style={styles.signatureText}>
+                  The Speechworks Team
+                </DSText>
                 <View style={styles.signatureLine} />
               </View>
             </View>
 
             {/* Pricing Selection */}
             <View style={styles.pricingSection}>
-              <Text style={styles.pricingTitle}>Simple Pricing</Text>
-              <Text style={styles.pricingSubtitle}>
+              <DSText
+                variant="h2"
+                color="primary"
+                center
+                style={styles.pricingTitle}
+              >
+                Simple Pricing
+              </DSText>
+              <DSText
+                variant="bodySm"
+                color="tertiary"
+                center
+                style={styles.pricingSubtitle}
+              >
                 Choose the plan that fits your growth journey
-              </Text>
+              </DSText>
 
               <View style={styles.plansGap}>
                 {/* Annual */}
@@ -317,10 +377,15 @@ const SubscribeScreen = () => {
                 >
                   {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY && (
                     <LinearGradient
-                      colors={["#D4AF37", "#B8860B"]}
+                      colors={[colors.premium.gold, colors.premium.goldDeep]}
                       style={styles.bestValueBadge}
                     >
-                      <Text style={styles.bestValueText}>BEST VALUE</Text>
+                      <DSText
+                        variant="caption"
+                        style={styles.bestValueText}
+                      >
+                        BEST VALUE
+                      </DSText>
                     </LinearGradient>
                   )}
                   <View style={styles.planHeader}>
@@ -337,22 +402,43 @@ const SubscribeScreen = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={styles.planNameRow}>
-                        <Text style={styles.planName}>Annual Membership</Text>
+                        <DSText
+                          variant="title"
+                          color="primary"
+                          style={styles.planName}
+                        >
+                          Annual Membership
+                        </DSText>
                         <View style={styles.savingsBadge}>
-                          <Text style={styles.savingsText}>
+                          <DSText
+                            variant="caption"
+                            style={styles.savingsText}
+                          >
                             SAVE {SUBSCRIPTION_PRICING.plans.annual.savingsPercent}%
-                          </Text>
+                          </DSText>
                         </View>
                       </View>
-                      <Text style={styles.planPrice}>
+                      <DSText
+                        variant="h3"
+                        color="primary"
+                        style={styles.planPrice}
+                      >
                         {SUBSCRIPTION_PRICING.plans.annual.headline}
-                        <Text style={styles.pricePeriod}>
+                        <DSText
+                          variant="bodySm"
+                          color="tertiary"
+                          style={styles.pricePeriod}
+                        >
                           {SUBSCRIPTION_PRICING.plans.annual.periodLabel}
-                        </Text>
-                      </Text>
-                      <Text style={styles.planSubtext}>
+                        </DSText>
+                      </DSText>
+                      <DSText
+                        variant="caption"
+                        color="tertiary"
+                        style={styles.planSubtext}
+                      >
                         {SUBSCRIPTION_PRICING.plans.annual.billedYearlyCopy}
-                      </Text>
+                      </DSText>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -382,16 +468,34 @@ const SubscribeScreen = () => {
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.planName}>Monthly Explorer</Text>
-                      <Text style={styles.planPrice}>
+                      <DSText
+                        variant="title"
+                        color="primary"
+                        style={styles.planName}
+                      >
+                        Monthly Explorer
+                      </DSText>
+                      <DSText
+                        variant="h3"
+                        color="primary"
+                        style={styles.planPrice}
+                      >
                         {SUBSCRIPTION_PRICING.plans.monthly.headline}
-                        <Text style={styles.pricePeriod}>
+                        <DSText
+                          variant="bodySm"
+                          color="tertiary"
+                          style={styles.pricePeriod}
+                        >
                           {SUBSCRIPTION_PRICING.plans.monthly.periodLabel}
-                        </Text>
-                      </Text>
-                      <Text style={styles.planSubtext}>
+                        </DSText>
+                      </DSText>
+                      <DSText
+                        variant="caption"
+                        color="tertiary"
+                        style={styles.planSubtext}
+                      >
                         {SUBSCRIPTION_PRICING.plans.monthly.supportingCopy}
-                      </Text>
+                      </DSText>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -415,56 +519,65 @@ const SubscribeScreen = () => {
                   accessibilityLabel="Upgrade to Speechworks Premium"
                 >
                   <LinearGradient
-                    colors={["#D4AF37", "#B8860B", "#996515"]}
+                    colors={[colors.premium.gold, colors.premium.goldDeep]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.upgradeBtn}
                   >
                     {loading ? (
-                      <ActivityIndicator color="#FFFFFF" />
+                      <ActivityIndicator color={colors.text.inverse} />
                     ) : (
-                      <Text style={styles.upgradeBtnText}>
+                      <DSText
+                        variant="title"
+                        style={styles.upgradeBtnText}
+                      >
                         {paymentPlan === PAYMENT_PLAN_TYPE.ANNUALLY
                           ? "Start 7-Day Free Trial"
                           : "Unlock Full Access"}
-                      </Text>
+                      </DSText>
                     )}
                     <LinearGradient
-                      colors={["rgba(255,255,255,0.15)", "transparent"]}
+                      colors={[withAlpha(colors.surface.inverse, 0.15), "transparent"]}
                       style={StyleSheet.absoluteFill}
                     />
                   </LinearGradient>
                 </TouchableOpacity>
                 <View style={styles.guaranteeRow}>
                   <Icon
-                    name="shield-check"
+                    name="shield"
                     size={14}
-                    color="rgba(255,255,255,0.4)"
+                    color={colors.text.tertiary}
                   />
-                  <Text style={styles.guaranteeText}>
+                  <DSText
+                    variant="caption"
+                    color="tertiary"
+                    style={styles.guaranteeText}
+                  >
                     Secure Payment • No Questions Asked Refund
-                  </Text>
+                  </DSText>
                 </View>
               </>
             ) : (
-              <Text style={[styles.guaranteeText, { textAlign: "center" }]}>
+              <DSText
+                variant="caption"
+                color="tertiary"
+                center
+                style={styles.guaranteeText}
+              >
                 Premium is coming soon — there's nothing to purchase yet.
-              </Text>
+              </DSText>
             )}
           </View>
         </SafeAreaView>
       </Animated.View>
 
-      <BottomSheetModal
+      <Sheet
         visible={showTestModeModal}
         onClose={() => setShowTestModeModal(false)}
-        fitContent
-        maxHeight={320}
-        showCloseButton
       >
         <View style={styles.testModeModalContent}>
           <View style={styles.testModeIconWrap}>
-            <Icon name="flask-outline" size={28} color="#F97316" />
+            <Icon name="alert-circle" size={28} color={colors.action.primary} />
           </View>
           <DSText variant="h2" color="primary" center style={styles.testModeTitle}>
             You&apos;re in test mode
@@ -479,32 +592,39 @@ const SubscribeScreen = () => {
             style={styles.testModeButtonWrap}
           >
             <LinearGradient
-              colors={["#F97316", "#EA580C"]}
+              colors={[colors.action.primary, colors.action.primaryPressed]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.testModeButton}
             >
-              <Text style={styles.testModeButtonText}>Got it</Text>
+              <DSText
+                variant="title"
+                style={styles.testModeButtonText}
+              >
+                Got it
+              </DSText>
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </BottomSheetModal>
+      </Sheet>
     </View>
   );
 };
 
 export default SubscribeScreen;
 
-const styles = StyleSheet.create({
+const SCREEN_WIDTH = Dimensions.get("window").width;
+
+const useStyles = makeStyles((c) => ({
   mainContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: c.overlay.scrim,
   },
   screenView: {
     flex: 1,
-    backgroundColor: "#0F172A",
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    backgroundColor: c.background.canvas,
+    borderTopLeftRadius: radius.pill,
+    borderTopRightRadius: radius.pill,
     marginTop: 64,
     overflow: "hidden",
   },
@@ -519,8 +639,8 @@ const styles = StyleSheet.create({
     height: 300,
   },
   navBar: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -535,80 +655,67 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface.inverse,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: c.border.hairline,
   },
   // Hero
   heroContainer: {
     alignItems: "center",
-    paddingHorizontal: 24,
-    marginTop: 24,
-    marginBottom: 40,
+    paddingHorizontal: spacing["2xl"],
+    marginTop: spacing["2xl"],
+    marginBottom: spacing["4xl"],
   },
   badgeGlass: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: c.surface.control,
     borderRadius: 100,
     padding: 1,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   badgeInner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: c.premium.goldTint,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: 100,
-    gap: 8,
+    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
+    borderColor: c.premium.goldBorder,
   },
   badgeText: {
-    color: "#D4AF37",
-    fontSize: 10,
-    fontWeight: "900",
+    color: c.premium.gold,
     letterSpacing: 2,
   },
   heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 38,
-    fontWeight: "900",
-    textAlign: "center",
     letterSpacing: -1,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 24,
     paddingHorizontal: 10,
   },
   // Carousel
   carouselSection: {
-    marginBottom: 48,
+    marginBottom: spacing["5xl"],
   },
   carouselHeader: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 24,
+    marginBottom: spacing["2xl"],
   },
   carousel: {
     overflow: "visible",
   },
   carouselSlide: {
-    width: theme.dimensions.screenWidth * 0.8,
-    marginHorizontal: 8,
+    width: SCREEN_WIDTH * 0.8,
+    marginHorizontal: spacing.sm,
   },
   slideInner: {
-    padding: 24,
+    padding: spacing["2xl"],
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.border.default,
+    backgroundColor: c.surface.control,
     overflow: "hidden",
     height: 340, // Uniform height for benefit cards
     justifyContent: "space-between",
@@ -623,30 +730,24 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 20,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    backgroundColor: c.premium.goldTint,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
+    borderColor: c.premium.goldBorder,
   },
   slideTitle: {
-    color: "#FFFFFF",
-    fontSize: 22,
-    fontWeight: "900",
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   slideDesc: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 24,
+    marginBottom: spacing["2xl"],
   },
   compareRow: {
     flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: c.background.sunken,
     borderRadius: 20,
-    padding: 16,
+    padding: spacing.lg,
     alignItems: "center",
   },
   compareCol: {
@@ -654,27 +755,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   compareLabel: {
-    fontSize: 9,
-    fontWeight: "900",
-    color: "rgba(255,255,255,0.4)",
     letterSpacing: 1,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   compareValue: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "rgba(255,255,255,0.6)",
+    // value type styling from variant
   },
   compareDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: c.border.strong,
   },
   paginationDots: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 24,
-    gap: 8,
+    marginTop: spacing["2xl"],
+    gap: spacing.sm,
   },
   dot: {
     height: 6,
@@ -682,20 +778,20 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     width: 20,
-    backgroundColor: "#D4AF37",
+    backgroundColor: c.premium.gold,
   },
   inactiveDot: {
     width: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: c.border.strong,
   },
   // Note
   noteContainer: {
-    marginHorizontal: 24,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 32,
+    marginHorizontal: spacing["2xl"],
+    backgroundColor: c.surface.default,
+    padding: spacing["3xl"],
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.border.default,
     alignItems: "center",
     marginBottom: 64,
   },
@@ -705,140 +801,115 @@ const styles = StyleSheet.create({
     right: -30,
   },
   noteText: {
-    color: "#FFFFFF",
-    fontSize: 18,
     lineHeight: 28,
-    textAlign: "center",
-    fontWeight: "500",
     fontStyle: "italic",
-    marginBottom: 24,
+    marginBottom: spacing["2xl"],
   },
   noteSignature: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   signatureLine: {
     width: 30,
     height: 1,
-    backgroundColor: "#D4AF37",
+    backgroundColor: c.premium.gold,
     opacity: 0.3,
   },
   signatureText: {
-    color: "#D4AF37",
-    fontSize: 12,
-    fontWeight: "700",
+    color: c.premium.gold,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   // Pricing
   pricingSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing["2xl"],
   },
   pricingTitle: {
-    color: "#FFFFFF",
-    fontSize: 28,
-    fontWeight: "900",
-    textAlign: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   pricingSubtitle: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 32,
+    marginBottom: spacing["3xl"],
   },
   plansGap: {
-    gap: 16,
+    gap: spacing.lg,
   },
   planCard: {
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: radius.card,
+    padding: spacing["2xl"],
     borderWidth: 2,
     position: "relative",
     height: 145, // Uniform height for pricing cards
     justifyContent: "center",
   },
   activePlanCard: {
-    backgroundColor: "rgba(212, 175, 55, 0.08)",
-    borderColor: "#D4AF37",
+    backgroundColor: c.premium.goldTint,
+    borderColor: c.premium.gold,
   },
   inactivePlanCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: c.surface.default,
+    borderColor: c.border.default,
   },
   bestValueBadge: {
     position: "absolute",
     top: -12,
     right: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     borderRadius: 100,
   },
   bestValueText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "900",
+    color: c.text.onInverse,
   },
   planHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing.lg,
   },
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: c.border.strong,
     alignItems: "center",
     justifyContent: "center",
   },
   radioActive: {
-    borderColor: "#D4AF37",
+    borderColor: c.premium.gold,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#D4AF37",
+    backgroundColor: c.premium.gold,
   },
   planNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   planName: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
+    // name type styling from variant
   },
   savingsBadge: {
-    backgroundColor: "#D4AF37",
-    paddingHorizontal: 6,
+    backgroundColor: c.premium.gold,
+    paddingHorizontal: spacing.xs,
     paddingVertical: 2,
     borderRadius: 4,
   },
   savingsText: {
-    color: "#000",
-    fontSize: 9,
-    fontWeight: "900",
+    color: c.text.onInverse,
   },
   planPrice: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "900",
+    // price type styling from variant
   },
   pricePeriod: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.5)",
-    fontWeight: "400",
+    // period type styling from variant
   },
   planSubtext: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 12,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   // Footer
   footer: {
@@ -846,27 +917,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingTop: 24,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    backgroundColor: "rgba(15, 23, 42, 0.95)",
+    paddingTop: spacing["2xl"],
+    paddingBottom: spacing["2xl"],
+    paddingHorizontal: spacing["2xl"],
+    backgroundColor: c.background.canvas,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: c.border.strong,
   },
   upgradeBtnWrapper: {
     borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   upgradeBtn: {
-    paddingVertical: 20,
+    paddingVertical: spacing.xl,
     alignItems: "center",
     justifyContent: "center",
   },
   upgradeBtnText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
+    color: c.text.inverse,
     letterSpacing: 0.5,
   },
   btnShine: {
@@ -880,27 +949,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: spacing.xs,
   },
   guaranteeText: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 11,
-    fontWeight: "600",
+    // guarantee type styling from variant
   },
   testModeModalContent: {
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
+    paddingHorizontal: spacing["2xl"],
+    paddingTop: spacing["3xl"],
+    paddingBottom: spacing["2xl"],
     alignItems: "center",
   },
   testModeIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#FFF7ED",
+    backgroundColor: c.action.primaryTint,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   testModeTitle: {
     marginBottom: 10,
@@ -910,19 +977,17 @@ const styles = StyleSheet.create({
   },
   testModeButtonWrap: {
     width: "100%",
-    marginTop: 24,
+    marginTop: spacing["2xl"],
     borderRadius: 18,
     overflow: "hidden",
   },
   testModeButton: {
-    paddingVertical: 16,
+    paddingVertical: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   testModeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
+    color: c.action.onPrimary,
   },
-});
+}));
 // bundle refresh

@@ -26,7 +26,6 @@ import {
   Page,
   ProgressBar,
   Spinner,
-  Surface,
   Text,
   icons,
   spacing,
@@ -590,29 +589,19 @@ const PackModuleScreen = () => {
           No content available for this module.
         </Text>
       ) : (
-        // The pack blocks are legacy-styled (light reading copy / bright cards),
-        // so they render on a light reading sheet that keeps the pack-authored
-        // content legible against the dark canvas.
-        <Surface
-          level="default"
-          rounded="card"
-          padded={spacing.xl}
-          style={{ backgroundColor: colors.surface.inverse }}
-        >
-          <ContentRenderer
-            key={currentBlock?.id || currentBlockIndex}
-            block={currentBlock}
-            packId={packId}
-            moduleId={module.id}
-            isMandatory={module.isMandatory}
-            isCompleted={completedInteractiveBlocks.has(
-              currentBlock?.id || "",
-            )}
-            onActivityCreated={handleActivityCreated}
-            onFormCompleted={handleFormCompleted}
-            blockIndex={currentBlockIndex}
-          />
-        </Surface>
+        // Pack blocks are now DS-native (dark cards / light-on-dark reading copy),
+        // so they render directly on the dark canvas — no light reading sheet.
+        <ContentRenderer
+          key={currentBlock?.id || currentBlockIndex}
+          block={currentBlock}
+          packId={packId}
+          moduleId={module.id}
+          isMandatory={module.isMandatory}
+          isCompleted={completedInteractiveBlocks.has(currentBlock?.id || "")}
+          onActivityCreated={handleActivityCreated}
+          onFormCompleted={handleFormCompleted}
+          blockIndex={currentBlockIndex}
+        />
       )}
 
       {/* Skip Confirmation Bottom Sheet */}

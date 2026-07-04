@@ -5,6 +5,7 @@ import {
   Icon,
   Slider,
   Text,
+  borderWidth,
   fonts,
   icons,
   radius,
@@ -48,6 +49,9 @@ const AssessmentQuestion = ({
   onChange,
 }: Props) => {
   const { colors } = useTheme();
+  // Flow accent = the amber of the parent Impact Assessment card (accent.warning).
+  const accent = colors.accent.warning;
+  const accentTint = colors.accentTint.warning;
   const isSlider = questionType === "SLIDER";
   const isMulti = questionType === "MULTI";
 
@@ -106,6 +110,7 @@ const AssessmentQuestion = ({
               step={0.01}
               minimumValue={min}
               maximumValue={max}
+              accentColor={accent}
               onValueChange={(v: number) => setTempValue(v)}
               onSlidingComplete={(v: number) => {
                 const normalized = Math.max(0, Math.min(v, max));
@@ -169,11 +174,11 @@ const AssessmentQuestion = ({
                   styles.option,
                   {
                     backgroundColor: selected
-                      ? colors.action.primaryTint
-                      : colors.surface.default,
+                      ? accentTint
+                      : colors.surface.control,
                     borderColor: selected
-                      ? colors.border.selected
-                      : colors.border.hairline,
+                      ? accent
+                      : colors.border.default,
                   },
                 ]}
               >
@@ -183,8 +188,8 @@ const AssessmentQuestion = ({
                     isMulti ? styles.checkboxOuter : styles.radioOuter,
                     {
                       borderColor: selected
-                        ? colors.action.primary
-                        : colors.border.default,
+                        ? accent
+                        : colors.border.strong,
                     },
                   ]}
                 >
@@ -193,13 +198,13 @@ const AssessmentQuestion = ({
                       <Icon
                         name={icons.checklist}
                         size={14}
-                        color={colors.action.primary}
+                        color={accent}
                       />
                     ) : (
                       <View
                         style={[
                           styles.radioInner,
-                          { backgroundColor: colors.action.primary },
+                          { backgroundColor: accent },
                         ]}
                       />
                     ))}
@@ -250,23 +255,22 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
   },
   nonSliderBlock: {
-    gap: spacing.xl,
+    gap: spacing.md,
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.lg,
-    paddingVertical: 18,
-    paddingHorizontal: spacing.xl,
-    borderRadius: radius.input,
-    borderWidth: 1.5,
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    borderWidth: 1,
   },
   controlOuter: {
     width: 22,
     height: 22,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
+    borderWidth: borderWidth.thick,
   },
   radioOuter: { borderRadius: radius.full },
   radioInner: {

@@ -107,6 +107,7 @@ export const darkColors: SemanticColors = {
   gamification: { xp: p.lime.base, streak: p.orange[400], stamina: p.info.base, gold: p.warning.base },
   premium: {
     gold: p.premium.gold,
+    goldDeep: p.premium.goldDeep,
     goldTint: p.premium.goldTint,
     goldBorder: p.premium.goldBorder,
     orbCyan: p.premium.cyan,

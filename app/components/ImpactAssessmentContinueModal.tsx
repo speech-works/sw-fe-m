@@ -52,7 +52,7 @@ const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps
         </Text>
 
         {/* Remaining-question badge. */}
-        <View style={[styles.remainingBadge, { backgroundColor: colors.action.primaryTint }]}>
+        <View style={[styles.remainingBadge, { backgroundColor: colors.accentTint.warning }]}>
           <Icon name={icons.duration} size={14} color={colors.text.secondary} />
           <Text variant="label" color="secondary">
             {remainingQuestions} question{remainingQuestions !== 1 ? "s" : ""}{" "}
@@ -61,8 +61,19 @@ const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps
         </View>
 
         <View style={styles.buttons}>
-          <Button label="Continue Now" onPress={onContinue} variant="primary" />
-          <Button label="Save for Later" variant="ghost" onPress={onSaveForLater} />
+          <Button
+            label="Continue Now"
+            onPress={onContinue}
+            variant="primary"
+            accentColor={colors.accent.warning}
+            onAccentColor={colors.accentOn.warning}
+          />
+          <Button
+            label="Save for Later"
+            variant="ghost"
+            onColor={colors.feedback.warningText}
+            onPress={onSaveForLater}
+          />
         </View>
       </View>
     </Sheet>

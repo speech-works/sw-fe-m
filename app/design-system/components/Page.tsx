@@ -8,6 +8,7 @@ import {
   StatusBar,
   StyleSheet,
   ListRenderItem,
+  RefreshControlProps,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../components/ScreenView";
@@ -26,13 +27,19 @@ export interface PageListConfig {
 }
 
 export interface PageProps {
-  /** Large left-aligned screen title (h1). */
-  title: string;
+  /** Large left-aligned screen title (h1). Omit only when passing a custom `hero`. */
+  title?: string;
   /** Optional secondary line under the title. */
   description?: string;
   onBack?: () => void;
   /** Trailing slot in the back bar (e.g. an action IconButton). */
   right?: React.ReactNode;
+  /** Custom identity block rendered IN PLACE OF the h1 title header — e.g. Home's
+   * two-line `screenTitle` greeting that `PageHeader` can't express. When set,
+   * `title`/`description`/back bar are not rendered. */
+  hero?: React.ReactNode;
+  /** Pull-to-refresh element for the scroll/list body (e.g. `<RefreshControl …>`). */
+  refreshControl?: React.ReactElement<RefreshControlProps>;
   /** Pinned bottom action (e.g. a primary Button). */
   footer?: React.ReactNode;
   /** Full-bleed layer rendered BEHIND the body (above the opaque canvas) — for an
@@ -66,6 +73,8 @@ export const Page: React.FC<PageProps> = ({
   description,
   onBack,
   right,
+  hero,
+  refreshControl,
   footer,
   background,
   keyboardAvoiding,
@@ -92,9 +101,10 @@ export const Page: React.FC<PageProps> = ({
   // and the content (and list rows) all share one gutter. The back bar only
   // renders when there's a back button or a right action — otherwise (tab-root
   // screens) the title sits near the top instead of below a phantom 44px bar.
-  // One source of truth for the header — shared with custom-layout screens.
-  const titleBlock = (
-    <PageHeader title={title} description={description} onBack={onBack} right={right} />
+  // One source of truth for the header — shared with custom-layout screens. A
+  // custom `hero` (e.g. Home's screenTitle greeting) replaces the h1 header block.
+  const titleBlock = hero ?? (
+    <PageHeader title={title ?? ""} description={description} onBack={onBack} right={right} />
   );
 
   let body: React.ReactNode;
@@ -106,6 +116,7 @@ export const Page: React.FC<PageProps> = ({
         keyExtractor={list.keyExtractor}
         ListEmptyComponent={list.ListEmptyComponent ?? undefined}
         extraData={list.extraData}
+        refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ paddingTop: topPad }}>
@@ -125,6 +136,7 @@ export const Page: React.FC<PageProps> = ({
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
         contentContainerStyle={{
           paddingTop: topPad,
           paddingHorizontal: space.screenX,

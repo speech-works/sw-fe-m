@@ -82,7 +82,14 @@ export const icons = {
   challenge: "target", // a shared challenge
   mood: "smile", // mood
   trend: "trending-up", // trend
+  trendDown: "trending-down", // trend, downward
   chartPie: "chart-pie", // pie/breakdown chart
+  refresh: "refresh-cw", // sync / refresh
+  // Growth-profile radar domains (ClinicalStatsWidget)
+  confidence: "sun", // confidence / affective wellbeing
+  mastery: "check-circle", // mastery / impairment recovery
+  ease: "droplet", // ease / functional flow
+  social: "users", // social participation
   growthSeed: "sprout", // growth (seedling)
   locked: "lock", // locked achievement
   weekly: "calendar", // "This week" scope

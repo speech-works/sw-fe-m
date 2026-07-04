@@ -15,6 +15,7 @@ import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
 import {
   Button,
+  Gradient,
   IconButton,
   ProgressBar,
   Text,
@@ -32,6 +33,10 @@ const ImpactAssessmentQuestions = () => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  // Flow accent = the amber of the parent Impact Assessment card (accent.warning),
+  // so progress / options / buttons all carry the card's identity.
+  const accent = colors.accent.warning;
+  const onAccent = colors.accentOn.warning;
   const {
     dailyBatch,
     answers,
@@ -199,6 +204,11 @@ const ImpactAssessmentQuestions = () => {
 
   // Reverse map for selection: Component returns ID (value), we store that directly.
 
+  // Floating footer clearance — the scroll body reserves the (button + scrim +
+  // safe-area) height so the last option always clears the free-floating CTA.
+  const footerPadBottom = Math.max(insets.bottom + space.rowGap, spacing["3xl"]);
+  const bottomReserve = 56 + space.sectionGap + footerPadBottom + spacing.lg;
+
   return (
     <ScreenView style={styles.screen}>
       <StatusBar barStyle="light-content" />
@@ -226,13 +236,16 @@ const ImpactAssessmentQuestions = () => {
         <ProgressBar
           value={currentIndex + 1}
           max={totalQuestions}
-          color={colors.action.primary}
+          color={accent}
         />
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomReserve },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <AssessmentQuestion
@@ -255,20 +268,21 @@ const ImpactAssessmentQuestions = () => {
         />
       </ScrollView>
 
-      <View
-        style={[
-          styles.footer,
-          {
-            paddingBottom: Math.max(insets.bottom + spacing.sm, spacing["2xl"]),
-            backgroundColor: colors.background.canvas,
-          },
-        ]}
-      >
-        <Button
-          label={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
-          onPress={handleNext}
-          disabled={!canProceed || isSubmitting}
-        />
+      {/* Free-floating CTA — dissolves into the canvas over a scrim fade (matches
+          the Page footer / reading pages), never a solid footer bar. */}
+      <View pointerEvents="box-none" style={styles.floatingFooter}>
+        <View pointerEvents="none" style={styles.footerScrim}>
+          <Gradient token="scrimDown" style={StyleSheet.absoluteFill} />
+        </View>
+        <View style={[styles.footerInner, { paddingBottom: footerPadBottom }]}>
+          <Button
+            label={isSubmitting ? "Submitting..." : isLast ? "Submit" : "Next"}
+            onPress={handleNext}
+            disabled={!canProceed || isSubmitting}
+            accentColor={accent}
+            onAccentColor={onAccent}
+          />
+        </View>
       </View>
 
       <Sheet
@@ -287,7 +301,9 @@ const ImpactAssessmentQuestions = () => {
           <View style={styles.modalButtons}>
             <Button
               label="Stop"
-              variant="danger"
+              variant="primary"
+              accentColor={accent}
+              onAccentColor={onAccent}
               onPress={() => {
                 track(ANALYTICS_EVENTS.ASSESSMENT_ABANDONED, {
                   atStep: currentIndex + 1,
@@ -299,7 +315,8 @@ const ImpactAssessmentQuestions = () => {
             />
             <Button
               label="Cancel"
-              variant="secondary"
+              variant="ghost"
+              onColor={colors.feedback.warningText}
               onPress={() => setIsStopModalVisible(false)}
             />
           </View>
@@ -318,15 +335,19 @@ const ImpactAssessmentQuestions = () => {
 };
 
 const styles = StyleSheet.create({
+  // Root stays unpadded so the dark canvas is full-bleed (a horizontal gutter here
+  // would inset the absoluteFill canvas and let the light BgWrapper show as a
+  // white frame). The screen gutter lives on the inner content rows instead.
   screen: {
     flex: 1,
-    paddingHorizontal: space.screenX,
+    paddingHorizontal: 0,
     paddingTop: 0,
   },
   centerFallback: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: space.screenX,
   },
   fallbackButton: {
     marginTop: spacing.xl,
@@ -336,20 +357,36 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.lg,
+    paddingHorizontal: space.screenX,
   },
   progress: {
     marginTop: spacing.sm,
     marginBottom: spacing["2xl"],
+    paddingHorizontal: space.screenX,
   },
   content: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: space.screenX,
   },
-  footer: {
-    paddingTop: spacing.lg,
+  floatingFooter: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  footerScrim: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: -space.sectionGap,
+  },
+  footerInner: {
+    paddingHorizontal: space.screenX,
+    paddingTop: space.sectionGap,
   },
   modalContent: {
     alignItems: "center",

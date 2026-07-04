@@ -1,27 +1,26 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { BlurView } from "expo-blur";
-import { parseTextStyle } from "../../util/functions/parseStyles";
 import React, { useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Svg, Circle } from "react-native-svg";
-import { theme } from "../../Theme/tokens";
 import { ClinicalDomain } from "../../api/userBehaviorTrends/types";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { HomeStackNavigationProp, HomeStackRouteProp } from "../../navigators/index";
-import ScreenView from "../../components/ScreenView";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+import {
+  Page,
+  Text,
+  Icon,
+  IconName,
+  icons,
+  useTheme,
+  makeStyles,
+  withAlpha,
+  spacing,
+  space,
+  radius,
+  SemanticColors,
+} from "../../design-system";
 
 type DetailFamily = "combined" | "clinical" | "engagement";
+type AccentKey = keyof SemanticColors["accent"];
 
 type FamilyMetricData = {
   currentScore: number | null;
@@ -31,10 +30,10 @@ type FamilyMetricData = {
   trend: "IMPROVING" | "STABLE" | "WORSENING";
 };
 
-const FAMILY_CONFIG: Record<DetailFamily, { label: string; color: string }> = {
-  combined: { label: "Combined", color: theme.colors.library.orange[500] },
-  clinical: { label: "Clinical", color: theme.colors.library.green[500] },
-  engagement: { label: "Engagement", color: theme.colors.library.blue[500] },
+const FAMILY_CONFIG: Record<DetailFamily, { label: string; accentKey: AccentKey }> = {
+  combined: { label: "Combined", accentKey: "warning" },
+  clinical: { label: "Clinical", accentKey: "success" },
+  engagement: { label: "Engagement", accentKey: "info" },
 };
 
 const FAMILY_DESCRIPTIONS: Record<
@@ -87,8 +86,8 @@ const DIMENSION_CONFIG: Record<
   ClinicalDomain,
   {
     label: string;
-    color: string;
-    icon: string;
+    accentKey: AccentKey;
+    icon: IconName;
     description: string;
     recommendations: {
       IMPROVING: string;
@@ -99,8 +98,8 @@ const DIMENSION_CONFIG: Record<
 > = {
   [ClinicalDomain.AFFECTIVE_DISTRESS]: {
     label: "Confidence",
-    color: "#059669",
-    icon: "shield-check",
+    accentKey: "success",
+    icon: icons.confidence,
     description:
       "How confident you feel communicating, even when speech is not perfect.",
     recommendations: {
@@ -114,8 +113,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.AVOIDANCE_BEHAVIOR]: {
     label: "Courage",
-    color: "#E11D48",
-    icon: "fire",
+    accentKey: "danger",
+    icon: icons.courage,
     description:
       "How willing you are to enter speaking moments instead of avoiding them.",
     recommendations: {
@@ -129,8 +128,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.IMPAIRMENT_STRUGGLE]: {
     label: "Mastery",
-    color: "#0284C7",
-    icon: "target",
+    accentKey: "info",
+    icon: icons.mastery,
     description:
       "How reliably you’re using helpful tools and strategies to manage speech.",
     recommendations: {
@@ -144,8 +143,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.FUNCTIONAL_LIMITATION]: {
     label: "Ease",
-    color: "#8B5CF6",
-    icon: "water",
+    accentKey: "purple",
+    icon: icons.ease,
     description:
       "How manageable and less effortful speaking feels in everyday moments.",
     recommendations: {
@@ -159,8 +158,8 @@ const DIMENSION_CONFIG: Record<
   },
   [ClinicalDomain.PARTICIPATION_RESTRICTION]: {
     label: "Social",
-    color: "#EA580C",
-    icon: "account-group",
+    accentKey: "warning",
+    icon: icons.social,
     description:
       "How much you’re taking part in conversations and speaking situations that matter to you.",
     recommendations: {
@@ -174,337 +173,234 @@ const DIMENSION_CONFIG: Record<
   },
 };
 
-const Gauge = ({ score, color, size = 160 }: { score: number | null; color: string; size?: number }) => {
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = score === null ? 0 : score / 100;
-  const strokeDashoffset = circumference * (1 - progress);
-
-  return (
-    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-      <Svg width={size} height={size}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#F1F5F9" strokeWidth={strokeWidth} fill="none" />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      <View style={styles.gaugeContent}>
-        <Text style={styles.gaugeLabel}>CURRENT SCORE</Text>
-        <Text style={[styles.gaugeValue, { color: score === null ? '#94A3B8' : theme.colors.text.title }]}>
-          {score === null ? '--' : Math.round(score)}
-        </Text>
-      </View>
-    </View>
-  );
-};
+const GAUGE_SIZE = 160;
+const GAUGE_STROKE = 14;
 
 const DimensionDetailScreen = () => {
   const route = useRoute<HomeStackRouteProp<"DimensionDetail">>();
   const navigation = useNavigation<HomeStackNavigationProp<"DimensionDetail">>();
-  const { domain, familyData: rawFamilyData, comparisonLabel } = route.params;
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const { domain, familyData: rawFamilyData } = route.params;
 
   const familyData = rawFamilyData as Record<DetailFamily, FamilyMetricData>;
 
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
-  const insets = useSafeAreaInsets();
 
   if (!domain) return null;
 
   const config = DIMENSION_CONFIG[domain as ClinicalDomain];
+  const accentColor = colors.accent[config.accentKey];
   const activeMetrics = familyData[selectedFamily];
   const isUnavailable = activeMetrics.currentScore === null;
   const hasComparison = activeMetrics.previousScore !== null;
   const trend = activeMetrics.trend;
-  const trendColor = trend === "IMPROVING" ? "#059669" : trend === "WORSENING" ? "#E11D48" : "#64748B";
+  const trendColor =
+    trend === "IMPROVING"
+      ? colors.feedback.successText
+      : trend === "WORSENING"
+        ? colors.feedback.dangerText
+        : colors.text.tertiary;
+
+  // Gauge ring geometry (unchanged math; colours are tokens now).
+  const gaugeRadius = (GAUGE_SIZE - GAUGE_STROKE) / 2;
+  const circumference = 2 * Math.PI * gaugeRadius;
+  const score = activeMetrics.currentScore;
+  const progress = score === null ? 0 : score / 100;
+  const strokeDashoffset = circumference * (1 - progress);
 
   return (
-    <ScreenView style={[styles.screen, { paddingHorizontal: 0 }]}>
-      <View style={styles.globalWatermark}>
-        <MaterialCommunityIcons name={config.icon as any} size={400} color={`${config.color}15`} />
+    <Page
+      title={config.label}
+      description={config.description}
+      onBack={() => navigation.goBack()}
+    >
+      {/* Faint domain watermark, behind the content. */}
+      <View style={styles.watermark} pointerEvents="none">
+        <Icon name={config.icon} size={400} color={withAlpha(accentColor, 0.08)} />
       </View>
 
-      <BlurView
-        intensity={80}
-        tint="light"
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 10, height: 60 + insets.top },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="chevron-left" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Growth Profile</Text>
-        <View style={{ width: 32 }} />
-      </BlurView>
-
-      <ScrollView 
-        style={{ flex: 1, width: '100%' }} 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 60 + insets.top + 16 }]}
-      >
-        <View style={styles.headerContainer}>
-          <View style={styles.headerTopRow}>
-            <Text style={styles.titleText}>{config.label}</Text>
-          </View>
-          <Text style={styles.subtitleText}>{config.description}</Text>
-        </View>
-        <View style={styles.card}>
-          <View style={styles.switcher}>
-            {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
-              const active = f === selectedFamily;
-              return (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => setSelectedFamily(f)}
-                  style={[
-                    styles.switcherPill,
-                    active && { ...styles.switcherPillActive, backgroundColor: config.color, shadowColor: config.color }
-                  ]}
+      <View style={styles.card}>
+        <View style={styles.switcher}>
+          {(Object.keys(FAMILY_CONFIG) as DetailFamily[]).map((f) => {
+            const active = f === selectedFamily;
+            return (
+              <TouchableOpacity
+                key={f}
+                activeOpacity={0.8}
+                onPress={() => setSelectedFamily(f)}
+                style={[
+                  styles.switcherPill,
+                  active && { backgroundColor: accentColor },
+                ]}
+              >
+                <Text
+                  variant="bodySm"
+                  color={active ? colors.accentOn[config.accentKey] : colors.text.tertiary}
                 >
-                  <Text style={[styles.switcherText, active && styles.switcherTextActive]}>
-                    {FAMILY_CONFIG[f].label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                  {FAMILY_CONFIG[f].label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-          <Text style={styles.familyDescText}>
-            {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
-          </Text>
+        <Text variant="bodySm" color="secondary" center style={styles.familyDesc}>
+          {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
+        </Text>
 
-          <View style={styles.gaugeWrapper}>
-            <Gauge score={activeMetrics.currentScore} color={config.color} />
-          </View>
-
-          <View style={styles.trendRow}>
-            <MaterialCommunityIcons
-              name={!hasComparison ? "clock-outline" : trend === "IMPROVING" ? "trending-up" : trend === "WORSENING" ? "trending-down" : "minus"}
-              size={16}
-              color={trendColor}
-            />
-            <Text style={[styles.trendLabel, { color: trendColor }]}>
-              {!hasComparison
-                ? "Waiting for history"
-                : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
-            </Text>
-          </View>
-
-          {hasComparison && (
-            <Text style={styles.previousScoreText}>
-              Previously {Math.round(activeMetrics.previousScore ?? 0)}
-            </Text>
-          )}
-
-          <View style={[styles.integratedInsight, { borderTopColor: `${config.color}20` }]}>
-            <MaterialCommunityIcons name="lightning-bolt" size={16} color={config.color} style={styles.insightIcon} />
-            <Text style={styles.integratedInsightText}>
-              {isUnavailable
-                ? "Reflection pending..."
-                : config.recommendations[trend]}
-            </Text>
+        <View style={styles.gaugeWrapper}>
+          <View style={styles.gauge}>
+            <Svg width={GAUGE_SIZE} height={GAUGE_SIZE}>
+              <Circle
+                cx={GAUGE_SIZE / 2}
+                cy={GAUGE_SIZE / 2}
+                r={gaugeRadius}
+                stroke={colors.border.default}
+                strokeWidth={GAUGE_STROKE}
+                fill="none"
+              />
+              <Circle
+                cx={GAUGE_SIZE / 2}
+                cy={GAUGE_SIZE / 2}
+                r={gaugeRadius}
+                stroke={accentColor}
+                strokeWidth={GAUGE_STROKE}
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="none"
+                transform={`rotate(-90 ${GAUGE_SIZE / 2} ${GAUGE_SIZE / 2})`}
+              />
+            </Svg>
+            <View style={styles.gaugeContent}>
+              <Text variant="label" color="tertiary">
+                CURRENT SCORE
+              </Text>
+              <Text
+                variant="display"
+                color={score === null ? "tertiary" : "primary"}
+              >
+                {score === null ? "--" : Math.round(score)}
+              </Text>
+            </View>
           </View>
         </View>
-      </ScrollView>
-    </ScreenView>
+
+        <View style={styles.trendRow}>
+          <Icon
+            name={
+              !hasComparison
+                ? icons.duration
+                : trend === "IMPROVING"
+                  ? icons.trend
+                  : trend === "WORSENING"
+                    ? icons.trendDown
+                    : "minus"
+            }
+            size={16}
+            color={trendColor}
+          />
+          <Text variant="bodySm" color={trendColor}>
+            {!hasComparison
+              ? "Waiting for history"
+              : `${(activeMetrics.percentDelta ?? 0) > 0 ? "+" : ""}${activeMetrics.percentDelta?.toFixed(1)}% since last week`}
+          </Text>
+        </View>
+
+        {hasComparison && (
+          <Text variant="caption" color="tertiary" style={styles.previousScore}>
+            Previously {Math.round(activeMetrics.previousScore ?? 0)}
+          </Text>
+        )}
+
+        <View style={[styles.insight, { borderTopColor: withAlpha(accentColor, 0.2) }]}>
+          <Icon name={icons.energy} size={16} color={accentColor} style={styles.insightIcon} />
+          <Text variant="bodySm" color="secondary" style={styles.insightText}>
+            {isUnavailable ? "Reflection pending..." : config.recommendations[trend]}
+          </Text>
+        </View>
+      </View>
+    </Page>
   );
 };
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-    position: 'relative',
-  },
-  header: {
+export default DimensionDetailScreen;
+
+const useStyles = makeStyles((c) => ({
+  watermark: {
     position: "absolute",
     top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 28,
-  },
-  headerTitle: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-  },
-  globalWatermark: {
-    position: 'absolute',
-    top: 40,
     right: -150,
     zIndex: -1,
-    transform: [{ rotate: '-15deg' }],
-  },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 8,
-    paddingBottom: 40, 
-  },
-  headerContainer: {
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: theme.colors.text.title,
-    letterSpacing: -0.5,
-  },
-  subtitleText: {
-    fontSize: 15,
-    color: '#64748B',
-    lineHeight: 22,
-    fontWeight: '500',
+    transform: [{ rotate: "-15deg" }],
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-    borderRadius: 36,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 6,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    width: SCREEN_WIDTH - 20, 
-    alignSelf: 'center',
+    backgroundColor: c.surface.default,
+    borderRadius: radius.card,
+    padding: spacing["2xl"],
+    alignItems: "center",
   },
   switcher: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 24,
-    padding: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    flexDirection: "row",
+    backgroundColor: c.surface.control,
+    borderRadius: radius.chip,
+    padding: spacing.xs,
+    alignSelf: "center",
+    marginBottom: space.sectionGap,
   },
   switcherPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.chip,
     minWidth: 92,
   },
-  switcherPillActive: {
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  switcherText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-    letterSpacing: 0.2,
-  },
-  switcherTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  familyDescText: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 20,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    paddingHorizontal: 12,
-    marginBottom: 24,
+  familyDesc: {
+    paddingHorizontal: spacing.md,
+    marginBottom: space.sectionGap,
   },
   gaugeWrapper: {
-    marginBottom: 16,
+    marginBottom: space.groupGap,
+  },
+  gauge: {
+    width: GAUGE_SIZE,
+    height: GAUGE_SIZE,
+    justifyContent: "center",
+    alignItems: "center",
   },
   gaugeContent: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  gaugeLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  gaugeValue: {
-    fontSize: 44,
-    fontWeight: '900',
-    letterSpacing: -1,
+    position: "absolute",
+    alignItems: "center",
   },
   trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.inlineGap,
+    backgroundColor: c.surface.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.input,
   },
-  trendLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  previousScoreText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-    marginTop: 6,
-    textTransform: 'uppercase',
+  previousScore: {
+    marginTop: spacing.xs,
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  integratedInsight: {
-    marginTop: 28,
-    paddingTop: 20,
+  insight: {
+    marginTop: space.sectionGap,
+    paddingTop: space.groupGap,
     borderTopWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.rowGap,
+    width: "100%",
   },
   insightIcon: {
     marginTop: 2,
   },
-  integratedInsightText: {
+  insightText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#334155',
-    fontWeight: '600',
-    letterSpacing: -0.1,
   },
-});
-
-export default DimensionDetailScreen;
+}));

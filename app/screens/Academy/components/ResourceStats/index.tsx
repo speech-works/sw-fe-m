@@ -223,16 +223,17 @@ const ResourceStats = ({
           <Icon name={icons.streak} size={120} color={colors.action.primary} style={{ opacity: 0.08 }} />
         </View>
 
-        {/* Header */}
+        {/* Header — bare eyebrow (icon + label, no tint pill: the 12% wash is
+            near-invisible against the card; bare orange reads 7:1). */}
         <View style={styles.headerRow}>
           <View>
-            <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
-              <Icon name={icons.chartPie} size={12} color={colors.action.primary} />
+            <View style={styles.eyebrow}>
+              <Icon name={icons.chartPie} size={14} color={colors.action.primary} />
               <Text variant="label" color={colors.action.primary}>
                 OVERVIEW
               </Text>
             </View>
-            <Text variant="h2" color="primary" style={styles.cardTitle}>
+            <Text variant="h3" color="primary" style={styles.cardTitle}>
               Daily Progress
             </Text>
             <Text variant="bodySm" color="secondary">
@@ -317,7 +318,8 @@ const ResourceStats = ({
                 </View>
 
                 <View style={styles.cardHeader}>
-                  <Text variant="label" color="tertiary">
+                  {/* secondary, not tertiary — tertiary is sub-AA on surface.control */}
+                  <Text variant="label" color="secondary">
                     FREE ACTIVITY
                   </Text>
                 </View>
@@ -325,7 +327,7 @@ const ResourceStats = ({
                   <Text variant="display" color="primary">
                     {tasksRemaining}
                   </Text>
-                  <Text variant="title" color="tertiary">
+                  <Text variant="title" color="secondary">
                     / {tasksTotal}
                   </Text>
                 </View>
@@ -369,7 +371,7 @@ const ResourceStats = ({
                 </View>
 
                 <View style={styles.cardHeader}>
-                  <Text variant="label" color="tertiary">
+                  <Text variant="label" color="secondary">
                     LEVEL
                   </Text>
                 </View>
@@ -445,15 +447,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing["2xl"],
     zIndex: 1,
   },
-  chip: {
+  eyebrow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.chip,
     alignSelf: "flex-start",
     marginBottom: spacing.md,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   cardTitle: {
     marginBottom: spacing.xs,

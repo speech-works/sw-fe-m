@@ -1,17 +1,8 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { Alert, View } from "react-native";
 import {
     createPracticeActivityFromPack,
     PracticeActivityContentType,
@@ -27,12 +18,23 @@ import {
     TextBlockContent,
     VideoBlockContent,
 } from "../../api/packs/types";
-import { theme } from "../../Theme/tokens";
+import {
+    Gradient,
+    Text,
+    Icon,
+    icons,
+    Spinner,
+    useTheme,
+    makeStyles,
+    withAlpha,
+    spacing,
+    space,
+    radius,
+} from "../../design-system";
 import { SimpleMarkdown } from "./SimpleMarkdown";
 
 import { useActivityStore } from "../../stores/activity";
 import { useUserStore } from "../../stores/user";
-import { parseShadowStyle } from "../../util/functions/parseStyles";
 import { showErrorBottomSheet } from "../../util/functions/bottomSheet";
 import { navigateToPackActivity } from "../../utils/packActivityNavigation";
 import { TactileTouchableOpacity } from "../TactileTouchableOpacity";
@@ -49,7 +51,35 @@ interface ContentRendererProps {
   onFormCompleted?: (blockId: string) => void;
 }
 
-const { width } = Dimensions.get("window");
+/**
+ * A finished ACTIVITY/FORM block. Done work should recede, not shout — so it's a
+ * calm `surface.elevated` card with a solid success badge, matching how completed
+ * items read elsewhere (e.g. PracticeGrid's corner badge), NOT a bright gradient
+ * hero (which stays reserved for the active call-to-action).
+ */
+const CompletedCard: React.FC<{ title: string; children?: React.ReactNode }> = ({
+  title,
+  children,
+}) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={styles.completedCard}>
+      <View style={styles.completedChip}>
+        <Icon name={icons.success} size={14} color={colors.accentOn.success} />
+        <Text variant="label" color={colors.accentOn.success}>
+          COMPLETED
+        </Text>
+      </View>
+      <View style={styles.textContainer}>
+        <Text variant="h2" color="primary">
+          {title}
+        </Text>
+        {children}
+      </View>
+    </View>
+  );
+};
 
 export const ContentRenderer: React.FC<ContentRendererProps> = ({
   block,
@@ -61,6 +91,8 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
   onActivityCreated,
 }) => {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [loading, setLoading] = useState(false);
 
   switch (block.type) {
@@ -68,7 +100,11 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
       const textContent = block.content as TextBlockContent;
       return (
         <View style={styles.textBlock}>
-          <SimpleMarkdown content={textContent.markdown} />
+          {/* Reading copy sits directly on the dark canvas — light-on-dark. */}
+          <SimpleMarkdown
+            content={textContent.markdown}
+            textColor={colors.text.primary}
+          />
         </View>
       );
     }
@@ -197,108 +233,75 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         }
       };
 
+      const activityDescription =
+        content.descriptionOverride ||
+        "Use your techniques in this clinical challenge.";
+
+      // Done → calm success card; active → vivid sunrise CTA hero.
+      if (isCompleted) {
+        return (
+          <CompletedCard title={content.titleOverride || "Practice Activity"}>
+            <SimpleMarkdown
+              content={activityDescription}
+              textColor={colors.text.secondary}
+            />
+          </CompletedCard>
+        );
+      }
+
+      const ink = colors.accentOn.danger;
+      const chipLabel = isMandatory ? "RECOMMENDED" : "OPTIONAL";
+
       return (
         <TactileTouchableOpacity
-          style={styles.activityCard}
+          style={styles.card}
           onPress={handleStartActivity}
-          disabled={loading || isCompleted}
-          activeOpacity={isCompleted ? 1 : 0.9}
+          disabled={loading}
+          activeOpacity={0.9}
         >
-          <LinearGradient
-            colors={
-              isCompleted
-                ? ["#10B981", "#059669"] // Green for completed
-                : ["#F97316", "#EA580C"] // Orange for active
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cardGradient}
-          >
-            {/* Decorative Bubbles */}
-            <View style={styles.bubbleTopRight} />
-            <View style={styles.bubbleBottomLeft} />
+          <Gradient token="sunrise" style={styles.cardGradient}>
+            {/* Decorative bubbles — subtle ink wash on the bright fill. */}
+            <View
+              style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
+              pointerEvents="none"
+            />
+            <View
+              style={[styles.bubbleBottomLeft, { backgroundColor: withAlpha(ink, 0.1) }]}
+              pointerEvents="none"
+            />
 
             <View style={styles.cardContent}>
-              {/* Header with Badge */}
-              <View
-                style={[
-                  styles.chip,
-                  isCompleted
-                    ? styles.completedChip
-                    : isMandatory
-                      ? styles.recommendedChip
-                      : styles.optionalChip,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={
-                    isCompleted
-                      ? "check-bold"
-                      : isMandatory
-                        ? "star"
-                        : "star-outline"
-                  }
-                  size={14}
-                  color="white"
-                />
-                <Text style={styles.chipText}>
-                  {isCompleted
-                    ? "COMPLETED"
-                    : isMandatory
-                      ? "RECOMMENDED"
-                      : "OPTIONAL"}
+              {/* Header chip */}
+              <View style={[styles.chip, { backgroundColor: withAlpha(ink, 0.16) }]}>
+                <Icon name={icons.proud} size={14} color={ink} />
+                <Text variant="label" color={ink}>
+                  {chipLabel}
                 </Text>
               </View>
 
               {/* Title and Description */}
               <View style={styles.textContainer}>
-                <Text style={styles.activityTitle}>
+                <Text variant="h2" color={ink}>
                   {content.titleOverride || "Practice Activity"}
                 </Text>
-                <SimpleMarkdown
-                  content={
-                    content.descriptionOverride ||
-                    (block.type === ContentBlockType.ACTIVITY
-                      ? "Use your techniques in this clinical challenge."
-                      : "Complete this task to move forward.")
-                  }
-                  textColor="rgba(255, 255, 255, 0.9)"
-                />
+                <SimpleMarkdown content={activityDescription} textColor={ink} />
               </View>
 
-              {/* Action Button - Only show if not completed */}
-              {!isCompleted && (
-                <View style={styles.actionButtonContainer}>
-                  <View style={styles.actionButton}>
-                    {loading && (
-                      <ActivityIndicator
-                        color={theme.colors.library.orange[600]}
-                        size="small"
-                        style={StyleSheet.absoluteFill}
-                      />
-                    )}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                        opacity: loading ? 0 : 1,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="play"
-                        size={20}
-                        color={theme.colors.library.orange[600]}
-                      />
-                      <Text style={styles.actionButtonText}>
-                        Start Practice
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              )}
+              {/* Action pill — bordered ink (bright-fill rule: no white pill) */}
+              <View style={[styles.ctaPill, { borderColor: ink }]}>
+                {loading ? (
+                  <Spinner size="small" color={ink} />
+                ) : (
+                  <>
+                    <Icon name={icons.play} size={16} color={ink} />
+                    <Text variant="title" color={ink}>
+                      Start Practice
+                    </Text>
+                  </>
+                )}
+              </View>
             </View>
-          </LinearGradient>
+          </Gradient>
         </TactileTouchableOpacity>
       );
     }
@@ -306,6 +309,7 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
     case ContentBlockType.FORM: {
       const formContent = block.content as FormBlockContent;
       const config = formContent?.configuration;
+      const formTitle = formContent?.titleOverride || config?.title || "Reflection";
 
       const handleStartForm = () => {
         if (!packId || !moduleId) {
@@ -325,163 +329,107 @@ export const ContentRenderer: React.FC<ContentRendererProps> = ({
         });
       };
 
+      // Done → calm success card; active → the same vivid sunrise action hero as
+      // the practice card, so a module's steps read as one consistent flow (the
+      // chip label/icon carries the block-type distinction, not the card colour).
+      if (isCompleted) {
+        return (
+          <CompletedCard title={formTitle}>
+            {config?.description ? (
+              <Text variant="body" color="secondary">
+                {config.description}
+              </Text>
+            ) : null}
+          </CompletedCard>
+        );
+      }
+
+      const ink = colors.accentOn.danger;
+
       return (
         <TactileTouchableOpacity
-          style={styles.formCard}
+          style={styles.card}
           onPress={handleStartForm}
-          disabled={isCompleted}
-          activeOpacity={isCompleted ? 1 : 0.9}
+          activeOpacity={0.9}
         >
-          <LinearGradient
-            colors={
-              isCompleted ? ["#10B981", "#059669"] : ["#6366F1", "#8B5CF6"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cardGradient}
-          >
-            <View style={styles.bubbleTopRight} />
-            <View style={styles.bubbleBottomLeft} />
+          <Gradient token="sunrise" style={styles.cardGradient}>
+            <View
+              style={[styles.bubbleTopRight, { backgroundColor: withAlpha(ink, 0.1) }]}
+              pointerEvents="none"
+            />
+            <View
+              style={[styles.bubbleBottomLeft, { backgroundColor: withAlpha(ink, 0.1) }]}
+              pointerEvents="none"
+            />
 
             <View style={styles.cardContent}>
-              <View
-                style={[
-                  styles.chip,
-                  isCompleted
-                    ? styles.completedChip
-                    : { backgroundColor: "rgba(255, 255, 255, 0.2)" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={isCompleted ? "check-bold" : "clipboard-text-outline"}
-                  size={14}
-                  color="white"
-                />
-                <Text style={styles.chipText}>
-                  {isCompleted ? "COMPLETED" : "REFLECTION"}
+              <View style={[styles.chip, { backgroundColor: withAlpha(ink, 0.16) }]}>
+                <Icon name={icons.checklist} size={14} color={ink} />
+                <Text variant="label" color={ink}>
+                  REFLECTION
                 </Text>
               </View>
 
               <View style={styles.textContainer}>
-                <Text style={styles.activityTitle}>
-                  {formContent?.titleOverride || config?.title || "Reflection"}
+                <Text variant="h2" color={ink}>
+                  {formTitle}
                 </Text>
                 {config?.description ? (
-                  <Text style={styles.activityInstructions}>
+                  <Text variant="body" color={ink}>
                     {config.description}
                   </Text>
                 ) : null}
               </View>
 
-              {!isCompleted && (
-                <View style={styles.actionButtonContainer}>
-                  <View style={styles.actionButton}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="pencil-outline"
-                        size={20}
-                        color="#6366F1"
-                      />
-                      <Text
-                        style={[styles.actionButtonText, { color: "#6366F1" }]}
-                      >
-                        Start Reflection
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              )}
+              <View style={[styles.ctaPill, { borderColor: ink }]}>
+                <Icon name={icons.play} size={16} color={ink} />
+                <Text variant="title" color={ink}>
+                  Start Reflection
+                </Text>
+              </View>
             </View>
-          </LinearGradient>
+          </Gradient>
         </TactileTouchableOpacity>
       );
     }
 
     // ... handle other types
     default:
-      return <Text>Unsupported block type: {block.type}</Text>;
+      return (
+        <Text variant="body" color="secondary">
+          Unsupported block type: {block.type}
+        </Text>
+      );
   }
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   textBlock: {
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
-  text: {
-    fontSize: 16,
-    color: theme.colors.text.default,
-    lineHeight: 26,
-    letterSpacing: 0.2,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.xs,
   },
   mediaContainer: {
-    marginBottom: 24,
-    borderRadius: 20,
+    marginBottom: spacing.xl,
+    borderRadius: radius.card,
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-    backgroundColor: "#F1F5F9",
+    backgroundColor: c.surface.control,
   },
-
-  audioContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 24,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  audioText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text.title,
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.actionPrimary.default,
-    justifyContent: "center",
-    alignItems: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  // New Activity Card Styles
-  activityCard: {
-    marginBottom: 24,
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    // Shadow color to match the gradient
-    shadowColor: "#EA580C",
+  // Gradient hero card (active ACTIVITY / FORM)
+  card: {
+    marginBottom: spacing.xl,
+    borderRadius: radius.card,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
-    backgroundColor: "white", // Fallback
-  },
-  formCard: {
-    marginBottom: 24,
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation2),
-    shadowColor: "#6366F1",
-    shadowOpacity: 0.25,
-    backgroundColor: "white",
+    shadowRadius: 16,
+    elevation: 8,
   },
   cardGradient: {
-    borderRadius: 24,
-    padding: 24,
-    minHeight: 220,
-    position: "relative",
+    borderRadius: radius.card,
+    padding: spacing.xl,
     overflow: "hidden",
-    justifyContent: "space-between",
+    position: "relative",
   },
-  // Decorative Bubbles
   bubbleTopRight: {
     position: "absolute",
     top: -40,
@@ -489,7 +437,6 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   bubbleBottomLeft: {
     position: "absolute",
@@ -498,79 +445,52 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   cardContent: {
     zIndex: 1,
-    gap: 16,
-    height: "100%",
-    justifyContent: "space-between",
+    gap: space.groupGap,
     alignItems: "flex-start",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-  },
-  chipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  recommendedChip: {
-    backgroundColor: "rgba(251, 191, 36, 0.3)", // Amber with transparency
-  },
-  optionalChip: {
-    backgroundColor: "rgba(148, 163, 184, 0.3)", // Slate with transparency
-  },
-  completedChip: {
-    backgroundColor: "rgba(255, 255, 255, 0.25)", // Use white transparency for better visibility on green
-  },
-  chipText: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    gap: space.inlineGap,
   },
   textContainer: {
-    gap: 8,
-    marginVertical: 12,
+    gap: space.titleSub,
   },
-  activityTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "white",
-    letterSpacing: -0.5,
-    lineHeight: 26,
-  },
-  activityInstructions: {
-    fontSize: 15,
-    color: "rgba(255, 255, 255, 0.9)",
-    lineHeight: 22,
-    maxWidth: "95%",
-  },
-  actionButtonContainer: {
-    alignSelf: "flex-start",
-    borderRadius: 24,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    backgroundColor: "white",
-  },
-  actionButton: {
+  ctaPill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 8,
+    alignSelf: "flex-start",
+    gap: space.inlineGap,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    marginTop: spacing.xs,
   },
-  actionButtonText: {
-    color: theme.colors.library.orange[600],
-    fontWeight: "700",
-    fontSize: 15,
+  // Completed card — calm surface, solid success badge (matches app convention)
+  completedCard: {
+    marginBottom: spacing.xl,
+    borderRadius: radius.card,
+    padding: spacing.xl,
+    backgroundColor: c.surface.elevated,
+    borderWidth: 1,
+    borderColor: c.border.default,
+    gap: space.groupGap,
+    alignItems: "flex-start",
   },
-});
+  completedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    gap: space.inlineGap,
+    backgroundColor: c.accent.success,
+  },
+}));

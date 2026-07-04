@@ -29,6 +29,7 @@ export type HomeStackParamList = {
   ProgressDetail: { scrollTo?: "achievements" } | undefined;
   DimensionDetail: {
     domain: string;
+    accentKey?: string;
     comparisonLabel: string;
     familyData: any;
   };
