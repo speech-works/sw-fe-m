@@ -112,13 +112,13 @@ const MoodCheckPopup = () => {
               style={[
                 styles.card,
                 {
-                  backgroundColor: colors.accentTint[emo.accentKey],
+                  backgroundColor: colors.surface.default,
                   borderColor: colors.accent[emo.accentKey],
                 },
               ]}
             >
               <emo.icon width={80} height={80} shouldAnimate={visible} />
-              <Text variant="title" color="primary">
+              <Text variant="title" color={colors.accent[emo.accentKey]}>
                 {emo.name}
               </Text>
             </PressableScale>
@@ -141,13 +141,16 @@ const useStyles = makeStyles(() => ({
     gap: space.groupGap,
     justifyContent: "space-between",
   },
+  // Solid tile (was a washed accent tint) so the colourful faces pop against it;
+  // the accent border frames it crisply and carries the mood identity.
   card: {
     width: "47%",
     aspectRatio: 1,
     borderRadius: radius.card,
-    borderWidth: 1.5,
+    borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
     gap: spacing.sm,
+    padding: spacing.md,
   },
 }));
