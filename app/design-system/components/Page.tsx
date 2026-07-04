@@ -169,6 +169,13 @@ export const Page: React.FC<PageProps> = ({
 
   return (
     <ScreenView style={{ backgroundColor: colors.background.canvas }}>
+      {/* Solid dark canvas behind everything — covers the legacy light `BgWrapper`
+       * gradient so an overscroll bounce (top/bottom) never flashes white. Matches
+       * the hand-rolled cover on Explore; non-interactive. */}
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background.canvas }]}
+        pointerEvents="none"
+      />
       {/* Dark scaffold → light status-bar glyphs (white clock/battery), drawn
        * edge-to-edge over the app canvas. Overrides BgWrapper's dark-content. */}
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
