@@ -324,7 +324,7 @@ const RealLifeChallenge = () => {
               <Icon
                 name={icons.checklist}
                 size={14}
-                color={colors.action.primary}
+                color={colors.text.accent}
               />
               <Text variant="label" color="primary">
                 INSTRUCTIONS
@@ -345,7 +345,7 @@ const RealLifeChallenge = () => {
             style={{ backgroundColor: colors.action.primaryTint }}
           >
             <View style={styles.cardLabelRow}>
-              <Icon name={icons.tip} size={14} color={colors.action.primary} />
+              <Icon name={icons.tip} size={14} color={colors.text.link} />
               <Text variant="label" color="link">
                 PRO TIP
               </Text>

@@ -247,13 +247,13 @@ const ResourceStats = ({
             <View style={styles.energyHeader}>
               <View style={styles.energyHeaderLeft}>
                 <View style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}>
-                  <Icon name={icons.energy} size={16} color={colors.action.primary} />
+                  <Icon name={icons.energy} size={16} color={colors.text.accent} />
                 </View>
                 <Text variant="title" color="primary">
                   Energy Tank
                 </Text>
               </View>
-              <Text variant="h2" color={colors.action.primary}>
+              <Text variant="h2" color="accent">
                 {staminaPercentage}%
               </Text>
             </View>
@@ -391,7 +391,7 @@ const ResourceStats = ({
                         }}
                       />
                     )}
-                    <Text variant="caption" color={colors.action.primary}>
+                    <Text variant="caption" color="accent">
                       {isLoadingLevel
                         ? "Calculating XP..."
                         : levelStage

@@ -39,7 +39,7 @@ export const LowFreeActivityModal: React.FC<LowFreeActivityModalProps> = ({
           />
         </Gradient>
 
-        <Text variant="label" color={colors.action.primary} style={styles.eyebrow}>
+        <Text variant="label" color="accent" style={styles.eyebrow}>
           FREE ACTIVITY ALERT
         </Text>
         <Text variant="h2" color="primary" center>

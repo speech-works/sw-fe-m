@@ -42,6 +42,9 @@ import {
   type SemanticColors,
   useTheme,
   withAlpha,
+  darkenForContrast,
+  mix,
+  AA_LARGE,
 } from "../../design-system";
 
 const CAPTION_MAX = 280;
@@ -115,6 +118,10 @@ const PracticeComposer = () => {
   const onAccentColor: string = params.onAccentColor ?? fallbackAccent.onColor;
   const accentWash = withAlpha(accentColor, 0.16);
   const accentBorder = withAlpha(accentColor, 0.46);
+  // The share icon is colored foreground on the accent wash disc — darken the
+  // threaded hue to clear AA on paper (a no-op on dark). Keep bright `accentColor`
+  // for the wash/border fills and the spinner below.
+  const accentFg = darkenForContrast(accentColor, mix(colors.surface.elevated, accentColor, 0.16), AA_LARGE);
   const subtleText = colors.text.secondary;
 
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -270,7 +277,7 @@ const PracticeComposer = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={[styles.headerIcon, { backgroundColor: accentWash, borderColor: accentBorder }]}>
-            <Icon name={icons.share} size={20} color={accentColor} />
+            <Icon name={icons.share} size={20} color={accentFg} />
           </View>
           <Text variant="bodySm" color="secondary" center style={styles.headerSubtitle}>
             Choose what shows up in your practice update.

@@ -146,7 +146,7 @@ const Briefing = () => {
         style={styles.scenarioCard}
       >
         <View style={styles.scenarioHeader}>
-          <Icon name="bookmark" size={14} color={colors.accent.info} />
+          <Icon name="bookmark" size={14} color={colors.feedback.infoText} />
           <Text variant="label" color="primary">
             THE SCENARIO
           </Text>
@@ -162,7 +162,7 @@ const Briefing = () => {
             { backgroundColor: colors.accentTint.info },
           ]}
         >
-          <Icon name={icons.duration} size={12} color={colors.accent.info} />
+          <Icon name={icons.duration} size={12} color={colors.feedback.infoText} />
           <Text variant="caption" color={colors.feedback.infoText}>
             {roleplay.scenario.duration} mins
           </Text>

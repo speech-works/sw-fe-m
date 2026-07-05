@@ -34,7 +34,7 @@ const scoreTextColor = (v: number, colors: SemanticColors) =>
     ? colors.feedback.successText
     : v >= 3
       ? colors.feedback.warningText
-      : colors.action.primary;
+      : colors.text.accent;
 
 const scoreFillColor = (v: number, colors: SemanticColors) =>
   v >= 4
@@ -62,7 +62,13 @@ const ScoreMeter = ({ label, value }: { label: string; value?: number }) => {
             key={i}
             style={[
               styles.seg,
-              { backgroundColor: i < Math.round(v) ? fill : colors.surface.control },
+              {
+                backgroundColor: i < Math.round(v) ? fill : colors.surface.control,
+                // Hairline edge so each cell is delineated on the light "paper"
+                // canvas (bright fills otherwise blend into the track); keeps the hue.
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.border.strong,
+              },
             ]}
           />
         ))}
@@ -204,7 +210,7 @@ const PhoneCallReport: React.FC<Props> = ({
             <Icon name={icons.call} size={26} color={colors.action.onPrimary} />
           </View>
           <View style={[styles.chip, { backgroundColor: colors.action.primaryTint }]}>
-            <Text variant="label" color={colors.action.primary} style={styles.chipText}>
+            <Text variant="label" color="accent" style={styles.chipText}>
               PRACTICE REPORT
             </Text>
           </View>
@@ -341,7 +347,7 @@ const PhoneCallReport: React.FC<Props> = ({
           <SectionCard
             icon={icons.forward}
             title="Try this next"
-            accent={colors.action.primary}
+            accent={colors.text.accent}
             tint={colors.action.primaryTint}
           >
             <Text variant="body" color="secondary">
@@ -390,7 +396,7 @@ const PhoneCallReport: React.FC<Props> = ({
                     <Text key={i} variant="bodySm" color="secondary" style={styles.transcriptLine}>
                       <Text
                         variant="bodySm"
-                        color={isUser ? colors.action.primary : colors.text.primary}
+                        color={isUser ? colors.text.accent : colors.text.primary}
                         style={styles.transcriptSpeaker}
                       >
                         {isUser ? "You  " : "AI  "}

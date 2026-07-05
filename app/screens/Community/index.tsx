@@ -46,6 +46,8 @@ import {
   Toggle,
   FloatingControls,
   staggerEntering,
+  bestForeground,
+  zIndex,
 } from "../../design-system";
 import {
   BuddySummary,
@@ -228,6 +230,7 @@ const Community = () => {
   // Scroll-cue anchor: the content offset past which the in-page Us/Timeline
   // switcher has scrolled off the top (hands the switcher to the bottom dock).
   const [cueAnchor, setCueAnchor] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const screenReaderRef = useRef(false);
   // Previous scroll offset — the cue is edge-triggered (fires only on crossing).
   const lastScrollYRef = useRef(0);
@@ -425,51 +428,59 @@ const Community = () => {
   const buddyName = link?.buddy?.name ?? "Your Buddy";
   const buddyFirstName = buddyName.split(" ")[0];
 
-  // In-flow header — title + subtitle + the in-page Us/Timeline switcher all
-  // scroll away like every other page. The switcher's bottom feeds the scroll cue.
-  const renderHeader = () => {
-    return (
-      <View>
-        <PageHeader
-          title="Community"
-          description={
-            isPaired
-              ? `You & ${buddyFirstName} — keep it up together.`
-              : "Practice sticks when someone's in it with you."
-          }
-          standalone
-        />
-        {isPaired && (
-          <View
-            style={styles.headerTabs}
-            onLayout={(e) => {
-              const { y, height } = e.nativeEvent.layout;
-              setCueAnchor(y + height);
-            }}
-          >
-            <TabDock
-              inline
-              fitContent
-              accessibilityLabel="Community page tabs"
-              items={[
-                { key: "us", label: "Us", icon: icons.community },
-                { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
-              ]}
-              activeKey={view}
-              onSelect={(k) => setView(k as "us" | "timeline")}
-            />
-          </View>
-        )}
-      </View>
-    );
-  };
+  // Fixed header — rendered once as an absolute overlay so it never moves
+  // during horizontal swipes between tabs (mirrors the Library TechniquePage pattern).
+  const renderFixedHeader = () => (
+    <View
+      style={[
+        styles.fixedHeader,
+        { backgroundColor: colors.background.canvas },
+      ]}
+      onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+    >
+      <PageHeader
+        title="Community"
+        description={
+          isPaired
+            ? `You & ${buddyFirstName} — keep it up together.`
+            : "Practice sticks when someone's in it with you."
+        }
+        standalone
+      />
+      {isPaired && (
+        <View
+          style={styles.headerTabs}
+          onLayout={(e) => {
+            const { y, height } = e.nativeEvent.layout;
+            setCueAnchor(y + height);
+          }}
+        >
+          <TabDock
+            inline
+            fitContent
+            accessibilityLabel="Community page tabs"
+            items={[
+              { key: "us", label: "Us", icon: icons.community },
+              { key: "timeline", label: "Timeline", icon: icons.timeline, badge: unreadCount },
+            ]}
+            activeKey={view}
+            onSelect={(k) => setView(k as "us" | "timeline")}
+          />
+        </View>
+      )}
+    </View>
+  );
+
+  // Placeholder inserted at the top of each page's scroll so content starts
+  // below the fixed header.
+  const headerPlaceholder = <View style={{ height: headerHeight }} />;
 
   const renderInvite = () => (
     <View style={styles.inviteCardWrapper}>
       <View style={styles.howItWorksSection}>
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.share} size={24} color={colors.action.primary} />
+            <Icon name={icons.share} size={24} color={colors.text.accent} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">Share your code</Text>
@@ -479,7 +490,7 @@ const Community = () => {
 
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.addPerson} size={24} color={colors.action.primary} />
+            <Icon name={icons.addPerson} size={24} color={colors.text.accent} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">They sign up</Text>
@@ -489,7 +500,7 @@ const Community = () => {
 
         <View style={styles.stepItem}>
           <View style={[styles.stepIconBox, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.launch} size={24} color={colors.action.primary} />
+            <Icon name={icons.launch} size={24} color={colors.text.accent} />
           </View>
           <View style={styles.stepTextContent}>
             <Text variant="title">Grow together</Text>
@@ -519,13 +530,13 @@ const Community = () => {
         <View style={styles.bottomBlock}>
           {isPending && (
             <View style={[styles.pendingPillImm, { backgroundColor: colors.action.primaryTint }]}>
-              <Icon name={icons.soon} size={14} color={colors.action.primary} />
-              <Text variant="caption" color={colors.action.primary} style={styles.bold}>Waiting for them to join…</Text>
+              <Icon name={icons.soon} size={14} color={colors.text.accent} />
+              <Text variant="caption" color="accent" style={styles.bold}>Waiting for them to join…</Text>
             </View>
           )}
           <View style={[styles.codeBox, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
             <View style={styles.codeRow}>
-              <Icon name={icons.copy} size={20} color={colors.action.primary} style={{ marginRight: space.iconText }} />
+              <Icon name={icons.copy} size={20} color={colors.text.accent} style={{ marginRight: space.iconText }} />
               <Text variant="h2" style={styles.codeValueImm}>{summary?.referralCode ?? "—"}</Text>
             </View>
           </View>
@@ -598,7 +609,7 @@ const Community = () => {
         <Image source={{ uri: url }} style={[styles.pAvatarImg, { backgroundColor: colors.surface.control }]} />
       ) : (
         <View style={[styles.pAvatarFallback, { backgroundColor: colors.surface.control }]}>
-          <Text variant="h3" color={colors.action.primary}>{initials}</Text>
+          <Text variant="h3" color="accent">{initials}</Text>
         </View>
       );
 
@@ -663,7 +674,15 @@ const Community = () => {
                   <MaterialCommunityIcons
                     name={(team?.bondStageIcon as any) ?? "account-heart"}
                     size={20}
-                    color={colors.accent.warning}
+                    // The disc is `surface.default` (near-white on paper, dark on
+                    // ink). The bright accent base is invisible on the light disc
+                    // (~1.5:1) but correct on the dark one; pick per scheme so the
+                    // hue-carrying ink is legible in both — dark accentOn cut on
+                    // light, bright accent on dark.
+                    color={bestForeground(colors.surface.default, [
+                      colors.accent.warning,
+                      colors.accentOn.warning,
+                    ])}
                   />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
@@ -692,14 +711,28 @@ const Community = () => {
             <View style={styles.statsRow}>
               <View style={[styles.statTile, { backgroundColor: colors.accent.purple }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
-                  <Icon name={icons.energy} size={20} color={colors.accent.purple} />
+                  <Icon
+                    name={icons.energy}
+                    size={20}
+                    color={bestForeground(colors.surface.default, [
+                      colors.accent.purple,
+                      colors.accentOn.purple,
+                    ])}
+                  />
                 </View>
                 <AnimatedNumber value={team?.combinedXpThisWeek ?? 0} color={colors.accentOn.purple} />
                 <Text variant="caption" color={colors.accentOn.purple} style={[styles.statTileLabel]}>XP THIS WEEK</Text>
               </View>
               <View style={[styles.statTile, { backgroundColor: colors.accent.info }]}>
                 <View style={[styles.statIconCircle, { backgroundColor: colors.surface.default }]}>
-                  <Icon name={icons.daysTogether} size={20} color={colors.accent.info} />
+                  <Icon
+                    name={icons.daysTogether}
+                    size={20}
+                    color={bestForeground(colors.surface.default, [
+                      colors.accent.info,
+                      colors.accentOn.info,
+                    ])}
+                  />
                 </View>
                 <AnimatedNumber value={daysTogether} color={colors.accentOn.info} />
                 <Text variant="caption" color={colors.accentOn.info} style={[styles.statTileLabel]}>DAYS TOGETHER</Text>
@@ -833,7 +866,7 @@ const Community = () => {
                     />
                   }
                 >
-                  {renderHeader()}
+                  {headerPlaceholder}
                   {renderPaired()}
                 </CustomScrollView>
               </View>
@@ -854,7 +887,7 @@ const Community = () => {
                     />
                   }
                 >
-                  {renderHeader()}
+                  {headerPlaceholder}
                   {thread ? (
                     <Timeline
                       ref={timelineRef}
@@ -900,11 +933,14 @@ const Community = () => {
               />
             }
           >
-            {renderHeader()}
+            {headerPlaceholder}
             {renderInvite()}
           </CustomScrollView>
         )}
       </View>
+
+      {/* Fixed header — sits above the pager so it never moves during swipes */}
+      {renderFixedHeader()}
 
       {/* Opaque status-bar cap — content scrolls under the clock cleanly. */}
       {insets.top > 0 ? (
@@ -980,7 +1016,14 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
   },
-  headerTabs: { paddingHorizontal: space.screenX, marginTop: space.titleGap, alignSelf: "flex-start" },
+  fixedHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: zIndex.sticky,
+  },
+  headerTabs: { paddingHorizontal: space.screenX, marginTop: space.titleGap, paddingBottom: space.inlineGap, alignSelf: "flex-start" },
 
   center: {
     flex: 1,

@@ -64,6 +64,14 @@ const buildPairings = (): Pairing[] => {
   }
   pairings.push({ label: "text.link on canvas", fg: (c) => c.text.link, bg: (c) => c.background.canvas });
   pairings.push({ label: "text.link on card", fg: (c) => c.text.link, bg: (c) => c.surface.default });
+  pairings.push({ label: "text.accent on canvas", fg: (c) => c.text.accent, bg: (c) => c.background.canvas });
+  pairings.push({ label: "text.accent on card", fg: (c) => c.text.accent, bg: (c) => c.surface.default });
+
+  // accentText — an accent used AS colored text/line/icon on a surface (all six).
+  for (const a of ACCENTS) {
+    pairings.push({ label: `accentText.${a} on canvas`, fg: (c) => c.accentText[a], bg: (c) => c.background.canvas });
+    pairings.push({ label: `accentText.${a} on card`, fg: (c) => c.accentText[a], bg: (c) => c.surface.default });
+  }
 
   // Dark-on-bright fills.
   pairings.push({ label: "action.onPrimary on action.primary", fg: (c) => c.action.onPrimary, bg: (c) => c.action.primary });

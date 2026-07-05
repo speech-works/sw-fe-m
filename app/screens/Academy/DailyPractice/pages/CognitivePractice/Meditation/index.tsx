@@ -58,6 +58,9 @@ const Meditation = () => {
   // Guided Meditation = the "purple" accent from the Cognitive Practice list;
   // the flow inherits it (Start, tips, selection, save + done screens).
   const accentColor = colors.accent.purple;
+  // The "selected" check icon is colored foreground on the option surface — the
+  // per-scheme legible cut, not the bright fill (which collapses on paper).
+  const accentFg = colors.accentText.purple;
   const onAccentColor = colors.accentOn.purple;
   // Use CDPStackRouteProp for MeditationPractice
   const route = useRoute<CDPStackRouteProp<"MeditationPractice">>();
@@ -821,7 +824,7 @@ const Meditation = () => {
                       </Text>
                     </View>
                     {isSelected && (
-                      <Icon name={icons.success} size={20} color={accentColor} />
+                      <Icon name={icons.success} size={20} color={accentFg} />
                     )}
                   </Surface>
                 </PressableScale>

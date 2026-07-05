@@ -96,10 +96,37 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   - on an accent fill (success/danger/…) → `accentOn.{success|danger|…}`
   - on a category fill → `categoryOn.{reading|…}`
   - on the white avatar/disc (`surface.inverse`) → `text.onInverse`
-- **Colored text ON a dark surface** uses the lighter `feedback.*Text` variants
-  (e.g. `feedback.successText`), NOT the bright `accent.*` fill.
+- **Colored text / thin lines / small icons on a SURFACE use `feedback.*Text`
+  (or `text.link` for orange), NEVER a bright `accent.*` / `gamification.*` /
+  `action.primary` base hue.** This is the #1 dark→light bug: a bright base reads
+  fine on the dark canvas but collapses to ~1.2–2.9:1 as text/stroke/icon on the
+  paper canvas. The base hue is a FILL (paired with dark ink); the *on-surface*
+  colored cut is `feedback.{success|warning|danger|info}Text` — which is
+  per-scheme (light cut on dark, dark cut on light), so it's correct in BOTH
+  schemes. Applies to: `<Text color={…}>`, react-native-svg `stroke=`/`fill=` on
+  chart lines/dots/sparklines, and small meaning-bearing `<Icon color={…}>`. The
+  DS `Text` warns in `__DEV__` if you pass a bright fill hex as a text color.
+  - **Orange as foreground = `text.accent` (or `color="accent"` on `Text`).** The
+    brand orange `action.primary` is a FILL; as text/small meaningful icon on a
+    surface it's ~2.2:1 on paper. `text.accent` is the per-scheme foreground cut
+    (bright `#FFB580` on dark, AA amber `#A84600` on light). **Hybrid rule:** darken
+    orange TEXT and meaning-bearing ICONS to `text.accent`; KEEP bright
+    `action.primary` for spinners/`ActivityIndicator`, decorative watermarks
+    (`opacity<1` / hero glyphs ≥40px), and fills. `text.link` stays for actual links.
+  - For a chart STROKE/line, `text.accent`/`text.link` also clears the 3:1 bar.
+  - An icon that sits INSIDE a bright/white disc (a `surface.inverse` circle or an
+    accent fill) uses the disc's dark ink (`accentOn.*` / `text.onInverse`) to
+    match the tile's text — not the bright accent.
 - A selected/bright row must flip its subtitle/secondary text to a dark
   foreground too — don't let an accent override survive onto a bright fill.
+- **Nested same-tone surfaces need a hairline on light.** A `surface.default`
+  tile inside a `surface.elevated` card is ~1.02:1 on paper (invisible) because
+  the dark scheme communicates that step by lightening — which does nothing on
+  white. Give the inner tile `borderWidth: hairline, borderColor:
+  border.hairline` (harmless on dark, load-bearing on light). Same for a
+  progress/meter TRACK on light: a hairline border makes the control identifiable
+  when an untinted track ≈ the card (WCAG 1.4.11). Thin meter SEGMENTS that
+  encode state get a `border.strong` hairline so filled ≠ empty on paper.
 - **Tinted chips need real contrast.** A 12% `accentTint.*` wash over a dark card
   is nearly the card color — never put accent-colored text on `accentTint.*`
   (e.g. orange text on `action.primaryTint` ≈ 1.5:1). For a "selected" chip on a
@@ -110,7 +137,14 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   - `bestForeground(bg, [a, b, …])` → highest-contrast option from a set.
   - `meetsAA(fg, bg)` / `contrastRatio(fg, bg)` → assert/measure (AA = 4.5:1, or
     3:1 for large/bold ≥18.66px). `assertContrast(fg, bg, label)` warns in `__DEV__`.
-  - All exported from `app/design-system` (impl in `utils/contrast.ts`).
+  - `darkenForContrast(fg, bg, minRatio?)` → darken a *threaded/computed accent
+    HEX* used AS foreground until it clears AA on `bg` (a no-op on the dark canvas,
+    and whenever `fg` already passes — so it's scheme-safe). Reach for it ONLY when
+    no accent KEY is in scope to look up the `accentText.*` / `text.accent` cut
+    (prefer those). Keep the bright hex for FILLS; flatten a tint wash to an opaque
+    bg first with `mix(surface, accent, alpha)`.
+  - All exported from `app/design-system` (impl in `utils/contrast.ts`; `mix` in
+    `utils/color.ts`).
 - **`text.tertiary` clears AA only on the card surfaces** (`surface.default`/
   `elevated`/`canvas`), NOT reliably on the lighter `surface.control`. Put tertiary
   text on cards; on `control` chips use `text.secondary` or brighter.

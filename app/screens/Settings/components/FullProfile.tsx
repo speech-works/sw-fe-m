@@ -65,7 +65,7 @@ const FullProfile = ({ levelStage }: FullProfileProps) => {
           </Text>
           {levelStage ? (
             <View style={[styles.levelTitle, { backgroundColor: colors.action.primaryTint }]}>
-              <Text variant="caption" color={colors.action.primary}>
+              <Text variant="caption" color="accent">
                 {levelStage.fullTitle}
               </Text>
             </View>

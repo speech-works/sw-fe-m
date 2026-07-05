@@ -286,7 +286,7 @@ const SignalCard = ({
           {p.journeyTitle || jp ? (
             <View style={styles.journeyTopRow}>
               <View style={[styles.journeyIconDot, { backgroundColor: colors.action.primaryTint }]}>
-                <Icon name={icons.journey} size={14} color={colors.action.primary} />
+                <Icon name={icons.journey} size={14} color={colors.text.accent} />
               </View>
               {p.journeyTitle ? (
                 <Text variant="caption" color={tone.vibrant ? colors.action.primary : "secondary"} style={[styles.flex1, styles.journeyEyebrow]}>

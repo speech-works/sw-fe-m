@@ -224,7 +224,7 @@ const PracticePage = ({
         >
           {header}
           <View style={styles.stage}>
-            <Text variant="label" color={colors.accent.info} style={styles.eyebrow}>
+            <Text variant="label" color={colors.accentText.info} style={styles.eyebrow}>
               PRACTICE
             </Text>
 
@@ -260,7 +260,7 @@ const PracticePage = ({
               ]}
               onPress={() => speakText(currentItem?.itemText)}
             >
-              <Icon name={icons.volume} size={16} color={colors.action.primary} />
+              <Icon name={icons.volume} size={16} color={colors.text.accent} />
               <Text variant="body" color="secondary" style={styles.phoneticText}>
                 {currentItem?.itemPhonetics
                   ? `/${currentItem?.itemPhonetics}/`

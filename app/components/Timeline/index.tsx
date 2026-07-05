@@ -178,7 +178,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
       <View style={styles.emptyWrap}>
         <View style={styles.emptyHero}>
           <View style={[styles.emptyIconCircle, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={icons.care} size={28} color={colors.action.primary} />
+            <Icon name={icons.care} size={28} color={colors.text.accent} />
           </View>
           <Text variant="h3" style={styles.emptyTitle}>Your wins and moments live here</Text>
           <Text variant="bodySm" color="secondary" style={styles.muted}>
@@ -232,7 +232,7 @@ const Timeline = forwardRef<TimelineHandle, TimelineProps>(function Timeline(
         // Fallback for the rare case the first page doesn't fill the viewport
         // (so onEndReached never fires): a low-emphasis tap target to fetch more.
         <TouchableOpacity onPress={loadMore} style={styles.loadMoreFooter} activeOpacity={0.7}>
-          <Text variant="bodySm" color={colors.action.primary} style={styles.bold}>Load more</Text>
+          <Text variant="bodySm" color="accent" style={styles.bold}>Load more</Text>
         </TouchableOpacity>
       ) : null}
     </View>

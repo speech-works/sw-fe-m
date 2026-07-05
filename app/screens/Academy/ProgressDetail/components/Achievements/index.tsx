@@ -139,8 +139,8 @@ const Achievements = ({ stageData }: AchievementsProps) => {
           <Icon name={icons.win} size={size.icon} color={colors.text.tertiary} />
         </View>
 
-        <View style={[styles.xpBadge, { backgroundColor: colors.surface.default }]}>
-          <Icon name={icons.proud} size={14} color={colors.gamification.gold} />
+        <View style={[styles.xpBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+          <Icon name={icons.proud} size={14} color={colors.feedback.warningText} />
           <Text variant="bodySm" style={styles.bold}>{isLoading ? "..." : activeTotalXp} XP</Text>
         </View>
 
@@ -148,7 +148,7 @@ const Achievements = ({ stageData }: AchievementsProps) => {
           <Text variant="bodySm" color="secondary">Synchronizing Data…</Text>
         ) : activeTotalXp > 0 ? (
           <View style={styles.progress}>
-            <View style={[styles.progressBg, { backgroundColor: colors.surface.control }]}>
+            <View style={[styles.progressBg, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
               <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: colors.gamification.gold }]} />
             </View>
             <Text variant="caption" color="secondary">
@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
     alignSelf: "flex-start",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   progress: {
     gap: spacing.sm,
@@ -285,6 +286,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: radius.full,
     overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   progressFill: {
     height: "100%",

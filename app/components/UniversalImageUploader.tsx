@@ -144,9 +144,9 @@ const UniversalImageUploader = ({
           onPressOut={handlePressOut}
         >
           <View style={[styles.iconCircle, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name="upload-cloud" size={24} color={colors.action.primary} />
+            <Icon name="upload-cloud" size={24} color={colors.text.accent} />
           </View>
-          <Text variant="title" color={colors.action.primary}>
+          <Text variant="title" color="accent">
             Tap to upload photo
           </Text>
           <Text variant="caption" color="tertiary">
@@ -167,8 +167,8 @@ const UniversalImageUploader = ({
           onPress={() => handlePickImage(true)}
           activeOpacity={0.7}
         >
-          <Icon name="camera" size={16} color={colors.action.primary} />
-          <Text variant="title" color={colors.action.primary}>
+          <Icon name="camera" size={16} color={colors.text.accent} />
+          <Text variant="title" color="accent">
             Open camera
           </Text>
         </TouchableOpacity>
@@ -180,7 +180,7 @@ const UniversalImageUploader = ({
     <View style={[styles.card, { backgroundColor: colors.input.bg, borderColor: colors.input.border }]}>
       <View style={styles.cardContent}>
         <View style={styles.fileIconBox}>
-          <Icon name="image" size={32} color={colors.action.primary} />
+          <Icon name="image" size={32} color={colors.text.accent} />
         </View>
         <Text variant="h3">{Math.round(uploadProgress)}%</Text>
         <View style={styles.progressContainer}>

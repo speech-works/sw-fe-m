@@ -31,18 +31,21 @@ export const elevationDark = {
   } as ViewStyle,
 } as const;
 
+// Light shadows are a warm brown (#2A2018), not cold #000 — a shadow must share
+// the warm paper's temperature, or cards read flat/cheap. Softer opacity than
+// dark so cards don't smudge on the bright canvas.
 export const elevationLight = {
   e0: {} as ViewStyle,
   e1: {} as ViewStyle, // surface.card + border.hairline (no shadow on light either)
   e2: {
-    shadowColor: "#000",
+    shadowColor: "#2A2018",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   } as ViewStyle,
   e3: {
-    shadowColor: "#000",
+    shadowColor: "#2A2018",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.16,
     shadowRadius: 24,

@@ -172,7 +172,7 @@ const OnboardingQuestion = ({
                       <Icon
                         name="check"
                         size={14}
-                        color={colors.action.primary}
+                        color={colors.text.accent}
                       />
                     ) : (
                       <View style={styles.radioInner} />

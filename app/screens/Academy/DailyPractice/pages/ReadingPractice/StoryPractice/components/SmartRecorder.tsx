@@ -10,6 +10,8 @@ import {
   size,
   space,
   useTheme,
+  darkenForContrast,
+  AA_LARGE,
 } from "../../../../../../../design-system";
 import ModernWaveform from "../../../../../Library/TechniquePage/components/ModernWaveform";
 import { useAudioRecorder } from "./useAudioRecorder";
@@ -50,6 +52,10 @@ const SmartRecorder: React.FC<Props> = ({
   const { colors } = useTheme();
   const styles = useStyles();
   const accent = accentColor ?? colors.action.primary;
+  // The review play icon is colored foreground on the elevated dock — darken the
+  // threaded hue to clear AA on paper (a no-op on dark). Keep bright `accent` for
+  // the waveform glow.
+  const accentFg = darkenForContrast(accent, colors.surface.elevated, AA_LARGE);
   const onAccent = onAccentColor ?? colors.action.onPrimary;
   const {
     startRecording,
@@ -209,7 +215,7 @@ const SmartRecorder: React.FC<Props> = ({
               <Icon
                 name="play"
                 size={size.icon}
-                color={accent}
+                color={accentFg}
                 style={{ marginLeft: 3 }}
               />
             </PressableScale>

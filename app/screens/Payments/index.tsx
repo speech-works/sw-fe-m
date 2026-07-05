@@ -577,7 +577,7 @@ const SubscribeScreen = () => {
       >
         <View style={styles.testModeModalContent}>
           <View style={styles.testModeIconWrap}>
-            <Icon name="alert-circle" size={28} color={colors.action.primary} />
+            <Icon name="alert-circle" size={28} color={colors.text.accent} />
           </View>
           <DSText variant="h2" color="primary" center style={styles.testModeTitle}>
             You&apos;re in test mode

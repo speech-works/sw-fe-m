@@ -28,3 +28,21 @@ export const withAlpha = (color: string, alpha: number): string => {
   if (!parsed) return color;
   return `rgba(${parsed.r},${parsed.g},${parsed.b},${clamped})`;
 };
+
+/**
+ * Opaque linear blend of two colours in sRGB space. `t=0` → `a`, `t=1` → `b`.
+ * Use to flatten a translucent tint wash to an opaque hex for contrast math —
+ * `mix(colors.surface.elevated, accent, 0.14)` is what a 14%-accent wash actually
+ * renders as over that surface. Falls back to `a` on unparseable input.
+ */
+export const mix = (a: string, b: string, t: number): string => {
+  const ca = parseHex(a);
+  const cb = parseHex(b);
+  if (!ca || !cb) return a;
+  const clamped = Math.max(0, Math.min(1, t));
+  const channel = (x: number, y: number) =>
+    Math.round(x + (y - x) * clamped)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(ca.r, cb.r)}${channel(ca.g, cb.g)}${channel(ca.b, cb.b)}`;
+};

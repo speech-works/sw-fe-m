@@ -132,7 +132,9 @@ const DetailedWeeklySummary = ({
   hasError = false,
 }: DetailedWeeklySummaryProps) => {
   const { colors } = useTheme();
-  const accent = colors.gamification.streak; // brand orange = activity/streak
+  // Orange has no feedback tone; text.link is the per-scheme legible orange cut
+  // for the on-surface stroke/dot/"Now" text (bright streak hue fails AA on light).
+  const accent = colors.text.link; // brand orange = activity/streak
   const [levelStage, setLevelStage] = React.useState<LevelStage | null>(null);
 
   React.useEffect(() => {
@@ -208,7 +210,7 @@ const DetailedWeeklySummary = ({
         <>
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={[styles.statBadge, { backgroundColor: colors.surface.default }]}>
+            <View style={[styles.statBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
               <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                 {weeklyData.totalPracticeMinutes < 60
                   ? `${weeklyData.totalPracticeMinutes}m`
@@ -221,7 +223,7 @@ const DetailedWeeklySummary = ({
               </Text>
             </View>
 
-            <View style={[styles.statBadge, { backgroundColor: colors.surface.default }]}>
+            <View style={[styles.statBadge, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
               <Text variant="h1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                 {weeklyData.totalDaysActive}
               </Text>
@@ -252,7 +254,7 @@ const DetailedWeeklySummary = ({
               <RhythmLine days={historicalActiveDays} accent={accent} />
             </View>
           ) : (
-            <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default }]}>
+            <View style={[styles.welcomeRow, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
               <Icon name={icons.celebrate} size={24} color={colors.text.primary} />
               <View style={styles.flex1}>
                 <Text variant="bodySm" style={styles.bold}>Welcome!</Text>
@@ -269,8 +271,8 @@ const DetailedWeeklySummary = ({
           <Text variant="bodySm" color="secondary">
             Start practicing to track your stats.
           </Text>
-          <View style={[styles.tipPill, { backgroundColor: colors.surface.default }]}>
-            <Icon name={icons.tip} size={12} color={colors.accent.warning} />
+          <View style={[styles.tipPill, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
+            <Icon name={icons.tip} size={12} color={colors.feedback.warningText} />
             <Text variant="caption" color="secondary">Tip: Consistency is king.</Text>
           </View>
         </View>
@@ -308,6 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.lg,
     flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   benchmark: { marginTop: spacing.sm },
   // ── Rhythm (bar chart) ──────────────────────────────────────────────────
@@ -335,6 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   emptyContainer: { gap: spacing.sm },
   tipPill: {
@@ -345,6 +349,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     alignSelf: "flex-start",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   skeletonBody: { gap: spacing.xl },
   skeletonHeaderText: { gap: spacing.sm },

@@ -333,7 +333,7 @@ const Chat = () => {
                     <FAIcon
                       size={20}
                       name={selectedRole?.fontAwesomeIcon || "user"}
-                      color={colors.accent.info}
+                      color={colors.feedback.infoText}
                     />
                   </View>
                   <View style={styles.roleTextGroup}>
@@ -362,7 +362,7 @@ const Chat = () => {
                           <Icon
                             size={14}
                             name="check"
-                            color={colors.accent.info}
+                            color={colors.feedback.infoText}
                           />
                           <Text variant="bodySm" color="secondary" style={styles.traitText}>
                             {c}

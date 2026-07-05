@@ -15,7 +15,6 @@ import {
   spacing,
   space,
   radius,
-  SemanticColors,
 } from "../../../../design-system";
 import PressableScale from "../../../../components/PressableScale";
 
@@ -27,18 +26,22 @@ import SadFace from "../../../../assets/mood-check/SadFace";
 
 import { getLocalTodayDateString } from "../../../../util/functions/date";
 
-type AccentKey = keyof SemanticColors["accent"];
+// The mood-name text sits on `surface.default`. The bright accent BASE hue fails
+// AA there on the light "paper" canvas (1.2–1.8:1), so the label uses the darker
+// `feedback.*Text` cut (≥5.2:1 both schemes). The tile edge no longer carries the
+// accent (below 3:1 on light) — it's a neutral `border.default` resting frame.
+type FeedbackTextKey = "successText" | "warningText" | "dangerText" | "infoText";
 
 const emotions: {
   id: MoodType;
   name: string;
   icon: React.ComponentType<any>;
-  accentKey: AccentKey;
+  textKey: FeedbackTextKey;
 }[] = [
-  { id: MoodType.ANGRY, name: "Angry", icon: AngryFace, accentKey: "danger" },
-  { id: MoodType.CALM, name: "Calm", icon: CalmFace, accentKey: "success" },
-  { id: MoodType.HAPPY, name: "Happy", icon: HappyFace, accentKey: "warning" },
-  { id: MoodType.SAD, name: "Sad", icon: SadFace, accentKey: "info" },
+  { id: MoodType.ANGRY, name: "Angry", icon: AngryFace, textKey: "dangerText" },
+  { id: MoodType.CALM, name: "Calm", icon: CalmFace, textKey: "successText" },
+  { id: MoodType.HAPPY, name: "Happy", icon: HappyFace, textKey: "warningText" },
+  { id: MoodType.SAD, name: "Sad", icon: SadFace, textKey: "infoText" },
 ];
 
 const MoodCheckPopup = () => {
@@ -113,12 +116,12 @@ const MoodCheckPopup = () => {
                 styles.card,
                 {
                   backgroundColor: colors.surface.default,
-                  borderColor: colors.accent[emo.accentKey],
+                  borderColor: colors.border.default,
                 },
               ]}
             >
               <emo.icon width={80} height={80} shouldAnimate={visible} />
-              <Text variant="title" color={colors.accent[emo.accentKey]}>
+              <Text variant="title" color={colors.feedback[emo.textKey]}>
                 {emo.name}
               </Text>
             </PressableScale>

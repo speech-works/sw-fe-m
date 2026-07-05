@@ -134,13 +134,13 @@ const WeeklyGrowthCard = ({
 
       {/* vs last week + Momentum */}
       <View style={styles.metaRow}>
-        <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
+        <View style={[styles.statChip, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
           <Text variant="h1" color={deltaColor(overallDelta)} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
             {overallDelta === null ? "—" : formatSignedDelta(overallDelta)}
           </Text>
           <Text variant="bodySm" color="secondary" style={styles.bold}>vs last week</Text>
         </View>
-        <View style={[styles.statChip, { backgroundColor: colors.surface.default }]}>
+        <View style={[styles.statChip, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
           <Text variant="h1" style={styles.capitalize} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
             {growth.meta.momentumState.toLowerCase()}
           </Text>
@@ -167,7 +167,7 @@ const WeeklyGrowthCard = ({
                   </View>
                 </View>
               </View>
-              <View style={[styles.track, { backgroundColor: colors.surface.control }]}>
+              <View style={[styles.track, { backgroundColor: colors.surface.control, borderColor: colors.border.strong }]}>
                 <View
                   style={[
                     styles.trackFill,
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: radius.card,
     padding: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   capitalize: { textTransform: "capitalize" },
   axisPanel: {
@@ -261,6 +262,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     overflow: "visible",
     justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   trackFill: {
     position: "absolute",

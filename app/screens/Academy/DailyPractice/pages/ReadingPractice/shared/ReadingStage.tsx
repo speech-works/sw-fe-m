@@ -24,6 +24,8 @@ import {
   easing,
   onColor,
   withAlpha,
+  darkenForContrast,
+  AA_LARGE,
   zIndex,
   FloatingControls,
   FloatingControlItem,
@@ -101,6 +103,10 @@ export function ReadingStage({
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const accentColor = accent ?? colors.accent.info;
+  // The pager chevrons are colored foreground on the elevated pager surface —
+  // darken the threaded hue to clear AA on paper (a no-op on dark). Keep bright
+  // `accentColor` for the scrim gradient + forward control.
+  const accentFg = darkenForContrast(accentColor, colors.surface.elevated, AA_LARGE);
   const foregroundColor = onAccent ?? onColor(accentColor, colors);
   const foregroundMuted = withAlpha(foregroundColor, 0.68);
 
@@ -177,7 +183,7 @@ export function ReadingStage({
               style={[styles.pagerBtn, first && styles.pagerOff]}
               accessibilityLabel="Previous page"
             >
-              <Icon name="chevron-up" size={20} color={accentColor} />
+              <Icon name="chevron-up" size={20} color={accentFg} />
             </PressableScale>
             <Text variant="label" color="secondary" style={styles.pagerCount}>
               {pagination.page + 1}/{pagination.count}
@@ -187,7 +193,7 @@ export function ReadingStage({
               style={[styles.pagerBtn, last && styles.pagerOff]}
               accessibilityLabel="Next page"
             >
-              <Icon name="chevron-down" size={20} color={accentColor} />
+              <Icon name="chevron-down" size={20} color={accentFg} />
             </PressableScale>
           </View>
         ),

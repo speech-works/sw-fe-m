@@ -22,9 +22,11 @@ export const lightColors: SemanticColors = {
     material: p.paperA(0.85),
   },
   border: {
-    hairline: p.blackA(0.08),
-    default: p.blackA(0.12),
-    strong: p.blackA(0.2),
+    // Warm-ink alphas (not neutral black) so hairlines share the paper's
+    // temperature; same luminance weight as blackA, so contrast is unchanged.
+    hairline: p.inkA(0.08),
+    default: p.inkA(0.12),
+    strong: p.inkA(0.2),
     // orange[400/500] miss the 3:1 non-text bar on paper; 600 clears it.
     selected: p.orange[600],
     focus: p.orange[600],
@@ -37,6 +39,7 @@ export const lightColors: SemanticColors = {
     inverse: p.orange.on,
     onInverse: p.ink.canvas,
     link: p.orange.textOnLight,
+    accent: p.orange.textOnLight, // #A84600 amber — AA on paper, keeps warm brand
   },
   action: {
     primary: p.orange[400],
@@ -72,6 +75,14 @@ export const lightColors: SemanticColors = {
     danger: p.danger.tint,
     info: p.info.tint,
   },
+  accentText: {
+    lime: p.lime.textOnLight,
+    purple: p.purple.textOnLight,
+    success: p.success.textOnLight,
+    warning: p.warning.textOnLight,
+    danger: p.danger.textOnLight,
+    info: p.info.textOnLight,
+  },
   feedback: {
     success: p.success.base,
     warning: p.warning.base,
@@ -82,7 +93,7 @@ export const lightColors: SemanticColors = {
     dangerText: p.danger.textOnLight,
     infoText: p.info.textOnLight,
   },
-  overlay: { scrim: p.blackA(0.45), pressed: p.orangeA(0.16) },
+  overlay: { scrim: p.inkA(0.45), pressed: p.orangeA(0.16) }, // warm scrim, not cold black
   input: {
     bg: p.inputBgLight,
     border: p.inputBorderLight,
@@ -122,5 +133,5 @@ export const lightColors: SemanticColors = {
     orbCyan: p.premium.cyan,
     orbPurple: p.premium.purple,
   },
-  shadow: p.black,
+  shadow: p.shadowWarm, // warm-brown shadow, not cold #000 — shares the paper's temperature
 };

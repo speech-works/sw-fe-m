@@ -12,6 +12,8 @@ import {
   Button,
   Slider,
   withAlpha,
+  darkenForContrast,
+  mix,
 } from "../../../../../design-system";
 
 export const useMetronome = (muteLogic = false) => {
@@ -102,6 +104,10 @@ const Metronome = ({
 }: MetronomeProps) => {
   const { colors } = useTheme();
   const accent = accentColor ?? colors.action.primary;
+  // The "Beat" chip label is colored foreground on a faint accent wash — darken
+  // an arbitrary threaded hue until it clears AA on paper (a no-op on dark). Keep
+  // the bright `accent` for the badge fill + border.
+  const accentFg = darkenForContrast(accent, mix(colors.surface.elevated, accent, 0.14));
   const onAccent = onAccentColor ?? colors.action.onPrimary;
   const isControlled = controlledIsPlaying !== undefined;
 
@@ -205,7 +211,7 @@ const Metronome = ({
               },
             ]}
           >
-            <Text variant="label" color={accent}>
+            <Text variant="label" color={accentFg}>
               Beat
             </Text>
           </View>

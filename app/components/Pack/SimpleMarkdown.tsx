@@ -21,7 +21,7 @@ export const SimpleMarkdown = ({
   const lines = content.replace(/\r\n/g, "\n").split("\n");
 
   const textStyle = textColor ? { color: textColor } : {};
-  const linkColor = colors.action.primary;
+  const linkColor = colors.text.link;
 
   return (
     <View style={styles.container}>

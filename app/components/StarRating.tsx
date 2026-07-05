@@ -85,7 +85,10 @@ const StarRating = ({
           solid={isFilled}
           name="star"
           size={validatedSize}
-          color={colors.gamification.gold}
+          // `gamification.gold` (bright) is invisible as a filled ICON on the
+          // light "paper" canvas (~1.5:1); the darker warm-gold text cut reads
+          // at ~5.8:1 and preserves the gold intent. Empty stars stay muted.
+          color={isFilled ? colors.feedback.warningText : colors.text.disabled}
           style={styles.starIcon}
         />
       </TouchableOpacity>

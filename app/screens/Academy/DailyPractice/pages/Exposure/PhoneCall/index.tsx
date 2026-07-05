@@ -64,6 +64,9 @@ const PhoneCall = () => {
   const { colors } = useTheme();
   // Phone Call = the "purple" accent from the Exposure hub card.
   const accentColor = colors.accent.purple;
+  // Colored foreground (the scenario icon) needs the per-scheme legible cut, not
+  // the bright fill base which collapses to ~2:1 on the light canvas.
+  const accentFg = colors.accentText.purple;
   const onAccentColor = colors.accentOn.purple;
 
   // One-time disclosure before the first AI conversation (voice is streamed to
@@ -430,7 +433,7 @@ const PhoneCall = () => {
                         solid
                         name={scenario.phoneCallData?.icon || "robot"}
                         size={24}
-                        color={accentColor}
+                        color={accentFg}
                       />
                     </View>
                     <View style={styles.scenarioDescContainer}>

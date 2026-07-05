@@ -24,6 +24,8 @@ const Briefing = () => {
   const { colors } = useTheme();
   // Interview = the "danger" (rose) accent from the Exposure hub card.
   const accentColor = colors.accent.danger;
+  // The scenario icon is colored foreground on the card — the AA-legible cut.
+  const accentFg = colors.feedback.dangerText;
   const onAccentColor = colors.accentOn.danger;
   const navigation =
     useNavigation<
@@ -79,7 +81,7 @@ const Briefing = () => {
       {/* Scenario Details — a dark card on the canvas. */}
       <Surface level="default" rounded="card" padded={spacing["2xl"]}>
         <View style={styles.scenarioHeader}>
-          <Icon name={icons.challenge} size={16} color={accentColor} />
+          <Icon name={icons.challenge} size={16} color={accentFg} />
           <Text variant="label" color="tertiary" style={styles.scenarioLabel}>
             THE SCENARIO
           </Text>

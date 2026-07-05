@@ -41,7 +41,7 @@ const ImpactAssessmentContinueModal: React.FC<ImpactAssessmentContinueModalProps
       <View style={styles.container}>
         {/* Success disc — a "set complete" celebration. */}
         <View style={[styles.iconDisc, { backgroundColor: colors.accentTint.success }]}>
-          <Icon name={icons.success} size={28} color={colors.accent.success} />
+          <Icon name={icons.success} size={28} color={colors.accentText.success} />
         </View>
 
         <Text variant="h2" center>

@@ -51,6 +51,9 @@ const AssessmentQuestion = ({
   const { colors } = useTheme();
   // Flow accent = the amber of the parent Impact Assessment card (accent.warning).
   const accent = colors.accent.warning;
+  // The selected-checkbox tick is colored foreground on the tinted option row —
+  // the AA-legible cut, not the bright fill (which collapses on the paper canvas).
+  const accentFg = colors.feedback.warningText;
   const accentTint = colors.accentTint.warning;
   const isSlider = questionType === "SLIDER";
   const isMulti = questionType === "MULTI";
@@ -198,7 +201,7 @@ const AssessmentQuestion = ({
                       <Icon
                         name={icons.checklist}
                         size={14}
-                        color={accent}
+                        color={accentFg}
                       />
                     ) : (
                       <View

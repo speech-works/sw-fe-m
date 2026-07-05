@@ -270,7 +270,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
           {percentComplete >= 1 ? (
             <View style={styles.innerCard}>
               <View style={styles.innerCardContent}>
-                <Text variant="label" color={colors.action.primary}>
+                <Text variant="label" color="accent">
                   All Caught Up
                 </Text>
                 <Text variant="h3" color="primary" style={styles.innerTitle}>
@@ -284,7 +284,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                 {isRefreshing ? (
                   <Spinner size="small" color={colors.action.primary} />
                 ) : (
-                  <Text variant="label" color={colors.action.primary}>
+                  <Text variant="label" color="accent">
                     Find Next
                   </Text>
                 )}
@@ -294,7 +294,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
             nextModuleDisplay && (
               <View style={styles.innerCard}>
                 <View style={styles.innerCardContent}>
-                  <Text variant="label" color={colors.action.primary}>
+                  <Text variant="label" color="accent">
                     Current Module
                   </Text>
                   <Text variant="h3" color="primary" style={styles.innerTitle}>
@@ -305,7 +305,7 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
                   </Text>
                 </View>
                 <View style={styles.actionBar}>
-                  <Text variant="label" color={colors.action.primary}>
+                  <Text variant="label" color="accent">
                     {actionButtonText}
                   </Text>
                 </View>

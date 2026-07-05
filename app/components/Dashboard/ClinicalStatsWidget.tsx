@@ -111,7 +111,10 @@ const MetricChip: React.FC<{
   const styles = useStyles();
   const motion = useMotion();
 
-  const accent = colors.accent[item.config.accentKey];
+  // The metric icon is a small, meaning-bearing glyph on the control surface —
+  // the bright accent base fails AA on the light "paper" control, so use the
+  // per-scheme colored-text cut (keeps each metric's hue, AA in both schemes).
+  const accent = colors.accentText[item.config.accentKey];
   const pct = item.percentDelta;
   const improving = item.trend === "IMPROVING" && (pct ?? 0) > 0;
   const worsening = item.trend === "WORSENING" && (pct ?? 0) < 0;
@@ -399,7 +402,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
           <TrendLine
             data={overall.values}
             labels={overall.labels}
-            color={colors.action.primary}
+            color={colors.text.link}
             height={120}
           />
         </View>

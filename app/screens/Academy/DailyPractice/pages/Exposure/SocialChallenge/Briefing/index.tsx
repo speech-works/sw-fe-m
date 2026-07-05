@@ -23,6 +23,8 @@ const Briefing = () => {
   const { colors } = useTheme();
   // Social Challenge = the "warning" (amber) accent from the Exposure hub card.
   const accentColor = colors.accent.warning;
+  // The scenario icon is colored foreground on the card — the AA-legible cut.
+  const accentFg = colors.feedback.warningText;
   const onAccentColor = colors.accentOn.warning;
   const navigation =
     useNavigation<SCEDPStackNavigationProp<keyof SCEDPStackParamList>>();
@@ -77,7 +79,7 @@ const Briefing = () => {
       {/* Scenario Details — a dark card on the canvas. */}
       <Surface level="default" rounded="card" padded={spacing["2xl"]}>
         <View style={styles.scenarioHeader}>
-          <Icon name={icons.challenge} size={16} color={accentColor} />
+          <Icon name={icons.challenge} size={16} color={accentFg} />
           <Text variant="label" color="tertiary" style={styles.scenarioLabel}>
             THE SCENARIO
           </Text>

@@ -58,7 +58,9 @@ const LifetimeGrowthJourneyCard = ({
   hasError = false,
 }: LifetimeGrowthJourneyCardProps) => {
   const { colors } = useTheme();
-  const accent = colors.accent.success;
+  // On-surface accent (stroke/dot/"Now" text) needs the per-scheme legible cut,
+  // not the bright fill hue, to pass AA on the light paper canvas.
+  const accent = colors.feedback.successText;
 
   const chart = useMemo(() => {
     if (!growthJourney || growthJourney.history.length === 0) return null;
@@ -143,7 +145,7 @@ const LifetimeGrowthJourneyCard = ({
       {/* Current dimension scores */}
       <View style={styles.axisRow}>
         {(Object.entries(growthJourney.current) as [string, number][]).map(([axis, value]) => (
-          <View key={axis} style={[styles.axisChip, { backgroundColor: colors.surface.default }]}>
+          <View key={axis} style={[styles.axisChip, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
             <Text variant="caption" color="tertiary">
               {AXIS_LABELS[axis as keyof typeof AXIS_LABELS]}
             </Text>
@@ -167,7 +169,7 @@ const LifetimeGrowthJourneyCard = ({
           ))}
         </View>
       ) : (
-        <View style={[styles.fallback, { backgroundColor: colors.surface.default }]}>
+        <View style={[styles.fallback, { backgroundColor: colors.surface.default, borderColor: colors.border.hairline }]}>
           <Text variant="bodySm" color="secondary">
             Long-range comparison appears after another saved baseline.
           </Text>
@@ -215,6 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     gap: spacing.xxs,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   deltaSection: {
     flexDirection: "row",
@@ -232,5 +235,6 @@ const styles = StyleSheet.create({
   fallback: {
     borderRadius: radius.md,
     padding: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

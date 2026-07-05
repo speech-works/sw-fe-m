@@ -23,6 +23,11 @@ export type SemanticColors = {
     inverse: string; // dark text that sits on the brand/orange fill
     onInverse: string; // near-black text that sits on the white `surface.inverse` disc
     link: string;
+    // The brand orange used AS foreground (text / small meaningful icon) on a
+    // surface — per-scheme: bright orange on dark, AA-legible amber on light.
+    // Use for orange labels/numbers/info-icons; the bright `action.primary` fill
+    // hue collapses to ~2.2:1 as foreground on the paper canvas.
+    accent: string;
   };
   action: {
     primary: string;
@@ -41,6 +46,12 @@ export type SemanticColors = {
   accentOn: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
   // 12% accent wash for soft chips / icon-backgrounds on a dark surface (not a fill).
   accentTint: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
+  // An accent used AS colored TEXT / thin line / small icon ON a surface (not a
+  // fill). Per-scheme: the lighter cut on dark, the darker cut on light — always
+  // AA. Covers ALL SIX accents (unlike feedback.*Text, which is only the four
+  // status tones). Use this for decorative accent text/lines/icons; NEVER the
+  // bright `accent.*` base (that's a fill, and it collapses on the light canvas).
+  accentText: { lime: string; purple: string; success: string; warning: string; danger: string; info: string };
   // feedback fills (= accent base) + text variants (lighter, for messages on dark)
   feedback: {
     success: string;

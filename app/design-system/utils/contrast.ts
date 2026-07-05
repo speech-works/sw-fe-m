@@ -86,6 +86,44 @@ export const onColor = (
   colors: { text: { primary: string; onInverse: string } },
 ): string => bestForeground(bg, [colors.text.primary, colors.text.onInverse]);
 
+/**
+ * Darken an arbitrary hue until it is legible AS foreground on `bg`.
+ *
+ * A no-op when `fg` already clears `minRatio`, OR when `bg` is not lighter than
+ * `fg` — i.e. on the dark canvas, where the ground sits below a bright accent and
+ * darkening the foreground could only hurt (so the dark scheme is never touched).
+ * On the light "paper" canvas, where a bright accent base collapses to ~1.5–2.9:1
+ * as text/icon/stroke, it blends `fg` toward black (hue-preserving) until the pair
+ * clears `minRatio` (4.5 for text, `AA_LARGE` for a small icon/thin stroke).
+ *
+ * Reach for this only when a threaded/computed accent HEX is used as foreground
+ * and no accent KEY is in scope to look up the per-scheme `accentText.*` /
+ * `text.accent` cut (prefer those roles when a key is available). Keep the bright
+ * hex for FILLS. Pass the REAL rendered background — flatten a tint wash with
+ * `mix(surface, accent, alpha)` first.
+ */
+export const darkenForContrast = (
+  fg: string,
+  bg: string,
+  minRatio: number = AA_NORMAL,
+): string => {
+  if (contrastRatio(fg, bg) >= minRatio) return fg;
+  if (relativeLuminance(bg) <= relativeLuminance(fg)) return fg;
+  const rgb = parseColor(fg);
+  if (!rgb) return fg;
+  // Blend toward black in fine steps; on a lighter bg this monotonically raises
+  // contrast, so the first step that clears is the lightest legible cut.
+  for (let t = 0.02; t <= 1.0001; t += 0.02) {
+    const cut =
+      "#" +
+      [rgb.r, rgb.g, rgb.b]
+        .map((v) => Math.round(v * (1 - t)).toString(16).padStart(2, "0"))
+        .join("");
+    if (contrastRatio(cut, bg) >= minRatio) return cut;
+  }
+  return "#000000";
+};
+
 /** Dev-only guard: warns (never throws) when a pair is below AA. No-op in prod. */
 export const assertContrast = (
   fg: string,

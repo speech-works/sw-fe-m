@@ -286,7 +286,7 @@ const Reframe = () => {
 
         <View style={styles.body}>
           {/* Eyebrow — Reframe's blue identity. Shuffle lives in the floating FAB. */}
-          <Text variant="label" color={accentColor} style={styles.eyebrow}>
+          <Text variant="label" color={colors.feedback.infoText} style={styles.eyebrow}>
             REFRAME
           </Text>
 
@@ -305,7 +305,7 @@ const Reframe = () => {
 
           {/* Choose a better perspective */}
           <View style={styles.positiveSection}>
-            <Text variant="label" color={accentColor} center style={styles.chooseLabel}>
+            <Text variant="label" color={colors.feedback.infoText} center style={styles.chooseLabel}>
               CHOOSE A BETTER PERSPECTIVE
             </Text>
 

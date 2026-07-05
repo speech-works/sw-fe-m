@@ -55,7 +55,10 @@ const PracticeCategoryProgressCard = ({
   accent,
 }: PracticeCategoryProgressCardProps) => {
   const { colors } = useTheme();
-  const accentColor = colors.accent[accent];
+  // The badge label + stat icons are colored foreground ON the tint disc — the
+  // per-scheme legible cut (bright on dark, AA-dark on paper), not the bright
+  // fill base which collapses to ~2:1 as foreground on the light canvas.
+  const accentText = colors.accentText[accent];
   const accentTint = colors.accentTint[accent];
 
   return (
@@ -76,7 +79,7 @@ const PracticeCategoryProgressCard = ({
         </View>
         {/* Scope badge — a soft accent-tinted chip so the category reads at a glance. */}
         <View style={[styles.statusBadge, { backgroundColor: accentTint }]}>
-          <Text variant="caption" color={accentColor} style={styles.statusBadgeText}>
+          <Text variant="caption" color={accentText} style={styles.statusBadgeText}>
             {badgeLabel}
           </Text>
         </View>
@@ -85,7 +88,7 @@ const PracticeCategoryProgressCard = ({
       <View style={styles.grid}>
         <View style={styles.statItem}>
           <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
-            <Icon name={icons.success} size={18} color={accentColor} />
+            <Icon name={icons.success} size={18} color={accentText} />
           </View>
           <View style={styles.statCopy}>
             <Text variant="h3" color="primary" style={styles.statValueBig}>
@@ -103,7 +106,7 @@ const PracticeCategoryProgressCard = ({
 
         <View style={styles.statItem}>
           <View style={[styles.statIconWrapper, { backgroundColor: accentTint }]}>
-            <Icon name={icons.duration} size={18} color={accentColor} />
+            <Icon name={icons.duration} size={18} color={accentText} />
           </View>
           <View style={styles.statCopy}>
             <Text variant="h3" color="primary" style={styles.statValueBig}>

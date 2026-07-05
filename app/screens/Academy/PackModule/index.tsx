@@ -459,7 +459,7 @@ const PackModuleScreen = () => {
             <Icon
               name={icons.milestone}
               size={56}
-              color={colors.action.primary}
+              color={colors.text.accent}
             />
           </View>
 

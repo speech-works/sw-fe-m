@@ -79,7 +79,7 @@ const Appearance = () => {
                 </Text>
               </View>
               {selected ? (
-                <Icon name="check-circle" size={22} color={colors.action.primary} />
+                <Icon name="check-circle" size={22} color={colors.text.accent} />
               ) : null}
             </PressableScale>
           );

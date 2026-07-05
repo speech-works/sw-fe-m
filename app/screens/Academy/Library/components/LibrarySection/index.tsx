@@ -77,7 +77,7 @@ const LibrarySection = ({
           <View
             style={[styles.iconChip, { backgroundColor: colors.action.primaryTint }]}
           >
-            <Icon name={getHeaderIcon()} size={size.iconSm} color={colors.action.primary} />
+            <Icon name={getHeaderIcon()} size={size.iconSm} color={colors.text.accent} />
           </View>
 
           <Text variant="h2" color="primary" style={styles.title}>
@@ -93,7 +93,7 @@ const LibrarySection = ({
             <Icon
               name="info"
               size={size.icon}
-              color={isInfoModalVisible ? colors.action.primary : colors.text.tertiary}
+              color={isInfoModalVisible ? colors.text.accent : colors.text.tertiary}
             />
           </TouchableOpacity>
         </View>
@@ -130,7 +130,7 @@ const LibrarySection = ({
       <Sheet visible={isInfoModalVisible} onClose={() => setIsInfoModalVisible(false)}>
         <View style={styles.modalContent}>
           <View style={[styles.modalIconChip, { backgroundColor: colors.action.primaryTint }]}>
-            <Icon name={getHeaderIcon()} size={size.iconLg} color={colors.action.primary} />
+            <Icon name={getHeaderIcon()} size={size.iconLg} color={colors.text.accent} />
           </View>
 
           <Text variant="h2" color="primary" center style={styles.modalTitle}>

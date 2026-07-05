@@ -180,7 +180,7 @@ const Settings = () => {
           <View style={styles.nameRow}>
             <Text variant="h2">{user?.name}</Text>
             <View style={[styles.proBadge, { backgroundColor: colors.action.primaryTint }]}>
-              <Text variant="label" color={colors.action.primary}>
+              <Text variant="label" color="accent">
                 FREE
               </Text>
             </View>

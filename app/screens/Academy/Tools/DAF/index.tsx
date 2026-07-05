@@ -27,6 +27,8 @@ import {
   Spinner,
   Dialog,
   withAlpha,
+  darkenForContrast,
+  mix,
 } from "../../../../design-system";
 import { isHeadsetConnected } from "../../../../util/functions/headset";
 
@@ -353,6 +355,10 @@ export function DAFTool({
 }: DAFToolProps) {
   const { colors } = useTheme();
   const accent = accentColor ?? colors.action.primary;
+  // The "Adjust" chip label is colored foreground on a faint accent wash — darken
+  // an arbitrary threaded hue until it clears AA on paper (a no-op on dark). Keep
+  // the bright `accent` for the badge fill + border.
+  const accentFg = darkenForContrast(accent, mix(colors.surface.elevated, accent, 0.14));
   const onAccent = onAccentColor ?? colors.action.onPrimary;
   const isControlled = controlledIsActive !== undefined;
 
@@ -516,7 +522,7 @@ export function DAFTool({
               },
             ]}
           >
-            <Text variant="label" color={accent}>
+            <Text variant="label" color={accentFg}>
               Adjust
             </Text>
           </View>

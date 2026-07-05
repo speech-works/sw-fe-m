@@ -28,6 +28,7 @@ export const darkColors: SemanticColors = {
     inverse: p.orange.on,
     onInverse: p.ink.canvas,
     link: p.orange[300],
+    accent: p.orange[300], // bright orange foreground reads on the dark canvas
   },
   action: {
     primary: p.orange[400],
@@ -62,6 +63,14 @@ export const darkColors: SemanticColors = {
     warning: p.warning.tint,
     danger: p.danger.tint,
     info: p.info.tint,
+  },
+  accentText: {
+    lime: p.lime.textOnDark,
+    purple: p.purple.textOnDark,
+    success: p.success.textOnDark,
+    warning: p.warning.textOnDark,
+    danger: p.danger.textOnDark,
+    info: p.info.textOnDark,
   },
   feedback: {
     success: p.success.base,

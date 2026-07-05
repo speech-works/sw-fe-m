@@ -34,7 +34,7 @@ export const AICallConsentModal: React.FC<AICallConsentModalProps> = ({
           <MaterialCommunityIcons
             name="account-voice"
             size={28}
-            color={colors.action.primary}
+            color={colors.text.accent}
           />
         </View>
 

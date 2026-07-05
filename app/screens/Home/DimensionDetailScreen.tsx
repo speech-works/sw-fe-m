@@ -300,6 +300,11 @@ const DimensionDetailScreen = () => {
   const config = DIMENSION_CONFIG[domain as ClinicalDomain];
   const accentColor = colors.accent[config.accentKey];
   const onAccentColor = colors.accentOn[config.accentKey];
+  // The trend STROKE and insight ICON are thin/small meaning-bearing marks on
+  // the canvas/card — the bright accent base fails AA on the light "paper"
+  // ground, so use the per-scheme colored-text cut of the dimension's accent
+  // (keeps the family's hue, AA in both schemes).
+  const accentInk = colors.accentText[config.accentKey];
   const activeMetrics = familyData[selectedFamily];
   const score = activeMetrics.currentScore;
   const isUnavailable = score === null;
@@ -413,7 +418,7 @@ const DimensionDetailScreen = () => {
           <TrendLine
             data={trendValues.map((w) => w.value)}
             labels={trendValues.map((w) => w.label)}
-            color={accentColor}
+            color={accentInk}
             height={92}
           />
         ) : (
@@ -431,7 +436,7 @@ const DimensionDetailScreen = () => {
         <Icon
           name={icons.energy}
           size={16}
-          color={accentColor}
+          color={accentInk}
           style={styles.insightIcon}
         />
         <Text variant="bodySm" color="secondary" style={styles.insightText}>

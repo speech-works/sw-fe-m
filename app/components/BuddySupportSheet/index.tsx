@@ -28,7 +28,7 @@ const GuideLine = ({ icon, text }: { icon: IconName; text: string }) => {
   const { colors } = useTheme();
   return (
     <View style={styles.guideLine}>
-      <Icon name={icon} size={16} color={colors.action.primary} style={styles.guideLineIcon} />
+      <Icon name={icon} size={16} color={colors.text.accent} style={styles.guideLineIcon} />
       <Text variant="bodySm" color="secondary" style={styles.flex1}>{text}</Text>
     </View>
   );
@@ -150,9 +150,9 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
               {isSending ? (
                 <ActivityIndicator size="small" color={colors.action.primary} />
               ) : isSent ? (
-                <Icon name={icons.success} size={22} color={colors.accent.success} />
+                <Icon name={icons.success} size={22} color={colors.accentText.success} />
               ) : (
-                <Icon name={icons.send} size={18} color={colors.action.primary} />
+                <Icon name={icons.send} size={18} color={colors.text.accent} />
               )}
             </PressableScale>
           );
@@ -173,7 +173,7 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
           <Icon
             name={lifelineSent ? icons.success : icons.support}
             size={20}
-            color={lifelineSent ? colors.accent.success : colors.action.primary}
+            color={lifelineSent ? colors.accentText.success : colors.text.accent}
           />
           <Text variant="bodySm" color={lifelineSent ? colors.feedback.successText : "primary"} style={[styles.flex1, styles.bold]}>
             {sendingLifeline
@@ -186,8 +186,8 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
 
         {/* How to support a friend in crisis (collapsible) */}
         <PressableScale style={styles.guideHeader} haptic={false} scaleTo={0.99} onPress={toggleGuide}>
-          <Icon name={icons.care} size={16} color={colors.action.primary} />
-          <Text variant="bodySm" color={colors.action.primary} style={[styles.flex1, styles.bold]}>How to support a friend in crisis</Text>
+          <Icon name={icons.care} size={16} color={colors.text.accent} />
+          <Text variant="bodySm" color="accent" style={[styles.flex1, styles.bold]}>How to support a friend in crisis</Text>
           <Icon
             name={guideOpen ? icons.chevronUp : icons.chevronDown}
             size={20}
@@ -201,15 +201,15 @@ const BuddySupportSheet = ({ visible, signal, onClose, onSupported }: BuddySuppo
             <GuideLine icon={icons.professionalHelp} text="Gently encourage talking to a professional, together if it helps." />
             <GuideLine icon={icons.danger} text={`If ${name} may be in immediate danger, call your local emergency number.`} />
             <PressableScale style={[styles.selfHelpRow, { backgroundColor: colors.surface.control }]} haptic={false} scaleTo={0.98} onPress={self988}>
-              <Icon name={icons.call} size={15} color={colors.action.primary} />
-              <Text variant="caption" color={colors.action.primary} style={[styles.flex1, styles.bold]}>This is heavy for you too — 988 is there for you</Text>
+              <Icon name={icons.call} size={15} color={colors.text.accent} />
+              <Text variant="caption" color="accent" style={[styles.flex1, styles.bold]}>This is heavy for you too — 988 is there for you</Text>
             </PressableScale>
           </View>
         ) : null}
 
         {anySent ? (
           <View style={styles.sentBanner}>
-            <Icon name={icons.success} size={16} color={colors.accent.success} />
+            <Icon name={icons.success} size={16} color={colors.accentText.success} />
             <Text variant="bodySm" color="primary" style={styles.bold}>{name} will know you're here.</Text>
           </View>
         ) : null}

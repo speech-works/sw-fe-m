@@ -106,7 +106,7 @@ export const icons = {
   volume: "volume-2",
   voiceTool: "mic-vocal", // a voice tool (DAF/Chorus)
   headphones: "headphones",
-  focus: "camera", // focus mode — practise only your feared sounds
+  focus: "target", // focus mode — zero in on your feared sounds
 
   // ── Settings · profile · premium ──
   email: "mail",

@@ -18,13 +18,14 @@ export const palette = {
     textDisabled: "#5C574F",
   },
 
-  // Warm "paper" ramp — the light-scheme mirror of `ink`. Warm off-white, never
-  // cold grey; only `row` may be pure white (the elevated step), the canvas may not.
+  // Warm "paper" ramp — the light-scheme mirror of `ink`. Every neutral carries
+  // the SAME warm hue (~37°) for temperature cohesion; even the top elevated step
+  // is a warm-white (never pure #FFF, which reads as a cold "hole" on cream).
   paper: {
     canvas: "#F7F2EA",
     panel: "#FBF8F2",
     card: "#FFFDF8", // e1
-    row: "#FFFFFF",
+    row: "#FFFEFB", // top elevated step — warm-white, not pure #FFF
     control: "#EDE5D8",
     sunken: "#EFE8DC",
     textPrimary: "#26221C", // warm near-black ink (~14:1 on canvas)
@@ -32,6 +33,13 @@ export const palette = {
     textTertiary: "#736C61", // AA on canvas/card/row (≥4.5:1) — same "cards only, not control" rule as dark
     textDisabled: "#A8A196",
   },
+
+  // Warm shadow + border/scrim ink for the LIGHT scheme. A shadow/border must
+  // share the paper's temperature — a cold #000 shadow on warm cream is the #1
+  // cheap-light-mode tell. `shadowWarm` is a deep warm-brown; `inkA` is the warm
+  // near-black ink at a given alpha (matches black's luminance, adds warmth).
+  shadowWarm: "#2A2018",
+  inkA: (a: number) => `rgba(42,32,24,${a})`,
 
   // Brand orange (kept). textOnLight = hue used AS text/link ink on a light surface.
   orange: {

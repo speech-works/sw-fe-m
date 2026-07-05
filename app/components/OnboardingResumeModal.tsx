@@ -29,7 +29,7 @@ const OnboardingResumeModal: React.FC<OnboardingResumeModalProps> = ({
     <Sheet visible={visible} onClose={onDismiss || onResume}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: colors.action.primaryTint }]}>
-          <Icon name="bookmark" size={28} color={colors.action.primary} />
+          <Icon name="bookmark" size={28} color={colors.text.accent} />
         </View>
 
         <Text variant="h2" center>

@@ -73,7 +73,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
       contentStyle={styles.card}
     >
       <View style={styles.watermark} pointerEvents="none">
-        <Icon name="alert-octagon" size={160} color={colors.accent.danger} />
+        <Icon name="alert-octagon" size={160} color={colors.accentText.danger} />
       </View>
 
       <Text variant="h2" center>

@@ -153,16 +153,16 @@ colorsLight:
     sunken: "#EFE8DC"
   surface:
     default: "#FFFDF8"     # cards (e1)
-    elevated: "#FFFFFF"    # elevated step (white surface ok; only canvas may not be #FFF)
-    row: "#FFFFFF"
+    elevated: "#FFFEFB"    # top elevated step — WARM-white, not pure #FFF (temperature cohesion)
+    row: "#FFFEFB"
     rowSelected: "#FF9040" # unchanged bright fill + dark ink both schemes
     control: "#EDE5D8"
     inverse: "#FFFFFF"     # white disc (avatars, switch thumbs) — needs its hairline on light
     material: "rgba(251,248,242,0.85)"
   border:
-    hairline: "rgba(0,0,0,0.08)"   # dark alphas replace white alphas
-    default: "rgba(0,0,0,0.12)"
-    strong: "rgba(0,0,0,0.20)"
+    hairline: "rgba(42,32,24,0.08)"   # WARM-ink alphas (share the paper's temperature)
+    default: "rgba(42,32,24,0.12)"
+    strong: "rgba(42,32,24,0.20)"
     selected: "#BF5000"    # orange.600 — 400/500 miss the 3:1 non-text bar on paper
     focus: "#BF5000"
   text:
@@ -213,7 +213,7 @@ colorsLight:
     dangerText: "#C4363B"
     infoText: "#2864C8"
   overlay:
-    scrim: "rgba(0,0,0,0.45)"          # lighter than dark's 0.62
+    scrim: "rgba(42,32,24,0.45)"       # warm scrim, lighter than dark's 0.62
     pressed: "rgba(255,144,64,0.16)"   # brand press wash — both schemes
   input:
     bg: "#FFFDF8"
@@ -253,7 +253,7 @@ colorsLight:
     goldBorder: "rgba(212,175,55,0.3)"
     orbCyan: "#22D3EE"
     orbPurple: "#8B5CF6"
-  shadow: "#000000"        # softness comes from lighter elevation opacity, not the color
+  shadow: "#2A2018"        # WARM brown shadow (shares paper temperature); softness via low opacity
 
 # Brand orange ramp (primitive) — semantic roles above resolve from these.
 palette:
@@ -284,13 +284,14 @@ palette:
     row: "#2E2A24"
     control: "#393430"
     sunken: "#0E0D0B"
-  paper:                   # light-scheme neutral ramp (mirror of ink)
+  paper:                   # light-scheme neutral ramp (mirror of ink) — all warm ~37°
     canvas: "#F7F2EA"
     panel: "#FBF8F2"
     card: "#FFFDF8"
-    row: "#FFFFFF"
+    row: "#FFFEFB"         # warm-white top step (never pure #FFF)
     control: "#EDE5D8"
     sunken: "#EFE8DC"
+    shadowWarm: "#2A2018"  # warm shadow for the light scheme
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TYPOGRAPHY — 10 roles. Consume via <Text variant="…">, never a raw fontSize.
@@ -402,8 +403,8 @@ elevation:            # dark
 elevationLight:
   e0: { }
   e1: { surface: default, border: hairline }                              # cards (no shadow on light)
-  e2: { shadowColor: "#000", shadowOffsetY: 2,  shadowOpacity: 0.1,  shadowRadius: 8,  androidElevation: 4 }
-  e3: { shadowColor: "#000", shadowOffsetY: 12, shadowOpacity: 0.16, shadowRadius: 24, androidElevation: 12 }
+  e2: { shadowColor: "#2A2018", shadowOffsetY: 2,  shadowOpacity: 0.1,  shadowRadius: 8,  androidElevation: 4 }  # warm shadow
+  e3: { shadowColor: "#2A2018", shadowOffsetY: 12, shadowOpacity: 0.16, shadowRadius: 24, androidElevation: 12 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MOTION — one animation vocabulary (react-native-reanimated). Reduced-motion is

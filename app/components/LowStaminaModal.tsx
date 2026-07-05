@@ -9,7 +9,6 @@ import {
   icons,
   radius,
   spacing,
-  useTheme,
 } from "../design-system";
 
 interface LowStaminaModalProps {
@@ -27,8 +26,6 @@ export const LowStaminaModal: React.FC<LowStaminaModalProps> = ({
   visible,
   onClose,
 }) => {
-  const { colors } = useTheme();
-
   return (
     <AnimatedModal visible={visible} onClose={onClose} maxWidth={380}>
       <View style={styles.content}>
@@ -36,7 +33,7 @@ export const LowStaminaModal: React.FC<LowStaminaModalProps> = ({
           <Icon name={icons.energy} size={30} color="#FFFFFF" />
         </Gradient>
 
-        <Text variant="label" color={colors.action.primary} style={styles.eyebrow}>
+        <Text variant="label" color="accent" style={styles.eyebrow}>
           LOW STAMINA
         </Text>
         <Text variant="h2" color="primary" center>

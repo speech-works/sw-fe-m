@@ -194,7 +194,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
               >
                 <Icon
                   name="chevron-up"
-                  style={[styles.baseIcon, { color: colors.action.primary }, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -214,7 +214,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
               >
                 <Icon
                   name="chevron-down"
-                  style={[styles.baseIcon, { color: colors.action.primary }, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.text.accent }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>

@@ -9,6 +9,8 @@ import {
   radius,
   spacing,
   withAlpha,
+  darkenForContrast,
+  mix,
 } from "../design-system";
 
 interface PromptBottomSheetProps {
@@ -51,12 +53,16 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
 }) => {
   const { colors } = useTheme();
   const accent = accentColor ?? iconColor ?? colors.action.primary;
+  // The header icon + ghost-button label are colored foreground on the sheet —
+  // darken the caller's hue to clear AA on paper (a no-op on dark). Keep bright
+  // `accent` for the icon-disc wash fill; the primary Button computes its own ink.
+  const accentFg = darkenForContrast(accent, mix(colors.surface.elevated, accent, 0.14));
 
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View style={styles.container}>
         <View style={[styles.iconDisc, { backgroundColor: withAlpha(accent, 0.14) }]}>
-          <MaterialCommunityIcons name={icon as any} size={28} color={accent} />
+          <MaterialCommunityIcons name={icon as any} size={28} color={accentFg} />
         </View>
 
         <Text variant="h2" center>
@@ -84,7 +90,7 @@ const PromptBottomSheet: React.FC<PromptBottomSheetProps> = ({
             <Button
               label={secondaryButton.label}
               variant="ghost"
-              onColor={accent}
+              onColor={accentFg}
               onPress={() => {
                 secondaryButton.onPress();
                 onClose();

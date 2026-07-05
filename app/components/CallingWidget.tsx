@@ -2833,7 +2833,7 @@ const CallingWidget: React.FC<Props> = ({
             <FAIcon
               name="headphones-alt"
               size={40}
-              color={colors.action.primary}
+              color={colors.text.accent}
               style={{ marginBottom: 16 }}
             />
             <Text style={styles.promptTitle}>Headphones Required</Text>
@@ -2990,7 +2990,7 @@ const CallingWidget: React.FC<Props> = ({
             <FAIcon
               name="hourglass-half"
               size={36}
-              color={colors.action.primary}
+              color={colors.text.accent}
               style={{ marginBottom: 16 }}
             />
             <Text style={styles.promptTitle}>Are you still there?</Text>
@@ -3037,7 +3037,7 @@ const CallingWidget: React.FC<Props> = ({
                     : "phone-slash"
               }
               size={36}
-              color={colors.action.primary}
+              color={colors.text.accent}
               solid
               style={{ marginBottom: 16 }}
             />
