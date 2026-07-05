@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { getPhonemes } from "../../../api/phonemes";
@@ -25,6 +25,19 @@ const FearedSounds = () => {
   const [selectedSounds, setSelectedSounds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  // Native AVPlayer instances must be released explicitly — track the active
+  // one so it can be unloaded on replacement and on unmount.
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const unmountedRef = useRef(false);
+
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+      soundRef.current?.unloadAsync();
+      soundRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,13 +73,24 @@ const FearedSounds = () => {
 
     if (audioUrl) {
       try {
+        await soundRef.current?.unloadAsync().catch(() => {});
+        soundRef.current = null;
         const { sound } = await Audio.Sound.createAsync(
           { uri: audioUrl },
           { shouldPlay: true }
         );
+        if (unmountedRef.current) {
+          sound.unloadAsync();
+          return;
+        }
+        soundRef.current = sound;
         sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish) {
+          // Release on finish AND on load/playback error — an errored player
+          // never reaches didJustFinish.
+          const done = status.isLoaded ? status.didJustFinish : !!status.error;
+          if (done) {
             sound.unloadAsync();
+            if (soundRef.current === sound) soundRef.current = null;
           }
         });
       } catch (error) {

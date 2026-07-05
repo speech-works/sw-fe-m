@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg";
 import Animated, {
@@ -164,6 +164,22 @@ export const ReframeWeather: React.FC<{ sunshine: boolean }> = ({ sunshine }) =>
     sun.value = withTiming(sunshine ? 1 : 0, { duration: 1600 });
   }, [sunshine, rain, sun]);
 
+  // Park the invisible layers: 30 drop + 12 bird infinite loops would otherwise
+  // keep the UI thread busy at opacity 0 for the rest of the session. Each layer
+  // stays mounted just long enough to finish its fade (900ms rain / 1600ms sun).
+  const [rainMounted, setRainMounted] = useState(!sunshine);
+  const [birdsMounted, setBirdsMounted] = useState(sunshine);
+  useEffect(() => {
+    if (sunshine) {
+      setBirdsMounted(true);
+      const t = setTimeout(() => setRainMounted(false), 950);
+      return () => clearTimeout(t);
+    }
+    setRainMounted(true);
+    const t = setTimeout(() => setBirdsMounted(false), 1650);
+    return () => clearTimeout(t);
+  }, [sunshine]);
+
   const rainStyle = useAnimatedStyle(() => ({ opacity: rain.value }));
   const glowStyle = useAnimatedStyle(() => ({ opacity: 0.12 + sun.value * 0.4 }));
   const sunStyle = useAnimatedStyle(() => ({
@@ -207,7 +223,7 @@ export const ReframeWeather: React.FC<{ sunshine: boolean }> = ({ sunshine }) =>
       </Animated.View>
 
       {/* Gentle rain — fades out as a reframe is chosen; skipped under reduced motion. */}
-      {reduced ? null : (
+      {reduced || !rainMounted ? null : (
         <Animated.View style={[StyleSheet.absoluteFill, rainStyle]}>
           {drops.map((cfg, i) => (
             <RainDrop key={i} cfg={cfg} />
@@ -216,9 +232,9 @@ export const ReframeWeather: React.FC<{ sunshine: boolean }> = ({ sunshine }) =>
       )}
 
       {/* Birds drifting across the cleared sky. */}
-      {BIRDS.map((cfg, i) => (
-        <Bird key={i} cfg={cfg} sun={sun} reduced={reduced} />
-      ))}
+      {birdsMounted
+        ? BIRDS.map((cfg, i) => <Bird key={i} cfg={cfg} sun={sun} reduced={reduced} />)
+        : null}
 
       {/* Flat legibility wash so white body text stays readable over the scene. */}
       <View style={styles.wash} />

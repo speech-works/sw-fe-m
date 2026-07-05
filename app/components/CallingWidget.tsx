@@ -1236,6 +1236,16 @@ const CallingWidget: React.FC<Props> = ({
       if (callTimerRef.current) {
         clearInterval(callTimerRef.current);
       }
+      // Remaining pending timers — their callbacks are state-guarded, but none
+      // should survive the widget.
+      clearCallSafetyTimeouts();
+      clearTimerRef(thinkingLabelTimeoutRef);
+      clearTimerRef(missedSpeechTimeoutRef);
+      clearTimerRef(forcedStartTimeoutRef);
+      if (idleCountdownRef.current) {
+        clearInterval(idleCountdownRef.current);
+        idleCountdownRef.current = null;
+      }
     };
   }, []);
   // --- ⬆️ END OF MODIFICATION ⬆️ ---

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -35,6 +36,7 @@ export const PulseDot: React.FC<PulseDotProps> = ({ color, size = 8 }) => {
     if (reduceMotion) return;
     // Ambient breathing loop (intentionally slow, separate from UI motion).
     s.value = withRepeat(withTiming(2, { duration: PULSE_PERIOD, easing: easing.loop }), -1, false);
+    return () => cancelAnimation(s);
   }, [reduceMotion, s]);
 
   const ring = useAnimatedStyle(() => ({

@@ -83,7 +83,7 @@ export function Carousel<T>({
       lastIndex.value = idx;
       if (onIndexChange) runOnJS(onIndexChange)(idx);
     }
-  }, [interval]);
+  }, [interval, onIndexChange]);
 
   const active = dotColor ?? colors.action.primary;
   const inactive = colors.surface.control;

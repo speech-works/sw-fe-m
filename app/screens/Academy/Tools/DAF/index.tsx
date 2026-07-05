@@ -59,6 +59,15 @@ export const useDAF = (muteLogic = false) => {
   const delayMsRef = useRef(delayMs);
   const chunkListenerRef = useRef<((chunk: Buffer, chunkId: number) => void) | null>(null);
   const errorListenerRef = useRef<((error: Error) => void) | null>(null);
+  // Generation counter: start has a long await chain, and the effect cleanup
+  // (or a re-run) can call stop while a start is still in flight — stop would
+  // find empty refs, then the stale start would assign the mic stream + 10ms
+  // interval AFTER teardown, leaving the mic capturing forever. Every stop
+  // bumps the generation; a start that wakes up stale destroys what it made.
+  // `latestStartRef` marks the newest start so a stale one never PCM.stop()s
+  // a successor's playback engine.
+  const startGenRef = useRef(0);
+  const latestStartRef = useRef<object | null>(null);
 
   useEffect(() => {
     delayMsRef.current = delayMs;
@@ -117,6 +126,7 @@ export const useDAF = (muteLogic = false) => {
   }, [hasPermission, muteLogic, updateHeadsetStatus]);
 
   const stopAudioProcessing = useCallback(async () => {
+    startGenRef.current++;
     if (playIntervalRef.current) {
       clearInterval(playIntervalRef.current);
       playIntervalRef.current = null;
@@ -173,6 +183,10 @@ export const useDAF = (muteLogic = false) => {
       return;
     }
 
+    const token = {};
+    latestStartRef.current = token;
+    const gen = ++startGenRef.current;
+
     try {
       setStatusMessage("Starting DAF...");
       audioQueueRef.current = [];
@@ -189,6 +203,13 @@ export const useDAF = (muteLogic = false) => {
 
       await PCM.stop().catch(() => undefined);
       await PCM.start(DAF_SAMPLE_RATE);
+
+      if (gen !== startGenRef.current) {
+        if (latestStartRef.current === token) {
+          await PCM.stop().catch(() => undefined);
+        }
+        return;
+      }
 
       const stream = new InputAudioStream(
         AUDIO_SOURCES.VOICE_RECOGNITION || AUDIO_SOURCES.MIC,
@@ -220,6 +241,18 @@ export const useDAF = (muteLogic = false) => {
       const started = await stream.start();
       if (!started) {
         throw new Error("Microphone stream failed to start.");
+      }
+
+      if (gen !== startGenRef.current) {
+        // Stale: tear down only what THIS start created — the shared refs and
+        // PCM engine may already belong to a newer start.
+        stream.removeChunkListener(onChunk);
+        stream.removeErrorListener(onError);
+        await stream.destroy().catch(() => undefined);
+        if (latestStartRef.current === token) {
+          await PCM.stop().catch(() => undefined);
+        }
+        return;
       }
 
       micStreamRef.current = stream;

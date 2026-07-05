@@ -30,11 +30,18 @@ export const useMetronome = (muteLogic = false) => {
       return;
     }
 
+    let cancelled = false;
     const loadSound = async () => {
       try {
         const { sound } = await Audio.Sound.createAsync(
           require("../../../../../assets/single-tick.mp3")
         );
+        // Unmounted (or muted) while loading — the cleanup below already ran
+        // against a null ref, so release this instance directly.
+        if (cancelled) {
+          sound.unloadAsync().catch(() => {});
+          return;
+        }
         soundRef.current = sound;
         setIsSoundLoaded(true);
       } catch (error) {
@@ -45,7 +52,9 @@ export const useMetronome = (muteLogic = false) => {
     loadSound();
 
     return () => {
+      cancelled = true;
       soundRef.current?.unloadAsync();
+      soundRef.current = null;
       if (intervalRef.current) clearInterval(intervalRef.current);
       setIsSoundLoaded(false);
     };

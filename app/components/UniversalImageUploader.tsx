@@ -40,6 +40,16 @@ const UniversalImageUploader = ({
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const uploadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+      if (completeTimeoutRef.current) clearTimeout(completeTimeoutRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (state === "uploading") {
@@ -71,13 +81,15 @@ const UniversalImageUploader = ({
     setLastUploadedUri(uri);
 
     let progress = 0;
-    const interval = setInterval(() => {
+    uploadIntervalRef.current = setInterval(() => {
       progress += Math.random() * 30;
       if (progress >= 100) {
         progress = 100;
         setUploadProgress(100);
-        clearInterval(interval);
-        setTimeout(() => {
+        if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+        uploadIntervalRef.current = null;
+        completeTimeoutRef.current = setTimeout(() => {
+          completeTimeoutRef.current = null;
           setState("complete");
           onChange([...images, uri]);
         }, 400);

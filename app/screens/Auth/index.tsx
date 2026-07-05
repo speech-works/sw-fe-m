@@ -115,6 +115,10 @@ const LoginScreen = () => {
     if (loadingProvider) return;
     setLoadingProvider(provider);
 
+    // App-global Linking listener — must be removed on EVERY exit path
+    // (finally below), or each failed attempt stacks another live handler.
+    let subscription: { remove: () => void } | undefined;
+
     try {
       const redirectUri = AuthSession.makeRedirectUri({
         scheme: "speechworks",
@@ -162,7 +166,7 @@ const LoginScreen = () => {
 
 
       console.log("[OAuth 3] Registering Linking listener & opening browser...");
-      const subscription = Linking.addEventListener("url", handleRedirect);
+      subscription = Linking.addEventListener("url", handleRedirect);
 
       if (Platform.OS === "ios") {
         // Both openBrowserAsync (SafariViewService crash: code 4099) and
@@ -215,12 +219,12 @@ const LoginScreen = () => {
         }
       }
 
-      subscription.remove();
-
     } catch (err: any) {
       console.error("[OAuth] ❌ Unhandled error:", err.message || err);
       showError(err.message || "Login failed. Please try again.");
       setLoadingProvider(null);
+    } finally {
+      subscription?.remove();
     }
   };
 
