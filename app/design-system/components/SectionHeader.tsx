@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useTheme } from "../useTheme";
 import { radius, space } from "../primitives/scale";
 import { Icon, IconName } from "./Icon";
@@ -26,6 +26,8 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ icon, title }) => 
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.surface.control,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.border.default,
           }}
         >
           <Icon name={icon} size={16} color={colors.text.primary} />

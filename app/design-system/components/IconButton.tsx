@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { size as sizes } from "../primitives/scale";
@@ -21,6 +22,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   color,
 }) => {
   const { colors } = useTheme();
+  const isControl = variant === "control";
   return (
     <PressableScale
       onPress={onPress}
@@ -28,7 +30,13 @@ export const IconButton: React.FC<IconButtonProps> = ({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: variant === "control" ? colors.surface.control : "transparent",
+        backgroundColor: isControl ? colors.surface.control : "transparent",
+        // A defined hairline edge so the control reads as a distinct, tappable
+        // object — load-bearing on the light canvas (where the fill is near the
+        // surface), crisp-but-subtle on dark. Ghost stays edgeless.
+        ...(isControl
+          ? { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }
+          : null),
         alignItems: "center",
         justifyContent: "center",
       }}

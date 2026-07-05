@@ -26,7 +26,7 @@ export const palette = {
     panel: "#FBF8F2",
     card: "#FFFDF8", // e1
     row: "#FFFEFB", // top elevated step — warm-white, not pure #FFF
-    control: "#EDE5D8",
+    control: "#E4D8C1", // deeper warm taupe — a control fill needs real presence on paper
     sunken: "#EFE8DC",
     textPrimary: "#26221C", // warm near-black ink (~14:1 on canvas)
     textSecondary: "#57514A",

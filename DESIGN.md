@@ -156,7 +156,7 @@ colorsLight:
     elevated: "#FFFEFB"    # top elevated step — WARM-white, not pure #FFF (temperature cohesion)
     row: "#FFFEFB"
     rowSelected: "#FF9040" # unchanged bright fill + dark ink both schemes
-    control: "#EDE5D8"
+    control: "#E4D8C1"
     inverse: "#FFFFFF"     # white disc (avatars, switch thumbs) — needs its hairline on light
     material: "rgba(251,248,242,0.85)"
   border:
@@ -289,7 +289,7 @@ palette:
     panel: "#FBF8F2"
     card: "#FFFDF8"
     row: "#FFFEFB"         # warm-white top step (never pure #FFF)
-    control: "#EDE5D8"
+    control: "#E4D8C1"
     sunken: "#EFE8DC"
     shadowWarm: "#2A2018"  # warm shadow for the light scheme
 

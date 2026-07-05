@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { radius } from "../primitives/scale";
@@ -24,7 +24,7 @@ export const Segmented: React.FC<SegmentedProps> = ({
   accentColor,
   onAccentColor,
 }) => {
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   return (
     <View
       style={{
@@ -37,6 +37,18 @@ export const Segmented: React.FC<SegmentedProps> = ({
     >
       {options.map((opt) => {
         const active = opt === value;
+        // Default active segment = the (deepened) control fill + a defined edge +
+        // a soft shadow, so it reads as a raised, filled thumb on the track in
+        // both schemes (a same-tone fill alone vanishes on paper). When an
+        // accentColor is supplied it stays a bright accent fill (already legible).
+        const activeStyle = accentColor
+          ? { backgroundColor: accentColor }
+          : {
+              backgroundColor: colors.surface.control,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: colors.border.strong,
+              ...elevation.e2,
+            };
         return (
           <PressableScale
             key={opt}
@@ -47,9 +59,7 @@ export const Segmented: React.FC<SegmentedProps> = ({
               borderRadius: radius.chip - 4,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: active
-                ? accentColor ?? colors.surface.control
-                : "transparent",
+              ...(active ? activeStyle : { backgroundColor: "transparent" }),
             }}
           >
             <Text

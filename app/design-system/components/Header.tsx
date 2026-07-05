@@ -1,10 +1,8 @@
 import React from "react";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import PressableScale from "../../components/PressableScale";
-import { useTheme } from "../useTheme";
 import { size, space } from "../primitives/scale";
-import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 import { Text } from "./Text";
 
 export interface HeaderProps {
@@ -17,7 +15,6 @@ export interface HeaderProps {
 
 /** Top bar: round back button (≥44) + title. `large` adds a screenTitle beneath. */
 export const Header: React.FC<HeaderProps> = ({ title, onBack, right, variant = "default" }) => {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -32,19 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onBack, right, variant = 
         }}
       >
         {onBack ? (
-          <PressableScale
-            onPress={onBack}
-            style={{
-              width: size.backBtn,
-              height: size.backBtn,
-              borderRadius: size.backBtn / 2,
-              backgroundColor: colors.surface.control,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="arrow-left" size={20} color={colors.text.primary} />
-          </PressableScale>
+          <IconButton name="arrow-left" onPress={onBack} />
         ) : (
           <View style={{ width: size.backBtn }} />
         )}

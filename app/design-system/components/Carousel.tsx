@@ -86,7 +86,7 @@ export function Carousel<T>({
   }, [interval, onIndexChange]);
 
   const active = dotColor ?? colors.action.primary;
-  const inactive = colors.surface.control;
+  const inactive = colors.text.disabled; // solid muted dot, visible in both schemes (control too faint on paper)
 
   return (
     <View style={style} onLayout={onLayout}>

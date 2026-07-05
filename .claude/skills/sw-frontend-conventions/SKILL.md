@@ -127,6 +127,19 @@ already covers actions, inputs, data display, overlays, feedback, and layout.
   progress/meter TRACK on light: a hairline border makes the control identifiable
   when an untinted track ≈ the card (WCAG 1.4.11). Thin meter SEGMENTS that
   encode state get a `border.strong` hairline so filled ≠ empty on paper.
+- **Interactive `surface.control` containers carry a DEFINED EDGE.** A
+  `surface.control` circle/pill (icon buttons, unselected chips, segmented active
+  thumb, search-clear, back/close/edit) is ~1.1–1.2:1 on the paper canvas — the
+  button *affordance* vanishes (the dark glyph stays legible, so this is a
+  polish/affordance issue, not a text-a11y one). Give interactive control
+  containers `borderWidth: hairline, borderColor: border.strong` (both schemes:
+  crisp-subtle on dark, load-bearing on light); decorative neutral chips use the
+  lighter `border.default`. The light `surface.control` was also deepened
+  (`#E4D8C1`) for baseline fill presence. Do NOT chase strict 3:1 with heavy
+  outlines — a subtle defined edge is the goal. Prefer `<IconButton>` over
+  hand-rolling a control circle so the edge is inherited (Header/PageHeader do).
+  Inactive paging DOTS use `text.disabled` (a solid muted tone visible in both
+  schemes), not `surface.control` (too faint on paper).
 - **Tinted chips need real contrast.** A 12% `accentTint.*` wash over a dark card
   is nearly the card color — never put accent-colored text on `accentTint.*`
   (e.g. orange text on `action.primaryTint` ≈ 1.5:1). For a "selected" chip on a

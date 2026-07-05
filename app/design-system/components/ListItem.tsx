@@ -61,6 +61,8 @@ export const ListItem: React.FC<ListItemProps> = ({
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: colors.surface.control,
+            borderWidth: borderWidth.hairline,
+            borderColor: colors.border.default,
           }}
         >
           <Icon name={leftIcon} size={22} color={colors.text.primary} />

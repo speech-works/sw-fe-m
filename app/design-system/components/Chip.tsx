@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ViewStyle } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import PressableScale from "../../components/PressableScale";
 import { useTheme } from "../useTheme";
 import { radius } from "../primitives/scale";
@@ -32,6 +32,10 @@ export const Chip: React.FC<ChipProps> = ({ label, selected, onPress, category, 
     paddingHorizontal: 14,
     borderRadius: radius.chip,
     backgroundColor: bg,
+    // Unselected chip = a subtle control fill; give it a defined edge so it
+    // reads as a tappable pill on the light canvas. Selected = solid orange,
+    // needs no edge.
+    ...(selected ? null : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.strong }),
   };
 
   const content = (

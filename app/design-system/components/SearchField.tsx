@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, TextInputProps, Pressable } from "react-native";
+import { View, TextInput, TextInputProps, Pressable, StyleSheet } from "react-native";
 import { useTheme } from "../useTheme";
 import { radius, space, size } from "../primitives/scale";
 import { fonts } from "../primitives/fonts";
@@ -63,6 +63,8 @@ export const SearchField: React.FC<SearchFieldProps> = ({
             height: 20,
             borderRadius: 10,
             backgroundColor: colors.surface.control,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.border.strong,
             alignItems: "center",
             justifyContent: "center",
           }}

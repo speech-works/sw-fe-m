@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import React, { useRef, useEffect, useState } from "react";
+import { Dimensions, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
   interpolateColor,
@@ -279,21 +279,20 @@ const DimensionDetailScreen = () => {
 
   const familyData = rawFamilyData as Record<DetailFamily, FamilyMetricData>;
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+
+  // Sync tab-tap → scroll position.
+  useEffect(() => {
+    const index = FAMILY_ORDER.indexOf(selectedFamily);
+    if (scrollViewRef.current && contentWidth > 0) {
+      scrollViewRef.current.scrollTo({ x: index * contentWidth, animated: true });
+    }
+  }, [selectedFamily, contentWidth]);
 
   const profileKey = domain
     ? PROFILE_KEYS[domain as ClinicalDomain]
     : "confidence";
-
-  // 4-week trend of the selected family's metric.
-  const trendValues = useMemo(
-    () =>
-      buildTrendWeeks(
-        historyBuckets,
-        overallState,
-        (agg) => agg.profile.axes[selectedFamily]?.[profileKey] ?? null,
-      ),
-    [historyBuckets, overallState, selectedFamily, profileKey],
-  );
 
   if (!domain) return null;
 
@@ -305,19 +304,6 @@ const DimensionDetailScreen = () => {
   // ground, so use the per-scheme colored-text cut of the dimension's accent
   // (keeps the family's hue, AA in both schemes).
   const accentInk = colors.accentText[config.accentKey];
-  const activeMetrics = familyData[selectedFamily];
-  const score = activeMetrics.currentScore;
-  const isUnavailable = score === null;
-  const hasComparison = activeMetrics.previousScore !== null;
-  const trend = activeMetrics.trend;
-  const trendColor =
-    trend === "IMPROVING"
-      ? colors.feedback.successText
-      : trend === "WORSENING"
-        ? colors.feedback.dangerText
-        : colors.text.tertiary;
-  const isEngagementEmpty = selectedFamily === "engagement" && isUnavailable;
-  const hasTrendData = trendValues.some((w) => w.value != null);
 
   return (
     <Page
@@ -343,110 +329,149 @@ const DimensionDetailScreen = () => {
         ))}
       </Animated.View>
 
-      <Animated.View entering={motion.stagger(1)}>
-        <Text variant="bodySm" color="secondary" style={styles.familyDesc}>
-          {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][selectedFamily]}
-        </Text>
-      </Animated.View>
+      {/* Horizontal pager — one page per family. Swipe to change tab; tap also works. */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        style={styles.pager}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w > 0) setContentWidth(w);
+        }}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / contentWidth);
+          const family = FAMILY_ORDER[index];
+          if (family && family !== selectedFamily) setSelectedFamily(family);
+        }}
+      >
+        {FAMILY_ORDER.map((family) => {
+          const metrics = familyData[family];
+          const fScore = metrics.currentScore;
+          const fUnavailable = fScore === null;
+          const fHasComparison = metrics.previousScore !== null;
+          const fTrend = metrics.trend;
+          const fTrendColor =
+            fTrend === "IMPROVING"
+              ? colors.feedback.successText
+              : fTrend === "WORSENING"
+                ? colors.feedback.dangerText
+                : colors.text.tertiary;
+          const fEngagementEmpty = family === "engagement" && fUnavailable;
+          const fTrendValues = buildTrendWeeks(
+            historyBuckets,
+            overallState,
+            (agg) => agg.profile.axes[family]?.[profileKey] ?? null,
+          );
+          const fHasTrendData = fTrendValues.some((w) => w.value != null);
 
-      {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
-      <Animated.View entering={motion.stagger(2)} style={styles.chartHero}>
-        <View style={styles.chartHeader}>
-          <Text variant="label" color="tertiary">
-            This week
-          </Text>
+          return (
+            <View key={family} style={[styles.page, { width: contentWidth }]}>
+              <Animated.View entering={motion.stagger(1)}>
+                <Text variant="bodySm" color="secondary" style={styles.familyDesc}>
+                  {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][family]}
+                </Text>
+              </Animated.View>
 
-          {/* Number + trend pill on one line — tight, baseline-grouped. */}
-          <View style={styles.numberRow}>
-            {isUnavailable ? (
-              <Text variant="screenTitle" color="tertiary">
-                —
-              </Text>
-            ) : (
-              <AnimatedNumber
-                key={selectedFamily}
-                value={Math.round(score)}
-                variant="screenTitle"
-                color="primary"
-              />
-            )}
+              {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
+              <Animated.View entering={motion.stagger(2)} style={styles.chartHero}>
+                <View style={styles.chartHeader}>
+                  <Text variant="label" color="tertiary">
+                    This week
+                  </Text>
 
-            {!isUnavailable && hasComparison && (
-              <View
-                style={[
-                  styles.trendPill,
-                  { backgroundColor: withAlpha(trendColor, 0.14) },
-                ]}
+                  {/* Number + trend pill on one line — tight, baseline-grouped. */}
+                  <View style={styles.numberRow}>
+                    {fUnavailable ? (
+                      <Text variant="screenTitle" color="tertiary">—</Text>
+                    ) : (
+                      <AnimatedNumber
+                        key={family}
+                        value={Math.round(fScore)}
+                        variant="screenTitle"
+                        color="primary"
+                      />
+                    )}
+
+                    {!fUnavailable && fHasComparison && (
+                      <View
+                        style={[
+                          styles.trendPill,
+                          { backgroundColor: withAlpha(fTrendColor, 0.14) },
+                        ]}
+                      >
+                        <Icon
+                          name={
+                            fTrend === "IMPROVING"
+                              ? icons.trend
+                              : fTrend === "WORSENING"
+                                ? icons.trendDown
+                                : "minus"
+                          }
+                          size={15}
+                          color={fTrendColor}
+                        />
+                        <Text variant="title" color={fTrendColor}>
+                          {Math.abs(metrics.percentDelta ?? 0).toFixed(1)}%
+                        </Text>
+                      </View>
+                    )}
+
+                    {!fUnavailable && !fHasComparison && (
+                      <View
+                        style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
+                      >
+                        <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
+                        <Text variant="bodySm" color="tertiary">New baseline</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {!fUnavailable && fHasComparison && (
+                    <Text variant="caption" color="tertiary">
+                      vs last week · was {Math.round(metrics.previousScore ?? 0)}
+                    </Text>
+                  )}
+                </View>
+
+                {fHasTrendData ? (
+                  <TrendLine
+                    data={fTrendValues.map((w) => w.value)}
+                    labels={fTrendValues.map((w) => w.label)}
+                    color={accentInk}
+                    height={92}
+                  />
+                ) : (
+                  <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
+                    Not enough signal yet — a few weeks of practice will draw your trend.
+                  </Text>
+                )}
+              </Animated.View>
+
+              {/* Insight message — closes the page. */}
+              <Animated.View
+                entering={motion.stagger(3)}
+                style={[styles.insight, { borderTopColor: colors.border.hairline }]}
               >
                 <Icon
-                  name={
-                    trend === "IMPROVING"
-                      ? icons.trend
-                      : trend === "WORSENING"
-                        ? icons.trendDown
-                        : "minus"
-                  }
-                  size={15}
-                  color={trendColor}
+                  name={icons.energy}
+                  size={16}
+                  color={accentInk}
+                  style={styles.insightIcon}
                 />
-                <Text variant="title" color={trendColor}>
-                  {Math.abs(activeMetrics.percentDelta ?? 0).toFixed(1)}%
+                <Text variant="bodySm" color="secondary" style={styles.insightText}>
+                  {fEngagementEmpty
+                    ? "No engagement signal yet — practice this week to build it."
+                    : fUnavailable
+                      ? "Reflection pending..."
+                      : config.recommendations[fTrend]}
                 </Text>
-              </View>
-            )}
-
-            {!isUnavailable && !hasComparison && (
-              <View
-                style={[styles.trendPill, { backgroundColor: colors.surface.control }]}
-              >
-                <Icon name={icons.duration} size={15} color={colors.text.tertiary} />
-                <Text variant="bodySm" color="tertiary">
-                  New baseline
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {!isUnavailable && hasComparison && (
-            <Text variant="caption" color="tertiary">
-              vs last week · was {Math.round(activeMetrics.previousScore ?? 0)}
-            </Text>
-          )}
-        </View>
-
-        {hasTrendData ? (
-          <TrendLine
-            data={trendValues.map((w) => w.value)}
-            labels={trendValues.map((w) => w.label)}
-            color={accentInk}
-            height={92}
-          />
-        ) : (
-          <Text variant="bodySm" color="tertiary" style={styles.trendEmpty}>
-            Not enough signal yet — a few weeks of practice will draw your trend.
-          </Text>
-        )}
-      </Animated.View>
-
-      {/* Insight message — closes the screen. */}
-      <Animated.View
-        entering={motion.stagger(3)}
-        style={[styles.insight, { borderTopColor: colors.border.hairline }]}
-      >
-        <Icon
-          name={icons.energy}
-          size={16}
-          color={accentInk}
-          style={styles.insightIcon}
-        />
-        <Text variant="bodySm" color="secondary" style={styles.insightText}>
-          {isEngagementEmpty
-            ? "No engagement signal yet — practice this week to build it."
-            : isUnavailable
-              ? "Reflection pending..."
-              : config.recommendations[trend]}
-        </Text>
-      </Animated.View>
+              </Animated.View>
+            </View>
+          );
+        })}
+      </ScrollView>
     </Page>
   );
 };
@@ -454,6 +479,16 @@ const DimensionDetailScreen = () => {
 export default DimensionDetailScreen;
 
 const useStyles = makeStyles((c) => ({
+  // Horizontal pager that holds all three family pages side-by-side.
+  pager: {
+    // Bleed the pager to the screen edges so pages feel full-width,
+    // compensating for the Page's horizontal padding.
+    marginHorizontal: -space.screenX,
+  },
+  // Each individual family page inside the pager.
+  page: {
+    paddingHorizontal: space.screenX,
+  },
   // Hugs its tabs (like the Community dock) instead of filling the width.
   tabs: {
     flexDirection: "row",

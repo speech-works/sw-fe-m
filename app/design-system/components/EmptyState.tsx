@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useTheme } from "../useTheme";
 import { Icon, IconName } from "./Icon";
 import { Text } from "./Text";
@@ -24,6 +24,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon = "inbox", title, m
           height: 56,
           borderRadius: 28,
           backgroundColor: colors.surface.control,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.border.default,
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 16,

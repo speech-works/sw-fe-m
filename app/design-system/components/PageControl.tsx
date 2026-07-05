@@ -23,7 +23,9 @@ export const PageControl: React.FC<PageControlProps> = ({ count, activeIndex, co
               height: 8,
               width: active ? 20 : 8,
               borderRadius: 4,
-              backgroundColor: active ? color ?? colors.action.primary : colors.surface.control,
+              // Inactive dot: a solid muted tone visible in BOTH schemes
+              // (surface.control is too faint at 8px on paper). Active = brand pill.
+              backgroundColor: active ? color ?? colors.action.primary : colors.text.disabled,
             }}
           />
         );
