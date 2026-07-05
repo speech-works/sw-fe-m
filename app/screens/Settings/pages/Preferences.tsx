@@ -8,6 +8,7 @@ import {
 import { PracticeGoalType } from "../../../api/settings/userPreference/types";
 
 import { useVoicePreferenceStore } from "../../../stores/voicePreference";
+import { useAppearanceStore } from "../../../stores/appearance";
 import { ACCENT_META_BY_LOCALE } from "../../../util/voice";
 import { useUserStore } from "../../../stores/user";
 import { useAnalyticsConsentStore } from "../../../stores/analyticsConsent";
@@ -16,6 +17,7 @@ import { SettingsStackNavigationProp } from "../../../navigators/stacks/Settings
 import {
   useTheme,
   radius,
+  icons,
   ListItem,
   Toggle,
   Page,
@@ -95,6 +97,10 @@ const Preferences = () => {
     ? `${ACCENT_META_BY_LOCALE[voicePref.accent]?.label ?? "Selected"} accent`
     : "Choose an accent";
 
+  const appearanceMode = useAppearanceStore((s) => s.mode);
+  const appearanceDesc =
+    appearanceMode === "system" ? "System" : appearanceMode === "dark" ? "Dark" : "Light";
+
   return (
     <Page title="Preferences" onBack={() => navigation.goBack()}>
       <View style={[styles.group, { backgroundColor: colors.surface.default }]}>
@@ -111,7 +117,15 @@ const Preferences = () => {
               label="Reading voice"
               sublabel={voiceDesc}
               showChevron
+              divider
               onPress={() => navigation.navigate("ReadingVoice")}
+            />
+            <ListItem
+              leftIcon={icons.appearance}
+              label="Appearance"
+              sublabel={appearanceDesc}
+              showChevron
+              onPress={() => navigation.navigate("Appearance")}
             />
           </View>
 

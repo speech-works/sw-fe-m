@@ -1,6 +1,6 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useMarkActivityStart } from "../../../../../../hooks/useMarkActivityStart";
 import { useConfirmOnExit } from "../../../../../../hooks/useConfirmOnExit";
 import { getCognitivePracticeByType } from "../../../../../../api/dailyPractice";
@@ -16,6 +16,7 @@ import { useSessionStore } from "../../../../../../stores/session";
 import PressableScale from "../../../../../../components/PressableScale";
 import TextArea from "../../../../../../components/TextArea";
 import {
+  SchemeStatusBar,
   Button,
   Surface,
   Text,
@@ -264,7 +265,7 @@ const Reframe = () => {
   return (
     <View style={styles.root}>
       <SyncLoader />
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <SchemeStatusBar translucent backgroundColor="transparent" />
 
       {/* Ambient weather — moody rain that clears into warm light as a reframe is
           chosen. Sits behind the scrollable content. */}

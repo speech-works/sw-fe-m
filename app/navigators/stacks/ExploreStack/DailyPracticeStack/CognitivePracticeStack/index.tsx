@@ -9,7 +9,29 @@ import { PrepScreen as MirrorWorkPrep } from "../../../../../screens/Academy/Dai
 import { SessionScreen as MirrorWorkSession } from "../../../../../screens/Academy/DailyPractice/pages/MirrorWork/SessionScreen";
 import { ReflectionScreen as MirrorWorkReflection } from "../../../../../screens/Academy/DailyPractice/pages/MirrorWork/ReflectionScreen";
 import { SummaryScreen as MirrorWorkSummary } from "../../../../../screens/Academy/DailyPractice/pages/MirrorWork/SummaryScreen";
+import { ForceDark } from "../../../../../design-system";
 import { CDPStackParamList } from "./types";
+
+// Scheme-locked dark — camera surfaces. The MirrorWork session flow is dark BY
+// DESIGN (dark chrome around a live viewfinder, like Apple Camera/Instagram),
+// so it ignores the Light/System appearance preference. Module-scope wrappers
+// keep component identity stable across renders. Prep is a normal DS screen
+// and themes normally.
+const DarkMirrorWorkSession: React.FC<React.ComponentProps<typeof MirrorWorkSession>> = (props) => (
+  <ForceDark>
+    <MirrorWorkSession {...props} />
+  </ForceDark>
+);
+const DarkMirrorWorkReflection: React.FC<React.ComponentProps<typeof MirrorWorkReflection>> = (props) => (
+  <ForceDark>
+    <MirrorWorkReflection {...props} />
+  </ForceDark>
+);
+const DarkMirrorWorkSummary: React.FC<React.ComponentProps<typeof MirrorWorkSummary>> = (props) => (
+  <ForceDark>
+    <MirrorWorkSummary {...props} />
+  </ForceDark>
+);
 
 const Stack = createNativeStackNavigator<CDPStackParamList>();
 
@@ -35,17 +57,17 @@ export default function CDPStackNavigator() {
       <Stack.Screen name="MirrorWorkPrep" component={MirrorWorkPrep} />
       <Stack.Screen
         name="MirrorWorkSession"
-        component={MirrorWorkSession}
+        component={DarkMirrorWorkSession}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen
         name="MirrorWorkReflection"
-        component={MirrorWorkReflection}
+        component={DarkMirrorWorkReflection}
         options={{ gestureEnabled: false }}
       />
       <Stack.Screen
         name="MirrorWorkSummary"
-        component={MirrorWorkSummary}
+        component={DarkMirrorWorkSummary}
         options={{ gestureEnabled: false }}
       />
     </Stack.Navigator>

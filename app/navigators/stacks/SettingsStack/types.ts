@@ -15,6 +15,7 @@ export type SettingsStackParamList = {
   FearedSounds: undefined;
   PracticeGoal: undefined;
   ReadingVoice: undefined;
+  Appearance: undefined;
 };
 export type SettingsStackNavigationProp<
   T extends keyof SettingsStackParamList,

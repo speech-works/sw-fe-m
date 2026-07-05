@@ -18,6 +18,7 @@ import {
     View,
     ViewStyle,
 } from "react-native";
+import { ForceDark } from "../design-system";
 
 if (
   Platform.OS === "android" &&
@@ -800,7 +801,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ]}
           onRequestClose={toggleFullScreen}
         >
-          {renderPlayer()}
+          {/* Scheme-locked dark — fullscreen video is a dark surface by design. */}
+          <ForceDark>{renderPlayer()}</ForceDark>
         </Modal>
       ) : (
         renderPlayer()

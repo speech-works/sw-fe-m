@@ -4,7 +4,6 @@ import {
   Alert,
   Dimensions,
   ScrollView,
-  StatusBar,
   StyleSheet,
   View,
 } from "react-native";
@@ -13,6 +12,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 
 import ScreenView from "../../components/ScreenView";
 import {
+  SchemeStatusBar,
   useTheme,
   spacing,
   space,
@@ -254,7 +254,7 @@ const ShareMomentScreen = () => {
 
   return (
     <ScreenView style={[styles.screen, { backgroundColor: colors.background.canvas }]}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 
       {/* Canonical header (shared with every page) */}

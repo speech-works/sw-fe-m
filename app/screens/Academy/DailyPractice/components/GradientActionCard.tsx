@@ -1,12 +1,16 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../Theme/tokens";
+import { TouchableOpacity, View } from "react-native";
 import {
-    parseShadowStyle,
-    parseTextStyle,
-} from "../../../../util/functions/parseStyles";
+  Gradient,
+  Icon,
+  Text,
+  makeStyles,
+  opacity,
+  radius,
+  size,
+  spacing,
+  useTheme,
+} from "../../../../design-system";
 
 export interface GradientActionCardProps {
   title: string;
@@ -25,8 +29,11 @@ const GradientActionCard = ({
   onPress,
   disabled,
   noChevron,
-  gradientColors = ["#FFFFFF", "#FAFBFC"],
+  gradientColors,
 }: GradientActionCardProps) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <TouchableOpacity
       style={[styles.container, disabled ? styles.disabledContainer : null]}
@@ -34,8 +41,14 @@ const GradientActionCard = ({
       disabled={disabled}
       activeOpacity={0.9}
     >
-      <LinearGradient
-        colors={disabled ? ["#F8FAFC", "#F1F5F9"] : gradientColors}
+      <Gradient
+        // Default = the brand (orange) ramp; callers may still pass a custom duo.
+        token="brand"
+        colors={
+          disabled
+            ? [colors.action.disabledBg, colors.action.disabledBg]
+            : gradientColors
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -52,18 +65,14 @@ const GradientActionCard = ({
           <View style={styles.iconWrapper}>{icon}</View>
           <View style={styles.textContainer}>
             <Text
-              style={[
-                styles.titleText,
-                disabled ? styles.disabledTitleText : null,
-              ]}
+              variant="h3"
+              color={disabled ? "secondary" : colors.action.onPrimary}
             >
               {title}
             </Text>
             <Text
-              style={[
-                styles.descriptionText,
-                !disabled && styles.colorfulDescription,
-              ]}
+              variant="bodySm"
+              color={disabled ? "tertiary" : colors.action.onPrimary}
             >
               {description}
             </Text>
@@ -73,39 +82,38 @@ const GradientActionCard = ({
           <View style={styles.chevronContainer}>
             <Icon
               name="chevron-right"
-              size={16}
-              color="rgba(255,255,255,0.9)"
+              size={size.iconSm}
+              color={colors.text.onInverse}
             />
           </View>
         )}
-      </LinearGradient>
+      </Gradient>
     </TouchableOpacity>
   );
 };
 
 export default GradientActionCard;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   container: {
-    borderRadius: 24,
+    borderRadius: radius.card,
     overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
+    ...t.elevation.e2,
   },
   gradient: {
-    padding: 20,
-    paddingVertical: 24,
+    padding: spacing.xl,
+    paddingVertical: spacing["2xl"],
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     position: "relative",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-    borderRadius: 24,
+    borderRadius: radius.card,
   },
   bubble: {
     position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: radius.full,
+    backgroundColor: c.surface.inverse,
+    opacity: opacity.faint,
   },
   bubbleTopRight: {
     top: -20,
@@ -118,57 +126,32 @@ const styles = StyleSheet.create({
     left: -15,
     width: 60,
     height: 60,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
   },
   contentContainer: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing.lg,
     flex: 1,
     zIndex: 1,
   },
-  iconWrapper: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+  iconWrapper: {},
   textContainer: {
     display: "flex",
     flexDirection: "column",
-    gap: 4,
+    gap: spacing.xs,
     flexShrink: 1,
-  },
-  titleText: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  descriptionText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: "rgba(255,255,255,0.85)",
-    lineHeight: 20,
-  },
-  colorfulDescription: {
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "500",
   },
   chevronContainer: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: radius.full,
+    backgroundColor: c.surface.inverse,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
   },
   disabledContainer: {
-    opacity: 0.6,
+    opacity: opacity.pressed,
   },
-  disabledTitleText: {
-    color: theme.colors.text.default,
-  },
-});
+}));

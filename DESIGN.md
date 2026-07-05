@@ -1,12 +1,15 @@
 ---
 name: Speechworks Vivid
 description: >-
-  Speechworks' dark-first "Vivid" design system. A warm, low-glare dark canvas
-  with a single brand orange and a family of energetic accents. Brand shows
-  through accents, never floods; every bright fill carries dark ("dark-on-bright")
-  ink for AA contrast. Built for React Native (iOS + Android identical), driven by
-  a three-layer token architecture (primitives → semantic roles → components).
-scheme: dark
+  Speechworks' dark-first "Vivid" design system. A warm, low-glare canvas with a
+  single brand orange and a family of energetic accents. Brand shows through
+  accents, never floods; every bright fill carries dark ("dark-on-bright") ink for
+  AA contrast. Ships two schemes — a signature warm-dark canvas and a warm-paper
+  light canvas — from ONE set of semantic roles (a value swap, never a rename).
+  Built for React Native (iOS + Android identical), driven by a three-layer token
+  architecture (primitives → semantic roles → components).
+schemes: [dark, light]
+defaultScheme: dark      # dark-first identity; user picks Light / Dark / System
 brand:
   voice: Warm, encouraging, calm, human. Celebrates effort over outcome.
   primary: "#FF9040"
@@ -21,9 +24,10 @@ fontFamily:
     extrabold: Inter_800ExtraBold
 
 # ─────────────────────────────────────────────────────────────────────────────
-# COLORS — semantic roles resolved to concrete hex (dark "Vivid" scheme).
-# These are the runtime tokens every screen consumes via useTheme().colors.*
-# No screen ever uses a raw hex; it reads a role below.
+# COLORS — semantic roles resolved to concrete hex (DARK "Vivid" scheme; the
+# default). These are the runtime tokens every screen consumes via
+# useTheme().colors.* — no screen ever uses a raw hex; it reads a role. The LIGHT
+# scheme (same role shape, warm-paper values) is in `colorsLight` below.
 # ─────────────────────────────────────────────────────────────────────────────
 colors:
   background:
@@ -134,6 +138,123 @@ colors:
     orbPurple: "#8B5CF6"
   shadow: "#000000"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# COLORS (LIGHT) — the SAME semantic roles, warm-paper values. The invariant:
+# bright fills (orange, accents, category hues) keep their dark "on" inks in BOTH
+# schemes, so anything built dark-on-bright flips for free. What swaps is the
+# neutral ground (ink → paper), the border/scrim alphas (white → black), and
+# every "colored text on the ground" role (feedback.*Text, text.link, input.error
+# → darker `*OnLight` cuts; the dark scheme's light-on-dark text fails on paper).
+# ─────────────────────────────────────────────────────────────────────────────
+colorsLight:
+  background:
+    canvas: "#F7F2EA"      # warm paper — NOT grey, NOT pure #FFF
+    raised: "#FBF8F2"
+    sunken: "#EFE8DC"
+  surface:
+    default: "#FFFDF8"     # cards (e1)
+    elevated: "#FFFFFF"    # elevated step (white surface ok; only canvas may not be #FFF)
+    row: "#FFFFFF"
+    rowSelected: "#FF9040" # unchanged bright fill + dark ink both schemes
+    control: "#EDE5D8"
+    inverse: "#FFFFFF"     # white disc (avatars, switch thumbs) — needs its hairline on light
+    material: "rgba(251,248,242,0.85)"
+  border:
+    hairline: "rgba(0,0,0,0.08)"   # dark alphas replace white alphas
+    default: "rgba(0,0,0,0.12)"
+    strong: "rgba(0,0,0,0.20)"
+    selected: "#BF5000"    # orange.600 — 400/500 miss the 3:1 non-text bar on paper
+    focus: "#BF5000"
+  text:
+    primary: "#26221C"     # warm near-black ink (~14:1 on canvas)
+    secondary: "#57514A"
+    tertiary: "#736C61"    # AA on canvas/card/row — not on 'control'
+    disabled: "#A8A196"
+    inverse: "#2A1505"     # dark ink on the orange fill — unchanged
+    onInverse: "#141311"   # near-black ink on the white disc
+    link: "#A84600"        # orange.textOnLight (#FFB580 fails on paper)
+  action:
+    primary: "#FF9040"
+    primaryPressed: "#FF6B00"
+    primaryTint: "rgba(255,144,64,0.12)"
+    onPrimary: "#2A1505"
+    secondary: "#EDE5D8"   # neutral filled button flips ink
+    onSecondary: "#26221C"
+    disabledBg: "#EFE8DC"
+    disabledText: "#A8A196"
+  accent:                  # UNCHANGED — fills keep their dark on-inks
+    lime: "#C8F750"
+    purple: "#8B7BF0"
+    success: "#5BD98A"
+    warning: "#FFC53D"
+    danger: "#FF5A5F"
+    info: "#5B9DF9"
+  accentOn:                # UNCHANGED
+    lime: "#20300A"
+    purple: "#18123A"
+    success: "#08351F"
+    warning: "#3A2A00"
+    danger: "#3A0608"
+    info: "#06203F"
+  accentTint:              # UNCHANGED (12% washes read on paper too)
+    lime: "rgba(200,247,80,0.12)"
+    purple: "rgba(139,123,240,0.12)"
+    success: "rgba(91,217,138,0.12)"
+    warning: "rgba(255,197,61,0.12)"
+    danger: "rgba(255,90,95,0.12)"
+    info: "rgba(91,157,249,0.12)"
+  feedback:                # fills unchanged; *Text → the darker on-light cuts
+    success: "#5BD98A"
+    warning: "#FFC53D"
+    danger: "#FF5A5F"
+    info: "#5B9DF9"
+    successText: "#1E7A45"
+    warningText: "#8A5B00"
+    dangerText: "#C4363B"
+    infoText: "#2864C8"
+  overlay:
+    scrim: "rgba(0,0,0,0.45)"          # lighter than dark's 0.62
+    pressed: "rgba(255,144,64,0.16)"   # brand press wash — both schemes
+  input:
+    bg: "#FFFDF8"
+    border: "#D9D1C3"
+    borderFocus: "#BF5000"
+    placeholder: "#736C61"
+    error: "#C4363B"       # danger.textOnLight (the base fill fails as text on paper)
+  nav:
+    capsule: "rgba(251,248,242,0.78)"
+    activePill: "#FF9040"
+    onActive: "#2A1505"
+    inactive: "#736C61"
+    badge: "#FF5A5F"
+  category:                # UNCHANGED — muted hues + dark inks work both ways
+    reading: "#5FB3AB"
+    breathing: "#A2B57E"
+    mirror: "#B084AA"
+    exposure: "#C9805F"
+    fun: "#D6B86F"
+    realLife: "#CB8398"
+  categoryOn:              # UNCHANGED
+    reading: "#06302C"
+    breathing: "#1E2A0E"
+    mirror: "#2E1B2A"
+    exposure: "#3A1B0E"
+    fun: "#3A2C0A"
+    realLife: "#2E1119"
+  gamification:            # UNCHANGED fills
+    xp: "#C8F750"
+    streak: "#FF9040"
+    stamina: "#5B9DF9"
+    gold: "#FFC53D"
+  premium:                 # UNCHANGED — self-contained gold-on-slate identity
+    gold: "#D4AF37"
+    goldDeep: "#996515"
+    goldTint: "rgba(212,175,55,0.15)"
+    goldBorder: "rgba(212,175,55,0.3)"
+    orbCyan: "#22D3EE"
+    orbPurple: "#8B5CF6"
+  shadow: "#000000"        # softness comes from lighter elevation opacity, not the color
+
 # Brand orange ramp (primitive) — semantic roles above resolve from these.
 palette:
   orange:
@@ -145,14 +266,31 @@ palette:
     "600": "#BF5000"
     "700": "#803600"
     "800": "#401B00"
-    on: "#2A1505"
-  ink:
+    on: "#2A1505"          # dark ink on an orange fill
+    textOnLight: "#A84600" # orange used AS link/emphasis text on paper
+  # Accent "textOnLight" cuts — each accent hue darkened to clear AA as TEXT on the
+  # paper ground (mirrors the dark scheme's lighter `*Text` cuts).
+  accentTextOnLight:
+    lime: "#4E6E00"
+    purple: "#5D4FC4"
+    success: "#1E7A45"
+    warning: "#8A5B00"
+    danger: "#C4363B"
+    info: "#2864C8"
+  ink:                     # dark-scheme neutral ramp
     canvas: "#141311"
     panel: "#1C1A17"
     card: "#24211B"
     row: "#2E2A24"
     control: "#393430"
     sunken: "#0E0D0B"
+  paper:                   # light-scheme neutral ramp (mirror of ink)
+    canvas: "#F7F2EA"
+    panel: "#FBF8F2"
+    card: "#FFFDF8"
+    row: "#FFFFFF"
+    control: "#EDE5D8"
+    sunken: "#EFE8DC"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TYPOGRAPHY — 10 roles. Consume via <Text variant="…">, never a raw fontSize.
@@ -252,13 +390,20 @@ zIndex:
   toast: 2000
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ELEVATION — on dark = surface step + hairline border + optional shadow.
+# ELEVATION — surface step + hairline border + optional shadow. Shadow OPACITY is
+# scheme-tuned (dark needs heavy shadows to read on near-black; light needs soft
+# low-alpha ones or cards smudge). Offsets/radii are shared.
 # ─────────────────────────────────────────────────────────────────────────────
-elevation:
+elevation:            # dark
   e0: { }                                                                 # flat on canvas
   e1: { surface: default, border: hairline }                              # cards (no shadow on dark)
   e2: { shadowColor: "#000", shadowOffsetY: 2,  shadowOpacity: 0.4,  shadowRadius: 8,  androidElevation: 4 }
   e3: { shadowColor: "#000", shadowOffsetY: 12, shadowOpacity: 0.55, shadowRadius: 32, androidElevation: 12 }
+elevationLight:
+  e0: { }
+  e1: { surface: default, border: hairline }                              # cards (no shadow on light)
+  e2: { shadowColor: "#000", shadowOffsetY: 2,  shadowOpacity: 0.1,  shadowRadius: 8,  androidElevation: 4 }
+  e3: { shadowColor: "#000", shadowOffsetY: 12, shadowOpacity: 0.16, shadowRadius: 24, androidElevation: 12 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MOTION — one animation vocabulary (react-native-reanimated). Reduced-motion is
@@ -294,6 +439,15 @@ gradients:
   sheen:      { colors: ["rgba(255,255,255,0.1)", "rgba(255,255,255,0)"], direction: vertical }
   premiumSlate: { colors: ["#0F172A", "#1E293B", "#0F172A"], direction: diagonal }
   premiumGold:  { colors: ["#D4AF37", "#996515"], direction: diagonal }
+
+# Canvas-relative gradients get a paper variant in the light scheme; brand /
+# decorative / premium ramps are scheme-invariant. Resolved automatically by the
+# Gradient component — consumers keep using the same token name.
+gradientsLight:
+  fade:       { colors: ["#FBF8F2", "#F7F2EA"], direction: vertical }
+  scrimDown:  { colors: ["rgba(247,242,234,0)", "rgba(247,242,234,0.92)"], direction: vertical }
+  scrimUp:    { colors: ["rgba(247,242,234,0.8)", "rgba(247,242,234,0)"], direction: vertical }
+  sheen:      { colors: ["rgba(255,255,255,0.5)", "rgba(255,255,255,0)"], direction: vertical }
 ---
 
 # Speechworks "Vivid" Design System
@@ -304,16 +458,23 @@ through **accents, not floods** — and every bright fill carries **dark ink** s
 contrast always clears WCAG AA. Built for React Native; iOS and Android render
 identically.
 
+It ships **two schemes** from one set of semantic roles: the signature **warm-dark**
+canvas (the default and brand identity) and a **warm-paper light** canvas. Users
+choose Light / Dark / System; System follows the device. Because screens consume
+roles (never raw hex), the swap is a value change, not a rewrite — and the
+dark-on-bright rule means every bright fill flips for free.
+
 > This document describes the **current** system only. Legacy constructs
-> (`app/Theme/`, `parseTextStyle`, `colors.library`, and an unshipped light-mode
-> stub) are being removed and are intentionally excluded.
+> (`app/Theme/`, `parseTextStyle`, `colors.library`) are being removed and are
+> intentionally excluded.
 
 ---
 
 ## 1. Principles
 
-1. **Dark-first, warm.** The canvas is a warm near-black (`#141311`), not a cold
-   grey. Surfaces step up in warmth, never in cold grey.
+1. **Dark-first, warm — in both schemes.** The dark canvas is a warm near-black
+   (`#141311`), never cold grey; the light canvas is warm paper (`#F7F2EA`), never
+   pure white or cold grey. Surfaces step in warmth, not in grey.
 2. **Brand through accents, not floods.** Identity surfaces stay dark with orange
    accents (a level badge, an orange-tint chip, an orange CTA) — never a fully
    orange-filled card with dark content.
@@ -334,26 +495,35 @@ identically.
 
 ### 2.1 Architecture (3 layers)
 - **Primitives** (`palette.ts`) — raw hex; the *only* file allowed color literals.
-- **Semantic roles** (`SemanticColors`, resolved by the dark scheme) — what
-  screens consume at runtime via `useTheme().colors.*`. Scheme-swappable by design.
-- **Components** — read semantic roles; never import the palette.
+  Holds both neutral ramps (`ink` for dark, `paper` for light) and the accent
+  `on`/`textOnDark`/`textOnLight` cuts.
+- **Semantic roles** (`SemanticColors`) — the role contract both schemes implement
+  with the *exact same shape*. Screens consume them at runtime via
+  `useTheme().colors.*`; the active scheme is chosen once at the provider.
+- **Components** — read semantic roles; never import the palette or a scheme.
 
-### 2.2 Neutral "ink" ramp (surfaces & text)
-Warm, not grey. Surfaces step up from the canvas; text steps down in brightness.
+### 2.2 Neutral ramp (surfaces & text)
+Warm, not grey — in both schemes. Dark surfaces step **up** from a near-black
+canvas; light surfaces step **toward white** from a warm-paper canvas. Text steps
+the opposite way (down in brightness on dark, up in darkness on light).
 
-| Role | Hex | Use |
-|---|---|---|
-| `background.canvas` | `#141311` | App background (dominant) |
-| `background.raised` | `#1C1A17` | Panels raised off canvas |
-| `background.sunken` | `#0E0D0B` | Wells / recessed areas |
-| `surface.default` | `#24211B` | Cards & rounded groups |
-| `surface.elevated` / `row` | `#2E2A24` | Rows, elevated cards |
-| `surface.control` | `#393430` | Segmented controls, control chips |
-| `surface.inverse` | `#FFFFFF` | Bright white disc (avatars, switch thumbs) |
-| `text.primary` | `#FFFFFF` | Primary text |
-| `text.secondary` | `#ADA7A0` | Secondary text |
-| `text.tertiary` | `#9E988F` | Meta text — **AA on card surfaces only** |
-| `text.disabled` | `#5C574F` | Disabled text |
+| Role | Dark | Light | Use |
+|---|---|---|---|
+| `background.canvas` | `#141311` | `#F7F2EA` | App background (dominant) |
+| `background.raised` | `#1C1A17` | `#FBF8F2` | Panels raised off canvas |
+| `background.sunken` | `#0E0D0B` | `#EFE8DC` | Wells / recessed areas |
+| `surface.default` | `#24211B` | `#FFFDF8` | Cards & rounded groups |
+| `surface.elevated` / `row` | `#2E2A24` | `#FFFFFF` | Rows, elevated cards |
+| `surface.control` | `#393430` | `#EDE5D8` | Segmented controls, control chips |
+| `surface.inverse` | `#FFFFFF` | `#FFFFFF` | Bright disc (avatars, switch thumbs) |
+| `text.primary` | `#FFFFFF` | `#26221C` | Primary text |
+| `text.secondary` | `#ADA7A0` | `#57514A` | Secondary text |
+| `text.tertiary` | `#9E988F` | `#736C61` | Meta — **AA on card surfaces only, not `control`** |
+| `text.disabled` | `#5C574F` | `#A8A196` | Disabled text |
+
+Everything below is written with dark values (the default); each has a light
+counterpart in `colorsLight`. The **shape never changes** between schemes — only
+the values. The next section is the one place the *rules* differ by scheme.
 
 ### 2.3 Brand orange
 Hero fill `#FF9040`, pressed `#FF6B00`, dark ink-on-orange `#2A1505`.
@@ -367,19 +537,20 @@ Hero fill `#FF9040`, pressed `#FF6B00`, dark ink-on-orange `#2A1505`.
 | `text.link` | `#FFB580` |
 
 ### 2.4 Energy accents
-Each accent ships **three** roles: a bright `accent.*` **fill**, a dark
-`accentOn.*` **ink** for text/icons on that fill, and a 12% `accentTint.*` **wash**
-for soft chips on dark. Colored *text on a dark surface* uses the lighter
-`feedback.*Text` variant instead of the bright fill.
+The `accent.*` **fill**, its dark `accentOn.*` **ink**, and the 12% `accentTint.*`
+**wash** are **identical in both schemes** (a bright fill wants dark ink on any
+ground). What flips is *colored text on the ground*: it reads as `feedback.*Text` —
+the **lighter** cut on dark, the **darker** cut on light (`feedback.*Text` resolves
+per scheme). Never use the bright fill as text.
 
-| Accent | Fill (`accent`) | Ink on fill (`accentOn`) | Text-on-dark (`feedback.*Text`) |
-|---|---|---|---|
-| Lime | `#C8F750` | `#20300A` | `#C8F750` |
-| Purple | `#8B7BF0` | `#18123A` | `#B5A8F5` |
-| Success | `#5BD98A` | `#08351F` | `#7DE6A3` |
-| Warning | `#FFC53D` | `#3A2A00` | `#FFD66B` |
-| Danger | `#FF5A5F` | `#3A0608` | `#FF9296` |
-| Info | `#5B9DF9` | `#06203F` | `#8FBEFF` |
+| Accent | Fill (`accent`) | Ink on fill (`accentOn`) | Text on **dark** | Text on **light** |
+|---|---|---|---|---|
+| Lime | `#C8F750` | `#20300A` | `#C8F750` | `#4E6E00` |
+| Purple | `#8B7BF0` | `#18123A` | `#B5A8F5` | `#5D4FC4` |
+| Success | `#5BD98A` | `#08351F` | `#7DE6A3` | `#1E7A45` |
+| Warning | `#FFC53D` | `#3A2A00` | `#FFD66B` | `#8A5B00` |
+| Danger | `#FF5A5F` | `#3A0608` | `#FF9296` | `#C4363B` |
+| Info | `#5B9DF9` | `#06203F` | `#8FBEFF` | `#2864C8` |
 
 ### 2.5 Category hues (activity families)
 Muted, legible as an icon-tint on the card surface. Each has a dark `categoryOn.*`
@@ -420,6 +591,25 @@ for full fills.
   `onColor(bg)`, `bestForeground(bg, [...])`, `meetsAA(fg, bg)`,
   `contrastRatio(fg, bg)`, `assertContrast(fg, bg, label)`. AA = 4.5:1 (3:1 for
   large/bold ≥18.66px).
+
+### 2.8 The light scheme (what differs, and why)
+The light scheme is a warm-paper mirror of the ink ramp. The invariant that makes
+it cheap: **bright fills keep their dark `on` inks in both schemes**, so any
+dark-on-bright surface flips for free. Only three families of role change value:
+
+- **The neutral ground** → the `paper` ramp (§2.2). Text inverts to warm near-black.
+- **Border & scrim alphas** → dark alphas replace white (`border.*` becomes
+  `rgba(0,0,0,…)`; `overlay.scrim` lightens to `0.45`).
+- **"Colored text on the ground"** → the darker `*OnLight` cuts. Specifically:
+  `text.link` → `#A84600` (the bright `#FFB580` fails on paper); `feedback.*Text` →
+  the on-light column above; `input.error` → `#C4363B`; `border.selected`/`focus`
+  and `input.borderFocus` → `orange.600 #BF5000` (the `400`/`500` orange misses the
+  3:1 non-text bar on white).
+
+`text.tertiary` keeps the same rule in light — AA on card/canvas/row, **not** on
+`surface.control`. Elevation shadows drop to soft low-alpha (`e2` 0.10, `e3` 0.16)
+so light cards don't smudge. Every pairing in both schemes is checked at dev-time
+by `schemeAudit` (warns a table if any drops below AA); all pass at ship.
 
 ---
 
@@ -530,10 +720,10 @@ fully silent.
   kebab-case (Feather/registry vocabulary) mapped to Fluent glyph paths in **one**
   file — swapping the family is a single-file change. Screens never import an icon
   library.
-- **One icon per concept — the semantic registry** (`icons.ts`, ~94 keys). Map a
+- **One icon per concept — the semantic registry** (`icons.ts`, ~97 keys). Map a
   concept to a single glyph (`icons.win` → `award`, `icons.streak` → `flame`,
-  `icons.courage` → `shield`, …) and reference the key, never a raw glyph. Add a
-  key before using a new icon so a concept always renders the same icon.
+  `icons.appearance` → `contrast`, …) and reference the key, never a raw glyph. Add
+  a key before using a new icon so a concept always renders the same icon.
 - **Prefer icons over emoji** for content.
 - **Sizes:** `iconSm` 16 · `icon` 20 (default control tier) · `iconLg` 28 ·
   `tabIcon` 24.
@@ -548,8 +738,9 @@ Import everything from one barrel (`app/design-system`). Reach for a component
 before hand-rolling markup. ~55 components across six groups.
 
 ### 7.1 Layout & chrome
-- **`Page`** — the whole-screen wrapper. Owns the dark canvas, the large-title
-  header, the screen gutter, the title→content gap, and scroll. Body modes:
+- **`Page`** — the whole-screen wrapper. Owns the app canvas, the large-title
+  header, the screen gutter, the title→content gap, scroll, and the scheme-matched
+  status bar (light glyphs on dark, dark glyphs on paper). Body modes:
   scrolling children (default), a `FlatList` via `list`, or fixed (`scroll={false}`).
   Props: `title`, `onBack`, `description`, `footer` (pinned bottom action),
   `keyboardAvoiding`, `tabBarSafe` (tab-root only). **Never** hand-assemble a
@@ -618,8 +809,16 @@ before hand-rolling markup. ~55 components across six groups.
 
 ---
 
-## 8. Platform & implementation rules
+## 8. Theming & platform rules
 
+- **One provider, two schemes.** `ThemeProvider` resolves the active scheme from
+  the user's preference (Light / Dark / **System**, the default — System follows
+  the device). A `scheme` prop *overrides* the preference for a subtree; `ForceDark`
+  locks a subtree to dark for surfaces that are dark **by design** (live-camera
+  chrome, fullscreen video), which ignore the preference.
+- **Consume roles, never schemes.** Read colors from `useTheme().colors.*` (or a
+  `makeStyles` factory, which recomputes per scheme). Never import a scheme or the
+  palette into a screen. The scheme flip re-renders styles automatically.
 - **RN primitives only** — no web idioms (no hover/cursor/CSS outline, no `px`
   strings, no web-only components). iOS and Android render identically; only
   uncontrolled system chrome differs.
@@ -636,8 +835,11 @@ before hand-rolling markup. ~55 components across six groups.
 ## 9. What is NOT part of this system (excluded remnants)
 
 - Legacy `app/Theme/` (`theme`, `parseTextStyle`, `parseShadowStyle`,
-  `colors.library`) — being removed; never referenced here.
-- **Light mode** — an unshipped stub that currently mirrors dark; the dark scheme
-  is the system. Semantic roles are structured so light is a future value-swap.
+  `colors.library`) — being removed; never referenced here. (A handful of shared
+  components still import it and are being migrated wave by wave; until then they
+  don't respond to the scheme switch.)
 - FontAwesome / MaterialCommunity icon usages — scoped legacy/brand exceptions
   during migration, not the icon system (which is Fluent).
+- **Scheme-locked surfaces** (MirrorWork camera flow, fullscreen video, the
+  gold-on-slate BuyPro card) are intentionally always-dark and do **not** follow
+  the light scheme — by design, not omission.

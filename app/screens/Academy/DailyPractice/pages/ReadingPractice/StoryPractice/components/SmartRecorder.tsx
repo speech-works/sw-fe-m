@@ -5,7 +5,6 @@ import {
   Dialog,
   Icon,
   Text,
-  elevation,
   makeStyles,
   radius,
   size,
@@ -284,7 +283,7 @@ const SmartRecorder: React.FC<Props> = ({
   );
 };
 
-const useStyles = makeStyles((c) => ({
+const useStyles = makeStyles((c, t) => ({
   container: {
     marginHorizontal: space.screenX,
     marginBottom: 34, // Safe area margin
@@ -303,7 +302,7 @@ const useStyles = makeStyles((c) => ({
     // Stronger hairline so the pill reads as a distinct floating surface even
     // when it overlaps a same-toned bubble mid-scroll (border.default is too faint).
     borderColor: c.border.strong,
-    ...elevation.e2,
+    ...t.elevation.e2,
   },
   dockRecording: {
     borderColor: c.feedback.danger,

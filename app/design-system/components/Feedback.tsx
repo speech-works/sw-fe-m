@@ -22,9 +22,13 @@ export interface ToastProps {
   iconColor?: string;
 }
 export const Toast: React.FC<ToastProps> = ({ message, icon = "check-circle", iconColor }) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   return (
-    <BlurView intensity={30} tint="dark" style={{ borderRadius: 9999, overflow: "hidden", alignSelf: "center" }}>
+    <BlurView
+      intensity={30}
+      tint={scheme === "dark" ? "dark" : "light"}
+      style={{ borderRadius: 9999, overflow: "hidden", alignSelf: "center" }}
+    >
       <View
         style={{
           flexDirection: "row",
@@ -90,7 +94,7 @@ export interface BannerProps {
   tone?: "info" | "success" | "warning" | "danger";
 }
 export const Banner: React.FC<BannerProps> = ({ title, message, icon = "wifi-off", tone = "info" }) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const toneText = {
     info: colors.feedback.infoText,
     success: colors.feedback.successText,
@@ -104,7 +108,11 @@ export const Banner: React.FC<BannerProps> = ({ title, message, icon = "wifi-off
     danger: colors.accent.danger,
   }[tone];
   return (
-    <BlurView intensity={30} tint="dark" style={{ borderRadius: 22, overflow: "hidden" }}>
+    <BlurView
+      intensity={30}
+      tint={scheme === "dark" ? "dark" : "light"}
+      style={{ borderRadius: 22, overflow: "hidden" }}
+    >
       <View
         style={{
           padding: 16,

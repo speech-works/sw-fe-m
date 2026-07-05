@@ -5,7 +5,6 @@ import {
   Dimensions,
   FlatList,
   ScrollView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -24,6 +23,7 @@ import {
   ExploreStackParamList,
 } from "../../../../navigators/stacks/ExploreStack/types";
 import {
+  SchemeStatusBar,
   Button,
   Gradient,
   IconButton,
@@ -235,7 +235,7 @@ const MoodCheck = () => {
     <View
       style={[styles.container, { backgroundColor: colors.background.canvas }]}
     >
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
 
       {/* Background glow — subtle top wash of the current mood accent on the dark canvas */}
       <Gradient

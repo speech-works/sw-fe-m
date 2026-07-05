@@ -1,3 +1,5 @@
+// Scheme-locked dark — camera surface (wrapped in ForceDark at the navigator).
+// Hardcoded HUD/chrome colors here are intentional; do not theme-migrate them.
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,

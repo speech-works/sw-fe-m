@@ -2,7 +2,7 @@ import React from "react";
 import { View, ViewProps, ViewStyle } from "react-native";
 import { useTheme } from "../useTheme";
 import { radius, space } from "../primitives/scale";
-import { elevation, ElevationLevel } from "../elevation";
+import { ElevationLevel } from "../elevation";
 
 type SurfaceLevel = "canvas" | "raised" | "default" | "elevated" | "control";
 
@@ -25,7 +25,7 @@ export const Surface: React.FC<SurfaceProps> = ({
   children,
   ...rest
 }) => {
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme(); // themed: shadow weight is per-scheme
   const bgMap: Record<SurfaceLevel, string> = {
     canvas: colors.background.canvas,
     raised: colors.background.raised,

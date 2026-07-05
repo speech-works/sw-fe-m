@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
-import { Alert, ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getTodayImpactAssessmentQuestions,
@@ -14,6 +14,7 @@ import ImpactAssessmentContinueModal from "../../../components/ImpactAssessmentC
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
 import {
+  SchemeStatusBar,
   Button,
   Gradient,
   IconButton,
@@ -61,7 +62,7 @@ const ImpactAssessmentQuestions = () => {
     // Safety valve: Navigate back if data is missing
     return (
       <ScreenView style={styles.screen}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View
           style={[
             StyleSheet.absoluteFillObject,
@@ -89,7 +90,7 @@ const ImpactAssessmentQuestions = () => {
     // Should not happen if logic is correct, but safe guard
     return (
       <ScreenView style={styles.screen}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View
           style={[
             StyleSheet.absoluteFillObject,
@@ -211,7 +212,7 @@ const ImpactAssessmentQuestions = () => {
 
   return (
     <ScreenView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
       <View
         style={[

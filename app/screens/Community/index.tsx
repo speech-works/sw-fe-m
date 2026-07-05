@@ -8,7 +8,6 @@ import {
   Image,
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -26,6 +25,7 @@ import Timeline, { TimelineHandle } from "../../components/Timeline";
 import BuddySupportSheet from "../../components/BuddySupportSheet";
 import PressableScale from "../../components/PressableScale";
 import {
+  SchemeStatusBar,
   useTheme,
   spacing,
   space,
@@ -33,7 +33,6 @@ import {
   borderWidth,
   fonts,
   typography,
-  elevation,
   Text,
   TabDock,
   PageHeader,
@@ -195,7 +194,7 @@ const WatermarkModal = ({
 const Community = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
 
   const [summary, setSummary] = useState<BuddySummary | null>(null);
   const [report, setReport] = useState<BuddyReport | null>(null);
@@ -780,7 +779,7 @@ const Community = () => {
 
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       {/* Dark canvas behind everything */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 

@@ -92,6 +92,7 @@ export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
 
 // Layout
+export { SchemeStatusBar } from "./SchemeStatusBar";
 export { Screen } from "./Screen";
 export type { ScreenProps } from "./Screen";
 export { Header } from "./Header";

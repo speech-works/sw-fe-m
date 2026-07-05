@@ -1,18 +1,24 @@
 import React, { useEffect } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import Button from "../../components/Button";
 import CustomScrollView from "../../components/CustomScrollView";
-import ProgressBar from "../../components/ProgressBar";
 import ScreenView from "../../components/ScreenView";
 
 import OnboardingQuestion from "../../components/OnBoarding/OnboardingQuestion";
 
-import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore } from "../../stores/onboarding";
-import { theme } from "../../Theme/tokens";
-import { parseShadowStyle } from "../../util/functions/parseStyles";
+import {
+  Button,
+  IconButton,
+  icons,
+  ProgressBar,
+  SchemeStatusBar,
+  space,
+  spacing,
+  Text,
+  useTheme,
+} from "../../design-system";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -32,6 +38,8 @@ import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingQuestionScreen: React.FC = () => {
+  const { colors } = useTheme();
+
   // ----------------------------
   // Navigation + Route
   // ----------------------------
@@ -175,21 +183,38 @@ const OnboardingQuestionScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
 
   return (
-    <ScreenView style={styles.screenInner}>
+    <ScreenView style={styles.screen}>
+      <SchemeStatusBar />
+      {/* Scheme canvas (overrides the legacy light BgWrapper gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
+
       {/* Header with Close Btn */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <TouchableOpacity style={styles.closeBtn} onPress={handleSkip}>
-          <Icon name="times" size={16} color={theme.colors.text.title} />
-        </TouchableOpacity>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
+        <IconButton name={icons.close} onPress={handleSkip} variant="control" />
       </View>
 
-      <ProgressBar
-        currentStep={screenNumber}
-        totalSteps={totalScreens}
-        showStepIndicator
-        showPercentage
-        style={styles.progressBar}
-      />
+      {/* Step indicator + progress (tokenized ProgressBar) */}
+      <View style={styles.progressBlock}>
+        <View style={styles.stepRow}>
+          <Text variant="bodySm" color="secondary">
+            Step {screenNumber} of {totalScreens}
+          </Text>
+          <Text variant="bodySm" color="secondary">
+            {Math.round((screenNumber / totalScreens) * 100)}%
+          </Text>
+        </View>
+        <ProgressBar
+          value={screenNumber}
+          max={totalScreens}
+          color={colors.action.primary}
+          height={8}
+        />
+      </View>
 
       <CustomScrollView
         ref={scrollRef}
@@ -230,12 +255,16 @@ const OnboardingQuestionScreen: React.FC = () => {
       <View
         style={[
           styles.footerButton,
-          { paddingBottom: Math.max(insets.bottom + 8, 24) },
+          {
+            paddingBottom: Math.max(
+              insets.bottom + space.inlineGap,
+              spacing["2xl"],
+            ),
+          },
         ]}
       >
         <Button
-          text={isLast ? "Complete" : "Next"}
-          variant="normal"
+          label={isLast ? "Complete" : "Next"}
           disabled={!isCurrentScreenValid(screenNumber)}
           onPress={handleNext}
         />
@@ -246,37 +275,38 @@ const OnboardingQuestionScreen: React.FC = () => {
 
 export default OnboardingQuestionScreen;
 
+// Root stays unpadded so the canvas is full-bleed; the screen gutter lives on
+// the inner content blocks instead. Geometry only — colors come from useTheme().
 const styles = StyleSheet.create({
-  screenInner: {
-    paddingHorizontal: 24,
+  screen: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   header: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginBottom: 16, // Increased gap to ProgressBar
-    minHeight: 40,
+    marginBottom: spacing.lg, // Increased gap to ProgressBar
+    paddingHorizontal: space.screenX,
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+  progressBlock: {
+    marginBottom: space.sectionGap,
+    paddingHorizontal: space.screenX,
+  },
+  stepRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    marginBottom: spacing.sm,
   },
   scrollContent: {
-    gap: 40,
-    paddingBottom: 40,
-  },
-  progressBar: {
-    marginTop: 0, // Managed by header marginBottom and insets
-    marginBottom: 24,
+    gap: spacing["4xl"],
+    paddingBottom: spacing["4xl"],
+    paddingHorizontal: space.screenX,
   },
   footerButton: {
-    paddingTop: 16,
+    paddingTop: spacing.lg,
+    paddingHorizontal: space.screenX,
   },
 });

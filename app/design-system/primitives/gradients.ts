@@ -5,10 +5,11 @@ import { palette as p } from "./palette";
  * ~100 places; these centralize the recipes so every gradient is on-brand and
  * swappable. Each token is a `colors` ramp + a direction (start→end, 0..1 unit
  * square). Decorative gradients (sunrise/aurora/meadow) are for hero moments;
- * scrims sit over imagery; sheen is a glossy top highlight.
+ * scrims/fades dissolve content into the canvas; sheen is a glossy top highlight.
  *
- * Mode-invariant for now (dark Vivid). Phase F can promote any of these into the
- * scheme if light mode needs a different ramp.
+ * Brand/decorative/premium ramps are mode-invariant. Canvas-relative ramps
+ * (fade, scrimDown/Up, sheen) have light overrides in `schemeGradients` below —
+ * the `Gradient` component resolves per scheme, consumers stay token-only.
  */
 export type GradientToken = {
   colors: readonly [string, string, ...string[]];
@@ -47,3 +48,19 @@ export const gradients = {
 } as const satisfies Record<string, GradientToken>;
 
 export type GradientName = keyof typeof gradients;
+
+/**
+ * Per-scheme overrides for canvas-relative gradients. Only tokens whose ramp
+ * references the neutral ground need a light variant; everything else falls
+ * through to the base recipe. Transparent ends use the matching paper RGBA so
+ * iOS doesn't fade through black.
+ */
+export const schemeGradients: Record<"dark" | "light", Partial<Record<GradientName, GradientToken>>> = {
+  dark: {},
+  light: {
+    fade: { colors: [p.paper.panel, p.paper.canvas], ...vertical },
+    scrimDown: { colors: ["rgba(247,242,234,0)", "rgba(247,242,234,0.92)"], ...vertical },
+    scrimUp: { colors: ["rgba(247,242,234,0.8)", "rgba(247,242,234,0)"], ...vertical },
+    sheen: { colors: [p.whiteA(0.5), p.whiteA(0)], ...vertical },
+  },
+};

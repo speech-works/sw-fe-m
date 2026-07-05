@@ -84,7 +84,7 @@ export const Page: React.FC<PageProps> = ({
   tabBarSafe,
   children,
 }) => {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Measured at runtime so the scroll body reserves the footer's REAL height
@@ -176,9 +176,14 @@ export const Page: React.FC<PageProps> = ({
         style={[StyleSheet.absoluteFill, { backgroundColor: colors.background.canvas }]}
         pointerEvents="none"
       />
-      {/* Dark scaffold → light status-bar glyphs (white clock/battery), drawn
-       * edge-to-edge over the app canvas. Overrides BgWrapper's dark-content. */}
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      {/* Scheme-matched status-bar glyphs (light glyphs on the dark canvas,
+       * dark glyphs on paper), drawn edge-to-edge over the app canvas.
+       * Overrides BgWrapper's legacy hardcoded style. */}
+      <StatusBar
+        barStyle={scheme === "dark" ? "light-content" : "dark-content"}
+        translucent
+        backgroundColor="transparent"
+      />
       {body}
       {/* Opaque status-bar cap — hides scrolled content behind the system clock/
        * battery instead of letting the title collide with them. */}

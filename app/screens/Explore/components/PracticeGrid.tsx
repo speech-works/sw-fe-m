@@ -17,7 +17,6 @@ import {
   spacing,
   space,
   radius,
-  elevation,
   Text,
 } from "../../../design-system";
 import PressableScale from "../../../components/PressableScale";
@@ -49,7 +48,7 @@ const PracticeGrid = ({ isScrolling = false }: { isScrolling?: boolean }) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   const { user } = useUserStore();
   const { categories, fetchSummary } = usePracticeCategorySummaryStore();
 

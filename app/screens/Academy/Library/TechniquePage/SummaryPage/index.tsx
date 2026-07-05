@@ -27,7 +27,6 @@ import {
     borderWidth,
     duration,
     easing,
-    elevation,
     fadeStaggerEntering,
     hitTarget,
     icons,
@@ -284,7 +283,7 @@ const SummaryPage = () => {
 
 export default SummaryPage;
 
-const useStyles = makeStyles((c) => ({
+const useStyles = makeStyles((c, t) => ({
   root: { flex: 1 },
 
   // Hero
@@ -293,7 +292,7 @@ const useStyles = makeStyles((c) => ({
     overflow: "hidden",
     padding: spacing["2xl"],
     gap: spacing.md,
-    ...elevation.e2,
+    ...t.elevation.e2,
   },
   heroEyebrow: {
     letterSpacing: 1.4,

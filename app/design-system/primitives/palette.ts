@@ -4,7 +4,7 @@
  * should import these for color; screens consume semantic roles via useTheme().
  */
 export const palette = {
-  // Neutral "ink" ramp (warm) — dominant surfaces + text greys.
+  // Neutral "ink" ramp (warm) — dominant surfaces + text greys (dark scheme).
   ink: {
     canvas: "#141311",
     panel: "#1C1A17",
@@ -18,7 +18,22 @@ export const palette = {
     textDisabled: "#5C574F",
   },
 
-  // Brand orange (kept).
+  // Warm "paper" ramp — the light-scheme mirror of `ink`. Warm off-white, never
+  // cold grey; only `row` may be pure white (the elevated step), the canvas may not.
+  paper: {
+    canvas: "#F7F2EA",
+    panel: "#FBF8F2",
+    card: "#FFFDF8", // e1
+    row: "#FFFFFF",
+    control: "#EDE5D8",
+    sunken: "#EFE8DC",
+    textPrimary: "#26221C", // warm near-black ink (~14:1 on canvas)
+    textSecondary: "#57514A",
+    textTertiary: "#736C61", // AA on canvas/card/row (≥4.5:1) — same "cards only, not control" rule as dark
+    textDisabled: "#A8A196",
+  },
+
+  // Brand orange (kept). textOnLight = hue used AS text/link ink on a light surface.
   orange: {
     100: "#FFF0E5",
     200: "#FFDABF",
@@ -29,16 +44,18 @@ export const palette = {
     700: "#803600",
     800: "#401B00",
     on: "#2A1505", // dark text on an orange fill (AA)
+    textOnLight: "#A84600", // link/emphasis ink on paper surfaces (≥5.3:1)
   },
 
   // Energy accents. base = fill · on = dark text on fill · textOnDark = hue used AS
-  // text on a dark surface · tint = 12% wash for soft chips/icon-bgs on a dark surface.
-  lime: { base: "#C8F750", on: "#20300A", textOnDark: "#C8F750", tint: "rgba(200,247,80,0.12)" },
-  purple: { base: "#8B7BF0", on: "#18123A", textOnDark: "#B5A8F5", tint: "rgba(139,123,240,0.12)" },
-  success: { base: "#5BD98A", on: "#08351F", textOnDark: "#7DE6A3", tint: "rgba(91,217,138,0.12)" },
-  warning: { base: "#FFC53D", on: "#3A2A00", textOnDark: "#FFD66B", tint: "rgba(255,197,61,0.12)" },
-  danger: { base: "#FF5A5F", on: "#3A0608", textOnDark: "#FF9296", tint: "rgba(255,90,95,0.12)" },
-  info: { base: "#5B9DF9", on: "#06203F", textOnDark: "#8FBEFF", tint: "rgba(91,157,249,0.12)" },
+  // text on a dark surface · textOnLight = hue used AS text on a light surface ·
+  // tint = 12% wash for soft chips/icon-bgs.
+  lime: { base: "#C8F750", on: "#20300A", textOnDark: "#C8F750", textOnLight: "#4E6E00", tint: "rgba(200,247,80,0.12)" },
+  purple: { base: "#8B7BF0", on: "#18123A", textOnDark: "#B5A8F5", textOnLight: "#5D4FC4", tint: "rgba(139,123,240,0.12)" },
+  success: { base: "#5BD98A", on: "#08351F", textOnDark: "#7DE6A3", textOnLight: "#1E7A45", tint: "rgba(91,217,138,0.12)" },
+  warning: { base: "#FFC53D", on: "#3A2A00", textOnDark: "#FFD66B", textOnLight: "#8A5B00", tint: "rgba(255,197,61,0.12)" },
+  danger: { base: "#FF5A5F", on: "#3A0608", textOnDark: "#FF9296", textOnLight: "#C4363B", tint: "rgba(255,90,95,0.12)" },
+  info: { base: "#5B9DF9", on: "#06203F", textOnDark: "#8FBEFF", textOnLight: "#2864C8", tint: "rgba(91,157,249,0.12)" },
 
   // Category hues (muted; legible as icon-tint on the card surface). on = dark text on a full fill.
   category: {
@@ -50,9 +67,11 @@ export const palette = {
     realLife: { base: "#CB8398", on: "#2E1119" }, // rose (hero full-fill)
   },
 
-  // Input surfaces (slightly distinct from the ink ramp).
+  // Input surfaces (slightly distinct from the ink/paper ramps).
   inputBg: "#201E1A",
   inputBorder: "#423D37",
+  inputBgLight: "#FFFDF8",
+  inputBorderLight: "#D9D1C3",
 
   // Premium tier — a deliberately distinct gold-on-slate identity (NOT the orange
   // system). Scoped to the BuyPro upsell card.
@@ -72,6 +91,7 @@ export const palette = {
   whiteA: (a: number) => `rgba(255,255,255,${a})`,
   blackA: (a: number) => `rgba(0,0,0,${a})`,
   orangeA: (a: number) => `rgba(255,144,64,${a})`,
+  paperA: (a: number) => `rgba(251,248,242,${a})`, // light material/capsule translucency
 } as const;
 
 export type Palette = typeof palette;

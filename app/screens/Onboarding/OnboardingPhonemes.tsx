@@ -1,31 +1,27 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  FlatList,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 import { getPhonemes } from "../../api/phonemes";
 import { Phoneme } from "../../api/phonemes/types";
 import { getMyUser, updateMyUser } from "../../api/users";
 import AudioPlaybackButton from "../../components/AudioPlaybackButton";
-import ScreenView from "../../components/ScreenView";
+import PressableScale from "../../components/PressableScale";
 import { useUserStore } from "../../stores/user";
-import { theme } from "../../Theme/tokens";
 import {
-  parseShadowStyle,
-  parseTextStyle,
-} from "../../util/functions/parseStyles";
-import { LinearGradient } from "expo-linear-gradient";
-import CheckBox from "../../components/CheckBox";
+  borderWidth,
+  Button,
+  Checkbox,
+  Page,
+  radius,
+  space,
+  Spinner,
+  Text,
+  useTheme,
+} from "../../design-system";
 import { OnboardingStackNavigationProp } from "../../navigators/stacks/OnboardingStack/types";
 
 const OnboardingPhonemes = () => {
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const navigation =
     useNavigation<OnboardingStackNavigationProp<"OnboardingPhonemes">>();
   const { user, setUser } = useUserStore();
@@ -85,22 +81,31 @@ const OnboardingPhonemes = () => {
   const renderPhonemeItem = ({ item }: { item: Phoneme }) => {
     const isSelected = selectedSounds.includes(item.code);
     return (
-      <TouchableOpacity
-        activeOpacity={0.8}
+      <PressableScale
         onPress={() => handleToggleSound(item.code)}
-        style={[styles.card, isSelected && styles.selectedCard]}
+        style={[
+          styles.card,
+          {
+            backgroundColor: isSelected
+              ? colors.surface.rowSelected
+              : colors.surface.default,
+            borderColor: isSelected
+              ? colors.border.selected
+              : colors.border.default,
+          },
+        ]}
       >
         <View style={styles.cardLeft}>
-          <CheckBox
+          <Checkbox
             checked={isSelected}
-            onToggle={() => handleToggleSound(item.code)}
+            onChange={() => handleToggleSound(item.code)}
           />
           <View style={styles.infoContainer}>
-            <Text style={styles.phonemeLabel}>
+            <Text variant="title">
               {item.ipaSymbol} · {item.displayLabel}
             </Text>
             {Array.isArray(item.examples) && item.examples.length > 0 && (
-              <Text style={styles.examplesText}>
+              <Text variant="bodySm" color="secondary" style={styles.examplesText}>
                 e.g., {item.examples.join(", ")}
               </Text>
             )}
@@ -108,153 +113,72 @@ const OnboardingPhonemes = () => {
         </View>
         <AudioPlaybackButton
           audioUrl={item.audioUrl}
-          activeColor={theme.colors.actionPrimary.default}
+          activeColor={colors.action.primary}
         />
-      </TouchableOpacity>
+      </PressableScale>
     );
   };
 
   return (
-    <ScreenView style={styles.screenView}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Difficult Sounds</Text>
-          <Text style={styles.subtitle}>
-            Select the phonetic sounds you find challenging. We&apos;ll use this
-            to customize your practice.
-          </Text>
-        </View>
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={theme.colors.actionPrimary.default}
-            />
-          </View>
-        ) : (
-          <FlatList
-            data={phonemes}
-            keyExtractor={(item) => item.code}
-            renderItem={renderPhonemeItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom + 8, 24) },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.nextButton}
+    <Page
+      title="Difficult Sounds"
+      description="Select the phonetic sounds you find challenging. We'll use this to customize your practice."
+      scroll={!isLoading}
+      list={
+        isLoading
+          ? undefined
+          : {
+              data: phonemes,
+              renderItem: renderPhonemeItem,
+              keyExtractor: (item: Phoneme) => item.code,
+              extraData: selectedSounds,
+            }
+      }
+      footer={
+        <Button
+          label="Next"
           onPress={handleNext}
+          loading={isSaving}
           disabled={isSaving}
-        >
-          <LinearGradient
-            colors={[
-              theme.colors.actionPrimary.default,
-              theme.colors.library.orange[600],
-            ]}
-            style={styles.nextGradient}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.nextButtonText}>Next</Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </ScreenView>
+        />
+      }
+    >
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Spinner size="large" />
+        </View>
+      ) : null}
+    </Page>
   );
 };
 
+// Geometry only — colors are applied inline from useTheme() at render time.
 const styles = StyleSheet.create({
-  screenView: {
-    paddingBottom: 0,
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  container: {
-    flex: 1,
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 32,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    marginBottom: 8,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  listContent: {
-    paddingBottom: 40,
-  },
   card: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-    ...parseShadowStyle(theme.shadow.elevation1),
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  selectedCard: {
-    borderColor: theme.colors.actionPrimary.default,
-    backgroundColor: theme.colors.library.blue[100],
+    padding: space.cardPad,
+    borderRadius: radius.card,
+    marginBottom: space.rowGap,
+    borderWidth: borderWidth.thin,
   },
   cardLeft: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    gap: 12,
+    gap: space.iconText,
   },
   infoContainer: {
     flex: 1,
   },
-  phonemeLabel: {
-    ...parseTextStyle(theme.typography.Body),
-    fontWeight: "700",
-    color: theme.colors.text.title,
-  },
   examplesText: {
-    ...parseTextStyle(theme.typography.BodyDetails),
-    color: theme.colors.text.default,
-    marginTop: 2,
-  },
-  footer: {
-    paddingTop: 16,
-  },
-  nextButton: {
-    borderRadius: 16,
-    overflow: "hidden",
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  nextGradient: {
-    paddingVertical: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nextButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "800",
+    marginTop: space.titleSub,
   },
 });
 

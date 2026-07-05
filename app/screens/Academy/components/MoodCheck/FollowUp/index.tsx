@@ -5,9 +5,7 @@ import {
   useIsFocused,
 } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import {
-  StatusBar,
-  StyleSheet,
+import {  StyleSheet,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -17,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ScreenView from "../../../../../components/ScreenView";
 import CustomScrollView from "../../../../../components/CustomScrollView";
 import {
+  SchemeStatusBar,
   Sheet,
   Gradient,
   Text,
@@ -426,7 +425,7 @@ const FollowUp = () => {
   return (
     <>
       <ScreenView style={styles.screenView}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         {/* Dark canvas background */}
         <View
           style={[

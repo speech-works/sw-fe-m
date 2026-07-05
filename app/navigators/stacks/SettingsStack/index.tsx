@@ -12,6 +12,7 @@ import Feedback from "../../../screens/Settings/pages/Support/Feedback";
 import FearedSounds from "../../../screens/Settings/pages/FearedSounds";
 import PracticeGoal from "../../../screens/Settings/pages/PracticeGoal";
 import ReadingVoice from "../../../screens/Settings/pages/ReadingVoice";
+import Appearance from "../../../screens/Settings/pages/Appearance";
 import PaymentStackNavigator from "../PaymentStack";
 import { SettingsStackParamList } from "./types";
 
@@ -34,6 +35,7 @@ export default function SettingsStackNavigator() {
       <Stack.Screen name="FearedSounds" component={FearedSounds} />
       <Stack.Screen name="PracticeGoal" component={PracticeGoal} />
       <Stack.Screen name="ReadingVoice" component={ReadingVoice} />
+      <Stack.Screen name="Appearance" component={Appearance} />
     </Stack.Navigator>
   );
 }

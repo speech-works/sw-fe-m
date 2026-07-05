@@ -1,6 +1,6 @@
 import { useRoute, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllSessionsOfUser } from "../../api";
@@ -9,7 +9,7 @@ import usePullToRefresh from "../../hooks/usePullToRefresh";
 import { usePracticeCategorySummaryStore } from "../../stores/practiceCategorySummary";
 import { useSessionStore } from "../../stores/session";
 import { useUserStore } from "../../stores/user";
-import { useTheme, useMotion, spacing, space, radius, size, PageHeader } from "../../design-system";
+import { SchemeStatusBar, useTheme, useMotion, spacing, space, radius, size, PageHeader } from "../../design-system";
 import LibrarySection from "./components/LibrarySection";
 import PracticeGrid from "./components/PracticeGrid";
 import WorldExplorationGraph from "./components/WorldExplorationGraph";
@@ -99,7 +99,7 @@ const Explore = () => {
 
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: colors.background.canvas }]} />
 

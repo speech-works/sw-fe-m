@@ -111,6 +111,9 @@ export const icons = {
   // ── Settings · profile · premium ──
   email: "mail",
   phone: "smartphone",
+  appearance: "contrast", // the Appearance preference (theme) — half-circle auto glyph
+  appearanceLight: "brightness", // Light option card
+  appearanceDark: "moon", // Dark option card
   pro: "crown", // premium tier
   unlimited: "infinity", // unlimited (premium)
   ai: "bot", // AI feature

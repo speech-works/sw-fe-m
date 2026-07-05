@@ -1,20 +1,26 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { getActiveOnboardingFlow } from "../../api/onboarding";
-import Button from "../../components/Button";
 import ScreenView from "../../components/ScreenView";
 import {
     OnboardingStackNavigationProp,
     OnboardingStackParamList,
 } from "../../navigators/stacks/OnboardingStack/types";
 import { useOnboardingStore } from "../../stores/onboarding";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  Button,
+  SchemeStatusBar,
+  space,
+  spacing,
+  Text,
+  useTheme,
+} from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingWelcome: React.FC = () => {
+  const { colors } = useTheme();
   const navigation =
     useNavigation<
       OnboardingStackNavigationProp<keyof OnboardingStackParamList>
@@ -33,16 +39,24 @@ const OnboardingWelcome: React.FC = () => {
   };
 
   return (
-    <ScreenView>
+    <ScreenView style={styles.screen}>
+      <SchemeStatusBar />
+      {/* Scheme canvas (overrides the legacy light BgWrapper gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
       <View style={styles.container}>
-        <Text style={styles.title}>Welcome to Speechworks</Text>
-        <Text style={styles.subtitle}>
+        <Text variant="display">Welcome to Speechworks</Text>
+        <Text variant="body" color="secondary">
           Before we personalise your practice experience, tell us a little about
           your speaking patterns.
         </Text>
       </View>
       <View style={styles.buttonContainer}>
-        <Button text="Start" variant="normal" onPress={handleStart} />
+        <Button label="Start" onPress={handleStart} />
       </View>
     </ScreenView>
   );
@@ -51,22 +65,18 @@ const OnboardingWelcome: React.FC = () => {
 export default OnboardingWelcome;
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: space.screenX,
     justifyContent: "center",
-    gap: 24,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-    textAlign: "left",
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    gap: space.sectionGap,
   },
   buttonContainer: {
-    padding: 24,
+    padding: spacing["2xl"],
   },
 });

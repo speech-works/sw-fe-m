@@ -1,16 +1,22 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { theme } from "../../Theme/tokens";
-import Button from "../../components/Button";
+import { StyleSheet, View } from "react-native";
 import ScreenView from "../../components/ScreenView";
 import { useEventStore } from "../../stores/events";
 import { EVENT_NAMES } from "../../stores/events/constants";
 import { useOnboardingStore } from "../../stores/onboarding";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import {
+  Button,
+  SchemeStatusBar,
+  space,
+  spacing,
+  Text,
+  useTheme,
+} from "../../design-system";
 import { track } from "../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../util/analytics/analyticsEvents";
 
 const OnboardingDone: React.FC = () => {
+  const { colors } = useTheme();
   const stopOnboarding = useEventStore((s) => s.emit);
   const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
 
@@ -23,18 +29,26 @@ const OnboardingDone: React.FC = () => {
   };
 
   return (
-    <ScreenView>
+    <ScreenView style={styles.screen}>
+      <SchemeStatusBar />
+      {/* Scheme canvas (overrides the legacy light BgWrapper gradient). */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: colors.background.canvas },
+        ]}
+      />
       <View style={styles.container}>
-        <Text style={styles.title}>You're all set!</Text>
+        <Text variant="display">You're all set!</Text>
 
-        <Text style={styles.subtitle}>
+        <Text variant="body" color="secondary">
           Based on your answers, we’ve built a personalised practice plan for
           you.
         </Text>
       </View>
 
       <View style={styles.footer}>
-        <Button text="Continue" variant="normal" onPress={handleFinish} />
+        <Button label="Continue" onPress={handleFinish} />
       </View>
     </ScreenView>
   );
@@ -43,21 +57,18 @@ const OnboardingDone: React.FC = () => {
 export default OnboardingDone;
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: space.screenX,
     justifyContent: "center",
-    gap: 24,
-  },
-  title: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
-  },
-  subtitle: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    gap: space.sectionGap,
   },
   footer: {
-    padding: 24,
+    padding: spacing["2xl"],
   },
 });

@@ -1,32 +1,45 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   StyleSheet,
-  Text,
   View,
   FlatList,
   NativeSyntheticEvent,
   NativeScrollEvent,
   LayoutChangeEvent,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../../../../Theme/tokens";
-import { parseTextStyle } from "../../../../util/functions/parseStyles";
+import {
+  Gradient,
+  GradientName,
+  Icon,
+  IconName,
+  Text,
+  makeStyles,
+  opacity,
+  radius,
+  size,
+  spacing,
+  useTheme,
+} from "../../../../design-system";
+import type { SemanticColors } from "../../../../design-system";
 
 interface MasonryTipsProps {
   tips: string[];
 }
 
-const PREMIUM_PALETTE = [
-  { colors: ["#0EA5E9", "#0369A1"], text: "#FFF", badge: "#FFF", shadow: "#0EA5E9", accent: "#0284C7" }, // Deep Sky
-  { colors: ["#F59E0B", "#D97706"], text: "#FFF", badge: "#FFF", shadow: "#F59E0B", accent: "#B45309" }, // Warm Amber
-  { colors: ["#10B981", "#059669"], text: "#FFF", badge: "#FFF", shadow: "#10B981", accent: "#047857" }, // Emerald
-  { colors: ["#A78BFA", "#7C3AED"], text: "#FFF", badge: "#FFF", shadow: "#A78BFA", accent: "#6D28D9" }, // Violet
+// Vivid card recipes — DS decorative gradient tokens paired with the
+// AA-correct dark ink for that fill (never white-on-bright).
+const CARD_RECIPES: { token: GradientName; ink: (c: SemanticColors) => string }[] = [
+  { token: "aurora", ink: (c) => c.accentOn.purple },
+  { token: "brand", ink: (c) => c.action.onPrimary },
+  { token: "meadow", ink: (c) => c.accentOn.success },
+  { token: "sunrise", ink: (c) => c.accentOn.danger },
 ];
 
-const ICONS = ["feather-alt", "magic", "star", "quote-right"];
+const ICONS: IconName[] = ["sparkles", "zap", "star", "message-circle"];
 
 const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [activeIndex, setActiveIndex] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -47,14 +60,15 @@ const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
   };
 
   const renderItem = ({ item, index }: { item: string; index: number }) => {
-    const colorTheme = PREMIUM_PALETTE[index % PREMIUM_PALETTE.length];
+    const recipe = CARD_RECIPES[index % CARD_RECIPES.length];
+    const ink = recipe.ink(colors);
     const iconName = ICONS[index % ICONS.length];
 
     return (
       <View style={{ width: CARD_WIDTH, marginRight: SPACING, paddingVertical: 15 }}>
-        <View style={[styles.cardWrapper, { shadowColor: colorTheme.shadow }]}>
-          <LinearGradient
-            colors={colorTheme.colors as [string, string, ...string[]]}
+        <View style={styles.cardWrapper}>
+          <Gradient
+            token={recipe.token}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cardGradient}
@@ -67,10 +81,9 @@ const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
             <View style={styles.watermarkContainer}>
               <Icon
                 name={iconName}
-                solid
                 size={120}
-                color="#FFF"
-                style={{ opacity: 0.12 }}
+                color={ink}
+                style={{ opacity: opacity.faint }}
               />
             </View>
 
@@ -78,25 +91,27 @@ const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
             <View style={styles.contentLayer}>
               <View style={styles.headerRow}>
                 <View style={styles.chip}>
-                  <Icon name="lightbulb" size={10} color={colorTheme.accent} solid />
-                  <Text style={[styles.chipText, { color: colorTheme.accent }]}>PRO TIP</Text>
+                  <Icon name="lightbulb" size={10} color={colors.text.onInverse} />
+                  <Text variant="label" color="onInverse">
+                    PRO TIP
+                  </Text>
                 </View>
               </View>
-              
-              <Text style={[styles.body, { color: colorTheme.text }]}>
+
+              <Text variant="h3" color={ink}>
                 {item}
               </Text>
             </View>
 
             {/* Premium Glass Glare Overlay */}
-            <LinearGradient
-              colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0)"]}
+            <Gradient
+              token="sheen"
               start={{ x: 0, y: 0 }}
               end={{ x: 0.5, y: 0.5 }}
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
-          </LinearGradient>
+          </Gradient>
         </View>
       </View>
     );
@@ -119,7 +134,7 @@ const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
           contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
         />
       )}
-      
+
       {tips.length > 1 && (
         <View style={styles.pagination}>
           {tips.map((_, index) => (
@@ -137,21 +152,18 @@ const MasonryTips: React.FC<MasonryTipsProps> = ({ tips }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   container: {
-    marginVertical: 12,
+    marginVertical: spacing.md,
   },
   cardWrapper: {
-    borderRadius: 28,
-    backgroundColor: "#FFF",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+    borderRadius: radius.sheet,
+    backgroundColor: c.surface.elevated,
+    ...t.elevation.e2,
     overflow: "hidden",
   },
   cardGradient: {
-    padding: 24,
+    padding: spacing["2xl"],
     minHeight: 160,
     justifyContent: "center",
     position: "relative",
@@ -159,8 +171,9 @@ const styles = StyleSheet.create({
   // Decorations
   bubble: {
     position: "absolute",
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: radius.full,
+    backgroundColor: c.surface.inverse,
+    opacity: opacity.faint,
   },
   bubbleLarge: {
     width: 140,
@@ -181,7 +194,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-15deg" }],
   },
   contentLayer: {
-    gap: 16,
+    gap: spacing.lg,
     zIndex: 2,
   },
   headerRow: {
@@ -191,42 +204,31 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 8,
-  },
-  chipText: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-  body: {
-    ...parseTextStyle(theme.typography.Heading3),
-    fontSize: 17,
-    lineHeight: 26,
-    fontWeight: "700",
+    backgroundColor: c.surface.inverse,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    gap: spacing.sm,
   },
   pagination: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
-    gap: 8,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   dot: {
-    height: 6,
-    borderRadius: 3,
+    height: size.iconSm / 2,
+    borderRadius: radius.xs,
+    backgroundColor: c.surface.control,
   },
   activeDot: {
-    width: 24,
-    backgroundColor: "#94A3B8",
+    width: spacing["2xl"],
+    backgroundColor: c.text.tertiary,
   },
   inactiveDot: {
-    width: 6,
-    backgroundColor: "#E2E8F0",
+    width: size.iconSm / 2,
   },
-});
+}));
 
 export default MasonryTips;

@@ -10,9 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEventStore } from "../stores/events";
 import { EVENT_NAMES } from "../stores/events/constants";
-import { elevation } from "../design-system";
 import { navigationRef } from "../util/functions/navigation";
 import { PAYMENTS_ENABLED } from "../constants/features";
+// Deliberately the DARK elevation set: the premium card is gold-on-slate in both
+// schemes, so its inner shadows stay dark-tuned (see design-system/elevation.ts).
+import { elevationDark } from "../design-system/elevation";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Animated, {
@@ -227,7 +229,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    ...elevation.e2,
   },
   buyProCtaGradient: {
     paddingVertical: 20,
@@ -501,7 +502,7 @@ const UpsellModal = () => {
               navigationRef.navigate("PremiumModal" as never);
             }, 300);
           }}
-          style={styles.buyProCtaButton}
+          style={[styles.buyProCtaButton, elevationDark.e2]}
         >
           <LinearGradient
             colors={["#D4AF37", "#B8860B", "#996515"]}

@@ -14,7 +14,6 @@ import {
   spacing,
   radius,
   borderWidth,
-  elevation,
   gradients,
   Text,
   Icon,
@@ -34,7 +33,7 @@ const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
   type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
   type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;
 
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   const navigation = useNavigation<CrossNavigationProp>();
 
   const copy = {

@@ -2,7 +2,7 @@
  * Public entry point for the design system. Screens/components import ONLY from
  * here (e.g. `import { useTheme, makeStyles, radius } from "app/design-system"`).
  */
-export { ThemeProvider, useThemeContext } from "./ThemeProvider";
+export { ThemeProvider, ForceDark, useThemeContext } from "./ThemeProvider";
 export { useTheme, makeStyles } from "./useTheme";
 
 // Primitive components.

@@ -1,14 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Alert, StatusBar, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import {
     getTodayImpactAssessmentQuestions,
     startImpactAssessmentCollection,
 } from "../../../api/impactAssessment";
 import ScreenView from "../../../components/ScreenView";
 import { useImpactAssessmentStore } from "../../../stores/impactAssessment";
-import { Spinner, useTheme } from "../../../design-system";
+import { SchemeStatusBar, Spinner, useTheme } from "../../../design-system";
 import { track } from "../../../util/analytics/postHog";
 import { ANALYTICS_EVENTS } from "../../../util/analytics/analyticsEvents";
 
@@ -108,7 +108,7 @@ const ImpactAssessmentIntro = () => {
 
   return (
     <ScreenView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
       <View
         style={[

@@ -1,12 +1,13 @@
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getImpactAssessmentProgress } from "../../../api/impactAssessment";
 import { ImpactAssessmentProgress } from "../../../api/impactAssessment/types";
 import ConfettiAnimation from "../../../components/ConfettiAnimation";
 import ScreenView from "../../../components/ScreenView";
 import {
+  SchemeStatusBar,
   Button,
   Icon,
   ProgressBar,
@@ -48,7 +49,7 @@ const ImpactAssessmentComplete = () => {
   if (loading) {
     return (
       <ScreenView style={styles.screen}>
-        <StatusBar barStyle="light-content" />
+        <SchemeStatusBar />
         <View
           style={[
             StyleSheet.absoluteFillObject,
@@ -64,7 +65,7 @@ const ImpactAssessmentComplete = () => {
 
   return (
     <ScreenView style={styles.screen}>
-      <StatusBar barStyle="light-content" />
+      <SchemeStatusBar />
       {/* Dark canvas (overrides the legacy light BgWrapper gradient). */}
       <View
         style={[

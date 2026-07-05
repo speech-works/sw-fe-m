@@ -4,7 +4,6 @@ import {
   Easing, // <-- IMPORTED
   Modal,
   Platform,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -32,7 +31,7 @@ import * as Localization from "expo-localization";
 
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-import { theme } from "../Theme/tokens";
+import { makeStyles, useTheme, withAlpha } from "../design-system";
 import { isHeadsetConnected } from "../util/functions/headset";
 
 type CallExitPayload = {
@@ -423,6 +422,8 @@ const CallingWidget: React.FC<Props> = ({
   scenarioIcon,
   practiceActivityId, // <-- ADDED
 }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<any>();
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState("Connecting..."); // Changed initial status
@@ -2463,10 +2464,10 @@ const CallingWidget: React.FC<Props> = ({
     !missedSpeechCueVisible &&
     !isInterruptingPlaybackState;
   const rippleTint = isAgentSpeakingPlaybackState
-    ? "rgba(249, 115, 22, 0.35)"
+    ? withAlpha(colors.action.primary, 0.35)
     : missedSpeechCueVisible
-      ? "rgba(14, 165, 233, 0.38)"
-    : "rgba(59, 130, 246, 0.28)";
+      ? withAlpha(colors.accent.info, 0.38)
+    : withAlpha(colors.accent.info, 0.28);
 
   const getUserMicRippleOpacity = (index: number) => {
     if (index === 0) {
@@ -2645,11 +2646,11 @@ const CallingWidget: React.FC<Props> = ({
           <FAIcon
             name="headphones-alt"
             size={14}
-            color={headsetConnected ? "#10B981" : "#EF4444"}
+            color={headsetConnected ? colors.accent.success : colors.accent.danger}
           />
           <Text
             style={{
-              color: "rgba(255,255,255,0.5)",
+              color: colors.text.secondary,
               fontSize: 12,
               fontWeight: "500",
             }}
@@ -2717,7 +2718,7 @@ const CallingWidget: React.FC<Props> = ({
           <Animated.View style={agentOrbSlotStyle}>
             <View style={styles.orbWrapper}>
               <LinearGradient
-                colors={["#2B1D12", "#0F172A"]}
+                colors={[withAlpha(colors.action.primary, 0.16), colors.background.canvas]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
@@ -2728,7 +2729,7 @@ const CallingWidget: React.FC<Props> = ({
                 ]}
               >
                 <LinearGradient
-                  colors={["rgba(251, 146, 60, 0.28)", "transparent"]}
+                  colors={[withAlpha(colors.action.primary, 0.28), "transparent"]}
                   start={{ x: 0.2, y: 0 }}
                   end={{ x: 0.8, y: 1 }}
                   style={styles.orbInnerGlow}
@@ -2736,7 +2737,7 @@ const CallingWidget: React.FC<Props> = ({
                 <FAIcon
                   name={orbIconName}
                   size={46}
-                  color="#FFF7ED"
+                  color={colors.text.primary}
                   solid
                   style={styles.iconClean}
                 />
@@ -2772,7 +2773,7 @@ const CallingWidget: React.FC<Props> = ({
             )}
             <View style={styles.orbWrapper}>
               <LinearGradient
-                colors={["#082F49", "#020617"]}
+                colors={[withAlpha(colors.accent.info, 0.2), colors.background.canvas]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
@@ -2784,7 +2785,7 @@ const CallingWidget: React.FC<Props> = ({
                 ]}
               >
                 <LinearGradient
-                  colors={["rgba(125, 211, 252, 0.28)", "transparent"]}
+                  colors={[withAlpha(colors.feedback.infoText, 0.28), "transparent"]}
                   start={{ x: 0.2, y: 0 }}
                   end={{ x: 0.8, y: 1 }}
                   style={styles.orbInnerGlow}
@@ -2792,7 +2793,7 @@ const CallingWidget: React.FC<Props> = ({
                 <Icon
                   name="mic"
                   size={50}
-                  color="#F0F9FF"
+                  color={colors.text.primary}
                   style={styles.iconClean}
                 />
               </LinearGradient>
@@ -2832,7 +2833,7 @@ const CallingWidget: React.FC<Props> = ({
             <FAIcon
               name="headphones-alt"
               size={40}
-              color={theme.colors.actionPrimary.default}
+              color={colors.action.primary}
               style={{ marginBottom: 16 }}
             />
             <Text style={styles.promptTitle}>Headphones Required</Text>
@@ -2906,7 +2907,7 @@ const CallingWidget: React.FC<Props> = ({
           }}
           // disabled={!isCalling} <-- REMOVED
         >
-          <Icon name={isMuted ? "mic-off" : "mic"} size={22} color="#FFF" />
+          <Icon name={isMuted ? "mic-off" : "mic"} size={22} color={colors.text.primary} />
         </TouchableOpacity>
 
         {/* End / Start Call - Main Button */}
@@ -2931,7 +2932,7 @@ const CallingWidget: React.FC<Props> = ({
             <Icon
               name={isCalling ? "phone-off" : "phone-call"}
               size={32}
-              color="#FFF"
+              color={isCalling ? colors.accentOn.danger : colors.accentOn.success}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -2956,7 +2957,7 @@ const CallingWidget: React.FC<Props> = ({
             <Icon
               name="message-circle" // 'lightbulb' -> 'message-circle' or 'edit-3'
               size={22}
-              color={showTips ? "#FFF" : "rgba(255,255,255,0.7)"}
+              color={showTips ? colors.text.primary : colors.text.secondary}
             />
           </TouchableOpacity>
           {showNotificationDot && (
@@ -2989,7 +2990,7 @@ const CallingWidget: React.FC<Props> = ({
             <FAIcon
               name="hourglass-half"
               size={36}
-              color={theme.colors.actionPrimary.default}
+              color={colors.action.primary}
               style={{ marginBottom: 16 }}
             />
             <Text style={styles.promptTitle}>Are you still there?</Text>
@@ -3036,7 +3037,7 @@ const CallingWidget: React.FC<Props> = ({
                     : "phone-slash"
               }
               size={36}
-              color={theme.colors.actionPrimary.default}
+              color={colors.action.primary}
               solid
               style={{ marginBottom: 16 }}
             />
@@ -3100,8 +3101,8 @@ const CallingWidget: React.FC<Props> = ({
 };
 // --- ⬆️ END OF MODIFICATION ⬆️ ---
 
-// --- NEW FUTURISTIC STYLES ---
-const styles = StyleSheet.create({
+// --- NEW FUTURISTIC STYLES (color roles from the Vivid design system) ---
+const useStyles = makeStyles((c) => ({
   container: {
     flex: 1,
     flexDirection: "column",
@@ -3142,8 +3143,8 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70, // CIRCULAR
     borderWidth: 1.5,
-    borderColor: "rgba(167, 139, 250, 0.8)", // Violet-400 tint
-    backgroundColor: "rgba(167, 139, 250, 0.05)",
+    borderColor: withAlpha(c.accent.purple, 0.8), // Violet tint
+    backgroundColor: withAlpha(c.accent.purple, 0.05),
   },
   orbSlot: {
     position: "absolute",
@@ -3185,13 +3186,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: c.shadow,
         shadowOpacity: 0.6,
         shadowRadius: 20,
         shadowOffset: { width: 0, height: 10 },
       },
       android: { elevation: 15 },
-      web: { boxShadow: `0 10px 30px rgba(0,0,0,0.5)` },
+      web: { boxShadow: `0 10px 30px ${withAlpha(c.shadow, 0.5)}` },
     }),
   },
   micLevelHalo: {
@@ -3201,8 +3202,8 @@ const styles = StyleSheet.create({
     height: 156,
     borderRadius: 78,
     borderWidth: 2,
-    borderColor: "rgba(56, 189, 248, 0.7)",
-    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    borderColor: withAlpha(c.accent.info, 0.7),
+    backgroundColor: c.accentTint.info,
   },
   orbMask: {
     width: 140,
@@ -3210,35 +3211,35 @@ const styles = StyleSheet.create({
     borderRadius: 70, // CIRCULAR
     overflow: "hidden", // CLIP CONTENT
     borderWidth: 1,
-    borderColor: "rgba(167, 139, 250, 0.3)", // Subtle stroke
+    borderColor: withAlpha(c.accent.purple, 0.3), // Subtle stroke
     alignItems: "center",
     justifyContent: "center",
   },
   agentOrbMask: {
-    borderColor: "rgba(251, 146, 60, 0.38)",
+    borderColor: withAlpha(c.action.primary, 0.38),
   },
   userOrbMask: {
-    borderColor: "rgba(56, 189, 248, 0.36)",
+    borderColor: withAlpha(c.accent.info, 0.36),
   },
   orbPreparingGlow: {
-    borderColor: "rgba(251, 146, 60, 0.56)",
-    backgroundColor: "rgba(251, 146, 60, 0.08)",
+    borderColor: withAlpha(c.action.primary, 0.56),
+    backgroundColor: c.action.primaryTint,
   },
   orbSpeakingGlow: {
-    borderColor: "rgba(249, 115, 22, 0.8)",
-    backgroundColor: "rgba(249, 115, 22, 0.1)",
+    borderColor: withAlpha(c.action.primary, 0.8),
+    backgroundColor: c.action.primaryTint,
   },
   userOrbReady: {
-    borderColor: "rgba(56, 189, 248, 0.78)",
-    backgroundColor: "rgba(14, 165, 233, 0.09)",
+    borderColor: withAlpha(c.accent.info, 0.78),
+    backgroundColor: c.accentTint.info,
   },
   userOrbInterrupting: {
-    borderColor: "rgba(125, 211, 252, 0.9)",
-    backgroundColor: "rgba(14, 165, 233, 0.14)",
+    borderColor: withAlpha(c.feedback.infoText, 0.9),
+    backgroundColor: withAlpha(c.accent.info, 0.14),
   },
   userOrbRetry: {
-    borderColor: "rgba(34, 211, 238, 0.95)",
-    backgroundColor: "rgba(34, 211, 238, 0.14)",
+    borderColor: withAlpha(c.accent.info, 0.95),
+    backgroundColor: withAlpha(c.accent.info, 0.14),
   },
   orbInnerGlow: {
     position: "absolute",
@@ -3248,13 +3249,13 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   iconClean: {
-    textShadowColor: "rgba(167, 139, 250, 0.4)", // Subtle violet glow behind icon
+    textShadowColor: withAlpha(c.accent.purple, 0.4), // Subtle violet glow behind icon
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
   orbCaption: {
     marginTop: 10,
-    color: "rgba(255,255,255,0.62)",
+    color: c.text.secondary,
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 1.4,
@@ -3267,7 +3268,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   statusTextModern: {
-    color: "rgba(255,255,255,0.9)", // Slightly softer white
+    color: c.text.primary,
     fontSize: 16,
     fontWeight: "400", // Elegant, not too thin
     letterSpacing: 3, // Premium wide tracking
@@ -3275,7 +3276,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   retryHintText: {
-    color: "rgba(186, 230, 253, 0.88)",
+    color: c.feedback.infoText,
     fontSize: 14,
     fontWeight: "500",
     letterSpacing: 0.2,
@@ -3293,29 +3294,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: c.surface.material,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 30, // Pill shape
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.border.default,
   },
 
   // Tips / Suggestions Container
   glassTipsContainer: {
     width: "90%",
-    backgroundColor: "rgba(15, 23, 42, 0.6)", // Deeper, more subtle background
+    backgroundColor: c.surface.material,
     borderRadius: 24,
     padding: 20, // More padding
     marginBottom: 30,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    shadowColor: "#000",
+    borderColor: c.border.default,
+    shadowColor: c.shadow,
     shadowOpacity: 0.2,
     shadowRadius: 10,
   },
   tipsTitleModern: {
-    color: "rgba(255,255,255,0.4)",
+    color: c.text.tertiary,
     fontSize: 11,
     fontWeight: "700",
     marginBottom: 12,
@@ -3328,15 +3329,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   tipButtonGlass: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.surface.control,
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: c.border.strong,
   },
   tipButtonTextModern: {
-    color: "rgba(255,255,255,0.9)",
+    color: c.text.primary,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -3348,13 +3349,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "75%", // Sleeker, tighter width
     maxWidth: 320,
-    backgroundColor: "rgba(15, 23, 42, 0.4)", // Deeper, semi-transparent indigo
+    backgroundColor: c.surface.material,
     borderRadius: 999, // Perfect pill shape
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(167, 139, 250, 0.15)", // Very subtle violet border
-    shadowColor: "#000",
+    borderColor: c.accentTint.purple, // Very subtle violet border
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -3369,8 +3370,8 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent", // Clean minimalist look without background
   },
   glassControlBtnActive: {
-    backgroundColor: "rgba(167, 139, 250, 0.15)", // Subtle violet tint when active
-    borderColor: "rgba(167, 139, 250, 0.3)",
+    backgroundColor: c.accentTint.purple, // Subtle violet tint when active
+    borderColor: withAlpha(c.accent.purple, 0.3),
     borderWidth: 1,
   },
   mainCallButtonModern: {
@@ -3383,30 +3384,30 @@ const styles = StyleSheet.create({
     borderWidth: 0, // Removed thick stroke for a cleaner look
   },
   startCallButton: {
-    backgroundColor: "#10B981", // Rich Emerald
-    shadowColor: "#10B981",
+    backgroundColor: c.accent.success,
+    shadowColor: c.accent.success,
     shadowOpacity: 0.4,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   endCallButton: {
-    backgroundColor: "#E11D48", // Rich Rose/Red
-    shadowColor: "#E11D48",
+    backgroundColor: c.accent.danger,
+    shadowColor: c.accent.danger,
     shadowOpacity: 0.6,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 10,
   },
   activeCallButtonGlow: {
-    shadowColor: "#F43F5E",
+    shadowColor: c.accent.danger,
     shadowOpacity: 0.8,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
     elevation: 12,
   },
   disabledButton: {
-    backgroundColor: "rgba(255,255,255,0.1)", // Glassy disabled state
+    backgroundColor: c.surface.control, // Glassy disabled state
     shadowOpacity: 0,
   },
   notificationBadgeModern: {
@@ -3416,19 +3417,19 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#F43F5E",
+    backgroundColor: c.accent.danger,
     borderWidth: 2,
-    borderColor: "#1E293B", // Match bg
+    borderColor: c.background.canvas, // Match bg
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#F43F5E",
+    shadowColor: c.accent.danger,
     shadowOpacity: 0.7,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 6,
   },
   notificationBadgeText: {
-    color: "#FFFFFF",
+    color: c.accentOn.danger,
     fontSize: 10,
     fontWeight: "800",
     lineHeight: 13,
@@ -3441,7 +3442,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.85)", // Darker, more immersive
+    backgroundColor: c.overlay.scrim,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2000,
@@ -3450,13 +3451,13 @@ const styles = StyleSheet.create({
   promptGlassBox: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: "#1E293B",
+    backgroundColor: c.surface.elevated,
     borderRadius: 30,
     padding: 32,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    shadowColor: "#000",
+    borderColor: c.border.default,
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.6,
     shadowRadius: 50,
@@ -3465,14 +3466,14 @@ const styles = StyleSheet.create({
   promptTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#F8FAFC",
+    color: c.text.primary,
     textAlign: "center",
     marginBottom: 12,
     letterSpacing: 0.5,
   },
   promptText: {
     fontSize: 15,
-    color: "#94A3B8",
+    color: c.text.secondary,
     textAlign: "center",
     marginBottom: 32,
     lineHeight: 24,
@@ -3485,11 +3486,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   promptButtonPrimary: {
-    backgroundColor: theme.colors.actionPrimary.default,
+    backgroundColor: c.action.primary,
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 20,
-    shadowColor: theme.colors.actionPrimary.default,
+    shadowColor: c.action.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -3503,16 +3504,16 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   promptButtonTextPri: {
-    color: "#FFFFFF",
+    color: c.action.onPrimary,
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.5,
   },
   promptButtonTextSec: {
-    color: "#94A3B8",
+    color: c.text.secondary,
     fontSize: 16,
     fontWeight: "600",
   },
-});
+}));
 
 export default CallingWidget;

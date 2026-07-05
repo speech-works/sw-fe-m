@@ -6,7 +6,6 @@ import {
   spacing,
   space,
   radius,
-  elevation,
   Text,
   Icon,
   icons,
@@ -19,7 +18,7 @@ interface LibrarySectionProps {
 
 const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
   const navigation = useNavigation<any>();
-  const { colors } = useTheme();
+  const { colors, elevation } = useTheme();
   // Solid vivid accent card (Community pattern). Dark ink reads on the fill.
   const ink = colors.accentOn.success;
 
@@ -33,7 +32,7 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
       <Text variant="h3">Library</Text>
 
       <PressableScale
-        style={styles.cardContainer}
+        style={[styles.cardContainer, elevation.e2]}
         scaleTo={0.98}
         onPress={() =>
           navigation.navigate("LibraryStack", {
@@ -98,7 +97,6 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: radius.card,
     overflow: "hidden", // Clips the gradient and bubbles
-    ...elevation.e2,
   },
   gradient: {
     flex: 1,

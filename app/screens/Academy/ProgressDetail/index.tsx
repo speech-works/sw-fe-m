@@ -3,7 +3,6 @@ import React, { useMemo, useRef, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   View,
   Dimensions,
@@ -19,6 +18,7 @@ import {
 import { useProgressReportStore } from "../../../stores/progressReport";
 import { useUserStore } from "../../../stores/user";
 import {
+  SchemeStatusBar,
   useTheme,
   spacing,
   space,
@@ -216,7 +216,7 @@ const ProgressDetail = () => {
 
   return (
     <ScreenView style={[styles.screenView, { backgroundColor: colors.background.canvas }]}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <SchemeStatusBar translucent backgroundColor="transparent" />
 
       {/* Paged content — the whole page (title + cards) scrolls */}
       <ScrollView
