@@ -1,6 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { theme } from "../Theme/tokens";
+import { View } from "react-native";
+import { makeStyles, Text } from "../design-system";
 
 interface MessageBubbleProps {
   message: string;
@@ -8,6 +8,7 @@ interface MessageBubbleProps {
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isUser }) => {
+  const styles = useStyles();
   return (
     <View
       style={[
@@ -17,7 +18,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isUser }) => {
     >
       {!isUser && (
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>🤖</Text>
+          <Text variant="body">🤖</Text>
         </View>
       )}
       <View
@@ -26,7 +27,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isUser }) => {
           isUser ? styles.userBubble : styles.agentBubble,
         ]}
       >
-        <Text style={[isUser ? styles.userText : styles.agentText]}>
+        <Text variant="body" color="primary">
           {message}
         </Text>
       </View>
@@ -36,11 +37,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isUser }) => {
 
 export default MessageBubble;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   messageContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginVertical: 8,
+    marginVertical: t.spacing.sm,
     maxWidth: "80%",
   },
   userMessageContainer: {
@@ -55,38 +56,24 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.library.blue[600],
+    backgroundColor: c.accent.info,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: t.spacing.sm,
     overflow: "hidden",
-  },
-  avatarText: {
-    fontSize: 16,
-    color: "#fff",
   },
   messageBubble: {
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderRadius: 20,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
+    borderRadius: t.radius.chip,
+    ...t.elevation.e2,
   },
   userBubble: {
-    backgroundColor: theme.colors.library.green[100],
+    backgroundColor: c.accentTint.success,
     borderBottomRightRadius: 5,
   },
   agentBubble: {
-    backgroundColor: theme.colors.surface.default,
+    backgroundColor: c.surface.elevated,
     borderBottomLeftRadius: 5,
   },
-  userText: {
-    color: theme.colors.text.default,
-  },
-  agentText: {
-    color: theme.colors.text.default,
-  },
-});
+}));

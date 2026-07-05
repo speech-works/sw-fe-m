@@ -1,8 +1,7 @@
 // components/LoadingScreen.tsx
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { theme } from "../Theme/tokens";
-import { parseTextStyle } from "../util/functions/parseStyles";
+import { ActivityIndicator, View } from "react-native";
+import { makeStyles, Text, useTheme } from "../design-system";
 
 interface LoadingScreenProps {
   message?: string;
@@ -13,31 +12,34 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = "Loading…",
   isNested = false,
 }) => {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <View style={[styles.container, isNested && styles.nestedContainer]}>
-      <ActivityIndicator size="large" color={theme.colors.actionPrimary.default} />
+      <ActivityIndicator size="large" color={colors.action.primary} />
 
-      <Text style={[styles.text, isNested && styles.nestedText]}>{message}</Text>
+      <Text
+        variant="body"
+        center
+        color={isNested ? "primary" : "secondary"}
+        style={isNested ? styles.nestedText : undefined}
+      >
+        {message}
+      </Text>
     </View>
   );
 };
 
 export default LoadingScreen;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: theme.colors.background.default,
-    gap: 16,
-  },
-
-  text: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
-    textAlign: "center",
+    paddingHorizontal: t.spacing["2xl"],
+    backgroundColor: c.background.canvas,
+    gap: t.spacing.lg,
   },
   nestedContainer: {
     flex: 0,
@@ -46,8 +48,6 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   nestedText: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.title,
-    marginTop: 8,
+    marginTop: t.spacing.sm,
   },
-});
+}));

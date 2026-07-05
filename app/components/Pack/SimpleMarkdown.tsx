@@ -1,8 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View, Linking } from "react-native";
+import { Text, View, Linking } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../../Theme/tokens";
-import { parseTextStyle } from "../../util/functions/parseStyles";
+import { makeStyles, useTheme } from "../../design-system";
 
 export const SimpleMarkdown = ({
   content,
@@ -13,12 +12,16 @@ export const SimpleMarkdown = ({
   textColor?: string;
   variant?: "instruction" | "default";
 }) => {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
   if (!content) return null;
 
   // Normalize line endings and split
   const lines = content.replace(/\r\n/g, "\n").split("\n");
 
   const textStyle = textColor ? { color: textColor } : {};
+  const linkColor = colors.action.primary;
 
   return (
     <View style={styles.container}>
@@ -63,7 +66,7 @@ export const SimpleMarkdown = ({
           return (
             <View key={index} style={styles.blockquote}>
               <Text style={[styles.blockquoteText, textStyle]}>
-                {parseLinksAndBold(trimmedLine.replace("> ", ""), textColor)}
+                {parseLinksAndBold(trimmedLine.replace("> ", ""), linkColor, textColor)}
               </Text>
             </View>
           );
@@ -80,8 +83,8 @@ export const SimpleMarkdown = ({
                 size={18}
                 color={
                   isChecked
-                    ? theme.colors.feedback.success
-                    : textColor || theme.colors.text.default
+                    ? colors.feedback.success
+                    : textColor || colors.text.secondary
                 }
                 style={styles.checkboxIcon}
               />
@@ -92,7 +95,7 @@ export const SimpleMarkdown = ({
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(checkboxMatch[2], textColor)}
+                {parseLinksAndBold(checkboxMatch[2], linkColor, textColor)}
               </Text>
             </View>
           );
@@ -110,7 +113,7 @@ export const SimpleMarkdown = ({
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(content, textColor)}
+                {parseLinksAndBold(content, linkColor, textColor)}
               </Text>
             </View>
           );
@@ -128,7 +131,7 @@ export const SimpleMarkdown = ({
                   textStyle,
                 ]}
               >
-                {parseLinksAndBold(orderedMatch[2], textColor)}
+                {parseLinksAndBold(orderedMatch[2], linkColor, textColor)}
               </Text>
             </View>
           );
@@ -147,7 +150,7 @@ export const SimpleMarkdown = ({
               textStyle,
             ]}
           >
-            {parseLinksAndBold(line, textColor)}
+            {parseLinksAndBold(line, linkColor, textColor)}
           </Text>
         );
       })}
@@ -156,7 +159,11 @@ export const SimpleMarkdown = ({
 };
 
 // Helper: **Bold** and [link](url) parsing
-const parseLinksAndBold = (text: string, textColor?: string) => {
+const parseLinksAndBold = (
+  text: string,
+  linkColor: string,
+  textColor?: string,
+) => {
   const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
@@ -172,7 +179,7 @@ const parseLinksAndBold = (text: string, textColor?: string) => {
         <Text
           key={i}
           style={{
-            color: theme.colors.actionPrimary.default,
+            color: linkColor,
             textDecorationLine: "underline",
           }}
           onPress={() => Linking.openURL(linkMatch[2])}
@@ -186,42 +193,43 @@ const parseLinksAndBold = (text: string, textColor?: string) => {
 };
 
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   container: {
     width: "100%",
   },
   h1: {
-    ...parseTextStyle(theme.typography.Heading1),
-    color: theme.colors.text.title,
+    ...t.typography.display,
+    color: c.text.primary,
     marginBottom: 16,
     marginTop: 20,
   },
   h2: {
-    ...parseTextStyle(theme.typography.Heading2),
-    color: theme.colors.text.title,
+    ...t.typography.h2,
+    color: c.text.primary,
     marginBottom: 12,
     marginTop: 16,
   },
   h3: {
-    ...parseTextStyle(theme.typography.Heading3),
-    color: theme.colors.text.title,
-    fontWeight: "800",
+    ...t.typography.h3,
+    color: c.text.primary,
     marginBottom: 8,
     marginTop: 16,
     letterSpacing: -0.3,
   },
   h4: {
-    ...parseTextStyle(theme.typography.Heading4),
-    color: theme.colors.text.title,
+    ...t.typography.h3,
+    color: c.text.primary,
     marginBottom: 8,
     marginTop: 12,
   },
   body: {
-    ...parseTextStyle(theme.typography.Body),
+    ...t.typography.body,
+    color: c.text.primary,
     marginBottom: 12,
   },
   bodyLarge: {
-    ...parseTextStyle(theme.typography.BodyLarge),
+    ...t.typography.body,
+    color: c.text.primary,
     marginBottom: 12,
   },
   listItem: {
@@ -230,8 +238,8 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   bullet: {
-    ...parseTextStyle(theme.typography.Body),
-    color: theme.colors.text.default,
+    ...t.typography.body,
+    color: c.text.secondary,
     marginRight: 8,
     width: 20,
     textAlign: "center",
@@ -246,17 +254,17 @@ const styles = StyleSheet.create({
   },
   blockquote: {
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.library.orange[300],
+    borderLeftColor: c.action.primary,
     paddingLeft: 16,
     paddingVertical: 4,
     marginVertical: 12,
-    backgroundColor: "rgba(255, 247, 237, 0.5)",
-    borderRadius: 4,
+    backgroundColor: c.action.primaryTint,
+    borderRadius: t.radius.xs,
   },
   blockquoteText: {
-    ...parseTextStyle(theme.typography.BodySmall),
+    ...t.typography.bodySm,
     fontStyle: "italic",
-    color: theme.colors.text.default,
+    color: c.text.secondary,
     lineHeight: 22,
   },
-});
+}));

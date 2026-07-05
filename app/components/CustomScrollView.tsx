@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../Theme/tokens";
+import { useTheme } from "../design-system";
 
 export const SHADOW_BUFFER = 5;
 
@@ -58,6 +58,7 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
     },
     ref,
   ) => {
+    const { colors } = useTheme();
     // Internal ref for Reanimated scrollTo
     const internalRef = useAnimatedRef<Animated.ScrollView>();
 
@@ -189,11 +190,11 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToTop}
-                style={styles.touchableButton}
+                style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
                   name="chevron-up"
-                  style={[styles.baseIcon, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.action.primary }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -209,11 +210,11 @@ const CustomScrollView = forwardRef<Animated.ScrollView, CustomScrollViewProps>(
             >
               <TouchableOpacity
                 onPress={handleScrollToBottom}
-                style={styles.touchableButton}
+                style={[styles.touchableButton, { backgroundColor: colors.surface.control }]}
               >
                 <Icon
                   name="chevron-down"
-                  style={[styles.baseIcon, buttonIconStyle]}
+                  style={[styles.baseIcon, { color: colors.action.primary }, buttonIconStyle]}
                 />
               </TouchableOpacity>
             </Animated.View>
@@ -240,7 +241,6 @@ const styles = StyleSheet.create({
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.9)", // Added BG for visibility
     borderRadius: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -250,7 +250,6 @@ const styles = StyleSheet.create({
   },
   baseIcon: {
     fontSize: 20,
-    color: theme.colors.actionPrimary.default,
   },
   topButton: {
     bottom: 120,

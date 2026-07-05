@@ -2,17 +2,11 @@ import React from "react";
 import {
     ActivityIndicator,
     StyleSheet,
-    Text,
-    TextStyle,
     View,
     ViewStyle
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { theme } from "../Theme/tokens";
-import {
-    parseShadowStyle,
-    parseTextStyle,
-} from "../util/functions/parseStyles";
+import { elevation as elevationToken, Text, useTheme } from "../design-system";
 import { TactileTouchableOpacity } from "./TactileTouchableOpacity";
 
 /**
@@ -92,6 +86,7 @@ const Button: React.FC<ButtonProps> = ({
   style,
   elevation = 1,
 }) => {
+  const { colors } = useTheme();
   // 4. --- Button is disabled if explicitly disabled OR loading ---
   const isDisabled = disabled || loading;
 
@@ -101,24 +96,23 @@ const Button: React.FC<ButtonProps> = ({
 
     if (isDisabled) {
       // Use combined isDisabled check
-      baseStyles.push(styles.disabledButton);
+      baseStyles.push({ backgroundColor: colors.action.disabledBg });
     } else if (variant === "ghost") {
       baseStyles.push(styles.ghostButton);
       baseStyles.push({
-        borderColor: textColor || theme.colors.actionPrimary.default,
+        borderColor: textColor || colors.action.primary,
       });
     } else {
       // Normal variant
-      baseStyles.push(styles.normalButton);
       baseStyles.push({
-        backgroundColor: buttonColor || theme.colors.actionPrimary.default,
+        backgroundColor: buttonColor || colors.action.primary,
       });
 
       // Apply elevation shadow only for normal, non-disabled buttons
       if (elevation === 1) {
-        baseStyles.push(styles.elevation1);
+        baseStyles.push(elevationToken.e1);
       } else if (elevation === 2) {
-        baseStyles.push(styles.elevation2);
+        baseStyles.push(elevationToken.e2);
       }
     }
 
@@ -131,22 +125,21 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   // Determine text and icon color
-  const getTextColor = (): TextStyle => {
+  const getTextColor = (): string => {
     if (isDisabled) {
       // Use combined isDisabled check
-      return styles.disabledText;
+      return colors.action.disabledText;
     }
 
     if (textColor) {
-      return { color: textColor };
+      return textColor;
     }
 
-    // Default text colors based on variant
-    return variant === "normal" ? styles.normalText : styles.ghostText;
+    // Default text colors based on variant (dark-on-orange for the solid fill)
+    return variant === "normal" ? colors.action.onPrimary : colors.action.primary;
   };
 
-  const buttonTextStyle = getTextColor();
-  const iconColor = buttonTextStyle.color as string; // Cast as string for spinner
+  const iconColor = getTextColor();
 
   // NOTE: Removed the 'textSpacingStyle' logic as it was not being
   // applied and is made redundant by the `gap: 12` in `styles.buttonBase`.
@@ -178,7 +171,7 @@ const Button: React.FC<ButtonProps> = ({
       >
         {leftIcon ? <Icon name={leftIcon} size={20} color={iconColor} /> : null}
 
-        <Text style={[styles.buttonTextBase, buttonTextStyle]}>{text}</Text>
+        <Text variant="title" color={iconColor}>{text}</Text>
 
         {rightIcon ? (
           <Icon name={rightIcon} size={20} color={iconColor} />
@@ -199,33 +192,9 @@ const styles = StyleSheet.create({
     padding: 16,
     minHeight: 52, // Added to ensure consistent height
   },
-  normalButton: {
-    backgroundColor: theme.colors.actionPrimary.default,
-  },
   ghostButton: {
     backgroundColor: "transparent",
     borderWidth: 1, // Default border for ghost, color set dynamically
-  },
-  elevation1: {
-    ...parseShadowStyle(theme.shadow.elevation1),
-  },
-  elevation2: {
-    ...parseShadowStyle(theme.shadow.elevation2),
-  },
-  disabledButton: {
-    backgroundColor: theme.colors.actionPrimary.disabled,
-  },
-  buttonTextBase: {
-    ...parseTextStyle(theme.typography.Button),
-  },
-  normalText: {
-    color: theme.colors.text.onDark,
-  },
-  ghostText: {
-    color: theme.colors.actionPrimary.default,
-  },
-  disabledText: {
-    color: theme.colors.text.disabled,
   },
 });
 

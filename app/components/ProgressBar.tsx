@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
-import { theme } from "../Theme/tokens";
-
-import { parseTextStyle } from "../util/functions/parseStyles";
+import { Animated, View } from "react-native";
+import { makeStyles, Text, useTheme } from "../design-system";
 
 interface ProgressBarProps {
   currentStep: number;
@@ -21,6 +19,8 @@ const ProgressBar = ({
   style,
   themeStyle = "dark",
 }: ProgressBarProps) => {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -34,18 +34,22 @@ const ProgressBar = ({
   }, [currentStep, totalSteps]);
 
   const percentage = Math.round((currentStep / totalSteps) * 100);
+  const fillColor =
+    themeStyle === "dark" ? colors.action.primaryPressed : colors.action.primary;
 
   return (
     <View style={[style]}>
       {(showStepIndicator || showPercentage) && (
         <View style={styles.stepInfo}>
           {showStepIndicator && (
-            <Text style={styles.stepText}>
+            <Text variant="bodySm" color="secondary">
               Step {currentStep} of {totalSteps}
             </Text>
           )}
           {showPercentage && (
-            <Text style={styles.percentageText}>{percentage}%</Text>
+            <Text variant="bodySm" color="secondary">
+              {percentage}%
+            </Text>
           )}
         </View>
       )}
@@ -59,10 +63,7 @@ const ProgressBar = ({
                 outputRange: ["0%", "100%"],
                 extrapolate: "clamp",
               }),
-              backgroundColor:
-                themeStyle === "dark"
-                  ? theme.colors.progressBar.bar
-                  : theme.colors.progressBar.barLight,
+              backgroundColor: fillColor,
             },
           ]}
         />
@@ -73,30 +74,21 @@ const ProgressBar = ({
 
 export default ProgressBar;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, t) => ({
   stepInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-  },
-  stepText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
-  },
-  percentageText: {
-    ...parseTextStyle(theme.typography.BodySmall),
-    color: theme.colors.text.default,
+    marginBottom: t.spacing.sm,
   },
   progressBar: {
     height: 8,
-    backgroundColor: theme.colors.progressBar.base,
-    borderRadius: 4,
+    backgroundColor: c.surface.row,
+    borderRadius: t.radius.xs,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: theme.colors.progressBar.bar,
-    borderRadius: 4,
+    borderRadius: t.radius.xs,
   },
-});
+}));
