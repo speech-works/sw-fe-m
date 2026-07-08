@@ -281,6 +281,8 @@ const DimensionDetailScreen = () => {
   const [selectedFamily, setSelectedFamily] = useState<DetailFamily>("combined");
   const scrollViewRef = useRef<ScrollView>(null);
   const [contentWidth, setContentWidth] = useState(Dimensions.get("window").width);
+  const uncertainty = overallState?.clinical?.domains?.[domain as ClinicalDomain]?.uncertainty ?? 0;
+  const isSettling = uncertainty > 25;
 
   // Sync tab-tap → scroll position.
   useEffect(() => {
@@ -372,6 +374,14 @@ const DimensionDetailScreen = () => {
                 <Text variant="bodySm" color="secondary" style={styles.familyDesc}>
                   {FAMILY_DESCRIPTIONS[domain as ClinicalDomain][family]}
                 </Text>
+                {isSettling && (family === "combined" || family === "clinical") && (
+                  <View style={[styles.settlingBanner, { backgroundColor: colors.surface.control }]}>
+                    <Icon name={icons.duration} size={16} color={colors.text.tertiary} />
+                    <Text variant="bodySm" color="tertiary" style={styles.settlingText}>
+                      Still getting to know you. This is an early estimate and will firm up as you check in.
+                    </Text>
+                  </View>
+                )}
               </Animated.View>
 
               {/* Score + trend read top-left, the 4-week trajectory flows below them. */}
@@ -528,6 +538,17 @@ const useStyles = makeStyles((c) => ({
   },
   familyDesc: {
     marginBottom: space.sectionGap,
+  },
+  settlingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.md,
+    borderRadius: radius.md,
+    gap: spacing.sm,
+    marginBottom: space.sectionGap,
+  },
+  settlingText: {
+    flex: 1,
   },
   chartHero: {
     marginBottom: space.groupGap,

@@ -16,6 +16,7 @@ import type { IconName } from "./components/Icon";
  *   - `satisfies Record<string, IconName>` keeps every value a real Feather glyph.
  */
 export const icons = {
+  star: 'star',
   // ── Shared moments · wins ──
   win: "award", // a win / accomplishment
   courage: "shield", // faced a fear / bravery

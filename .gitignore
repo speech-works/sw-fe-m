@@ -86,6 +86,8 @@ yarn-error.*
 
 # Local Expo modules: ignore only their build artifacts, keep the native source.
 modules/*/android/build/
+modules/*/android/.gradle/
+modules/*/android/.cxx/
 modules/*/ios/build/
 
 # .expo-shared

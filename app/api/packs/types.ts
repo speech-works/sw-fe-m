@@ -145,6 +145,9 @@ export interface Pack {
   philosophy: PackPhilosophy;
   targetGoals: SpeechGoal[];
   modules: PackModule[];
+  avgValueScore?: number;
+  targetHitRate?: number;
+  completionCount?: number;
 }
 
 export interface PackRecommendation {

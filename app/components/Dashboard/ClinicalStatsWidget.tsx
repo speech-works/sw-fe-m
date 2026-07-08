@@ -99,6 +99,7 @@ type MetricChipItem = {
   hasComparison: boolean;
   percentDelta: number | null;
   trend: "IMPROVING" | "STABLE" | "WORSENING";
+  uncertainty: number;
 };
 
 /** One tappable metric tile — accent icon, score, a trend arrow, and its label. */
@@ -124,16 +125,18 @@ const MetricChip: React.FC<{
     ? colors.feedback.successText
     : colors.feedback.dangerText;
 
+  const isSettling = item.uncertainty > 25;
+
   return (
     <Animated.View style={styles.chipWrap} entering={motion.stagger(index)}>
       <PressableScale
         scaleTo={0.96}
         onPress={() => onPress(item.domain)}
-        style={styles.chip}
+        style={[styles.chip, isSettling && { opacity: 0.65 }]}
       >
         <View style={styles.chipHeader}>
           <Icon name={item.config.icon} size={16} color={accent} />
-          {showTrend && (
+          {showTrend && !isSettling && (
             <View style={styles.chipTrend}>
               <Text variant="caption" color={trendColor}>
                 {improving ? "+" : ""}
@@ -141,8 +144,13 @@ const MetricChip: React.FC<{
               </Text>
             </View>
           )}
+          {isSettling && (
+            <View style={styles.chipTrend}>
+              <Icon name={icons.duration} size={14} color={colors.text.tertiary} />
+            </View>
+          )}
         </View>
-        <Text variant="h3" color="primary">
+        <Text variant="h3" color={isSettling ? "tertiary" : "primary"}>
           {Math.round(item.current)}
         </Text>
         <Text variant="bodySm" color="secondary" numberOfLines={1}>
@@ -234,6 +242,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
       const config = METRIC_CONFIG[domain];
       const key = config.profileKey;
       const delta = combinedDeltas[key];
+      const uncertainty = overallState.clinical.domains[domain]?.uncertainty ?? 0;
       return {
         key,
         domain,
@@ -242,6 +251,7 @@ const ClinicalStatsWidget = ({ style }: { style?: any }) => {
         hasComparison: delta.hasComparison,
         percentDelta: delta.percentDelta,
         trend: delta.trend,
+        uncertainty,
       };
     });
   }, [overallState]);

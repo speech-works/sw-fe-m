@@ -31,7 +31,7 @@ import * as Localization from "expo-localization";
 
 import { API_BASE_URL } from "../api/constants";
 import { SECURE_KEYS_NAME } from "../constants/secureStorageKeys";
-import { makeStyles, useTheme, withAlpha } from "../design-system";
+import { makeStyles, useTheme, withAlpha, radius } from "../design-system";
 import { isHeadsetConnected } from "../util/functions/headset";
 
 type CallExitPayload = {
@@ -450,7 +450,7 @@ const CallingWidget: React.FC<Props> = ({
   const [idleWarningVisible, setIdleWarningVisible] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState<number | null>(null);
   const [callEndReason, setCallEndReason] = useState<string | null>(null);
-  const [maxTurns, setMaxTurns] = useState<number | null>(null);
+  const [maxCallDurationMs, setMaxCallDurationMs] = useState<number | null>(null);
   const [, setIsAgentAudioPlaying] = useState(false);
   const [isCallEndAckInProgress, setIsCallEndAckInProgress] = useState(false);
   const [missedSpeechCueVisible, setMissedSpeechCueVisible] = useState(false);
@@ -1670,7 +1670,7 @@ const CallingWidget: React.FC<Props> = ({
     callReadyRef.current = false;
     agentAudioStartedRef.current = false;
     setIsAgentAudioPlaying(false);
-    setMaxTurns(null);
+    setMaxCallDurationMs(null);
     clearCallSafetyTimeouts();
     clearMissedSpeechCue(true);
     clearTimerRef(postPlaybackReadyTimeoutRef);
@@ -2030,9 +2030,9 @@ const CallingWidget: React.FC<Props> = ({
         callReadyRef.current = true;
         voiceCallV1EnabledRef.current = data.voiceCallV1Enabled !== false;
         syncUserListeningState("AI is ready");
-        if (data.maxTurns) {
-          setMaxTurns(data.maxTurns);
-          callDebugLog(`[Cost Control] maxTurns set to ${data.maxTurns}`);
+        if (data.maxCallDurationMs) {
+          setMaxCallDurationMs(data.maxCallDurationMs);
+          callDebugLog(`[Cost Control] maxCallDurationMs set to ${data.maxCallDurationMs}`);
         }
         break;
 
@@ -2670,6 +2670,31 @@ const CallingWidget: React.FC<Props> = ({
         </View>
       )}
 
+      {/* Call Duration Timer (Top Right) */}
+      {isCalling && maxCallDurationMs && (
+        <View style={{
+          position: 'absolute',
+          top: 16,
+          right: 24,
+          backgroundColor: Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.accent.danger : withAlpha(colors.surface.default, 0.2),
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: radius.pill,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <FAIcon name="clock" size={12} color={Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.text.inverse : colors.text.primary} />
+          <Text style={{
+            color: Math.max(0, maxCallDurationMs / 1000 - callDuration) < 30 ? colors.text.inverse : colors.text.primary,
+            fontWeight: "bold",
+            fontSize: 14
+          }}>
+            {Math.floor(Math.max(0, maxCallDurationMs / 1000 - callDuration) / 60).toString().padStart(2, '0')}:{Math.floor(Math.max(0, maxCallDurationMs / 1000 - callDuration) % 60).toString().padStart(2, '0')}
+          </Text>
+        </View>
+      )}
+
       {/* Spacer to push content center */}
       <View style={{ flex: 1 }} />
 
@@ -3020,7 +3045,7 @@ const CallingWidget: React.FC<Props> = ({
                   } catch {}
                 }}
               >
-                <Text style={styles.promptButtonTextPri}>I'm still here</Text>
+                <Text style={styles.promptButtonTextPri}>I&apos;m still here</Text>
               </TouchableOpacity>
             </View>
           </View>

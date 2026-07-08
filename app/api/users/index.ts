@@ -66,6 +66,8 @@ export interface User {
    * nudge is due (below threshold, within frequency cap, or insufficient data).
    */
   toolNudge?: ToolNudgeDirective | null;
+
+  vacationMode?: boolean;
 }
 
 export interface LevelStage {

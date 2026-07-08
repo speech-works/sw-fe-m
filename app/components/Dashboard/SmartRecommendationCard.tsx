@@ -238,6 +238,15 @@ const SmartRecommendationCard = ({ style }: SmartRecommendationCardProps) => {
               <Text variant="body" color={ink}>
                 {pack.description}
               </Text>
+              {/* Efficacy Badges */}
+              {(pack.targetHitRate !== undefined && pack.targetHitRate > 0) && (
+                <View style={{ flexDirection: 'row', marginTop: spacing.xs, alignItems: 'center', backgroundColor: withAlpha(colors.surface.default, 0.2), alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xxs, borderRadius: radius.pill }}>
+                  <Icon name={icons.star} size={14} color={ink} style={{ marginRight: 4 }} />
+                  <Text variant="caption" color={ink} style={{ fontWeight: 'bold' }}>
+                    {Math.round(pack.targetHitRate * 100)}% Goal Hit Rate
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Large Watermark Icon */}

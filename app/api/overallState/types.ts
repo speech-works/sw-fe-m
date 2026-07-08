@@ -35,22 +35,31 @@ export interface ClinicalSummary {
 export interface EngagementSummary {
   formResponseCount: number;
   exposurePracticeCount: number;
+  exposurePracticeCount28d: number;
   avgSelfReportedAnxiety: number | null;
   avgSelfReportedConfidence: number | null;
   avgStress: number | null;
   avgTensionSeverity: number | null;
   avgProprioception: number | null;
   avgAvoidanceUrge: number | null;
+  avgReflectionMastery: number | null;
+  avgReflectionEase: number | null;
+  avgReflectionCourage: number | null;
+  avgReflectionConfidence: number | null;
+  avgReflectionSocial: number | null;
+  avgEffort: number | null;
+  avgAutonomy: number | null;
+  avgAccuracy: number | null;
   recentSecondaryCount: number | null;
   lastSecondaryCount: number | null;
   previousSecondaryCount: number | null;
   secondaryCountDelta: number | null;
+  approachRate28d: number | null;
+  exposuresOffered28d: number;
+  exposuresCompleted28d: number;
   activeDaysThisWeek: number;
   totalActiveDays: number;
-  avgPackConfidenceShift: number | null;
-  avgPackFunctionalGain: number | null;
-  avgEffort: number | null;
-  avgAutonomy: number | null;
+  lastActivityDate: string | null;
 }
 
 /**

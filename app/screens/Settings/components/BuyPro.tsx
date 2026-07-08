@@ -26,15 +26,15 @@ interface BuyProProps {
 }
 
 const BuyPro: React.FC<BuyProProps> = ({ onLayoutCapture }) => {
-  // Hidden while monetization is dormant (no in-app billing wired yet).
-  if (!PAYMENTS_ENABLED) return null;
-
   type SettingsNav = NativeStackNavigationProp<SettingsStackParamList>;
   type ExploreNav = NativeStackNavigationProp<ExploreStackParamList>;
   type CrossNavigationProp = CompositeNavigationProp<SettingsNav, ExploreNav>;
 
   const { colors, elevation } = useTheme();
   const navigation = useNavigation<CrossNavigationProp>();
+
+  // Hidden while monetization is dormant (no in-app billing wired yet).
+  if (!PAYMENTS_ENABLED) return null;
 
   const copy = {
     badge: "EXCLUSIVE OFFER",
