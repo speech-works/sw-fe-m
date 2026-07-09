@@ -78,7 +78,7 @@ export const PromoCard: React.FC<PromoCardProps> = ({
     <PressableScale
       scaleTo={0.98}
       onPress={onPress}
-      style={[styles.shadow, { shadowColor: colors.shadow }, style]}
+      style={[styles.shadow, style]}
     >
       <View style={[styles.fill, { backgroundColor: fill }]}>
         {/* Subtle ink-circle texture (the Explore banner pattern) — depth without art. */}
@@ -142,10 +142,6 @@ export default PromoCard;
 const styles = StyleSheet.create({
   shadow: {
     borderRadius: radius.card,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
   },
   fill: {
     height: 260,
