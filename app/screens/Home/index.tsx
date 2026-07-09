@@ -339,6 +339,12 @@ const Home = () => {
           />
         }
       >
+        <ResourceStats refreshing={refreshing} />
+
+        <SmartRecommendationCard key={`rec-${refreshKey}`} />
+
+        <ClinicalStatsWidget />
+
         {cards.length > 0 ? (
           <Carousel
             data={cards}
@@ -346,12 +352,6 @@ const Home = () => {
             renderItem={({ item }) => renderCard(item)}
           />
         ) : null}
-
-        <ResourceStats refreshing={refreshing} />
-
-        <SmartRecommendationCard key={`rec-${refreshKey}`} />
-
-        <ClinicalStatsWidget />
       </Page>
 
       {interactionsDone && <MoodCheckPopup />}

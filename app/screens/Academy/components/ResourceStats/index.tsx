@@ -8,6 +8,8 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Line } from "react-native-svg";
 import { getLevelStage, LevelStage } from "../../../../api/users";
 import { useUserStore } from "../../../../stores/user";
 import {
@@ -19,8 +21,7 @@ import {
   icons,
 } from "../../../../design-system";
 
-// Animated Bar Component
-const AnimatedBar = ({
+const ProgressBar = ({
   percentage,
   color,
   trackColor,
@@ -29,28 +30,15 @@ const AnimatedBar = ({
   color: string;
   trackColor: string;
 }) => {
-  const widthAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(widthAnim, {
-      toValue: percentage,
-      duration: 1000,
-      useNativeDriver: false,
-      easing: Easing.out(Easing.exp),
-    }).start();
-  }, [percentage]);
-
   return (
     <View style={[styles.barTrack, { backgroundColor: trackColor }]}>
-      <Animated.View
+      <View
         style={[
           styles.barFill,
           {
             backgroundColor: color,
-            width: widthAnim.interpolate({
-              inputRange: [0, 100],
-              outputRange: ["0%", "100%"],
-            }),
+            width: `${percentage}%`,
+            overflow: "hidden",
           },
         ]}
       />
@@ -105,22 +93,19 @@ const ResourceStats = ({
   const xpIntoLevel = Math.max(
     0,
     (levelStage?.totalXp ?? user?.totalXp ?? 0) -
-      (levelStage?.currentLevelXpFloor || 0),
+    (levelStage?.currentLevelXpFloor || 0),
   );
   const xpForNextLevel = Math.max(
     1,
     (levelStage?.nextLevelXpCeiling || 100) -
-      (levelStage?.currentLevelXpFloor || 0),
+    (levelStage?.currentLevelXpFloor || 0),
   );
   const xpRemaining = xpForNextLevel - xpIntoLevel;
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const currentMaxStamina = user?.maxStaminaCap || 80;
-  const staminaPercentage = Math.min(
-    100,
-    Math.round((estimatedStamina / currentMaxStamina) * 100),
-  );
+  const staminaPercentage: number = Math.min(100, Math.max(0, Math.round((estimatedStamina / currentMaxStamina) * 100))) || 0;
 
   useEffect(() => {
     if (!isFocused) return;
@@ -220,24 +205,12 @@ const ResourceStats = ({
       <View
         style={[
           styles.card,
-          { backgroundColor: colors.surface.default, borderColor: colors.border.hairline },
+          { backgroundColor: "transparent", borderColor: "transparent" },
         ]}
       >
         {/* Large watermark — flame at low opacity on the dark surface. */}
-        <View style={styles.mainWatermarkContainer} pointerEvents="none">
+        <View style={[styles.mainWatermarkContainer, { opacity: 0 }]} pointerEvents="none">
           <Icon name={icons.streak} size={120} color={colors.action.primary} style={{ opacity: 0.1 }} />
-        </View>
-
-        {/* Header — title + subtitle, no eyebrow. */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text variant="h2" color="primary" style={styles.cardTitle}>
-              Daily Progress
-            </Text>
-            <Text variant="body" color="secondary">
-              Your energy and growth
-            </Text>
-          </View>
         </View>
 
         {/* Data stack */}
@@ -258,7 +231,7 @@ const ResourceStats = ({
               </Text>
             </View>
 
-            <AnimatedBar
+            <ProgressBar
               percentage={staminaPercentage}
               color={colors.action.primary}
               trackColor={colors.surface.control}
@@ -433,7 +406,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing["3xl"],
+    paddingTop: 0,
     paddingBottom: spacing["2xl"],
     position: "relative",
     overflow: "hidden",
@@ -533,14 +506,14 @@ const styles = StyleSheet.create({
 
   // Animations
   barTrack: {
-    height: 12,
-    borderRadius: radius.sm,
+    height: 24,
+    borderRadius: radius.md,
     width: "100%",
     overflow: "hidden",
   },
   barFill: {
     height: "100%",
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
   },
   watermarkContainer: {
     position: "absolute",
