@@ -18,7 +18,8 @@ interface LibrarySectionProps {
 
 const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
   const navigation = useNavigation<any>();
-  const { colors, elevation } = useTheme();
+  const { colors, elevation, scheme } = useTheme();
+  const isDark = scheme === "dark";
   // Solid vivid accent card (Community pattern). Dark ink reads on the fill.
   const ink = colors.accentOn.success;
 
@@ -73,9 +74,9 @@ const LibrarySection: React.FC<LibrarySectionProps> = ({ onLayoutCapture }) => {
 
           <View style={styles.actions}>
             {/* Primary action = a solid dark island on the bright fill. */}
-            <View style={[styles.cta, { backgroundColor: colors.action.secondary }]}>
-              <Icon name={icons.play} size={14} color={colors.action.onSecondary} />
-              <Text variant="title" color={colors.action.onSecondary}>
+            <View style={[styles.cta, { backgroundColor: isDark ? colors.action.secondary : colors.surface.inverse }]}>
+              <Icon name={icons.play} size={14} color={isDark ? colors.action.onSecondary : colors.text.primary} />
+              <Text variant="title" color={isDark ? colors.action.onSecondary : colors.text.primary}>
                 Recorded Lessons
               </Text>
             </View>
