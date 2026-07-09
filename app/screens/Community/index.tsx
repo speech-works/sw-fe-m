@@ -1281,7 +1281,7 @@ const styles = StyleSheet.create({
   stepIconBox: {
     width: 52,
     height: 52,
-    borderRadius: radius.card,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
   },
